@@ -79,15 +79,24 @@ class RGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Invert this gate.
+    def inverse(self, annotated: bool = False):
+        """Invert this gate as: :math:`r(θ, φ)^dagger = r(-θ, φ)`
 
-        r(θ, φ)^dagger = r(-θ, φ)
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RGate` with an inverted parameter value.
+
+        Returns:
+            RGate: inverse gate.
         """
         return RGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the R gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -95,7 +104,11 @@ class RGate(Gate):
         exp_p = exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, phi = self.params
         return RGate(exponent * theta, phi)
+
+    def __eq__(self, other):
+        if isinstance(other, RGate):
+            return self._compare_parameters(other)
+        return False

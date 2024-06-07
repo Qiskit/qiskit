@@ -30,6 +30,28 @@ plugin.
 See :mod:`qiskit.transpiler.preset_passmanagers.plugin` for details on how
 to write plugins for transpiler stages.
 
+Synthesis Plugin API
+====================
+
+Unitary Synthesis Plugin API
+----------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitarySynthesisPlugin
+   UnitarySynthesisPluginManager
+   unitary_synthesis_plugin_names
+
+High-Level Synthesis Plugin API
+-------------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HighLevelSynthesisPlugin
+   HighLevelSynthesisPluginManager
+   high_level_synthesis_plugin_names
 
 Writing Plugins
 ===============
@@ -135,7 +157,7 @@ points under the ``qiskit.unitary_synthesis`` namespace. For example:
 
 .. code-block:: toml
 
-    [project.entry-points."qiskit.unitary-synthesis"]
+    [project.entry-points."qiskit.unitary_synthesis"]
     "special" = "qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis"
 
 There isn't a limit to the number of plugins a single package can
@@ -149,7 +171,7 @@ Unitary Synthesis Plugin Configuration
 For some unitary synthesis plugins that expose multiple options and tunables
 the plugin interface has an option for users to provide a free form
 configuration dictionary. This will be passed through to the ``run()`` method
-as the ``config`` kwarg. If your plugin has these configuration options you
+as the ``options`` kwarg. If your plugin has these configuration options you
 should clearly document how a user should specify these configuration options
 and how they're used as it's a free form field.
 
@@ -216,7 +238,7 @@ The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by adding
 an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
-points under the ``qiskit.unitary_synthesis`` namespace. For example:
+points under the ``qiskit.synthesis`` namespace. For example:
 
 .. code-block:: toml
 
@@ -284,29 +306,82 @@ argument::
 
 will return a list of all the installed Clifford synthesis plugins.
 
-Plugin API
-==========
+Available Plugins
+=================
+
+High-level synthesis plugins that are directly available in Qiskit include plugins
+for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
+:class:`.PermutationGate` objects.
+Some of these plugins implicitly target all-to-all connectivity. This is not a
+practical limitation since
+:class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
+typically runs before layout and routing, which will ensure that the final circuit
+adheres to the device connectivity by inserting additional SWAP gates. A good example
+is the permutation synthesis plugin ``ACGSynthesisPermutation`` which can synthesize
+any permutation with at most 2 layers of SWAP gates.
+On the other hand, some plugins implicitly target linear connectivity.
+Typically, the synthesizing circuits have larger depth and the number of gates,
+however no additional SWAP gates would be inserted if the following layout pass chose a
+consecutive line of qubits inside the topology of the device. A good example of this is
+the permutation synthesis plugin ``KMSSynthesisPermutation`` which can synthesize any
+permutation of ``n`` qubits in depth ``n``. Typically, it is difficult to know in advance
+which of the two approaches: synthesizing circuits for all-to-all connectivity and
+inserting SWAP gates vs. synthesizing circuits for linear connectivity and inserting less
+or no SWAP gates lead a better final circuit, so it likely makes sense to try both and
+see which gives better results.
+Finally, some plugins can target a given connectivity, and hence should be run after the
+layout is set. In this case the synthesized circuit automatically adheres to
+the topology of the device. A good example of this is the permutation synthesis plugin
+``TokenSwapperSynthesisPermutation`` which is able to synthesize arbitrary permutations
+with respect to arbitrary coupling maps.
+For more detail, please refer to description of each individual plugin.
+
+Below are the synthesis plugin classes available in Qiskit. These classes should not be
+used directly, but instead should be used through the plugin interface documented
+above. The classes are listed here to ease finding the documentation for each of the
+included plugins and to ease the comparison between different synthesis methods for
+a given object.
+
 
 Unitary Synthesis Plugins
 -------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
+.. automodule:: qiskit.transpiler.passes.synthesis.aqc_plugin
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-   UnitarySynthesisPlugin
-   UnitarySynthesisPluginManager
-   unitary_synthesis_plugin_names
+.. automodule:: qiskit.transpiler.passes.synthesis.unitary_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-High-Level Synthesis Plugins
-----------------------------
+.. automodule:: qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-.. autosummary::
-   :toctree: ../stubs/
 
-   HighLevelSynthesisPlugin
-   HighLevelSynthesisPluginManager
-   high_level_synthesis_plugin_names
+High Level Synthesis
+--------------------
 
+For each high-level object we give a table that lists all of its plugins available
+directly in Qiskit. We include the name of the plugin, the class of the plugin,
+the targeted connectivity map and optionally additional information. Recall the plugins
+should be used via the previously described :class:`.HLSConfig`, for example::
+
+    HLSConfig(permutation=["kms"])
+
+creates a high-level synthesis configuration that uses the ``kms`` plugin
+for synthesizing :class:`.PermutationGate` objects -- i.e. those with
+``name = "permutation"``. In this case, the plugin name is "kms", the plugin class
+is :class:`~.KMSSynthesisPermutation`. This particular synthesis algorithm created
+a circuit adhering to the linear nearest-neighbor connectivity.
+
+.. automodule:: qiskit.transpiler.passes.synthesis.high_level_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 """
 
 import abc
@@ -623,13 +698,13 @@ class HighLevelSynthesisPluginManager:
         self.plugins_by_op = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
-            if op_name not in self.plugins_by_op.keys():
+            if op_name not in self.plugins_by_op:
                 self.plugins_by_op[op_name] = []
             self.plugins_by_op[op_name].append(method_name)
 
     def method_names(self, op_name):
         """Returns plugin methods for op_name."""
-        if op_name in self.plugins_by_op.keys():
+        if op_name in self.plugins_by_op:
             return self.plugins_by_op[op_name]
         else:
             return []

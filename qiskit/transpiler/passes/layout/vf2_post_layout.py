@@ -285,9 +285,9 @@ class VF2PostLayout(AnalysisPass):
             stop_reason = VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
-            self.property_set[
-                "VF2PostLayout_stop_reason"
-            ] = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            self.property_set["VF2PostLayout_stop_reason"] = (
+                VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            )
             return
 
         logger.debug("Initial layout has score %s", chosen_layout_score)

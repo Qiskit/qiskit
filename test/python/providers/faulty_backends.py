@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,10 +13,10 @@
 """Faulty fake backends for testing"""
 
 from qiskit.providers.models import BackendProperties
-from qiskit.providers.fake_provider import FakeOurense
+from qiskit.providers.fake_provider import Fake7QPulseV1
 
 
-class FakeOurenseFaultyQ1(FakeOurense):
+class Fake7QV1FaultyQ1(Fake7QPulseV1):
     """A fake 5 qubit backend, with a faulty q1
     0 ↔ (1) ↔ 3 ↔ 4
          ↕
@@ -34,7 +34,19 @@ class FakeOurenseFaultyQ1(FakeOurense):
         return BackendProperties.from_dict(props)
 
 
-class FakeOurenseFaultyCX01CX10(FakeOurense):
+class Fake7QV1MissingQ1Property(Fake7QPulseV1):
+    """A fake 7 qubit backend, with a missing T1 property in q1."""
+
+    def properties(self):
+        """Returns a snapshot of device properties as recorded on 8/30/19.
+        Remove property from qubit 1.
+        """
+        props = super().properties().to_dict()
+        props["qubits"][1] = filter(lambda q: q["name"] != "T1", props["qubits"][1])
+        return BackendProperties.from_dict(props)
+
+
+class Fake7QV1FaultyCX01CX10(Fake7QPulseV1):
     """A fake 5 qubit backend, with faulty CX(Q1, Q0) and CX(Q0, Q1)
     0 (↔) 1 ↔ 3 ↔ 4
           ↕
@@ -54,7 +66,7 @@ class FakeOurenseFaultyCX01CX10(FakeOurense):
         return BackendProperties.from_dict(props)
 
 
-class FakeOurenseFaultyCX13CX31(FakeOurense):
+class Fake7QV1FaultyCX13CX31(Fake7QPulseV1):
     """A fake 5 qubit backend, with faulty CX(Q1, Q3) and CX(Q3, Q1)
     0 ↔ 1 (↔) 3 ↔ 4
         ↕
@@ -74,7 +86,7 @@ class FakeOurenseFaultyCX13CX31(FakeOurense):
         return BackendProperties.from_dict(props)
 
 
-class FakeOurenseFaultyCX13(FakeOurense):
+class Fake7QV1FaultyCX13(Fake7QPulseV1):
     """A fake 5 qubit backend, with faulty CX(Q1, Q3), but valid CX(Q3, Q1)
     0 ↔ 1 <- 3 ↔ 4
         ↕

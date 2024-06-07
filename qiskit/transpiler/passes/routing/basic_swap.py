@@ -114,7 +114,13 @@ class BasicSwap(TransformationPass):
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
 
-        self.property_set["final_layout"] = current_layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_layout
+        else:
+            self.property_set["final_layout"] = current_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
+
         return new_dag
 
     def _fake_run(self, dag):
@@ -151,5 +157,10 @@ class BasicSwap(TransformationPass):
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-        self.property_set["final_layout"] = current_layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_layout
+        else:
+            self.property_set["final_layout"] = current_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         return dag

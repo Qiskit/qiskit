@@ -26,8 +26,6 @@ from qiskit.circuit import (
     Clbit,
 )
 
-from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
-
 from . import (
     HGate,
     CHGate,
@@ -81,6 +79,38 @@ from . import (
 
 
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
+
+
+def _cnot_rxx_decompose(plus_ry: bool = True, plus_rxx: bool = True):
+    """Decomposition of CNOT gate.
+
+    NOTE: this differs to CNOT by a global phase.
+    The matrix returned is given by exp(1j * pi/4) * CNOT
+
+    Args:
+        plus_ry (bool): positive initial RY rotation
+        plus_rxx (bool): positive RXX rotation.
+
+    Returns:
+        QuantumCircuit: The decomposed circuit for CNOT gate (up to
+        global phase).
+    """
+    # Convert boolean args to +/- 1 signs
+    if plus_ry:
+        sgn_ry = 1
+    else:
+        sgn_ry = -1
+    if plus_rxx:
+        sgn_rxx = 1
+    else:
+        sgn_rxx = -1
+    circuit = QuantumCircuit(2, global_phase=-sgn_ry * sgn_rxx * pi / 4)
+    circuit.append(RYGate(sgn_ry * pi / 2), [0])
+    circuit.append(RXXGate(sgn_rxx * pi / 2), [0, 1])
+    circuit.append(RXGate(-sgn_rxx * pi / 2), [0])
+    circuit.append(RXGate(-sgn_rxx * sgn_ry * pi / 2), [1])
+    circuit.append(RYGate(-sgn_ry * pi / 2), [0])
+    return circuit
 
 
 # Import existing gate definitions
@@ -820,6 +850,56 @@ for inst, qargs, cargs in [
     def_swap.append(inst, qargs, cargs)
 _sel.add_equivalence(SwapGate(), def_swap)
 
+# SwapGate
+#
+# q_0: ─X─
+#       │   ≡
+# q_1: ─X─
+#
+#      ┌──────────┐┌──────┐   ┌────┐   ┌──────┐┌──────────┐┌──────┐
+# q_0: ┤ Rz(-π/2) ├┤0     ├───┤ √X ├───┤1     ├┤ Rz(-π/2) ├┤0     ├
+#      └──┬────┬──┘│  Ecr │┌──┴────┴──┐│  Ecr │└──┬────┬──┘│  Ecr │
+# q_1: ───┤ √X ├───┤1     ├┤ Rz(-π/2) ├┤0     ├───┤ √X ├───┤1     ├
+#         └────┘   └──────┘└──────────┘└──────┘   └────┘   └──────┘
+#
+q = QuantumRegister(2, "q")
+def_swap_ecr = QuantumCircuit(q)
+def_swap_ecr.rz(-pi / 2, 0)
+def_swap_ecr.sx(1)
+def_swap_ecr.ecr(0, 1)
+def_swap_ecr.rz(-pi / 2, 1)
+def_swap_ecr.sx(0)
+def_swap_ecr.ecr(1, 0)
+def_swap_ecr.rz(-pi / 2, 0)
+def_swap_ecr.sx(1)
+def_swap_ecr.ecr(0, 1)
+_sel.add_equivalence(SwapGate(), def_swap_ecr)
+
+# SwapGate
+#
+# q_0: ─X─
+#       │   ≡
+# q_1: ─X─
+#
+# global phase: 3π/2
+#      ┌────┐   ┌────┐   ┌────┐
+# q_0: ┤ √X ├─■─┤ √X ├─■─┤ √X ├─■─
+#      ├────┤ │ ├────┤ │ ├────┤ │
+# q_1: ┤ √X ├─■─┤ √X ├─■─┤ √X ├─■─
+#      └────┘   └────┘   └────┘
+q = QuantumRegister(2, "q")
+def_swap_cz = QuantumCircuit(q, global_phase=-pi / 2)
+def_swap_cz.sx(0)
+def_swap_cz.sx(1)
+def_swap_cz.cz(0, 1)
+def_swap_cz.sx(0)
+def_swap_cz.sx(1)
+def_swap_cz.cz(0, 1)
+def_swap_cz.sx(0)
+def_swap_cz.sx(1)
+def_swap_cz.cz(0, 1)
+_sel.add_equivalence(SwapGate(), def_swap_cz)
+
 # iSwapGate
 #
 #      ┌────────┐          ┌───┐┌───┐     ┌───┐
@@ -1250,9 +1330,9 @@ _sel.add_equivalence(XGate(), def_x)
 
 # CXGate
 
-for plus_ry in [False, True]:
-    for plus_rxx in [False, True]:
-        cx_to_rxx = cnot_rxx_decompose(plus_ry, plus_rxx)
+for pos_ry in [False, True]:
+    for pos_rxx in [False, True]:
+        cx_to_rxx = _cnot_rxx_decompose(pos_ry, pos_rxx)
         _sel.add_equivalence(CXGate(), cx_to_rxx)
 
 # CXGate

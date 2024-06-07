@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -84,11 +84,10 @@ def plot_gate_map(
         .. plot::
            :include-source:
 
-           from qiskit import QuantumCircuit, execute
-           from qiskit.providers.fake_provider import FakeVigoV2
+           from qiskit.providers.fake_provider import GenericBackendV2
            from qiskit.visualization import plot_gate_map
 
-           backend = FakeVigoV2()
+           backend = GenericBackendV2(num_qubits=5)
 
            plot_gate_map(backend)
     """
@@ -1040,7 +1039,9 @@ def plot_coupling_map(
         graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
+        line_color_map = dict(zip(graph.edge_list(), line_color))
         graph = graph.to_undirected(multigraph=False)
+        line_color = [line_color_map[edge] for edge in graph.edge_list()]
 
     for node in graph.node_indices():
         graph[node] = node
@@ -1123,7 +1124,13 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
-        view (str): Layout view: either 'virtual' or 'physical'.
+        view (str): How to label qubits in the layout. Options:
+
+          - ``"virtual"``: Label each qubit with the index of the virtual qubit that
+            mapped to it.
+          - ``"physical"``: Label each qubit with the index of the physical qubit that it
+            corresponds to on the device.
+
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence must match the number of qubits on the backend. The sequence
@@ -1141,13 +1148,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         .. plot::
            :include-source:
 
-            import numpy as np
             from qiskit import QuantumCircuit, transpile
-            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.providers.fake_provider import GenericBackendV2
             from qiskit.visualization import plot_circuit_layout
-            from qiskit.tools.monitor import job_monitor
-            from qiskit.providers.fake_provider import FakeVigoV2
-            import matplotlib.pyplot as plt
 
             ghz = QuantumCircuit(3, 3)
             ghz.h(0)
@@ -1155,7 +1158,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
                 ghz.cx(0,idx)
             ghz.measure(range(3), range(3))
 
-            backend = FakeVigoV2()
+            backend = GenericBackendV2(num_qubits=5)
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
     """
@@ -1247,11 +1250,10 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
         .. plot::
            :include-source:
 
-            from qiskit import QuantumCircuit, execute
             from qiskit.visualization import plot_error_map
-            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.providers.fake_provider import GenericBackendV2
 
-            backend = FakeVigoV2()
+            backend = GenericBackendV2(num_qubits=5)
             plot_error_map(backend)
     """
     import matplotlib

@@ -72,10 +72,10 @@ class _Quaternion:
             return self._multiply_with_quaternion(b)
         elif isinstance(b, (list, tuple, np.ndarray)):
             if len(b) != 3:
-                raise Exception(f"Input vector has invalid length {len(b)}")
+                raise ValueError(f"Input vector has invalid length {len(b)}")
             return self._multiply_with_vector(b)
         else:
-            raise Exception(f"Multiplication with unknown type {type(b)}")
+            return NotImplemented
 
     def _multiply_with_quaternion(self, q_2):
         """Multiplication of quaternion with quaternion"""

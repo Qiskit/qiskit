@@ -14,11 +14,12 @@
 
 import unittest
 import numpy as np
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -1232,13 +1233,6 @@ class TestCircuitProperties(QiskitTestCase):
         with self.assertRaises(TypeError):
             qc.metadata = 1
 
-    def test_metdata_deprectation(self):
-        """Test that setting metadata to None emits a deprecation warning."""
-        qc = QuantumCircuit(1)
-        with self.assertWarns(DeprecationWarning):
-            qc.metadata = None
-        self.assertEqual(qc.metadata, {})
-
     def test_scheduling(self):
         """Test cannot return schedule information without scheduling."""
         qc = QuantumCircuit(2)
@@ -1246,8 +1240,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(0, 1)
 
         with self.assertRaises(AttributeError):
-            # pylint: disable=pointless-statement
-            qc.op_start_times
+            _ = qc.op_start_times
 
 
 if __name__ == "__main__":

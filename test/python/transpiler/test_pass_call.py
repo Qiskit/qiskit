@@ -13,12 +13,9 @@
 """Test calling passes (passmanager-less)"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import ZGate
-from qiskit.transpiler.passes import Unroller
-from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler import PropertySet
 from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP, PassN_AP_NR_NP
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassCall(QiskitTestCase):
@@ -93,19 +90,3 @@ class TestPassCall(QiskitTestCase):
         self.assertEqual(property_set, PropertySet({"to none": None}))
         self.assertIsInstance(property_set, dict)
         self.assertEqual(circuit, result)
-
-    def test_error_unknown_defn_unroller_pass(self):
-        """Check for proper error message when unroller cannot find the definition
-        of a gate."""
-        circuit = ZGate().control(2).definition
-        basis = ["u1", "u2", "u3", "cx"]
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(basis)
-        with self.assertRaises(QiskitError) as cm:
-            unroller(circuit)
-        exp_msg = (
-            "Error decomposing node of instruction 'u': "
-            "'NoneType' object has no attribute 'global_phase'. "
-            "Unable to define instruction 'u' in the given basis."
-        )
-        self.assertEqual(exp_msg, cm.exception.message)

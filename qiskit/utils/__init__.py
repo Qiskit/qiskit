@@ -18,27 +18,39 @@ Utilities (:mod:`qiskit.utils`)
 
 .. currentmodule:: qiskit.utils
 
+Deprecations
+============
+
 .. autofunction:: add_deprecation_to_docstring
 .. autofunction:: deprecate_arg
 .. autofunction:: deprecate_arguments
 .. autofunction:: deprecate_func
 .. autofunction:: deprecate_function
-.. autofunction:: local_hardware_info
-.. autofunction:: is_main_process
+
+SI unit conversion
+==================
+
 .. autofunction:: apply_prefix
 .. autofunction:: detach_prefix
+
+Class tools
+===========
+
 .. autofunction:: wrap_method
 
+Multiprocessing
+===============
 
-Parallel Routines
------------------
-A helper function for calling a custom function with python
+.. autofunction:: local_hardware_info
+.. autofunction:: is_main_process
+
+A helper function for calling a custom function with Python
 :class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
 
 .. autofunction:: parallel_map
 
-Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
-============================================================
+Optional Dependency Checkers
+============================
 
 .. automodule:: qiskit.utils.optionals
 """
@@ -58,7 +70,7 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
-from .parallel import parallel_map
+from .parallel import parallel_map, should_run_in_parallel
 
 __all__ = [
     "LazyDependencyManager",
@@ -73,4 +85,5 @@ __all__ = [
     "is_main_process",
     "apply_prefix",
     "parallel_map",
+    "should_run_in_parallel",
 ]

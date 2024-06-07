@@ -19,7 +19,7 @@ from unittest.mock import patch
 from qiskit.utils.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.pulse import Schedule
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _parfunc(x):

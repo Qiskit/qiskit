@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    :meth:`.QuantumCircuit.barrier` will now generate correct output when given a :class:`set` as
-    one of its inputs.  Previously, it would append an invalid operation onto the circuit, though in
-    practice this usually would not cause observable problems.
-    Fixed `#11208 <https://github.com/Qiskit/qiskit/issues/11208>`__

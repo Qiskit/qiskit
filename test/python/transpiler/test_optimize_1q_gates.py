@@ -17,13 +17,17 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Optimize1qGates, Unroller
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -58,8 +62,7 @@ class TestOptimize1qGates(QiskitTestCase):
         expected.append(U2Gate(0, np.pi), [qr[0]])
 
         passmanager = PassManager()
-        with self.assertWarns(DeprecationWarning):
-            passmanager.append(Unroller(["u2"]))
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
         result = passmanager.run(circuit)
 
@@ -695,8 +698,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         qc.ry(alpha, qr[0])
         qc.ry(0.1, qr[0])
         qc.ry(0.2, qr[0])
-        with self.assertWarns(DeprecationWarning):
-            passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
+        passmanager = PassManager([BasisTranslator(std_eqlib, ["u3"]), Optimize1qGates()])
         result = passmanager.run(qc)
 
         expected = QuantumCircuit(qr)

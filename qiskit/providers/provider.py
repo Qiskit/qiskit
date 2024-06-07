@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.utils import deprecate_func
 
 
 class Provider:
@@ -28,12 +29,27 @@ class Provider:
 
     version = 0
 
+    @deprecate_func(
+        since=1.1,
+        additional_msg="The abstract Provider and ProviderV1 classes are deprecated and will be "
+        "removed in 2.0. You can just remove it as the parent class and a `get_backend` "
+        "method that returns the backends from `self.backend`.",
+    )
+    def __init__(self):
+        pass
+
 
 class ProviderV1(Provider, ABC):
     """Base class for a Backend Provider."""
 
     version = 1
 
+    @deprecate_func(
+        since=1.1,
+        additional_msg="The abstract Provider and ProviderV1 classes are deprecated and will  be "
+        "removed in 2.0. You can just remove it as the parent class and a `get_backend` "
+        "method that returns the backends from `self.backend`.",
+    )
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
 

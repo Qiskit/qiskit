@@ -36,15 +36,15 @@ import copy
 import functools
 import itertools
 import multiprocessing as mp
-import re
 import sys
 import warnings
 from collections.abc import Callable, Iterable
-from typing import List, Tuple, Union, Dict, Any
+from typing import List, Tuple, Union, Dict, Any, Sequence
 
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -53,6 +53,7 @@ from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
+from qiskit.utils import deprecate_arg
 
 
 Interval = Tuple[int, int]
@@ -712,13 +713,19 @@ class Schedule:
         return self._parameter_manager.is_parameterized()
 
     def assign_parameters(
-        self, value_dict: dict[ParameterExpression, ParameterValueType], inplace: bool = True
+        self,
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
+        inplace: bool = True,
     ) -> "Schedule":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -879,83 +886,53 @@ class ScheduleBlock:
     Appended reference directives are resolved when the main program is executed.
     Subroutines must be assigned through :meth:`assign_references` before execution.
 
-    .. rubric:: Program Scoping
-
-    When you call a subroutine from another subroutine, or append a schedule block
-    to another schedule block, the management of references and parameters
-    can be a hard task. Schedule block offers a convenient feature to help with this
-    by automatically scoping the parameters and subroutines.
+    One way to reference a subroutine in a schedule is to use the pulse
+    builder's :func:`~qiskit.pulse.builder.reference`  function to declare an
+    unassigned reference.  In this example, the program is called with the
+    reference key "grand_child".  You can call a subroutine without specifying
+    a substantial program.
 
     .. code-block::
 
         from qiskit import pulse
         from qiskit.circuit.parameter import Parameter
 
-        amp1 = Parameter("amp")
+        amp1 = Parameter("amp1")
+        amp2 = Parameter("amp2")
 
-        with pulse.build() as sched1:
+        with pulse.build() as sched_inner:
             pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
 
-        print(sched1.scoped_parameters())
-
-    .. parsed-literal::
-
-       (Parameter(root::amp),)
-
-    The :meth:`~ScheduleBlock.scoped_parameters` method returns all :class:`~.Parameter`
-    objects defined in the schedule block. The parameter name is updated to reflect
-    its scope information, i.e. where it is defined.
-    The outer scope is called "root". Since the "amp" parameter is directly used
-    in the current builder context, it is prefixed with "root".
-    Note that the :class:`Parameter` object returned by :meth:`~ScheduleBlock.scoped_parameters`
-    preserves the hidden `UUID`_ key, and thus the scoped name doesn't break references
-    to the original :class:`Parameter`.
-
-    You may want to call this program from another program.
-    In this example, the program is called with the reference key "grand_child".
-    You can call a subroutine without specifying a substantial program
-    (like ``sched1`` above which we will assign later).
-
-    .. code-block::
-
-        amp2 = Parameter("amp")
-
-        with pulse.build() as sched2:
+        with pulse.build() as sched_outer:
             with pulse.align_right():
                 pulse.reference("grand_child")
                 pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(0))
 
-        print(sched2.scoped_parameters())
-
-    .. parsed-literal::
-
-       (Parameter(root::amp),)
-
-    This only returns "root::amp" because the "grand_child" reference is unknown.
-    Now you assign the actual pulse program to this reference.
+    Now you assign the inner pulse program to this reference.
 
     .. code-block::
 
-        sched2.assign_references({("grand_child", ): sched1})
-        print(sched2.scoped_parameters())
+        sched_outer.assign_references({("grand_child", ): sched_inner})
+        print(sched_outer.parameters)
 
     .. parsed-literal::
 
-       (Parameter(root::amp), Parameter(root::grand_child::amp))
+       {Parameter(amp1), Parameter(amp2)}
 
-    Now you get two parameters "root::amp" and "root::grand_child::amp".
-    The second parameter name indicates it is defined within the referred program "grand_child".
+    The outer program now has the parameter ``amp2`` from the inner program,
+    indicating that the inner program's data has been made available to the
+    outer program.
     The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
 
     .. code-block::
 
-        print(sched2.references)
+        print(sched_outer.references)
 
     .. parsed-literal::
 
        ReferenceManager:
-         - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp,...
+         - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp1,...
 
     Finally, you may want to call this program from another program.
     Here we try a different approach to define subroutine. Namely, we call
@@ -963,37 +940,20 @@ class ScheduleBlock:
 
     .. code-block::
 
-        amp3 = Parameter("amp")
+        amp3 = Parameter("amp3")
 
         with pulse.build() as main:
             pulse.play(pulse.Constant(300, amp3), pulse.DriveChannel(0))
-            pulse.call(sched2, name="child")
+            pulse.call(sched_outer, name="child")
 
-        print(main.scoped_parameters())
+        print(main.parameters)
 
     .. parsed-literal::
 
-       (Parameter(root::amp), Parameter(root::child::amp), Parameter(root::child::grand_child::amp))
+       {Parameter(amp1), Parameter(amp2), Parameter(amp3}
 
     This implicitly creates a reference named "child" within
-    the root program and assigns ``sched2`` to it.
-    You get three parameters "root::amp", "root::child::amp", and "root::child::grand_child::amp".
-    As you can see, each parameter name reflects the layer of calls from the root program.
-    If you know the scope of a parameter, you can directly get the parameter object
-    using :meth:`ScheduleBlock.search_parameters` as follows.
-
-    .. code-block::
-
-        main.search_parameters("root::child::grand_child::amp")
-
-    You can use a regular expression to specify the scope.
-    The following returns the parameters defined within the scope of "ground_child"
-    regardless of its parent scope. This is sometimes convenient if you
-    want to extract parameters from a deeply nested program.
-
-    .. code-block::
-
-        main.search_parameters("\\S::grand_child::amp")
+    the root program and assigns ``sched_outer`` to it.
 
     Note that the root program is only aware of its direct references.
 
@@ -1015,10 +975,8 @@ class ScheduleBlock:
 
         main.references[("child", )].references[("grand_child", )]
 
-    Note that :attr:`ScheduleBlock.parameters` and :meth:`ScheduleBlock.scoped_parameters()`
-    still collect all parameters also from the subroutine once it's assigned.
-
-    .. _UUID: https://docs.python.org/3/library/uuid.html#module-uuid
+    Note that :attr:`ScheduleBlock.parameters` still collects all parameters
+    also from the subroutine once it's assigned.
     """
 
     __slots__ = (
@@ -1225,25 +1183,6 @@ class ScheduleBlock:
             out_params |= subroutine.parameters
 
         return out_params
-
-    def scoped_parameters(self) -> tuple[Parameter, ...]:
-        """Return unassigned parameters with scoped names.
-
-        .. note::
-
-            If a parameter is defined within a nested scope,
-            it is prefixed with all parent-scope names with the delimiter string,
-            which is "::". If a reference key of the scope consists of
-            multiple key strings, it will be represented by a single string joined with ",".
-            For example, "root::xgate,q0::amp" for the parameter "amp" defined in the
-            reference specified by the key strings ("xgate", "q0").
-        """
-        return tuple(
-            sorted(
-                _collect_scoped_parameters(self, current_scope="root").values(),
-                key=lambda p: p.name,
-            )
-        )
 
     @property
     def references(self) -> ReferenceManager:
@@ -1477,14 +1416,18 @@ class ScheduleBlock:
 
     def assign_parameters(
         self,
-        value_dict: dict[ParameterExpression, ParameterValueType],
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1624,43 +1567,6 @@ class ScheduleBlock:
         matched = [p for p in self.parameters if p.name == parameter_name]
         return matched
 
-    def search_parameters(self, parameter_regex: str) -> list[Parameter]:
-        """Search parameter with regular expression.
-
-        This method looks for the scope-aware parameters.
-        For example,
-
-        .. code-block:: python
-
-            from qiskit import pulse, circuit
-
-            amp1 = circuit.Parameter("amp")
-            amp2 = circuit.Parameter("amp")
-
-            with pulse.build() as sub_prog:
-                pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
-
-            with pulse.build() as main_prog:
-                pulse.call(sub_prog, name="sub")
-                pulse.play(pulse.Constant(100, amp2), pulse.DriveChannel(0))
-
-            main_prog.search_parameters("root::sub::amp")
-
-        This finds ``amp1`` with scoped name "root::sub::amp".
-
-        Args:
-            parameter_regex: Regular expression for scoped parameter name.
-
-        Returns:
-            Parameter objects that have corresponding name.
-        """
-        pattern = re.compile(parameter_regex)
-
-        return sorted(
-            _collect_scoped_parameters(self, current_scope="root", filter_regex=pattern).values(),
-            key=lambda p: p.name,
-        )
-
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
         return len(self.blocks)
@@ -1740,6 +1646,7 @@ def _common_method(*classes):
     return decorator
 
 
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
@@ -1751,9 +1658,10 @@ def draw(
     show_snapshot: bool = True,
     show_framechange: bool = True,
     show_waveform_info: bool = True,
-    show_barrier: bool = True,
+    plot_barrier: bool = True,
     plotter: str = "mpl2d",
     axis: Any | None = None,
+    show_barrier: bool = True,
 ):
     """Plot the schedule.
 
@@ -1765,16 +1673,16 @@ def draw(
             preset stylesheets.
         backend (Optional[BaseBackend]): Backend object to play the input pulse program.
             If provided, the plotter may use to make the visualization hardware aware.
-        time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
-        time_unit: The unit of specified time range either `dt` or `ns`.
-            The unit of `ns` is available only when `backend` object is provided.
+        time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
+        time_unit: The unit of specified time range either ``dt`` or ``ns``.
+            The unit of `ns` is available only when ``backend`` object is provided.
         disable_channels: A control property to show specific pulse channel.
             Pulse channel instances provided as a list are not shown in the output image.
         show_snapshot: Show snapshot instructions.
         show_framechange: Show frame change instructions. The frame change represents
             instructions that modulate phase or frequency of pulse channels.
         show_waveform_info: Show additional information about waveforms such as their name.
-        show_barrier: Show barrier lines.
+        plot_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
@@ -1787,6 +1695,7 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
+        show_barrier: DEPRECATED. Show barrier lines.
 
     Returns:
         Visualization output data.
@@ -1796,6 +1705,7 @@ def draw(
     # pylint: disable=cyclic-import
     from qiskit.visualization import pulse_drawer
 
+    del show_barrier
     return pulse_drawer(
         program=self,
         style=style,
@@ -1806,7 +1716,7 @@ def draw(
         show_snapshot=show_snapshot,
         show_framechange=show_framechange,
         show_waveform_info=show_waveform_info,
-        show_barrier=show_barrier,
+        plot_barrier=plot_barrier,
         plotter=plotter,
         axis=axis,
     )
@@ -1936,56 +1846,6 @@ def _get_references(block_elms: list["BlockComponent"]) -> set[Reference]:
         elif isinstance(elm, Reference):
             references.add(elm)
     return references
-
-
-def _collect_scoped_parameters(
-    schedule: ScheduleBlock,
-    current_scope: str,
-    filter_regex: re.Pattern | None = None,
-) -> dict[tuple[str, int], Parameter]:
-    """A helper function to collect parameters from all references in scope-aware fashion.
-
-    Parameter object is renamed with attached scope information but its UUID is remained.
-    This means object is treated identically on the assignment logic.
-    This function returns a dictionary of all parameters existing in the target program
-    including its reference, which is keyed on the unique identifier consisting of
-    scoped parameter name and parameter object UUID.
-
-    This logic prevents parameter clash in the different scope.
-    For example, when two parameter objects with the same UUID exist in different references,
-    both of them appear in the output dictionary, even though they are technically the same object.
-    This feature is particularly convenient to search parameter object with associated scope.
-
-    Args:
-        schedule: Schedule to get parameters.
-        current_scope: Name of scope where schedule exist.
-        filter_regex: Optional. Compiled regex to sort parameter by name.
-
-    Returns:
-        A dictionary of scoped parameter objects.
-    """
-    parameters_out = {}
-    for param in schedule._parameter_manager.parameters:
-        new_name = f"{current_scope}{Reference.scope_delimiter}{param.name}"
-
-        if filter_regex and not re.search(filter_regex, new_name):
-            continue
-        scoped_param = Parameter(new_name, uuid=getattr(param, "_uuid"))
-
-        unique_key = new_name, hash(param)
-        parameters_out[unique_key] = scoped_param
-
-    for sub_namespace, subroutine in schedule.references.items():
-        if subroutine is None:
-            continue
-        composite_key = Reference.key_delimiter.join(sub_namespace)
-        full_path = f"{current_scope}{Reference.scope_delimiter}{composite_key}"
-        sub_parameters = _collect_scoped_parameters(
-            subroutine, current_scope=full_path, filter_regex=filter_regex
-        )
-        parameters_out.update(sub_parameters)
-
-    return parameters_out
 
 
 # These type aliases are defined at the bottom of the file, because as of 2022-01-18 they are

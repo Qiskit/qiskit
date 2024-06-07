@@ -123,6 +123,7 @@ class FakeOpenPulse2Q(FakeBackend):
                 "revision": "1.0",
                 "segment": "A",
             },
+            description="A fake test backend with pulse defaults",
         )
 
         self._defaults = PulseDefaults.from_dict(
@@ -294,6 +295,22 @@ class FakeOpenPulse2Q(FakeBackend):
             ],
             gates=[
                 Gate(
+                    gate="id",
+                    qubits=[0],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="id",
+                    qubits=[1],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
                     gate="u1",
                     qubits=[0],
                     parameters=[
@@ -302,11 +319,35 @@ class FakeOpenPulse2Q(FakeBackend):
                     ],
                 ),
                 Gate(
-                    gate="u3",
+                    gate="u1",
+                    qubits=[1],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
+                    ],
+                ),
+                Gate(
+                    gate="u2",
                     qubits=[0],
                     parameters=[
                         Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
                         Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="u2",
+                    qubits=[1],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="u3",
+                    qubits=[0],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=4 * dt),
                     ],
                 ),
                 Gate(

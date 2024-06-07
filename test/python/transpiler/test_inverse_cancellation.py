@@ -21,7 +21,6 @@ from qiskit import QuantumCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import (
     RXGate,
     HGate,
@@ -33,6 +32,7 @@ from qiskit.circuit.library import (
     CZGate,
     RZGate,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInverseCancellation(QiskitTestCase):
@@ -358,8 +358,10 @@ class TestInverseCancellation(QiskitTestCase):
         new_circ = inverse_pass(qc)
         self.assertEqual(new_circ, QuantumCircuit(1))
 
-    def test_parameterized_self_inverse_not_equal_parameter(self):
-        """Test that a parameterized self inverse gate doesn't cancel incorrectly."""
+    def test_parameterized_self_inverse_not_equal_parameter_1(self):
+        """Test that a parameterized self inverse gate doesn't cancel incorrectly.
+        This test, checks three gates with the same name but the middle one has a
+        different parameter."""
         qc = QuantumCircuit(1)
         qc.rz(0, 0)
         qc.rz(3.14159, 0)
@@ -367,6 +369,16 @@ class TestInverseCancellation(QiskitTestCase):
         inverse_pass = InverseCancellation([RZGate(0)])
         new_circ = inverse_pass(qc)
         self.assertEqual(new_circ, qc)
+
+    def test_parameterized_self_inverse_not_equal_parameter_2(self):
+        """Test that a parameterized self inverse gate doesn't cancel incorrectly.
+        This test, checks two gates with the same name but different parameters."""
+        qc = QuantumCircuit(1)
+        qc.rz(0, 0)
+        qc.rz(3.14159, 0)
+        inverse_pass = InverseCancellation([RZGate(0)])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(qc, new_circ)
 
     def test_controlled_gate_open_control_does_not_cancel(self):
         """Test that a controlled gate with an open control doesn't cancel."""

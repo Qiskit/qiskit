@@ -63,7 +63,7 @@ a pulse:
 .. plot::
    :include-source:
 
-   from qiskit import execute, pulse
+   from qiskit import pulse
 
    d0 = pulse.DriveChannel(0)
 
@@ -74,8 +74,8 @@ a pulse:
 
 The builder initializes a :class:`.pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
-schedule will survive after the context is exited and can be executed like a
-normal Qiskit schedule using ``qiskit.execute(pulse_prog, backend)``.
+schedule will survive after the context is exited and can be used like a
+normal Qiskit schedule.
 
 Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
@@ -97,9 +97,9 @@ automatically lowered to be run as a pulse program:
    from qiskit.circuit import QuantumCircuit
 
    from qiskit import pulse
-   from qiskit.providers.fake_provider import FakePerth
+   from qiskit.providers.fake_provider import GenericBackendV2
 
-   backend = FakePerth()
+   backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True)
 
    d2 = pulse.DriveChannel(2)
 
@@ -250,9 +250,9 @@ Methods to return the correct channels for the respective qubit indices.
 .. code-block::
 
     from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as drive_sched:
         d0 = pulse.drive_channel(0)
@@ -277,9 +277,9 @@ Pulse instructions are available within the builder interface. Here's an example
    :include-source:
 
     from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as drive_sched:
         d0 = pulse.drive_channel(0)
@@ -355,9 +355,9 @@ Macros help you add more complex functionality to your pulse program.
 .. code-block::
 
     from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as measure_sched:
         mem_slot = pulse.measure(0)
@@ -382,9 +382,9 @@ how the program is built.
 
     from qiskit import pulse
 
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as u3_sched:
         print('Number of qubits in backend: {}'.format(pulse.num_qubits()))
@@ -531,7 +531,10 @@ class _PulseBuilder:
             self._context_stack.append(root_block)
 
         # Set default alignment context
-        alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
+        if isinstance(default_alignment, AlignmentKind):  # AlignmentKind instance
+            alignment = default_alignment
+        else:  # str identifier
+            alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
         if not isinstance(alignment, AlignmentKind):
             raise exceptions.PulseError(
                 f"Given `default_alignment` {repr(default_alignment)} is "
@@ -783,7 +786,7 @@ def build(
 
     .. code-block::
 
-        from qiskit import execute, pulse
+        from qiskit import transpile, pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -800,7 +803,7 @@ def build(
 
     .. code-block:: python
 
-        qiskit.execute(pulse_prog, backend)
+        backend.run(transpile(pulse_prog, backend))
 
     Args:
         backend (Backend): A Qiskit backend. If not supplied certain
@@ -1727,9 +1730,9 @@ def call(
         .. code-block::
 
             from qiskit import circuit, pulse
-            from qiskit.providers.fake_provider import FakeBogotaV2
+            from qiskit.providers.fake_provider import GenericBackendV2
 
-            backend = FakeBogotaV2()
+            backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True)
 
             with pulse.build() as x_sched:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))

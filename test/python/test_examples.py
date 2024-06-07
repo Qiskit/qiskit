@@ -17,7 +17,7 @@ import subprocess
 import sys
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 examples_dir = os.path.abspath(
     os.path.join(

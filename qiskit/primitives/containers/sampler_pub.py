@@ -17,17 +17,22 @@ Sampler Pub class
 
 from __future__ import annotations
 
-from typing import Tuple, Union
+from collections.abc import Mapping
 from numbers import Integral
+from typing import Tuple, Union
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import CircuitInstruction
 
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .shape import ShapedMixin
 
+# Public API classes
+__all__ = ["SamplerPubLike"]
+
 
 class SamplerPub(ShapedMixin):
-    """Pub (Primitive Unified Bloc) for Sampler.
+    """Pub (Primitive Unified Bloc) for a Sampler.
 
     Pub is composed of tuple (circuit, parameter_values, shots).
 
@@ -93,8 +98,8 @@ class SamplerPub(ShapedMixin):
         if shots is not None:
             if not isinstance(shots, Integral) or isinstance(shots, bool):
                 raise TypeError("shots must be an integer")
-            if shots < 0:
-                raise ValueError("shots must be non-negative")
+            if shots <= 0:
+                raise ValueError("shots must be positive")
 
         if isinstance(pub, SamplerPub):
             if pub.shots is None and shots is not None:
@@ -109,12 +114,28 @@ class SamplerPub(ShapedMixin):
         if isinstance(pub, QuantumCircuit):
             return cls(circuit=pub, shots=shots, validate=True)
 
+        if isinstance(pub, CircuitInstruction):
+            raise ValueError(
+                f"An invalid Sampler pub-like was given ({type(pub)}). "
+                "If you want to run a single circuit, "
+                "you need to wrap it with `[]` like `sampler.run([circuit])` "
+                "instead of `sampler.run(circuit)`."
+            )
+
         if len(pub) not in [1, 2, 3]:
             raise ValueError(
                 f"The length of pub must be 1, 2 or 3, but length {len(pub)} is given."
             )
         circuit = pub[0]
-        parameter_values = BindingsArray.coerce(pub[1]) if len(pub) > 1 else None
+
+        if len(pub) > 1 and pub[1] is not None:
+            values = pub[1]
+            if not isinstance(values, (BindingsArray, Mapping)):
+                values = {tuple(circuit.parameters): values}
+            parameter_values = BindingsArray.coerce(values)
+        else:
+            parameter_values = None
+
         if len(pub) > 2 and pub[2] is not None:
             shots = pub[2]
         return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=True)
@@ -129,22 +150,44 @@ class SamplerPub(ShapedMixin):
         if self.shots is not None:
             if not isinstance(self.shots, Integral) or isinstance(self.shots, bool):
                 raise TypeError("shots must be an integer")
-            if self.shots < 0:
-                raise ValueError("shots must be non-negative")
+            if self.shots <= 0:
+                raise ValueError("shots must be positive")
 
         # Cross validate circuits and parameter values
         num_parameters = self.parameter_values.num_parameters
         if num_parameters != self.circuit.num_parameters:
-            raise ValueError(
+            message = (
                 f"The number of values ({num_parameters}) does not match "
                 f"the number of parameters ({self.circuit.num_parameters}) for the circuit."
             )
+            if num_parameters == 0:
+                message += (
+                    " Note that if you want to run a single pub, you need to wrap it with `[]` like "
+                    "`sampler.run([(circuit, param_values)])` instead of "
+                    "`sampler.run((circuit, param_values))`."
+                )
+            raise ValueError(message)
 
 
 SamplerPubLike = Union[
-    SamplerPub,
     QuantumCircuit,
     Tuple[QuantumCircuit],
     Tuple[QuantumCircuit, BindingsArrayLike],
     Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
 ]
+"""A Pub (Primitive Unified Bloc) for a Sampler.
+
+A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.
+
+If shots are provided this number of shots will be run with the sampler,
+if ``shots=None`` the number of run shots is determined by the sampler.
+
+.. note::
+
+    A Sampler Pub can also be initialized in the following formats which
+    will be converted to the full Pub tuple:
+
+    * ``circuit``
+    * ``(circuit,)``
+    * ``(circuit, parameter_values)``
+"""

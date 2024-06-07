@@ -25,7 +25,7 @@ import ddt
 from qiskit import qasm2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit
 from qiskit.circuit.library import U1Gate, U3Gate, CU1Gate
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import gate_builder
 

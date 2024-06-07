@@ -129,29 +129,19 @@ For example:
 Standard Directives
 ===================
 
-..
-    This summary table deliberately does not generate toctree entries; these directives are "owned"
-    by ``qiskit.circuit``.
-
 Directives are operations to the quantum stack that are meant to be interpreted by the backend or
 the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Barrier
+* :class:`qiskit.circuit.Barrier`
 
 Standard Operations
 ===================
 
 Operations are non-reversible changes in the quantum state of the circuit.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Measure
-   Reset
+* :class:`qiskit.circuit.Measure`
+* :class:`qiskit.circuit.Reset`
 
 Generalized Gates
 =================

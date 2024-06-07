@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Mapping as MappingType
+from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
-from typing import Iterable, Mapping, Union, overload
+from typing import Union, Mapping, overload
+from numbers import Complex
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -28,31 +29,34 @@ from numpy.typing import ArrayLike
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 
 from .object_array import object_array
-from .shape import ShapedMixin
+from .shape import ShapedMixin, shape_tuple
 
-BasisObservable = Mapping[str, complex]
-"""Representation type of a single observable."""
+# Public API classes
+__all__ = ["ObservableLike", "ObservablesArrayLike"]
 
-BasisObservableLike = Union[
+ObservableLike = Union[
     str,
     Pauli,
     SparsePauliOp,
-    Mapping[Union[str, Pauli], complex],
-    Iterable[Union[str, Pauli, SparsePauliOp]],
+    Mapping[Union[str, Pauli], float],
 ]
-"""Types that can be natively used to construct a :const:`BasisObservable`."""
+"""Types that can be natively used to construct a Hermitian Estimator observable."""
+
+
+ObservablesArrayLike = Union[ObservableLike, ArrayLike]
+"""Types that can be natively converted to an array of Hermitian Estimator observables."""
 
 
 class ObservablesArray(ShapedMixin):
-    """An ND-array of :const:`.BasisObservable` for an :class:`.Estimator` primitive."""
+    """An ND-array of Hermitian observables for an :class:`.Estimator` primitive."""
 
     __slots__ = ("_array", "_shape")
     ALLOWED_BASIS: str = "IXYZ01+-lr"
-    """The allowed characters in :const:`BasisObservable` strings."""
+    """The allowed characters in basis strings."""
 
     def __init__(
         self,
-        observables: BasisObservableLike | ArrayLike,
+        observables: ObservablesArrayLike,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -62,10 +66,8 @@ class ObservablesArray(ShapedMixin):
             observables: An array-like of basis observable compatible objects.
             copy: Specify the ``copy`` kwarg of the :func:`.object_array` function
                 when initializing observables.
-            validate: If True, convert :const:`.BasisObservableLike` input objects
-                to :const:`.BasisObservable` objects and validate. If False the
-                input should already be an array-like of valid
-                :const:`.BasisObservble` objects.
+            validate: If true, coerce entries into the internal format and validate them. If false,
+                the input should already be an array-like.
 
         Raises:
             ValueError: If ``validate=True`` and the input observables is not valid.
@@ -78,7 +80,7 @@ class ObservablesArray(ShapedMixin):
         if validate:
             num_qubits = None
             for ndi, obs in np.ndenumerate(self._array):
-                basis_obs = self.format_observable(obs)
+                basis_obs = self.coerce_observable(obs)
                 basis_num_qubits = len(next(iter(basis_obs)))
                 if num_qubits is None:
                     num_qubits = basis_num_qubits
@@ -99,19 +101,17 @@ class ObservablesArray(ShapedMixin):
         """Convert to a nested list"""
         return self._array.tolist()
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Convert to an Numpy.ndarray"""
         if dtype is None or dtype == object:
-            return self._array
+            return self._array.copy() if copy else self._array
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload
-    def __getitem__(self, args: int | tuple[int, ...]) -> BasisObservable:
-        ...
+    def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
 
     @overload
-    def __getitem__(self, args: slice) -> ObservablesArray:
-        ...
+    def __getitem__(self, args: slice) -> ObservablesArray: ...
 
     def __getitem__(self, args):
         item = self._array[args]
@@ -119,7 +119,7 @@ class ObservablesArray(ShapedMixin):
             return item
         return ObservablesArray(item, copy=False, validate=False)
 
-    def reshape(self, shape: int | Iterable[int]) -> ObservablesArray:
+    def reshape(self, *shape: int | Iterable[int]) -> ObservablesArray:
         """Return a new array with a different shape.
 
         This results in a new view of the same arrays.
@@ -130,6 +130,7 @@ class ObservablesArray(ShapedMixin):
         Returns:
             A new array.
         """
+        shape = shape_tuple(*shape)
         return ObservablesArray(self._array.reshape(shape), copy=False, validate=False)
 
     def ravel(self) -> ObservablesArray:
@@ -144,28 +145,40 @@ class ObservablesArray(ShapedMixin):
         return self.reshape(self.size)
 
     @classmethod
-    def format_observable(cls, observable: BasisObservableLike) -> BasisObservable:
-        """Format an observable-like object into a :const:`BasisObservable`.
+    def coerce_observable(cls, observable: ObservableLike) -> Mapping[str, float]:
+        """Format an observable-like object into the internal format.
 
         Args:
             observable: The observable-like to format.
 
         Returns:
-            The given observable as a :const:`~BasisObservable`.
+            The coerced observable.
 
         Raises:
             TypeError: If the input cannot be formatted because its type is not valid.
             ValueError: If the input observable is invalid.
         """
-
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
+            observable = observable.simplify(atol=0)
+            # Check that the operator is Hermitian and has real coeffs
+            coeffs = np.real_if_close(observable.coeffs)
+            if np.iscomplexobj(coeffs):
+                raise ValueError(
+                    "Non-Hermitian input observable: the input SparsePauliOp has non-zero"
+                    " imaginary part in its coefficients."
+                )
+            paulis = observable.paulis.to_labels()
             # Call simplify to combine duplicate keys before converting to a mapping
-            return cls.format_observable(dict(observable.simplify(atol=0).to_list()))
+            return dict(zip(paulis, coeffs))
 
         if isinstance(observable, Pauli):
             label, phase = observable[:].to_label(), observable.phase
-            return {label: 1} if phase == 0 else {label: (-1j) ** phase}
+            if phase % 2:
+                raise ValueError(
+                    "Non-Hermitian input observable: the input Pauli has an imaginary phase."
+                )
+            return {label: 1} if phase == 0 else {label: -1}
 
         # String conversion
         if isinstance(observable, str):
@@ -173,14 +186,27 @@ class ObservablesArray(ShapedMixin):
             return {observable: 1}
 
         # Mapping conversion (with possible Pauli keys)
-        if isinstance(observable, MappingType):
+        if isinstance(observable, _Mapping):
             num_qubits = len(next(iter(observable)))
-            unique = defaultdict(complex)
+            unique = defaultdict(float)
             for basis, coeff in observable.items():
                 if isinstance(basis, Pauli):
                     basis, phase = basis[:].to_label(), basis.phase
-                    if phase != 0:
-                        coeff = coeff * (-1j) ** phase
+                    if phase % 2:
+                        raise ValueError(
+                            "Non-Hermitian input observable: the input Pauli has an imaginary phase."
+                        )
+                    if phase == 2:
+                        coeff = -coeff
+                # Truncate complex numbers to real
+                if isinstance(coeff, Complex):
+                    if abs(coeff.imag) > 1e-7:
+                        raise TypeError(
+                            f"Non-Hermitian input observable: {basis} term has a complex value"
+                            " coefficient."
+                        )
+                    coeff = coeff.real
+
                 # Validate basis
                 cls._validate_basis(basis)
                 if len(basis) != num_qubits:
@@ -204,14 +230,12 @@ class ObservablesArray(ShapedMixin):
         """
         if isinstance(observables, ObservablesArray):
             return observables
-        if isinstance(observables, (str, SparsePauliOp, Pauli, Mapping)):
-            observables = [observables]
         return cls(observables)
 
     def validate(self):
         """Validate the consistency in observables array."""
         num_qubits = None
-        for obs in self._array:
+        for obs in self._array.reshape(-1):
             basis_num_qubits = len(next(iter(obs)))
             if num_qubits is None:
                 num_qubits = basis_num_qubits
@@ -241,16 +265,6 @@ class ObservablesArray(ShapedMixin):
                 f"Observable basis string '{basis}' contains invalid characters {invalid_chars},"
                 f" allowed characters are {list(cls.ALLOWED_BASIS)}.",
             )
-
-
-ObservablesArrayLike = Union[ObservablesArray, ArrayLike, BasisObservableLike]
-"""Types that can be natively converted to an ObservablesArray"""
-
-
-class PauliArray(ObservablesArray):
-    """An ND-array of Pauli-basis observables for an :class:`.Estimator` primitive."""
-
-    ALLOWED_BASIS = "IXYZ"
 
 
 @lru_cache(1)

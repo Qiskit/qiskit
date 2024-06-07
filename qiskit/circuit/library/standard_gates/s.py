@@ -80,15 +80,27 @@ class SGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse of S (SdgGate)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse of S (SdgGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SdgGate`.
+
+        Returns:
+            SdgGate: inverse of :class:`.SGate`
+        """
         return SdgGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import PhaseGate
 
         return PhaseGate(0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SGate)
 
 
 @with_gate_array(_SDG_ARRAY)
@@ -145,15 +157,27 @@ class SdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse of Sdg (SGate)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse of Sdg (SGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SGate`.
+
+        Returns:
+            SGate: inverse of :class:`.SdgGate`
+        """
         return SGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import PhaseGate
 
         return PhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SdgGate)
 
 
 @with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
@@ -219,15 +243,27 @@ class CSGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=pi / 2).definition
 
-    def inverse(self):
-        """Return inverse of CSGate (CSdgGate)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse of CSGate (CSdgGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSdgGate`.
+
+        Returns:
+            CSdgGate: inverse of :class:`.CSGate`
+        """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
         return CPhaseGate(0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
@@ -292,12 +328,24 @@ class CSdgGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
-    def inverse(self):
-        """Return inverse of CSdgGate (CSGate)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse of CSdgGate (CSGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSGate`.
+
+        Returns:
+            CSGate: inverse of :class:`.CSdgGate`
+        """
         return CSGate(ctrl_state=self.ctrl_state)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
         return CPhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSdgGate) and self.ctrl_state == other.ctrl_state

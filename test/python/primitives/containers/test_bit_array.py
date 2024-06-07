@@ -13,13 +13,14 @@
 """Unit tests for BitArray."""
 
 from itertools import product
+from test import QiskitTestCase
 
 import ddt
 import numpy as np
 
 from qiskit.primitives.containers import BitArray
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts
-from qiskit.test import QiskitTestCase
 
 
 def u_8(arr):
@@ -107,6 +108,29 @@ class BitArrayTestCase(QiskitTestCase):
 
         # test that providing no location takes the union over all shots
         self.assertEqual(bit_array.get_int_counts(), {val1: 2, val2: 1, val3: 1, val4: 2})
+
+    def test_get_bitstrings(self):
+        """Test conversion to bitstrings."""
+        # note that [234, 100] requires 16 bits, not 15; we are testing that get_counts ignores the
+        # junk columns
+        bit_array = BitArray(u_8([[3, 5], [3, 5], [234, 100]]), num_bits=15)
+        bs1 = "0000011" + "00000101"  # 3, 5
+        bs2 = "1101010" + "01100100"  # 234, 100
+        self.assertEqual(bit_array.get_bitstrings(), [bs1, bs1, bs2])
+
+        bit_array = BitArray(
+            u_8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
+            num_bits=15,
+        )
+        bs1 = "0000011" + "00000101"  # 3, 5
+        bs2 = "1101010" + "01100100"  # 234, 100
+        self.assertEqual(bit_array.get_bitstrings(0), [bs1, bs1, bs2])
+        bs3 = "0000000" + "00000001"  # 0, 1
+        bs4 = "0000001" + "00000000"  # 1, 0
+        self.assertEqual(bit_array.get_bitstrings(1), [bs3, bs4, bs4])
+
+        # test that providing no location takes the union over all shots
+        self.assertEqual(bit_array.get_bitstrings(), [bs1, bs1, bs2, bs3, bs4, bs4])
 
     def test_equality(self):
         """Test the equality operator"""
@@ -259,3 +283,415 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertEqual(ba.reshape(360 * 2, 16).shape, (720,))
         self.assertEqual(ba.reshape(360 * 2, 16).num_shots, 16)
         self.assertEqual(ba.reshape(360 * 2, 16).num_bits, 15)
+
+    def test_transpose(self):
+        """Test the transpose method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        # Since the input dtype is uint16, bit array requires at least two u8.
+        # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("default arg"):
+            ba2 = ba.transpose()
+            self.assertEqual(ba2.shape, (3, 2, 1))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((k, j, i)))
+
+        with self.subTest("tuple 1"):
+            ba2 = ba.transpose((2, 1, 0))
+            self.assertEqual(ba2.shape, (3, 2, 1))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((k, j, i)))
+
+        with self.subTest("tuple 2"):
+            ba2 = ba.transpose((0, 1, 2))
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, j, k)))
+
+        with self.subTest("tuple 3"):
+            ba2 = ba.transpose((0, 2, 1))
+            self.assertEqual(ba2.shape, (1, 3, 2))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, k, j)))
+
+        with self.subTest("tuple, negative indices"):
+            ba2 = ba.transpose((0, -1, -2))
+            self.assertEqual(ba2.shape, (1, 3, 2))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, k, j)))
+
+        with self.subTest("ints"):
+            ba2 = ba.transpose(2, 1, 0)
+            self.assertEqual(ba2.shape, (3, 2, 1))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((k, j, i)))
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "axes don't match bit array"):
+                _ = ba.transpose((0, 1))
+            with self.assertRaisesRegex(ValueError, "axes don't match bit array"):
+                _ = ba.transpose((0, 1, 2, 3))
+            with self.assertRaisesRegex(ValueError, "axis [0-9]+ is out of bounds for bit array"):
+                _ = ba.transpose((0, 1, 4))
+            with self.assertRaisesRegex(ValueError, "axis -[0-9]+ is out of bounds for bit array"):
+                _ = ba.transpose((0, 1, -4))
+            with self.assertRaisesRegex(ValueError, "repeated axis in transpose"):
+                _ = ba.transpose((0, 1, 1))
+
+    def test_concatenate(self):
+        """Test the concatenate function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        concatenate = BitArray.concatenate
+
+        with self.subTest("2 arrays, default"):
+            ba2 = concatenate([ba, ba])
+            self.assertEqual(ba2.shape, (2, 2, 3))
+            for j, k in product(range(2), range(3)):
+                self.assertEqual(ba2.get_counts((0, j, k)), ba2.get_counts((1, j, k)))
+
+        with self.subTest("2 arrays, axis"):
+            ba2 = concatenate([ba, ba], axis=1)
+            self.assertEqual(ba2.shape, (1, 4, 3))
+            for j, k in product(range(2), range(3)):
+                self.assertEqual(ba2.get_counts((0, j, k)), ba2.get_counts((0, j + 2, k)))
+
+        with self.subTest("3 arrays"):
+            ba2 = concatenate([ba, ba, ba])
+            self.assertEqual(ba2.shape, (3, 2, 3))
+            for j, k in product(range(2), range(3)):
+                self.assertEqual(ba2.get_counts((0, j, k)), ba2.get_counts((1, j, k)))
+                self.assertEqual(ba2.get_counts((1, j, k)), ba2.get_counts((2, j, k)))
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to concatenate"):
+                _ = concatenate([])
+            with self.assertRaisesRegex(ValueError, "axis -1 is out of bounds"):
+                _ = concatenate([ba, ba], -1)
+            with self.assertRaisesRegex(ValueError, "axis 100 is out of bounds"):
+                _ = concatenate([ba, ba], 100)
+
+            ba2 = BitArray(data, 10)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
+                _ = concatenate([ba, ba2])
+
+            data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
+            data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
+            ba2 = BitArray(data2, 9)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of shots"
+            ):
+                _ = concatenate([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of dimensions"
+            ):
+                _ = concatenate([ba, ba2])
+
+    def test_concatenate_shots(self):
+        """Test the concatenate_shots function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        concatenate_shots = BitArray.concatenate_shots
+
+        with self.subTest("2 arrays"):
+            ba2 = concatenate_shots([ba, ba])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 9)
+            self.assertEqual(ba2.num_shots, 2 * ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                expected = {key: val * 2 for key, val in ba.get_counts((i, j, k)).items()}
+                counts2 = ba2.get_counts((i, j, k))
+                self.assertEqual(counts2, expected)
+
+        with self.subTest("3 arrays"):
+            ba2 = concatenate_shots([ba, ba, ba])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 9)
+            self.assertEqual(ba2.num_shots, 3 * ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                expected = {key: val * 3 for key, val in ba.get_counts((i, j, k)).items()}
+                counts2 = ba2.get_counts((i, j, k))
+                self.assertEqual(counts2, expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
+                _ = concatenate_shots([])
+
+            ba2 = BitArray(data, 10)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
+                _ = concatenate_shots([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
+                _ = concatenate_shots([ba, ba2])
+
+    def test_concatenate_bits(self):
+        """Test the concatenate_bits function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        concatenate_bits = BitArray.concatenate_bits
+
+        with self.subTest("2 arrays"):
+            ba_01 = ba.slice_bits([0, 1])
+            ba2 = concatenate_bits([ba, ba_01])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 11)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                bs = ba.get_bitstrings((i, j, k))
+                bs_01 = ba_01.get_bitstrings((i, j, k))
+                expected = [s1 + s2 for s1, s2 in zip(bs_01, bs)]
+                bs2 = ba2.get_bitstrings((i, j, k))
+                self.assertEqual(bs2, expected)
+
+        with self.subTest("3 arrays"):
+            ba_01 = ba.slice_bits([0, 1])
+            ba2 = concatenate_bits([ba, ba_01, ba_01])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 13)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                bs = ba.get_bitstrings((i, j, k))
+                bs_01 = ba_01.get_bitstrings((i, j, k))
+                expected = [s1 + s1 + s2 for s1, s2 in zip(bs_01, bs)]
+                bs2 = ba2.get_bitstrings((i, j, k))
+                self.assertEqual(bs2, expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
+                _ = concatenate_bits([])
+
+            data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
+            data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
+            ba2 = BitArray(data2, 9)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of shots"
+            ):
+                _ = concatenate_bits([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
+                _ = concatenate_bits([ba, ba2])
+
+    def test_getitem(self):
+        """Test the __getitem__ method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("all"):
+            ba2 = ba[:]
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, j, k)))
+
+        with self.subTest("no slice"):
+            ba2 = ba[0, 1, 2]
+            self.assertEqual(ba2.shape, ())
+            self.assertEqual(ba.get_counts((0, 1, 2)), ba2.get_counts())
+
+        with self.subTest("slice"):
+            ba2 = ba[0, :, 2]
+            self.assertEqual(ba2.shape, (2,))
+            for j in range(2):
+                self.assertEqual(ba.get_counts((0, j, 2)), ba2.get_counts(j))
+
+    def test_slice_bits(self):
+        """Test the slice_bits method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("all"):
+            ba2 = ba.slice_bits(range(ba.num_bits))
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            self.assertEqual(ba2.num_bits, ba.num_bits)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, j, k)))
+
+        with self.subTest("1 bit, int"):
+            ba2 = ba.slice_bits(0)
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            self.assertEqual(ba2.num_bits, 1)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba2.get_counts((i, j, k)), {"0": 5, "1": 5})
+
+        with self.subTest("1 bit, list"):
+            ba2 = ba.slice_bits([0])
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            self.assertEqual(ba2.num_bits, 1)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba2.get_counts((i, j, k)), {"0": 5, "1": 5})
+
+        with self.subTest("2 bits"):
+            ba2 = ba.slice_bits([0, 1])
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            self.assertEqual(ba2.num_bits, 2)
+            even = {"00": 3, "01": 3, "10": 2, "11": 2}
+            odd = {"10": 3, "11": 3, "00": 2, "01": 2}
+            for count, (i, j, k) in enumerate(product(range(1), range(2), range(3))):
+                expect = even if count % 2 == 0 else odd
+                self.assertEqual(ba2.get_counts((i, j, k)), expect)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+                _ = ba.slice_bits(-1)
+            with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
+                _ = ba.slice_bits(9)
+
+    def test_slice_shots(self):
+        """Test the slice_shots method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("all"):
+            ba2 = ba.slice_shots(range(ba.num_shots))
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, ba.num_bits)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, j, k)))
+
+        with self.subTest("1 shot, int"):
+            ba2 = ba.slice_shots(0)
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, ba.num_bits)
+            self.assertEqual(ba2.num_shots, 1)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba2.get_bitstrings((i, j, k)), [ba.get_bitstrings((i, j, k))[0]])
+
+        with self.subTest("1 shot, list"):
+            ba2 = ba.slice_shots([0])
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, ba.num_bits)
+            self.assertEqual(ba2.num_shots, 1)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba2.get_bitstrings((i, j, k)), [ba.get_bitstrings((i, j, k))[0]])
+
+        with self.subTest("multiple shots"):
+            indices = [1, 2, 3, 5, 8]
+            ba2 = ba.slice_shots(indices)
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, ba.num_bits)
+            self.assertEqual(ba2.num_shots, len(indices))
+            for i, j, k in product(range(1), range(2), range(3)):
+                expected = [
+                    bs for ind, bs in enumerate(ba.get_bitstrings((i, j, k))) if ind in indices
+                ]
+                self.assertEqual(ba2.get_bitstrings((i, j, k)), expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+                _ = ba.slice_shots(-1)
+            with self.assertRaisesRegex(ValueError, "index 10 is out of bounds"):
+                _ = ba.slice_shots(10)
+
+    def test_expectation_values(self):
+        """Test the expectation_values method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        op = "I" * 8 + "Z"
+        op2 = "I" * 8 + "0"
+        op3 = "I" * 8 + "1"
+        pauli = Pauli(op)
+        sp_op = SparsePauliOp(op)
+        sp_op2 = SparsePauliOp.from_sparse_list([("Z", [6], 1)], num_qubits=9)
+
+        with self.subTest("str"):
+            expval = ba.expectation_values(op)
+            # both 0 and 1 appear 5 times
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+
+            expval = ba.expectation_values(op2)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.full((ba.shape), 0.5))
+
+            expval = ba.expectation_values(op3)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.full((ba.shape), 0.5))
+
+            ba2 = ba.slice_bits(6)
+            # 6th bit are all 0
+            expval = ba2.expectation_values("Z")
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.ones(ba.shape))
+
+            ba3 = ba.slice_bits(5)
+            # 5th bit distributes as follows.
+            # (0, 0, 0) {'0': 10}
+            # (0, 0, 1) {'0': 10}
+            # (0, 0, 2) {'0': 10}
+            # (0, 1, 0) {'0': 2, '1': 8}
+            # (0, 1, 1) {'1': 10}
+            # (0, 1, 2) {'1': 10}
+            expval = ba3.expectation_values("0")
+            expected = np.array([[[1, 1, 1], [0.2, 0, 0]]])
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, expected)
+
+        with self.subTest("Pauli"):
+            expval = ba.expectation_values(pauli)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+
+        with self.subTest("SparsePauliOp"):
+            expval = ba.expectation_values(sp_op)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+
+            expval = ba.expectation_values(sp_op2)
+            # 6th bit are all 0
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.ones((ba.shape)))
+
+        with self.subTest("ObservableArray"):
+            obs = ["Z", "0", "1"]
+            ba2 = ba.slice_bits(5)
+            expval = ba2.expectation_values(obs)
+            expected = np.array([[[1, 1, 0], [-0.6, 0, 1]]])
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, expected)
+
+            ba4 = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+            expval = ba4.expectation_values(obs)
+            expected = np.array([[1, 1, 0], [-1, 0, 1]])
+            self.assertEqual(expval.shape, (2, 3))
+            np.testing.assert_allclose(expval, expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "shape mismatch"):
+                _ = ba.expectation_values([op, op2])
+            with self.assertRaisesRegex(ValueError, "One or more operators not same length"):
+                _ = ba.expectation_values("Z")
+            with self.assertRaisesRegex(ValueError, "is not diagonal"):
+                _ = ba.expectation_values("X" * ba.num_bits)

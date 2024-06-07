@@ -35,16 +35,18 @@ from __future__ import annotations
 
 import copy
 from itertools import zip_longest
+import math
 from typing import List, Type
 
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
+
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 
 
 _CUTOFF_PRECISION = 1e-10
@@ -238,8 +240,8 @@ class Instruction(Operation):
         """
         if (
             self.name != other.name
-            or other.num_qubits != other.num_qubits
-            or other.num_clbits != other.num_clbits
+            or self.num_qubits != other.num_qubits
+            or self.num_clbits != other.num_clbits
             or len(self.params) != len(other.params)
         ):
             return False
@@ -266,12 +268,17 @@ class Instruction(Operation):
         return True
 
     def _define(self):
-        """Populates self.definition with a decomposition of this gate."""
+        """Populate the cached :attr:`_definition` field of this :class:`Instruction`.
+
+        Subclasses should implement this method to provide lazy construction of their public
+        :attr:`definition` attribute.  A subclass can use its :attr:`params` at the time of the
+        call.  The method should populate :attr:`_definition` with a :class:`.QuantumCircuit` and
+        not return a value."""
         pass
 
     @property
     def params(self):
-        """return instruction params."""
+        """The parameters of this :class:`Instruction`.  Ideally these will be gate angles."""
         return self._params
 
     @params.setter
@@ -288,7 +295,8 @@ class Instruction(Operation):
         return parameter
 
     def is_parameterized(self):
-        """Return True .IFF. instruction is parameterized else False"""
+        """Return whether the :class:`Instruction` contains :ref:`compile-time parameters
+        <circuit-compile-time-parameters>`."""
         return any(
             isinstance(param, ParameterExpression) and param.parameters for param in self.params
         )
@@ -416,22 +424,36 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this instruction.
 
-        If the instruction is composite (i.e. has a definition),
-        then its definition will be recursively inverted.
+        If `annotated` is `False`, the inverse instruction is implemented as
+        a fresh instruction with the recursively inverted definition.
+
+        If `annotated` is `True`, the inverse instruction is implemented as
+        :class:`.AnnotatedOperation`, and corresponds to the given instruction
+        annotated with the "inverse modifier".
 
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+        In particular, they can choose how to handle the argument ``annotated``
+        which may include ignoring it and always returning a concrete gate class
+        if the inverse is defined as a standard gate.
+
+        Args:
+            annotated: if set to `True` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh instruction for the inverse
+            The inverse operation.
 
         Raises:
             CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
@@ -503,18 +525,6 @@ class Instruction(Operation):
             cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
 
-    def _qasmif(self, string):
-        """Print an if statement if needed."""
-        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
-
-        if self.condition is None:
-            return string
-        if not isinstance(self.condition[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
-            )
-        return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
-
     def broadcast_arguments(self, qargs, cargs):
         """
         Validation of the arguments.
@@ -555,7 +565,13 @@ class Instruction(Operation):
         )
 
     def repeat(self, n):
-        """Creates an instruction with `gate` repeated `n` amount of times.
+        """Creates an instruction with ``self`` repeated :math`n` times.
+
+        If this operation has a conditional, the output instruction will have the same conditional
+        and the inner repeated operations will be unconditional; instructions within a compound
+        definition cannot be conditioned on registers within Qiskit's data model.  This means that
+        it is not valid to apply a repeated instruction to a clbit that it both writes to and reads
+        from in its condition.
 
         Args:
             n (int): Number of times to repeat the instruction
@@ -572,22 +588,24 @@ class Instruction(Operation):
         n = int(n)
 
         instruction = self._return_repeat(n)
-        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, "q")
-        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, "c")
-
         if instruction.definition is None:
             # pylint: disable=cyclic-import
             from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
-            qc = QuantumCircuit()
-            if qargs:
-                qc.add_register(qargs)
-            if cargs:
-                qc.add_register(cargs)
-            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            qc = QuantumCircuit(self.num_qubits, self.num_clbits)
+            qargs = tuple(qc.qubits)
+            cargs = tuple(qc.clbits)
+            base = self.copy()
+            if self.condition:
+                # Condition is handled on the outer instruction.
+                base = base.to_mutable()
+                base.condition = None
             for _ in [None] * n:
-                qc._append(circuit_instruction)
-        instruction.definition = qc
+                qc._append(CircuitInstruction(base, qargs, cargs))
+
+            instruction.definition = qc
+        if self.condition:
+            instruction = instruction.c_if(*self.condition)
         return instruction
 
     @property
@@ -628,3 +646,13 @@ class Instruction(Operation):
     def num_clbits(self, num_clbits):
         """Set num_clbits."""
         self._num_clbits = num_clbits
+
+    def _compare_parameters(self, other):
+        for x, y in zip(self.params, other.params):
+            try:
+                if not math.isclose(x, y, rel_tol=0, abs_tol=1e-10):
+                    return False
+            except TypeError:
+                if x != y:
+                    return False
+        return True

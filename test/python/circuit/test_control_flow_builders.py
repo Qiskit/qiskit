@@ -33,8 +33,8 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
 
 
 class SentinelException(Exception):
@@ -3244,6 +3244,48 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.if_test(expr.lift(False), body, [], cr1[:])
 
         self.assertEqual(base, expected)
+
+    def test_rebuild_captures_variables_in_blocks(self):
+        """Test that when the separate blocks of a statement cause it to require a full rebuild of
+        the circuit objects during builder resolution, the variables are all moved over
+        correctly."""
+
+        a = expr.Var.new("🐍🐍🐍", types.Uint(8))
+
+        qc = QuantumCircuit(3, 1, inputs=[a])
+        qc.measure(0, 0)
+        b_outer = qc.add_var("b", False)
+        with qc.switch(a) as case:
+            with case(0):
+                qc.cx(1, 2)
+                qc.store(b_outer, True)
+            with case(1):
+                qc.store(qc.clbits[0], False)
+            with case(2):
+                # Explicit shadowing.
+                b_inner = qc.add_var("b", True)
+            with case(3):
+                qc.store(a, expr.lift(1, a.type))
+            with case(case.DEFAULT):
+                qc.cx(2, 1)
+
+        # (inputs, captures, declares) for each block of the `switch`.
+        expected = [
+            ([], [b_outer], []),
+            ([], [], []),
+            ([], [], [b_inner]),
+            ([], [a], []),
+            ([], [], []),
+        ]
+        actual = [
+            (
+                list(block.iter_input_vars()),
+                list(block.iter_captured_vars()),
+                list(block.iter_declared_vars()),
+            )
+            for block in qc.data[-1].operation.blocks
+        ]
+        self.assertEqual(expected, actual)
 
 
 @ddt.ddt

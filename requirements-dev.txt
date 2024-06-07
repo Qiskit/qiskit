@@ -5,16 +5,20 @@
 # never become actual package requirements, but still try to be as relaxed as
 # possible so it's easy to develop multiple packages from the same venv.
 
+# Build Rust directly
+setuptools
+setuptools-rust
+
 # Style
-black[jupyter]~=22.0
+black[jupyter]~=24.1
 
 
 # Lint
 #
 # These versions are pinned precisely because pylint frequently includes new
 # on-by-default lint failures in new versions, which breaks our CI.
-astroid==2.14.2
-pylint==2.16.2
+astroid==3.2.2
+pylint==3.2.3
 ruff==0.0.267
 
 
@@ -23,6 +27,9 @@ coverage>=4.4.0
 hypothesis>=4.24.3
 stestr>=2.0.0,!=4.0.0
 ddt>=1.2.0,!=1.4.0,!=1.4.3
+# used to get more complete information on Numpy/Scipy and their BLAS usage during
+# CI reporting
+threadpoolctl
 
 
 # Documentation tooling.
@@ -35,9 +42,8 @@ ddt>=1.2.0,!=1.4.0,!=1.4.3
 # Be careful when adding new requirements. We want to keep the docs build simple because
 # we only build docs in this repo to generate API references that get consumed by
 # https://github.com/Qiskit/documentation. For example, coordinate adding dependencies
-# like `sphinx-design` to make sure that `Qiskit/documentation` will be able to 
+# like `sphinx-design` to make sure that `Qiskit/documentation` will be able to
 # consume it properly.
 Sphinx>=6.0,<7.2
-# TODO: switch to stable release when 4.1 is released
-reno @ git+https://github.com/openstack/reno.git@81587f616f17904336cdc431e25c42b46cd75b8f
+reno >= 4.1.0
 sphinxcontrib-katex==0.9.9

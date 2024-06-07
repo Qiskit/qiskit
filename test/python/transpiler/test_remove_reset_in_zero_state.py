@@ -19,11 +19,11 @@ from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveResetInZeroState, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRemoveResetInZeroState(QiskitTestCase):
-    """Test swap-followed-by-measure optimizations."""
+    """Test remove-reset-in-zero-state optimizations."""
 
     def test_optimize_single_reset(self):
         """Remove a single reset

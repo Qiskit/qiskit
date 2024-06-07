@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,11 +20,13 @@ from qiskit.circuit.library import CXGate, XGate
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeLima, FakeYorktown, FakeLimaV2, FakeYorktownV2
+from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP
 
 
 class TestVF2PostLayout(QiskitTestCase):
@@ -101,7 +103,7 @@ class TestVF2PostLayout(QiskitTestCase):
     def test_empty_circuit(self):
         """Test no solution found for empty circuit"""
         qc = QuantumCircuit(2, 2)
-        backend = FakeLima()
+        backend = Fake5QV1()
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
         vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
@@ -114,8 +116,10 @@ class TestVF2PostLayout(QiskitTestCase):
     def test_empty_circuit_v2(self):
         """Test no solution found for empty circuit with v2 backend"""
         qc = QuantumCircuit(2, 2)
-        backend = FakeLimaV2()
-        vf2_pass = VF2PostLayout(target=backend.target)
+        target = GenericBackendV2(
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CMAP, seed=42
+        ).target
+        vf2_pass = VF2PostLayout(target=target)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
@@ -126,7 +130,7 @@ class TestVF2PostLayout(QiskitTestCase):
         """Test that the pass is a no-op on circuits with >2q gates."""
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
-        backend = FakeLima()
+        backend = Fake5QV1()
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
         vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
@@ -140,7 +144,7 @@ class TestVF2PostLayout(QiskitTestCase):
         qc = QuantumCircuit(3)
         with qc.for_loop((1,)):
             qc.ccx(0, 1, 2)
-        backend = FakeLima()
+        backend = Fake5QV1()
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
         vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props)
@@ -153,8 +157,10 @@ class TestVF2PostLayout(QiskitTestCase):
         """Test that the pass is a no-op on circuits with >2q gates with a target."""
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
-        backend = FakeLimaV2()
-        vf2_pass = VF2PostLayout(target=backend.target)
+        target = GenericBackendV2(
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CMAP, seed=42
+        ).target
+        vf2_pass = VF2PostLayout(target=target)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
@@ -165,8 +171,10 @@ class TestVF2PostLayout(QiskitTestCase):
         qc = QuantumCircuit(3)
         with qc.for_loop((1,)):
             qc.ccx(0, 1, 2)
-        backend = FakeLimaV2()
-        vf2_pass = VF2PostLayout(target=backend.target)
+        target = GenericBackendV2(
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CMAP, seed=42
+        ).target
+        vf2_pass = VF2PostLayout(target=target)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
@@ -174,7 +182,7 @@ class TestVF2PostLayout(QiskitTestCase):
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs(self):
         """Test best mappings with multiple registers"""
-        backend = FakeLima()
+        backend = Fake5QV1()
         qr_a = QuantumRegister(2)
         qr_b = QuantumRegister(3)
         qc = QuantumCircuit(qr_a, qr_b)
@@ -199,7 +207,7 @@ class TestVF2PostLayout(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
-        backend = FakeYorktown()
+        backend = Fake5QV1()
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -219,7 +227,7 @@ class TestVF2PostLayout(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
-        backend = FakeYorktown()
+        backend = Fake5QV1()
 
         circuit = QuantumCircuit(2, 1)
         with circuit.for_loop((1,)):
@@ -245,7 +253,7 @@ class TestVF2PostLayout(QiskitTestCase):
         qr1 - qr0
         """
         max_trials = 11
-        backend = FakeYorktown()
+        backend = Fake5QV1()
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -274,7 +282,12 @@ class TestVF2PostLayout(QiskitTestCase):
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):
         """Test best mappings with multiple registers"""
-        backend = FakeLimaV2()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LIMA_CMAP,
+            seed=123,
+        )
         qr_a = QuantumRegister(2)
         qr_b = QuantumRegister(3)
         qc = QuantumCircuit(qr_a, qr_b)
@@ -297,7 +310,12 @@ class TestVF2PostLayout(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
-        backend = FakeYorktownV2()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=42,
+        )
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -315,7 +333,12 @@ class TestVF2PostLayout(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
-        backend = FakeYorktownV2()
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=42,
+        ).target
 
         circuit = QuantumCircuit(2, 1)
         with circuit.for_loop((1,)):
@@ -328,18 +351,23 @@ class TestVF2PostLayout(QiskitTestCase):
         initial_layout = Layout(dict(enumerate(circuit.qubits)))
         circuit._layout = initial_layout
         dag = circuit_to_dag(circuit)
-        pass_ = VF2PostLayout(target=backend.target, seed=self.seed)
+        pass_ = VF2PostLayout(target=target, seed=self.seed)
         pass_.run(dag)
-        self.assertLayoutV2(dag, backend.target, pass_.property_set)
+        self.assertLayoutV2(dag, target, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 
     def test_target_invalid_2q_gate(self):
         """Test that we don't find a solution with a gate outside target."""
-        backend = FakeYorktownV2()
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=42,
+        ).target
         qc = QuantumCircuit(2)
         qc.ecr(0, 1)
         dag = circuit_to_dag(qc)
-        pass_ = VF2PostLayout(target=backend.target, seed=self.seed)
+        pass_ = VF2PostLayout(target=target, seed=self.seed)
         pass_.run(dag)
         self.assertEqual(
             pass_.property_set["VF2PostLayout_stop_reason"],
@@ -348,12 +376,17 @@ class TestVF2PostLayout(QiskitTestCase):
 
     def test_target_invalid_2q_gate_control_flow(self):
         """Test that we don't find a solution with a gate outside target."""
-        backend = FakeYorktownV2()
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=42,
+        ).target
         qc = QuantumCircuit(2)
         with qc.for_loop((1,)):
             qc.ecr(0, 1)
         dag = circuit_to_dag(qc)
-        pass_ = VF2PostLayout(target=backend.target, seed=self.seed)
+        pass_ = VF2PostLayout(target=target, seed=self.seed)
         pass_.run(dag)
         self.assertEqual(
             pass_.property_set["VF2PostLayout_stop_reason"],
@@ -438,8 +471,13 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         bit_map = {}
         reverse_bit_map = {}
         im_graph = rustworkx.PyDiGraph()
-        backend = FakeYorktownV2()
-        vf2_pass = VF2PostLayout(target=backend.target)
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=42,
+        ).target
+        vf2_pass = VF2PostLayout(target=target)
         layout = Layout()
         score = vf2_pass._score_layout(layout, bit_map, reverse_bit_map, im_graph)
         self.assertEqual(0, score)
@@ -451,8 +489,22 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         im_graph = rustworkx.PyDiGraph()
         im_graph.add_node({"sx": 1})
         im_graph.add_node({"sx": 1})
-        backend = FakeYorktownV2()
-        vf2_pass = VF2PostLayout(target=backend.target)
+
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=42,
+        ).target
+
+        target.update_instruction_properties(
+            "sx", (0,), InstructionProperties(duration=3.56e-08, error=0.0013043388897769352)
+        )
+        target.update_instruction_properties(
+            "sx", (1,), InstructionProperties(duration=3.56e-08, error=0.0016225037300878712)
+        )
+
+        vf2_pass = VF2PostLayout(target=target)
         layout = Layout(bit_map)
         score = vf2_pass._score_layout(layout, bit_map, reverse_bit_map, im_graph)
         self.assertAlmostEqual(0.002925, score, places=5)
@@ -513,7 +565,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
     def test_empty_circuit(self):
         """Test no solution found for empty circuit"""
         qc = QuantumCircuit(2, 2)
-        backend = FakeLima()
+        backend = Fake5QV1()
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
         vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props, strict_direction=False)
@@ -526,8 +578,13 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
     def test_empty_circuit_v2(self):
         """Test no solution found for empty circuit with v2 backend"""
         qc = QuantumCircuit(2, 2)
-        backend = FakeLimaV2()
-        vf2_pass = VF2PostLayout(target=backend.target, strict_direction=False)
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LIMA_CMAP,
+            seed=self.seed,
+        ).target
+        vf2_pass = VF2PostLayout(target=target, strict_direction=False)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
@@ -538,29 +595,36 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         """Test that the pass is a no-op on circuits with >2q gates."""
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
-        backend = FakeLima()
+        backend = Fake5QV1()
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
         vf2_pass = VF2PostLayout(coupling_map=cmap, properties=props, strict_direction=False)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
-            vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
+            vf2_pass.property_set["VF2PostLayout_stop_reason"],
+            VF2PostLayoutStopReason.MORE_THAN_2Q,
         )
 
     def test_skip_3q_circuit_v2(self):
         """Test that the pass is a no-op on circuits with >2q gates with a target."""
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
-        backend = FakeLimaV2()
-        vf2_pass = VF2PostLayout(target=backend.target, strict_direction=False)
+        target = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LIMA_CMAP,
+            seed=self.seed,
+        ).target
+        vf2_pass = VF2PostLayout(target=target, strict_direction=False)
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
-            vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
+            vf2_pass.property_set["VF2PostLayout_stop_reason"],
+            VF2PostLayoutStopReason.MORE_THAN_2Q,
         )
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs(self):
         """Test best mappings with multiple registers"""
-        backend = FakeLima()
+        backend = Fake5QV1()
         qr_a = QuantumRegister(2)
         qr_b = QuantumRegister(3)
         qc = QuantumCircuit(qr_a, qr_b)
@@ -587,7 +651,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
-        backend = FakeYorktown()
+        backend = Fake5QV1()
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -606,7 +670,13 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):
         """Test best mappings with multiple registers"""
-        backend = FakeLimaV2()
+
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LIMA_CMAP,
+            seed=self.seed,
+        )
         qr_a = QuantumRegister(2)
         qr_b = QuantumRegister(3)
         qc = QuantumCircuit(qr_a, qr_b)
@@ -629,7 +699,12 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
-        backend = FakeYorktownV2()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=YORKTOWN_CMAP,
+            seed=self.seed,
+        )
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)

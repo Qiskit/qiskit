@@ -13,14 +13,18 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
 """Test the staged passmanager logic"""
+
 from unittest.mock import patch
 
 from ddt import data, ddt
 
 from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth, BasicSwap
-from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import Optimize1qGates, Depth, BasicSwap, BasisTranslator
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -30,15 +34,14 @@ class TestStagedPassManager(QiskitTestCase):
         self.assertEqual(
             spm.stages, ("init", "layout", "routing", "translation", "optimization", "scheduling")
         )
-        with self.assertWarns(DeprecationWarning):
-            spm = StagedPassManager(
-                init=PassManager([Optimize1qGates()]),
-                routing=PassManager([Unroller(["u", "cx"])]),
-                scheduling=PassManager([Depth()]),
-            )
+        spm = StagedPassManager(
+            init=PassManager([Optimize1qGates()]),
+            routing=PassManager([BasisTranslator(std_eqlib, ["u", "cx"])]),
+            scheduling=PassManager([Depth()]),
+        )
         self.assertEqual(
             [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
-            ["Optimize1qGates", "Unroller", "Depth"],
+            ["Optimize1qGates", "BasisTranslator", "Depth"],
         )
 
     def test_inplace_edit(self):
@@ -48,12 +51,11 @@ class TestStagedPassManager(QiskitTestCase):
             [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Optimize1qGates", "Depth"],
         )
-        with self.assertWarns(DeprecationWarning):
-            spm.single_stage.append(Unroller(["u"]))
+        spm.single_stage.append(BasisTranslator(std_eqlib, ["u"]))
         spm.single_stage.append(Depth())
         self.assertEqual(
             [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
-            ["Optimize1qGates", "Depth", "Unroller", "Depth"],
+            ["Optimize1qGates", "Depth", "BasisTranslator", "Depth"],
         )
 
     def test_invalid_stage(self):
@@ -103,8 +105,7 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_repeated_stages(self):
         stages = ["alpha", "omega", "alpha"]
-        with self.assertWarns(DeprecationWarning):
-            pre_alpha = PassManager(Unroller(["u", "cx"]))
+        pre_alpha = PassManager(BasisTranslator(std_eqlib, ["u", "cx"]))
         alpha = PassManager(Depth())
         post_alpha = PassManager(BasicSwap([[0, 1], [1, 2]]))
         omega = PassManager(Optimize1qGates())

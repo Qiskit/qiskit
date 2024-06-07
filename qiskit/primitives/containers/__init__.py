@@ -14,10 +14,13 @@
 Data containers for primitives.
 """
 
-from .bindings_array import BindingsArray
+
+from .bindings_array import BindingsArrayLike
 from .bit_array import BitArray
-from .data_bin import make_data_bin
-from .observables_array import ObservablesArray
+from .data_bin import DataBin, make_data_bin
+from .estimator_pub import EstimatorPubLike
+from .observables_array import ObservableLike, ObservablesArrayLike
 from .primitive_result import PrimitiveResult
 from .pub_result import PubResult
-from .sampler_pub import SamplerPub, SamplerPubLike
+from .sampler_pub import SamplerPubLike
+from .sampler_pub_result import SamplerPubResult

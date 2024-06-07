@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,29 +10,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for Estimator."""
+"""Tests for BackendEstimator."""
 
 import unittest
 from unittest.mock import patch
 from multiprocessing import Manager
-
-from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
-
 import numpy as np
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
-from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
+from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
+
+BACKENDS = [
+    Fake7QPulseV1(),
+    BackendV2Converter(Fake7QPulseV1()),
+    GenericBackendV2(num_qubits=5, seed=42),
+]
 
 
 class CallbackPass(DummyAP):
@@ -53,6 +56,7 @@ class TestBackendEstimator(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
+        self._rng = np.random.default_rng(12)
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
         self.observable = SparsePauliOp.from_list(
             [
@@ -81,11 +85,11 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_estimator_run(self, backend):
         """Test Estimator.run()"""
-        backend.set_options(seed_simulator=123)
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
         estimator = BackendEstimator(backend=backend)
+        estimator.set_options(seed_simulator=123)
 
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
@@ -98,7 +102,7 @@ class TestBackendEstimator(QiskitTestCase):
         # Note that passing objects has an overhead
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
         result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
         np.testing.assert_allclose(result2.values, [2.97797666], rtol=0.5, atol=0.2)
 
@@ -119,9 +123,9 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_estimator_run_no_params(self, backend):
         """test for estimator without parameters"""
-        backend.set_options(seed_simulator=123)
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = BackendEstimator(backend=backend)
+        est.set_options(seed_simulator=123)
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
@@ -129,7 +133,6 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS, creg=[True, False])
     def test_run_1qubit(self, backend, creg):
         """Test for 1-qubit cases"""
-        backend.set_options(seed_simulator=123)
         qc = QuantumCircuit(1, 1) if creg else QuantumCircuit(1)
         qc2 = QuantumCircuit(1, 1) if creg else QuantumCircuit(1)
         qc2.x(0)
@@ -138,6 +141,7 @@ class TestBackendEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
         est = BackendEstimator(backend=backend)
+        est.set_options(seed_simulator=123)
         result = est.run([qc], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
@@ -194,7 +198,6 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_errors(self, backend):
         """Test for errors"""
-        backend.set_options(seed_simulator=123)
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(2)
 
@@ -202,6 +205,7 @@ class TestBackendEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("II", 1)])
 
         est = BackendEstimator(backend=backend)
+        est.set_options(seed_simulator=123)
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
         with self.assertRaises(ValueError):
@@ -216,14 +220,15 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_numpy_params(self, backend):
         """Test for numpy array as parameter values"""
-        backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         estimator = BackendEstimator(backend=backend)
+        estimator.set_options(seed_simulator=123)
+
         target = estimator.run([qc] * k, [op] * k, params_list).result()
 
         with self.subTest("ndarrary"):
@@ -272,19 +277,19 @@ class TestBackendEstimator(QiskitTestCase):
     def test_job_size_limit_v2(self):
         """Test BackendEstimator respects job size limit"""
 
-        class FakeNairobiLimitedCircuits(FakeNairobiV2):
-            """FakeNairobiV2 with job size limit."""
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):
                 return 1
 
-        backend = FakeNairobiLimitedCircuits()
+        backend = FakeBackendLimitedCircuits(num_qubits=5)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         estimator = BackendEstimator(backend=backend)
         with patch.object(backend, "run") as run_mock:
@@ -293,35 +298,35 @@ class TestBackendEstimator(QiskitTestCase):
 
     def test_job_size_limit_v1(self):
         """Test BackendEstimator respects job size limit"""
-        backend = FakeNairobi()
+        backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
-        backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         estimator = BackendEstimator(backend=backend)
+        estimator.set_options(seed_simulator=123)
         with patch.object(backend, "run") as run_mock:
             estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
     def test_no_max_circuits(self):
         """Test BackendEstimator works with BackendV1 and no max_experiments set."""
-        backend = FakeNairobi()
+        backend = Fake7QPulseV1()
         config = backend.configuration()
         del config.max_experiments
         backend._configuration = config
-        backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         estimator = BackendEstimator(backend=backend)
+        estimator.set_options(seed_simulator=123)
         target = estimator.run([qc] * k, [op] * k, params_list).result()
         with self.subTest("ndarrary"):
             result = estimator.run([qc] * k, [op] * k, params_array).result()
@@ -347,7 +352,7 @@ class TestBackendEstimator(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
-            estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
             _ = estimator.run(qc, op).result()
             expected = [
                 "bound_pass_manager",
@@ -367,7 +372,7 @@ class TestBackendEstimator(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
                 _ = estimator.run([qc, qc], [op, op]).result()
                 expected = [
                     "bound_pass_manager",
@@ -388,10 +393,11 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
-                self.assertEqual(value, -0.916)
+            if optionals.HAS_AER:
+                ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
             else:
-                self.assertEqual(value, -1)
+                ref_value = -1
+            self.assertEqual(value, ref_value)
 
         with self.subTest("final layout test"):
             qc = QuantumCircuit(3)
@@ -399,14 +405,15 @@ class TestBackendEstimator(QiskitTestCase):
             qc.cx(0, 1)
             qc.cx(0, 2)
             op = SparsePauliOp("IZI")
-            backend.set_options(seed_simulator=15)
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
+            estimator.set_options(seed_simulator=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
-                self.assertEqual(value, -0.8902)
+            if optionals.HAS_AER:
+                ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.8902
             else:
-                self.assertEqual(value, -1)
+                ref_value = -1
+            self.assertEqual(value, ref_value)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_circuit_with_measurement(self):

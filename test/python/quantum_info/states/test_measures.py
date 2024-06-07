@@ -16,7 +16,6 @@ import unittest
 import numpy as np
 
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import purity
@@ -26,6 +25,7 @@ from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info.states import shannon_entropy
 from qiskit.quantum_info import negativity
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStateMeasures(QiskitTestCase):

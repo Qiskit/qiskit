@@ -17,14 +17,16 @@
 from copy import deepcopy
 from unittest.mock import patch
 
+import ddt
 import numpy as np
 
 from qiskit import pulse
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
-from qiskit.test import QiskitTestCase
+from qiskit.pulse.utils import format_parameter_value
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class ParameterTestBase(QiskitTestCase):
@@ -481,6 +483,76 @@ class TestAssignFromProgram(QiskitTestCase):
         self.assertEqual(block.blocks[0].pulse.amp, 0.2)
         self.assertEqual(block.blocks[0].pulse.sigma, 4.0)
 
+    def test_parametric_pulses_with_parameter_vector(self):
+        """Test Parametric Pulses with parameters determined by a ParameterVector
+        in the Play instruction."""
+        param_vec = ParameterVector("param_vec", 3)
+        param = Parameter("param")
+
+        waveform = pulse.library.Gaussian(duration=128, sigma=param_vec[0], amp=param_vec[1])
+
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        block1 = block.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        block2 = block.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].phase, 0.1)
+        self.assertEqual(block2.blocks[0].pulse.amp, param)
+        self.assertEqual(block2.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block2.blocks[1].phase, 0.1)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        sched2 = sched.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].phase, 0.1)
+        self.assertEqual(sched2.instructions[0][1].pulse.amp, param)
+        self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched2.instructions[1][1].phase, 0.1)
+
+    def test_pulse_assignment_with_parameter_names(self):
+        """Test pulse assignment with parameter names."""
+        sigma = Parameter("sigma")
+        amp = Parameter("amp")
+        param_vec = ParameterVector("param_vec", 2)
+
+        waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
+        waveform2 = pulse.library.Gaussian(duration=128, sigma=40, amp=amp)
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform2, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        block1 = block.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[2].phase, 3.14)
+        self.assertEqual(block1.blocks[3].phase, 1.57)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.Play(waveform2, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[2][1].phase, 3.14)
+        self.assertEqual(sched1.instructions[3][1].phase, 1.57)
+
 
 class TestScheduleTimeslots(QiskitTestCase):
     """Test for edge cases of timing overlap on parametrized channels.
@@ -557,3 +629,80 @@ class TestScheduleTimeslots(QiskitTestCase):
         sched = pulse.Schedule()
         with self.assertRaises(UnassignedDurationError):
             sched.insert(0, test_play)
+
+
+@ddt.ddt
+class TestFormatParameter(QiskitTestCase):
+    """Test format_parameter_value function."""
+
+    def test_format_unassigned(self):
+        """Format unassigned parameter expression."""
+        p1 = Parameter("P1")
+        p2 = Parameter("P2")
+        expr = p1 + p2
+
+        self.assertEqual(format_parameter_value(expr), expr)
+
+    def test_partly_unassigned(self):
+        """Format partly assigned parameter expression."""
+        p1 = Parameter("P1")
+        p2 = Parameter("P2")
+        expr = (p1 + p2).assign(p1, 3.0)
+
+        self.assertEqual(format_parameter_value(expr), expr)
+
+    @ddt.data(1, 1.0, 1.00000000001, np.int64(1))
+    def test_integer(self, value):
+        """Format integer parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, int)
+        self.assertEqual(out, 1)
+
+    @ddt.data(1.2, np.float64(1.2))
+    def test_float(self, value):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.2)
+
+    @ddt.data(1.2 + 3.4j, np.complex128(1.2 + 3.4j))
+    def test_complex(self, value):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, complex)
+        self.assertEqual(out, 1.2 + 3.4j)
+
+    def test_complex_rounding_error(self):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, 1.2 + 1j * 1e-20)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.2)
+
+    def test_builtin_float(self):
+        """Format float parameter expression."""
+        expr = 1.23
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.23)
+
+    @ddt.data(15482812500000, 8465625000000, 4255312500000)
+    def test_edge_case(self, edge_case_val):
+        """Format integer parameter expression with
+        a particular integer number that causes rounding error at typecast."""
+
+        # Numbers to be tested here are chosen randomly.
+        # These numbers had caused mis-typecast into float before qiskit/#11972.
+
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, edge_case_val)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, int)
+        self.assertEqual(out, edge_case_val)

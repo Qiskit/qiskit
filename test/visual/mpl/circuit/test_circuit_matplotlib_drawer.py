@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,14 +16,12 @@ import unittest
 
 import os
 import math
-from test.visual import VisualTestUtilities
 from pathlib import Path
 import numpy as np
 from numpy import pi
 
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife, FakeBelemV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
 from qiskit.circuit.library import (
     XGate,
@@ -49,10 +47,16 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
 from qiskit.circuit.library import IQP
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
+from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+    TENERIFE_CMAP,
+    YORKTOWN_CMAP,
+)
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -834,7 +838,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=FakeTenerife(),
+            backend=GenericBackendV2(5, coupling_map=TENERIFE_CMAP),
             basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
             initial_layout=[1, 2, 0],
@@ -1006,15 +1010,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
+        style = {
+            "name": "user_style",
+            "displaytext": {"H2": "H_2"},
+            "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+        }
         fname = "user_style.png"
         self.circuit_drawer(
             circuit,
             output="mpl",
-            style={
-                "name": "user_style",
-                "displaytext": {"H2": "H_2"},
-                "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
-            },
+            style=style,
             filename=fname,
         )
 
@@ -1025,7 +1030,19 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, self.threshold)
+
+        with self.subTest(msg="check image"):
+            self.assertGreaterEqual(ratio, self.threshold)
+
+        with self.subTest(msg="check style dict unchanged"):
+            self.assertEqual(
+                style,
+                {
+                    "name": "user_style",
+                    "displaytext": {"H2": "H_2"},
+                    "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+                },
+            )
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
@@ -2161,7 +2178,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 qc.cx(0, 1)
             with case(case.DEFAULT):
                 qc.h(0)
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=16)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         fname = "layout_control_flow.png"
@@ -2194,13 +2211,34 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             with case(case.DEFAULT):
                 with qc.if_test((creg[1], 0)):
                     qc.h(0)
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=0)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
 
         fname = "nested_layout_control_flow.png"
         self.circuit_drawer(tqc, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_control_flow_with_fold_minus_one(self):
+        """Test control flow works with fold=-1. Qiskit issue #12012"""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+        with circuit.if_test((creg[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+
+        fname = "control_flow_fold_minus_one.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, fold=-1)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -2240,7 +2278,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_no_qreg_names_after_layout(self):
         """Test that full register names are not shown after transpilation.
         See https://github.com/Qiskit/qiskit-terra/issues/11038"""
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=42)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 1)
@@ -2252,6 +2290,59 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "qreg_names_after_layout.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_if_else_standalone_var(self):
+        """Test if/else with standalone Var."""
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", False)
+        qc.store(a, 128)
+        with qc.if_test(expr.logic_not(b)):
+            # Mix old-style and new-style.
+            with qc.if_test(expr.equal(b, qc.clbits[0])):
+                qc.cx(0, 1)
+            c = qc.add_var("c", b)
+            with qc.if_test(expr.logic_and(c, expr.equal(a, 128))):
+                qc.h(0)
+        fname = "if_else_standalone_var.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_switch_standalone_var(self):
+        """Test switch with standalone Var."""
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", expr.lift(5, a.type))
+        with qc.switch(expr.bit_not(a)) as case:
+            with case(0):
+                with qc.switch(b) as case2:
+                    with case2(2):
+                        qc.cx(0, 1)
+                    with case2(case2.DEFAULT):
+                        qc.cx(1, 0)
+            with case(case.DEFAULT):
+                c = qc.add_var("c", expr.equal(a, b))
+                with qc.if_test(c):
+                    qc.h(0)
+        fname = "switch_standalone_var.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

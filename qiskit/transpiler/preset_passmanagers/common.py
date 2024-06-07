@@ -22,7 +22,6 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
-from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
@@ -65,7 +64,7 @@ _CONTROL_FLOW_STATES = {
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     "translation_method": _ControlFlowState(
-        working={"translator", "synthesis", "unroller"},
+        working={"translator", "synthesis"},
         not_working=set(),
     ),
     "optimization_method": _ControlFlowState(working=set(), not_working=set()),
@@ -87,9 +86,12 @@ class _InvalidControlFlowForBackend:
     def __init__(self, basis_gates=(), target=None):
         if target is not None:
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
-        else:
-            basis_gates = set(basis_gates) if basis_gates is not None else set()
+        elif basis_gates is not None:
+            basis_gates = set(basis_gates)
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
+        else:
+            # Pass manager without basis gates or target; assume everything's valid.
+            self.unsupported = []
 
     def message(self, property_set):
         """Create an error message for the given property set."""
@@ -447,9 +449,7 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
-    if method == "unroller":
-        unroll = [Unroller(basis=basis_gates, target=target)]
-    elif method == "translator":
+    if method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
@@ -584,6 +584,7 @@ def generate_scheduling(
             InstructionDurationCheck(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
+                target=target,
             )
         )
         scheduling.append(
@@ -591,6 +592,7 @@ def generate_scheduling(
                 ConstrainedReschedule(
                     acquire_alignment=timing_constraints.acquire_alignment,
                     pulse_alignment=timing_constraints.pulse_alignment,
+                    target=target,
                 ),
                 condition=_require_alignment,
             )
@@ -599,6 +601,7 @@ def generate_scheduling(
             ValidatePulseGates(
                 granularity=timing_constraints.granularity,
                 min_length=timing_constraints.min_length,
+                target=target,
             )
         )
     if scheduling_method:
@@ -624,15 +627,10 @@ def get_vf2_limits(
     """
     limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
-        if optimization_level == 1:
+        if optimization_level in {1, 2}:
             limits = VF2Limits(
                 int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
                 2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
-            )
-        elif optimization_level == 2:
-            limits = VF2Limits(
-                int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
-                25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(

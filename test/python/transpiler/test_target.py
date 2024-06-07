@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 # pylint: disable=missing-docstring
 
 import math
+import numpy as np
 
 from qiskit.circuit.library import (
     RZGate,
@@ -42,23 +43,53 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
-    FakeBackendV2,
+    GenericBackendV2,
+    Fake5QV1,
+    Fake7QPulseV1,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
     FakeMumbaiFractionalCX,
-    FakeVigo,
-    FakeNairobi,
-    FakeGeneva,
 )
 
 
 class TestTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.fake_backend = FakeBackendV2()
-        self.fake_backend_target = self.fake_backend.target
         self.theta = Parameter("theta")
         self.phi = Parameter("phi")
+        self.lam = Parameter("lam")
+        self.fake_backend = GenericBackendV2(num_qubits=2, basis_gates=[])
+        self.fake_backend_target = self.fake_backend.target
+
+        # GenericBackendV2 is limited to the standard gate library, and doesn't
+        # let you pick which gates go to which qubits (beyond a general coupling
+        # map), so the instructions are added to the target manually.
+        rx_30_props = {
+            (0,): InstructionProperties(duration=1.23e-8, error=0.00018115),
+            (1,): InstructionProperties(duration=1.52e-8, error=0.00012115),
+        }
+        self.fake_backend_target.add_instruction(RXGate(np.pi / 6), rx_30_props, name="rx_30")
+        rx_props = {
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+            (1,): InstructionProperties(duration=4.52e-8, error=0.00032115),
+        }
+        self.fake_backend_target.add_instruction(RXGate(self.theta), rx_props)
+        u_props = {
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+            (1,): InstructionProperties(duration=4.52e-8, error=0.00032115),
+        }
+        self.fake_backend_target.add_instruction(UGate(self.theta, self.phi, self.lam), u_props)
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        }
+        self.fake_backend_target.add_instruction(CXGate(), cx_props)
+        ecr_props = {
+            (1, 0): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+        }
+        self.fake_backend_target.add_instruction(ECRGate(), ecr_props)
+
         self.ibm_target = Target()
         i_props = {
             (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
@@ -178,7 +209,6 @@ class TestTarget(QiskitTestCase):
         self.aqt_target.add_instruction(Measure(), measure_props)
         self.empty_target = Target()
         self.ideal_sim_target = Target(num_qubits=3, description="Ideal Simulator")
-        self.lam = Parameter("lam")
         for inst in [
             UGate(self.theta, self.phi, self.lam),
             RXGate(self.theta),
@@ -269,7 +299,8 @@ class TestTarget(QiskitTestCase):
         self.assertEqual(self.ibm_target.operation_names, {"rz", "id", "sx", "x", "cx", "measure"})
         self.assertEqual(self.aqt_target.operation_names, {"rz", "ry", "rx", "rxx", "r", "measure"})
         self.assertEqual(
-            self.fake_backend_target.operation_names, {"u", "cx", "measure", "ecr", "rx_30", "rx"}
+            self.fake_backend_target.operation_names,
+            {"u", "cx", "measure", "ecr", "rx_30", "rx", "reset", "delay"},
         )
         self.assertEqual(
             self.ideal_sim_target.operation_names,
@@ -291,12 +322,12 @@ class TestTarget(QiskitTestCase):
         for gate in aqt_expected:
             self.assertIn(gate, self.aqt_target.operations)
         fake_expected = [
-            UGate(self.fake_backend._theta, self.fake_backend._phi, self.fake_backend._lam),
+            UGate(self.theta, self.phi, self.lam),
             CXGate(),
             Measure(),
             ECRGate(),
             RXGate(math.pi / 6),
-            RXGate(self.fake_backend._theta),
+            RXGate(self.theta),
         ]
         for gate in fake_expected:
             self.assertIn(gate, self.fake_backend_target.operations)
@@ -373,10 +404,7 @@ class TestTarget(QiskitTestCase):
             self.empty_target.operation_from_name("measure")
         self.assertEqual(self.ibm_target.operation_from_name("measure"), Measure())
         self.assertEqual(self.fake_backend_target.operation_from_name("rx_30"), RXGate(math.pi / 6))
-        self.assertEqual(
-            self.fake_backend_target.operation_from_name("rx"),
-            RXGate(self.fake_backend._theta),
-        )
+        self.assertEqual(self.fake_backend_target.operation_from_name("rx"), RXGate(self.theta))
         self.assertEqual(self.ideal_sim_target.operation_from_name("ccx"), CCXGate())
 
     def test_get_instructions_for_qargs(self):
@@ -538,9 +566,7 @@ class TestTarget(QiskitTestCase):
     def test_coupling_map_2q_gate(self):
         cmap = self.fake_backend_target.build_coupling_map("ecr")
         self.assertEqual(
-            [
-                (1, 0),
-            ],
+            [(1, 0)],
             cmap.get_edges(),
         )
 
@@ -1304,10 +1330,10 @@ Instructions:
             )
 
     def test_default_instmap_has_no_custom_gate(self):
-        backend = FakeGeneva()
+        backend = GenericBackendV2(num_qubits=27, calibrate_instructions=True)
         target = backend.target
 
-        # This copies .calibraiton of InstructionProperties of each instruction
+        # This copies .calibration of InstructionProperties of each instruction
         # This must not convert PulseQobj to Schedule during this.
         # See qiskit-terra/#9595
         inst_map = target.instruction_schedule_map()
@@ -1339,6 +1365,31 @@ Instructions:
         target.add_instruction(XGate(), properties)
 
         self.assertIsNone(target["x"][(0,)].calibration)
+
+    def test_has_calibration(self):
+        target = Target()
+        properties = {
+            (0,): InstructionProperties(duration=100, error=0.1),
+            (1,): None,
+        }
+        target.add_instruction(XGate(), properties)
+
+        # Test false for properties with no calibration
+        self.assertFalse(target.has_calibration("x", (0,)))
+        # Test false for no properties
+        self.assertFalse(target.has_calibration("x", (1,)))
+
+        properties = {
+            (0,): InstructionProperties(
+                duration=self.custom_sx_q0.duration,
+                error=None,
+                calibration=self.custom_sx_q0,
+            )
+        }
+        target.add_instruction(SXGate(), properties)
+
+        # Test true for properties with calibration
+        self.assertTrue(target.has_calibration("sx", (0,)))
 
     def test_loading_legacy_ugate_instmap(self):
         # This is typical IBM backend situation.
@@ -1886,7 +1937,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
     def test_properties(self):
-        fake_backend = FakeVigo()
+        fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         target = Target.from_configuration(
@@ -1899,7 +1950,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(0, target["rz"][(0,)].duration)
 
     def test_properties_with_durations(self):
-        fake_backend = FakeVigo()
+        fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
@@ -1914,7 +1965,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(0.5, target["rz"][(0,)].duration)
 
     def test_inst_map(self):
-        fake_backend = FakeNairobi()
+        fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         defaults = fake_backend.defaults()
@@ -1935,7 +1986,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
 
     def test_concurrent_measurements(self):
-        fake_backend = FakeVigo()
+        fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         target = Target.from_configuration(
             basis_gates=config.basis_gates,

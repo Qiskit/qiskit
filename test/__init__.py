@@ -15,6 +15,9 @@
 import itertools
 from ddt import data, unpack
 
+from .utils.base import QiskitTestCase
+from .utils.decorators import slow_test
+
 
 class Case(dict):
     """<no description>"""

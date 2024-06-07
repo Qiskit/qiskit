@@ -142,13 +142,15 @@ class MCMT(QuantumCircuit):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None, annotated=False):
         """Return the controlled version of the MCMT circuit."""
-        if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
-            return MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
-        return super().control(num_ctrl_qubits, label, ctrl_state)
+        if not annotated and ctrl_state is None:
+            gate = MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
+        else:
+            gate = super().control(num_ctrl_qubits, label, ctrl_state, annotated=annotated)
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the inverse MCMT circuit, which is itself."""
         return MCMT(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
 
@@ -250,5 +252,5 @@ class MCMTVChain(MCMT):
                 self.ccx(control_qubits[j], ancilla_qubits[i], ancilla_qubits[i + 1])
             self.ccx(control_qubits[0], control_qubits[1], ancilla_qubits[0])
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)

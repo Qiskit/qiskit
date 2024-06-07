@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """Test GatesInBasis pass."""
 
 from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, SwitchCaseOp, Clbit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import HGate, CXGate, UGate, XGate, ZGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
@@ -21,8 +22,8 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.target import Target
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGatesInBasisPass(QiskitTestCase):
@@ -98,7 +99,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_with_target(self):
         """Test circuit with all gates in basis with target."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "u"]  # not used
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -111,7 +112,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_not_in_basis_with_target(self):
         """Test circuit with not all gates in basis with target."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -124,7 +125,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_not_on_all_qubits_with_target(self):
         """Test circuit with gate in global basis but not local basis."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["ecr", "cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -137,7 +138,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_empty_circuit_with_target(self):
         """Test circuit with no gates with target."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -190,7 +191,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_after_translation_with_target(self):
         """Test circuit with gates in basis after conditional translation."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target)
@@ -269,3 +270,44 @@ class TestGatesInBasisPass(QiskitTestCase):
         pass_ = GatesInBasis(target=complete)
         pass_(circuit)
         self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+    def test_store_is_treated_as_builtin_basis_gates(self):
+        """Test that `Store` is treated as an automatic built-in when given basis gates."""
+        pass_ = GatesInBasis(basis_gates=["h", "cx"])
+
+        a = expr.Var.new("a", types.Bool())
+        good = QuantumCircuit(2, inputs=[a])
+        good.store(a, False)
+        good.h(0)
+        good.cx(0, 1)
+        _ = pass_(good)
+        self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+        bad = QuantumCircuit(2, inputs=[a])
+        bad.store(a, False)
+        bad.x(0)
+        bad.cz(0, 1)
+        _ = pass_(bad)
+        self.assertFalse(pass_.property_set["all_gates_in_basis"])
+
+    def test_store_is_treated_as_builtin_target(self):
+        """Test that `Store` is treated as an automatic built-in when given a target."""
+        target = Target()
+        target.add_instruction(HGate(), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 0): None})
+        pass_ = GatesInBasis(target=target)
+
+        a = expr.Var.new("a", types.Bool())
+        good = QuantumCircuit(2, inputs=[a])
+        good.store(a, False)
+        good.h(0)
+        good.cx(0, 1)
+        _ = pass_(good)
+        self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+        bad = QuantumCircuit(2, inputs=[a])
+        bad.store(a, False)
+        bad.x(0)
+        bad.cz(0, 1)
+        _ = pass_(bad)
+        self.assertFalse(pass_.property_set["all_gates_in_basis"])

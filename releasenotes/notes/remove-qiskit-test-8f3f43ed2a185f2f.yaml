@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The ``qiskit.test`` module is no longer a public module.  This was never intended to be public,
-    nor used outside of Qiskit's own test suite.  All functionality was specific to Qiskit and no
-    alternative is provided; if you needed similar functionality, you should include it in your own
-    test harnesses.

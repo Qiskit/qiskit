@@ -12,9 +12,9 @@
 
 """Parser Test."""
 
-from qiskit.test import QiskitTestCase
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.exceptions import PulseError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):

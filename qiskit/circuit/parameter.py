@@ -25,10 +25,16 @@ from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters.
+    """A compile-time symbolic parameter.
 
-    A parameter is a variable value that is not required to be fixed
-    at circuit definition.
+    The value of a :class:`Parameter` must be entirely determined before a circuit begins execution.
+    Typically this will mean that you should supply values for all :class:`Parameter`\\ s in a
+    circuit using :meth:`.QuantumCircuit.assign_parameters`, though certain hardware vendors may
+    allow you to give them a circuit in terms of these parameters, provided you also pass the values
+    separately.
+
+    This is the atom of :class:`.ParameterExpression`, and is itself an expression.  The numeric
+    value of a parameter need not be fixed while the circuit is being defined.
 
     Examples:
 
@@ -53,7 +59,7 @@ class Parameter(ParameterExpression):
            bc.draw('mpl')
     """
 
-    __slots__ = ("_name", "_uuid", "_hash")
+    __slots__ = ("_uuid", "_hash")
 
     # This `__init__` does not call the super init, because we can't construct the
     # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialised
@@ -62,11 +68,10 @@ class Parameter(ParameterExpression):
     def __init__(
         self, name: str, *, uuid: UUID | None = None
     ):  # pylint: disable=super-init-not-called
-        """Create a new named :class:`Parameter`.
-
+        """
         Args:
             name: name of the ``Parameter``, used for visual representation. This can
-                be any unicode string, e.g. "ϕ".
+                be any Unicode string, e.g. "ϕ".
             uuid: For advanced usage only.  Override the UUID of this parameter, in order to make it
                 compare equal to some other parameter object.  By default, two parameters with the
                 same name do not compare equal to help catch shadowing bugs when two circuits
@@ -74,7 +79,6 @@ class Parameter(ParameterExpression):
                 field when creating two parameters to the same thing (along with the same name)
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
-        self._name = name
         self._uuid = uuid4() if uuid is None else uuid
         symbol = symengine.Symbol(name)
 
@@ -112,7 +116,17 @@ class Parameter(ParameterExpression):
     @property
     def name(self):
         """Returns the name of the :class:`Parameter`."""
-        return self._name
+        return self._symbol_expr.name
+
+    @property
+    def uuid(self) -> UUID:
+        """Returns the :class:`~uuid.UUID` of the :class:`Parameter`.
+
+        In advanced use cases, this property can be passed to the
+        :class:`Parameter` constructor to produce an instance that compares
+        equal to another instance.
+        """
+        return self._uuid
 
     def __str__(self):
         return self.name
@@ -128,7 +142,7 @@ class Parameter(ParameterExpression):
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
-            return self._uuid == other._uuid
+            return (self._uuid, self._symbol_expr) == (other._uuid, other._symbol_expr)
         elif isinstance(other, ParameterExpression):
             return super().__eq__(other)
         else:
@@ -140,7 +154,7 @@ class Parameter(ParameterExpression):
         # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
         # This method lets containing expressions get only the bits they need for equality checks in
         # the first value, without wasting time re-hashing individual Sympy/Symengine symbols.
-        return (self._name, self._uuid)
+        return (self._symbol_expr, self._uuid)
 
     def __hash__(self):
         # This is precached for performance, since it's used a lot and we are immutable.
@@ -150,10 +164,10 @@ class Parameter(ParameterExpression):
     # operation attempts to put this parameter into a hashmap.
 
     def __getstate__(self):
-        return (self._name, self._uuid, self._symbol_expr)
+        return (self.name, self._uuid, self._symbol_expr)
 
     def __setstate__(self, state):
-        self._name, self._uuid, self._symbol_expr = state
+        _, self._uuid, self._symbol_expr = state
         self._parameter_keys = frozenset((self._hash_key(),))
         self._hash = hash((self._parameter_keys, self._symbol_expr))
         self._parameter_symbols = {self: self._symbol_expr}

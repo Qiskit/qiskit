@@ -97,8 +97,8 @@ class BasisTranslator(TransformationPass):
 
     When this error occurs it typically means that either the target basis
     is not universal or there are additional equivalence rules needed in the
-    :clas:~.EquivalenceLibrary` instance being used by the
-    :class:~.BasisTranslator` pass. You can refer to
+    :class:`~.EquivalenceLibrary` instance being used by the
+    :class:`~.BasisTranslator` pass. You can refer to
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
@@ -109,7 +109,7 @@ class BasisTranslator(TransformationPass):
             equivalence_library (EquivalenceLibrary): The equivalence library
                 which will be used by the BasisTranslator pass. (Instructions in
                 this library will not be unrolled by this pass.)
-            target_basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
+            target_basis (list[str]): Target basis names to unroll to, e.g. ``['u3', 'cx']``.
             target (Target): The backend compilation target
             min_qubits (int): The minimum number of qubits for operations in the input
                 dag to translate.
@@ -148,16 +148,21 @@ class BasisTranslator(TransformationPass):
 
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
-            basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
+            basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay", "store"]
             target_basis = set(self._target_basis)
             source_basis = set(self._extract_basis(dag))
             qargs_local_source_basis = {}
         else:
-            basic_instrs = ["barrier", "snapshot"]
+            basic_instrs = ["barrier", "snapshot", "store"]
             target_basis = self._target.keys() - set(self._non_global_operations)
             source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
+        # If the source basis is a subset of the target basis and we have no circuit
+        # instructions on qargs that have non-global operations there is nothing to
+        # translate and we can exit early.
+        if source_basis.issubset(target_basis) and not qargs_local_source_basis:
+            return dag
 
         logger.info(
             "Begin BasisTranslator from source basis %s to target basis %s.",
@@ -202,7 +207,7 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                    "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
                     "BasisTranslator#translation-errors"
                 )
 
@@ -220,7 +225,7 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
                 "BasisTranslator#translation-errors"
             )
 

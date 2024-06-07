@@ -120,7 +120,7 @@ class PulseExpression(ast.NodeTransformer):
         if kwargs:
             for key, val in kwargs.items():
                 if key in self.params:
-                    if key not in self._locals_dict.keys():
+                    if key not in self._locals_dict:
                         self._locals_dict[key] = val
                     else:
                         raise PulseError(
@@ -272,7 +272,7 @@ class PulseExpression(ast.NodeTransformer):
         node = copy.copy(node)
         node.args = [self.visit(arg) for arg in node.args]
         if all(isinstance(arg, ast.Constant) for arg in node.args):
-            if node.func.id not in self._math_ops.keys():
+            if node.func.id not in self._math_ops:
                 raise PulseError("Function %s is not supported." % node.func.id)
             _args = [arg.value for arg in node.args]
             _val = self._math_ops[node.func.id](*_args)

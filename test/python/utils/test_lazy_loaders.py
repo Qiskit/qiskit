@@ -19,12 +19,11 @@ import importlib.util
 import sys
 import warnings
 from unittest import mock
-
 import ddt
 
 from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
-from qiskit.test import QiskitTestCase
 from qiskit.utils import LazyImportTester, LazySubprocessTester
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def available_importer(**kwargs):

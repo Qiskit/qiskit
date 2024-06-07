@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler type checker."""
+
 import unittest
 
-from qiskit.test import QiskitTestCase
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     from . import examples, bad_examples

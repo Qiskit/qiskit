@@ -7,13 +7,9 @@ license.workspace = true
 
 [lib]
 name = "qiskit_qasm2"
-crate-type = ["cdylib"]
-
-[features]
-# This is a test-only shim removable feature.  See the root `Cargo.toml`.
-default = ["extension-module"]
-extension-module = ["pyo3/extension-module"]
+doctest = false
 
 [dependencies]
-hashbrown = "0.14.0"
+hashbrown.workspace = true
 pyo3.workspace = true
+qiskit-circuit.workspace = true

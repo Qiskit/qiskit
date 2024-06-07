@@ -21,11 +21,11 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import OptimizeCliffords, CollectCliffords
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator, random_clifford
 from qiskit.compiler.transpiler import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCliffordPasses(QiskitTestCase):

@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.providers.fake_provider import Fake5QV1
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -484,7 +484,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=FakeTenerife(),
+            backend=Fake5QV1(),
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,

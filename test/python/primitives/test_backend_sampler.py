@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,10 +15,6 @@
 import math
 import unittest
 from multiprocessing import Manager
-
-from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
-
 import numpy as np
 from ddt import ddt
 
@@ -26,13 +22,17 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus
-from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import QiskitTestCase
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+
+BACKENDS = [Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
 
 
 class CallbackPass(DummyAP):
@@ -259,7 +259,8 @@ class TestBackendSampler(QiskitTestCase):
         qc = RealAmplitudes(num_qubits=2, reps=2)
         qc.measure_all()
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        rng = np.random.default_rng(12)
+        params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         sampler = BackendSampler(backend=backend)
@@ -299,8 +300,8 @@ class TestBackendSampler(QiskitTestCase):
     def test_primitive_job_size_limit_backend_v2(self):
         """Test primitive respects backend's job size limit."""
 
-        class FakeNairobiLimitedCircuits(FakeNairobiV2):
-            """FakeNairobiV2 with job size limit."""
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):
@@ -311,7 +312,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=FakeNairobiLimitedCircuits())
+        sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5))
         result = sampler.run([qc, qc2]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
@@ -321,7 +322,7 @@ class TestBackendSampler(QiskitTestCase):
 
     def test_primitive_job_size_limit_backend_v1(self):
         """Test primitive respects backend's job size limit."""
-        backend = FakeNairobi()
+        backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
@@ -351,9 +352,10 @@ class TestBackendSampler(QiskitTestCase):
             qc.measure(0, 0)
             qc.break_loop().c_if(0, True)
 
-        backend = Aer.get_backend("aer_simulator")
-        backend.set_options(seed_simulator=15)
+        with self.assertWarns(DeprecationWarning):
+            backend = Aer.get_backend("aer_simulator")
         sampler = BackendSampler(backend, skip_transpilation=True)
+        sampler.set_options(seed_simulator=15)
         sampler.set_transpile_options(seed_transpiler=15)
         result = sampler.run(qc).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
@@ -365,7 +367,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=FakeNairobi())
+        sampler = BackendSampler(backend=Fake7QPulseV1())
         result = sampler.run([qc]).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         result2 = sampler.run([qc2]).result()
@@ -386,7 +388,7 @@ class TestBackendSampler(QiskitTestCase):
         # We need a noise-free backend here (shot noise is fine) to ensure that
         # the only bit string measured is "0001". With device noise, it could happen that
         # strings with a leading 1 are measured and then the truncation cannot be tested.
-        sampler = BackendSampler(backend=QasmSimulatorPy())
+        sampler = BackendSampler(backend=BasicSimulator())
 
         result = sampler.run(qc).result()
         probs = result.quasi_dists[0].binary_probabilities()
@@ -405,7 +407,7 @@ class TestBackendSampler(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
-            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            sampler = BackendSampler(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
             _ = sampler.run([self._circuit[0]]).result()
             expected = [
                 "bound_pass_manager",
@@ -425,7 +427,7 @@ class TestBackendSampler(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                sampler = BackendSampler(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
                 expected = [
                     "bound_pass_manager",

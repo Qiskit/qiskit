@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    The default style for the circuit visualization using Matplotlib has been
-    changed to ``"iqp"``, matching the IBM Quantum Platform.
-  - |
-    Remove the deprecated module ``qiskit.visualization.qcstyle`` in favor of
-    :mod:`qiskit.visualization.circuit.qcstyle`.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,8 +33,8 @@ from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeAthens
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake7QPulseV1
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -530,14 +530,14 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_two_instmaps_equal(self):
         """Test eq method when two instmaps are identical."""
-        instmap1 = FakeAthens().defaults().instruction_schedule_map
+        instmap1 = Fake7QPulseV1().defaults().instruction_schedule_map
         instmap2 = copy.deepcopy(instmap1)
 
         self.assertEqual(instmap1, instmap2)
 
     def test_two_instmaps_different(self):
         """Test eq method when two instmaps are not identical."""
-        instmap1 = FakeAthens().defaults().instruction_schedule_map
+        instmap1 = Fake7QPulseV1().defaults().instruction_schedule_map
         instmap2 = copy.deepcopy(instmap1)
 
         # override one of instruction
@@ -547,7 +547,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_instmap_picklable(self):
         """Test if instmap can be pickled."""
-        instmap = FakeAthens().defaults().instruction_schedule_map
+        instmap = Fake7QPulseV1().defaults().instruction_schedule_map
 
         ser_obj = pickle.dumps(instmap)
         deser_instmap = pickle.loads(ser_obj)
@@ -561,7 +561,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         in which arguments are provided by users in the form of
         python dict key object that is not picklable.
         """
-        instmap = FakeAthens().defaults().instruction_schedule_map
+        instmap = Fake7QPulseV1().defaults().instruction_schedule_map
 
         param1 = Parameter("P1")
         param2 = Parameter("P2")

@@ -16,9 +16,10 @@ import unittest
 from os import path
 from ddt import ddt, unpack, data
 
-from qiskit.test.base import QiskitTestCase
-from qiskit import execute, BasicAer
+from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
@@ -57,10 +58,11 @@ class TestBooleanExpression(QiskitTestCase):
         new_creg = expr_circ._create_creg(1, "c")
         expr_circ.add_register(new_creg)
         expr_circ.measure(expression.num_qubits - 1, new_creg)
+
+        backend = BasicSimulator()
         [result] = (
-            execute(
-                expr_circ,
-                backend=BasicAer.get_backend("qasm_simulator"),
+            backend.run(
+                transpile(expr_circ, backend),
                 shots=1,
                 seed_simulator=14,
             )

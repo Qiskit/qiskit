@@ -27,8 +27,10 @@ from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import deprecate_arg
 
 
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: Union[Waveform, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
@@ -39,9 +41,10 @@ def draw(
     show_snapshot: bool = True,
     show_framechange: bool = True,
     show_waveform_info: bool = True,
-    show_barrier: bool = True,
+    plot_barrier: bool = True,
     plotter: str = types.Plotter.Mpl2D.value,
     axis: Optional[Any] = None,
+    show_barrier: bool = True,
 ):
     """Generate visualization data for pulse programs.
 
@@ -66,7 +69,7 @@ def draw(
             instructions that modulate phase or frequency of pulse channels.
         show_waveform_info: Show waveform annotations, i.e. name, of waveforms.
             Set ``True`` to show additional information about waveforms.
-        show_barrier: Show barrier lines.
+        plot_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
@@ -79,6 +82,7 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
+        show_barrier: DEPRECATED. Show barrier lines.
 
     Returns:
         Visualization output data.
@@ -310,16 +314,16 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
-            sched = schedule(qc, FakeBoeblingen())
+            qc = transpile(qc, GenericBackendV2(5), layout_method='trivial')
+            sched = schedule(qc, GenericBackendV2(5))
 
-            draw(sched, backend=FakeBoeblingen())
+            draw(sched, backend=GenericBackendV2(5))
 
         Drawing with the stylesheet suited for publication.
 
@@ -328,16 +332,16 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXSimple
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
-            sched = schedule(qc, FakeBoeblingen())
+            qc = transpile(qc, GenericBackendV2(5), layout_method='trivial')
+            sched = schedule(qc, GenericBackendV2(5))
 
-            draw(sched, style=IQXSimple(), backend=FakeBoeblingen())
+            draw(sched, style=IQXSimple(), backend=GenericBackendV2(5))
 
         Drawing with the stylesheet suited for program debugging.
 
@@ -346,16 +350,16 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXDebugging
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
-            sched = schedule(qc, FakeBoeblingen())
+            qc = transpile(qc, GenericBackendV2(5), layout_method='trivial')
+            sched = schedule(qc, GenericBackendV2(5))
 
-            draw(sched, style=IQXDebugging(), backend=FakeBoeblingen())
+            draw(sched, style=IQXDebugging(), backend=GenericBackendV2(5))
 
         You can partially customize a preset stylesheet when initializing it.
 
@@ -368,7 +372,7 @@ def draw(
             }
             style = IQXStandard(**my_style)
             # draw
-            draw(sched, style=style, backend=FakeBoeblingen())
+            draw(sched, style=style, backend=GenericBackendV2(5))
 
         In the same way as above, you can create custom generator or layout functions
         and update the existing stylesheet with custom functions.
@@ -379,6 +383,7 @@ def draw(
         MissingOptionalLibraryError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
+    del show_barrier
     temp_style = stylesheet.QiskitPulseStyle()
     temp_style.update(style or stylesheet.IQXStandard())
 
@@ -425,7 +430,7 @@ def draw(
         canvas.set_disable_type(types.LabelType.PULSE_NAME, remove=True)
 
     # show barrier
-    if not show_barrier:
+    if not plot_barrier:
         canvas.set_disable_type(types.LineType.BARRIER, remove=True)
 
     canvas.update()

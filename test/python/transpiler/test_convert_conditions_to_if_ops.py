@@ -13,10 +13,10 @@
 # pylint: disable=missing-class-docstring,missing-module-docstring
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit, Clbit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import ConvertConditionsToIfOps
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestConvertConditionsToIfOps(QiskitTestCase):
