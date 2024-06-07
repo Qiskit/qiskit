@@ -3124,7 +3124,6 @@ class QuantumCircuit:
         predicate=lambda justify: (
             not isinstance(justify, str) or justify.lower() not in ("left", "right", "none")
         ),
-        pending=True,
     )
     def draw(
         self,
