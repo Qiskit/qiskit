@@ -22,8 +22,13 @@ use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArr
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
+// For method is_zero
 use num_traits::Zero;
 use rayon::prelude::*;
+
+use qiskit_circuit::util::{ONE, ZERO};
+// Macro c64!
+use qiskit_circuit::c64;
 
 use crate::rayon_ext::*;
 
@@ -257,9 +262,9 @@ impl<'py> ZXPaulisView<'py> {
                 let ys = (xs & zs).count_ones();
                 match (phase as u32 + ys) % 4 {
                     0 => coeff,
-                    1 => Complex64::new(coeff.im, -coeff.re),
-                    2 => Complex64::new(-coeff.re, -coeff.im),
-                    3 => Complex64::new(-coeff.im, coeff.re),
+                    1 => c64!(coeff.im, -coeff.re),
+                    2 => c64!(-coeff.re, -coeff.im),
+                    3 => c64!(-coeff.im, coeff.re),
                     _ => unreachable!(),
                 }
             })
@@ -311,10 +316,10 @@ impl MatrixCompressedPaulis {
             .zip(self.z_like.drain(..))
             .zip(self.coeffs.drain(..))
         {
-            *hash_table.entry(key).or_insert(Complex64::new(0.0, 0.0)) += coeff;
+            *hash_table.entry(key).or_insert(ZERO) += coeff;
         }
         for ((x, z), coeff) in hash_table {
-            if coeff == Complex64::new(0.0, 0.0) {
+            if coeff == ZERO {
                 continue;
             }
             self.x_like.push(x);
@@ -347,7 +352,7 @@ pub fn decompose_dense(
     let mut coeffs = vec![];
     if num_qubits > 0 {
         decompose_dense_inner(
-            Complex64::new(1.0, 0.0),
+            ONE,
             num_qubits,
             &[],
             operator.as_array(),
@@ -485,7 +490,7 @@ fn decompose_dense_inner(
     );
     recurse_if_nonzero(
         Pauli::Y,
-        0.5 * Complex64::i() * factor,
+        c64!(0, 0.5) * factor,
         &block.slice(s![..mid, mid..]) - &block.slice(s![mid.., ..mid]),
     );
     recurse_if_nonzero(
@@ -532,7 +537,7 @@ fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec
         // Doing the initialisation here means that when we're in parallel contexts, we do the
         // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
         // contexts, but I don't understand that. ---Jake
-        row.fill(Complex64::new(0.0, 0.0));
+        row.fill(ZERO);
         for ((&x_like, &z_like), &coeff) in paulis
             .x_like
             .iter()
@@ -667,7 +672,7 @@ macro_rules! impl_to_matrix_sparse {
                     ((i_row as $uint_ty) ^ (paulis.x_like[a] as $uint_ty))
                         .cmp(&((i_row as $uint_ty) ^ (paulis.x_like[b] as $uint_ty)))
                 });
-                let mut running = Complex64::new(0.0, 0.0);
+                let mut running = ZERO;
                 let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
                 for (x_like, z_like, coeff) in order
                     .iter()
@@ -748,7 +753,7 @@ macro_rules! impl_to_matrix_sparse {
                             (i_row as $uint_ty ^ paulis.x_like[a] as $uint_ty)
                                 .cmp(&(i_row as $uint_ty ^ paulis.x_like[b] as $uint_ty))
                         });
-                        let mut running = Complex64::new(0.0, 0.0);
+                        let mut running = ZERO;
                         let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
                         for (x_like, z_like, coeff) in order
                             .iter()
@@ -844,11 +849,11 @@ mod tests {
             // Deliberately using multiples of small powers of two so the floating-point addition
             // of them is associative.
             coeffs: vec![
-                Complex64::new(0.25, 0.5),
-                Complex64::new(0.125, 0.25),
-                Complex64::new(0.375, 0.125),
-                Complex64::new(-0.375, 0.0625),
-                Complex64::new(-0.5, -0.25),
+                c64!(0.25, 0.5),
+                c64!(0.125, 0.25),
+                c64!(0.375, 0.125),
+                c64!(-0.375, 0.0625),
+                c64!(-0.5, -0.25),
             ],
         }
     }

@@ -31,7 +31,11 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
+use qiskit_circuit::util::M_IM;
 use qiskit_circuit::SliceOrInt;
+
+// Macro c64!
+use qiskit_circuit::c64;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -855,16 +859,16 @@ pub fn params_xyx(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 
 fn params_xzx_inner(umat: ArrayView2<Complex64>) -> [f64; 4] {
     let det = det_one_qubit(umat);
-    let phase = (Complex64::new(0., -1.) * det.ln()).re / 2.;
+    let phase = (M_IM * det.ln()).re / 2.;
     let sqrt_det = det.sqrt();
     let mat_zyz = arr2(&[
         [
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
-            Complex64::new((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64!((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
+            c64!((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
         ],
         [
-            Complex64::new(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
+            c64!(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64!((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
         ],
     ]);
     let [theta, phi, lam, phase_zxz] = params_zxz_inner(mat_zyz.view());

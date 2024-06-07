@@ -193,6 +193,7 @@ pub enum StandardGate {
     HGate = 15,
     PhaseGate = 16,
     UGate = 17,
+    RGate = 18,
 }
 
 #[pymethods]
@@ -236,7 +237,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 18;
+pub const STANDARD_GATE_SIZE: usize = 19;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
@@ -259,6 +260,7 @@ impl Operation for StandardGate {
             Self::HGate => "h",
             Self::PhaseGate => "p",
             Self::UGate => "u",
+            Self::RGate => "r",
         }
     }
 
@@ -282,6 +284,7 @@ impl Operation for StandardGate {
             Self::HGate => 1,
             Self::PhaseGate => 1,
             Self::UGate => 1,
+            Self::RGate => 1,
         }
     }
 
@@ -305,6 +308,7 @@ impl Operation for StandardGate {
             Self::HGate => 0,
             Self::PhaseGate => 1,
             Self::UGate => 3,
+            Self::RGate => 2,
         }
     }
 
@@ -395,6 +399,12 @@ impl Operation for StandardGate {
             Self::UGate => match params {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(aview2(&gate_matrix::u_gate(*theta, *phi, *lam)).to_owned())
+                }
+                _ => None,
+            },
+            Self::RGate => match params {
+                [Param::Float(theta), Param::Float(phi)] => {
+                    Some(aview2(&gate_matrix::r_gate(*theta, *phi)).to_owned())
                 }
                 _ => None,
             },
@@ -560,6 +570,39 @@ impl Operation for StandardGate {
                 )
             }),
             Self::UGate => None,
+            Self::RGate => Python::with_gil(|py| -> Option<CircuitData> {
+                let defparams = match (&params[0], &params[1]) {
+                    (Param::Float(theta), Param::Float(phi)) => smallvec![
+                        Param::Float(*theta),
+                        Param::Float(*phi - 1.0),
+                        Param::Float(-*phi + 1.0),
+                    ],
+                    (Param::ParameterExpression(theta), Param::ParameterExpression(phi)) => {
+                        let thetaexpr = Param::ParameterExpression(theta.clone_ref(py));
+                        let phiexpr1 = phi
+                            .call_method1(py, intern!(py, "__add__"), ((-PI / 2.0),))
+                            .expect("Unexpected Qiskit python bug");
+                        let phiexpr2 = phiexpr1
+                            .call_method1(py, intern!(py, "__rmul__"), (-1.0,))
+                            .expect("Unexpected Qiskit python bug");
+                        smallvec![
+                            thetaexpr,
+                            Param::ParameterExpression(phiexpr1),
+                            Param::ParameterExpression(phiexpr2),
+                        ]
+                    }
+                    _ => todo!(),
+                };
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(Self::UGate, defparams, smallvec![0])],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
         }
     }
 

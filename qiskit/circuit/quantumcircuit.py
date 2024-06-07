@@ -4665,9 +4665,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.r import RGate
-
-        return self.append(RGate(theta, phi), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.RGate, [theta, phi], [qubit], None)
 
     def rv(
         self,

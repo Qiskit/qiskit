@@ -17,6 +17,9 @@ use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
+// Macro c64!
+use qiskit_circuit::c64;
+
 use crate::pauli_exp_val::fast_sum;
 
 const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
@@ -81,7 +84,7 @@ pub fn sampled_expval_complex(
     let out: Complex64 = oper_strs
         .into_iter()
         .enumerate()
-        .map(|(idx, string)| coeff_arr[idx] * Complex64::new(bitstring_expval(&dist, string), 0.))
+        .map(|(idx, string)| coeff_arr[idx] * c64!(bitstring_expval(&dist, string), 0))
         .sum();
     Ok(out.re)
 }

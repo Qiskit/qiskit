@@ -18,6 +18,7 @@ pub mod imports;
 pub mod intern_context;
 pub mod operations;
 pub mod parameter_table;
+pub mod util;
 
 use pyo3::prelude::*;
 use pyo3::types::PySlice;

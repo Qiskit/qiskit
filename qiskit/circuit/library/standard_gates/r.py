@@ -20,6 +20,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RGate(Gate):
@@ -49,6 +50,8 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.RGate
+
     def __init__(
         self,
         theta: ParameterValueType,
@@ -59,7 +62,14 @@ class RGate(Gate):
         unit="dt",
     ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi], label=label, duration=duration, unit=unit)
+        super().__init__(
+            "r",
+            1,
+            [theta, phi],
+            label=label,
+            duration=duration,
+            unit=unit,
+        )
 
     def _define(self):
         """
