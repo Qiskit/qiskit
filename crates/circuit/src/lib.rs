@@ -36,9 +36,9 @@ pub enum SliceOrInt<'a> {
 
 pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Qubit(BitType);
+pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Clbit(BitType);
+pub struct Clbit(pub BitType);
 
 impl From<BitType> for Qubit {
     fn from(value: BitType) -> Self {
