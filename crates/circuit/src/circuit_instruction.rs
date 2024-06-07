@@ -141,6 +141,17 @@ impl CircuitInstruction {
     }
 }
 
+impl From<OperationType> for OperationInput {
+    fn from(value: OperationType) -> Self {
+        match value {
+            OperationType::Standard(op) => Self::Standard(op),
+            OperationType::Gate(gate) => Self::Gate(gate),
+            OperationType::Instruction(inst) => Self::Instruction(inst),
+            OperationType::Operation(op) => Self::Operation(op),
+        }
+    }
+}
+
 #[pymethods]
 impl CircuitInstruction {
     #[allow(clippy::too_many_arguments)]
@@ -357,15 +368,7 @@ impl CircuitInstruction {
         unit: Option<String>,
         condition: Option<PyObject>,
     ) -> PyResult<Self> {
-        let operation = match operation {
-            Some(operation) => operation,
-            None => match &self.operation {
-                OperationType::Standard(op) => OperationInput::Standard(*op),
-                OperationType::Gate(gate) => OperationInput::Gate(gate.clone()),
-                OperationType::Instruction(inst) => OperationInput::Instruction(inst.clone()),
-                OperationType::Operation(op) => OperationInput::Operation(op.clone()),
-            },
-        };
+        let operation = operation.unwrap_or_else(|| self.operation.clone().into());
 
         let params = match params {
             Some(params) => params,
