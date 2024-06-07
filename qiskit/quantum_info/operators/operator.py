@@ -363,6 +363,7 @@ class Operator(LinearOp):
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
         final_layout: Layout | None = None,
+        original_qubit_indices = None,
     ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
@@ -401,9 +402,13 @@ class Operator(LinearOp):
         else:
             from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
+            if original_qubit_indices is not None:
+                input_qubit_mapping = original_qubit_indices
+            else:
+                input_qubit_mapping = {qubit: index for index, qubit in enumerate(circuit.qubits)}
             layout = TranspileLayout(
                 initial_layout=layout,
-                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+                input_qubit_mapping=input_qubit_mapping,
             )
 
         initial_layout = layout.initial_layout if layout is not None else None
@@ -428,11 +433,11 @@ class Operator(LinearOp):
 
         op = Operator(circuit)
 
-        print(f"FromCircuit: {initial_layout = }, {final_layout = }")
+        # print(f"FromCircuit: {initial_layout = }, {final_layout = }")
         if initial_layout:
-            print(f"{initial_permutation = }, {initial_permutation_inverse = }")
+            print(f"FromCircuit: {initial_permutation = }, {initial_permutation_inverse = }")
         if final_layout:
-            print(f"{final_permutation_inverse = }")
+            print(f"FromCircuit: {final_permutation_inverse = }")
 
 
         if initial_layout:
@@ -452,6 +457,7 @@ class Operator(LinearOp):
         circuit: QuantumCircuit,
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
+        original_qubit_indices=None,
     ) -> Operator:
         if layout is None:
             if not ignore_set_layout:
@@ -459,9 +465,14 @@ class Operator(LinearOp):
         else:
             from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
+            if original_qubit_indices is not None:
+                input_qubit_mapping = original_qubit_indices
+            else:
+                input_qubit_mapping = {qubit: index for index, qubit in enumerate(circuit.qubits)}
+
             layout = TranspileLayout(
                 initial_layout=layout,
-                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+                input_qubit_mapping=input_qubit_mapping,
             )
 
         initial_layout = layout.initial_layout if layout is not None else None
@@ -478,14 +489,13 @@ class Operator(LinearOp):
 
         final_permutation = circuit.final_permutation.permutation
         final_permutation_inverse = _inverse_pattern(final_permutation)
-        print(f"==> In Operation::from_circuit_new {final_permutation = }, {final_permutation_inverse = }")
 
         op = Operator(circuit)
 
-        print(f"FromCircuitNew: {initial_layout = }")
+        # print(f"FromCircuitNew: {initial_layout = }")
         if initial_layout:
-            print(f"{initial_permutation = }, {initial_permutation_inverse = }")
-
+            print(f"FromCircuitNew: {initial_permutation = }, {initial_permutation_inverse = }")
+        print(f"FromCircuitNew: {final_permutation = }, {final_permutation_inverse = }")
 
         if initial_layout:
             op = op.apply_permutation(initial_permutation, True)

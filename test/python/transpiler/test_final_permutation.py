@@ -22,6 +22,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import ElidePermutations, StarPreRouting
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from utils import random_circuit
 
 
 class TestFinalPermutationInTranspile(QiskitTestCase):
@@ -239,10 +240,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         # self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
 
-
-
-
-
     def test_star_elide_3(self):
         """First StarPreRouting, then Elide."""
         qc = QuantumCircuit(5)
@@ -269,6 +266,47 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+
+    def test_random_embed_1(self):
+        """More qubits in coupling map"""
+        for seed in range(10):
+            qc = random_circuit(4, 5, 3, seed=seed)
+            nq = qc.num_qubits
+
+            coupling_map = CouplingMap.from_line(nq + 2)
+
+            qc2 = QuantumCircuit(nq + 2)
+            qc2 = qc2.compose(qc, range(nq))
+
+            extended_op = Operator(qc2)
+
+            qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"], seed_transpiler=3)
+
+            transpiled_op = Operator.from_circuit(qct)
+            transpiled_op_new = Operator.from_circuit_new(qct)
+
+            self.assertTrue(transpiled_op.equiv(extended_op))
+            self.assertTrue(transpiled_op_new.equiv(extended_op))
+
+    def test_stochastic_swap(self):
+        """Stochastic Swap for mapping (sets final layout)"""
+        qc = random_circuit(4, 5, 3, seed=1)
+        nq = qc.num_qubits
+        op = Operator(qc)
+        cm = CouplingMap.from_line(nq + 2)
+        qc2 = QuantumCircuit(nq + 2)
+        qc2 = qc2.compose(qc, range(nq))
+        extended_op = Operator(qc2)
+
+        qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"],
+                        seed_transpiler=3, routing_method="stochastic")
+
+        transpiled_op = Operator.from_circuit(qct)
+        transpiled_op_new = Operator.from_circuit_new(qct)
+
+        self.assertTrue(transpiled_op.equiv(extended_op))
+        self.assertTrue(transpiled_op_new.equiv(extended_op))
+
 
 
 
