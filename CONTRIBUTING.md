@@ -138,7 +138,7 @@ dependency packages installed in your environment, which are listed in the
 ### Compile time options
 
 When building qiskit from source there are options available to control how
-Qiskit is build. Right now the only option is if you set the environment
+Qiskit is built. Right now the only option is if you set the environment
 variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
 Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
 This makes a tradeoff between runtime performance for Python access and memory

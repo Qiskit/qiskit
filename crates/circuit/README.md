@@ -20,7 +20,7 @@ in the instructions to reduce the memory overhead of `CircuitData`. The `PackedI
 get unpacked back to `CircuitInstruction` when accessed for a more convienent working form.
 
 Additionally the `CircuitData` contains a `param_table` field which is used to track parameterized
-instructions that are using python defined `ParmaeterExpression` objects for any parameters and also
+instructions that are using python defined `ParameterExpression` objects for any parameters and also
 a global phase field which is used to track the global phase of the circuit.
 
 ## Operation Model
@@ -45,7 +45,7 @@ operation objects that can be on a circuit:
     specialized `Instruction` subclass that represents unitary operations the primary difference between
     this and `PyGate` are that `PyInstruction` will always return `None` when it's matrix is accessed.
  - `PyOperation`: A struct that wraps an operation defined in Python. This struct wraps an `Operation`
-    instance (or subclass)` as a `PyObject`. The static properties of this object (such as name, number
+    instance (or subclass) as a `PyObject`. The static properties of this object (such as name, number
     of qubits, etc) are stored in Rust for performance. As `Operation` is the base abstract interface
     definition of what can be put on a circuit this is mostly just a container for custom Python objects.
     Anything that's operating on a bare operation will likely need to access it via the `PyObject`
@@ -64,6 +64,6 @@ symbolic expression that defines operations using `Parameter` objects. Each `Par
 a uuid and a name to uniquely identify it. The parameter table maps the `Parameter` objects to the
 `CircuitInstruction` in the `CircuitData` that are using them. The `Parameter` comprised of 3 `HashMaps` internally that map the uuid (as `u128`, which is accesible in Python by using `uuid.int`) to the `ParameterEntry`, the `name` to the uuid, and the uuid to the PyObject for the actual `Parameter`.
 
-The `ParameterEntry` is just a `HashSet` of 2-tuples with usize elements. The two usizes represent the instruction index in the `CircuitData` and the index of the for the `CircuitInstruction.params` field of
+The `ParameterEntry` is just a `HashSet` of 2-tuples with usize elements. The two usizes represent the instruction index in the `CircuitData` and the index of the `CircuitInstruction.params` field of
 a give instruction where the given `Parameter` is used in the circuit. If the instruction index is
 `usize::MAX` that points to the global phase property of the circuit instead of a `CircuitInstruction`.
