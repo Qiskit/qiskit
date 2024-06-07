@@ -21,6 +21,7 @@ use crate::imports::{
     get_std_gate_class, populate_std_gate_map, GATE, INSTRUCTION, OPERATION,
     SINGLETON_CONTROLLED_GATE, SINGLETON_GATE,
 };
+use crate::interner::Index;
 use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
 
 /// These are extra mutable attributes for a circuit instruction's state. In general we don't
@@ -33,6 +34,21 @@ pub struct ExtraInstructionAttributes {
     pub duration: Option<PyObject>,
     pub unit: Option<String>,
     pub condition: Option<PyObject>,
+}
+
+/// Private type used to store instructions with interned arg lists.
+#[derive(Clone, Debug)]
+pub(crate) struct PackedInstruction {
+    /// The Python-side operation instance.
+    pub op: OperationType,
+    /// The index under which the interner has stored `qubits`.
+    pub qubits_id: Index,
+    /// The index under which the interner has stored `clbits`.
+    pub clbits_id: Index,
+    pub params: SmallVec<[Param; 3]>,
+    pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
+    #[cfg(feature = "cache_pygates")]
+    pub py_op: Option<PyObject>,
 }
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -98,12 +114,39 @@ pub enum OperationInput {
     Object(PyObject),
 }
 
+impl CircuitInstruction {
+    pub fn new<T1, T2, U1, U2>(
+        py: Python,
+        operation: OperationType,
+        qubits: impl IntoIterator<Item = T1, IntoIter = U1>,
+        clbits: impl IntoIterator<Item = T2, IntoIter = U2>,
+        params: SmallVec<[Param; 3]>,
+        extra_attrs: Option<Box<ExtraInstructionAttributes>>,
+    ) -> Self
+    where
+        T1: ToPyObject,
+        T2: ToPyObject,
+        U1: ExactSizeIterator<Item = T1>,
+        U2: ExactSizeIterator<Item = T2>,
+    {
+        CircuitInstruction {
+            operation,
+            qubits: PyTuple::new_bound(py, qubits).unbind(),
+            clbits: PyTuple::new_bound(py, clbits).unbind(),
+            params,
+            extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            py_op: None,
+        }
+    }
+}
+
 #[pymethods]
 impl CircuitInstruction {
     #[allow(clippy::too_many_arguments)]
     #[new]
     #[pyo3(signature = (operation, qubits=None, clbits=None, params=smallvec![], label=None, duration=None, unit=None, condition=None))]
-    pub fn new(
+    pub fn py_new(
         py: Python<'_>,
         operation: OperationInput,
         qubits: Option<&Bound<PyAny>>,
@@ -360,7 +403,7 @@ impl CircuitInstruction {
             },
         };
 
-        CircuitInstruction::new(
+        CircuitInstruction::py_new(
             py,
             operation,
             Some(qubits.unwrap_or_else(|| self.qubits.bind(py))),
