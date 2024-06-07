@@ -151,7 +151,7 @@ where
     /// Map the provided native indices to the corresponding Python
     /// bit instances.
     /// Panics if any of the indices are out of range.
-    pub fn map_indices(&self, bits: &[T]) -> impl Iterator<Item = &Py<PyAny>> + ExactSizeIterator {
+    pub fn map_indices(&self, bits: &[T]) -> impl ExactSizeIterator<Item = &Py<PyAny>> {
         let v: Vec<_> = bits.iter().map(|i| self.get(*i).unwrap()).collect();
         v.into_iter()
     }
