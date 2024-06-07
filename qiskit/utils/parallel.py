@@ -163,7 +163,6 @@ def parallel_map(  # pylint: disable=dangerous-default-value
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
 
-<<<<<<< HEAD
     Publisher().publish("terra.parallel.start", len(values))
     nfinished = [0]
 
@@ -172,14 +171,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         Publisher().publish("terra.parallel.done", nfinished[0])
 
     # Run in parallel if not Win and not in parallel already
-    if (
-        num_processes > 1
-        and os.getenv("QISKIT_IN_PARALLEL") == "FALSE"
-        and CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
-    ):
-=======
     if should_run_in_parallel(num_processes):
->>>>>>> b12e9ec3c (Fix unnecessary serialisation of `PassManager` in serial contexts (#12410))
         os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
         try:
             results = []
