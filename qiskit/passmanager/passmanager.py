@@ -222,7 +222,7 @@ class BasePassManager(ABC):
 
         # If we're not going to run in parallel, we want to avoid spending time `dill` serialising
         # ourselves, since that can be quite expensive.
-        if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
+        if len(in_programs) == 1 or not should_run_in_parallel():
             out = [
                 _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
                 for program in in_programs
