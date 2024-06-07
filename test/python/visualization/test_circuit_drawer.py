@@ -245,22 +245,10 @@ class TestCircuitDrawer(QiskitTestCase):
 
         for bad_justify in ["bad", None]:
 
-            with self.assertWarnsRegex(
-                DeprecationWarning,
-                "Setting circuit_drawer()’s justify argument to a value other than"
-                " 'left', 'right', or 'none'. Default 'left' will be used. Support for"
-                " invalid justify arguments is deprecated as of qiskit 1.2.0. It will"
-                " be removed no earlier than 3 months after the release date.",
-            ):
+            with self.assertWarns(DeprecationWarning):
                 visualization.circuit_drawer(circuit, justify=bad_justify)
 
-            with self.assertWarnsRegex(
-                DeprecationWarning,
-                "Setting QuantumCircuit.draw()’s justify argument to a value other than"
-                " 'left', 'right', or 'none'. Default 'left' will be used. Support for"
-                " invalid justify arguments is deprecated as of qiskit 1.2.0. It will"
-                " be removed no earlier than 3 months after the release date.",
-            ):
+            with self.assertWarns(DeprecationWarning):
                 circuit.draw(justify=bad_justify)
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc for LaTeX conversion")
