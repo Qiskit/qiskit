@@ -1,0 +1,4 @@
+fixes:
+  - |
+    The :class:`.VF2Layout` pass was raise an exception incorrectly when a :class:`.Target` without a coupling map is provided.
+    With Aer 0.13, this situation is the case.
