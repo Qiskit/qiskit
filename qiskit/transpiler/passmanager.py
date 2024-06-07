@@ -255,6 +255,12 @@ class PassManager(BasePassManager):
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
+    def pprint(self):
+        """Passmanager pretty-printer."""
+        from qiskit.visualization import pass_manager_drawer
+
+        return pass_manager_drawer(self, pprint=True)
+
 
 class StagedPassManager(PassManager):
     """A pass manager pipeline built from individual stages.
@@ -443,11 +449,17 @@ class StagedPassManager(PassManager):
         self._update_passmanager()
         return super().to_flow_controller()
 
-    def draw(self, filename=None, style=None, raw=False):
+    def draw(self, filename=None, style=None, raw=False, args=True):
         """Draw the staged pass manager."""
         from qiskit.visualization import staged_pass_manager_drawer
 
-        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)
+        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw, args=args)
+
+    def pprint(self):
+        """Pretty-print of :class:`.StagedPassManager`."""
+        from qiskit.visualization import staged_pass_manager_drawer
+
+        return staged_pass_manager_drawer(self, pprint=True)
 
 
 # A temporary error handling with slight overhead at class loading.

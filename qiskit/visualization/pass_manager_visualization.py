@@ -31,7 +31,7 @@ DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PYDOT.require_in_call
-def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, pprint=False):
     """
     Draws the pass manager.
 
@@ -47,6 +47,8 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
             categories. Any values not included in the provided dict will be filled in from
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
+            default is False.
+        pprint (Bool) : True if you want to dump as pretty-print text. The
             default is False.
     Returns:
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
@@ -97,7 +99,11 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         )
         graph.add_subgraph(subgraph)
 
-    output = make_output(graph, raw, filename)
+    if pprint:
+        output = "\n".join(_pprint(graph))
+    else:
+        output = make_output(graph, raw, filename)
+
     return output
 
 
@@ -117,7 +123,7 @@ def _get_node_color(pss, style):
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PYDOT.require_in_call
-def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, pprint=False):
     """
     Draws the staged pass manager.
 
@@ -133,6 +139,8 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
             categories. Any values not included in the provided dict will be filled in from
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
+            default is False.
+        pprint (Bool) : True if you want to dump as pretty-print text. The
             default is False.
     Returns:
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
@@ -185,7 +193,11 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
                 idx += 1
             graph.add_subgraph(stagegraph)
 
-    output = make_output(graph, raw, filename)
+    if pprint:
+        output = "\n".join(_pprint(graph))
+    else:
+        output = make_output(graph, raw, filename)
+
     return output
 
 
@@ -317,3 +329,21 @@ def make_output(graph, raw, filename):
         if filename:
             image.save(filename, "PNG")
         return image
+
+
+def _pprint(graph, nest=0):
+    """Recursively text passmanager printer"""
+    output = []
+    subgraphs = graph.get_subgraphs()
+    nodes = graph.get_nodes()
+    if subgraphs:
+        for subgraph in subgraphs:
+            sub_output = _pprint(subgraph, nest + 1)
+            if sub_output:
+                output.append("  " * nest + subgraph.get_label().strip())
+                output += sub_output
+    elif nodes:
+        for node in nodes:
+            if node.get_shape() == "rectangle":
+                output.append("  " * nest + "- " + node.get_label().strip())
+    return output

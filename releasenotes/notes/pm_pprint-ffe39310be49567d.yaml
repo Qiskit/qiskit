@@ -1,0 +1,5 @@
+---
+features_visualization:
+  - |
+    New way to visualize a ``PassManager`` with the method :meth:`.StagedPassManager.pprint` which returns,
+    in plain text, the structure of ``PassManager``'s stages, flow controllers, and passes.
