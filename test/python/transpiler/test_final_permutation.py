@@ -288,7 +288,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
             self.assertTrue(transpiled_op.equiv(extended_op))
             self.assertTrue(transpiled_op_new.equiv(extended_op))
 
-    def test_stochastic_swap(self):
+    def test_routing_methods(self):
         """Stochastic Swap for mapping (sets final layout)"""
         qc = random_circuit(4, 5, 3, seed=1)
         nq = qc.num_qubits
@@ -298,14 +298,14 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc2 = qc2.compose(qc, range(nq))
         extended_op = Operator(qc2)
 
-        qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"],
-                        seed_transpiler=3, routing_method="stochastic")
+        for routing_method in ["stochastic", "lookahead"]:
+            qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"], seed_transpiler=3, routing_method="stochastic")
 
-        transpiled_op = Operator.from_circuit(qct)
-        transpiled_op_new = Operator.from_circuit_new(qct)
+            transpiled_op = Operator.from_circuit(qct)
+            transpiled_op_new = Operator.from_circuit_new(qct)
 
-        self.assertTrue(transpiled_op.equiv(extended_op))
-        self.assertTrue(transpiled_op_new.equiv(extended_op))
+            self.assertTrue(transpiled_op.equiv(extended_op))
+            self.assertTrue(transpiled_op_new.equiv(extended_op))
 
 
 

@@ -18,6 +18,7 @@ import logging
 import math
 
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -118,6 +119,11 @@ class LookaheadSwap(TransformationPass):
             compatible with the DAG, or if the coupling_map=None
         """
 
+        print(f"------------------------------------------")
+        print(f"-- Lookahead swap [START]")
+        print(f"{dag.final_permutation = }")
+        print(f"------------------------------------------")
+
         if self.coupling_map is None:
             raise TranspilerError("LookaheadSwap cannot run with coupling_map=None")
 
@@ -176,6 +182,8 @@ class LookaheadSwap(TransformationPass):
                 self.property_set["final_layout"], dag.qubits
             )
 
+        print(f"{self.property_set['final_layout'] = }")
+
         if self.fake_run:
             return dag
 
@@ -183,6 +191,14 @@ class LookaheadSwap(TransformationPass):
         mapped_dag = dag.copy_empty_like()
         for node in mapped_gates:
             mapped_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+
+        layout_permutation = _inverse_pattern(current_state.layout.to_permutation(mapped_dag.qubits))
+        mapped_dag.final_permutation.compose(layout_permutation, front=False)
+
+        print(f"------------------------------------------")
+        print(f"-- Lookahead swap [END]")
+        print(f"{mapped_dag.final_permutation = }")
+        print(f"------------------------------------------")
 
         return mapped_dag
 
