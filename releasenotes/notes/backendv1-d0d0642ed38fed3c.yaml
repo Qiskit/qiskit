@@ -1,0 +1,4 @@
+---
+deprecations_providers:
+  - |
+     related to the qiskit.providers module.

@@ -23,6 +23,7 @@ from typing import List, Union, Iterable, Tuple
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
+from qiskit.utils import deprecate_func
 
 
 class Backend:
@@ -71,6 +72,7 @@ class BackendV1(Backend, ABC):
 
     version = 1
 
+    @deprecate_func(since=1.2, removal_timeline="in the 2.0.0 release")
     def __init__(self, configuration, provider=None, **fields):
         """Initialize a backend class
 
