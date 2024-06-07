@@ -13,10 +13,13 @@
 """Rotation around the Z axis."""
 from cmath import exp
 from typing import Optional, Union
-from qiskit.circuit.gate import Gate
+
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
+
+from .rx import _mcsu2_real_diagonal
 
 
 class RZGate(Gate):
@@ -71,6 +74,7 @@ class RZGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -245,6 +249,7 @@ class CRZGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .x import CXGate
 
         # q_0: ─────────────■────────────────■──
@@ -300,3 +305,117 @@ class CRZGate(ControlledGate):
         if isinstance(other, CRZGate):
             return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
         return False
+
+
+class MCRZGate(ControlledGate):
+    r"""The general, multi-controlled Z rotation gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcrz` method.
+    """
+
+    def __init__(
+        self,
+        lam: ParameterValueType,  # type: ignore
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        use_basis_gates: bool = False,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
+        """Create new MCRZ gate."""
+        super().__init__(
+            "mcrz",
+            num_ctrl_qubits + 1,
+            [lam],
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=RZGate(lam, label=_base_label),
+            duration=duration,
+            unit=unit,
+        )
+        self._use_basis_gates = use_basis_gates
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse MCRZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.MCRZGate` with an inverted parameter value.
+
+        Returns:
+            MCRZGate: inverse gate.
+        """
+        return MCRZGate(
+            -self.params[0],
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            ctrl_state=self.ctrl_state,
+            use_basis_gates=self._use_basis_gates,
+        )
+
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+        q = QuantumRegister(self.num_qubits, name="q")
+        qc = QuantumCircuit(q)
+        q_controls = list(range(self.num_ctrl_qubits))
+        q_target = self.num_ctrl_qubits
+        if self.num_ctrl_qubits == 1 and not self._use_basis_gates:
+            qc.crz(self.params[0], q_controls[0], q_target)
+        elif self.num_ctrl_qubits == 1 and self._use_basis_gates:
+            qc.u(0, 0, self.params[0] / 2, q_target)
+            qc.cx(q_controls[0], q_target)
+            qc.u(0, 0, -self.params[0] / 2, q_target)
+            qc.cx(q_controls[0], q_target)
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RZGate(self.params[0]).to_matrix(),
+                num_controls=self.num_ctrl_qubits,
+                use_basis_gates=self._use_basis_gates,
+            )
+            qc.compose(cgate, q_controls + [q_target], inplace=True)
+        self.definition = qc
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
+    ):
+        r"""Return a multi-controlled-RZ gate with more control lines.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if not annotated and ctrl_state is None:
+            # use __class__ so this works for derived classes
+            gate = self.__class__(
+                self.params[0],
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
