@@ -45,7 +45,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from . import _classical_resource_map
 from ._utils import sort_parameters
-from .controlflow import ControlFlowOp
+from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
 from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
@@ -3307,6 +3307,9 @@ class QuantumCircuit:
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
+        .. warning::
+            This operation is not well defined if the circuit contains control-flow operations.
+
         Args:
             filter_function: A function to decide which instructions count to increase depth.
                 Should take as a single positional input a :class:`CircuitInstruction`.
@@ -3332,59 +3335,40 @@ class QuantumCircuit:
 
                 assert qc.depth(lambda instr: len(instr.qubits) > 1) == 1
         """
-        # Assign each bit in the circuit a unique integer
-        # to index into op_stack.
-        bit_indices: dict[Qubit | Clbit, int] = {
-            bit: idx for idx, bit in enumerate(self.qubits + self.clbits)
+        obj_depths = {
+            obj: 0 for objects in (self.qubits, self.clbits, self.iter_vars()) for obj in objects
         }
 
-        # If no bits, return 0
-        if not bit_indices:
-            return 0
+        def update_from_expr(objects, node):
+            for var in expr.iter_vars(node):
+                if var.standalone:
+                    objects.add(var)
+                else:
+                    objects.update(_builder_utils.node_resources(var).clbits)
 
-        # A list that holds the height of each qubit
-        # and classical bit.
-        op_stack = [0] * len(bit_indices)
-
-        # Here we are playing a modified version of
-        # Tetris where we stack gates, but multi-qubit
-        # gates, or measurements have a block for each
-        # qubit or cbit that are connected by a virtual
-        # line so that they all stacked at the same depth.
-        # Conditional gates act on all cbits in the register
-        # they are conditioned on.
-        # The max stack height is the circuit depth.
         for instruction in self._data:
-            levels = []
-            reg_ints = []
-            for ind, reg in enumerate(instruction.qubits + instruction.clbits):
-                # Add to the stacks of the qubits and
-                # cbits used in the gate.
-                reg_ints.append(bit_indices[reg])
-                if filter_function(instruction):
-                    levels.append(op_stack[reg_ints[ind]] + 1)
+            objects = set(itertools.chain(instruction.qubits, instruction.clbits))
+            if (condition := getattr(instruction.operation, "condition", None)) is not None:
+                objects.update(_builder_utils.condition_resources(condition).clbits)
+                if isinstance(condition, expr.Expr):
+                    update_from_expr(objects, condition)
                 else:
-                    levels.append(op_stack[reg_ints[ind]])
-            # Assuming here that there is no conditional
-            # snapshots or barriers ever.
-            if getattr(instruction.operation, "condition", None):
-                # Controls operate over all bits of a classical register
-                # or over a single bit
-                if isinstance(instruction.operation.condition[0], Clbit):
-                    condition_bits = [instruction.operation.condition[0]]
-                else:
-                    condition_bits = instruction.operation.condition[0]
-                for cbit in condition_bits:
-                    idx = bit_indices[cbit]
-                    if idx not in reg_ints:
-                        reg_ints.append(idx)
-                        levels.append(op_stack[idx] + 1)
+                    objects.update(_builder_utils.condition_resources(condition).clbits)
+            elif isinstance(instruction.operation, SwitchCaseOp):
+                update_from_expr(objects, expr.lift(instruction.operation.target))
+            elif isinstance(instruction.operation, Store):
+                update_from_expr(objects, instruction.operation.lvalue)
+                update_from_expr(objects, instruction.operation.rvalue)
 
-            max_level = max(levels)
-            for ind in reg_ints:
-                op_stack[ind] = max_level
-
-        return max(op_stack)
+            # If we're counting this as adding to depth, do so.  If not, it still functions as a
+            # data synchronisation point between the objects (think "barrier"), so the depths still
+            # get updated to match the current max over the affected objects.
+            new_depth = max((obj_depths[obj] for obj in objects), default=0)
+            if filter_function(instruction):
+                new_depth += 1
+            for obj in objects:
+                obj_depths[obj] = new_depth
+        return max(obj_depths.values(), default=0)
 
     def width(self) -> int:
         """Return number of qubits plus clbits in circuit.
