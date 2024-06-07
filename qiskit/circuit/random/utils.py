@@ -52,7 +52,9 @@ def random_circuit(
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
         num_operand_distribution (dict): a distribution of gates that specifies the ratio
-        of 1-qubit, 2-qubit, 3-qubit,...,n-qubit gates in the random circuit (optional)
+        of 1-qubit, 2-qubit, 3-qubit, ..., n-qubit gates in the random circuit. Expect a 
+        deviation from the specified ratios that depends on the size of the requested
+        random circuit. (optional)
 
     Returns:
         QuantumCircuit: constructed circuit
