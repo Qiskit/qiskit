@@ -663,24 +663,15 @@ pub(crate) fn operation_type_to_py(
     py: Python,
     circuit_inst: &CircuitInstruction,
 ) -> PyResult<PyObject> {
-    let label;
-    let duration;
-    let unit;
-    let condition;
-    match &circuit_inst.extra_attrs {
-        None => {
-            label = None;
-            duration = None;
-            unit = None;
-            condition = None;
-        }
-        Some(extra_attrs) => {
-            label = extra_attrs.label.clone();
-            duration = extra_attrs.duration.clone();
-            unit = extra_attrs.unit.clone();
-            condition = extra_attrs.condition.clone();
-        }
-    }
+    let (label, duration, unit, condition) = match &circuit_inst.extra_attrs {
+        None => (None, None, None, None),
+        Some(extra_attrs) => (
+            extra_attrs.label.clone(),
+            extra_attrs.duration.clone(),
+            extra_attrs.unit.clone(),
+            extra_attrs.condition.clone(),
+        ),
+    };
     operation_type_and_data_to_py(
         py,
         &circuit_inst.operation,
