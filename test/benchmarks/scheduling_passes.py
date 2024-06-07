@@ -108,7 +108,6 @@ class SchedulingPassBenchmarks:
             ],
             dt=1e-9,
         )
-        self.timed_dag = TimeUnitConversion(self.durations).run(self.dag)
 
     def time_time_unit_conversion_pass(self, _, __):
         TimeUnitConversion(self.durations).run(self.dag)
