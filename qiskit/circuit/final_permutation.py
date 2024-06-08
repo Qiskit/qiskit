@@ -13,9 +13,14 @@
 ## ToDo: reimplement using PermutationGate ?
 
 class FinalPermutation:
-
+    """
+    The notation is the same as for permutation gate, that is
+    [which qubit gets mapped to location 0, which qubit gets mapped to location 1, ...]
+    in this way circuit with implicit final permutation sigma can be replaced
+    by circuit with PermutationGate([sigma])
+    """
     def __init__(self, permutation=None):
-        # for now: original index -> mapped to index
+
         if permutation is None:
             permutation = []
         self.permutation = permutation
@@ -57,6 +62,8 @@ class FinalPermutation:
     def copy(self):
         print(f"COPY")
         return FinalPermutation(self.permutation.copy())
+
+
 
 def _invert_permutation(perm):
     assert isinstance(perm, list)
