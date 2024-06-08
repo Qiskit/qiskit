@@ -298,8 +298,15 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc2 = qc2.compose(qc, range(nq))
         extended_op = Operator(qc2)
 
-        for routing_method in ["stochastic", "lookahead"]:
-            qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"], seed_transpiler=3, routing_method="stochastic")
+        for routing_method in ["stochastic", "lookahead", "basic", "sabre"]:
+            qct = transpile(
+                qc,
+                optimization_level=3,
+                coupling_map=cm,
+                basis_gates=["cx", "u"],
+                seed_transpiler=3,
+                routing_method=routing_method
+            )
 
             transpiled_op = Operator.from_circuit(qct)
             transpiled_op_new = Operator.from_circuit_new(qct)
@@ -307,6 +314,38 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
             self.assertTrue(transpiled_op.equiv(extended_op))
             self.assertTrue(transpiled_op_new.equiv(extended_op))
 
+    def test_elide_and_routing_methods(self):
+        """Stochastic Swap for mapping (sets final layout)"""
+        qc = QuantumCircuit(6)
+        qc.cx(0, 2)
+        qc.cx(0, 4)
+        qc.cx(2, 4)
+        qc.cx(1, 3)
+        qc.cx(1, 5)
+        qc.cx(3, 5)
+        qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
+        nq = qc.num_qubits
+        op = Operator(qc)
+        cm = CouplingMap.from_line(nq + 2)
+        qc2 = QuantumCircuit(nq + 2)
+        qc2 = qc2.compose(qc, range(nq))
+        extended_op = Operator(qc2)
+
+        for routing_method in ["stochastic", "lookahead", "basic", "sabre"]:
+            qct = transpile(
+                qc,
+                optimization_level=3,
+                coupling_map=cm,
+                basis_gates=["cx", "u"],
+                seed_transpiler=3,
+                routing_method=routing_method
+            )
+
+            transpiled_op = Operator.from_circuit(qct)
+            transpiled_op_new = Operator.from_circuit_new(qct)
+
+            self.assertTrue(transpiled_op.equiv(extended_op))
+            self.assertTrue(transpiled_op_new.equiv(extended_op))
 
 
 

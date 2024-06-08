@@ -399,7 +399,12 @@ class StochasticSwap(TransformationPass):
             )
 
         layout_permutation = _inverse_pattern(layout.to_permutation(circuit_graph.qubits))
-        dagcircuit_output.final_permutation.compose(layout_permutation, front=False)
+
+        print(f"{self.fake_run = }")
+        print(f"{layout = }")
+        print(f"{layout_permutation = }")
+        dagcircuit_output.final_permutation = circuit_graph.final_permutation.copy()
+        dagcircuit_output.final_permutation.compose(layout_permutation, front=True)
 
         if self.fake_run:
             return circuit_graph

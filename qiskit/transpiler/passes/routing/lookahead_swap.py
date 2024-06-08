@@ -193,7 +193,8 @@ class LookaheadSwap(TransformationPass):
             mapped_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
 
         layout_permutation = _inverse_pattern(current_state.layout.to_permutation(mapped_dag.qubits))
-        mapped_dag.final_permutation.compose(layout_permutation, front=False)
+        mapped_dag.final_permutation = dag.final_permutation.copy()
+        mapped_dag.final_permutation.compose(layout_permutation, front=True)
 
         print(f"------------------------------------------")
         print(f"-- Lookahead swap [END]")
