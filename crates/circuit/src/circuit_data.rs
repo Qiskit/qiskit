@@ -167,9 +167,9 @@ impl CircuitData {
         &mut self,
         py: Python,
         inst_index: usize,
-        _params: Option<Vec<(usize, Vec<PyObject>)>>,
+        params: Option<Vec<(usize, Vec<PyObject>)>>,
     ) -> PyResult<bool> {
-        if let Some(params) = _params {
+        if let Some(params) = params {
             let mut new_param = false;
             for (param_index, raw_param_objs) in &params {
                 let atomic_parameters: HashMap<u128, PyObject> = raw_param_objs
@@ -1211,12 +1211,12 @@ impl CircuitData {
         &mut self,
         py: Python<'_>,
         value: PyRef<CircuitInstruction>,
-        _params: Option<Vec<(usize, Vec<PyObject>)>>,
+        params: Option<Vec<(usize, Vec<PyObject>)>>,
     ) -> PyResult<bool> {
         let packed = self.pack(py, value)?;
         let new_index = self.data.len();
         self.data.push(packed);
-        self.update_param_table(py, new_index, _params)
+        self.update_param_table(py, new_index, params)
     }
 
     pub fn extend(&mut self, py: Python<'_>, itr: &Bound<PyAny>) -> PyResult<()> {
