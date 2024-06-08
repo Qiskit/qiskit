@@ -324,31 +324,31 @@ impl Operation for StandardGate {
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
             Self::ZGate => match params {
-                [] => Some(aview2(&gate_matrix::ZGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::Z_GATE).to_owned()),
                 _ => None,
             },
             Self::YGate => match params {
-                [] => Some(aview2(&gate_matrix::YGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::Y_GATE).to_owned()),
                 _ => None,
             },
             Self::XGate => match params {
-                [] => Some(aview2(&gate_matrix::XGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::X_GATE).to_owned()),
                 _ => None,
             },
             Self::CZGate => match params {
-                [] => Some(aview2(&gate_matrix::CZGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::CZ_GATE).to_owned()),
                 _ => None,
             },
             Self::CYGate => match params {
-                [] => Some(aview2(&gate_matrix::CYGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::CY_GATE).to_owned()),
                 _ => None,
             },
             Self::CXGate => match params {
-                [] => Some(aview2(&gate_matrix::CXGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::CX_GATE).to_owned()),
                 _ => None,
             },
             Self::CCXGate => match params {
-                [] => Some(aview2(&gate_matrix::CCXGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::CCX_GATE).to_owned()),
                 _ => None,
             },
             Self::RXGate => match params {
@@ -364,15 +364,15 @@ impl Operation for StandardGate {
                 _ => None,
             },
             Self::ECRGate => match params {
-                [] => Some(aview2(&gate_matrix::ECRGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::ECR_GATE).to_owned()),
                 _ => None,
             },
             Self::SwapGate => match params {
-                [] => Some(aview2(&gate_matrix::SWAPGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::SWAP_GATE).to_owned()),
                 _ => None,
             },
             Self::SXGate => match params {
-                [] => Some(aview2(&gate_matrix::SXGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::SX_GATE).to_owned()),
                 _ => None,
             },
             Self::GlobalPhaseGate => match params {
@@ -386,7 +386,7 @@ impl Operation for StandardGate {
                 _ => None,
             },
             Self::HGate => match params {
-                [] => Some(aview2(&gate_matrix::HGATE).to_owned()),
+                [] => Some(aview2(&gate_matrix::H_GATE).to_owned()),
                 _ => None,
             },
             Self::PhaseGate => match params {

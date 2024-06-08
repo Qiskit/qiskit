@@ -51,7 +51,7 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
-use qiskit_circuit::gate_matrix::{CXGATE, HGATE, ONE_QUBIT_IDENTITY, SXGATE, XGATE};
+use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
 use qiskit_circuit::SliceOrInt;
 
 const PI2: f64 = PI / 2.0;
@@ -350,10 +350,10 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             // sequence. If we get a different gate this is getting called
             // by something else and is invalid.
             let gate_matrix = match inst.0.as_ref() {
-                "sx" => aview2(&SXGATE).to_owned(),
+                "sx" => aview2(&SX_GATE).to_owned(),
                 "rz" => rz_matrix(inst.1[0]),
-                "cx" => aview2(&CXGATE).to_owned(),
-                "x" => aview2(&XGATE).to_owned(),
+                "cx" => aview2(&CX_GATE).to_owned(),
+                "x" => aview2(&X_GATE).to_owned(),
                 _ => unreachable!("Undefined gate"),
             };
             (gate_matrix, &inst.2)
@@ -1429,7 +1429,7 @@ impl TwoQubitBasisDecomposer {
         } else {
             euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0]).dot(&euler_matrix_q0);
         }
-        euler_matrix_q0 = aview2(&HGATE).dot(&euler_matrix_q0);
+        euler_matrix_q0 = aview2(&H_GATE).dot(&euler_matrix_q0);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
 
         let rx_0 = rx_matrix(euler_q1[0][0]);
@@ -1437,7 +1437,7 @@ impl TwoQubitBasisDecomposer {
         let rx_1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]);
         let mut euler_matrix_q1 = rz.dot(&rx_0);
         euler_matrix_q1 = rx_1.dot(&euler_matrix_q1);
-        euler_matrix_q1 = aview2(&HGATE).dot(&euler_matrix_q1);
+        euler_matrix_q1 = aview2(&H_GATE).dot(&euler_matrix_q1);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
 
         gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
@@ -1498,12 +1498,12 @@ impl TwoQubitBasisDecomposer {
             return None;
         }
         gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
-        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&HGATE));
+        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&H_GATE));
         euler_matrix = rx_matrix(euler_q0[3][1]).dot(&euler_matrix);
         euler_matrix = rz_matrix(euler_q0[3][2]).dot(&euler_matrix);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 0);
 
-        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]).dot(&aview2(&HGATE));
+        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]).dot(&aview2(&H_GATE));
         euler_matrix = rz_matrix(euler_q1[3][1]).dot(&euler_matrix);
         euler_matrix = rx_matrix(euler_q1[3][2]).dot(&euler_matrix);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 1);

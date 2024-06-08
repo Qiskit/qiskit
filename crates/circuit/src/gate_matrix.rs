@@ -46,44 +46,44 @@ pub fn rz_gate(theta: f64) -> [[Complex64; 2]; 2] {
     [[(-ilam2).exp(), c64(0., 0.)], [c64(0., 0.), ilam2.exp()]]
 }
 
-pub static HGATE: [[Complex64; 2]; 2] = [
+pub static H_GATE: [[Complex64; 2]; 2] = [
     [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
     [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
 ];
 
-pub static CXGATE: [[Complex64; 4]; 4] = [
+pub static CX_GATE: [[Complex64; 4]; 4] = [
     [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
     [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(1., 0.), c64(0., 0.), c64(0., 0.)],
 ];
 
-pub static SXGATE: [[Complex64; 2]; 2] = [
+pub static SX_GATE: [[Complex64; 2]; 2] = [
     [c64(0.5, 0.5), c64(0.5, -0.5)],
     [c64(0.5, -0.5), c64(0.5, 0.5)],
 ];
 
-pub static XGATE: [[Complex64; 2]; 2] = [[c64(0., 0.), c64(1., 0.)], [c64(1., 0.), c64(0., 0.)]];
+pub static X_GATE: [[Complex64; 2]; 2] = [[c64(0., 0.), c64(1., 0.)], [c64(1., 0.), c64(0., 0.)]];
 
-pub static ZGATE: [[Complex64; 2]; 2] = [[c64(1., 0.), c64(0., 0.)], [c64(0., 0.), c64(-1., 0.)]];
+pub static Z_GATE: [[Complex64; 2]; 2] = [[c64(1., 0.), c64(0., 0.)], [c64(0., 0.), c64(-1., 0.)]];
 
-pub static YGATE: [[Complex64; 2]; 2] = [[c64(0., 0.), c64(0., -1.)], [c64(0., 1.), c64(0., 0.)]];
+pub static Y_GATE: [[Complex64; 2]; 2] = [[c64(0., 0.), c64(0., -1.)], [c64(0., 1.), c64(0., 0.)]];
 
-pub static CZGATE: [[Complex64; 4]; 4] = [
+pub static CZ_GATE: [[Complex64; 4]; 4] = [
     [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(1., 0.), c64(0., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(-1., 0.)],
 ];
 
-pub static CYGATE: [[Complex64; 4]; 4] = [
+pub static CY_GATE: [[Complex64; 4]; 4] = [
     [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(0., -1.)],
     [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(0., 1.), c64(0., 0.), c64(0., 0.)],
 ];
 
-pub static CCXGATE: [[Complex64; 8]; 8] = [
+pub static CCX_GATE: [[Complex64; 8]; 8] = [
     [
         c64(1., 0.),
         c64(0., 0.),
@@ -166,7 +166,7 @@ pub static CCXGATE: [[Complex64; 8]; 8] = [
     ],
 ];
 
-pub static ECRGATE: [[Complex64; 4]; 4] = [
+pub static ECR_GATE: [[Complex64; 4]; 4] = [
     [
         c64(0., 0.),
         c64(FRAC_1_SQRT_2, 0.),
@@ -193,7 +193,7 @@ pub static ECRGATE: [[Complex64; 4]; 4] = [
     ],
 ];
 
-pub static SWAPGATE: [[Complex64; 4]; 4] = [
+pub static SWAP_GATE: [[Complex64; 4]; 4] = [
     [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(1., 0.), c64(0., 0.), c64(0., 0.)],
