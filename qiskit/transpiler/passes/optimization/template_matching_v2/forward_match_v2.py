@@ -46,6 +46,7 @@ class ForwardMatch:
         template_dag_dep,
         node_c,
         node_t,
+        successorstovisit,
         qubits,
         clbits=[],
     ):
@@ -94,7 +95,7 @@ class ForwardMatch:
         self.carg_indices = []
 
         # Dicts for storing lists of node ids
-        self.successorstovisit = {}
+        self.successorstovisit = successorstovisit
         self.matchedwith = {}
 
         # Bool indicating if a node is blocked due to no match
@@ -196,17 +197,12 @@ class ForwardMatch:
         Apply the forward match algorithm and return the list of matches given an initial match
         and a circuit qubit configuration.
         """
-
-        # Initialize certain attributes
-        for node in self.circuit_dag_dep.op_nodes():
-            self.successorstovisit[node] = get_successors(self.circuit_dag_dep, node._node_id)
-
         self.matchedwith[self.node_c] = [self.node_t._node_id]
         self.matchedwith[self.node_t] = [self.node_c._node_id]
 
         # Initialize the list of matches and the stack of matched nodes (circuit)
         self.match.append([self.node_t._node_id, self.node_c._node_id])
-        self.matched_nodes_list.append(get_node(self.circuit_dag_dep, self.node_c._node_id))
+        self.matched_nodes_list.append(self.node_c)
 
         # While the list of matched nodes is not empty
         while self.matched_nodes_list:

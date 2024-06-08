@@ -549,8 +549,8 @@ class BackwardMatch:
                 else:
                     # Second option, all ancestors are blocked (circuit gate is
                     # moved to the left).
-                    for pred in node_c_ancs:
-                        circuit_blocked[pred] = True
+                    for anc in node_c_ancs:
+                        circuit_blocked[anc] = True
 
                     matching_scenario = MatchingScenarios(
                         circuit_matched,

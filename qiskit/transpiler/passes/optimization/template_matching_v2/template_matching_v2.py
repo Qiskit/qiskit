@@ -30,6 +30,7 @@ from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v
     get_qindices,
     get_cindices,
     get_descendants,
+    get_successors,
 )
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.transpiler.passes.optimization.template_matching_v2.forward_match_v2 import ForwardMatch
@@ -61,6 +62,7 @@ class TemplateMatching:
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
         self.match_list = []
+        self.successorstovisit = {}
         self.heuristics_qubits_param = heuristics_qubits_param
         self.heuristics_backward_param = heuristics_backward_param
 
@@ -200,6 +202,7 @@ class TemplateMatching:
                     index = self.match_list.index(l_match)
                     self.match_list[index].qubit.append(b_match.qubit[0])
                     already_in = True
+                    break
 
             if not already_in:
                 self.match_list.append(b_match)
@@ -265,6 +268,10 @@ class TemplateMatching:
         n_qubits_t = len(self.template_dag_dep.qubits)
         n_clbits_t = len(self.template_dag_dep.clbits)
 
+        # # Initialize successorstovisit
+        for node in self.circuit_dag_dep.op_nodes():
+            self.successorstovisit[node] = get_successors(self.circuit_dag_dep, node._node_id)
+
         # Loop over the nodes of both template and circuit.
         for node_t in self.template_dag_dep.op_nodes():
             for node_c in self.circuit_dag_dep.op_nodes():
@@ -327,10 +334,11 @@ class TemplateMatching:
                                                     self.template_dag_dep,
                                                     node_c,
                                                     node_t,
+                                                    self.successorstovisit,
                                                     list_qubit_circuit,
                                                     list_clbit_circuit,
                                                 )
-                                                forward.run_forward_match()
+                                                matchedwith, isblocked = forward.run_forward_match()
 
                                                 # Apply the backward match part of the algorithm.
                                                 backward = BackwardMatch(
@@ -339,6 +347,8 @@ class TemplateMatching:
                                                     forward.match,
                                                     node_c,
                                                     node_t,
+                                                    matchedwith,
+                                                    isblocked,
                                                     list_qubit_circuit,
                                                     list_clbit_circuit,
                                                     self.heuristics_backward_param,
@@ -355,6 +365,7 @@ class TemplateMatching:
                                             self.template_dag_dep,
                                             node_c,
                                             node_t,
+                                            self.successorstovisit,
                                             list_qubit_circuit,
                                         )
                                         matchedwith, isblocked = forward.run_forward_match()
