@@ -104,8 +104,9 @@ class VF2Layout(AnalysisPass):
                 limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for ``properties`` and
-                ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value of
-                ``target`` models an ideal backend without any constraints then the value of ``coupling_map``
+                ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
+                of ``target`` models an ideal backend without any constraints then the value of
+                ``coupling_map``
                 will be used.
 
         Raises:
