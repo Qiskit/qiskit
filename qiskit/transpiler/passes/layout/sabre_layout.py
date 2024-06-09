@@ -385,16 +385,9 @@ class SabreLayout(TransformationPass):
                 for logic, phys in component.initial_layout.layout_mapping()
             if logic < len(component.dag.qubits)
         }
-        forward_map = [forward_map[i] for i in range(len(forward_map))]
-        print(f"{forward_map = }")
-
-        mapped_dag.final_permutation = dag.final_permutation.copy()
-        print(f"SabreLayout: final_permutation [initially] {mapped_dag.final_permutation}")
-
-        mapped_dag.final_permutation.push_forward(forward_map)
-        print(f"SabreLayout: final_permutation [after push] {mapped_dag.final_permutation}")
-
+        mapped_dag.final_permutation = dag.final_permutation.push_using_mapping(forward_map)
         mapped_dag.final_permutation.compose(sabre_final_permutation, front=False)
+
         print(f"SabreLayout: final_permutation [after compose] {mapped_dag.final_permutation}")
 
         print(f"------------------------------------------")

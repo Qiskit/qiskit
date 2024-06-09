@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 ## ToDo: reimplement using PermutationGate ?
+from qiskit.circuit import CircuitError
+
 
 class FinalPermutation:
     """
@@ -48,22 +50,38 @@ class FinalPermutation:
     def __repr__(self):
         return str(self.permutation)
 
-    def push_forward(self, forward_map):
-        """"
-        RENAME THIS FUNCTION
-        permutation {a: b} replaced by {sigma(a): sigma(b)}
-        for now both have same size, so can compute as: first apply
-        sigma-inverse, then perm, then sigma
-        """
-        assert isinstance(forward_map, list)
-        forward_map_inverse = _invert_permutation(forward_map)
-        self.permutation = _compose_permutations(forward_map_inverse, self.permutation, forward_map)
-
     def copy(self):
         print(f"COPY")
         return FinalPermutation(self.permutation.copy())
 
+    def push_using_mapping(self, forward_map, num_target_qubits=None) -> "FinalPermutation":
+        r"""
+        Given a permutation :math:`\sigma: V \rightarrow V`, and a map
+        :math:`\tau: V \rightarrow P`, "pushes" :math:`\sigma` to a
+        permutation :math:`\tilde{\sigma}: P\rightarrow P`.
 
+        ToDo: include proper definition of sigma-tilde.
+
+        To do: Explain num target qubits
+        """
+
+        if num_target_qubits is None:
+            num_target_qubits = len(forward_map)
+
+        target_permutation = list(range(num_target_qubits))
+
+        if isinstance(forward_map, list):
+            for inp, out in enumerate(forward_map):
+                target_permutation[out] = forward_map[self.permutation[inp]]
+        elif isinstance(forward_map, dict):
+            for inp, out in forward_map.items():
+                target_permutation[out] = forward_map[self.permutation[inp]]
+        else:
+            raise CircuitError("The map should be given either as a list or as a dict.")
+
+
+
+        return FinalPermutation(target_permutation)
 
 
 def _invert_permutation(perm):

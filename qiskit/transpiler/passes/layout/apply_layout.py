@@ -79,12 +79,6 @@ class ApplyLayout(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         if post_layout is None:
-
-            print(f" => NO POST-LAYOUT IS SET")
-            print(f"{layout = }")
-
-
-
             self.property_set["original_qubit_indices"] = {
                 bit: index for index, bit in enumerate(dag.qubits)
             }
@@ -98,17 +92,8 @@ class ApplyLayout(TransformationPass):
             # IMPROVE ME TO AVOID USING to_permutation method
             forward_map_inverse = layout.to_permutation(dag.qubits)
             forward_map = _inverse_pattern(forward_map_inverse)
-            print(f"{forward_map = }")
-
-            print(f"{virtual_physical_map = }, {layout.to_permutation(dag.qubits) = }")
-            new_dag.final_permutation = dag.final_permutation.copy()
-            print(f"HERE {new_dag.final_permutation = }")
-            new_dag.final_permutation.push_forward(forward_map)
-            print(f"AND HERE {new_dag.final_permutation = }")
-
+            new_dag.final_permutation = dag.final_permutation.push_using_mapping(forward_map)
         else:
-
-            print(f" => POST-LAYOUT IS SET")
             # First build a new layout object going from:
             # old virtual -> old physical -> new virtual -> new physical
             # to:
@@ -137,27 +122,9 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
-                print(f"HERE {final_layout_mapping = }")
-
-            print(f"{dag.final_permutation = }")
-            print(f"{phys_map = }")
-
-            forward_map_inverse = phys_map # OR INVERSE?!
-            forward_map = phys_map # _inverse_pattern(forward_map_inverse)
-            print(f"{forward_map = }, {forward_map_inverse = }")
-
-            new_dag.final_permutation = dag.final_permutation.copy()
-            print(f"HERE {new_dag.final_permutation = }")
-            new_dag.final_permutation.push_forward(forward_map)
-            print(f"AND HERE {new_dag.final_permutation = }")
-
-
+            new_dag.final_permutation = dag.final_permutation.push_using_mapping(phys_map)
 
         new_dag._global_phase = dag._global_phase
-
-
-
-
 
         print(f"------------------------------------------")
         print(f"-- ApplyLayout [END]")
