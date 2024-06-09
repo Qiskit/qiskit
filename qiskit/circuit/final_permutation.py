@@ -65,6 +65,7 @@ class FinalPermutation:
 
 
 
+
 def _invert_permutation(perm):
     assert isinstance(perm, list)
 

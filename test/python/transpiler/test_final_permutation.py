@@ -17,6 +17,7 @@ import unittest
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PermutationGate
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import ElidePermutations, StarPreRouting
@@ -347,6 +348,34 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
             self.assertTrue(transpiled_op.equiv(extended_op))
             self.assertTrue(transpiled_op_new.equiv(extended_op))
 
+    def test_with_post_layout(self):
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        op = Operator(qc)
+
+        qc2 = QuantumCircuit(5)
+        qc2 = qc2.compose(qc, range(3))
+        extended_op = Operator(qc2)
+
+        coupling_map = CouplingMap.from_line(5)
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "sx", "x", "cx", "rz"],
+            coupling_map=coupling_map,
+            seed=0,
+        )
+        qct = transpile(qc, backend=backend, seed_transpiler=4242)
+
+        transpiled_op = Operator.from_circuit(qct)
+        transpiled_op_new = Operator.from_circuit_new(qct)
+
+        self.assertTrue(transpiled_op.equiv(extended_op))
+        self.assertTrue(transpiled_op_new.equiv(extended_op))
 
 
 if __name__ == "__main__":

@@ -129,6 +129,7 @@ class ApplyLayout(TransformationPass):
                 qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
             self.property_set["layout"] = full_layout
+
             if (final_layout := self.property_set["final_layout"]) is not None:
                 final_layout_mapping = {
                     new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
@@ -136,6 +137,22 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
+                print(f"HERE {final_layout_mapping = }")
+
+            print(f"{dag.final_permutation = }")
+            print(f"{phys_map = }")
+
+            forward_map_inverse = phys_map # OR INVERSE?!
+            forward_map = phys_map # _inverse_pattern(forward_map_inverse)
+            print(f"{forward_map = }, {forward_map_inverse = }")
+
+            new_dag.final_permutation = dag.final_permutation.copy()
+            print(f"HERE {new_dag.final_permutation = }")
+            new_dag.final_permutation.push_forward(forward_map)
+            print(f"AND HERE {new_dag.final_permutation = }")
+
+
+
         new_dag._global_phase = dag._global_phase
 
 
