@@ -1118,7 +1118,7 @@ impl CircuitData {
         value: &Bound<PyAny>,
     ) -> PyResult<()> {
         let index = self.convert_py_index(index)?;
-        let value: PyRef<CircuitInstruction> = value.extract()?;
+        let value: PyRef<CircuitInstruction> = value.downcast()?.borrow();
         let mut packed = self.pack(py, value)?;
         std::mem::swap(&mut packed, &mut self.data[index]);
         Ok(())
