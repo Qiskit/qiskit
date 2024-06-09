@@ -41,7 +41,9 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc.cx(3, 5)
         op = Operator(qc)
         coupling_map = CouplingMap.from_line(6)
-        qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"])
+        qct = transpile(
+            qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"]
+        )
         self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_sabre_2(self):
@@ -54,7 +56,9 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc.cx(0, 5)
         op = Operator(qc)
         coupling_map = CouplingMap.from_line(6)
-        qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"])
+        qct = transpile(
+            qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"]
+        )
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
@@ -73,7 +77,9 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc.cx(0, 5)
         op = Operator(qc)
         coupling_map = CouplingMap.from_line(6)
-        qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"])
+        qct = transpile(
+            qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"]
+        )
         self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_elide_sabre_1(self):
@@ -88,7 +94,9 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
         op = Operator(qc)
         coupling_map = CouplingMap.from_line(6)
-        qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"])
+        qct = transpile(
+            qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"]
+        )
         self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_elide_sabre_2(self):
@@ -103,7 +111,9 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qc.cx(3, 5)
         op = Operator(qc)
         coupling_map = CouplingMap.from_line(6)
-        qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"])
+        qct = transpile(
+            qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"]
+        )
         self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_star_vf2(self):

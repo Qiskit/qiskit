@@ -363,7 +363,7 @@ class Operator(LinearOp):
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
         final_layout: Layout | None = None,
-        original_qubit_indices=None,
+        original_qubit_indices: dict | None = None,
     ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
@@ -392,8 +392,8 @@ class Operator(LinearOp):
             final_layout (Layout): If specified this kwarg can be used to represent the
                 output permutation caused by swap insertions during the routing stage
                 of the transpiler.
-            original_qubit_indices: The mapping from qubits to positional indices for the
-                ``layout`` argument.
+            original_qubit_indices (dict): The mapping from qubits to positional indices
+                for the ``layout`` argument.
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -452,7 +452,7 @@ class Operator(LinearOp):
         circuit: QuantumCircuit,
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
-        original_qubit_indices=None,
+        original_qubit_indices: dict | None = None,
     ) -> Operator:
         """
         Implements the same functionality as ``from_circuit`` but obtains the final

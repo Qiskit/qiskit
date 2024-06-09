@@ -12,7 +12,7 @@
 
 """Reasoning about the implicit permutation of output qubits."""
 
-from qiskit.circuit import CircuitError
+from qiskit.circuit.exceptions import CircuitError
 
 
 class FinalPermutation:
@@ -30,20 +30,29 @@ class FinalPermutation:
     """
 
     def __init__(self, permutation=None):
+        """Initializer."""
         if permutation is None:
             permutation = []
         self.permutation = permutation
 
     def add_qubit(self):
+        """Extends the permutation when a new qubit is added to a DAGCircuit or to
+        a QuantumCircuit."""
         self.permutation.append(len(self.permutation))
 
-    def num_qubits(self):
+    def num_qubits(self) -> int:
+        """Returns the length of the permutation (i.e. the total number of qubits)."""
         return len(self.permutation)
 
-    def is_identity(self):
+    def is_identity(self) -> bool:
+        """Returns whether the permutation is the identity permutation."""
         return all(from_index == to_index for from_index, to_index in enumerate(self.permutation))
 
     def compose_with_permutation(self, permutation, front) -> "FinalPermutation":
+        """Composes FinalPermution with a permutation."""
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.permutation.permutation_utils import _compose_permutations
+
         if front:
             composed_permutation = _compose_permutations(self.permutation, permutation)
         else:
@@ -54,7 +63,7 @@ class FinalPermutation:
         return str(self.permutation)
 
     def copy(self) -> "FinalPermutation":
-
+        """Creates a copy of the FinalPermutation object."""
         return FinalPermutation(self.permutation.copy())
 
     def push_using_mapping(self, forward_map, num_target_qubits=None) -> "FinalPermutation":
@@ -85,14 +94,3 @@ class FinalPermutation:
             raise CircuitError("The map should be given either as a list or as a dict.")
 
         return FinalPermutation(target_permutation)
-
-
-def _compose_permutations(*perms):
-    """Compose multiple permutations, with the permutations applied in the
-    order they appear in the list.
-    ToDo: move to utils (where the inverse pattern already is)
-    """
-    out = range(len(perms[0]))
-    for perm in perms:
-        out = [perm[i] for i in out]
-    return out
