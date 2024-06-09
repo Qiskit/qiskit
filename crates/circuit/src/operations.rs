@@ -196,6 +196,33 @@ pub enum StandardGate {
     UGate = 17,
 }
 
+static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] =
+    [1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1];
+
+static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] =
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3];
+
+static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
+    "z",
+    "y",
+    "x",
+    "cz",
+    "cy",
+    "cx",
+    "ccx",
+    "rx",
+    "ry",
+    "rz",
+    "ecr",
+    "swap",
+    "sx",
+    "global_phase",
+    "id",
+    "h",
+    "p",
+    "u",
+];
+
 #[pymethods]
 impl StandardGate {
     pub fn copy(&self) -> Self {
@@ -227,6 +254,11 @@ impl StandardGate {
     }
 
     #[getter]
+    pub fn get_num_params(&self) -> u32 {
+        self.num_params()
+    }
+
+    #[getter]
     pub fn get_name(&self) -> &str {
         self.name()
     }
@@ -241,72 +273,15 @@ pub const STANDARD_GATE_SIZE: usize = 18;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
-        match self {
-            Self::ZGate => "z",
-            Self::YGate => "y",
-            Self::XGate => "x",
-            Self::CZGate => "cz",
-            Self::CYGate => "cy",
-            Self::CXGate => "cx",
-            Self::CCXGate => "ccx",
-            Self::RXGate => "rx",
-            Self::RYGate => "ry",
-            Self::RZGate => "rz",
-            Self::ECRGate => "ecr",
-            Self::SwapGate => "swap",
-            Self::SXGate => "sx",
-            Self::GlobalPhaseGate => "global_phase",
-            Self::IGate => "id",
-            Self::HGate => "h",
-            Self::PhaseGate => "p",
-            Self::UGate => "u",
-        }
+        STANDARD_GATE_NAME[*self as usize]
     }
 
     fn num_qubits(&self) -> u32 {
-        match self {
-            Self::ZGate => 1,
-            Self::YGate => 1,
-            Self::XGate => 1,
-            Self::CZGate => 2,
-            Self::CYGate => 2,
-            Self::CXGate => 2,
-            Self::CCXGate => 3,
-            Self::RXGate => 1,
-            Self::RYGate => 1,
-            Self::RZGate => 1,
-            Self::ECRGate => 2,
-            Self::SwapGate => 2,
-            Self::SXGate => 1,
-            Self::GlobalPhaseGate => 0,
-            Self::IGate => 1,
-            Self::HGate => 1,
-            Self::PhaseGate => 1,
-            Self::UGate => 1,
-        }
+        STANDARD_GATE_NUM_QUBITS[*self as usize]
     }
 
     fn num_params(&self) -> u32 {
-        match self {
-            Self::ZGate => 0,
-            Self::YGate => 0,
-            Self::XGate => 0,
-            Self::CZGate => 0,
-            Self::CYGate => 0,
-            Self::CXGate => 0,
-            Self::CCXGate => 0,
-            Self::RXGate => 1,
-            Self::RYGate => 1,
-            Self::RZGate => 1,
-            Self::ECRGate => 0,
-            Self::SwapGate => 0,
-            Self::SXGate => 0,
-            Self::GlobalPhaseGate => 1,
-            Self::IGate => 0,
-            Self::HGate => 0,
-            Self::PhaseGate => 1,
-            Self::UGate => 3,
-        }
+        STANDARD_GATE_NUM_PARAMS[*self as usize]
     }
 
     fn num_clbits(&self) -> u32 {

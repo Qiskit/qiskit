@@ -31,7 +31,7 @@ class TestRustGateEquivalence(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.standard_gates = get_standard_gate_name_mapping()
-        # Pre-warm gate mapping cache, this is needed so rust -> py conversion
+        # Pre-warm gate mapping cache, this is needed so rust -> py conversion is done
         qc = QuantumCircuit(3)
         for gate in self.standard_gates.values():
             if getattr(gate, "_standard_gate", None):
@@ -51,7 +51,6 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
-                print(name)
                 params = [pi] * standard_gate._num_params()
                 py_def = gate_class.base_class(*params).definition
                 rs_def = standard_gate._get_definition(params)
@@ -107,3 +106,34 @@ class TestRustGateEquivalence(QiskitTestCase):
                 py_def = gate_class.base_class(*params).to_matrix()
                 rs_def = standard_gate._to_matrix(params)
                 np.testing.assert_allclose(rs_def, py_def)
+
+    def test_name(self):
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # gate is not in rust yet
+                continue
+
+            with self.subTest(name=name):
+                self.assertEqual(gate_class.name, standard_gate.name)
+
+
+    def test_num_qubits(self):
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # gate is not in rust yet
+                continue
+
+            with self.subTest(name=name):
+                self.assertEqual(gate_class.num_qubits, standard_gate.num_qubits)
+
+    def test_num_params(self):
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # gate is not in rust yet
+                continue
+
+            with self.subTest(name=name):
+                self.assertEqual(len(gate_class.params), standard_gate.num_params, msg=f"{name} not equal")
