@@ -4154,7 +4154,7 @@ class QuantumCircuit:
         """
         # This should be free, by accessing the actual backing data structure of the table, but that
         # means that we need to copy it if adding keys from the global phase.
-        return set(self._data.get_params_unsorted())
+        return self._data.get_params_unsorted()
 
     @overload
     def assign_parameters(

@@ -1391,12 +1391,8 @@ impl CircuitData {
         self.param_table.get_param_from_name(py, name)
     }
 
-    pub fn get_params_unsorted(&self, py: Python) -> Vec<PyObject> {
-        self.param_table
-            .uuid_map
-            .values()
-            .map(|x| x.clone_ref(py))
-            .collect()
+    pub fn get_params_unsorted(&self, py: Python) -> PyResult<Py<PySet>> {
+        Ok(PySet::new_bound(py, self.param_table.uuid_map.values())?.unbind())
     }
 
     pub fn pop_param(
