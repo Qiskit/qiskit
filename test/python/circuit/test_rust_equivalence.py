@@ -117,7 +117,6 @@ class TestRustGateEquivalence(QiskitTestCase):
             with self.subTest(name=name):
                 self.assertEqual(gate_class.name, standard_gate.name)
 
-
     def test_num_qubits(self):
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
@@ -136,4 +135,6 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
-                self.assertEqual(len(gate_class.params), standard_gate.num_params, msg=f"{name} not equal")
+                self.assertEqual(
+                    len(gate_class.params), standard_gate.num_params, msg=f"{name} not equal"
+                )
