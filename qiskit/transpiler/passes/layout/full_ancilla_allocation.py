@@ -66,12 +66,6 @@ class FullAncillaAllocation(AnalysisPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-
-        print(f"------------------------------------------")
-        print(f"-- FULL ANCILLA ALLOCATION [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         layout = self.property_set.get("layout")
 
         if layout is None:
@@ -108,12 +102,6 @@ class FullAncillaAllocation(AnalysisPass):
             for idx, idle_q in enumerate(idle_physical_qubits):
                 self.property_set["layout"][idle_q] = qreg[idx]
             self.property_set["layout"].add_register(qreg)
-
-        print(f"------------------------------------------")
-        print(f"-- FULL ANCILLA ALLOCATION [END]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         return dag
 
     @staticmethod

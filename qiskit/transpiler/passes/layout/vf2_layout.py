@@ -125,12 +125,6 @@ class VF2Layout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
-
-        print(f"------------------------------------------")
-        print(f"-- VF2Layout [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         if self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]

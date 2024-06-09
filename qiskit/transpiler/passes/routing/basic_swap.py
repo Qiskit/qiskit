@@ -59,11 +59,6 @@ class BasicSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG, or if the ``coupling_map=None``.
         """
-        print(f"------------------------------------------")
-        print(f"-- Basic swap [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         if self.fake_run:
             return self._fake_run(dag)
 
@@ -126,14 +121,9 @@ class BasicSwap(TransformationPass):
                 self.property_set["final_layout"], dag.qubits
             )
         layout_permutation = _inverse_pattern(current_layout.to_permutation(new_dag.qubits))
-        new_dag.final_permutation = dag.final_permutation.copy()
-        new_dag.final_permutation.compose(layout_permutation, front=True)
-
-
-        print(f"------------------------------------------")
-        print(f"-- Basic swap [END]")
-        print(f"{new_dag.final_permutation = }")
-        print(f"------------------------------------------")
+        new_dag._final_permutation = dag._final_permutation.compose_with_permutation(
+            layout_permutation, front=True
+        )
 
         return new_dag
 

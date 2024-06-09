@@ -105,11 +105,6 @@ class StochasticSwap(TransformationPass):
             compatible with the DAG, or if the coupling_map=None
         """
 
-        print(f"------------------------------------------")
-        print(f"-- STOCHASTIC SWAP [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         if self.coupling_map is None:
             raise TranspilerError("StochasticSwap cannot run with coupling_map=None")
 
@@ -135,12 +130,6 @@ class StochasticSwap(TransformationPass):
         logger.debug("StochasticSwap rng seeded with seed=%s", self.seed)
         self.coupling_map.compute_distance_matrix()
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
-
-        print(f"------------------------------------------")
-        print(f"-- STOCHASTIC SWAP [END]")
-        print(f"{new_dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         return new_dag
 
     def _layer_permutation(self, dag, layer_partition, layout, qubit_subset, coupling, trials):
@@ -390,7 +379,6 @@ class StochasticSwap(TransformationPass):
         # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.initial_layout = %s", self.initial_layout)
         logger.debug("mapper: layout = %s", layout)
-
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = layout
         else:
@@ -400,15 +388,14 @@ class StochasticSwap(TransformationPass):
 
         layout_permutation = _inverse_pattern(layout.to_permutation(circuit_graph.qubits))
 
-        print(f"{self.fake_run = }")
-        print(f"{layout = }")
-        print(f"{layout_permutation = }")
-        dagcircuit_output.final_permutation = circuit_graph.final_permutation.copy()
-        dagcircuit_output.final_permutation.compose(layout_permutation, front=True)
+        dagcircuit_output._final_permutation = (
+            circuit_graph._final_permutation.compose_with_permutation(
+                layout_permutation, front=True
+            )
+        )
 
         if self.fake_run:
             return circuit_graph
-
         return dagcircuit_output
 
     def _controlflow_layer_update(self, dagcircuit_output, layer_dag, current_layout, root_dag):

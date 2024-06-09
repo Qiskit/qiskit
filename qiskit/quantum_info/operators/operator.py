@@ -363,7 +363,7 @@ class Operator(LinearOp):
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
         final_layout: Layout | None = None,
-        original_qubit_indices = None,
+        original_qubit_indices=None,
     ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
@@ -433,13 +433,6 @@ class Operator(LinearOp):
 
         op = Operator(circuit)
 
-        # print(f"FromCircuit: {initial_layout = }, {final_layout = }")
-        if initial_layout:
-            print(f"FromCircuit: {initial_permutation = }, {initial_permutation_inverse = }")
-        if final_layout:
-            print(f"FromCircuit: {final_permutation_inverse = }")
-
-
         if initial_layout:
             op = op.apply_permutation(initial_permutation, True)
 
@@ -487,15 +480,9 @@ class Operator(LinearOp):
             initial_permutation = initial_layout.to_permutation(input_qubits)
             initial_permutation_inverse = _inverse_pattern(initial_permutation)
 
-        final_permutation = circuit.final_permutation.permutation
-        final_permutation_inverse = _inverse_pattern(final_permutation)
+        final_permutation = circuit._final_permutation.permutation
 
         op = Operator(circuit)
-
-        # print(f"FromCircuitNew: {initial_layout = }")
-        if initial_layout:
-            print(f"FromCircuitNew: {initial_permutation = }, {initial_permutation_inverse = }")
-        print(f"FromCircuitNew: {final_permutation = }, {final_permutation_inverse = }")
 
         if initial_layout:
             op = op.apply_permutation(initial_permutation, True)

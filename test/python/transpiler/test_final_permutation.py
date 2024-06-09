@@ -29,7 +29,6 @@ from utils import random_circuit
 class TestFinalPermutationInTranspile(QiskitTestCase):
     """Tests for FixedPoint pass."""
 
-
     def test_sabre_1(self):
         """SabreLayout"""
         qc = QuantumCircuit(6)
@@ -67,7 +66,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
 
-
     def test_sabre_3(self):
         """Sabre."""
         qc = QuantumCircuit(6)
@@ -90,8 +88,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
 
-
-
     def test_elide_sabre_1(self):
         """Circuit with PermutationGate. ElidePermutations."""
         qc = QuantumCircuit(6)
@@ -110,7 +106,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
-
 
     def test_elide_sabre_2(self):
         """This runs ElidePermutations + Sabre"""
@@ -131,8 +126,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
-
-
 
     def test_star_vf2(self):
         "StarPreRouting + perfect map"
@@ -157,7 +150,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
-
 
     def test_elide_star_sabre(self):
         """Both StarPreRouting+Elide."""
@@ -188,7 +180,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
 
-
     def test_star_elide_sabre(self):
         """Both StarPreRouting+Elide."""
         qc = QuantumCircuit(5)
@@ -217,7 +208,6 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
-
 
     def test_star_elide_sabre_2(self):
         """First StarPreRouting, then Elide."""
@@ -281,7 +271,13 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
             extended_op = Operator(qc2)
 
-            qct = transpile(qc, optimization_level=3, coupling_map=coupling_map, basis_gates=["cx", "u"], seed_transpiler=3)
+            qct = transpile(
+                qc,
+                optimization_level=3,
+                coupling_map=coupling_map,
+                basis_gates=["cx", "u"],
+                seed_transpiler=3,
+            )
 
             transpiled_op = Operator.from_circuit(qct)
             transpiled_op_new = Operator.from_circuit_new(qct)
@@ -306,7 +302,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
                 coupling_map=cm,
                 basis_gates=["cx", "u"],
                 seed_transpiler=3,
-                routing_method=routing_method
+                routing_method=routing_method,
             )
 
             transpiled_op = Operator.from_circuit(qct)
@@ -339,7 +335,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
                 coupling_map=cm,
                 basis_gates=["cx", "u"],
                 seed_transpiler=3,
-                routing_method=routing_method
+                routing_method=routing_method,
             )
 
             transpiled_op = Operator.from_circuit(qct)
@@ -380,4 +376,3 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

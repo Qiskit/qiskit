@@ -48,13 +48,6 @@ class ApplyLayout(TransformationPass):
         Raises:
             TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
-
-        print(f"------------------------------------------")
-        print(f"-- ApplyLayout [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
-
         layout = self.property_set["layout"]
         if not layout:
             raise TranspilerError(
@@ -89,10 +82,9 @@ class ApplyLayout(TransformationPass):
                 qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
 
-            # IMPROVE ME TO AVOID USING to_permutation method
             forward_map_inverse = layout.to_permutation(dag.qubits)
             forward_map = _inverse_pattern(forward_map_inverse)
-            new_dag.final_permutation = dag.final_permutation.push_using_mapping(forward_map)
+            new_dag._final_permutation = dag._final_permutation.push_using_mapping(forward_map)
         else:
             # First build a new layout object going from:
             # old virtual -> old physical -> new virtual -> new physical
@@ -114,7 +106,6 @@ class ApplyLayout(TransformationPass):
                 qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
             self.property_set["layout"] = full_layout
-
             if (final_layout := self.property_set["final_layout"]) is not None:
                 final_layout_mapping = {
                     new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
@@ -122,13 +113,8 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
-            new_dag.final_permutation = dag.final_permutation.push_using_mapping(phys_map)
+            new_dag._final_permutation = dag._final_permutation.push_using_mapping(phys_map)
 
         new_dag._global_phase = dag._global_phase
-
-        print(f"------------------------------------------")
-        print(f"-- ApplyLayout [END]")
-        print(f"{new_dag.final_permutation = }")
-        print(f"------------------------------------------")
 
         return new_dag

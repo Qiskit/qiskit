@@ -119,11 +119,6 @@ class LookaheadSwap(TransformationPass):
             compatible with the DAG, or if the coupling_map=None
         """
 
-        print(f"------------------------------------------")
-        print(f"-- Lookahead swap [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         if self.coupling_map is None:
             raise TranspilerError("LookaheadSwap cannot run with coupling_map=None")
 
@@ -182,8 +177,6 @@ class LookaheadSwap(TransformationPass):
                 self.property_set["final_layout"], dag.qubits
             )
 
-        print(f"{self.property_set['final_layout'] = }")
-
         if self.fake_run:
             return dag
 
@@ -192,14 +185,12 @@ class LookaheadSwap(TransformationPass):
         for node in mapped_gates:
             mapped_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
 
-        layout_permutation = _inverse_pattern(current_state.layout.to_permutation(mapped_dag.qubits))
-        mapped_dag.final_permutation = dag.final_permutation.copy()
-        mapped_dag.final_permutation.compose(layout_permutation, front=True)
-
-        print(f"------------------------------------------")
-        print(f"-- Lookahead swap [END]")
-        print(f"{mapped_dag.final_permutation = }")
-        print(f"------------------------------------------")
+        layout_permutation = _inverse_pattern(
+            current_state.layout.to_permutation(mapped_dag.qubits)
+        )
+        mapped_dag._final_permutation = dag._final_permutation.compose_with_permutation(
+            layout_permutation, front=True
+        )
 
         return mapped_dag
 

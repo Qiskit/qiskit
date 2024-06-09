@@ -22,7 +22,6 @@ import time
 import numpy as np
 import rustworkx as rx
 
-from qiskit.circuit.final_permutation import FinalPermutation
 from qiskit.converters import dag_to_circuit
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
@@ -207,12 +206,6 @@ class SabreLayout(TransformationPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
-
-        print(f"------------------------------------------")
-        print(f"-- SabreLayout [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
@@ -325,7 +318,6 @@ class SabreLayout(TransformationPass):
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
-
         final_layout = Layout(
             {
                 mapped_dag.qubits[
@@ -341,7 +333,6 @@ class SabreLayout(TransformationPass):
             self.property_set["final_layout"] = final_layout.compose(
                 self.property_set["final_layout"], dag.qubits
             )
-
         for component in components:
             # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
             # each component DAG with the virtual ancillas that were allocated to it, so the layout
@@ -377,24 +368,16 @@ class SabreLayout(TransformationPass):
             for component in components
             for initial, final in enumerate(component.final_permutation)
         }
-        print(f"{sabre_final_permutation = }")
 
         forward_map = {
             logic: component.coupling_map.graph[phys]
             for component in components
-                for logic, phys in component.initial_layout.layout_mapping()
+            for logic, phys in component.initial_layout.layout_mapping()
             if logic < len(component.dag.qubits)
         }
-        mapped_dag.final_permutation = dag.final_permutation.push_using_mapping(forward_map)
-        mapped_dag.final_permutation.compose(sabre_final_permutation, front=False)
-
-        print(f"SabreLayout: final_permutation [after compose] {mapped_dag.final_permutation}")
-
-        print(f"------------------------------------------")
-        print(f"-- SabreLayout [END]")
-        print(f"{mapped_dag.final_permutation = }")
-        print(f"------------------------------------------")
-
+        mapped_dag._final_permutation = dag._final_permutation.push_using_mapping(
+            forward_map
+        ).compose_with_permutation(sabre_final_permutation, front=False)
         return mapped_dag
 
     def _inner_run(self, dag, coupling_map, starting_layouts=None):

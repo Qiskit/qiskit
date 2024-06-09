@@ -17,7 +17,6 @@ import logging
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.library.generalized_gates import PermutationGate
-from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.layout import Layout
 
@@ -61,13 +60,6 @@ class ElidePermutations(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-
-        print(f"------------------------------------------")
-        print(f"-- ElidePermutations [START]")
-        print(f"{dag.final_permutation = }")
-        print(f"------------------------------------------")
-
-
         if self.property_set["layout"] is not None:
             logger.warning(
                 "ElidePermutations is not valid after a layout has been set. This indicates "
@@ -113,7 +105,6 @@ class ElidePermutations(TransformationPass):
             self.property_set["original_qubit_indices"] = input_qubit_mapping
 
         new_layout = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
-
         if current_layout := self.property_set["virtual_permutation_layout"]:
             self.property_set["virtual_permutation_layout"] = new_layout.compose(
                 current_layout.inverse(dag.qubits, dag.qubits), dag.qubits
@@ -121,14 +112,8 @@ class ElidePermutations(TransformationPass):
         else:
             self.property_set["virtual_permutation_layout"] = new_layout
 
-        print(f"{qubit_mapping = }")
-        qubit_mapping_inverse = _inverse_pattern(qubit_mapping)
-        new_dag.final_permutation = dag.final_permutation.copy()
-        new_dag.final_permutation.compose(qubit_mapping, front=True)
-
-        print(f"------------------------------------------")
-        print(f"-- ElidePermutations [END]")
-        print(f"{new_dag.final_permutation = }")
-        print(f"------------------------------------------")
+        new_dag._final_permutation = dag._final_permutation.compose_with_permutation(
+            qubit_mapping, front=True
+        )
 
         return new_dag
