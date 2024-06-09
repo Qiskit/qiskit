@@ -143,14 +143,13 @@ impl CircuitData {
         }
         for (operation, params, qargs) in instruction_iter {
             let qubits = PyTuple::new_bound(py, res.qubits.map_indices(&qargs)).unbind();
-            let empty: [u8; 0] = [];
-            let clbits = PyTuple::new_bound(py, empty);
+            let clbits = PyTuple::empty_bound(py).unbind();
             let inst = res.pack_owned(
                 py,
                 &CircuitInstruction {
                     operation: OperationType::Standard(operation),
                     qubits,
-                    clbits: clbits.into(),
+                    clbits,
                     params,
                     extra_attrs: None,
                     #[cfg(feature = "cache_pygates")]
