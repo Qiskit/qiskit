@@ -373,7 +373,7 @@ class Operator(LinearOp):
         you control how the :class:`.Operator` is created so it can be adjusted
         for a particular use case.
 
-        By default this constructor method will permute the qubits based on a
+        By default, this constructor method will permute the qubits based on a
         configured initial layout (i.e. after it was transpiled). It also
         provides an option to manually provide a :class:`.Layout` object
         directly.
@@ -392,6 +392,8 @@ class Operator(LinearOp):
             final_layout (Layout): If specified this kwarg can be used to represent the
                 output permutation caused by swap insertions during the routing stage
                 of the transpiler.
+            original_qubit_indices: The mapping from qubits to positional indices for the
+                ``layout`` argument.
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -445,13 +447,18 @@ class Operator(LinearOp):
         return op
 
     @classmethod
-    def from_circuit_new(
+    def _from_circuit_new(
         cls,
         circuit: QuantumCircuit,
         ignore_set_layout: bool = False,
         layout: Layout | None = None,
         original_qubit_indices=None,
     ) -> Operator:
+        """
+        Implements the same functionality as ``from_circuit`` but obtains the final
+        permutation from the circuit's attribute ``_final_permutation`` rather than
+        from the property set.
+        """
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)

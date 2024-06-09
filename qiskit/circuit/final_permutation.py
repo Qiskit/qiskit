@@ -54,6 +54,7 @@ class FinalPermutation:
         return str(self.permutation)
 
     def copy(self) -> "FinalPermutation":
+
         return FinalPermutation(self.permutation.copy())
 
     def push_using_mapping(self, forward_map, num_target_qubits=None) -> "FinalPermutation":

@@ -47,7 +47,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_sabre_2(self):
         """Sabre."""
@@ -64,7 +64,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_sabre_3(self):
         """Sabre."""
@@ -86,7 +86,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_elide_sabre_1(self):
         """Circuit with PermutationGate. ElidePermutations."""
@@ -105,7 +105,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_elide_sabre_2(self):
         """This runs ElidePermutations + Sabre"""
@@ -125,7 +125,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
 
         qct = transpile(qc, optimization_level=3, coupling_map=cm, basis_gates=["cx", "u"])
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_star_vf2(self):
         "StarPreRouting + perfect map"
@@ -149,7 +149,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         spm.init += StarPreRouting()
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_elide_star_sabre(self):
         """Both StarPreRouting+Elide."""
@@ -178,7 +178,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         spm.init += StarPreRouting()
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_star_elide_sabre(self):
         """Both StarPreRouting+Elide."""
@@ -207,7 +207,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         spm.init += ElidePermutations()
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_star_elide_sabre_2(self):
         """First StarPreRouting, then Elide."""
@@ -229,7 +229,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         spm.init += ElidePermutations()
         qct = spm.run(qc)
         # self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_star_elide_3(self):
         """First StarPreRouting, then Elide."""
@@ -256,7 +256,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         spm.init += ElidePermutations()
         qct = spm.run(qc)
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
-        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
+        self.assertTrue(Operator._from_circuit_new(qct).equiv(op))
 
     def test_random_embed_1(self):
         """More qubits in coupling map"""
@@ -280,7 +280,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
             )
 
             transpiled_op = Operator.from_circuit(qct)
-            transpiled_op_new = Operator.from_circuit_new(qct)
+            transpiled_op_new = Operator._from_circuit_new(qct)
 
             self.assertTrue(transpiled_op.equiv(extended_op))
             self.assertTrue(transpiled_op_new.equiv(extended_op))
@@ -306,7 +306,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
             )
 
             transpiled_op = Operator.from_circuit(qct)
-            transpiled_op_new = Operator.from_circuit_new(qct)
+            transpiled_op_new = Operator._from_circuit_new(qct)
 
             self.assertTrue(transpiled_op.equiv(extended_op))
             self.assertTrue(transpiled_op_new.equiv(extended_op))
@@ -339,7 +339,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
             )
 
             transpiled_op = Operator.from_circuit(qct)
-            transpiled_op_new = Operator.from_circuit_new(qct)
+            transpiled_op_new = Operator._from_circuit_new(qct)
 
             self.assertTrue(transpiled_op.equiv(extended_op))
             self.assertTrue(transpiled_op_new.equiv(extended_op))
@@ -368,7 +368,7 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         qct = transpile(qc, backend=backend, seed_transpiler=4242)
 
         transpiled_op = Operator.from_circuit(qct)
-        transpiled_op_new = Operator.from_circuit_new(qct)
+        transpiled_op_new = Operator._from_circuit_new(qct)
 
         self.assertTrue(transpiled_op.equiv(extended_op))
         self.assertTrue(transpiled_op_new.equiv(extended_op))
