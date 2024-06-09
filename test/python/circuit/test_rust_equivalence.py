@@ -108,6 +108,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 np.testing.assert_allclose(rs_def, py_def)
 
     def test_name(self):
+        """Test that the gate name properties match in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
             if standard_gate is None:
@@ -118,6 +119,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 self.assertEqual(gate_class.name, standard_gate.name)
 
     def test_num_qubits(self):
+        """Test the number of qubits are the same in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
             if standard_gate is None:
@@ -128,6 +130,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 self.assertEqual(gate_class.num_qubits, standard_gate.num_qubits)
 
     def test_num_params(self):
+        """Test the number of parameters are the same in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
             if standard_gate is None:
