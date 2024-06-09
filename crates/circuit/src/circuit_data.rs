@@ -170,31 +170,31 @@ impl CircuitData {
     ) -> PyResult<bool> {
         if let Some(params) = params {
             let mut new_param = false;
+            let mut atomic_parameters: HashMap<u128, PyObject> = HashMap::new();
             for (param_index, raw_param_objs) in &params {
-                let atomic_parameters: HashMap<u128, PyObject> = raw_param_objs
-                    .iter()
-                    .map(|x| {
-                        (
-                            x.getattr(py, intern!(py, "_uuid"))
-                                .expect("Not a parameter")
-                                .getattr(py, intern!(py, "int"))
-                                .expect("Not a uuid")
-                                .extract::<u128>(py)
-                                .unwrap(),
-                            x.clone_ref(py),
-                        )
-                    })
-                    .collect();
-                for (param_uuid, param_obj) in atomic_parameters.into_iter() {
-                    match self.param_table.table.get_mut(&param_uuid) {
+                raw_param_objs.iter().for_each(|x| {
+                    atomic_parameters.insert(
+                        x.getattr(py, intern!(py, "_uuid"))
+                            .expect("Not a parameter")
+                            .getattr(py, intern!(py, "int"))
+                            .expect("Not a uuid")
+                            .extract::<u128>(py)
+                            .unwrap(),
+                        x.clone_ref(py),
+                    );
+                });
+                for (param_uuid, param_obj) in atomic_parameters.iter() {
+                    match self.param_table.table.get_mut(param_uuid) {
                         Some(entry) => entry.add(inst_index, *param_index),
                         None => {
                             new_param = true;
                             let new_entry = ParamEntry::new(inst_index, *param_index);
-                            self.param_table.insert(py, param_obj, new_entry)?;
+                            self.param_table
+                                .insert(py, param_obj.clone_ref(py), new_entry)?;
                         }
                     };
                 }
+                atomic_parameters.clear()
             }
             return Ok(new_param);
         }
@@ -212,33 +212,33 @@ impl CircuitData {
                 .collect();
             if !params.is_empty() {
                 let list_builtin = BUILTIN_LIST.get_bound(py);
+                let mut atomic_parameters: HashMap<u128, PyObject> = HashMap::new();
                 for (param_index, param) in &params {
                     let temp: PyObject = param.getattr(py, intern!(py, "parameters"))?;
                     let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
-                    let atomic_parameters: HashMap<u128, PyObject> = raw_param_objs
-                        .into_iter()
-                        .map(|x| {
-                            (
-                                x.getattr(py, intern!(py, "_uuid"))
-                                    .expect("Not a parameter")
-                                    .getattr(py, intern!(py, "int"))
-                                    .expect("Not a uuid")
-                                    .extract(py)
-                                    .unwrap(),
-                                x,
-                            )
-                        })
-                        .collect();
-                    for (param_uuid, param_obj) in atomic_parameters.into_iter() {
-                        match self.param_table.table.get_mut(&param_uuid) {
+                    raw_param_objs.iter().for_each(|x| {
+                        atomic_parameters.insert(
+                            x.getattr(py, intern!(py, "_uuid"))
+                                .expect("Not a parameter")
+                                .getattr(py, intern!(py, "int"))
+                                .expect("Not a uuid")
+                                .extract(py)
+                                .unwrap(),
+                            x.clone_ref(py),
+                        );
+                    });
+                    for (param_uuid, param_obj) in &atomic_parameters {
+                        match self.param_table.table.get_mut(param_uuid) {
                             Some(entry) => entry.add(inst_index, *param_index),
                             None => {
                                 new_param = true;
                                 let new_entry = ParamEntry::new(inst_index, *param_index);
-                                self.param_table.insert(py, param_obj, new_entry)?;
+                                self.param_table
+                                    .insert(py, param_obj.clone_ref(py), new_entry)?;
                             }
                         };
                     }
+                    atomic_parameters.clear();
                 }
             }
         }
