@@ -4315,7 +4315,7 @@ class QuantumCircuit:
                 else ()
             )
             for inst_index, index in references:
-                if inst_index == self._data.global_phase_param_index():
+                if inst_index == self._data.global_phase_param_index:
                     operation = None
                     seen_operations[inst_index] = None
                     assignee = target.global_phase
@@ -4347,7 +4347,7 @@ class QuantumCircuit:
                         f"Saw an unknown type during symbolic binding: {assignee}."
                         " This may indicate an internal logic error in symbol tracking."
                     )
-                if inst_index == self._data.global_phase_param_index():
+                if inst_index == self._data.global_phase_param_index:
                     # We've already handled parameter table updates in bulk, so we need to skip the
                     # public setter trying to do it again.
                     target._data.global_phase = new_parameter

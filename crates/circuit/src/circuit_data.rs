@@ -1375,8 +1375,8 @@ impl CircuitData {
     }
 
     /// Get the global_phase sentinel value
-    #[staticmethod]
-    pub fn global_phase_param_index() -> usize {
+    #[classattr]
+    pub const fn global_phase_param_index() -> usize {
         usize::MAX
     }
 
