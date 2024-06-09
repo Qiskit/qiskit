@@ -691,7 +691,7 @@ pub(crate) fn operation_type_to_py(
 pub(crate) fn operation_type_and_data_to_py(
     py: Python,
     operation: &OperationType,
-    params: &SmallVec<[Param; 3]>,
+    params: &[Param],
     label: &Option<String>,
     duration: &Option<PyObject>,
     unit: &Option<String>,
