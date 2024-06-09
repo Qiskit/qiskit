@@ -308,6 +308,13 @@ impl CircuitData {
         self.global_phase(py, self.global_phase.clone())?;
         Ok(())
     }
+
+    pub fn append_inner(&mut self, py: Python, value: PyRef<CircuitInstruction>) -> PyResult<bool> {
+        let packed = self.pack(py, value)?;
+        let new_index = self.data.len();
+        self.data.push(packed);
+        self.update_param_table(py, new_index, None)
+    }
 }
 
 #[pymethods]
@@ -1210,10 +1217,10 @@ impl CircuitData {
     pub fn append(
         &mut self,
         py: Python<'_>,
-        value: PyRef<CircuitInstruction>,
+        value: &Bound<CircuitInstruction>,
         params: Option<Vec<(usize, Vec<PyObject>)>>,
     ) -> PyResult<bool> {
-        let packed = self.pack(py, value)?;
+        let packed = self.pack(py, value.try_borrow()?)?;
         let new_index = self.data.len();
         self.data.push(packed);
         self.update_param_table(py, new_index, params)
@@ -1268,7 +1275,7 @@ impl CircuitData {
             return Ok(());
         }
         for v in itr.iter()? {
-            self.append(py, v?.extract()?, None)?;
+            self.append_inner(py, v?.extract()?)?;
         }
         Ok(())
     }

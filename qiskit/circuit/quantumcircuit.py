@@ -2530,24 +2530,20 @@ class QuantumCircuit:
         old_style = not isinstance(instruction, CircuitInstruction)
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
-        params = None
         # If there is a reference to the outer circuit in an
-        # instruction param we need to handle the params
-        # before calling the inner rust append method. This is to avoid trying
-        # to reference the circuit twice at the same time from rust. This shouldn't
-        # happen in practice but 2 tests were doing this and it's not explicitly
-        # prohibted by the API so this and the `params` optional argument path
-        # guard against it.
-        if hasattr(instruction.operation, "params") and any(
-            x is self for x in instruction.operation.params
-        ):
+        # instruction param the inner rust append method will raise a runtime error.
+        # When this happens we need to handle the parameters separately.
+        # This shouldn't happen in practice but 2 tests were doing this and it's not
+        # explicitly prohibted by the API so this and the `params` optional argument
+        # path guard against it.
+        try:
+            new_param = self._data.append(instruction)
+        except RuntimeError:
             params = []
             for idx, param in enumerate(instruction.operation.params):
                 if isinstance(param, (ParameterExpression, QuantumCircuit)):
                     params.append((idx, list(set(param.parameters))))
             new_param = self._data.append(instruction, params)
-        else:
-            new_param = self._data.append(instruction)
         if new_param:
             # clear cache if new parameter is added
             self._parameters = None
