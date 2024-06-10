@@ -386,16 +386,17 @@ class StochasticSwap(TransformationPass):
                 self.property_set["final_layout"], circuit_graph.qubits
             )
 
-        layout_permutation = _inverse_pattern(layout.to_permutation(circuit_graph.qubits))
-
-        dagcircuit_output._final_permutation = (
-            circuit_graph._final_permutation.compose_with_permutation(
-                layout_permutation, front=True
+        if not self.fake_run:
+            layout_permutation = _inverse_pattern(layout.to_permutation(circuit_graph.qubits))
+            dagcircuit_output._final_permutation = (
+                circuit_graph._final_permutation.compose_with_permutation(
+                    layout_permutation, front=True
+                )
             )
-        )
 
         if self.fake_run:
             return circuit_graph
+
         return dagcircuit_output
 
     def _controlflow_layer_update(self, dagcircuit_output, layer_dag, current_layout, root_dag):
