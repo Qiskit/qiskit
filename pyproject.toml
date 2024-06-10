@@ -218,7 +218,6 @@ disable = [
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
-    "consider-using-enumerate",
     "consider-using-f-string",
     "no-member",  # for dynamically created members
     "not-context-manager",
