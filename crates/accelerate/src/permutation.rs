@@ -77,12 +77,39 @@ fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
     swaps
 }
 
+fn pattern_to_cycles(pattern: &ArrayView1<i64>) -> Vec<Vec<usize>> {
+    // vector keeping track of which elements in the permutation pattern have been visited
+    let mut explored: Vec<bool> = vec![false; pattern.len()];
+
+    // vector of the discovered cycles
+    let mut cycles: Vec<Vec<usize>> = Vec::new();
+
+    // turn pattern into unsigned integer which can be used as indices
+    let permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
+
+    for mut ii in permutation.clone() {
+        let mut cycle: Vec<usize> = Vec::new();
+
+        // follow the cycle until we reached an entry we saw before
+        while !explored[ii] {
+            cycle.push(ii.clone());
+            explored[ii] = true;
+            ii = permutation[ii];
+        }
+        // cycles must have more than 1 element
+        if cycle.len() > 1 {
+            cycles.push(cycle);
+        }
+    }
+
+    cycles
+}
+
 /// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> PyResult<PyObject> {
     let view = pattern.as_array();
-    validate_permutation(&view)?;
     let inverse_i64: Vec<i64> = invert(&view).iter().map(|&x| x as i64).collect();
     Ok(inverse_i64.to_object(py))
 }
@@ -103,13 +130,28 @@ fn _get_ordered_swap(
     permutation_in: PyArrayLike1<i64, AllowTypeChange>,
 ) -> PyResult<PyObject> {
     let view = permutation_in.as_array();
-    validate_permutation(&view)?;
     Ok(get_ordered_swap(&view).to_object(py))
+}
+
+/// Find cycles in a permutation pattern.
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _pattern_to_cycles(
+    py: Python,
+    pattern: PyArrayLike1<i64, AllowTypeChange>,
+) -> PyResult<PyObject> {
+    let view = pattern.as_array();
+    let cycles_i64: Vec<Vec<i64>> = pattern_to_cycles(&view)
+        .iter()
+        .map(|cycles| cycles.iter().map(|&idx| idx as i64).collect())
+        .collect();
+    Ok(cycles_i64.to_object(py))
 }
 
 #[pymodule]
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
+    m.add_function(wrap_pyfunction!(_pattern_to_cycles, m)?)?;
     Ok(())
 }
