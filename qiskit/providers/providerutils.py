@@ -21,7 +21,9 @@ from qiskit.providers.backend import Backend
 logger = logging.getLogger(__name__)
 
 
-def filter_backends(backends: list[Backend], filters: Callable[[Backend], bool] | None = None, **kwargs) -> list[Backend]:
+def filter_backends(
+    backends: list[Backend], filters: Callable[[Backend], bool] | None = None, **kwargs
+) -> list[Backend]:
     """Return the backends matching the specified filtering.
 
     Filter the `backends` list by their `configuration` or `status`
