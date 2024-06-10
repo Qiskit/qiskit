@@ -30,6 +30,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestFinalPermutationInTranspile(QiskitTestCase):
     """Tests for FinalPermutation in transpile flows."""
 
+    # pylint: disable=unused-argument
     def _check_on_callback(self, pass_, dag, time, property_set, count):
         self.assertEqual(dag.num_qubits(), dag._final_permutation.num_qubits())
 
