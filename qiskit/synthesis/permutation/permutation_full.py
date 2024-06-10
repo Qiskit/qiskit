@@ -18,7 +18,6 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from .permutation_utils import (
     _get_ordered_swap,
-    _inverse_pattern,
     _pattern_to_swaps,
 )
 
@@ -90,9 +89,9 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
     num_qubits = len(pattern)
     qc = QuantumCircuit(num_qubits)
 
-    # invert pattern (Qiskit notation is opposite)
-    cur_pattern = _inverse_pattern(pattern)
-    swaps = _pattern_to_swaps(cur_pattern)
+    # Compute the swap layers from the permutation pattern. ``invert_order`` inverts the
+    # index order to be consistent with Qiskit notation.
+    swaps = _pattern_to_swaps(pattern, invert_order=True)
 
     for swap in swaps:
         qc.swap(swap[0], swap[1])

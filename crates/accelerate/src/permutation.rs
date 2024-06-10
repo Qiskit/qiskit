@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array1, ArrayView1};
+use ndarray::ArrayView1;
 use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -47,8 +47,8 @@ fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     Ok(())
 }
 
-fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
-    let mut inverse: Array1<usize> = Array1::zeros(pattern.len());
+fn invert(pattern: &ArrayView1<i64>) -> Vec<usize> {
+    let mut inverse: Vec<usize> = vec![0usize; pattern.len()];
     pattern.iter().enumerate().for_each(|(ii, &jj)| {
         inverse[jj as usize] = ii;
     });
@@ -77,7 +77,7 @@ fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
     swaps
 }
 
-fn pattern_to_cycles(pattern: &ArrayView1<i64>) -> Vec<Vec<usize>> {
+fn pattern_to_cycles(pattern: &ArrayView1<i64>, invert_order: &bool) -> Vec<Vec<usize>> {
     // vector keeping track of which elements in the permutation pattern have been visited
     let mut explored: Vec<bool> = vec![false; pattern.len()];
 
@@ -85,14 +85,18 @@ fn pattern_to_cycles(pattern: &ArrayView1<i64>) -> Vec<Vec<usize>> {
     let mut cycles: Vec<Vec<usize>> = Vec::new();
 
     // turn pattern into unsigned integer which can be used as indices
-    let permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
+    let permutation: Vec<usize> = if *invert_order {
+        invert(pattern)
+    } else {
+        pattern.iter().map(|&x| x as usize).collect()
+    };
 
     for mut ii in permutation.clone() {
         let mut cycle: Vec<usize> = Vec::new();
 
         // follow the cycle until we reached an entry we saw before
         while !explored[ii] {
-            cycle.push(ii.clone());
+            cycle.push(ii);
             explored[ii] = true;
             ii = permutation[ii];
         }
@@ -114,16 +118,16 @@ fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
 
         if length > 2 {
             // handle first element separately, which accesses the last element
-            swaps.push((cycle[length - 1].clone(), cycle[length - 3].clone()));
+            swaps.push((cycle[length - 1], cycle[length - 3]));
             for ii in 1..(length - 1) / 2 {
-                swaps.push((cycle[ii - 1].clone(), cycle[length - 3 - ii].clone()));
+                swaps.push((cycle[ii - 1], cycle[length - 3 - ii]));
             }
         }
 
         // no check needed, cycles always have at least 2 elements
-        swaps.push((cycle[length - 1].clone(), cycle[length - 2].clone()));
+        swaps.push((cycle[length - 1], cycle[length - 2]));
         for ii in 1..length / 2 {
-            swaps.push((cycle[ii - 1].clone(), cycle[length - 2 - ii].clone()));
+            swaps.push((cycle[ii - 1], cycle[length - 2 - ii]));
         }
     }
 
@@ -170,10 +174,14 @@ fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<
 /// [(0, 3), (1, 2), (0, 4), (1, 3)], respectively [(6, 5)].
 /// If ``invert`` is True, reverse the indices before computing the SWAPs.
 #[pyfunction]
-#[pyo3(signature = (pattern))]
-fn _pattern_to_swaps(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+#[pyo3(signature = (pattern, invert_order=true))]
+fn _pattern_to_swaps(
+    py: Python,
+    pattern: PyArrayLike1<i64>,
+    invert_order: bool,
+) -> PyResult<PyObject> {
     let view = pattern.as_array();
-    let cycles = pattern_to_cycles(&view);
+    let cycles = pattern_to_cycles(&view, &invert_order);
     let swaps = decompose_cycles(&cycles);
     let swaps_i64: Vec<(i64, i64)> = swaps.iter().map(|&x| (x.0 as i64, x.1 as i64)).collect();
     Ok(swaps_i64.to_object(py))
