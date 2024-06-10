@@ -140,7 +140,7 @@ class PassManager(BasePassManager):
         self.property_set["layout"] = t_initial_layout
         self.property_set["final_layout"] = new_final_layout
 
-    def append(
+    def append(  # pylint:disable=arguments-renamed
         self,
         passes: Task | list[Task],
     ) -> None:
@@ -154,7 +154,7 @@ class PassManager(BasePassManager):
         """
         super().append(tasks=passes)
 
-    def replace(
+    def replace(  # pylint:disable=arguments-renamed
         self,
         index: int,
         passes: Task | list[Task],
@@ -168,7 +168,7 @@ class PassManager(BasePassManager):
         super().replace(index, tasks=passes)
 
     # pylint: disable=arguments-differ
-    def run(
+    def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
