@@ -436,8 +436,8 @@ class BindingsArrayTestCase(QiskitTestCase):
 
     def test_outer(self):
         """Test the outer() method."""
-        bindings_array1 = BindingsArray({"a": np.array([1, 2, 3])})
-        bindings_array2 = BindingsArray({"b": np.array([4, 5, 6])})
+        bindings_array1 = BindingsArray({"a": np.array([1, 2, 3]).reshape((3, 1, 1))})
+        bindings_array2 = BindingsArray({"b": np.array([4, 5, 6]).reshape((3, 1))})
 
         result = bindings_array1.outer(bindings_array2)
 

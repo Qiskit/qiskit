@@ -316,20 +316,20 @@ class BindingsArray(ShapedMixin):
     def outer(self, other: BindingsArray) -> BindingsArray:
         """Return a new BindingsArray that represents the outer product of two BindingsArray instances.
 
-            This method first validates that the two BindingsArray instances have distinct parameters.
-            Then, it reshapes the arrays to append 1 dimension to `self` and prepend 1 dimension to `other`.
-            Finally, it constructs the data dictionary combining the two BindingsArray instances.
+        This method first validates that the two BindingsArray instances have distinct parameters.
+        Then, it reshapes the arrays to append 1 dimension to `self` and prepend 1 dimension to `other`.
+        Finally, it constructs the data dictionary combining the two BindingsArray instances.
 
-            Args:
-                other: Another BindingsArray instance.
+        Args:
+            other: Another BindingsArray instance.
 
-            Returns:
-                A new BindingsArray instance that represents the outer product of the two original
-                BindingsArray instances. The shape of the new BindingsArray will be the concatenation
-                of the shapes of the two original BindingsArray instances.
+        Returns:
+            A new BindingsArray instance that represents the outer product of the two original
+            BindingsArray instances. The shape of the new BindingsArray will be the concatenation
+            of the shapes of the two original BindingsArray instances.
 
-            Raises:
-                ValueError: If the two BindingsArray instances do not have distinct parameters.
+        Raises:
+            ValueError: If the two BindingsArray instances do not have distinct parameters.
         """
         if not set(self._data.keys()).isdisjoint(set(other._data.keys())):
             raise ValueError("The two BindingsArray instances must have distinct parameters.")
