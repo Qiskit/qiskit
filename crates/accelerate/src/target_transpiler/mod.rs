@@ -17,6 +17,7 @@ mod instruction_properties;
 
 use std::ops::Index;
 
+use ahash::RandomState;
 use hashbrown::HashSet;
 use indexmap::{
     map::{Keys, Values},
@@ -27,7 +28,7 @@ use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
-    types::{PyList, PyType},
+    types::{PyDict, PyType},
 };
 
 use smallvec::{smallvec, SmallVec};
@@ -35,7 +36,7 @@ use smallvec::{smallvec, SmallVec};
 use crate::nlayout::PhysicalQubit;
 
 use errors::TargetKeyError;
-use instruction_properties::BaseInstructionProperties;
+use instruction_properties::InstructionProperties;
 
 use self::exceptions::TranspilerError;
 
@@ -46,13 +47,10 @@ mod exceptions {
 }
 
 // Custom types
-type Qargs = SmallVec<[PhysicalQubit; 4]>;
-type GateMap = IndexMap<String, PropsMap>;
-type PropsMap = IndexMap<Option<Qargs>, Option<BaseInstructionProperties>>;
-type GateMapState = Vec<(
-    String,
-    Vec<(Option<Qargs>, Option<BaseInstructionProperties>)>,
-)>;
+type Qargs = SmallVec<[PhysicalQubit; 2]>;
+type GateMap = IndexMap<String, PropsMap, RandomState>;
+type PropsMap = IndexMap<Option<Qargs>, Option<InstructionProperties>, RandomState>;
+type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
 
 /// Temporary interpretation of Gate
 #[derive(Debug, Clone)]
@@ -99,6 +97,7 @@ pub enum Param {
     ParameterExpression(PyObject),
 }
 
+// Temporary interpretation of Python Parameter
 impl Param {
     fn compare(one: &PyObject, other: &PyObject) -> bool {
         Python::with_gil(|py| -> PyResult<bool> {
@@ -123,6 +122,8 @@ impl PartialEq for Param {
 }
 
 /**
+A rust representation of a ``Target`` object.
+
 The intent of the ``Target`` object is to inform Qiskit's compiler about
 the constraints of a particular backend so the compiler can compile an
 input circuit to something that works and is optimized for a device. It
@@ -132,81 +133,15 @@ interface may evolve over time as the needs of the compiler change. These
 changes will be done in a backwards compatible and controlled manner when
 they are made (either through versioning, subclassing, or mixins) to add
 on to the set of information exposed by a target.
-
-As a basic example, let's assume backend has two qubits, supports
-:class:`~qiskit.circuit.library.UGate` on both qubits and
-:class:`~qiskit.circuit.library.CXGate` in both directions. To model this
-you would create the target like::
-
-    from qiskit.transpiler import Target, InstructionProperties
-    from qiskit.circuit.library import UGate, CXGate
-    from qiskit.circuit import Parameter
-
-    gmap = Target()
-    theta = Parameter('theta')
-    phi = Parameter('phi')
-    lam = Parameter('lambda')
-    u_props = {
-        (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
-        (1,): InstructionProperties(duration=4.52e-8, error=0.00032115),
-    }
-    gmap.add_instruction(UGate(theta, phi, lam), u_props)
-    cx_props = {
-        (0,1): InstructionProperties(duration=5.23e-7, error=0.00098115),
-        (1,0): InstructionProperties(duration=4.52e-7, error=0.00132115),
-    }
-    gmap.add_instruction(CXGate(), cx_props)
-
-Each instruction in the ``Target`` is indexed by a unique string name that uniquely
-identifies that instance of an :class:`~qiskit.circuit.Instruction` object in
-the Target. There is a 1:1 mapping between a name and an
-:class:`~qiskit.circuit.Instruction` instance in the target and each name must
-be unique. By default, the name is the :attr:`~qiskit.circuit.Instruction.name`
-attribute of the instruction, but can be set to anything. This lets a single
-target have multiple instances of the same instruction class with different
-parameters. For example, if a backend target has two instances of an
-:class:`~qiskit.circuit.library.RXGate` one is parameterized over any theta
-while the other is tuned up for a theta of pi/6 you can add these by doing something
-like::
-
-    import math
-
-    from qiskit.transpiler import Target, InstructionProperties
-    from qiskit.circuit.library import RXGate
-    from qiskit.circuit import Parameter
-
-    target = Target()
-    theta = Parameter('theta')
-    rx_props = {
-        (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
-    }
-    target.add_instruction(RXGate(theta), rx_props)
-    rx_30_props = {
-        (0,): InstructionProperties(duration=1.74e-6, error=.00012)
-    }
-    target.add_instruction(RXGate(math.pi / 6), rx_30_props, name='rx_30')
-
-Then in the ``target`` object accessing by ``rx_30`` will get the fixed
-angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
-parameterized :class:`~qiskit.circuit.library.RXGate`.
-
-.. note::
-
-    This class assumes that qubit indices start at 0 and are a contiguous
-    set if you want a submapping the bits will need to be reindexed in
-    a new``Target`` object.
-
-.. note::
-
-    This class only supports additions of gates, qargs, and qubits.
-    If you need to remove one of these the best option is to iterate over
-    an existing object and create a new subset (or use one of the methods
-    to do this). The object internally caches different views and these
-    would potentially be invalidated by removals.
  */
-#[pyclass(mapping, subclass, module = "qiskit._accelerate.target")]
+#[pyclass(
+    mapping,
+    subclass,
+    name = "BaseTarget",
+    module = "qiskit._accelerate.target"
+)]
 #[derive(Clone, Debug)]
-pub struct BaseTarget {
+pub struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
@@ -227,16 +162,16 @@ pub struct BaseTarget {
     pub concurrent_measurements: Vec<Vec<usize>>,
     gate_map: GateMap,
     #[pyo3(get)]
-    _gate_name_map: IndexMap<String, GateRep>,
-    global_operations: IndexMap<usize, HashSet<String>>,
-    variable_class_operations: IndexSet<String>,
-    qarg_gate_map: IndexMap<Option<Qargs>, Option<HashSet<String>>>,
+    _gate_name_map: IndexMap<String, GateRep, RandomState>,
+    global_operations: IndexMap<usize, HashSet<String>, RandomState>,
+    variable_class_operations: IndexSet<String, RandomState>,
+    qarg_gate_map: IndexMap<Option<Qargs>, Option<HashSet<String>>, RandomState>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
 }
 
 #[pymethods]
-impl BaseTarget {
+impl Target {
     /// Create a new ``Target`` object
     ///
     ///Args:
@@ -313,7 +248,7 @@ impl BaseTarget {
                 num_qubits = Some(qubit_properties.len())
             }
         }
-        Ok(BaseTarget {
+        Ok(Target {
             description,
             num_qubits,
             dt,
@@ -323,11 +258,11 @@ impl BaseTarget {
             acquire_alignment: acquire_alignment.unwrap_or(0),
             qubit_properties,
             concurrent_measurements: concurrent_measurements.unwrap_or(Vec::new()),
-            gate_map: GateMap::new(),
-            _gate_name_map: IndexMap::new(),
-            variable_class_operations: IndexSet::new(),
-            global_operations: IndexMap::new(),
-            qarg_gate_map: IndexMap::new(),
+            gate_map: GateMap::default(),
+            _gate_name_map: IndexMap::default(),
+            variable_class_operations: IndexSet::default(),
+            global_operations: IndexMap::default(),
+            qarg_gate_map: IndexMap::default(),
             non_global_basis: None,
             non_global_strict_basis: None,
         })
@@ -413,7 +348,7 @@ impl BaseTarget {
                 name
             )));
         }
-        let mut qargs_val: PropsMap = PropsMap::new();
+        let mut qargs_val: PropsMap = PropsMap::default();
         if is_class {
             qargs_val = IndexMap::from_iter([(None, None)].into_iter());
             self.variable_class_operations.insert(name.clone());
@@ -463,7 +398,7 @@ impl BaseTarget {
                     .or_insert(Some(HashSet::from([name.clone()])));
             }
         }
-        // Modify logic once gates are in rust.
+        // TODO: Modify logic once gates are in rust.
         self._gate_name_map.insert(name.clone(), instruction);
         self.gate_map.insert(name, qargs_val);
         self.non_global_basis = None;
@@ -484,7 +419,7 @@ impl BaseTarget {
         &mut self,
         instruction: String,
         qargs: Option<Qargs>,
-        properties: Option<BaseInstructionProperties>,
+        properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
         if !self.contains_key(&instruction) {
             return Err(PyKeyError::new_err(format!(
@@ -586,7 +521,10 @@ impl BaseTarget {
     /// Raises:
     ///     KeyError: If ``qargs`` is not in target
     #[pyo3(text_signature = "(/, qargs=None)")]
-    pub fn operation_names_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<HashSet<&String>> {
+    pub fn operation_names_for_qargs(
+        &self,
+        qargs: Option<Qargs>,
+    ) -> PyResult<HashSet<&String, RandomState>> {
         match self.op_names_for_qargs(&qargs) {
             Ok(set) => Ok(set),
             Err(e) => Err(PyKeyError::new_err(e.message)),
@@ -886,7 +824,7 @@ impl BaseTarget {
         &self,
         _py: Python<'_>,
         index: usize,
-    ) -> PyResult<Option<BaseInstructionProperties>> {
+    ) -> PyResult<Option<InstructionProperties>> {
         let mut index_counter = 0;
         for (_operation, props_map) in self.gate_map.iter() {
             let gate_map_oper = props_map.values();
@@ -982,18 +920,22 @@ impl BaseTarget {
         Ok(self.gate_map.len())
     }
 
-    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        let result_list = PyList::empty_bound(py);
-        result_list.append(self.description.clone())?;
-        result_list.append(self.num_qubits)?;
-        result_list.append(self.dt)?;
-        result_list.append(self.granularity)?;
-        result_list.append(self.min_length)?;
-        result_list.append(self.pulse_alignment)?;
-        result_list.append(self.acquire_alignment)?;
-        result_list.append(self.qubit_properties.clone())?;
-        result_list.append(self.concurrent_measurements.clone())?;
-        result_list.append(
+    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
+        let result_list = PyDict::new_bound(py);
+        result_list.set_item("description", self.description.clone())?;
+        result_list.set_item("num_qubits", self.num_qubits)?;
+        result_list.set_item("dt", self.dt)?;
+        result_list.set_item("granularity", self.granularity)?;
+        result_list.set_item("min_length", self.min_length)?;
+        result_list.set_item("pulse_alignment", self.pulse_alignment)?;
+        result_list.set_item("acquire_alignment", self.acquire_alignment)?;
+        result_list.set_item("qubit_properties", self.qubit_properties.clone())?;
+        result_list.set_item(
+            "concurrent_measurements",
+            self.concurrent_measurements.clone(),
+        )?;
+        result_list.set_item(
+            "gate_map",
             self.gate_map
                 .clone()
                 .into_iter()
@@ -1002,84 +944,117 @@ impl BaseTarget {
                         key,
                         value
                             .into_iter()
-                            .collect::<Vec<(Option<Qargs>, Option<BaseInstructionProperties>)>>(),
+                            .collect::<Vec<(Option<Qargs>, Option<InstructionProperties>)>>(),
                     )
                 })
                 .collect::<GateMapState>()
                 .into_py(py),
         )?;
-        result_list.append(self._gate_name_map.clone().into_py(py))?;
-        result_list.append(self.global_operations.clone())?;
-        result_list.append(self.qarg_gate_map.clone().into_iter().collect_vec())?;
-        result_list.append(self.non_global_basis.clone())?;
-        result_list.append(self.non_global_strict_basis.clone())?;
-        Ok(result_list.to_owned().unbind())
+        result_list.set_item("gate_name_map", self._gate_name_map.clone().into_py(py))?;
+        result_list.set_item("global_operations", self.global_operations.clone())?;
+        result_list.set_item(
+            "qarg_gate_map",
+            self.qarg_gate_map.clone().into_iter().collect_vec(),
+        )?;
+        result_list.set_item("non_global_basis", self.non_global_basis.clone())?;
+        result_list.set_item(
+            "non_global_strict_basis",
+            self.non_global_strict_basis.clone(),
+        )?;
+        Ok(result_list.unbind())
     }
 
-    fn __setstate__(&mut self, state: Bound<PyList>) -> PyResult<()> {
-        self.description = state.get_item(0)?.extract::<Option<String>>()?;
-        self.num_qubits = state.get_item(1)?.extract::<Option<usize>>()?;
-        self.dt = state.get_item(2)?.extract::<Option<f64>>()?;
-        self.granularity = state.get_item(3)?.extract::<i32>()?;
-        self.min_length = state.get_item(4)?.extract::<usize>()?;
-        self.pulse_alignment = state.get_item(5)?.extract::<i32>()?;
-        self.acquire_alignment = state.get_item(6)?.extract::<i32>()?;
-        self.qubit_properties = state.get_item(7)?.extract::<Option<Vec<PyObject>>>()?;
-        self.concurrent_measurements = state.get_item(8)?.extract::<Vec<Vec<usize>>>()?;
+    fn __setstate__(&mut self, state: Bound<PyDict>) -> PyResult<()> {
+        self.description = state
+            .get_item("description")?
+            .unwrap()
+            .extract::<Option<String>>()?;
+        self.num_qubits = state
+            .get_item("num_qubits")?
+            .unwrap()
+            .extract::<Option<usize>>()?;
+        self.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
+        self.granularity = state.get_item("granularity")?.unwrap().extract::<i32>()?;
+        self.min_length = state.get_item("min_length")?.unwrap().extract::<usize>()?;
+        self.pulse_alignment = state
+            .get_item("pulse_alignment")?
+            .unwrap()
+            .extract::<i32>()?;
+        self.acquire_alignment = state
+            .get_item("acquire_alignment")?
+            .unwrap()
+            .extract::<i32>()?;
+        self.qubit_properties = state
+            .get_item("qubit_properties")?
+            .unwrap()
+            .extract::<Option<Vec<PyObject>>>()?;
+        self.concurrent_measurements = state
+            .get_item("concurrent_measurements")?
+            .unwrap()
+            .extract::<Vec<Vec<usize>>>()?;
         self.gate_map = IndexMap::from_iter(
             state
-                .get_item(9)?
+                .get_item("gate_map")?
+                .unwrap()
                 .extract::<GateMapState>()?
                 .into_iter()
                 .map(|(name, prop_map)| (name, IndexMap::from_iter(prop_map.into_iter()))),
         );
-        self._gate_name_map = state.get_item(10)?.extract::<IndexMap<String, GateRep>>()?;
+        self._gate_name_map = state
+            .get_item("gate_name_map")?
+            .unwrap()
+            .extract::<IndexMap<String, GateRep, RandomState>>()?;
         self.global_operations = state
-            .get_item(11)?
-            .extract::<IndexMap<usize, HashSet<String>>>()?;
+            .get_item("global_operations")?
+            .unwrap()
+            .extract::<IndexMap<usize, HashSet<String>, RandomState>>()?;
         self.qarg_gate_map = IndexMap::from_iter(
             state
-                .get_item(12)?
+                .get_item("qarg_gate_map")?
+                .unwrap()
                 .extract::<Vec<(Option<Qargs>, Option<HashSet<String>>)>>()?,
         );
-        self.non_global_basis = state.get_item(13)?.extract::<Option<Vec<String>>>()?;
-        self.non_global_strict_basis = state.get_item(14)?.extract::<Option<Vec<String>>>()?;
+        self.non_global_basis = state
+            .get_item("non_global_basis")?
+            .unwrap()
+            .extract::<Option<Vec<String>>>()?;
+        self.non_global_strict_basis = state
+            .get_item("non_global_strict_basis")?
+            .unwrap()
+            .extract::<Option<Vec<String>>>()?;
         Ok(())
     }
 }
 
 // Rust native methods
-impl BaseTarget {
+impl Target {
     /// Generate non global operations if missing
     fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &Vec<String> {
-        let mut search_set: HashSet<Option<Qargs>> = HashSet::new();
+        let mut search_set: HashSet<Qargs, RandomState> = HashSet::default();
         if strict_direction {
             // Build search set
-            for qarg_key in self.qarg_gate_map.keys().cloned() {
+            for qarg_key in self.qarg_gate_map.keys().flatten().cloned() {
                 search_set.insert(qarg_key);
             }
         } else {
             for qarg_key in self.qarg_gate_map.keys().flatten() {
                 if qarg_key.len() != 1 {
                     let mut vec = qarg_key.clone();
-                    vec.sort();
-                    let qarg_key = Some(vec);
-                    search_set.insert(qarg_key);
+                    vec.sort_unstable();
+                    search_set.insert(vec);
                 }
             }
         }
         let mut incomplete_basis_gates: Vec<String> = vec![];
-        let mut size_dict: IndexMap<usize, usize> = IndexMap::new();
+        let mut size_dict: IndexMap<usize, usize, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
         for qarg in &search_set {
-            if qarg.is_none() || qarg.as_ref().unwrap_or(&smallvec![]).len() == 1 {
+            if qarg.len() == 1 {
                 continue;
             }
-            *size_dict
-                .entry(qarg.to_owned().unwrap_or_default().len())
-                .or_insert(0) += 1;
+            *size_dict.entry(qarg.len()).or_insert(0) += 1;
         }
         for (inst, qargs_props) in self.gate_map.iter() {
             let mut qarg_len = qargs_props.len();
@@ -1087,12 +1062,13 @@ impl BaseTarget {
             let qarg_sample = qargs_keys.iter().next().cloned();
             if let Some(qarg_sample) = qarg_sample {
                 if !strict_direction {
-                    let mut qarg_set = HashSet::new();
+                    let mut qarg_set: HashSet<SmallVec<[PhysicalQubit; 2]>, RandomState> =
+                        HashSet::default();
                     for qarg in qargs_keys {
                         let mut qarg_set_vec: Qargs = smallvec![];
                         if let Some(qarg) = qarg {
                             let mut to_vec = qarg.to_owned();
-                            to_vec.sort();
+                            to_vec.sort_unstable();
                             qarg_set_vec = to_vec;
                         }
                         qarg_set.insert(qarg_set_vec);
@@ -1131,9 +1107,9 @@ impl BaseTarget {
     pub fn op_names_for_qargs(
         &self,
         qargs: &Option<Qargs>,
-    ) -> Result<HashSet<&String>, TargetKeyError> {
+    ) -> Result<HashSet<&String, RandomState>, TargetKeyError> {
         // When num_qubits == 0 we return globally defined operators
-        let mut res = HashSet::new();
+        let mut res: HashSet<&String, RandomState> = HashSet::default();
         let mut qargs = qargs;
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = &None;
@@ -1192,7 +1168,7 @@ impl BaseTarget {
     /// Rust-native method to get all the qargs of a specific Target object
     pub fn get_qargs(&self) -> Option<IndexSet<&Option<Qargs>>> {
         let qargs: IndexSet<&Option<Qargs>> = self.qarg_gate_map.keys().collect();
-        // Modify logic to account for the case of {None}
+        // TODO: Modify logic to account for the case of {None}
         let next_entry = qargs.iter().next();
         if qargs.len() == 1
             && (qargs.first().unwrap().is_none()
@@ -1223,16 +1199,16 @@ impl BaseTarget {
 }
 
 // To access the Target's gate map by gate name.
-impl Index<&String> for BaseTarget {
+impl Index<&str> for Target {
     type Output = PropsMap;
-    fn index(&self, index: &String) -> &Self::Output {
+    fn index(&self, index: &str) -> &Self::Output {
         self.gate_map.index(index)
     }
 }
 
 #[pymodule]
 pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<BaseInstructionProperties>()?;
-    m.add_class::<BaseTarget>()?;
+    m.add_class::<InstructionProperties>()?;
+    m.add_class::<Target>()?;
     Ok(())
 }

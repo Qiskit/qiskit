@@ -13,17 +13,15 @@
 use pyo3::{prelude::*, pyclass};
 
 /**
- A representation of the properties of a gate implementation.
-
-This class provides the optional properties that a backend can provide
-about an instruction. These represent the set that the transpiler can
-currently work with if present. However, if your backend provides additional
-properties for instructions you should subclass this to add additional
-custom attributes for those custom/additional properties by the backend.
+ A representation of an ``InstructionProperties`` object.
 */
-#[pyclass(subclass, module = "qiskit._accelerate.target")]
+#[pyclass(
+    subclass,
+    name = "BaseInstructionProperties",
+    module = "qiskit._accelerate.target"
+)]
 #[derive(Clone, Debug)]
-pub struct BaseInstructionProperties {
+pub struct InstructionProperties {
     #[pyo3(get, set)]
     pub duration: Option<f64>,
     #[pyo3(get, set)]
@@ -31,7 +29,7 @@ pub struct BaseInstructionProperties {
 }
 
 #[pymethods]
-impl BaseInstructionProperties {
+impl InstructionProperties {
     /// Create a new ``BaseInstructionProperties`` object
     ///
     /// Args:

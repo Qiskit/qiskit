@@ -914,21 +914,21 @@ class Target(BaseTarget):
                 output.write("".join(prop_str_pieces))
         return output.getvalue()
 
-    def __getstate__(self) -> tuple:
-        return (
-            self._gate_map,
-            self._coupling_graph,
-            self._instruction_durations,
-            self._instruction_schedule_map,
-            super().__getstate__(),
-        )
+    def __getstate__(self) -> dict:
+        return {
+            "_gate_map": self._gate_map,
+            "coupling_graph": self._coupling_graph,
+            "instruction_durations": self._instruction_durations,
+            "instruction_schedule_map": self._instruction_schedule_map,
+            "base": super().__getstate__(),
+        }
 
     def __setstate__(self, state: tuple):
-        self._gate_map = state[0]
-        self._coupling_graph = state[1]
-        self._instruction_durations = state[2]
-        self._instruction_schedule_map = state[3]
-        super().__setstate__(state[4])
+        self._gate_map = state["_gate_map"]
+        self._coupling_graph = state["coupling_graph"]
+        self._instruction_durations = state["instruction_durations"]
+        self._instruction_schedule_map = state["instruction_schedule_map"]
+        super().__setstate__(state["base"])
 
     @classmethod
     def from_configuration(
