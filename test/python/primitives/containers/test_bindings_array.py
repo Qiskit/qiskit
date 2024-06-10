@@ -433,3 +433,18 @@ class BindingsArrayTestCase(QiskitTestCase):
         np.testing.assert_allclose(ba[...].as_array(params), data)
         np.testing.assert_allclose(ba[0].as_array(params), data[0])
         np.testing.assert_allclose(ba[6:2:-1, -1].as_array(params), data[6:2:-1, -1])
+
+    def test_outer(self):
+        """Test the outer() method."""
+        bindings_array1 = BindingsArray({"a": np.array([1, 2, 3])})
+        bindings_array2 = BindingsArray({"b": np.array([4, 5, 6])})
+
+        result = bindings_array1.outer(bindings_array2)
+
+        self.assertIsInstance(result, BindingsArray)
+        self.assertEqual(result.shape, (3, 3))
+        self.assertIn("a", result.data.keys())
+        self.assertIn("b", result.data.keys())
+
+        self.assertTrue((result.data["a"] == np.array([1, 2, 3])).all())
+        self.assertTrue((result.data["b"] == np.array([4, 5, 6])).all())
