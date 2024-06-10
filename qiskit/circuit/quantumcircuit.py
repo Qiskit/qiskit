@@ -1129,7 +1129,6 @@ class QuantumCircuit:
         self._parameters = None
 
         self._layout = None
-        self._data.global_phase: ParameterValueType = 0.0
         self.global_phase = global_phase
 
         # Add classical variables.  Resolve inputs and captures first because they can't depend on
