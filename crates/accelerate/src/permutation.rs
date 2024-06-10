@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use ndarray::{Array1, ArrayView1};
-use numpy::{AllowTypeChange, PyArrayLike1};
+use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::vec::Vec;
@@ -105,10 +105,19 @@ fn pattern_to_cycles(pattern: &ArrayView1<i64>) -> Vec<Vec<usize>> {
     cycles
 }
 
+/// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+    let view = pattern.as_array();
+    validate_permutation(&view)?;
+    Ok(py.None())
+}
+
 /// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> PyResult<PyObject> {
+fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = pattern.as_array();
     let inverse_i64: Vec<i64> = invert(&view).iter().map(|&x| x as i64).collect();
     Ok(inverse_i64.to_object(py))
@@ -125,10 +134,7 @@ fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> 
 /// is essentially treated independently.
 #[pyfunction]
 #[pyo3(signature = (permutation_in))]
-fn _get_ordered_swap(
-    py: Python,
-    permutation_in: PyArrayLike1<i64, AllowTypeChange>,
-) -> PyResult<PyObject> {
+fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = permutation_in.as_array();
     Ok(get_ordered_swap(&view).to_object(py))
 }
@@ -136,10 +142,7 @@ fn _get_ordered_swap(
 /// Find cycles in a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _pattern_to_cycles(
-    py: Python,
-    pattern: PyArrayLike1<i64, AllowTypeChange>,
-) -> PyResult<PyObject> {
+fn _pattern_to_cycles(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = pattern.as_array();
     let cycles_i64: Vec<Vec<i64>> = pattern_to_cycles(&view)
         .iter()
@@ -150,6 +153,7 @@ fn _pattern_to_cycles(
 
 #[pymodule]
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
     m.add_function(wrap_pyfunction!(_pattern_to_cycles, m)?)?;
