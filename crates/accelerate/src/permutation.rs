@@ -105,6 +105,31 @@ fn pattern_to_cycles(pattern: &ArrayView1<i64>) -> Vec<Vec<usize>> {
     cycles
 }
 
+/// Given a disjoint cycle decomposition, decomposes every cycle into a SWAP
+fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
+    let mut swaps: Vec<(usize, usize)> = Vec::new();
+
+    for cycle in cycles {
+        let length = cycle.len();
+
+        if length > 2 {
+            // handle first element separately, which accesses the last element
+            swaps.push((cycle[length - 1].clone(), cycle[length - 3].clone()));
+            for ii in 1..(length - 1) / 2 {
+                swaps.push((cycle[ii - 1].clone(), cycle[length - 3 - ii].clone()));
+            }
+        }
+
+        // no check needed, cycles always have at least 2 elements
+        swaps.push((cycle[length - 1].clone(), cycle[length - 2].clone()));
+        for ii in 1..length / 2 {
+            swaps.push((cycle[ii - 1].clone(), cycle[length - 2 - ii].clone()));
+        }
+    }
+
+    swaps
+}
+
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
@@ -139,16 +164,19 @@ fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<
     Ok(get_ordered_swap(&view).to_object(py))
 }
 
-/// Find cycles in a permutation pattern.
+/// Decompose a SWAP pattern into a series of SWAP gate indices to implement them.
+/// For example, let the pattern be [1, 2, 3, 4, 0, 6, 5], which contains the two cycles
+/// [1, 2, 3, 4, 0] and [6, 5]. These can then be implemented with the SWAPs
+/// [(0, 3), (1, 2), (0, 4), (1, 3)], respectively [(6, 5)].
+/// If ``invert`` is True, reverse the indices before computing the SWAPs.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _pattern_to_cycles(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+fn _pattern_to_swaps(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = pattern.as_array();
-    let cycles_i64: Vec<Vec<i64>> = pattern_to_cycles(&view)
-        .iter()
-        .map(|cycles| cycles.iter().map(|&idx| idx as i64).collect())
-        .collect();
-    Ok(cycles_i64.to_object(py))
+    let cycles = pattern_to_cycles(&view);
+    let swaps = decompose_cycles(&cycles);
+    let swaps_i64: Vec<(i64, i64)> = swaps.iter().map(|&x| (x.0 as i64, x.1 as i64)).collect();
+    Ok(swaps_i64.to_object(py))
 }
 
 #[pymodule]
@@ -156,6 +184,6 @@ pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
-    m.add_function(wrap_pyfunction!(_pattern_to_cycles, m)?)?;
+    m.add_function(wrap_pyfunction!(_pattern_to_swaps, m)?)?;
     Ok(())
 }
