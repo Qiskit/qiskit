@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -94,7 +94,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 overlap estimation as indicated in the VQD paper.
             ansatz (QuantumCircuit): A parameterized circuit used as ansatz for the wave function.
             optimizer(Optimizer | Sequence[Optimizer]): A classical optimizer or a list of optimizers,
-            one for every k-th eigenvalue. Can either be a Qiskit optimizer or a callable
+                one for every k-th eigenvalue. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             k (int): the number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas (list[float]): Beta parameters in the VQD paper.
@@ -102,11 +102,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial point (Sequence[float] | Sequence[Sequence[float]] | None): An optional initial
-                point (i.e. initial parameter values) or a list of initial points
-                (one for every k-th eigenvalue) for the optimizer.
-                If ``None`` then VQD will look to the ansatz for a
-                preferred point and if not will simply compute a random one.
             callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None):
                 A callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
@@ -134,7 +129,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             fidelity: The fidelity class using primitives.
             ansatz: A parameterized circuit used as ansatz for the wave function.
             optimizer: A classical optimizer or a list of optimizers, one for every k-th eigenvalue.
-            Can either be a Qiskit optimizer or a callable
+                Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             k: The number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas: Beta parameters in the VQD paper.

@@ -1,12 +1,18 @@
 # Qiskit
+
+[![Release](https://img.shields.io/github/v/release/Qiskit/qiskit-terra.svg?style=flat&filter=0.*&logo=Qiskit)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0)
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
-[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg)](https://github.com/Qiskit/qiskit-terra/releases)
 [![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg)](https://pypi.org/project/qiskit-terra/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit-terra)
 [![Minimum rustc 1.64.0](https://img.shields.io/badge/rustc-1.64.0+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![Downloads](https://static.pepy.tech/badge/qiskit-terra)](https://pepy.tech/project/qiskit-terra)<!--- long-description-skip-end -->
 [![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
+
+> [!IMPORTANT]
+> **The package `qiskit-terra` is not going to be updated after August 15th, 2024**. Since Qiskit 0.44 (released on July 27th, 2023), the `qiskit` meta-package only contains `qiskit-terra`. In Qiskit 1.0 and beyond, the meta-package architecture is removed.
+> If you are installing or depending on `qiskit-terra`, consider changing that to `qiskit`: Either `qiskit>=0.x,<1` (if you did not transition to Qiskit 1.0 yet) or `qiskit>=0.x,<2` (to also include Qiskit 1.*).
+> [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation#the-old-qiskit-structure).
 
 **Qiskit**  is an open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives.
 
@@ -19,6 +25,9 @@ For more details on how to use Qiskit, refer to the documentation located here:
 
 
 ## Installation
+
+> [!WARNING]
+> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation).
 
 We encourage installing Qiskit via ``pip``:
 
