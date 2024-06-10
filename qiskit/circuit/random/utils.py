@@ -399,7 +399,14 @@ def random_circuit_from_graph(
 
 
 def random_circuit(
-    num_qubits, depth, max_operands=4, measure=False, conditional=False, reset=False, seed=None
+    num_qubits,
+    depth,
+    max_operands=4,
+    measure=False,
+    conditional=False,
+    reset=False,
+    seed=None,
+    num_operand_distribution: dict = None,
 ):
     """Generate random circuit of arbitrary size and form.
 
@@ -422,6 +429,10 @@ def random_circuit(
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
+        num_operand_distribution (dict): a distribution of gates that specifies the ratio
+        of 1-qubit, 2-qubit, 3-qubit, ..., n-qubit gates in the random circuit. Expect a
+        deviation from the specified ratios that depends on the size of the requested
+        random circuit. (optional)
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -429,11 +440,39 @@ def random_circuit(
     Raises:
         CircuitError: when invalid options given
     """
+    if seed is None:
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+    rng = np.random.default_rng(seed)
+
+    if num_operand_distribution:
+        if min(num_operand_distribution.keys()) < 1 or max(num_operand_distribution.keys()) > 4:
+            raise CircuitError("'num_operand_distribution' must have keys between 1 and 4")
+        for key, prob in num_operand_distribution.items():
+            if key > num_qubits and prob != 0.0:
+                raise CircuitError(
+                    f"'num_operand_distribution' cannot have {key}-qubit gates"
+                    f" for circuit with {num_qubits} qubits"
+                )
+        num_operand_distribution = dict(sorted(num_operand_distribution.items()))
+
+    if not num_operand_distribution and max_operands:
+        if max_operands < 1 or max_operands > 4:
+            raise CircuitError("max_operands must be between 1 and 4")
+        max_operands = max_operands if num_qubits > max_operands else num_qubits
+        rand_dist = rng.dirichlet(
+            np.ones(max_operands)
+        )  # This will create a random distribution that sums to 1
+        num_operand_distribution = {i + 1: rand_dist[i] for i in range(max_operands)}
+        num_operand_distribution = dict(sorted(num_operand_distribution.items()))
+
+    # Here we will use np.isclose() because very rarely there might be floating
+    # point precision errors
+    if not np.isclose(sum(num_operand_distribution.values()), 1):
+        raise CircuitError("The sum of all the values in 'num_operand_distribution' is not 1.")
+
     if num_qubits == 0:
         return QuantumCircuit()
-    if max_operands < 1 or max_operands > 4:
-        raise CircuitError("max_operands must be between 1 and 4")
-    max_operands = max_operands if num_qubits > max_operands else num_qubits
+
     gates_1q, gates_2q, gates_3q, gates_4q = _get_gates()
 
     if reset:

@@ -164,10 +164,8 @@ class TestCircuitRandom(QiskitTestCase):
         self.assertEqual(gate_type_counter[1], 0.0)
         self.assertEqual(gate_type_counter[2], 0.0)
 
-        
-        
 
- class TestRandomCircuitFromGraph(QiskitTestCase):
+class TestRandomCircuitFromGraph(QiskitTestCase):
     """Testing random_circuit_from_graph from
     qiskit.circuit.random.utils.py"""
 
