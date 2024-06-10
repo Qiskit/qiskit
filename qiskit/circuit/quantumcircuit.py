@@ -45,7 +45,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from . import _classical_resource_map
 from ._utils import sort_parameters
-from .controlflow import ControlFlowOp
+from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
 from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
@@ -1919,10 +1919,10 @@ class QuantumCircuit:
             edge_map.update(zip(other.qubits, dest.qubits))
         else:
             mapped_qubits = dest.qbit_argument_conversion(qubits)
-            if len(mapped_qubits) != len(other.qubits):
+            if len(mapped_qubits) != other.num_qubits:
                 raise CircuitError(
                     f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
-                    f" match number of qubits in the circuit ({len(other.qubits)})."
+                    f" match number of qubits in the circuit ({other.num_qubits})."
                 )
             if len(set(mapped_qubits)) != len(mapped_qubits):
                 raise CircuitError(
@@ -1935,10 +1935,10 @@ class QuantumCircuit:
             edge_map.update(zip(other.clbits, dest.clbits))
         else:
             mapped_clbits = dest.cbit_argument_conversion(clbits)
-            if len(mapped_clbits) != len(other.clbits):
+            if len(mapped_clbits) != other.num_clbits:
                 raise CircuitError(
                     f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
-                    f" match number of clbits in the circuit ({len(other.clbits)})."
+                    f" match number of clbits in the circuit ({other.num_clbits})."
                 )
             if len(set(mapped_clbits)) != len(mapped_clbits):
                 raise CircuitError(
@@ -2917,7 +2917,7 @@ class QuantumCircuit:
                     else:
                         self._data.add_qubit(bit)
                         self._qubit_indices[bit] = BitLocations(
-                            len(self._data.qubits) - 1, [(register, idx)]
+                            self._data.num_qubits - 1, [(register, idx)]
                         )
 
             elif isinstance(register, ClassicalRegister):
@@ -2929,7 +2929,7 @@ class QuantumCircuit:
                     else:
                         self._data.add_clbit(bit)
                         self._clbit_indices[bit] = BitLocations(
-                            len(self._data.clbits) - 1, [(register, idx)]
+                            self._data.num_clbits - 1, [(register, idx)]
                         )
 
             elif isinstance(register, list):
@@ -2950,10 +2950,10 @@ class QuantumCircuit:
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
                 self._data.add_qubit(bit)
-                self._qubit_indices[bit] = BitLocations(len(self._data.qubits) - 1, [])
+                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [])
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
-                self._clbit_indices[bit] = BitLocations(len(self._data.clbits) - 1, [])
+                self._clbit_indices[bit] = BitLocations(self._data.num_clbits - 1, [])
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
@@ -3307,6 +3307,9 @@ class QuantumCircuit:
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
+        .. warning::
+            This operation is not well defined if the circuit contains control-flow operations.
+
         Args:
             filter_function: A function to decide which instructions count to increase depth.
                 Should take as a single positional input a :class:`CircuitInstruction`.
@@ -3332,59 +3335,40 @@ class QuantumCircuit:
 
                 assert qc.depth(lambda instr: len(instr.qubits) > 1) == 1
         """
-        # Assign each bit in the circuit a unique integer
-        # to index into op_stack.
-        bit_indices: dict[Qubit | Clbit, int] = {
-            bit: idx for idx, bit in enumerate(self.qubits + self.clbits)
+        obj_depths = {
+            obj: 0 for objects in (self.qubits, self.clbits, self.iter_vars()) for obj in objects
         }
 
-        # If no bits, return 0
-        if not bit_indices:
-            return 0
+        def update_from_expr(objects, node):
+            for var in expr.iter_vars(node):
+                if var.standalone:
+                    objects.add(var)
+                else:
+                    objects.update(_builder_utils.node_resources(var).clbits)
 
-        # A list that holds the height of each qubit
-        # and classical bit.
-        op_stack = [0] * len(bit_indices)
-
-        # Here we are playing a modified version of
-        # Tetris where we stack gates, but multi-qubit
-        # gates, or measurements have a block for each
-        # qubit or cbit that are connected by a virtual
-        # line so that they all stacked at the same depth.
-        # Conditional gates act on all cbits in the register
-        # they are conditioned on.
-        # The max stack height is the circuit depth.
         for instruction in self._data:
-            levels = []
-            reg_ints = []
-            for ind, reg in enumerate(instruction.qubits + instruction.clbits):
-                # Add to the stacks of the qubits and
-                # cbits used in the gate.
-                reg_ints.append(bit_indices[reg])
-                if filter_function(instruction):
-                    levels.append(op_stack[reg_ints[ind]] + 1)
+            objects = set(itertools.chain(instruction.qubits, instruction.clbits))
+            if (condition := getattr(instruction.operation, "condition", None)) is not None:
+                objects.update(_builder_utils.condition_resources(condition).clbits)
+                if isinstance(condition, expr.Expr):
+                    update_from_expr(objects, condition)
                 else:
-                    levels.append(op_stack[reg_ints[ind]])
-            # Assuming here that there is no conditional
-            # snapshots or barriers ever.
-            if getattr(instruction.operation, "condition", None):
-                # Controls operate over all bits of a classical register
-                # or over a single bit
-                if isinstance(instruction.operation.condition[0], Clbit):
-                    condition_bits = [instruction.operation.condition[0]]
-                else:
-                    condition_bits = instruction.operation.condition[0]
-                for cbit in condition_bits:
-                    idx = bit_indices[cbit]
-                    if idx not in reg_ints:
-                        reg_ints.append(idx)
-                        levels.append(op_stack[idx] + 1)
+                    objects.update(_builder_utils.condition_resources(condition).clbits)
+            elif isinstance(instruction.operation, SwitchCaseOp):
+                update_from_expr(objects, expr.lift(instruction.operation.target))
+            elif isinstance(instruction.operation, Store):
+                update_from_expr(objects, instruction.operation.lvalue)
+                update_from_expr(objects, instruction.operation.rvalue)
 
-            max_level = max(levels)
-            for ind in reg_ints:
-                op_stack[ind] = max_level
-
-        return max(op_stack)
+            # If we're counting this as adding to depth, do so.  If not, it still functions as a
+            # data synchronisation point between the objects (think "barrier"), so the depths still
+            # get updated to match the current max over the affected objects.
+            new_depth = max((obj_depths[obj] for obj in objects), default=0)
+            if filter_function(instruction):
+                new_depth += 1
+            for obj in objects:
+                obj_depths[obj] = new_depth
+        return max(obj_depths.values(), default=0)
 
     def width(self) -> int:
         """Return number of qubits plus clbits in circuit.
@@ -3393,12 +3377,12 @@ class QuantumCircuit:
             int: Width of circuit.
 
         """
-        return len(self.qubits) + len(self.clbits)
+        return self._data.width()
 
     @property
     def num_qubits(self) -> int:
         """Return number of qubits."""
-        return len(self.qubits)
+        return self._data.num_qubits
 
     @property
     def num_ancillas(self) -> int:
@@ -3408,7 +3392,7 @@ class QuantumCircuit:
     @property
     def num_clbits(self) -> int:
         """Return number of classical bits."""
-        return len(self.clbits)
+        return self._data.num_clbits
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
@@ -3879,18 +3863,18 @@ class QuantumCircuit:
         else:
             circ = self.copy()
         if add_bits:
-            new_creg = circ._create_creg(len(circ.qubits), "meas")
+            new_creg = circ._create_creg(circ.num_qubits, "meas")
             circ.add_register(new_creg)
             circ.barrier()
             circ.measure(circ.qubits, new_creg)
         else:
-            if len(circ.clbits) < len(circ.qubits):
+            if circ.num_clbits < circ.num_qubits:
                 raise CircuitError(
                     "The number of classical bits must be equal or greater than "
                     "the number of qubits."
                 )
             circ.barrier()
-            circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
+            circ.measure(circ.qubits, circ.clbits[0 : circ.num_qubits])
 
         if not inplace:
             return circ

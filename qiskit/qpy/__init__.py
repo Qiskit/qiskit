@@ -127,7 +127,7 @@ with. The following table lists the QPY versions that were supported in every
 Qiskit (and qiskit-terra prior to Qiskit 1.0.0) release going back to the introduction
 of QPY in qiskit-terra 0.18.0.
 
-.. list-table: QPY Format Version History
+.. list-table:: QPY Format Version History
    :header-rows: 1
 
    * - Qiskit (qiskit-terra for < 1.0.0) version
@@ -138,7 +138,7 @@ of QPY in qiskit-terra 0.18.0.
      - 12
    * - 1.0.2
      - 10, 11
-     - 12
+     - 11
    * - 1.0.1
      - 10, 11
      - 11

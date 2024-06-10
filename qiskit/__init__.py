@@ -83,6 +83,7 @@ sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochasti
 sys.modules["qiskit._accelerate.target"] = qiskit._accelerate.target
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
 sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
+sys.modules["qiskit._accelerate.permutation"] = qiskit._accelerate.permutation
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
