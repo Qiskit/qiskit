@@ -1,0 +1,35 @@
+---
+features_circuits:
+  - |
+    The function :func:`~qiskit.circuit.random.utils.random_circuit_from_graph` adds a new feature
+    of generating random circuits with interaction graph.
+    User can attach a float value indicating the probability of getting selected as a metadata to
+    the edge of the graph generated. If all the probabilities is passed as `None`, then the probability
+    of each qubit-pair of getting selected is set to 1/N. (where N is the number of edges in the interaction_graph passed in)
+    If float values are present as probabilities but some are None, this will raise a ValueError.
+
+    Arguments accepted by the function are
+    :code:`interaction_graph` Takes in the interaction graph
+    :code:`min_2q_gate_per_edge` Minimum number of times every qubit-pair must be used.
+    :code:`max_operands` Take the maximum number of operands a gate should have. (Possible values are 1 or 2)
+    :code:`measure` Should the circuit have measure instruction (True or False)
+    :code:`conditional` Should the circuit have conditional operations. (True or False)
+    :code:`reset` Should the cirucit have reset instruciton (True or False) (:code:`insert_1q_oper` should be true)
+    :code:`seed` Seed for the random number generator.
+    :code:`insert_1q_oper` Should the circuit have 1Q operations to the qubits which are left after applying a 2Q gate on the selected qubit-pair.
+    :code:`prob_conditional` A float value less than 1.0, this is used to control the occurence of conditionals in the circuit.
+
+    .. code-block:: python
+
+      from qiskit.circuit.random.utils import random_circuit_from_graph
+      import rustworkx as rx
+      pydi_graph = rx.PyDiGraph()
+      n_q = 10
+      pydi_graph.add_nodes_from(range(n_q))
+      cp_map = [(0, 2, 0.1), (1, 3, 0.15), (2, 4, 0.15), (3, 4, 0.1), (5, 7, 0.13), (4, 7, 0.07), (7, 9, 0.1), (5, 8, 0.1), (6, 9, 0.1)]
+      pydi_graph.add_edges_from(cp_map)
+      inter_graph = (pydi_graph, None, None, None)
+      qc = random_circuit_from_graph(inter_graph, min_2q_gate_per_edge =1, max_operands = 2, measure = True, conditional=True, reset = True, seed=0, insert_1Q_oper = True, prob_conditional)
+      qc.draw(output='mpl', scale = 0.75)
+
+
