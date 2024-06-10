@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Custom gates (those stemming from a ``gate`` statement) in imported OpenQASM 2 programs will now
+    have an :meth:`.Gate.to_matrix` implementation.  Previously they would have no matrix definition,
+    meaning that roundtrips through OpenQASM 2 could needlessly lose the ability to derive the gate
+    matrix.  Note, though, that the matrix is calculated by recursively finding the matrices of the
+    inner gate definitions, as :class:`.Operator` does, which might be less performant than before
+    the round-trip.
