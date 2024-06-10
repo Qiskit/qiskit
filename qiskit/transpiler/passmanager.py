@@ -121,6 +121,7 @@ class PassManager(BasePassManager):
         # Ordered list of original qubits
         original_qubits_reverse = {v: k for k, v in original_qubit_indices.items()}
         original_qubits = []
+        # pylint: disable-next=consider-using-enumerate
         for i in range(len(original_qubits_reverse)):
             original_qubits.append(original_qubits_reverse[i])
 
