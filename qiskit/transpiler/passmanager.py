@@ -119,9 +119,11 @@ class PassManager(BasePassManager):
             t_final_layout = Layout(dict(enumerate(t_qubits)))
 
         # Ordered list of original qubits
-        original_qubits = [None] * len(original_qubit_indices)
-        for k, v in original_qubit_indices.items():
-            original_qubits[v] = k
+        original_qubits_reverse = {v: k for k, v in original_qubit_indices.items()}
+        original_qubits = []
+        # pylint: disable-next=consider-using-enumerate
+        for i in range(len(original_qubits_reverse)):
+            original_qubits.append(original_qubits_reverse[i])
 
         virtual_permutation_layout_inv = virtual_permutation_layout.inverse(
             original_qubits, original_qubits
