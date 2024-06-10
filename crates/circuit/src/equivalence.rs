@@ -10,17 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::{error::Error, fmt::Display};
+use std::{
+    error::Error,
+    fmt::{Display},
+};
 
 use exceptions::CircuitError;
 use hashbrown::{HashMap, HashSet};
-use pyo3::prelude::*;
+use pyo3::{prelude::*};
 use rustworkx_core::petgraph::{
     graph::{DiGraph, EdgeIndex, NodeIndex},
     visit::EdgeRef,
 };
-
-
 
 mod exceptions {
     use pyo3::import_exception_bound;
@@ -32,6 +33,16 @@ mod exceptions {
 pub struct Key {
     pub name: String,
     pub num_qubits: usize,
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Key(name=\"{}\" num_qubits=\"{}\"",
+            self.name, self.num_qubits
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -117,7 +128,7 @@ impl FromPyObject<'_> for GateRep {
             Ok(params) => params.extract::<Vec<Param>>().ok(),
             Err(_) => Some(vec![]),
         }
-        .unwrap_or_default();
+        .unwrap();
         Ok(Self {
             object: ob.into(),
             num_qubits,
@@ -137,7 +148,7 @@ pub struct CircuitRep {
     pub num_clbits: Option<usize>,
     pub label: Option<String>,
     pub params: Vec<Param>,
-    pub data: Vec<GateRep>,
+    pub data: Vec<CircuitInstructionRep>,
 }
 
 impl FromPyObject<'_> for CircuitRep {
@@ -158,12 +169,12 @@ impl FromPyObject<'_> for CircuitRep {
             Ok(params) => params.extract::<Vec<Param>>().ok(),
             Err(_) => Some(vec![]),
         }
-        .unwrap_or_default();
+        .unwrap();
         let data = match ob.getattr("data") {
-            Ok(data) => data.extract::<Vec<GateRep>>().ok(),
+            Ok(data) => data.extract::<Vec<CircuitInstructionRep>>().ok(),
             Err(_) => Some(vec![]),
         }
-        .unwrap_or_default();
+        .unwrap();
         Ok(Self {
             object: ob.into(),
             num_qubits,
@@ -172,6 +183,18 @@ impl FromPyObject<'_> for CircuitRep {
             params,
             data,
         })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CircuitInstructionRep {
+    operation: GateRep,
+}
+
+impl FromPyObject<'_> for CircuitInstructionRep {
+    fn extract(ob: &'_ PyAny) -> PyResult<Self> {
+        let operation = ob.getattr("operation")?.extract::<GateRep>()?;
+        Ok(Self { operation })
     }
 }
 
@@ -268,17 +291,17 @@ impl EquivalenceLibrary {
 
     /// Gets the set of QuantumCircuits circuits from the library which
     /// equivalently implement the given Gate.
-    /// 
+    ///
     /// Parameterized circuits will have their parameters replaced with the
     /// corresponding entries from Gate.params.
-    /// 
+    ///
     /// Args:
     ///     gate (Gate) - Gate: A Gate instance.
-    /// 
+    ///
     /// Returns:
     ///     List[QuantumCircuit]: A list of equivalent QuantumCircuits. If empty,
     ///         library contains no known decompositions of Gate.
-    /// 
+    ///
     ///         Returned circuits will be ordered according to their insertion in
     ///         the library, from earliest to latest, from top to base. The
     ///         ordering of the StandardEquivalenceLibrary will not generally be
@@ -338,8 +361,8 @@ impl EquivalenceLibrary {
 
         let sources: HashSet<Key> =
             HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
-                name: inst.name.to_owned().unwrap(),
-                num_qubits: inst.num_qubits.unwrap_or_default(),
+                name: inst.operation.name.to_owned().unwrap_or_default(),
+                num_qubits: inst.operation.num_qubits.unwrap_or_default(),
             }));
         let edges = Vec::from_iter(sources.iter().map(|key| {
             (
@@ -383,7 +406,7 @@ impl EquivalenceLibrary {
         }
 
         let key = Key {
-            name: gate.name.to_owned().unwrap(),
+            name: gate.name.to_owned().unwrap_or_default(),
             num_qubits: gate.num_qubits.unwrap_or_default(),
         };
         let node_index = self.set_default_node(key);
@@ -412,6 +435,62 @@ impl EquivalenceLibrary {
         } else {
             vec![]
         }
+    }
+
+    fn build_basis_graph(&self) -> DiGraph<String, HashMap<&str, String>> {
+        let mut graph: DiGraph<String, HashMap<&str, String>> = DiGraph::new();
+
+        let mut node_map: HashMap<String, NodeIndex> = HashMap::new();
+
+        for key in self.key_to_node_index.keys() {
+            let (name, num_qubits) = (key.name.to_owned(), key.num_qubits);
+            let equivalences = self.get_equivalences(key);
+            let basis: String = format!("{{{name}/{num_qubits}}}");
+            for equivalence in equivalences {
+                let decomp_basis: HashSet<String> = HashSet::from_iter(
+                    equivalence
+                        .circuit
+                        .data
+                        .iter()
+                        .map(|x| (x.operation.name.to_owned(), x.operation.num_qubits))
+                        .map(|(name, num_qubits)| {
+                            format!(
+                                "{}/{}",
+                                name.unwrap_or_default(),
+                                num_qubits.unwrap_or_default()
+                            )
+                        }),
+                );
+                let decomp_string = format!(
+                    "{{{}}}",
+                    decomp_basis
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
+                if !node_map.contains_key(&basis) {
+                    let basis_node =
+                        graph.add_node(format!("basis: {:?}, label: {}", basis, decomp_string));
+                    node_map.insert(basis.to_owned(), basis_node);
+                }
+                if node_map.contains_key(&decomp_string) {
+                    let decomp_basis_node = graph.add_node(format!(
+                        "basis: {:?}, label: {}",
+                        decomp_string, decomp_string
+                    ));
+                    node_map.insert(decomp_string.to_owned(), decomp_basis_node);
+                }
+                let label = format!("{:?}\n{:?}", equivalence.params, equivalence.circuit);
+                let map: HashMap<&str, String> = HashMap::from_iter([
+                    ("label", label),
+                    ("fontname", "Courier".to_owned()),
+                    ("fontsize", 8.to_string()),
+                ]);
+                graph.add_edge(node_map[&basis], node_map[&decomp_string], map);
+            }
+        }
+        graph
     }
 }
 
