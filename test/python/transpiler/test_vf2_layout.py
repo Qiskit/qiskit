@@ -576,6 +576,26 @@ class TestVF2LayoutOther(LayoutTestCase):
             pass_1.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.MORE_THAN_2Q
         )
 
+    def test_target_without_coupling_map(self):
+        """When a target has no coupling_map but it is provided as argument.
+        See: https://github.com/Qiskit/qiskit/pull/11585"""
+
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+
+        target = Target(num_qubits=3)
+        target.add_instruction(CXGate())
+
+        vf2_pass = VF2Layout(
+            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=42, max_trials=1
+        )
+        vf2_pass.run(dag)
+
+        self.assertEqual(
+            vf2_pass.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND
+        )
+
 
 class TestMultipleTrials(QiskitTestCase):
     """Test the passes behavior with >1 trial."""
