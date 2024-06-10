@@ -161,6 +161,42 @@ impl CircuitData {
         Ok(res)
     }
 
+    fn handle_manual_params(
+        &mut self,
+        py: Python,
+        inst_index: usize,
+        params: &[(usize, Vec<PyObject>)],
+    ) -> PyResult<bool> {
+        let mut new_param = false;
+        let mut atomic_parameters: HashMap<u128, PyObject> = HashMap::new();
+        for (param_index, raw_param_objs) in params {
+            raw_param_objs.iter().for_each(|x| {
+                atomic_parameters.insert(
+                    x.getattr(py, intern!(py, "_uuid"))
+                        .expect("Not a parameter")
+                        .getattr(py, intern!(py, "int"))
+                        .expect("Not a uuid")
+                        .extract::<u128>(py)
+                        .unwrap(),
+                    x.clone_ref(py),
+                );
+            });
+            for (param_uuid, param_obj) in atomic_parameters.iter() {
+                match self.param_table.table.get_mut(param_uuid) {
+                    Some(entry) => entry.add(inst_index, *param_index),
+                    None => {
+                        new_param = true;
+                        let new_entry = ParamEntry::new(inst_index, *param_index);
+                        self.param_table
+                            .insert(py, param_obj.clone_ref(py), new_entry)?;
+                    }
+                };
+            }
+            atomic_parameters.clear()
+        }
+        Ok(new_param)
+    }
+
     /// Add an instruction's entries to the parameter table
     fn update_param_table(
         &mut self,
@@ -169,34 +205,7 @@ impl CircuitData {
         params: Option<Vec<(usize, Vec<PyObject>)>>,
     ) -> PyResult<bool> {
         if let Some(params) = params {
-            let mut new_param = false;
-            let mut atomic_parameters: HashMap<u128, PyObject> = HashMap::new();
-            for (param_index, raw_param_objs) in &params {
-                raw_param_objs.iter().for_each(|x| {
-                    atomic_parameters.insert(
-                        x.getattr(py, intern!(py, "_uuid"))
-                            .expect("Not a parameter")
-                            .getattr(py, intern!(py, "int"))
-                            .expect("Not a uuid")
-                            .extract::<u128>(py)
-                            .unwrap(),
-                        x.clone_ref(py),
-                    );
-                });
-                for (param_uuid, param_obj) in atomic_parameters.iter() {
-                    match self.param_table.table.get_mut(param_uuid) {
-                        Some(entry) => entry.add(inst_index, *param_index),
-                        None => {
-                            new_param = true;
-                            let new_entry = ParamEntry::new(inst_index, *param_index);
-                            self.param_table
-                                .insert(py, param_obj.clone_ref(py), new_entry)?;
-                        }
-                    };
-                }
-                atomic_parameters.clear()
-            }
-            return Ok(new_param);
+            return self.handle_manual_params(py, inst_index, &params);
         }
         // Update the parameter table
         let mut new_param = false;
