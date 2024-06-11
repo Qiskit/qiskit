@@ -106,16 +106,18 @@ def random_circuit_from_graph(
     This function will generate a random circuit by randomly selecting gates
     from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`.
     User can attach a float value indicating the probability of getting selected as a metadata to
-    the edge of the graph generated. If all the probabilities is passed as `None`, then the probability
-    of each qubit-pair of getting selected is set to 1/N.
+    the edge of the graph generated. If all the probabilities is passed as `None`, then the
+    probability of each qubit-pair of getting selected is set to 1/N.
     (where N is the number of edges in the interaction_graph passed in)
 
     If float values are present as probabilities but some are None, this will raise a ValueError.
 
-    If :arg:`max_operands` is set to 2, then a 2Q gate is chosen at random and a qubit-pair is
-    also chosen at random based on the probability attached to the qubit-pair, this 2Q gate
-    is applied to that qubit-pair and the rest of the qubits are filled with 1Q operations
-    based on :arg:`insert_1q_oper` is set to True. This makes a single layer of the cirucit.
+    If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs 
+    are chosen at random, the qubit-pairs are also chosen at random based on the probability
+    attached to the qubit-pair, the 2Q gates are applied on the qubit-paris which are unused
+    for that iteration, in case for a qubit-pair where target or control is already used up
+    for that iteration, if `insert_1q_oper` is enabled, then 1Q gates are applied to control or target 
+    respectively, which are also chosen at random.
 
     Example:
 
@@ -129,7 +131,7 @@ def random_circuit_from_graph(
        cp_map = [(0, 2, 0.18), (1, 3, 0.15), (2, 4, 0.15), (3, 4, 0.22), (5, 7, 0.13), (4, 7, 0.17)]
        pydi_graph.add_edges_from(cp_map)
        inter_graph = (pydi_graph, None, None, None)
-       qc = random_circuit_from_graph(inter_graph, max_num_qubit_usage = 3, measure = True)
+       qc = random_circuit_from_graph(inter_graph, min_2q_gate_per_edge=1, measure = True)
        qc.draw(output='mpl')
 
     Args:
@@ -161,8 +163,7 @@ def random_circuit_from_graph(
     # Just a switch for the probability weighted selection of a particular qubit-pair.
     prob_weighted_mapping = False
 
-    # If all the values of the probability is None, then all the values of the probability
-    # is assumed to have a uniform distrubution.
+    # If all edge weights are none, assume the weight of each edge to be 1/N.
     # If any of the values of the probability is None, then it would raise an error.
     if all(edges_probs):
         prob_weighted_mapping = True
