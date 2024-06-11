@@ -60,9 +60,7 @@ import qiskit._numpy_compat
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
-sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
-    _accelerate.convert_2q_block_matrix
-)
+sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
 sys.modules["qiskit._accelerate.isometry"] = _accelerate.isometry
