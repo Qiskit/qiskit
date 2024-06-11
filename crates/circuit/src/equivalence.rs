@@ -10,14 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::{
-    error::Error,
-    fmt::{Display},
-};
+use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
 use hashbrown::{HashMap, HashSet};
-use pyo3::{prelude::*};
+use pyo3::sync::GILOnceCell;
+use pyo3::{prelude::*, types::IntoPyDict};
 use rustworkx_core::petgraph::{
     graph::{DiGraph, EdgeIndex, NodeIndex},
     visit::EdgeRef,
@@ -25,10 +23,52 @@ use rustworkx_core::petgraph::{
 
 mod exceptions {
     use pyo3::import_exception_bound;
-    import_exception_bound! {qiskit.exceptions, CircuitError}
+    import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
 }
+
+/// Helper wrapper around `GILOnceCell` instances that are just intended to store a Python object
+/// that is lazily imported.
+pub struct ImportOnceCell {
+    module: &'static str,
+    object: &'static str,
+    cell: GILOnceCell<Py<PyAny>>,
+}
+
+impl ImportOnceCell {
+    const fn new(module: &'static str, object: &'static str) -> Self {
+        Self {
+            module,
+            object,
+            cell: GILOnceCell::new(),
+        }
+    }
+
+    /// Get the underlying GIL-independent reference to the contained object, importing if
+    /// required.
+    #[inline]
+    pub fn get(&self, py: Python) -> &Py<PyAny> {
+        self.cell.get_or_init(py, || {
+            py.import_bound(self.module)
+                .unwrap()
+                .getattr(self.object)
+                .unwrap()
+                .unbind()
+        })
+    }
+
+    /// Get a GIL-bound reference to the contained object, importing if required.
+    #[inline]
+    pub fn get_bound<'py>(&self, py: Python<'py>) -> &Bound<'py, PyAny> {
+        self.get(py).bind(py)
+    }
+}
+
 // Custom Structs
 
+pub static PARAMETER_EXPRESSION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
+pub static QUANTUM_CIRCUIT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     pub name: String,
@@ -51,11 +91,47 @@ pub struct Equivalence {
     pub circuit: CircuitRep,
 }
 
-// Temporary interpretation of Param
-#[derive(Debug, Clone, FromPyObject)]
+#[derive(Clone, Debug)]
 pub enum Param {
-    Float(f64),
     ParameterExpression(PyObject),
+    Float(f64),
+    Obj(PyObject),
+}
+
+impl<'py> FromPyObject<'py> for Param {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        Ok(
+            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
+                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
+            {
+                Param::ParameterExpression(b.clone().unbind())
+            } else if let Ok(val) = b.extract::<f64>() {
+                Param::Float(val)
+            } else {
+                Param::Obj(b.clone().unbind())
+            },
+        )
+    }
+}
+
+impl IntoPy<PyObject> for Param {
+    fn into_py(self, py: Python) -> PyObject {
+        match &self {
+            Self::Float(val) => val.to_object(py),
+            Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::Obj(val) => val.clone_ref(py),
+        }
+    }
+}
+
+impl ToPyObject for Param {
+    fn to_object(&self, py: Python) -> PyObject {
+        match self {
+            Self::Float(val) => val.to_object(py),
+            Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::Obj(val) => val.clone_ref(py),
+        }
+    }
 }
 
 impl Param {
@@ -77,6 +153,11 @@ impl PartialEq for Param {
             (Param::ParameterExpression(s), Param::ParameterExpression(other)) => {
                 Self::compare(s, other)
             }
+            (Param::ParameterExpression(_), Param::Obj(_)) => false,
+            (Param::Float(_), Param::Obj(_)) => false,
+            (Param::Obj(_), Param::ParameterExpression(_)) => false,
+            (Param::Obj(_), Param::Float(_)) => false,
+            (Param::Obj(one), Param::Obj(other)) => Self::compare(one, other),
         }
     }
 }
@@ -183,6 +264,12 @@ impl FromPyObject<'_> for CircuitRep {
             params,
             data,
         })
+    }
+}
+
+impl IntoPy<PyObject> for CircuitRep {
+    fn into_py(self, _py: Python<'_>) -> PyObject {
+        self.object
     }
 }
 
@@ -306,8 +393,17 @@ impl EquivalenceLibrary {
     ///         the library, from earliest to latest, from top to base. The
     ///         ordering of the StandardEquivalenceLibrary will not generally be
     ///         consistent across Qiskit versions.
-    pub fn get_entry(&self, _gate: GateRep) {
-        todo!()
+    pub fn get_entry(&self, py: Python<'_>, gate: GateRep) -> Vec<CircuitRep> {
+        let key = Key {
+            name: gate.name.unwrap_or_default(),
+            num_qubits: gate.num_qubits.unwrap_or_default(),
+        };
+        let query_params = gate.params;
+
+        self.get_equivalences(&key)
+            .into_iter()
+            .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok())
+            .collect()
     }
 }
 
@@ -531,6 +627,32 @@ fn raise_if_shape_mismatch(gate: &GateRep, circuit: &CircuitRep) -> Result<(), E
     Ok(())
 }
 
+fn rebind_equiv(
+    py: Python<'_>,
+    equiv: Equivalence,
+    query_params: &[Param],
+) -> PyResult<CircuitRep> {
+    let (equiv_params, equiv_circuit) = (equiv.params, equiv.circuit);
+    let param_map: Vec<(Param, Param)> = equiv_params
+        .into_iter()
+        .filter_map(|param| {
+            if matches!(param, Param::Obj(_)) {
+                Some(param)
+            } else {
+                None
+            }
+        })
+        .zip(query_params.iter().cloned())
+        .collect();
+    let dict = param_map.as_slice().into_py_dict_bound(py);
+    let kwargs = [("inplace", false), ("flat_input", true)].into_py_dict_bound(py);
+    let equiv =
+        equiv_circuit
+            .object
+            .call_method_bound(py, "assign_parameters", (dict,), Some(&kwargs))?;
+    equiv.extract::<CircuitRep>(py)
+}
+
 // Errors
 
 #[derive(Debug, Clone)]
@@ -550,4 +672,10 @@ impl Display for EquivalenceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
     }
+}
+
+#[pymodule]
+pub fn equivalence(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<EquivalenceLibrary>()?;
+    Ok(())
 }
