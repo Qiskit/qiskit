@@ -112,11 +112,11 @@ def random_circuit_from_graph(
 
     If float values are present as probabilities but some are None, this will raise a ValueError.
 
-    If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs 
+    If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs
     are chosen at random, the qubit-pairs are also chosen at random based on the probability
     attached to the qubit-pair, the 2Q gates are applied on the qubit-paris which are unused
     for that iteration, in case for a qubit-pair where target or control is already used up
-    for that iteration, if `insert_1q_oper` is enabled, then 1Q gates are applied to control or target 
+    for that iteration, if `insert_1q_oper` is enabled, then 1Q gates are applied to control or target
     respectively, which are also chosen at random.
 
     Example:

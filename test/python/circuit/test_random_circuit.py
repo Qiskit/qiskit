@@ -198,7 +198,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         self.assertEqual(circ.width(), 10)
 
     def test_min_times_qubit_pair_usage(self):
-        """the depth parameter specifies how often each qubit-pair must at
+        """the `min_2q_gate_per_edge` parameter specifies how often each qubit-pair must at
         least be used in a two-qubit gate before the circuit is returned"""
 
         freq = 1
@@ -328,3 +328,31 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
                     measure_at = {"qubit_idx": qubit_idx + 1, "layer_no": layer_num + 1}
 
         self.assertGreater(condition_at["layer_no"], measure_at["layer_no"])
+
+    def test_2q_gates_applied_to_edges_from_interaction_graph(self):
+        """Test 2Q gates are applied to the qubit-pairs given by the interaction graph supplied"""
+        qc = random_circuit_from_graph(
+            interaction_graph=self.interaction_graph,
+            min_2q_gate_per_edge=1,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=0,
+        )
+        dag = circuit_to_dag(qc)
+
+        cp_mp = set()
+        pydi_graph, _, _, _ = self.interaction_graph
+        edge_list = set(pydi_graph.edge_list())
+
+        for wire in dag.wires:
+            for dag_op_node in dag.nodes_on_wire(wire, only_ops=True):
+                if dag_op_node.op.num_qubits == 2:
+                    control, target = dag_op_node.qargs
+                    control_idx = control._index
+                    target_idx = target._index
+                    cp_mp.update({(control_idx, target_idx)})
+
+        # make sure every qubit-pair from the circuit actually present in the edge_list
+        for cp in cp_mp:
+            self.assertTrue(cp in edge_list)

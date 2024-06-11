@@ -12,7 +12,7 @@ features_circuits:
     :code:`interaction_graph` Takes in the interaction graph
     :code:`min_2q_gate_per_edge` Minimum number of times every qubit-pair must be used.
     :code:`max_operands` Take the maximum number of operands a gate should have. (Possible values are 1 or 2)
-    :code:`measure` Should the circuit have measure instruction (True or False)
+    :code:`measure` Should the circuit have measure instructions at the end. (True or False)
     :code:`conditional` Should the circuit have conditional operations. (True or False)
     :code:`reset` Should the cirucit have reset instruciton (True or False) (:code:`insert_1q_oper` should be true)
     :code:`seed` Seed for the random number generator.
