@@ -176,7 +176,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
 
         start = len(self._transpiled_circuits)
         self._transpiled_circuits.extend(
-            transpile(
+            transpile(  # pylint:disable=unexpected-keyword-arg
                 self.preprocessed_circuits[start:],
                 self.backend,
                 **self.transpile_options.__dict__,

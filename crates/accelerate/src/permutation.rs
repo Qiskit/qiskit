@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::ArrayView1;
+use ndarray::{Array1, ArrayView1};
 use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -47,8 +47,8 @@ fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     Ok(())
 }
 
-fn invert(pattern: &ArrayView1<i64>) -> Vec<usize> {
-    let mut inverse: Vec<usize> = vec![0usize; pattern.len()];
+fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
+    let mut inverse: Array1<usize> = Array1::zeros(pattern.len());
     pattern.iter().enumerate().for_each(|(ii, &jj)| {
         inverse[jj as usize] = ii;
     });
@@ -86,10 +86,11 @@ fn pattern_to_cycles(pattern: &ArrayView1<i64>, invert_order: &bool) -> Vec<Vec<
 
     // cast the input pattern in terms of integers to usize, such that it can be used as index
     // also invert the bit ordering if ``invert_order`` is true
-    let permutation: Vec<usize> = if *invert_order {
+    let permutation: Array1<usize> = if *invert_order {
         invert(pattern) // implies cast to usize
     } else {
-        pattern.iter().map(|&x| x as usize).collect()
+        // TODO change to using Array1 insted of Vec
+        pattern.mapv(|x| x as usize)
     };
 
     for mut i in permutation.clone() {
