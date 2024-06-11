@@ -81,24 +81,25 @@ fn pattern_to_cycles(pattern: &ArrayView1<i64>, invert_order: &bool) -> Vec<Vec<
     // vector keeping track of which elements in the permutation pattern have been visited
     let mut explored: Vec<bool> = vec![false; pattern.len()];
 
-    // vector of the discovered cycles
+    // vector to store the cycles
     let mut cycles: Vec<Vec<usize>> = Vec::new();
 
-    // turn pattern into unsigned integer which can be used as indices
+    // cast the input pattern in terms of integers to usize, such that it can be used as index
+    // also invert the bit ordering if ``invert_order`` is true
     let permutation: Vec<usize> = if *invert_order {
-        invert(pattern)
+        invert(pattern) // implies cast to usize
     } else {
         pattern.iter().map(|&x| x as usize).collect()
     };
 
-    for mut ii in permutation.clone() {
+    for mut i in permutation.clone() {
         let mut cycle: Vec<usize> = Vec::new();
 
         // follow the cycle until we reached an entry we saw before
-        while !explored[ii] {
-            cycle.push(ii);
-            explored[ii] = true;
-            ii = permutation[ii];
+        while !explored[i] {
+            cycle.push(i);
+            explored[i] = true;
+            i = permutation[i];
         }
         // cycles must have more than 1 element
         if cycle.len() > 1 {
@@ -119,15 +120,15 @@ fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
         if length > 2 {
             // handle first element separately, which accesses the last element
             swaps.push((cycle[length - 1], cycle[length - 3]));
-            for ii in 1..(length - 1) / 2 {
-                swaps.push((cycle[ii - 1], cycle[length - 3 - ii]));
+            for i in 1..(length - 1) / 2 {
+                swaps.push((cycle[i - 1], cycle[length - 3 - i]));
             }
         }
 
-        // no check needed, cycles always have at least 2 elements
+        // no size check needed, cycles always have at least 2 elements
         swaps.push((cycle[length - 1], cycle[length - 2]));
-        for ii in 1..length / 2 {
-            swaps.push((cycle[ii - 1], cycle[length - 2 - ii]));
+        for i in 1..length / 2 {
+            swaps.push((cycle[i - 1], cycle[length - 2 - i]));
         }
     }
 
