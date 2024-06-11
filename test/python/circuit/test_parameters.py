@@ -1091,7 +1091,7 @@ class TestParameters(QiskitTestCase):
 
         if target_type == "gate":
             inst = qc.to_gate()
-        elif target_type == "instruction":
+        else:  # target_type == "instruction":
             inst = qc.to_instruction()
 
         qc2 = QuantumCircuit(1)
@@ -1132,7 +1132,7 @@ class TestParameters(QiskitTestCase):
 
         if target_type == "gate":
             inst = qc1.to_gate()
-        elif target_type == "instruction":
+        else:  # target_type == "instruction":
             inst = qc1.to_instruction()
 
         qc2 = QuantumCircuit(1)
@@ -1188,7 +1188,7 @@ class TestParameters(QiskitTestCase):
 
         if target_type == "gate":
             sub_inst = sub_qc.to_gate()
-        elif target_type == "instruction":
+        else:  # target_type == "instruction":
             sub_inst = sub_qc.to_instruction()
 
         unbound_qc = QuantumCircuit(2, 1)
@@ -1407,6 +1407,7 @@ def _paramvec_names(prefix, length):
 
 @ddt
 class TestParameterExpressions(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Test expressions of Parameters."""
 
     # supported operations dictionary operation : accuracy (0=exact match)

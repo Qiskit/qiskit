@@ -65,6 +65,8 @@ def _run_circuits(
         max_circuits = getattr(backend.configuration(), "max_experiments", None)
     elif isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
+    else:  # pragma: no cover
+        raise QiskitError("Backend version not supported")
     if max_circuits:
         jobs = [
             backend.run(circuits[pos : pos + max_circuits], **run_options)

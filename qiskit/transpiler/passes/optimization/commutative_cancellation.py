@@ -156,6 +156,10 @@ class CommutativeCancellation(TransformationPass):
                         current_angle = np.pi / 4
                     elif current_node.name == "s":
                         current_angle = np.pi / 2
+                    else:
+                        raise TranspilerError(
+                            f"Angle for operation {current_node.name } is not defined"
+                        )
 
                     # Compose gates
                     total_angle = current_angle + total_angle
@@ -167,6 +171,8 @@ class CommutativeCancellation(TransformationPass):
                     new_op = var_z_gate(total_angle)
                 elif cancel_set_key[0] == "x_rotation":
                     new_op = RXGate(total_angle)
+                else:  # pragma: no cover
+                    raise TranspilerError("impossible case")
 
                 new_op_phase = 0
                 if np.mod(total_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
