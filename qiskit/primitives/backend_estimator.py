@@ -200,7 +200,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 transpiled_circuit = common_circuit.copy()
                 final_index_layout = list(range(common_circuit.num_qubits))
             else:
-                transpiled_circuit = transpile(
+                transpiled_circuit = transpile(  # pylint:disable=unexpected-keyword-arg
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
                 if transpiled_circuit.layout is not None:
