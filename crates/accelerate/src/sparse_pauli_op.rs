@@ -604,7 +604,7 @@ fn decompose_last_level(
 // an individual lookup rule, which is consumed to make an inner "loop" with a declarative macro.
 macro_rules! pauli_lookup {
     ($name:ident, $n:literal, [$head:expr$ (, $($tail:expr),*)?]) => {
-        const $name: [[bool; $n]; 1<<$n] = pauli_lookup!(@acc, [$($($tail),*)?], [[false], [true]]);
+        static $name: [[bool; $n]; 1<<$n] = pauli_lookup!(@acc, [$($($tail),*)?], [[false], [true]]);
     };
     (@acc, [$head:expr $(, $($tail:expr),*)?], [$([$($bools:tt),*]),+]) => {
         pauli_lookup!(@acc, [$($($tail),*)?], [$([$($bools),*, false]),+, $([$($bools),*, true]),+])
