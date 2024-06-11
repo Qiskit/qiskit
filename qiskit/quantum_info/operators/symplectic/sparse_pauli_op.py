@@ -141,12 +141,13 @@ class SparsePauliOp(LinearOp):
             if isinstance(coeffs, np.ndarray):
                 dtype = object if coeffs.dtype == object else complex
             else:
+                if not isinstance(coeffs, Sequence):
+                    coeffs = [coeffs]
                 if any(isinstance(coeff, ParameterExpression) for coeff in coeffs):
                     dtype = object
                 else:
                     dtype = complex
-                if not isinstance(coeffs, (np.ndarray, Sequence)):
-                    coeffs = [coeffs]
+
             coeffs_asarray = np.asarray(coeffs, dtype=dtype)
             coeffs = (
                 coeffs_asarray.copy()
