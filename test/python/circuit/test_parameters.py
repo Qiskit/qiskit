@@ -1425,6 +1425,7 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
         self.assertEqual(bound_expr, 2.3)
+        self.assertEqual(hash(bound_expr), hash(2.3))
 
     def test_abs_function_when_bound(self):
         """Verify expression can be used with
