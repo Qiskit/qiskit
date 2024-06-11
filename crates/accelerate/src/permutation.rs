@@ -89,7 +89,6 @@ fn pattern_to_cycles(pattern: &ArrayView1<i64>, invert_order: &bool) -> Vec<Vec<
     let permutation: Array1<usize> = if *invert_order {
         invert(pattern) // implies cast to usize
     } else {
-        // TODO change to using Array1 insted of Vec
         pattern.mapv(|x| x as usize)
     };
 
