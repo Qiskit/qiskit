@@ -209,6 +209,7 @@ disable = [
     "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
     "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
     "unnecessary-pass", # allow for methods with just "pass", for clarity
+    "unnecessary-dunder-call", # do not want to implement
     "no-else-return",  # relax "elif" after a clause with a return
     "docstring-first-line-empty", # relax docstring style
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
@@ -217,17 +218,12 @@ disable = [
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
-    "arguments-renamed",
-    "consider-using-enumerate",
     "consider-using-f-string",
-    "no-member",
-    "no-value-for-parameter",
+    "no-member",  # for dynamically created members
     "not-context-manager",
     "possibly-used-before-assignment",
-    "unexpected-keyword-arg",
-    "unnecessary-dunder-call",
-    "unnecessary-lambda-assignment",
-    "unspecified-encoding",
+    "unnecessary-lambda-assignment",  # do not want to implement
+    "unspecified-encoding",  # do not want to implement
 ]
 
 enable = [
