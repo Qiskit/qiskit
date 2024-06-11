@@ -157,6 +157,7 @@ pub struct Target {
     #[pyo3(get, set)]
     pub acquire_alignment: i32,
     #[pyo3(get, set)]
+    // TODO: Port to Rust.
     pub qubit_properties: Option<Vec<PyObject>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Vec<Vec<usize>>,

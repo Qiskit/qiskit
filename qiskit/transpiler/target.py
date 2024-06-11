@@ -75,7 +75,9 @@ class InstructionProperties(BaseInstructionProperties):
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-        return super(InstructionProperties, cls).__new__(cls, duration=duration, error=error)
+        return super(InstructionProperties, cls).__new__(  # pylint: disable=too-many-function-args
+            cls, duration, error
+        )
 
     def __init__(
         self,
@@ -301,17 +303,17 @@ class Target(BaseTarget):
             elif not isinstance(description, str):
                 description = str(description)
 
-        return super(Target, cls).__new__(
+        return super(Target, cls).__new__(  # pylint: disable=too-many-function-args
             cls,
-            description=description,
-            num_qubits=num_qubits,
-            dt=dt,
-            granularity=granularity,
-            min_length=min_length,
-            pulse_alignment=pulse_alignment,
-            acquire_alignment=acquire_alignment,
-            qubit_properties=qubit_properties,
-            concurrent_measurements=concurrent_measurements,
+            description,
+            num_qubits,
+            dt,
+            granularity,
+            min_length,
+            pulse_alignment,
+            acquire_alignment,
+            qubit_properties,
+            concurrent_measurements,
         )
 
     def __init__(
