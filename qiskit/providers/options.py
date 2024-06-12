@@ -154,7 +154,7 @@ class Options(Mapping):
 
         The returned option and validator values are shallow copies of the originals.
         """
-        out = self.__new__(type(self))
+        out = self.__new__(type(self))  # pylint:disable=no-value-for-parameter
         out.__setstate__((self._fields.copy(), self.validator.copy()))
         return out
 
