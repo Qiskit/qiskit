@@ -24,6 +24,7 @@ pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
 pub mod permutation;
+pub mod clifford;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;

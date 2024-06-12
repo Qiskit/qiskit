@@ -114,6 +114,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         """.format(
             cls=type(self).__name__
         )
+
+        print(f"In BasePauli::compose {self = }, {other = }")
+
         # Validation
         if qargs is None and other.num_qubits != self.num_qubits:
             raise QiskitError(f"other {type(self).__name__} must be on the same number of qubits.")
@@ -149,11 +152,15 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         if qargs is None:
             if not inplace:
-                return BasePauli(z, x, phase)
+                ret = BasePauli(z, x, phase)
+                print(f"--A-- {ret = }")
+                return ret
             # Inplace update
+
             self._x = x
             self._z = z
             self._phase = phase
+            # print(f"--B-- {self = }")
             return self
 
         # Qargs update
@@ -161,6 +168,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._x[:, qargs] = x
         ret._z[:, qargs] = z
         ret._phase = np.mod(phase, 4)
+        print(f"--C-- {ret = }")
+
         return ret
 
     def _multiply(self, other):
@@ -298,6 +307,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     def _evolve_clifford(self, other, qargs=None, frame="h"):
         """Heisenberg picture evolution of a Pauli by a Clifford."""
 
+        # print(f"START _evolve_clifford with {self = }")
         if frame == "s":
             adj = other
         else:
@@ -317,6 +327,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._x[:, qargs_] = False
         ret._z[:, qargs_] = False
 
+
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
         for idx_, row in zip(
             idx.T,
@@ -330,6 +341,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 else:
                     ret[idx_] = ret[idx_].compose(row, qargs=qargs)
 
+        # print(f"END _evolve_clifford with {ret = }")
+        # print(f"============")
         return ret
 
     def _eq(self, other):
