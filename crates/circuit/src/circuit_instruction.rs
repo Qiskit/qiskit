@@ -63,15 +63,36 @@ pub struct CircuitInstruction {
     pub clbits: Py<PyTuple>,
 }
 
+impl CircuitInstruction {
+    pub fn new<T1, T2, U1, U2>(
+        py: Python,
+        operation: PyObject,
+        qubits: impl IntoIterator<Item = T1, IntoIter = U1>,
+        clbits: impl IntoIterator<Item = T2, IntoIter = U2>,
+    ) -> Self
+    where
+        T1: ToPyObject,
+        T2: ToPyObject,
+        U1: ExactSizeIterator<Item = T1>,
+        U2: ExactSizeIterator<Item = T2>,
+    {
+        CircuitInstruction {
+            operation,
+            qubits: PyTuple::new_bound(py, qubits).unbind(),
+            clbits: PyTuple::new_bound(py, clbits).unbind(),
+        }
+    }
+}
+
 #[pymethods]
 impl CircuitInstruction {
     #[new]
-    pub fn new(
+    pub fn py_new(
         py: Python<'_>,
         operation: PyObject,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
-    ) -> PyResult<Self> {
+    ) -> PyResult<Py<Self>> {
         fn as_tuple(py: Python<'_>, seq: Option<&Bound<PyAny>>) -> PyResult<Py<PyTuple>> {
             match seq {
                 None => Ok(PyTuple::empty_bound(py).unbind()),
@@ -95,11 +116,14 @@ impl CircuitInstruction {
             }
         }
 
-        Ok(CircuitInstruction {
-            operation,
-            qubits: as_tuple(py, qubits)?,
-            clbits: as_tuple(py, clbits)?,
-        })
+        Py::new(
+            py,
+            CircuitInstruction {
+                operation,
+                qubits: as_tuple(py, qubits)?,
+                clbits: as_tuple(py, clbits)?,
+            },
+        )
     }
 
     /// Returns a shallow copy.
@@ -120,8 +144,8 @@ impl CircuitInstruction {
         operation: Option<PyObject>,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
-    ) -> PyResult<Self> {
-        CircuitInstruction::new(
+    ) -> PyResult<Py<Self>> {
+        CircuitInstruction::py_new(
             py,
             operation.unwrap_or_else(|| self.operation.clone_ref(py)),
             Some(qubits.unwrap_or_else(|| self.qubits.bind(py))),

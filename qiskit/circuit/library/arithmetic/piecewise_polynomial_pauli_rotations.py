@@ -218,8 +218,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         """
 
         y = 0
-        for i in range(0, len(self.breakpoints)):
-            y = y + (x >= self.breakpoints[i]) * (np.poly1d(self.mapped_coeffs[i][::-1])(x))
+        for i, breakpt in enumerate(self.breakpoints):
+            y = y + (x >= breakpt) * (np.poly1d(self.mapped_coeffs[i][::-1])(x))
 
         return y
 
