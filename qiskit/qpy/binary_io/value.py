@@ -243,7 +243,9 @@ def _read_parameter_vec(file_obj, vectors):
     vector = vectors[name][0]
     if vector[data.index].uuid != param_uuid:
         vectors[name][1].add(data.index)
-        vector._all_params[data.index] = ParameterVectorElement(vector, data.index, uuid=param_uuid)
+        vector._all_historical_params[data.index] = ParameterVectorElement(
+            vector, data.index, uuid=param_uuid
+        )
     return vector[data.index]
 
 
