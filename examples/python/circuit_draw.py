@@ -29,8 +29,5 @@ def build_bell_circuit():
 # Create the circuit
 bell_circuit = build_bell_circuit()
 
-# Print the circuit directly to stdout
+# Print the circuit
 print(bell_circuit)
-
-# Or use the internal .draw() to print the circuit
-bell_circuit.draw()
