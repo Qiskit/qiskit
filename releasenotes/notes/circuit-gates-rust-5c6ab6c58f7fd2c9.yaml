@@ -73,7 +73,7 @@ upgrade_circuits:
       qc = QuantumCircuit(1)
       qc.p(0)
 
-      qc.data[0].operations.params[0] = 3.14
+      qc.data[0].operation.params[0] = 3.14
 
     which will not work for any standard gates in this release. It would have
     likely worked by chance in a previous release but was never an API guarantee.
