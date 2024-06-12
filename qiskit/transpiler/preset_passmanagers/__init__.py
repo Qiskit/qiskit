@@ -99,8 +99,34 @@ def generate_preset_pass_manager(
     This function is used to quickly generate a preset pass manager. A preset pass
     manager are the default pass managers used by the :func:`~.transpile`
     function. This function provides a convenient and simple method to construct
-    a standalone :class:`~.PassManager` object that mirrors what the transpile
+    a standalone :class:`~.PassManager` object that mirrors what the :func:`~.transpile`
+    function internally builds and uses.
 
+    The target constraints for the pass manager construction can be specified through a :class:`.Target`
+    instance, a :class:`.BackendV1` or :class:`.BackendV2` instance, or via loose constraints
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    ``dt`` or ``timing_constraints``).
+    The order of priorities for target constraints works as follows: if a ``target``
+    input is provided, it will take priority over any ``backend`` input or loose constraints.
+    If a ``backend`` is provided together with any loose constraint
+    from the list above, the loose constraint will take priority over the corresponding backend
+    constraint. This behavior is independent of whether the ``backend`` instance is of type
+    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    in the table summarizes the potential user-provided constraints, and each cell shows whether
+    the priority is assigned to that specific constraint input or another input
+    (`target`/`backend(V1)`/`backend(V2)`).
+
+    ============================ ========= ======================== =======================
+    User Provided                target    backend(V1)              backend(V2)
+    ============================ ========= ======================== =======================
+    **basis_gates**              target    basis_gates              basis_gates
+    **coupling_map**             target    coupling_map             coupling_map
+    **instruction_durations**    target    instruction_durations    instruction_durations
+    **inst_map**                 target    inst_map                 inst_map
+    **dt**                       target    dt                       dt
+    **timing_constraints**       target    timing_constraints       timing_constraints
+    **backend_properties**       target    backend_properties       backend_properties
+    ============================ ========= ======================== =======================
 
     Args:
         optimization_level (int): The optimization level to generate a
