@@ -66,6 +66,10 @@ impl From<Clbit> for BitType {
 pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<equivalence::EquivalenceLibrary>()?;
+    m.add_class::<equivalence::EdgeData>()?;
+    m.add_class::<equivalence::NodeData>()?;
+    m.add_class::<equivalence::Key>()?;
+    m.add_class::<equivalence::Equivalence>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;

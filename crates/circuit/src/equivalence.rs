@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
@@ -80,11 +82,33 @@ pub struct Key {
     pub num_qubits: usize,
 }
 
+#[pymethods]
+impl Key {
+    #[new]
+    fn new(name: String, num_qubits: usize) -> Self {
+        Self { name, num_qubits }
+    }
+
+    fn __eq__(&self, other: Self) -> bool {
+        self.eq(&other)
+    }
+
+    fn __hash__(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        (self.name.to_string(), self.num_qubits).hash(&mut hasher);
+        hasher.finish()
+    }
+
+    fn __repr__(slf: PyRef<'_, Self>) -> String {
+        slf.to_string()
+    }
+}
+
 impl Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Key(name=\"{}\" num_qubits=\"{}\"",
+            "Key(name=\'{}\', num_qubits={})",
             self.name, self.num_qubits
         )
     }
@@ -99,6 +123,28 @@ pub struct Equivalence {
     pub circuit: CircuitRep,
 }
 
+#[pymethods]
+impl Equivalence {
+    #[new]
+    fn new(params: Vec<Param>, circuit: CircuitRep) -> Self {
+        Self { circuit, params }
+    }
+
+    fn __repr__(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl Display for Equivalence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Equivalence(params={:?}, circuits={:?})",
+            self.params, self.circuit
+        )
+    }
+}
+
 #[pyclass(sequence)]
 #[derive(Debug, Clone)]
 pub struct NodeData {
@@ -106,6 +152,24 @@ pub struct NodeData {
     key: Key,
     #[pyo3(get)]
     equivs: Vec<Equivalence>,
+}
+
+#[pymethods]
+impl NodeData {
+    #[new]
+    fn new(key: Key, equivs: Vec<Equivalence>) -> Self {
+        Self { key, equivs }
+    }
+
+    fn __repr__(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl Display for NodeData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "NodeData(key={}, equivs={:#?})", self.key, self.equivs)
+    }
 }
 
 #[pyclass(sequence)]
@@ -119,6 +183,33 @@ pub struct EdgeData {
     pub rule: Equivalence,
     #[pyo3(get)]
     pub source: Key,
+}
+
+#[pymethods]
+impl EdgeData {
+    #[new]
+    fn new(index: u32, num_gates: usize, rule: Equivalence, source: Key) -> Self {
+        Self {
+            index,
+            num_gates,
+            rule,
+            source,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl Display for EdgeData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "EdgeData(index={}, num_gates={}, rule={}, source={})",
+            self.index, self.num_gates, self.rule, self.source
+        )
+    }
 }
 
 // REPRESENTATIONS of non rust objects
@@ -313,7 +404,7 @@ impl FromPyObject<'_> for CircuitInstructionRep {
 type GraphType = DiGraph<NodeData, EdgeData>;
 type KTIType = HashMap<Key, NodeIndex>;
 
-#[pyclass]
+#[pyclass(subclass, name = "BaseEquivalenceLibrary")]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
     _graph: GraphType,
@@ -441,6 +532,14 @@ impl EquivalenceLibrary {
             self.graph = Some(to_pygraph(py, &self._graph)?);
             Ok(self.graph.to_object(py))
         }
+    }
+
+    fn keys(&self) -> HashSet<Key> {
+        self.key_to_node_index.keys().cloned().collect()
+    }
+
+    fn node_index(&self, key: Key) -> usize {
+        self.key_to_node_index[&key].index()
     }
 }
 
@@ -581,62 +680,6 @@ impl EquivalenceLibrary {
         } else {
             vec![]
         }
-    }
-
-    fn build_basis_graph(&self) -> DiGraph<String, HashMap<&str, String>> {
-        let mut graph: DiGraph<String, HashMap<&str, String>> = DiGraph::new();
-
-        let mut node_map: HashMap<String, NodeIndex> = HashMap::new();
-
-        for key in self.key_to_node_index.keys() {
-            let (name, num_qubits) = (key.name.to_owned(), key.num_qubits);
-            let equivalences = self.get_equivalences(key);
-            let basis: String = format!("{{{name}/{num_qubits}}}");
-            for equivalence in equivalences {
-                let decomp_basis: HashSet<String> = HashSet::from_iter(
-                    equivalence
-                        .circuit
-                        .data
-                        .iter()
-                        .map(|x| (x.operation.name.to_owned(), x.operation.num_qubits))
-                        .map(|(name, num_qubits)| {
-                            format!(
-                                "{}/{}",
-                                name.unwrap_or_default(),
-                                num_qubits.unwrap_or_default()
-                            )
-                        }),
-                );
-                let decomp_string = format!(
-                    "{{{}}}",
-                    decomp_basis
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                );
-                if !node_map.contains_key(&basis) {
-                    let basis_node =
-                        graph.add_node(format!("basis: {:?}, label: {}", basis, decomp_string));
-                    node_map.insert(basis.to_owned(), basis_node);
-                }
-                if node_map.contains_key(&decomp_string) {
-                    let decomp_basis_node = graph.add_node(format!(
-                        "basis: {:?}, label: {}",
-                        decomp_string, decomp_string
-                    ));
-                    node_map.insert(decomp_string.to_owned(), decomp_basis_node);
-                }
-                let label = format!("{:?}\n{:?}", equivalence.params, equivalence.circuit);
-                let map: HashMap<&str, String> = HashMap::from_iter([
-                    ("label", label),
-                    ("fontname", "Courier".to_owned()),
-                    ("fontsize", 8.to_string()),
-                ]);
-                graph.add_edge(node_map[&basis], node_map[&decomp_string], map);
-            }
-        }
-        graph
     }
 }
 
