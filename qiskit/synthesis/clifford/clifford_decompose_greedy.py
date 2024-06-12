@@ -104,11 +104,20 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
         _, min_qubit = (sorted(list_greedy_cost))[0]
 
         # Gaussian elimination step for the qubit with minimal CNOT cost
-        pauli_x = Pauli("I" * (num_qubits - min_qubit - 1) + "X" + "I" * min_qubit)
-        pauli_x = pauli_x.evolve(clifford_adj, frame="s")
-
-        pauli_z = Pauli("I" * (num_qubits - min_qubit - 1) + "Z" + "I" * min_qubit)
-        pauli_z = pauli_z.evolve(clifford_adj, frame="s")
+        pauli_x = Pauli(
+            (
+                clifford_adj.destab_z[min_qubit],
+                clifford_adj.destab_x[min_qubit],
+                2 * clifford_adj.phase[min_qubit],
+            )
+        )
+        pauli_z = Pauli(
+            (
+                clifford_adj.stab_z[min_qubit],
+                clifford_adj.stab_x[min_qubit],
+                2 * clifford_adj.phase[num_qubits + min_qubit],
+            )
+        )
 
         # Compute the decoupling operator of cliff_ox and cliff_oz
         decouple_circ, decouple_cliff = _calc_decoupling(
