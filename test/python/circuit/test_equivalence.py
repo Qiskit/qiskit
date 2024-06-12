@@ -22,9 +22,8 @@ from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
-from qiskit.circuit import EquivalenceLibrary
+from qiskit._accelerate.circuit import EquivalenceLibrary, Key, Equivalence, NodeData, EdgeData
 from qiskit.utils import optionals
-from qiskit.circuit.equivalence import Key, Equivalence, NodeData, EdgeData
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference

@@ -63,15 +63,20 @@ impl ImportOnceCell {
     }
 }
 
-// Custom Structs
-
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
 pub static QUANTUM_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
+pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
+
+// Custom Structs
+
+#[pyclass(sequence)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
+    #[pyo3(get)]
     pub name: String,
+    #[pyo3(get)]
     pub num_qubits: usize,
 }
 
@@ -85,12 +90,39 @@ impl Display for Key {
     }
 }
 
+#[pyclass(sequence)]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
+    #[pyo3(get)]
     pub params: Vec<Param>,
+    #[pyo3(get)]
     pub circuit: CircuitRep,
 }
 
+#[pyclass(sequence)]
+#[derive(Debug, Clone)]
+pub struct NodeData {
+    #[pyo3(get)]
+    key: Key,
+    #[pyo3(get)]
+    equivs: Vec<Equivalence>,
+}
+
+#[pyclass(sequence)]
+#[derive(Debug, Clone)]
+pub struct EdgeData {
+    #[pyo3(get)]
+    pub index: u32,
+    #[pyo3(get)]
+    pub num_gates: usize,
+    #[pyo3(get)]
+    pub rule: Equivalence,
+    #[pyo3(get)]
+    pub source: Key,
+}
+
+// REPRESENTATIONS of non rust objects
+// Temporary definition of Parameter
 #[derive(Clone, Debug)]
 pub enum Param {
     ParameterExpression(PyObject),
@@ -162,20 +194,6 @@ impl PartialEq for Param {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct NodeData {
-    key: Key,
-    equivs: Vec<Equivalence>,
-}
-
-#[derive(Debug, Clone)]
-pub struct EdgeData {
-    pub index: u32,
-    pub num_gates: usize,
-    pub rule: Equivalence,
-    pub source: Key,
-}
-
 /// Temporary interpretation of Gate
 #[derive(Debug, Clone)]
 pub struct GateRep {
@@ -220,8 +238,13 @@ impl FromPyObject<'_> for GateRep {
         })
     }
 }
+impl IntoPy<PyObject> for GateRep {
+    fn into_py(self, _py: Python<'_>) -> PyObject {
+        self.object
+    }
+}
 
-/// Temporary interpretation of Gate
+/// Temporary interpretation of QuantumCircuit
 #[derive(Debug, Clone)]
 pub struct CircuitRep {
     object: PyObject,
@@ -273,6 +296,7 @@ impl IntoPy<PyObject> for CircuitRep {
     }
 }
 
+// Temporary Representation of CircuitInstruction
 #[derive(Debug, Clone)]
 pub struct CircuitInstructionRep {
     operation: GateRep,
@@ -292,9 +316,10 @@ type KTIType = HashMap<Key, NodeIndex>;
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
-    graph: GraphType,
+    _graph: GraphType,
     key_to_node_index: KTIType,
     rule_id: usize,
+    graph: Option<PyObject>,
 }
 
 #[pymethods]
@@ -308,15 +333,17 @@ impl EquivalenceLibrary {
     fn new(base: Option<&EquivalenceLibrary>) -> Self {
         if let Some(base) = base {
             Self {
-                graph: base.graph.clone(),
+                _graph: base._graph.clone(),
                 key_to_node_index: base.key_to_node_index.clone(),
                 rule_id: base.rule_id,
+                graph: None,
             }
         } else {
             Self {
-                graph: GraphType::new(),
+                _graph: GraphType::new(),
                 key_to_node_index: KTIType::new(),
                 rule_id: 0_usize,
+                graph: None,
             }
         }
     }
@@ -405,19 +432,39 @@ impl EquivalenceLibrary {
             .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok())
             .collect()
     }
+
+    #[getter]
+    fn get_graph(&mut self, py: Python<'_>) -> PyResult<PyObject> {
+        if let Some(graph) = &self.graph {
+            Ok(graph.to_owned())
+        } else {
+            self.graph = Some(to_pygraph(py, &self._graph)?);
+            Ok(self.graph.to_object(py))
+        }
+    }
 }
 
 // Rust native methods
 impl EquivalenceLibrary {
     /// Create a new node if key not found
     fn set_default_node(&mut self, key: Key) -> NodeIndex {
-        *self
-            .key_to_node_index
-            .entry(key.to_owned())
-            .or_insert(self.graph.add_node(NodeData {
-                key,
+        if let Some(value) = self.key_to_node_index.get(&key) {
+            *value
+        } else {
+            let node = self._graph.add_node(NodeData {
+                key: key.to_owned(),
                 equivs: vec![],
-            }))
+            });
+            self.key_to_node_index.insert(key, node);
+            node
+        }
+        // *self
+        //     .key_to_node_index
+        //     .entry(key.to_owned())
+        //     .or_insert(self._graph.add_node(NodeData {
+        //         key,
+        //         equivs: vec![],
+        //     }))
     }
 
     /// Rust native equivalent to `EquivalenceLibrary.add_equivalence()`
@@ -452,30 +499,31 @@ impl EquivalenceLibrary {
         };
 
         let target = self.set_default_node(key);
-        let node = self.graph.node_weight_mut(target).unwrap();
-        node.equivs.push(equiv.to_owned());
-
+        if let Some(node) = self._graph.node_weight_mut(target) {
+            node.equivs.push(equiv.to_owned());
+        }
         let sources: HashSet<Key> =
             HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
                 name: inst.operation.name.to_owned().unwrap_or_default(),
                 num_qubits: inst.operation.num_qubits.unwrap_or_default(),
             }));
-        let edges = Vec::from_iter(sources.iter().map(|key| {
+        let edges = Vec::from_iter(sources.iter().map(|source| {
             (
-                self.set_default_node(key.to_owned()),
+                self.set_default_node(source.to_owned()),
                 target,
                 EdgeData {
                     index: self.rule_id as u32,
                     num_gates: sources.len(),
                     rule: equiv.to_owned(),
-                    source: key.to_owned(),
+                    source: source.to_owned(),
                 },
             )
         }));
         for edge in edges {
-            self.graph.add_edge(edge.0, edge.1, edge.2);
+            self._graph.add_edge(edge.0, edge.1, edge.2);
         }
         self.rule_id += 1;
+        self.graph = None;
         Ok(())
     }
 
@@ -507,27 +555,29 @@ impl EquivalenceLibrary {
         };
         let node_index = self.set_default_node(key);
 
-        let graph_ind = &mut self.graph.node_weight_mut(node_index).unwrap();
-        graph_ind.equivs.clear();
+        if let Some(graph_ind) = self._graph.node_weight_mut(node_index) {
+            graph_ind.equivs.clear();
+        }
 
         let edges: Vec<EdgeIndex> = self
-            .graph
+            ._graph
             .edges_directed(node_index, rustworkx_core::petgraph::Direction::Incoming)
             .map(|x| x.id())
             .collect();
         for edge in edges {
-            self.graph.remove_edge(edge);
+            self._graph.remove_edge(edge);
         }
         for equiv in entry {
             self.add_equiv(gate.to_owned(), equiv.to_owned())?
         }
+        self.graph = None;
         Ok(())
     }
 
     /// Get all the equivalences for the given key
     fn get_equivalences(&self, key: &Key) -> Vec<Equivalence> {
         if let Some(key_in) = self.key_to_node_index.get(key) {
-            self.graph[*key_in].equivs.to_owned()
+            self._graph[*key_in].equivs.to_owned()
         } else {
             vec![]
         }
@@ -674,8 +724,37 @@ impl Display for EquivalenceError {
     }
 }
 
+fn to_pygraph<N, E>(py: Python<'_>, pet_graph: &DiGraph<N, E>) -> PyResult<PyObject>
+where
+    N: IntoPy<PyObject> + Clone,
+    E: IntoPy<PyObject> + Clone,
+{
+    let graph = PYDIGRAPH.get_bound(py).call0()?;
+    let node_weights = pet_graph.node_weights();
+    for node in node_weights {
+        graph.call_method1("add_node", (node.to_owned(),))?;
+    }
+    let edge_weights = pet_graph.edge_indices().map(|edge| {
+        (
+            pet_graph.edge_endpoints(edge).unwrap(),
+            pet_graph.edge_weight(edge).unwrap(),
+        )
+    });
+    for ((source, target), weight) in edge_weights {
+        graph.call_method1(
+            "add_edge",
+            (source.index(), target.index(), weight.to_owned()),
+        )?;
+    }
+    Ok(graph.unbind())
+}
+
 #[pymodule]
 pub fn equivalence(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EquivalenceLibrary>()?;
+    m.add_class::<NodeData>()?;
+    m.add_class::<EdgeData>()?;
+    m.add_class::<Equivalence>()?;
+    m.add_class::<Key>()?;
     Ok(())
 }
