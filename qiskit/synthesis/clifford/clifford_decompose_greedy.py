@@ -75,11 +75,21 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
 
         list_greedy_cost = []
         for qubit in qubit_list:
-            pauli_x = Pauli("I" * (num_qubits - qubit - 1) + "X" + "I" * qubit)
-            pauli_x = pauli_x.evolve(clifford_adj, frame="s")
+            pauli_x = Pauli(
+                (
+                    clifford_adj.destab_z[qubit],
+                    clifford_adj.destab_x[qubit],
+                    2 * clifford_adj.phase[qubit],
+                )
+            )
+            pauli_z = Pauli(
+                (
+                    clifford_adj.stab_z[qubit],
+                    clifford_adj.stab_x[qubit],
+                    2 * clifford_adj.phase[num_qubits + qubit],
+                )
+            )
 
-            pauli_z = Pauli("I" * (num_qubits - qubit - 1) + "Z" + "I" * qubit)
-            pauli_z = pauli_z.evolve(clifford_adj, frame="s")
             list_pairs = []
             pauli_count = 0
 
