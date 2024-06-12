@@ -1757,14 +1757,14 @@ class QuantumCircuit:
                 this can be anything that :obj:`.append` will accept.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed.  This is not possible within
+            front (bool): If ``True``, front composition will be performed.  This is not possible within
                 control-flow builder context managers.
-            inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            inplace (bool): If ``True``, modify the object. Otherwise, return composed circuit.
             copy (bool): If ``True`` (the default), then the input is treated as shared, and any
                 contained instructions will be copied, if they might need to be mutated in the
                 future.  You can set this to ``False`` if the input should be considered owned by
                 the base circuit, in order to avoid unnecessary copies; in this case, it is not
-                valid to use ``other`` afterwards, and some instructions may have been mutated in
+                valid to use ``other`` afterward, and some instructions may have been mutated in
                 place.
             var_remap (Mapping): mapping to use to rewrite :class:`.expr.Var` nodes in ``other`` as
                 they are inlined into ``self``.  This can be used to avoid naming conflicts.
@@ -2068,7 +2068,7 @@ class QuantumCircuit:
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
-            inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            inplace (bool): If ``True``, modify the object. Otherwise return composed circuit.
 
         Examples:
 
@@ -2084,7 +2084,7 @@ class QuantumCircuit:
                tensored.draw('mpl')
 
         Returns:
-            QuantumCircuit: The tensored circuit (returns None if inplace==True).
+            QuantumCircuit: The tensored circuit (returns ``None`` if ``inplace=True``).
         """
         num_qubits = self.num_qubits + other.num_qubits
         num_clbits = self.num_clbits + other.num_clbits
@@ -3126,7 +3126,7 @@ class QuantumCircuit:
         reverse_bits: bool | None = None,
         justify: str | None = None,
         vertical_compression: str | None = "medium",
-        idle_wires: bool = True,
+        idle_wires: bool | None = None,
         with_layout: bool = True,
         fold: int | None = None,
         # The type of ax is matplotlib.axes.Axes, but this is not a fixed dependency, so cannot be
@@ -3157,7 +3157,7 @@ class QuantumCircuit:
         Args:
             output: Select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-                By default the `text` drawer is used unless the user config file
+                By default, the ``text`` drawer is used unless the user config file
                 (usually ``~/.qiskit/settings.conf``) has an alternative backend set
                 as the default. For example, ``circuit_drawer = latex``. If the output
                 kwarg is set, that backend will always be used over the default in
@@ -3203,7 +3203,9 @@ class QuantumCircuit:
                 will take less vertical room.  Default is ``medium``. Only used by
                 the ``text`` output, will be silently ignored otherwise.
             idle_wires: Include idle wires (wires with no circuit elements)
-                in output visualization. Default is ``True``.
+                in output visualization. Default is ``True`` unless the
+                user config file (usually ``~/.qiskit/settings.conf``) has an
+                alternative value set. For example, ``circuit_idle_wires = False``.
             with_layout: Include layout information, with labels on the
                 physical layout. Default is ``True``.
             fold: Sets pagination. It can be disabled using -1. In ``text``,
@@ -3292,7 +3294,7 @@ class QuantumCircuit:
         Args:
             filter_function (callable): a function to filter out some instructions.
                 Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
-                By default filters out "directives", such as barrier or snapshot.
+                By default, filters out "directives", such as barrier or snapshot.
 
         Returns:
             int: Total number of gate operations.
@@ -3314,7 +3316,7 @@ class QuantumCircuit:
             filter_function: A function to decide which instructions count to increase depth.
                 Should take as a single positional input a :class:`CircuitInstruction`.
                 Instructions for which the function returns ``False`` are ignored in the
-                computation of the circuit depth.  By default filters out "directives", such as
+                computation of the circuit depth.  By default, filters out "directives", such as
                 :class:`.Barrier`.
 
         Returns:
@@ -3445,7 +3447,7 @@ class QuantumCircuit:
         bits = self.qubits if unitary_only else (self.qubits + self.clbits)
         bit_indices: dict[Qubit | Clbit, int] = {bit: idx for idx, bit in enumerate(bits)}
 
-        # Start with each qubit or cbit being its own subgraph.
+        # Start with each qubit or clbit being its own subgraph.
         sub_graphs = [[bit] for bit in range(len(bit_indices))]
 
         num_sub_graphs = len(sub_graphs)
@@ -3816,7 +3818,7 @@ class QuantumCircuit:
             inplace (bool): All measurements inplace or return new circuit.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+            QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
 
@@ -5704,7 +5706,7 @@ class QuantumCircuit:
                 * Statevector or vector of complex amplitudes to initialize to.
                 * Labels of basis states of the Pauli eigenstates Z, X, Y. See
                   :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
-                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  respect to the qubit index to be applied to. Example label ``'01'`` initializes the
                   qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
                 * An integer that is used as a bitmap indicating which qubits to initialize to
                   :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
