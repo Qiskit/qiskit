@@ -32,7 +32,7 @@ from qiskit.circuit import (
 )
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.circuit.equivalence import Key, NodeData
+from qiskit.circuit.equivalence import Key, NodeData, Equivalence
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -541,7 +541,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
 
     source_basis = {
-        (gate_name, gate_num_qubits)
+        Key(gate_name, gate_num_qubits)
         for gate_name, gate_num_qubits in source_basis
         if gate_name not in target_basis
     }
@@ -559,7 +559,12 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
-    dummy = graph.add_node(NodeData(key="key", equivs=[("dummy starting node", 0)]))
+    dummy = graph.add_node(
+        NodeData(
+            key=Key("key", 0),
+            equivs=[Equivalence([], QuantumCircuit(0, name="dummy starting node"))],
+        )
+    )
 
     try:
         graph.add_edges_from_no_data(

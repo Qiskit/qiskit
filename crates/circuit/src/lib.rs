@@ -19,8 +19,8 @@ mod bit_data;
 mod interner;
 mod packed_instruction;
 
-use pyo3::prelude::*;
 use pyo3::types::PySlice;
+use pyo3::{prelude::*, wrap_pymodule};
 
 /// A private enumeration type used to extract arguments to pymethod
 /// that may be either an index or a slice
@@ -64,12 +64,8 @@ impl From<Clbit> for BitType {
 
 #[pymodule]
 pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pymodule!(equivalence::equivalence))?;
     m.add_class::<circuit_data::CircuitData>()?;
-    m.add_class::<equivalence::EquivalenceLibrary>()?;
-    m.add_class::<equivalence::EdgeData>()?;
-    m.add_class::<equivalence::NodeData>()?;
-    m.add_class::<equivalence::Key>()?;
-    m.add_class::<equivalence::Equivalence>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;

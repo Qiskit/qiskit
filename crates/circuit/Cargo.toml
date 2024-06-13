@@ -11,5 +11,6 @@ doctest = false
 
 [dependencies]
 hashbrown.workspace = true
+itertools = "0.13.0"
 pyo3.workspace = true
 rustworkx-core = "0.14.2"

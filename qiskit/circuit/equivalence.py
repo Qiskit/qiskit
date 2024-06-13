@@ -23,7 +23,13 @@ from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError
 from .parameter import Parameter
 from .parameterexpression import ParameterExpression
-from qiskit._accelerate.circuit import BaseEquivalenceLibrary, Key, Equivalence, NodeData, EdgeData
+from qiskit._accelerate.circuit.equivalence import (
+    BaseEquivalenceLibrary,
+    Key,
+    Equivalence,
+    NodeData,
+    EdgeData,
+)
 
 
 class EquivalenceLibrary(BaseEquivalenceLibrary):

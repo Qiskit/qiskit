@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use itertools::Itertools;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
@@ -17,7 +18,9 @@ use std::{error::Error, fmt::Display};
 use exceptions::CircuitError;
 use hashbrown::{HashMap, HashSet};
 use pyo3::sync::GILOnceCell;
+use pyo3::types::PyDict;
 use pyo3::{prelude::*, types::IntoPyDict};
+
 use rustworkx_core::petgraph::{
     graph::{DiGraph, EdgeIndex, NodeIndex},
     visit::EdgeRef,
@@ -73,7 +76,7 @@ pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGra
 
 // Custom Structs
 
-#[pyclass(sequence)]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -85,6 +88,7 @@ pub struct Key {
 #[pymethods]
 impl Key {
     #[new]
+    #[pyo3(signature = (name, num_qubits))]
     fn new(name: String, num_qubits: usize) -> Self {
         Self { name, num_qubits }
     }
@@ -102,6 +106,15 @@ impl Key {
     fn __repr__(slf: PyRef<'_, Self>) -> String {
         slf.to_string()
     }
+
+    fn __getstate__(slf: PyRef<Self>) -> (String, usize) {
+        (slf.name.to_owned(), slf.num_qubits)
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: (String, usize)) {
+        slf.name = state.0;
+        slf.num_qubits = state.1;
+    }
 }
 
 impl Display for Key {
@@ -114,8 +127,8 @@ impl Display for Key {
     }
 }
 
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Equivalence {
     #[pyo3(get)]
     pub params: Vec<Param>,
@@ -126,12 +139,26 @@ pub struct Equivalence {
 #[pymethods]
 impl Equivalence {
     #[new]
+    #[pyo3(signature = (params, circuit))]
     fn new(params: Vec<Param>, circuit: CircuitRep) -> Self {
         Self { circuit, params }
     }
 
     fn __repr__(&self) -> String {
         self.to_string()
+    }
+
+    fn __eq__(&self, other: Self) -> bool {
+        self.eq(&other)
+    }
+
+    fn __getstate__(slf: PyRef<Self>) -> (Vec<Param>, CircuitRep) {
+        (slf.params.to_owned(), slf.circuit.to_owned())
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: (Vec<Param>, CircuitRep)) {
+        slf.params = state.0;
+        slf.circuit = state.1;
     }
 }
 
@@ -145,8 +172,8 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NodeData {
     #[pyo3(get)]
     key: Key,
@@ -157,6 +184,7 @@ pub struct NodeData {
 #[pymethods]
 impl NodeData {
     #[new]
+    #[pyo3(signature = (key, equivs))]
     fn new(key: Key, equivs: Vec<Equivalence>) -> Self {
         Self { key, equivs }
     }
@@ -164,19 +192,37 @@ impl NodeData {
     fn __repr__(&self) -> String {
         self.to_string()
     }
+
+    fn __eq__(&self, other: Self) -> bool {
+        self.eq(&other)
+    }
+
+    fn __getstate__(slf: PyRef<Self>) -> (Key, Vec<Equivalence>) {
+        (slf.key.to_owned(), slf.equivs.to_owned())
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: (Key, Vec<Equivalence>)) {
+        slf.key = state.0;
+        slf.equivs = state.1;
+    }
 }
 
 impl Display for NodeData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "NodeData(key={}, equivs={:#?})", self.key, self.equivs)
+        write!(
+            f,
+            "NodeData(key={}, equivs=[{}])",
+            self.key,
+            self.equivs.iter().format(", ")
+        )
     }
 }
 
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EdgeData {
     #[pyo3(get)]
-    pub index: u32,
+    pub index: usize,
     #[pyo3(get)]
     pub num_gates: usize,
     #[pyo3(get)]
@@ -188,7 +234,8 @@ pub struct EdgeData {
 #[pymethods]
 impl EdgeData {
     #[new]
-    fn new(index: u32, num_gates: usize, rule: Equivalence, source: Key) -> Self {
+    #[pyo3(signature = (index, num_gates, rule, source))]
+    fn new(index: usize, num_gates: usize, rule: Equivalence, source: Key) -> Self {
         Self {
             index,
             num_gates,
@@ -199,6 +246,26 @@ impl EdgeData {
 
     fn __repr__(&self) -> String {
         self.to_string()
+    }
+
+    fn __eq__(&self, other: Self) -> bool {
+        self.eq(&other)
+    }
+
+    fn __getstate__(slf: PyRef<Self>) -> (usize, usize, Equivalence, Key) {
+        (
+            slf.index,
+            slf.num_gates,
+            slf.rule.to_owned(),
+            slf.source.to_owned(),
+        )
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: (usize, usize, Equivalence, Key)) {
+        slf.index = state.0;
+        slf.num_gates = state.1;
+        slf.rule = state.2;
+        slf.source = state.3;
     }
 }
 
@@ -390,6 +457,12 @@ impl FromPyObject<'_> for CircuitRep {
     }
 }
 
+impl PartialEq for CircuitRep {
+    fn eq(&self, other: &Self) -> bool {
+        self.object.is(&other.object)
+    }
+}
+
 impl IntoPy<PyObject> for CircuitRep {
     fn into_py(self, _py: Python<'_>) -> PyObject {
         self.object
@@ -415,7 +488,11 @@ impl FromPyObject<'_> for CircuitInstructionRep {
 type GraphType = DiGraph<NodeData, EdgeData>;
 type KTIType = HashMap<Key, NodeIndex>;
 
-#[pyclass(subclass, name = "BaseEquivalenceLibrary")]
+#[pyclass(
+    subclass,
+    name = "BaseEquivalenceLibrary",
+    module = "qiskit._accelerate.circuit.equivalence"
+)]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
     _graph: GraphType,
@@ -552,6 +629,59 @@ impl EquivalenceLibrary {
     fn node_index(&self, key: Key) -> usize {
         self.key_to_node_index[&key].index()
     }
+
+    fn __getstate__(slf: PyRef<Self>) -> PyResult<Bound<'_, PyDict>> {
+        let ret = PyDict::new_bound(slf.py());
+        ret.set_item("rule_id", slf.rule_id)?;
+        let key_to_usize_node: HashMap<(String, usize), usize> = HashMap::from_iter(
+            slf.key_to_node_index
+                .iter()
+                .map(|(key, val)| ((key.name.to_string(), key.num_qubits), val.index())),
+        );
+        ret.set_item("key_to_node_index", key_to_usize_node.into_py(slf.py()))?;
+        let graph_nodes: Vec<NodeData> = slf._graph.node_weights().cloned().collect();
+        ret.set_item("graph_nodes", graph_nodes.into_py(slf.py()))?;
+        let graph_edges: Vec<(usize, usize, EdgeData)> = slf
+            ._graph
+            .edge_indices()
+            .map(|edge_id| {
+                (
+                    slf._graph.edge_endpoints(edge_id).unwrap(),
+                    slf._graph.edge_weight(edge_id).unwrap(),
+                )
+            })
+            .map(|((source, target), weight)| (source.index(), target.index(), weight.to_owned()))
+            .collect_vec();
+        ret.set_item("graph_edges", graph_edges.into_py(slf.py()))?;
+        Ok(ret)
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<'_, PyDict>) -> PyResult<()> {
+        slf.rule_id = state.get_item("rule_id")?.unwrap().extract()?;
+        slf.key_to_node_index = state
+            .get_item("key_to_node_index")?
+            .unwrap()
+            .extract::<HashMap<Key, usize>>()?
+            .into_iter()
+            .map(|(key, val)| (key, NodeIndex::new(val)))
+            .collect();
+        let graph_nodes: Vec<NodeData> = state.get_item("graph_nodes")?.unwrap().extract()?;
+        let graph_edges: Vec<(usize, usize, EdgeData)> =
+            state.get_item("graph_edges")?.unwrap().extract()?;
+        slf._graph = GraphType::new();
+        for node_weight in graph_nodes {
+            slf._graph.add_node(node_weight);
+        }
+        for (source_node, target_node, edge_weight) in graph_edges {
+            slf._graph.add_edge(
+                NodeIndex::new(source_node),
+                NodeIndex::new(target_node),
+                edge_weight,
+            );
+        }
+        slf.graph = None;
+        Ok(())
+    }
 }
 
 // Rust native methods
@@ -622,7 +752,7 @@ impl EquivalenceLibrary {
                 self.set_default_node(source.to_owned()),
                 target,
                 EdgeData {
-                    index: self.rule_id as u32,
+                    index: self.rule_id,
                     num_gates: sources.len(),
                     rule: equiv.to_owned(),
                     source: source.to_owned(),
@@ -749,11 +879,6 @@ fn rebind_equiv(
     let param_map: Vec<(Param, Param)> = equiv_params
         .into_iter()
         .filter_map(|param| {
-            println!(
-                "{:#?}: is expr: {}",
-                param,
-                matches!(param, Param::ParameterExpression(_))
-            );
             if matches!(param, Param::ParameterExpression(_)) {
                 Some(param)
             } else {
