@@ -20,6 +20,7 @@ import numpy
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 from .p import PhaseGate
 
@@ -72,6 +73,8 @@ class ZGate(SingletonGate):
         |0\rangle \rightarrow |0\rangle \\
         |1\rangle \rightarrow -|1\rangle
     """
+
+    _standard_gate = StandardGate.ZGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Z gate."""
@@ -180,6 +183,8 @@ class CZGate(SingletonControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
+
+    _standard_gate = StandardGate.CZGate
 
     def __init__(
         self,
