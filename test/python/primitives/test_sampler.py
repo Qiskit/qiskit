@@ -90,7 +90,7 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler()
             job = sampler.run(circuits=[bell])
-        result = job.result()
+            result = job.result()
         self.assertIsInstance(result, SamplerResult)
         self._compare_probs(result.quasi_dists, self._target[1])
 
