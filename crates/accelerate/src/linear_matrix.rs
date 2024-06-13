@@ -92,13 +92,6 @@ fn gauss_elimination_with_perm(
     perm
 }
 
-// Gauss elimination of a matrix mat with m rows and n columns.
-// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-// Returns the updated matrix mat.
-fn gauss_elimination(mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_elim: Option<bool>) {
-    let _perm = gauss_elimination_with_perm(mat, ncols, full_elim);
-}
-
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
 fn _gauss_elimination_with_perm(
@@ -114,13 +107,16 @@ fn _gauss_elimination_with_perm(
 
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
+// Gauss elimination of a matrix mat with m rows and n columns.
+// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+// Returns the updated matrix mat.
 fn _gauss_elimination(
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
 ) {
     let view = mat.as_array_mut();
-    gauss_elimination(view, ncols, full_elim);
+    let _perm = gauss_elimination_with_perm(view, ncols, full_elim);
 }
 
 #[pymodule]
