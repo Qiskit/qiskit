@@ -31,6 +31,7 @@ class UserConfig:
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
     circuit_reverse_bits = True
+    circuit_idle_wires = False
     transpile_optimization_level = 1
     parallel = False
     num_processes = 4
@@ -130,6 +131,18 @@ class UserConfig:
             if circuit_reverse_bits is not None:
                 self.settings["circuit_reverse_bits"] = circuit_reverse_bits
 
+            # Parse circuit_idle_wires
+            try:
+                circuit_idle_wires = self.config_parser.getboolean(
+                    "default", "circuit_idle_wires", fallback=None
+                )
+            except ValueError as err:
+                raise exceptions.QiskitUserConfigError(
+                    f"Value assigned to circuit_idle_wires is not valid. {str(err)}"
+                )
+            if circuit_idle_wires is not None:
+                self.settings["circuit_idle_wires"] = circuit_idle_wires
+
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
                 "default", "transpile_optimization_level", fallback=-1
@@ -191,6 +204,7 @@ def set_config(key, value, section=None, file_path=None):
         "circuit_mpl_style",
         "circuit_mpl_style_path",
         "circuit_reverse_bits",
+        "circuit_idle_wires",
         "transpile_optimization_level",
         "parallel",
         "num_processes",

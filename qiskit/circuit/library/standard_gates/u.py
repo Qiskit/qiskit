@@ -21,6 +21,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
@@ -67,6 +68,8 @@ class UGate(Gate):
 
         U(\theta, 0, 0) = RY(\theta)
     """
+
+    _standard_gate = StandardGate.UGate
 
     def __init__(
         self,
