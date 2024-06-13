@@ -778,7 +778,7 @@ pub(crate) fn operation_type_and_data_to_py(
             let kwargs = [
                 ("label", label.to_object(py)),
                 ("unit", unit.to_object(py)),
-                ("duration", duration.to_object(py)),
+                ("duration", duration.as_ref().to_object(py)),
             ]
             .into_py_dict_bound(py);
             let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;

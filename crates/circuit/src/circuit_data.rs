@@ -1104,13 +1104,7 @@ impl CircuitData {
         Ok(PySet::new_bound(py, self.param_table.uuid_map.values())?.unbind())
     }
 
-    pub fn pop_param(
-        &mut self,
-        py: Python,
-        uuid: u128,
-        name: String,
-        default: PyObject,
-    ) -> PyObject {
+    pub fn pop_param(&mut self, py: Python, uuid: u128, name: &str, default: PyObject) -> PyObject {
         match self.param_table.pop(uuid, name) {
             Some(res) => res.into_py(py),
             None => default.clone_ref(py),
