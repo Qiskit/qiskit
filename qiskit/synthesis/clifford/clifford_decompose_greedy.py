@@ -80,18 +80,20 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
 
             pauli_z = Pauli("I" * (num_qubits - qubit - 1) + "Z" + "I" * qubit)
             pauli_z = pauli_z.evolve(clifford_adj, frame="s")
-            list_pairs = []
-            pauli_count = 0
 
             # Compute the CNOT cost in order to find the qubit with the minimal cost
+            list_pairs = []
             for i in qubit_list:
                 typeq = _from_pair_paulis_to_type(pauli_x, pauli_z, i)
                 list_pairs.append(typeq)
-                pauli_count += 1
             cost = _compute_greedy_cost(list_pairs)
+
+            print(f"{qubit = }, {list_pairs = }, {cost = }")
             list_greedy_cost.append([cost, qubit])
 
+
         _, min_qubit = (sorted(list_greedy_cost))[0]
+        print(f"{min_qubit = }")
 
         # Gaussian elimination step for the qubit with minimal CNOT cost
         pauli_x = Pauli("I" * (num_qubits - min_qubit - 1) + "X" + "I" * min_qubit)

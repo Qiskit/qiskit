@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ndarray::ArrayView1;
 use pyo3::prelude::*;
 
 use numpy::prelude::*;
@@ -48,6 +49,9 @@ use crate::QiskitError;
 
 // Global arrays of the 16 pairs of Pauli operators
 // divided into 5 equivalence classes under the action of single-qubit Cliffords.
+
+
+// ToDo: replace this crap by a HashMap !!!!
 
 // Class A - canonical representative is 'XZ'
 static A_CLASS: [[[bool; 2]; 2]; 6] =
@@ -127,19 +131,59 @@ fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> PyResult<usize>{
 // hack: for single-qubit gates second arg is always 0
 type CliffordSequenceVec = Vec<(String, SmallVec<[u8; 2]>)>;
 
+fn from_pair_paulis_to_type(pauli_x: ArrayView1<bool>, pauli_z: ArrayView1<bool>, qubit: usize) -> [[bool; 2]; 2] {
+    let num_qubits: usize = pauli_x.len() / 2;
+    [[pauli_x[num_qubits + qubit], pauli_x[qubit]], [pauli_z[num_qubits + qubit], pauli_z[qubit]]]
+}
 
 
-fn synth_clifford_greedy_inner(clifford: &Array2<bool>) {
+// for now modify clifford in-place
+fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> PyResult<()> {
     let mut clifford_gates = CliffordSequenceVec::new();
 
     println!("I AM IN SYNTH_CLIFFORD_INNER!");
     println!("{:?}", clifford);
 
-    let num_qubits = clifford.shape()[0];
+    let num_qubits = clifford.shape()[0] / 2;
     println!("num_qubits = {:?}", num_qubits);
 
+    // ToDo: this is a vector for now to be compatible with the python
+    // implementation, but we should really turn it into a set
+    let qubit_list: Vec<usize> = (0..num_qubits).collect();
+
+    // while
+
+    let mut list_greedy_cost  = Vec::<(usize, usize)>::new();
+
+    for qubit in &qubit_list {
+        println!("HERE qubit = {}" , qubit);
+        let pauli_x = clifford.column(*qubit);
+        println!("HERE pauli_x = {:?}" , pauli_x);
+        let pauli_z = clifford.column(*qubit + num_qubits);
+        println!("HERE pauli_z = {:?}" , pauli_z);
+
+        let list_pairs: Vec<[[bool; 2]; 2]> = qubit_list
+            .iter()
+            .map(|i| from_pair_paulis_to_type(pauli_x, pauli_z, *i))
+            .collect();
+
+        println!("{:?}", list_pairs);
+
+        let cost = compute_greedy_cost(&list_pairs)?;
+        println!("{}", cost);
+        list_greedy_cost.push((cost, *qubit));
+    }
+    println!("list_greedy_cost = {:?}", list_greedy_cost);
+    let min_qubit = list_greedy_cost.iter().min_by_key(|(cost, qubit)| cost).unwrap().0;
+    println!("min_qubit = {:?}", min_qubit);
+    // clifford[0 : self.num_qubits, :]
+
+    let pauli_x = clifford.column(min_qubit);
+    let pauli_z = clifford.column(min_qubit + num_qubits);
 
 
+
+    Ok(())
 }
 
 
@@ -154,6 +198,8 @@ fn synth_clifford_greedy_new(tableau: PyReadonlyArray2<bool>) {
     synth_clifford_greedy_inner(&clifford);
 
 }
+
+
 
 
 
@@ -175,16 +221,16 @@ mod tests {
     // for quicker development
     fn example_clifford() -> Array2<bool> {
         arr2(
-        &[[false, false, true, true, false, true, false, false, false, true],
-         [false, false, false, true, false, false, false, true, true, false],
-         [false, true, true, true, false, false, false, false, false, false],
-         [false, false, true, true, false, false, false, false, false, false],
-         [false, false, true, false, false, true, false, true, true, false],
-         [false, true, false, true, true, true, false, true, true, false],
-         [true, false, false, false, true, true, false, true, true, false],
-         [false, true, true, false, false, false, true, true, true, true],
-         [true, false, true, true, false, true, true, true, false, false],
-         [true, true, true, false, true, true, false, true, true, true]])
+        &[[false, false, true, true, false, true, false, false, false, true, true],
+         [false, false, false, true, false, false, false, true, true, false, false],
+         [false, true, true, true, false, false, false, false, false, false, true],
+         [false, false, true, true, false, false, false, false, false, false, true],
+         [false, false, true, false, false, true, false, true, true, false, true],
+         [false, true, false, true, true, true, false, true, true, false, false],
+         [true, false, false, false, true, true, false, true, true, false, false],
+         [false, true, true, false, false, false, true, true, true, true, true],
+         [true, false, true, true, false, true, true, true, false, false, false],
+         [true, true, true, false, true, true, false, true, true, true, true]])
     }
 
     #[test]
