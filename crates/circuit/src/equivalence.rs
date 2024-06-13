@@ -216,7 +216,7 @@ impl Display for EdgeData {
 // Temporary definition of Parameter
 #[derive(Clone, Debug)]
 pub enum Param {
-    ParameterExpression(PyObject),
+    ParameterExpression(ParamExpRep),
     Float(f64),
     Obj(PyObject),
 }
@@ -227,7 +227,11 @@ impl<'py> FromPyObject<'py> for Param {
             if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
                 || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
             {
-                Param::ParameterExpression(b.clone().unbind())
+                let id = b.getattr("_uuid")?.getattr("hex")?.extract::<String>()?;
+                Param::ParameterExpression(ParamExpRep {
+                    id,
+                    object: b.clone().unbind(),
+                })
             } else if let Ok(val) = b.extract::<f64>() {
                 Param::Float(val)
             } else {
@@ -241,7 +245,7 @@ impl IntoPy<PyObject> for Param {
     fn into_py(self, py: Python) -> PyObject {
         match &self {
             Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::ParameterExpression(val) => val.object.clone_ref(py),
             Self::Obj(val) => val.clone_ref(py),
         }
     }
@@ -251,7 +255,7 @@ impl ToPyObject for Param {
     fn to_object(&self, py: Python) -> PyObject {
         match self {
             Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::ParameterExpression(val) => val.object.clone_ref(py),
             Self::Obj(val) => val.clone_ref(py),
         }
     }
@@ -263,7 +267,7 @@ impl Param {
             let other_bound = other.bind(py);
             other_bound.eq(one)
         })
-        .unwrap()
+        .unwrap_or_default()
     }
 }
 
@@ -273,9 +277,7 @@ impl PartialEq for Param {
             (Param::Float(s), Param::Float(other)) => s == other,
             (Param::Float(_), Param::ParameterExpression(_)) => false,
             (Param::ParameterExpression(_), Param::Float(_)) => false,
-            (Param::ParameterExpression(s), Param::ParameterExpression(other)) => {
-                Self::compare(s, other)
-            }
+            (Param::ParameterExpression(s), Param::ParameterExpression(other)) => s.id == other.id,
             (Param::ParameterExpression(_), Param::Obj(_)) => false,
             (Param::Float(_), Param::Obj(_)) => false,
             (Param::Obj(_), Param::ParameterExpression(_)) => false,
@@ -283,6 +285,13 @@ impl PartialEq for Param {
             (Param::Obj(one), Param::Obj(other)) => Self::compare(one, other),
         }
     }
+}
+
+/// ParamExpIdentifier
+#[derive(Debug, Clone)]
+pub struct ParamExpRep {
+    id: String,
+    object: PyObject,
 }
 
 /// Temporary interpretation of Gate
@@ -318,7 +327,7 @@ impl FromPyObject<'_> for GateRep {
             Ok(params) => params.extract::<Vec<Param>>().ok(),
             Err(_) => Some(vec![]),
         }
-        .unwrap();
+        .unwrap_or_default();
         Ok(Self {
             object: ob.into(),
             num_qubits,
@@ -360,16 +369,16 @@ impl FromPyObject<'_> for CircuitRep {
             Ok(label) => label.extract::<String>().ok(),
             Err(_) => None,
         };
-        let params = match ob.getattr("params") {
-            Ok(params) => params.extract::<Vec<Param>>().ok(),
-            Err(_) => Some(vec![]),
-        }
-        .unwrap();
+        let params = ob
+            .getattr("parameters")?
+            .getattr("data")?
+            .extract::<Vec<Param>>()
+            .unwrap_or_default();
         let data = match ob.getattr("data") {
             Ok(data) => data.extract::<Vec<CircuitInstructionRep>>().ok(),
             Err(_) => Some(vec![]),
         }
-        .unwrap();
+        .unwrap_or_default();
         Ok(Self {
             object: ob.into(),
             num_qubits,
@@ -391,12 +400,14 @@ impl IntoPy<PyObject> for CircuitRep {
 #[derive(Debug, Clone)]
 pub struct CircuitInstructionRep {
     operation: GateRep,
+    qubits: Vec<PyObject>,
 }
 
 impl FromPyObject<'_> for CircuitInstructionRep {
     fn extract(ob: &'_ PyAny) -> PyResult<Self> {
+        let qubits = ob.getattr("qubits")?.extract::<Vec<PyObject>>()?;
         let operation = ob.getattr("operation")?.extract::<GateRep>()?;
-        Ok(Self { operation })
+        Ok(Self { operation, qubits })
     }
 }
 
@@ -470,7 +481,7 @@ impl EquivalenceLibrary {
     ///             False otherwise.
     pub fn has_entry(&self, gate: GateRep) -> bool {
         let key = Key {
-            name: gate.name.unwrap(),
+            name: gate.name.unwrap_or_default(),
             num_qubits: gate.num_qubits.unwrap_or_default(),
         };
         self.key_to_node_index.contains_key(&key)
@@ -589,8 +600,8 @@ impl EquivalenceLibrary {
         raise_if_param_mismatch(&gate.params, &equivalent_circuit.params)?;
 
         let key: Key = Key {
-            name: gate.name.unwrap(),
-            num_qubits: gate.num_qubits.unwrap(),
+            name: gate.name.unwrap_or_default(),
+            num_qubits: gate.num_qubits.unwrap_or_default(),
         };
         let equiv = Equivalence {
             params: gate.params,
@@ -604,7 +615,7 @@ impl EquivalenceLibrary {
         let sources: HashSet<Key> =
             HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
                 name: inst.operation.name.to_owned().unwrap_or_default(),
-                num_qubits: inst.operation.num_qubits.unwrap_or_default(),
+                num_qubits: inst.qubits.len(),
             }));
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (
@@ -687,19 +698,28 @@ fn raise_if_param_mismatch(
     gate_params: &[Param],
     circuit_parameters: &[Param],
 ) -> Result<(), EquivalenceError> {
-    let gate_parameters: Vec<&Param> = gate_params
+    let uid_gate_parameters: HashSet<String> = gate_params
         .iter()
-        .filter(|x| matches!(x, Param::ParameterExpression(_)))
+        .filter_map(|x| match x {
+            Param::ParameterExpression(param) => Some(param.id.to_string()),
+            Param::Float(_) => None,
+            Param::Obj(_) => None,
+        })
         .collect();
-    if circuit_parameters
+    let uid_circuit_parameters: HashSet<String> = circuit_parameters
         .iter()
-        .any(|x| gate_parameters.contains(&x))
-    {
+        .filter_map(|x| match x {
+            Param::ParameterExpression(param) => Some(param.id.to_string()),
+            Param::Float(_) => None,
+            Param::Obj(_) => None,
+        })
+        .collect();
+    if uid_gate_parameters != uid_circuit_parameters {
         return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
-            of different parameters. Gate params: {:?}. \
-            Circuit params: {:?}.",
-            gate_parameters, circuit_parameters
+            of different parameters. Gate params: {:#?}. \
+            Circuit params: {:#?}.",
+            gate_params, circuit_parameters
         )));
     }
     Ok(())
@@ -729,7 +749,12 @@ fn rebind_equiv(
     let param_map: Vec<(Param, Param)> = equiv_params
         .into_iter()
         .filter_map(|param| {
-            if matches!(param, Param::Obj(_)) {
+            println!(
+                "{:#?}: is expr: {}",
+                param,
+                matches!(param, Param::ParameterExpression(_))
+            );
+            if matches!(param, Param::ParameterExpression(_)) {
                 Some(param)
             } else {
                 None
@@ -739,11 +764,11 @@ fn rebind_equiv(
         .collect();
     let dict = param_map.as_slice().into_py_dict_bound(py);
     let kwargs = [("inplace", false), ("flat_input", true)].into_py_dict_bound(py);
-    let equiv =
+    let new_equiv =
         equiv_circuit
             .object
             .call_method_bound(py, "assign_parameters", (dict,), Some(&kwargs))?;
-    equiv.extract::<CircuitRep>(py)
+    new_equiv.extract::<CircuitRep>(py)
 }
 
 // Errors
