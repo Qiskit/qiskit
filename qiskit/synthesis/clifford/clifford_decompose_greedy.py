@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
+def synth_clifford_greedy(clifford_original: Clifford) -> QuantumCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` based
     on the greedy Clifford compiler that is described in Appendix A of
     Bravyi, Hu, Maslov and Shaydulin [1].
@@ -57,47 +57,37 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
 
-    num_qubits = clifford.num_qubits
-    circ = QuantumCircuit(num_qubits, name=str(clifford))
+    num_qubits = clifford_original.num_qubits
+    circ = QuantumCircuit(num_qubits, name=str(clifford_original))
     qubit_list = list(range(num_qubits))
-    clifford_cpy = clifford.copy()
+    clifford_current = clifford_original.copy()
 
     # Reducing the original Clifford to identity
     # via symplectic Gaussian elimination
     while len(qubit_list) > 0:
-        # Calculate the adjoint of clifford_cpy without the phase
-        clifford_adj = clifford_cpy.copy()
-        tmp = clifford_adj.destab_x.copy()
-        clifford_adj.destab_x = clifford_adj.stab_z.T
-        clifford_adj.destab_z = clifford_adj.destab_z.T
-        clifford_adj.stab_x = clifford_adj.stab_x.T
-        clifford_adj.stab_z = tmp.T
 
+        # Calculate the adjoint of clifford_current without the phase
         list_greedy_cost = []
+
         for qubit in qubit_list:
             pauli_x = Pauli(
                 (
-                    clifford_adj.destab_z[qubit],
-                    clifford_adj.destab_x[qubit],
-                    2 * clifford_adj.phase[qubit],
+                    clifford_current.destab_z[:, qubit],
+                    clifford_current.stab_z[:, qubit],
+                    0,
                 )
             )
             pauli_z = Pauli(
                 (
-                    clifford_adj.stab_z[qubit],
-                    clifford_adj.stab_x[qubit],
-                    2 * clifford_adj.phase[num_qubits + qubit],
+                    clifford_current.destab_x[:, qubit],
+                    clifford_current.stab_x[:, qubit],
+                    0,
                 )
             )
 
-            list_pairs = []
-            pauli_count = 0
-
             # Compute the CNOT cost in order to find the qubit with the minimal cost
-            for i in qubit_list:
-                typeq = _from_pair_paulis_to_type(pauli_x, pauli_z, i)
-                list_pairs.append(typeq)
-                pauli_count += 1
+            list_pairs = [_from_pair_paulis_to_type(pauli_x, pauli_z, i) for i in qubit_list]
+
             cost = _compute_greedy_cost(list_pairs)
             list_greedy_cost.append([cost, qubit])
 
@@ -106,33 +96,33 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
         # Gaussian elimination step for the qubit with minimal CNOT cost
         pauli_x = Pauli(
             (
-                clifford_adj.destab_z[min_qubit],
-                clifford_adj.destab_x[min_qubit],
-                2 * clifford_adj.phase[min_qubit],
+                clifford_current.destab_z[:, min_qubit],
+                clifford_current.stab_z[:, min_qubit],
+                0,
             )
         )
         pauli_z = Pauli(
             (
-                clifford_adj.stab_z[min_qubit],
-                clifford_adj.stab_x[min_qubit],
-                2 * clifford_adj.phase[num_qubits + min_qubit],
+                clifford_current.destab_x[:, min_qubit],
+                clifford_current.stab_x[:, min_qubit],
+                0,
             )
         )
 
         # Compute the decoupling operator of cliff_ox and cliff_oz
         decouple_circ, decouple_cliff = _calc_decoupling(
-            pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, clifford_cpy
+            pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, clifford_current
         )
         circ = circ.compose(decouple_circ)
 
         # Now the clifford acts trivially on min_qubit
-        clifford_cpy = decouple_cliff.adjoint().compose(clifford_cpy)
+        clifford_current = decouple_cliff.adjoint().compose(clifford_current)
         qubit_list.remove(min_qubit)
 
     # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
-        stab = clifford_cpy.stab_phase[qubit]
-        destab = clifford_cpy.destab_phase[qubit]
+        stab = clifford_current.stab_phase[qubit]
+        destab = clifford_current.destab_phase[qubit]
         if destab and stab:
             circ.y(qubit)
         elif not destab and stab:
