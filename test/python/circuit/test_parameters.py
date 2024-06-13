@@ -1368,10 +1368,8 @@ class TestParameters(QiskitTestCase):
         with self.subTest("enlargen"):
             vec.resize(3)
             self.assertEqual(len(vec), 3)
-            # ensure we still have the same instance not a copy with the same name
-            # this is crucial for adding parameters to circuits since we cannot use the same
-            # name if the instance is not the same
-            self.assertIs(element, vec[1])
+            # ensure we still have an element with the same uuid
+            self.assertEqual(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
 
     def test_raise_if_sub_unknown_parameters(self):
