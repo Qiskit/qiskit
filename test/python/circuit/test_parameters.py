@@ -1368,10 +1368,8 @@ class TestParameters(QiskitTestCase):
         with self.subTest("enlargen"):
             vec.resize(3)
             self.assertEqual(len(vec), 3)
-            # ensure we still have the same instance not a copy with the same name
-            # this is crucial for adding parameters to circuits since we cannot use the same
-            # name if the instance is not the same
-            self.assertIs(element, vec[1])
+            # ensure we still have an element with the same uuid
+            self.assertEqual(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
 
     def test_raise_if_sub_unknown_parameters(self):
@@ -1425,6 +1423,7 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
         self.assertEqual(bound_expr, 2.3)
+        self.assertEqual(hash(bound_expr), hash(2.3))
 
     def test_abs_function_when_bound(self):
         """Verify expression can be used with
@@ -1754,6 +1753,13 @@ class TestParameterExpressions(QiskitTestCase):
         bound_expr2 = expr2.bind({x: 1, y: 2, z: 3})
 
         self.assertEqual(float(bound_expr2), 3)
+
+    def test_positive_expression(self):
+        """This tests parameter unary plus."""
+        x = Parameter("x")
+        y = +x
+        self.assertEqual(float(y.bind({x: 1})), 1.0)
+        self.assertIsInstance(+x, type(-x))
 
     def test_standard_cu3(self):
         """This tests parameter negation in standard extension gate cu3."""

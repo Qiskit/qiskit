@@ -18,7 +18,7 @@ import io
 import re
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
-from typing import Union, List, Any
+from typing import Union, List, Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -31,7 +31,7 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout, Layout
 
-_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
+_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
 
 
 class PassManager(BasePassManager):
@@ -121,6 +121,7 @@ class PassManager(BasePassManager):
         # Ordered list of original qubits
         original_qubits_reverse = {v: k for k, v in original_qubit_indices.items()}
         original_qubits = []
+        # pylint: disable-next=consider-using-enumerate
         for i in range(len(original_qubits_reverse)):
             original_qubits.append(original_qubits_reverse[i])
 
@@ -139,7 +140,7 @@ class PassManager(BasePassManager):
         self.property_set["layout"] = t_initial_layout
         self.property_set["final_layout"] = new_final_layout
 
-    def append(
+    def append(  # pylint:disable=arguments-renamed
         self,
         passes: Task | list[Task],
     ) -> None:
@@ -153,7 +154,7 @@ class PassManager(BasePassManager):
         """
         super().append(tasks=passes)
 
-    def replace(
+    def replace(  # pylint:disable=arguments-renamed
         self,
         index: int,
         passes: Task | list[Task],
@@ -167,7 +168,7 @@ class PassManager(BasePassManager):
         super().replace(index, tasks=passes)
 
     # pylint: disable=arguments-differ
-    def run(
+    def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
