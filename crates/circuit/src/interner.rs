@@ -10,10 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
-use pyo3::{IntoPy, PyObject, Python};
 use std::hash::Hash;
 use std::sync::Arc;
+
+use hashbrown::HashMap;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Index(u32);
@@ -41,6 +43,12 @@ impl IntoPy<PyObject> for Index {
 }
 
 pub struct CacheFullError;
+
+impl From<CacheFullError> for PyErr {
+    fn from(_: CacheFullError) -> Self {
+        PyRuntimeError::new_err("The bit operands cache is full!")
+    }
+}
 
 /// An append-only data structure for interning generic
 /// Rust types.

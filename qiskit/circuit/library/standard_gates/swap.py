@@ -17,6 +17,7 @@ import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _SWAP_ARRAY = numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -57,6 +58,8 @@ class SwapGate(SingletonGate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
+
+    _standard_gate = StandardGate.SwapGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SWAP gate."""
