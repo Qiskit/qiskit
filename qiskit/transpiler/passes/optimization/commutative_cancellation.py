@@ -16,7 +16,6 @@ from collections import defaultdict
 import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
@@ -72,9 +71,6 @@ class CommutativeCancellation(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-
-        Raises:
-            TranspilerError: when the 1-qubit rotation gates are not found
         """
         var_z_gate = None
         z_var_gates = [gate for gate in dag.count_ops().keys() if gate in self._var_z_map]
@@ -146,7 +142,7 @@ class CommutativeCancellation(TransformationPass):
                         or len(current_node.qargs) != 1
                         or current_node.qargs[0] != run_qarg
                     ):
-                        raise TranspilerError("internal error")
+                        raise RuntimeError("internal error")
 
                     if current_node.name in ["p", "u1", "rz", "rx"]:
                         current_angle = float(current_node.op.params[0])
@@ -157,7 +153,7 @@ class CommutativeCancellation(TransformationPass):
                     elif current_node.name == "s":
                         current_angle = np.pi / 2
                     else:
-                        raise TranspilerError(
+                        raise RuntimeError(
                             f"Angle for operation {current_node.name } is not defined"
                         )
 
@@ -171,8 +167,8 @@ class CommutativeCancellation(TransformationPass):
                     new_op = var_z_gate(total_angle)
                 elif cancel_set_key[0] == "x_rotation":
                     new_op = RXGate(total_angle)
-                else:  # pragma: no cover
-                    raise TranspilerError("impossible case")
+                else:
+                    raise RuntimeError("impossible case")
 
                 new_op_phase = 0
                 if np.mod(total_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
