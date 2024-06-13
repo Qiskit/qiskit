@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position,wrong-import-order
 
 """Main Qiskit public functionality."""
 
@@ -52,37 +52,35 @@ if sys.version_info < (3, 9):
     )
 
 
-import qiskit._accelerate
+from . import _accelerate
 import qiskit._numpy_compat
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
-sys.modules["qiskit._accelerate.circuit"] = qiskit._accelerate.circuit
-sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
-    qiskit._accelerate.convert_2q_block_matrix
-)
-sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
-sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
-sys.modules["qiskit._accelerate.isometry"] = qiskit._accelerate.isometry
-sys.modules["qiskit._accelerate.uc_gate"] = qiskit._accelerate.uc_gate
+sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
+sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
+sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
+sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
+sys.modules["qiskit._accelerate.isometry"] = _accelerate.isometry
+sys.modules["qiskit._accelerate.uc_gate"] = _accelerate.uc_gate
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
-    qiskit._accelerate.euler_one_qubit_decomposer
+    _accelerate.euler_one_qubit_decomposer
 )
-sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
-sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimize_1q_gates
-sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
-sys.modules["qiskit._accelerate.qasm2"] = qiskit._accelerate.qasm2
-sys.modules["qiskit._accelerate.qasm3"] = qiskit._accelerate.qasm3
-sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
-sys.modules["qiskit._accelerate.sabre"] = qiskit._accelerate.sabre
-sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
-sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
-sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
-sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
-sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
-sys.modules["qiskit._accelerate.permutation"] = qiskit._accelerate.permutation
+sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
+sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
+sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
+sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
+sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
+sys.modules["qiskit._accelerate.results"] = _accelerate.results
+sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
+sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
+sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
+sys.modules["qiskit._accelerate.stochastic_swap"] = _accelerate.stochastic_swap
+sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
+sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
+sys.modules["qiskit._accelerate.permutation"] = _accelerate.permutation
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
