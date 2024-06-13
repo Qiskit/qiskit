@@ -837,7 +837,7 @@ class QASM3Builder:
                     statements.append(self.build_if_statement(instruction))
                 elif isinstance(instruction.operation, SwitchCaseOp):
                     statements.extend(self.build_switch_statement(instruction))
-                else:  # pragma: no cover
+                else:
                     raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
                 continue
             # Build the node, ignoring any condition.
@@ -1130,7 +1130,7 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
-    raise RuntimeError(f"unhandled expr type '{type_}'")  # pragma: no cover
+    raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
 class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
