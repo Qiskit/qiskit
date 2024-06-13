@@ -60,9 +60,9 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._basis_gates is None and self._target is None:
             return dag
 
-        basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
+        device_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
         if self._target is None:
-            basic_insts |= set(self._basis_gates)
+            device_insts |= set(self._basis_gates)
 
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
@@ -83,7 +83,7 @@ class UnrollCustomDefinitions(TransformationPass):
                         qargs=tuple(dag.find_bit(x).index for x in node.qargs),
                     )
                 else:
-                    inst_supported = node.name in basic_insts
+                    inst_supported = node.name in device_insts
 
                 if inst_supported or self._equiv_lib.has_entry(node.op):
                     continue
