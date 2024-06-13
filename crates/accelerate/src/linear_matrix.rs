@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use ndarray::{s, ArrayViewMut2, Axis};
-use numpy::PyReadwriteArray2;
+use numpy::{PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
 // Perform ROW operation on a matrix mat
@@ -119,9 +119,23 @@ fn _gauss_elimination(
     let _perm = gauss_elimination_with_perm(view, ncols, full_elim);
 }
 
+#[pyfunction]
+#[pyo3(signature = (mat))]
+// Given a boolean matrix A after Gaussian elimination, computes its rank
+// (i.e. simply the number of nonzero rows)"""
+fn _compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+    let view = mat.as_array();
+    let rank: usize = view
+        .axis_iter(Axis(0))
+        .map(|row| row.fold(false, |out, val| out | *val) as usize)
+        .sum();
+    Ok(rank.to_object(py))
+}
+
 #[pymodule]
 pub fn linear_matrix(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_gauss_elimination_with_perm))?;
     m.add_wrapped(wrap_pyfunction!(_gauss_elimination))?;
+    m.add_wrapped(wrap_pyfunction!(_compute_rank_after_gauss_elim))?;
     Ok(())
 }

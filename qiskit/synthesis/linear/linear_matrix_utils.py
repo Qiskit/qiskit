@@ -17,7 +17,11 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=unused-import
-from qiskit._accelerate.linear_matrix import _gauss_elimination, _gauss_elimination_with_perm
+from qiskit._accelerate.linear_matrix import (
+    _gauss_elimination,
+    _gauss_elimination_with_perm,
+    _compute_rank_after_gauss_elim,
+)
 
 
 def check_invertible_binary_matrix(mat: np.ndarray):
@@ -82,13 +86,13 @@ def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
     # concatenate the matrix and identity
     mat1 = np.concatenate((mat.astype(bool), np.eye(n, dtype=bool)), axis=1)
     _gauss_elimination(mat1, None, full_elim=True)
-    mat1 = mat1.astype(int)
 
     r = _compute_rank_after_gauss_elim(mat1[:, 0:n])
 
     if r < n:
         raise QiskitError("The matrix is not invertible.")
 
+    mat1 = mat1.astype(int)
     matinv = mat1[:, n : 2 * n]
 
     if verify:
@@ -96,12 +100,6 @@ def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
         assert np.array_equal(mat2, np.eye(n))
 
     return matinv
-
-
-def _compute_rank_after_gauss_elim(mat):
-    """Given a boolean matrix A after Gaussian elimination, computes its rank
-    (i.e. simply the number of nonzero rows)"""
-    return np.sum(mat.any(axis=1))
 
 
 def _compute_rank(mat):
