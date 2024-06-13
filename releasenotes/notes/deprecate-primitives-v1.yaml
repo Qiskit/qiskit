@@ -1,5 +1,5 @@
 ---
-deprecation:
+deprecations_primitives:
   - |
     BackendEstimator has been deprecated. Use BackendEstimatorV2 instead.
     BackendSampler has been deprecated. Use BackendSamplerV2 instead.
