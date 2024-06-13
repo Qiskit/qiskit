@@ -18,7 +18,7 @@ use crate::circuit_instruction::{
 use crate::imports::{BUILTIN_LIST, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
 use crate::operations::{Operation, OperationType, Param, StandardGate};
-use crate::parameter_table::{ParamEntry, ParamTable};
+use crate::parameter_table::{ParamEntry, ParamTable, GLOBAL_PHASE_INDEX};
 use crate::{Clbit, Qubit, SliceOrInt};
 
 use pyo3::exceptions::{PyIndexError, PyValueError};
@@ -257,7 +257,7 @@ impl CircuitData {
     /// Remove an index's entries from the parameter table.
     fn remove_from_parameter_table(&mut self, py: Python, inst_index: usize) -> PyResult<()> {
         let list_builtin = BUILTIN_LIST.get_bound(py);
-        if inst_index == usize::MAX {
+        if inst_index == GLOBAL_PHASE_INDEX {
             if let Param::ParameterExpression(global_phase) = &self.global_phase {
                 let temp: PyObject = global_phase.getattr(py, intern!(py, "parameters"))?;
                 let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
@@ -1351,14 +1351,12 @@ impl CircuitData {
     #[setter]
     pub fn global_phase(&mut self, py: Python, angle: Param) -> PyResult<()> {
         let list_builtin = BUILTIN_LIST.get_bound(py);
-        self.remove_from_parameter_table(py, usize::MAX)?;
+        self.remove_from_parameter_table(py, GLOBAL_PHASE_INDEX)?;
         match angle {
             Param::Float(angle) => {
                 self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
             }
             Param::ParameterExpression(angle) => {
-                // usize::MAX is the global phase sentinel value for the inst index
-                let inst_index = usize::MAX;
                 let temp: PyObject = angle.getattr(py, intern!(py, "parameters"))?;
                 let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
 
@@ -1368,9 +1366,9 @@ impl CircuitData {
                         .getattr(py, intern!(py, "int"))?
                         .extract(py)?;
                     match self.param_table.table.get_mut(&param_uuid) {
-                        Some(entry) => entry.add(inst_index, param_index),
+                        Some(entry) => entry.add(GLOBAL_PHASE_INDEX, param_index),
                         None => {
-                            let new_entry = ParamEntry::new(inst_index, param_index);
+                            let new_entry = ParamEntry::new(GLOBAL_PHASE_INDEX, param_index);
                             self.param_table.insert(py, param_obj, new_entry)?;
                         }
                     };
@@ -1385,7 +1383,7 @@ impl CircuitData {
     /// Get the global_phase sentinel value
     #[classattr]
     pub const fn global_phase_param_index() -> usize {
-        usize::MAX
+        GLOBAL_PHASE_INDEX
     }
 
     // Below are functions to interact with the parameter table. These methods

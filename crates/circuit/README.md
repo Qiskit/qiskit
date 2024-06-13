@@ -56,14 +56,14 @@ There is also an `Operation` trait defined which defines the common access patte
 4 types along with the `OperationType` parent. This trait defines methods to access the standard data
 model attributes of operations in Qiskit. This includes things like the name, number of qubits, the matrix, the definition, etc.
 
-## ParameterTable
+## ParamTable
 
-The `ParameterTable` struct is used to track which circuit instructions are using `ParameterExpression`
+The `ParamTable` struct is used to track which circuit instructions are using `ParameterExpression`
 objects for any of their parameters. The Python space `ParameterExpression` is comprised of a symengine
 symbolic expression that defines operations using `Parameter` objects. Each `Parameter` is modeled by
 a uuid and a name to uniquely identify it. The parameter table maps the `Parameter` objects to the
-`CircuitInstruction` in the `CircuitData` that are using them. The `Parameter` comprised of 3 `HashMaps` internally that map the uuid (as `u128`, which is accesible in Python by using `uuid.int`) to the `ParameterEntry`, the `name` to the uuid, and the uuid to the PyObject for the actual `Parameter`.
+`CircuitInstruction` in the `CircuitData` that are using them. The `Parameter` comprised of 3 `HashMaps` internally that map the uuid (as `u128`, which is accesible in Python by using `uuid.int`) to the `ParamEntry`, the `name` to the uuid, and the uuid to the PyObject for the actual `Parameter`.
 
-The `ParameterEntry` is just a `HashSet` of 2-tuples with usize elements. The two usizes represent the instruction index in the `CircuitData` and the index of the `CircuitInstruction.params` field of
+The `ParamEntry` is just a `HashSet` of 2-tuples with usize elements. The two usizes represent the instruction index in the `CircuitData` and the index of the `CircuitInstruction.params` field of
 a give instruction where the given `Parameter` is used in the circuit. If the instruction index is
-`usize::MAX` that points to the global phase property of the circuit instead of a `CircuitInstruction`.
+`GLOBAL_PHASE_MAX`, that points to the global phase property of the circuit instead of a `CircuitInstruction`.

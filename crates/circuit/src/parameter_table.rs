@@ -17,6 +17,9 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 use hashbrown::{HashMap, HashSet};
 
+/// The index value in a `ParamEntry` that indicates the global phase.
+pub const GLOBAL_PHASE_INDEX: usize = usize::MAX;
+
 #[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub(crate) struct ParamEntryKeys {
     keys: Vec<(usize, usize)>,
