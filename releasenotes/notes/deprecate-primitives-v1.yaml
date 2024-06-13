@@ -1,0 +1,14 @@
+---
+deprecation:
+  - |
+    BackendEstimator has been deprecated. Use BackendEstimatorV2 instead.
+    BackendSampler has been deprecated. Use BackendSamplerV2 instead.
+    Estimator has been deprecated. Use StatevectorEstimator instead.
+    Sampler has been deprecated. Use StatevectorSampler instead.
+
+    BaseEstimatorV1 has been deprecated. Use BaseEstimatorV2 instead.
+    BasePrimitive has been deprecated. Use BasePrimitiveV2 instead.
+    BasePrimitiveResult has been deprecated. Use PrimitiveResult class in `qiskit.primitives.containers` instead.
+    BaseSamplerV1 has been deprecated. Use BaseSamplerV2 instead.
+
+    Functions: init_circuit, init_observable and final_measurement_mapping has been deprecated. There is no replacement.

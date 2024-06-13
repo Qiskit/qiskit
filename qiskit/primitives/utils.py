@@ -25,8 +25,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import PauliList, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(since="1.0", additional_msg="There is no replacement for this.")
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state by converting the input to a quantum circuit.
 
@@ -45,6 +47,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
+@deprecate_func(since="1.0", additional_msg="There is no replacement for this.")
 def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
@@ -68,6 +71,7 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
         return SparsePauliOp(observable)
 
 
+@deprecate_func(since="1.0", additional_msg="There is no replacement for this.")
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.
 

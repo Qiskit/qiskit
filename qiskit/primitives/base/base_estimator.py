@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
 from ..containers import (
     DataBin,
@@ -103,6 +104,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 
     __hash__ = None
 
+    @deprecate_func(since="1.0", additional_msg="Use BaseEstimatorV2 instead.")
     def __init__(
         self,
         *,

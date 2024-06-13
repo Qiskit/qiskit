@@ -35,6 +35,7 @@ from qiskit.transpiler.passes import (
     Optimize1qGatesDecomposition,
     SetLayout,
 )
+from qiskit.utils.deprecation import deprecate_func
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -102,6 +103,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     precludes doing any provider- or backend-specific optimizations.
     """
 
+    @deprecate_func(since="1.0", additional_msg="Use BackendEstimatorV2 instead.")
     def __init__(
         self,
         backend: BackendV1 | BackendV2,

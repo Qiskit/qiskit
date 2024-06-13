@@ -21,6 +21,7 @@ from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
+from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.primitive_result import PrimitiveResult
 from ..containers.sampler_pub import SamplerPubLike
@@ -96,6 +97,7 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
 
     __hash__ = None
 
+    @deprecate_func(since="1.0", additional_msg="Use BaseSamplerV2 instead.")
     def __init__(
         self,
         *,

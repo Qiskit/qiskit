@@ -44,22 +44,26 @@ class TestBasePrimitiveResult(QiskitTestCase):
     @data(0, 1.2, True, "sequence", b"sequence", {"name": "value"})
     def test_post_init_type_error(self, field_1):
         """Tests post init type error."""
-        self.assertRaises(TypeError, Result, *(field_1, []))
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(TypeError, Result, *(field_1, []))
 
     @data(([1], []), ([], [1]), ([1, 2], []), ([1], [1, 2]))
     @unpack
     def test_post_init_value_error(self, field_1, field_2):
         """Tests post init value error."""
-        self.assertRaises(ValueError, Result, *(field_1, field_2))
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(ValueError, Result, *(field_1, field_2))
 
     def test_field_names(self):
         """Tests field names ("field_1", "field_2")."""
-        result = Result([], [])
+        with self.assertWarns(DeprecationWarning):
+            result = Result([], [])
         self.assertEqual(result._field_names, ("field_1", "field_2"))
 
     @data(([], []), ([0], [0]), ([0], [1]))
     @unpack
     def test_field_values(self, field_1, field_2):
         """Tests field values ({field_1}, {field_2})."""
-        result = Result(field_1, field_2)
+        with self.assertWarns(DeprecationWarning):
+            result = Result(field_1, field_2)
         self.assertEqual(result._field_values, (field_1, field_2))
