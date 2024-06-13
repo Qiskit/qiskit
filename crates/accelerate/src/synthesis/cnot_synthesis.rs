@@ -11,23 +11,21 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use ndarray::{s, Array1, Array2, ArrayView2};
+use ndarray::{s, Array1, Array2, ArrayView2, Axis};
 use std::cmp;
 
 // from Shelly's PR: consolidate later
-fn _row_op(mat: &mut Array2<bool>, ctrl: usize, trgt: usize) {
-    let row0 = mat.row(ctrl).to_owned();
-    let mut row1 = mat.row_mut(trgt);
+fn _add(mat: &mut Array2<bool>, axis: Axis, ctrl: usize, trgt: usize) {
+    let row0 = mat.index_axis(axis, ctrl).to_owned();
+    let mut row1 = mat.index_axis_mut(axis, trgt);
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
-/// Ceil the fraction ``numerator/denominator``
-fn _floor_usize_fraction(numerator: &usize, denominator: &usize) -> usize {
-    let base: usize = numerator / denominator;
-    if numerator % denominator != 0 {
-        base - 1
+fn _index(axis: Axis, i: &usize, j: &usize) -> (usize, usize) {
+    if axis.index() == 0 {
+        (*i, *j)
     } else {
-        base
+        (*j, *i)
     }
 }
 
@@ -36,9 +34,9 @@ pub fn pmh_synth(
     section_size: &usize,
 ) -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
     let mut mat = matrix.to_owned();
-    let lower_cnots = lower_cnot_synth(&mut mat, section_size);
-    let mut mat_t = mat.t().to_owned();
-    let upper_cnots = lower_cnot_synth(&mut mat_t, section_size);
+    let lower_cnots = lower_cnot_synth(&mut mat, section_size, &0);
+    // let mut mat_t = mat.t().to_owned();
+    let upper_cnots = lower_cnot_synth(&mut mat, section_size, &1);
     (lower_cnots, upper_cnots)
 }
 
@@ -51,6 +49,10 @@ fn lower_cnot_synth(
     // The vector of CNOTs to be applied. Called ``circuit`` here for consistency with the paper.
     let mut circuit: Vec<(usize, usize)> = Vec::new();
     let cutoff = 1;
+
+    // to apply to the transposed matrix, we can just set axis = 1
+    let row_axis = Axis(*axis);
+    // let col_axis = Axis((*axis + 1) % 2);
 
     // get number of columns (same as rows) and the number of sections
     let n = matrix.raw_dim()[0];
@@ -65,7 +67,7 @@ fn lower_cnot_synth(
         // iterate over the rows (note we only iterate from the diagonal downwards)
         for row_idx in (section - 1) * section_size..n {
             let pattern: Array1<bool> = matrix
-                .slice_axis(row_axis, s![row_idx])
+                .index_axis(row_axis, row_idx)
                 .slice(section_slice)
                 .to_owned();
             // let pattern: Array1<bool> = matrix.row(row_idx).slice(section_slice).to_owned();
@@ -76,7 +78,7 @@ fn lower_cnot_synth(
                     // store CX location
                     circuit.push((patterns[&pattern], row_idx));
                     // remove the row
-                    _row_op(matrix, patterns[&pattern], row_idx);
+                    _add(matrix, row_axis, patterns[&pattern], row_idx);
                 } else {
                     patterns.insert(pattern, row_idx);
                 }
@@ -91,27 +93,28 @@ fn lower_cnot_synth(
             }
 
             for r in col_idx + 1..n {
-                if matrix[[r, col_idx]] {
+                // if matrix[[r, col_idx]] {
+                if matrix[_index(row_axis, &r, &col_idx)] {
                     if !diag_el {
-                        _row_op(matrix, r, col_idx); // remove row with index col_idx
+                        _add(matrix, row_axis, r, col_idx); // remove row with index col_idx
                         circuit.push((r, col_idx));
                         diag_el = true
                     }
-                    _row_op(matrix, col_idx, r); // remove row with index r
+                    _add(matrix, row_axis, col_idx, r); // remove row with index r
                     circuit.push((col_idx, r));
                 }
                 // check if the logical and between the two target rows has more ``true`` elements
                 // than ``cutoff``
                 if matrix
-                    .row(col_idx)
+                    .index_axis(row_axis, col_idx)
                     .iter()
-                    .zip(matrix.row(r).iter())
+                    .zip(matrix.index_axis(row_axis, r).iter())
                     .map(|(&i, &j)| i & j)
                     .filter(|&x| x)
                     .count()
                     > cutoff
                 {
-                    _row_op(matrix, r, col_idx);
+                    _add(matrix, row_axis, r, col_idx);
                     circuit.push((r, col_idx));
                 }
             }
