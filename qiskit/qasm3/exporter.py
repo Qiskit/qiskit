@@ -252,6 +252,9 @@ class GlobalNamespace:
     def __setitem__(self, name_str, instruction):
         self._data[name_str] = instruction.base_class
         self._data[id(instruction)] = name_str
+        ctrl_state = str(getattr(instruction, "ctrl_state", ""))
+
+        self._data[f"{instruction.name}_{ctrl_state}_{instruction.params}"] = name_str
 
     def __getitem__(self, key):
         if isinstance(key, Instruction):
@@ -262,7 +265,9 @@ class GlobalNamespace:
                 pass
             # Built-in gates.
             if key.name not in self._data:
-                raise KeyError(key)
+                # Registerd qiskit standard gate without stgates.inc
+                ctrl_state = str(getattr(key, "ctrl_state", ""))
+                return self._data[f"{key.name}_{ctrl_state}_{key.params}"]
             return key.name
         return self._data[key]
 
@@ -1102,7 +1107,8 @@ def _infer_variable_declaration(
         # _should_ be an intrinsic part of the parameter, or somewhere publicly accessible, but
         # Terra doesn't have those concepts yet.  We can only try and guess at the type by looking
         # at all the places it's used in the circuit.
-        for instruction, index in circuit._parameter_table[parameter]:
+        for instr_index, index in circuit._data._get_param(parameter.uuid.int):
+            instruction = circuit.data[instr_index].operation
             if isinstance(instruction, ForLoopOp):
                 # The parameters of ForLoopOp are (indexset, loop_parameter, body).
                 if index == 1:
