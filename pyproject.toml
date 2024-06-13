@@ -143,7 +143,7 @@ test-command = "stestr run --abbreviate"
 # tendency to crash if they're installed from source by `pip install`, and since
 # Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
 # restricting any dependencies that Numpy and Scipy might have.
-before-test = "pip install --only-binary=numpy,scipy numpy scipy | pip install -r requirements-dev.txt"
+before-test = "pip install --only-binary=numpy,scipy numpy scipy -r {project}/requirements-dev.txt"
 # Some jobs locally override the before-build and environment configuration if a
 # specific job override is needed. For example tier 1 platforms locally override
 # the before-build and environment configuration to enable PGO,
