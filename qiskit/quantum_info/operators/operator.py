@@ -430,11 +430,10 @@ class Operator(LinearOp):
                 final_permutation_inverse = _inverse_pattern(final_permutation)
                 op = op.apply_permutation(final_permutation_inverse, False)
             op = op.apply_permutation(initial_permutation_inverse, False)
-        else:
-            if final_layout is not None:
-                final_permutation = final_layout.to_permutation(circuit.qubits)
-                final_permutation_inverse = _inverse_pattern(final_permutation)
-                op = op.apply_permutation(final_permutation_inverse, False)
+        elif final_layout is not None:
+            final_permutation = final_layout.to_permutation(circuit.qubits)
+            final_permutation_inverse = _inverse_pattern(final_permutation)
+            op = op.apply_permutation(final_permutation_inverse, False)
 
         return op
 
