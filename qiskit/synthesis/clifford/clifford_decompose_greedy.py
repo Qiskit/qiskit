@@ -31,7 +31,7 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_greedy(clifford_original: Clifford) -> QuantumCircuit:
+def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` based
     on the greedy Clifford compiler that is described in Appendix A of
     Bravyi, Hu, Maslov and Shaydulin [1].
@@ -57,10 +57,10 @@ def synth_clifford_greedy(clifford_original: Clifford) -> QuantumCircuit:
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
 
-    num_qubits = clifford_original.num_qubits
-    circ = QuantumCircuit(num_qubits, name=str(clifford_original))
+    num_qubits = clifford.num_qubits
+    circ = QuantumCircuit(num_qubits, name=str(clifford))
     qubit_list = list(range(num_qubits))
-    clifford_current = clifford_original.copy()
+    clifford_current = clifford.copy()
 
     # Reducing the original Clifford to identity
     # via symplectic Gaussian elimination
