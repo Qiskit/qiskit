@@ -20,6 +20,7 @@ from .permutation_utils import (
     _get_ordered_swap,
     _pattern_to_swaps,
 )
+from qiskit._accelerate.permutation import _synth_permutation_acg
 
 
 def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
@@ -85,6 +86,7 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
            *Routing Permutations on Graphs Via Matchings.*,
            `(Full paper) <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
     """
+    return QuantumCircuit._from_circuit_data(_synth_permutation_acg(pattern))
 
     num_qubits = len(pattern)
     qc = QuantumCircuit(num_qubits)

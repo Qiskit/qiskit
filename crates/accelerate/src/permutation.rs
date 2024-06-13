@@ -14,7 +14,12 @@ use ndarray::{Array1, ArrayView1};
 use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use smallvec::smallvec;
 use std::vec::Vec;
+
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::Qubit;
 
 fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     let n = pattern.len();
@@ -135,6 +140,32 @@ fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
     swaps
 }
 
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Option<CircuitData>> {
+    let view = pattern.as_array();
+    let num_qubits = view.len();
+    let cycles = pattern_to_cycles(&view, &true);
+    let swaps = decompose_cycles(&cycles);
+
+    Ok(Some(
+        CircuitData::from_standard_gates(
+            py,
+            num_qubits as u32,
+            swaps.iter().map(|(i, j)| {
+                (
+                    StandardGate::SwapGate,
+                    smallvec![],
+                    smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                )
+            }),
+            Param::Float(0.0),
+        )
+        .expect("Something went wrong on Qiskit's Python side, nothing to do here!"),
+    ))
+    // let swaps_i64: Vec<(i64, i64)> = swaps.iter().map(|&x| (x.0 as i64, x.1 as i64)).collect();
+}
+
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
@@ -194,5 +225,6 @@ pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
     m.add_function(wrap_pyfunction!(_pattern_to_swaps, m)?)?;
+    m.add_function(wrap_pyfunction!(_synth_permutation_acg, m)?)?;
     Ok(())
 }
