@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-from qiskit.circuit.parametertable import ParameterTable, ParameterReferences
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -121,7 +120,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         regs.append(creg)
 
     clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
-    operation_map = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
+    operation_map = {}
 
     def fix_condition(op):
         original_id = id(op)
@@ -149,15 +148,6 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
     qc._data = data
-    qc._parameter_table = ParameterTable(
-        {
-            param: ParameterReferences(
-                (operation_map[id(operation)], param_index)
-                for operation, param_index in target._parameter_table[param]
-            )
-            for param in target._parameter_table
-        }
-    )
 
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase

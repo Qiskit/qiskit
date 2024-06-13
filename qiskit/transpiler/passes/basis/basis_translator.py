@@ -207,7 +207,7 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                    "https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes."
                     "BasisTranslator#translation-errors"
                 )
 
@@ -225,7 +225,7 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                "https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes."
                 "BasisTranslator#translation-errors"
             )
 

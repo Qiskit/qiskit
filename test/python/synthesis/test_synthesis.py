@@ -138,13 +138,13 @@ class CheckDecompositions(QiskitTestCase):
         """Context manager, asserts log is emitted at level DEBUG but no higher"""
         with self.assertLogs("qiskit.synthesis", "DEBUG") as ctx:
             yield
-        for i in range(len(ctx.records)):
+        for i, record in enumerate(ctx.records):
             self.assertLessEqual(
-                ctx.records[i].levelno,
+                record.levelno,
                 logging.DEBUG,
                 msg=f"Unexpected logging entry: {ctx.output[i]}",
             )
-            self.assertIn("Requested fidelity:", ctx.records[i].getMessage())
+            self.assertIn("Requested fidelity:", record.getMessage())
 
     def assertRoundTrip(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
