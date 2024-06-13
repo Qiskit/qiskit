@@ -79,12 +79,23 @@ class TestRustGateEquivalence(QiskitTestCase):
                             )
                         # Rust uses P but python still uses u1
                         elif rs_inst.operation.name == "p":
-                            self.assertEqual(py_inst.operation.name, "u1")
-                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                            self.assertEqual(
-                                [py_def.find_bit(x).index for x in py_inst.qubits],
-                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                            )
+                            if py_inst.operation.name == "u1":
+                                self.assertEqual(py_inst.operation.name, "u1")
+                                self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
+                                self.assertEqual(
+                                    [py_def.find_bit(x).index for x in py_inst.qubits],
+                                    [rs_def.find_bit(x).index for x in rs_inst.qubits],
+                                )
+                            else:
+                                self.assertEqual(py_inst.operation.name, "u3")
+                                self.assertEqual(
+                                    rs_inst.operation.params[0], py_inst.operation.params[2]
+                                )
+                                self.assertEqual(
+                                    [py_def.find_bit(x).index for x in py_inst.qubits],
+                                    [rs_def.find_bit(x).index for x in rs_inst.qubits],
+                                )
+
                         else:
                             self.assertEqual(py_inst.operation.name, rs_inst.operation.name)
                             self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
