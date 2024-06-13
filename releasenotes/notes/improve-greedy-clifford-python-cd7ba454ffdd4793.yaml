@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Improved the performance of :func:`qiskit.synthesis.synth_clifford_greedy`
+    by replacing unnecessary evolution operations by directly considering the
+    columns of the clifford's symplectic matrix.
