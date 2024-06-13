@@ -140,13 +140,12 @@ class InstructionSet:
             )
         if self._requester is not None:
             classical = self._requester(classical)
-        for instruction in self._instructions:
+        for idx, instruction in enumerate(self._instructions):
             if isinstance(instruction, CircuitInstruction):
                 updated = instruction.operation.c_if(classical, val)
-                if updated is not instruction.operation:
-                    raise CircuitError(
-                        "SingletonGate instances can only be added to InstructionSet via _add_ref"
-                    )
+                self._instructions[idx] = instruction.replace(
+                    operation=updated, condition=updated.condition
+                )
             else:
                 data, idx = instruction
                 instruction = data[idx]

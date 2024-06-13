@@ -57,7 +57,9 @@ class CircuitScopeInterface(abc.ABC):
         """Indexable view onto the :class:`.CircuitInstruction`s backing this scope."""
 
     @abc.abstractmethod
-    def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
+    def append(
+        self, instruction: CircuitInstruction, *, _standard_gate=False
+    ) -> CircuitInstruction:
         """Low-level 'append' primitive; this may assume that the qubits, clbits and operation are
         all valid for the circuit.
 
@@ -420,7 +422,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 " because it is not in a loop."
             )
 
-    def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
+    def append(
+        self, instruction: CircuitInstruction, *, _standard_gate: bool = False
+    ) -> CircuitInstruction:
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:

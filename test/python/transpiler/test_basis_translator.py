@@ -1150,15 +1150,16 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         self.target.add_instruction(CXGate(), cx_props)
 
     def test_2q_with_non_global_1q(self):
-        """Test translation works with a 2q gate on an non-global 1q basis."""
+        """Test translation works with a 2q gate on a non-global 1q basis."""
         qc = QuantumCircuit(2)
         qc.cz(0, 1)
 
         bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
         output = bt_pass(qc)
-        # We need a second run of BasisTranslator to correct gates outside of
-        # the target basis. This is a known isssue, see:
-        #  https://docs.quantum.ibm.com/api/qiskit/release-notes/0.33#known-issues
+        # We need a second run of BasisTranslator to correct gates outside
+        # the target basis. This is a known issue, see:
+        # https://github.com/Qiskit/qiskit/issues/11339
+        # TODO: remove the second bt_pass call once fixed.
         output = bt_pass(output)
         expected = QuantumCircuit(2)
         expected.rz(pi, 1)

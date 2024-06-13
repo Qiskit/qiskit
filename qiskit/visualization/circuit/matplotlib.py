@@ -1584,6 +1584,8 @@ class MatplotlibDrawer:
                 flow_text = " For"
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
+            else:
+                flow_text = node.op.name
 
             # Some spacers. op_spacer moves 'Switch' back a bit for alignment,
             # expr_spacer moves the expr over to line up with 'Switch' and

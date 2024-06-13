@@ -544,7 +544,7 @@ class DAGCircuit:
 
     def remove_qregs(self, *qregs):
         """
-        Remove classical registers from the circuit, leaving underlying bits
+        Remove quantum registers from the circuit, leaving underlying bits
         in place.
 
         Raises:

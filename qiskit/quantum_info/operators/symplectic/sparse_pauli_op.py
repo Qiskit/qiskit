@@ -54,7 +54,7 @@ class SparsePauliOp(LinearOp):
     :class:`~qiskit.quantum_info.Operator` in terms of N-qubit
     :class:`~qiskit.quantum_info.PauliList` and complex coefficients.
 
-    It can be used for performing operator arithmetic for hundred of qubits
+    It can be used for performing operator arithmetic for hundreds of qubits
     if the number of non-zero Pauli basis terms is sufficiently small.
 
     The Pauli basis components are stored as a
@@ -135,19 +135,19 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
-        if isinstance(coeffs, np.ndarray):
-            dtype = object if coeffs.dtype == object else complex
-        elif coeffs is not None:
-            if not isinstance(coeffs, (np.ndarray, Sequence)):
-                coeffs = [coeffs]
-            if any(isinstance(coeff, ParameterExpression) for coeff in coeffs):
-                dtype = object
-            else:
-                dtype = complex
-
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
+            if isinstance(coeffs, np.ndarray):
+                dtype = object if coeffs.dtype == object else complex
+            else:
+                if not isinstance(coeffs, Sequence):
+                    coeffs = [coeffs]
+                if any(isinstance(coeff, ParameterExpression) for coeff in coeffs):
+                    dtype = object
+                else:
+                    dtype = complex
+
             coeffs_asarray = np.asarray(coeffs, dtype=dtype)
             coeffs = (
                 coeffs_asarray.copy()

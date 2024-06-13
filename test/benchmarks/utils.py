@@ -126,6 +126,8 @@ def random_circuit(
                 operation = rng.choice(two_q_ops)
             elif num_operands == 3:
                 operation = rng.choice(three_q_ops)
+            else:
+                raise RuntimeError("not supported number of operands")
             if operation in one_param:
                 num_angles = 1
             elif operation in two_param:

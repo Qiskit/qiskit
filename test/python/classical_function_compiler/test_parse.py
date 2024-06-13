@@ -25,6 +25,7 @@ if HAS_TWEEDLEDUM:
 
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestParseFail(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests bad_examples with the classicalfunction parser."""
 
     def assertExceptionMessage(self, context, message):

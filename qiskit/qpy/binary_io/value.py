@@ -45,7 +45,7 @@ def _write_parameter_vec(file_obj, obj):
         struct.pack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
             len(name_bytes),
-            obj._vector._size,
+            len(obj._vector),
             obj.uuid.bytes,
             obj._index,
         )

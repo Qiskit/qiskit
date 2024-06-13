@@ -357,7 +357,8 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertIsNot(should_copy.data[-1].operation, parametric.data[-1].operation)
         self.assertEqual(should_copy.data[-1].operation, parametric.data[-1].operation)
         forbid_copy = base.compose(parametric, qubits=[0], copy=False)
-        self.assertIs(forbid_copy.data[-1].operation, parametric.data[-1].operation)
+        # For standard gates a fresh copy is returned from the data list each time
+        self.assertEqual(forbid_copy.data[-1].operation, parametric.data[-1].operation)
 
         conditional = QuantumCircuit(1, 1)
         conditional.x(0).c_if(conditional.clbits[0], True)

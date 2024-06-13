@@ -45,6 +45,7 @@ if optionals.HAS_PIL:
 @unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
 @unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 class TestGateMap(QiskitVisualizationTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """visual tests for plot_gate_map"""
 
     backends = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1()]

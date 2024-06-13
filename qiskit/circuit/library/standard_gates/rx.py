@@ -21,6 +21,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RXGate(Gate):
@@ -49,6 +50,8 @@ class RXGate(Gate):
                 -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RXGate
 
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"

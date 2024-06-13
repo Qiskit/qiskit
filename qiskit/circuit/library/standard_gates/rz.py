@@ -17,6 +17,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZGate(Gate):
@@ -58,6 +59,8 @@ class RZGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
+
+    _standard_gate = StandardGate.RZGate
 
     def __init__(
         self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"

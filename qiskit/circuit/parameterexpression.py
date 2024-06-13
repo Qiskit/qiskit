@@ -442,6 +442,9 @@ class ParameterExpression:
             raise TypeError("could not cast expression to int") from exc
 
     def __hash__(self):
+        if not self._parameter_symbols:
+            # For fully bound expressions, fall back to the underlying value
+            return hash(self.numeric())
         return hash((self._parameter_keys, self._symbol_expr))
 
     def __copy__(self):

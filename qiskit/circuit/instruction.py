@@ -58,6 +58,7 @@ class Instruction(Operation):
     # Class attribute to treat like barrier for transpiler, unroller, drawer
     # NOTE: Using this attribute may change in the future (See issue # 5811)
     _directive = False
+    _standard_gate = None
 
     def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
         """Create a new instruction.

@@ -15,6 +15,7 @@
 from typing import Optional
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0], [0, 1]])
@@ -44,6 +45,8 @@ class IGate(SingletonGate):
         q_0: ┤ I ├
              └───┘
     """
+
+    _standard_gate = StandardGate.IGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Identity gate."""

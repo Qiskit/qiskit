@@ -1946,7 +1946,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
     def test_basis_gates(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)
-        first_h = qc.h(1)[0].operation
+        qc.h(1)
         qc.cx(1, 2)
         qc.barrier()
         qc.cx(0, 1)
@@ -1957,52 +1957,51 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         first_x = qc.x(2).c_if(qc.clbits[1], 1)[0].operation
         qc.z(2).c_if(qc.clbits[0], 1)
 
-        u2 = first_h.definition.data[0].operation
-        u3_1 = u2.definition.data[0].operation
-        u3_2 = first_x.definition.data[0].operation
-
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2)}(0, pi) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi, 0, pi) _gate_q_0;",
-                "}",
-                "gate x _gate_q_0 {",
-                f"  u3_{id(u3_2)}(pi, 0, pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "qubit[3] q;",
-                "h q[1];",
-                "cx q[1], q[2];",
-                "barrier q[0], q[1], q[2];",
-                "cx q[0], q[1];",
-                "h q[0];",
-                "barrier q[0], q[1], q[2];",
-                "c[0] = measure q[0];",
-                "c[1] = measure q[1];",
-                "barrier q[0], q[1], q[2];",
-                "if (c[1]) {",
-                "  x q[2];",
-                "}",
-                "if (c[0]) {",
-                "  z q[2];",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(
-            Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc),
-            expected_qasm,
-        )
+        id_len = len(str(id(first_x)))
+        expected_qasm = [
+            "OPENQASM 3.0;",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi/2, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate h _gate_q_0 {",
+            re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi, 0, pi) _gate_q_0;",
+            "}",
+            "gate x _gate_q_0 {",
+            re.compile(r"  u3_\d{%s}\(pi, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "bit[2] c;",
+            "qubit[3] q;",
+            "h q[1];",
+            "cx q[1], q[2];",
+            "barrier q[0], q[1], q[2];",
+            "cx q[0], q[1];",
+            "h q[0];",
+            "barrier q[0], q[1], q[2];",
+            "c[0] = measure q[0];",
+            "c[1] = measure q[1];",
+            "barrier q[0], q[1], q[2];",
+            "if (c[1]) {",
+            "  x q[2];",
+            "}",
+            "if (c[0]) {",
+            "  z q[2];",
+            "}",
+            "",
+        ]
+        res = Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
 
     def test_teleportation(self):
         """Teleportation with physical qubits"""
@@ -2120,62 +2119,58 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         circuit.sx(0)
         circuit.cx(0, 1)
 
-        rz = circuit.data[0].operation
-        u1_1 = rz.definition.data[0].operation
-        u3_1 = u1_1.definition.data[0].operation
-        sx = circuit.data[1].operation
-        sdg = sx.definition.data[0].operation
-        u1_2 = sdg.definition.data[0].operation
-        u3_2 = u1_2.definition.data[0].operation
-        h_ = sx.definition.data[1].operation
-        u2_1 = h_.definition.data[0].operation
-        u3_3 = u2_1.definition.data[0].operation
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_1)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate rz_{id(rz)}(_gate_p_0) _gate_q_0 {{",
-                f"  u1_{id(u1_1)}(pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_2)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_2)}(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                "gate sdg _gate_q_0 {",
-                f"  u1_{id(u1_2)}(-pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_3)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2_1)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_3)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2_1)}(0, pi) _gate_q_0;",
-                "}",
-                "gate sx _gate_q_0 {",
-                "  sdg _gate_q_0;",
-                "  h _gate_q_0;",
-                "  sdg _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                "qubit[2] q;",
-                f"rz_{id(rz)}(pi/2) q[0];",
-                "sx q[0];",
-                "cx q[0], q[1];",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
+        id_len = len(str(id(circuit.data[0].operation)))
+        expected_qasm = [
+            "OPENQASM 3.0;",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, pi/2) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate rz_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u1_\d{%s}\(pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, -pi/2) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, -pi/2\) _gate_q_0;" % id_len),
+            "}",
+            "gate sdg _gate_q_0 {",
+            re.compile(r"  u1_\d{%s}\(-pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi/2, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate h _gate_q_0 {",
+            re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate sx _gate_q_0 {",
+            "  sdg _gate_q_0;",
+            "  h _gate_q_0;",
+            "  sdg _gate_q_0;",
+            "}",
+            "gate cx c, t {",
+            "  ctrl @ U(pi, 0, pi) c, t;",
+            "}",
+            "qubit[2] q;",
+            re.compile(r"rz_\d{%s}\(pi/2\) q\[0\];" % id_len),
+            "sx q[0];",
+            "cx q[0], q[1];",
+            "",
+        ]
+        res = Exporter(includes=[]).dumps(circuit).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
 
     def test_unusual_conditions(self):
         """Test that special QASM constructs such as ``measure`` are correctly handled when the

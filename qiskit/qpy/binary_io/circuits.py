@@ -446,6 +446,7 @@ def _parse_custom_operation(
         ) = custom_operations[gate_name]
     else:
         type_str, num_qubits, num_clbits, definition = custom_operations[gate_name]
+        base_gate_raw = ctrl_state = num_ctrl_qubits = None
     # Strip the trailing "_{uuid}" from the gate name if the version >=11
     if version >= 11:
         gate_name = "_".join(gate_name.split("_")[:-1])

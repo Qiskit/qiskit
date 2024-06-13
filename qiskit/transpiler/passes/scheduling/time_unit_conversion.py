@@ -105,9 +105,10 @@ class TimeUnitConversion(TransformationPass):
                 )
             except TranspilerError:
                 continue
-            node.op = node.op.to_mutable()
-            node.op.duration = duration
-            node.op.unit = time_unit
+            op = node.op.to_mutable()
+            op.duration = duration
+            op.unit = time_unit
+            node.op = op
 
         self.property_set["time_unit"] = time_unit
         return dag

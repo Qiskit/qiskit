@@ -593,7 +593,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.clear()
 
         self.assertEqual(len(qc.data), 0)
-        self.assertEqual(len(qc._parameter_table), 0)
+        self.assertEqual(qc._data.num_params(), 0)
 
     def test_barrier(self):
         """Test multiple argument forms of barrier."""

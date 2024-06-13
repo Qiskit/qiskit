@@ -77,17 +77,17 @@ class TestBlueprintCircuit(QiskitTestCase):
 
         with self.subTest(msg="after building"):
             self.assertGreater(len(mock._data), 0)
-            self.assertEqual(len(mock._parameter_table), 1)
+            self.assertEqual(mock._data.num_params(), 1)
 
         mock._invalidate()
         with self.subTest(msg="after invalidating"):
             self.assertFalse(mock._is_built)
-            self.assertEqual(len(mock._parameter_table), 0)
+            self.assertEqual(mock._data.num_params(), 0)
 
         mock._build()
         with self.subTest(msg="after re-building"):
             self.assertGreater(len(mock._data), 0)
-            self.assertEqual(len(mock._parameter_table), 1)
+            self.assertEqual(mock._data.num_params(), 1)
 
     def test_calling_attributes_works(self):
         """Test that the circuit is constructed when attributes are called."""
