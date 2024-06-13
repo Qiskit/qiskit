@@ -30,12 +30,18 @@ fn _col_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
 
 // Gauss elimination of a matrix mat with m rows and n columns.
 // If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-// Returns the matrix mat.
-fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_elim: Option<bool>) {
+// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
+// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
+fn gauss_elimination_with_perm(
+    mut mat: ArrayViewMut2<bool>,
+    ncols: Option<usize>,
+    full_elim: Option<bool>,
+) -> Vec<usize> {
     let (m, mut n) = (mat.nrows(), mat.ncols()); // no. of rows and columns
     if let Some(ncols_val) = ncols {
         n = usize::min(n, ncols_val); // no. of active columns
     }
+    let mut perm: Vec<usize> = Vec::from_iter(0..m);
 
     let mut r = 0; // current rank
     let k = 0; // current pivot column
@@ -58,7 +64,7 @@ fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_el
             }
         }
         if !is_non_zero {
-            return; // A is in the canonical form
+            return perm; // A is in the canonical form
         }
 
         if new_r != r {
@@ -66,6 +72,7 @@ fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_el
             let temp_new_r = mat.slice_mut(s![new_r, ..]).to_owned();
             mat.slice_mut(s![r, ..]).assign(&temp_new_r);
             mat.slice_mut(s![new_r, ..]).assign(&temp_r);
+            perm.swap(r, new_r);
         }
 
         // Copy source row to avoid trying multiple borrows at once
@@ -82,6 +89,27 @@ fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_el
 
         r += 1;
     }
+    perm
+}
+
+// Gauss elimination of a matrix mat with m rows and n columns.
+// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+// Returns the updated matrix mat.
+fn gauss_elimination(mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_elim: Option<bool>) {
+    let _perm = gauss_elimination_with_perm(mat, ncols, full_elim);
+}
+
+#[pyfunction]
+#[pyo3(signature = (mat, ncols=None, full_elim=false))]
+fn _gauss_elimination_with_perm(
+    py: Python,
+    mut mat: PyReadwriteArray2<bool>,
+    ncols: Option<usize>,
+    full_elim: Option<bool>,
+) -> PyResult<PyObject> {
+    let view = mat.as_array_mut();
+    let perm = gauss_elimination_with_perm(view, ncols, full_elim);
+    Ok(perm.to_object(py))
 }
 
 #[pyfunction]
@@ -97,6 +125,7 @@ fn _gauss_elimination(
 
 #[pymodule]
 pub fn linear_matrix(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(_gauss_elimination_with_perm))?;
     m.add_wrapped(wrap_pyfunction!(_gauss_elimination))?;
     Ok(())
 }

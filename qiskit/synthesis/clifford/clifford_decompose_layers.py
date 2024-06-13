@@ -214,7 +214,7 @@ def _create_graph_state(cliff, validate=False):
 
         Cmat = stab[rank:num_qubits, num_qubits:]
         Cmat = np.transpose(Cmat)
-        Cmat, perm = _gauss_elimination_with_perm(Cmat)
+        perm = _gauss_elimination_with_perm(Cmat)
         perm = perm[0 : num_qubits - rank]
 
         # validate that the output matrix has the same rank
