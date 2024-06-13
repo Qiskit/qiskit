@@ -102,11 +102,11 @@ def _generate_commutation_dict(considered_gates: List[Gate] = None) -> dict:
                     commutation_relation = cc.commute(
                         op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=4
                     )
+
+                    gate_pair_commutation[relative_placement] = commutation_relation
                 else:
                     pass
                     # TODO
-
-                gate_pair_commutation[relative_placement] = commutation_relation
 
             commutations[gate0.name, gate1.name] = gate_pair_commutation
     return commutations
