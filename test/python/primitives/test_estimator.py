@@ -68,7 +68,7 @@ class TestEstimator(QiskitTestCase):
             # Specify the circuit and observable by indices.
             # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
             job = estimator.run([psi1], [hamiltonian1], [theta1])
-        result = job.result()
+            result = job.result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956])
 
@@ -322,8 +322,7 @@ class TestEstimator(QiskitTestCase):
                 estimator = Estimator(options={"shots": 3000})
             self.assertEqual(estimator.options.get("shots"), 3000)
         with self.subTest("set_options"):
-            with self.assertWarns(DeprecationWarning):
-                estimator.set_options(shots=1024, seed=15)
+            estimator.set_options(shots=1024, seed=15)
             self.assertEqual(estimator.options.get("shots"), 1024)
             self.assertEqual(estimator.options.get("seed"), 15)
         with self.subTest("run"):
@@ -381,19 +380,22 @@ class TestObservableValidation(QiskitTestCase):
     @unpack
     def test_validate_observables(self, obsevables, expected):
         """Test obsevables standardization."""
-        self.assertEqual(validation._validate_observables(obsevables), expected)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(validation._validate_observables(obsevables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):
         """Test qiskit error if invalid input."""
         with self.assertRaises(QiskitError):
-            validation._validate_observables(observables)
+            with self.assertWarns(DeprecationWarning):
+                validation._validate_observables(observables)
 
     @data((), [])
     def test_value_error(self, observables):
         """Test value error if no obsevables are provided."""
         with self.assertRaises(ValueError):
-            validation._validate_observables(observables)
+            with self.assertWarns(DeprecationWarning):
+                validation._validate_observables(observables)
 
 
 if __name__ == "__main__":

@@ -116,7 +116,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=backend)
             job = sampler.run(circuits=[bell], shots=1000)
-        result = job.result()
+            result = job.result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)
         self.assertEqual(result.quasi_dists[0].stddev_upper_bound, math.sqrt(1 / 1000))
@@ -277,13 +277,15 @@ class TestBackendSampler(QiskitTestCase):
             target = sampler.run([qc] * k, params_list).result()
 
         with self.subTest("ndarrary"):
-            result = sampler.run([qc] * k, params_array).result()
+            with self.assertWarns(DeprecationWarning):
+                result = sampler.run([qc] * k, params_array).result()
             self.assertEqual(len(result.metadata), k)
             for i in range(k):
                 self.assertDictAlmostEqual(result.quasi_dists[i], target.quasi_dists[i], delta=0.1)
 
         with self.subTest("list of ndarray"):
-            result = sampler.run([qc] * k, params_list_array).result()
+            with self.assertWarns(DeprecationWarning):
+                result = sampler.run([qc] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             for i in range(k):
                 self.assertDictAlmostEqual(result.quasi_dists[i], target.quasi_dists[i], delta=0.1)
@@ -306,7 +308,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=backend)
             job = sampler.run(circuits=[bell])
-        _ = job.result()
+            _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_primitive_job_size_limit_backend_v2(self):

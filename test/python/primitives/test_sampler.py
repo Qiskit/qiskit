@@ -402,7 +402,7 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler()
             job = sampler.run(circuits=[bell])
-        _ = job.result()
+            _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_options(self):
