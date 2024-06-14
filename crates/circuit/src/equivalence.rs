@@ -88,7 +88,7 @@ pub struct Key {
 #[pymethods]
 impl Key {
     #[new]
-    #[pyo3(signature = (name, num_qubits))]
+    #[pyo3(signature = (name="".to_string(), num_qubits=0))]
     fn new(name: String, num_qubits: usize) -> Self {
         Self { name, num_qubits }
     }
@@ -127,8 +127,17 @@ impl Display for Key {
     }
 }
 
+impl Default for Key {
+    fn default() -> Self {
+        Self {
+            name: "".to_string(),
+            num_qubits: 0,
+        }
+    }
+}
+
 #[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Equivalence {
     #[pyo3(get)]
     pub params: Vec<Param>,
@@ -139,7 +148,7 @@ pub struct Equivalence {
 #[pymethods]
 impl Equivalence {
     #[new]
-    #[pyo3(signature = (params, circuit))]
+    #[pyo3(signature = (params=vec![], circuit=CircuitRep::default()))]
     fn new(params: Vec<Param>, circuit: CircuitRep) -> Self {
         Self { circuit, params }
     }
@@ -166,14 +175,14 @@ impl Display for Equivalence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Equivalence(params={:?}, circuits={:?})",
+            "Equivalence(params={:?}, circuit={})",
             self.params, self.circuit
         )
     }
 }
 
 #[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct NodeData {
     #[pyo3(get)]
     key: Key,
@@ -184,7 +193,7 @@ pub struct NodeData {
 #[pymethods]
 impl NodeData {
     #[new]
-    #[pyo3(signature = (key, equivs))]
+    #[pyo3(signature = (key=Key::default(), equivs=vec![]))]
     fn new(key: Key, equivs: Vec<Equivalence>) -> Self {
         Self { key, equivs }
     }
@@ -219,7 +228,7 @@ impl Display for NodeData {
 }
 
 #[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct EdgeData {
     #[pyo3(get)]
     pub index: usize,
@@ -234,7 +243,7 @@ pub struct EdgeData {
 #[pymethods]
 impl EdgeData {
     #[new]
-    #[pyo3(signature = (index, num_gates, rule, source))]
+    #[pyo3(signature = (index=0, num_gates=0, rule=Equivalence::default(), source=Key::default()))]
     fn new(index: usize, num_gates: usize, rule: Equivalence, source: Key) -> Self {
         Self {
             index,
@@ -457,6 +466,19 @@ impl FromPyObject<'_> for CircuitRep {
     }
 }
 
+impl Display for CircuitRep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let py_rep_str = Python::with_gil(|py| -> PyResult<String> {
+            match self.object.call_method0(py, "__repr__") {
+                Ok(str_obj) => str_obj.extract::<String>(py),
+                Err(_) => Ok("None".to_owned()),
+            }
+        })
+        .unwrap();
+        write!(f, "{}", py_rep_str)
+    }
+}
+
 impl PartialEq for CircuitRep {
     fn eq(&self, other: &Self) -> bool {
         self.object.is(&other.object)
@@ -466,6 +488,19 @@ impl PartialEq for CircuitRep {
 impl IntoPy<PyObject> for CircuitRep {
     fn into_py(self, _py: Python<'_>) -> PyObject {
         self.object
+    }
+}
+
+impl Default for CircuitRep {
+    fn default() -> Self {
+        Self {
+            object: Python::with_gil(|py| py.None()),
+            num_qubits: None,
+            num_clbits: None,
+            label: None,
+            params: vec![],
+            data: vec![],
+        }
     }
 }
 
@@ -661,9 +696,9 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<HashMap<Key, usize>>()?
+            .extract::<HashMap<(String, usize), usize>>()?
             .into_iter()
-            .map(|(key, val)| (key, NodeIndex::new(val)))
+            .map(|((name, num_qubits), val)| (Key::new(name, num_qubits), NodeIndex::new(val)))
             .collect();
         let graph_nodes: Vec<NodeData> = state.get_item("graph_nodes")?.unwrap().extract()?;
         let graph_edges: Vec<(usize, usize, EdgeData)> =
