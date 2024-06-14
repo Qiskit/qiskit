@@ -419,7 +419,7 @@ class Target(BaseTarget):
             properties = {None: None}
         if instruction_name in self._gate_map:
             raise AttributeError("Instruction %s is already in the target" % instruction_name)
-        super().add_instruction(instruction, instruction_name, is_class, properties)
+        super().add_instruction(instruction, instruction_name, properties)
         self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
