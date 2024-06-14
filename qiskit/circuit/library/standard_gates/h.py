@@ -17,6 +17,7 @@ import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
@@ -50,6 +51,8 @@ class HGate(SingletonGate):
                 1 & -1
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.HGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new H gate."""

@@ -14,10 +14,13 @@ pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod dag_node;
 pub mod equivalence;
+pub mod gate_matrix;
+pub mod imports;
+pub mod operations;
+pub mod parameter_table;
 
 mod bit_data;
 mod interner;
-mod packed_instruction;
 
 use pyo3::types::PySlice;
 use pyo3::{prelude::*, wrap_pymodule};
@@ -34,9 +37,9 @@ pub enum SliceOrInt<'a> {
 
 pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Qubit(BitType);
+pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Clbit(BitType);
+pub struct Clbit(pub BitType);
 
 impl From<BitType> for Qubit {
     fn from(value: BitType) -> Self {
@@ -71,5 +74,9 @@ pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
+    m.add_class::<operations::StandardGate>()?;
+    m.add_class::<operations::PyInstruction>()?;
+    m.add_class::<operations::PyGate>()?;
+    m.add_class::<operations::PyOperation>()?;
     Ok(())
 }

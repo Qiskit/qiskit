@@ -1197,8 +1197,12 @@ version = "1.2.0"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
+ "ndarray",
+ "num-complex",
+ "numpy",
  "pyo3",
  "rustworkx-core",
+ "smallvec",
 ]
 
 [[package]]
