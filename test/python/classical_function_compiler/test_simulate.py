@@ -26,6 +26,7 @@ if HAS_TWEEDLEDUM:
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 @ddt
 class TestSimulate(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests LogicNetwork.simulate method"""
 
     @data(*utils.example_list())

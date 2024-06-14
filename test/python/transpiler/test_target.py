@@ -1366,6 +1366,31 @@ Instructions:
 
         self.assertIsNone(target["x"][(0,)].calibration)
 
+    def test_has_calibration(self):
+        target = Target()
+        properties = {
+            (0,): InstructionProperties(duration=100, error=0.1),
+            (1,): None,
+        }
+        target.add_instruction(XGate(), properties)
+
+        # Test false for properties with no calibration
+        self.assertFalse(target.has_calibration("x", (0,)))
+        # Test false for no properties
+        self.assertFalse(target.has_calibration("x", (1,)))
+
+        properties = {
+            (0,): InstructionProperties(
+                duration=self.custom_sx_q0.duration,
+                error=None,
+                calibration=self.custom_sx_q0,
+            )
+        }
+        target.add_instruction(SXGate(), properties)
+
+        # Test true for properties with calibration
+        self.assertTrue(target.has_calibration("sx", (0,)))
+
     def test_loading_legacy_ugate_instmap(self):
         # This is typical IBM backend situation.
         # IBM provider used to have u1, u2, u3 in the basis gates and

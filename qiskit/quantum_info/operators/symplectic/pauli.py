@@ -144,13 +144,13 @@ class Pauli(BasePauli):
 
     .. code-block:: python
 
-        p = Pauli('-iXYZ')
+        P = Pauli('-iXYZ')
 
         print('P[0] =', repr(P[0]))
         print('P[1] =', repr(P[1]))
         print('P[2] =', repr(P[2]))
         print('P[:] =', repr(P[:]))
-        print('P[::-1] =, repr(P[::-1]))
+        print('P[::-1] =', repr(P[::-1]))
     """
 
     # Set the max Pauli string size before truncation
@@ -736,8 +736,11 @@ class Pauli(BasePauli):
             n_qubits = num_qubits
         if layout is None:
             layout = list(range(self.num_qubits))
-        elif any(x >= n_qubits for x in layout):
-            raise QiskitError("Provided layout contains indices outside the number of qubits.")
+        else:
+            if any(x < 0 or x >= n_qubits for x in layout):
+                raise QiskitError("Provided layout contains indices outside the number of qubits.")
+            if len(set(layout)) != len(layout):
+                raise QiskitError("Provided layout contains duplicate indices.")
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
 

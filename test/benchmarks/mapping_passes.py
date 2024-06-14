@@ -124,12 +124,12 @@ class PassBenchmarks:
     def time_layout_2q_distance(self, _, __):
         layout = Layout2qDistance(self.coupling_map)
         layout.property_set["layout"] = self.layout
-        layout.run(self.dag)
+        layout.run(self.enlarge_dag)
 
     def time_apply_layout(self, _, __):
         layout = ApplyLayout()
         layout.property_set["layout"] = self.layout
-        layout.run(self.dag)
+        layout.run(self.enlarge_dag)
 
     def time_full_ancilla_allocation(self, _, __):
         ancilla = FullAncillaAllocation(self.coupling_map)
@@ -231,12 +231,6 @@ class RoutedPassBenchmarks:
         self.dag = apply_pass.run(self.enlarge_dag)
         self.backend_props = Fake20QV1().properties()
         self.routed_dag = StochasticSwap(self.coupling_map, seed=42).run(self.dag)
-
-    def time_cxdirection(self, _, __):
-        CXDirection(self.coupling_map).run(self.routed_dag)
-
-    def time_check_cx_direction(self, _, __):
-        CheckCXDirection(self.coupling_map).run(self.routed_dag)
 
     def time_gate_direction(self, _, __):
         GateDirection(self.coupling_map).run(self.routed_dag)

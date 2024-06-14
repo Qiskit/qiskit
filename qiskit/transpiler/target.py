@@ -426,7 +426,9 @@ class Target(Mapping):
                         f"of qubits in the properties dictionary: {qarg}"
                     )
                 if qarg is not None:
-                    self.num_qubits = max(self.num_qubits, max(qarg) + 1)
+                    self.num_qubits = max(
+                        self.num_qubits if self.num_qubits is not None else 0, max(qarg) + 1
+                    )
                 qargs_val[qarg] = properties[qarg]
                 self._qarg_gate_map[qarg].add(instruction_name)
         self._gate_map[instruction_name] = qargs_val
@@ -814,7 +816,7 @@ class Target(Mapping):
                     if qargs in self._gate_map[op_name]:
                         return True
                     if self._gate_map[op_name] is None or None in self._gate_map[op_name]:
-                        return self._gate_name_map[op_name].num_qubits == len(qargs) and all(
+                        return obj.num_qubits == len(qargs) and all(
                             x < self.num_qubits for x in qargs
                         )
             return False
@@ -890,7 +892,7 @@ class Target(Mapping):
             return False
         if qargs not in self._gate_map[operation_name]:
             return False
-        return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
+        return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
     def get_calibration(
         self,
@@ -940,7 +942,9 @@ class Target(Mapping):
         is globally defined.
         """
         return [
-            (self._gate_name_map[op], qarg) for op in self._gate_map for qarg in self._gate_map[op]
+            (self._gate_name_map[op], qarg)
+            for op, qargs in self._gate_map.items()
+            for qarg in qargs
         ]
 
     def instruction_properties(self, index):
@@ -979,13 +983,14 @@ class Target(Mapping):
             InstructionProperties: The instruction properties for the specified instruction tuple
         """
         instruction_properties = [
-            inst_props for op in self._gate_map for _, inst_props in self._gate_map[op].items()
+            inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
         ]
         return instruction_properties[index]
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
-        self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
+        if self.num_qubits is not None:
+            self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
         for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:

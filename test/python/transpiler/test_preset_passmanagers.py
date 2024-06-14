@@ -71,7 +71,7 @@ def mock_get_passmanager_stage(
     elif stage_name == "layout":
         return PassManager([])
     else:
-        raise Exception("Failure, unexpected stage plugin combo for test")
+        raise RuntimeError("Failure, unexpected stage plugin combo for test")
 
 
 def emptycircuit():

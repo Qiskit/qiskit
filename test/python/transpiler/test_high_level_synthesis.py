@@ -126,7 +126,7 @@ class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
     """The repeat synthesis for opA"""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        if "n" not in options.keys():
+        if "n" not in options:
             return None
 
         qc = QuantumCircuit(1)
@@ -206,7 +206,7 @@ class MockPluginManager:
 
     def method_names(self, op_name):
         """Returns plugin methods for op_name."""
-        if op_name in self.plugins_by_op.keys():
+        if op_name in self.plugins_by_op:
             return self.plugins_by_op[op_name]
         else:
             return []
