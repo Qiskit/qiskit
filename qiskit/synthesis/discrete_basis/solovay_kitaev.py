@@ -198,7 +198,6 @@ def _remove_inverse_follows_gate(sequence):
             remove = curr_gate.inverse() == next_gate
 
         if remove:
-            print(index, len(sequence.gates))
             # remove gates at index and index + 1
             sequence.remove_cancelling_pair([index, index + 1])
             # take a step back to see if we have uncovered a new pair, e.g.
