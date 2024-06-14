@@ -50,7 +50,7 @@ class SparsePauliOp(LinearOp):
     :class:`~qiskit.quantum_info.Operator` in terms of N-qubit
     :class:`~qiskit.quantum_info.PauliList` and complex coefficients.
 
-    It can be used for performing operator arithmetic for hundred of qubits
+    It can be used for performing operator arithmetic for hundreds of qubits
     if the number of non-zero Pauli basis terms is sufficiently small.
 
     The Pauli basis components are stored as a

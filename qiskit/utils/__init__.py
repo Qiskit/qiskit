@@ -89,8 +89,7 @@ from .entangler_map import get_entangler_map, validate_entangler_map
 from .backend_utils import has_ibmq, has_aer
 from .name_unnamed_args import name_args
 from .algorithm_globals import algorithm_globals
-
-from .parallel import parallel_map
+from .parallel import parallel_map, should_run_in_parallel
 
 
 __all__ = [
@@ -114,4 +113,5 @@ __all__ = [
     "is_main_process",
     "apply_prefix",
     "parallel_map",
+    "should_run_in_parallel",
 ]
