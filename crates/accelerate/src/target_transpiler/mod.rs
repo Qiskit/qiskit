@@ -517,14 +517,10 @@ impl Target {
     ///     name. This also can also be the class for globally defined variable with
     ///     operations.
     #[pyo3(text_signature = "(instruction, /)")]
-    pub fn operation_from_name(&self, py: Python<'_>, instruction: String) -> PyResult<PyObject> {
-        if let Some(gate_obj) = self._gate_name_map.get(&instruction) {
-            Ok(gate_obj.to_object(py))
-        } else {
-            Err(PyKeyError::new_err(format!(
-                "Instruction {:?} not in target",
-                instruction
-            )))
+    fn operation_from_name(&self, instruction: String) -> PyResult<TargetOperation> {
+        match self.get_operation_from_name(&instruction) {
+            Ok(instruction) => Ok(instruction.to_owned()),
+            Err(e) => Err(PyKeyError::new_err(e.message)),
         }
     }
 
@@ -543,16 +539,12 @@ impl Target {
     /// Raises:
     ///     KeyError: If qargs is not in target
     #[pyo3(text_signature = "(/, qargs=None)")]
-    fn operations_for_qargs(
-        &self,
-        py: Python<'_>,
-        qargs: Option<Qargs>,
-    ) -> PyResult<Vec<PyObject>> {
+    fn operations_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<Vec<TargetOperation>> {
         // Move to rust native once Gates are in rust
         Ok(self
             .operation_names_for_qargs(qargs)?
             .into_iter()
-            .map(|x| self._gate_name_map[x].to_object(py))
+            .map(|x| self._gate_name_map[x].to_owned())
             .collect())
     }
 
@@ -1075,6 +1067,23 @@ impl Target {
         Ok(res)
     }
 
+    /// Returns rust-native operation instances present in the Target that affect the provided qargs.
+    pub fn ops_from_qargs(
+        &self,
+        qargs: &Option<Qargs>,
+    ) -> Result<Vec<&NormalOperation>, TargetKeyError> {
+        match self.op_names_for_qargs(qargs) {
+            Ok(operations) => Ok(operations
+                .into_iter()
+                .filter_map(|oper| match &self._gate_name_map[oper] {
+                    TargetOperation::Normal(normal) => Some(normal),
+                    _ => None,
+                })
+                .collect()),
+            Err(e) => Err(e),
+        }
+    }
+
     /// Gets all the qargs used by the specified operation name. Rust native equivalent of ``BaseTarget.qargs_for_operation_name()``
     pub fn qargs_for_op_name(
         &self,
@@ -1089,6 +1098,21 @@ impl Target {
         } else {
             Err(TargetKeyError::new_err(format!(
                 "Operation: {operation} not in Target."
+            )))
+        }
+    }
+
+    /// Gets the instruction object based on the operation name
+    pub fn get_operation_from_name(
+        &self,
+        instruction: &String,
+    ) -> Result<&TargetOperation, TargetKeyError> {
+        if let Some(gate_obj) = self._gate_name_map.get(instruction) {
+            Ok(gate_obj)
+        } else {
+            Err(TargetKeyError::new_err(format!(
+                "Instruction {:?} not in target",
+                instruction
             )))
         }
     }
