@@ -660,15 +660,10 @@ impl Target {
                         if let Some(_qargs) = &qargs {
                             let qarg_set: HashSet<PhysicalQubit> = _qargs.iter().cloned().collect();
                             // If qargs set then validate no duplicates and all indices are valid on device
-                            if _qargs
+                            return _qargs
                                 .iter()
                                 .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == _qargs.len()
-                            {
-                                return true;
-                            } else {
-                                return false;
-                            }
+                                && qarg_set.len() == _qargs.len();
                         } else {
                             return true;
                         }
@@ -1127,7 +1122,8 @@ impl Target {
                         let qarg_set: HashSet<PhysicalQubit> = _qargs.iter().cloned().collect();
                         return _qargs
                             .iter()
-                            .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default()) && qarg_set.len() == _qargs.len()
+                            .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                            && qarg_set.len() == _qargs.len();
                     } else {
                         return true;
                     }
@@ -1160,10 +1156,10 @@ impl Target {
                     if gate_prop_name.contains_key(&None) {
                         let obj = &self._gate_name_map[operation_name];
                         if self.variable_class_operations.contains(operation_name) {
-                            return qargs.is_none() || _qargs
-                                    .iter()
-                                    .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
-                                    && qarg_set.len() == _qargs.len()
+                            return qargs.is_none()
+                                || _qargs.iter().all(|qarg| {
+                                    qarg.index() <= self.num_qubits.unwrap_or_default()
+                                }) && qarg_set.len() == _qargs.len();
                         } else {
                             let qubit_comparison = obj.num_qubits();
                             return qubit_comparison == _qargs.len() as u32
@@ -1175,10 +1171,11 @@ impl Target {
                 } else {
                     // Duplicate case is if it contains none
                     if self.variable_class_operations.contains(operation_name) {
-                        return qargs.is_none() || _qargs
+                        return qargs.is_none()
+                            || _qargs
                                 .iter()
                                 .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == _qargs.len()
+                                && qarg_set.len() == _qargs.len();
                     } else {
                         let qubit_comparison = self._gate_name_map[operation_name].num_qubits();
                         return qubit_comparison == _qargs.len() as u32
@@ -1221,7 +1218,7 @@ impl Index<&str> for Target {
 }
 
 // For instruction_supported
-fn check_obj_params(parameters: &Vec<Param>, obj: &NormalOperation) -> bool {
+fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
         let param_at_index = &obj.params[index];
         match (param, param_at_index) {
