@@ -17,6 +17,7 @@ from typing import Optional, Union
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
@@ -61,6 +62,8 @@ class SXGate(SingletonGate):
                     = e^{-i \pi/4} \sqrt{X}
 
     """
+
+    _standard_gate = StandardGate.SXGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SX gate."""
