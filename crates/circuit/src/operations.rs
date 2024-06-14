@@ -177,7 +177,7 @@ impl Param {
     fn compare(one: &PyObject, other: &PyObject) -> bool {
         Python::with_gil(|py| -> PyResult<bool> {
             let other_bound = other.bind(py);
-            other_bound.eq(one)
+            Ok(other_bound.eq(one)? || other_bound.is(one))
         })
         .unwrap_or_default()
     }
@@ -187,16 +187,11 @@ impl PartialEq for Param {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Param::Float(s), Param::Float(other)) => s == other,
-            (Param::Float(_), Param::ParameterExpression(_)) => false,
-            (Param::ParameterExpression(_), Param::Float(_)) => false,
-            (Param::ParameterExpression(s), Param::ParameterExpression(other)) => {
-                Self::compare(s, other)
+            (Param::ParameterExpression(one), Param::ParameterExpression(other)) => {
+                Self::compare(one, other)
             }
-            (Param::ParameterExpression(_), Param::Obj(_)) => false,
-            (Param::Float(_), Param::Obj(_)) => false,
-            (Param::Obj(_), Param::ParameterExpression(_)) => false,
-            (Param::Obj(_), Param::Float(_)) => false,
             (Param::Obj(one), Param::Obj(other)) => Self::compare(one, other),
+            _ => false,
         }
     }
 }
