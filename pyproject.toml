@@ -218,11 +218,9 @@ disable = [
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
-    "consider-using-enumerate",
     "consider-using-f-string",
     "no-member",  # for dynamically created members
     "not-context-manager",
-    "possibly-used-before-assignment",
     "unnecessary-lambda-assignment",  # do not want to implement
     "unspecified-encoding",  # do not want to implement
 ]
@@ -233,3 +231,12 @@ enable = [
 
 [tool.pylint.spelling]
 spelling-private-dict-file = ".local-spellings"
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",               # Printable epresentational string does not typically execute during testing
+    "raise NotImplementedError",  # Abstract methods are not testable
+    "raise RuntimeError",         # Exceptions for defensive programming that cannot be tested a head
+    "if TYPE_CHECKING:",          # Code that only runs during type checks
+    "@abstractmethod",            # Abstract methods are not testable
+    ]
