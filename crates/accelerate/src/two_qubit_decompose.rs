@@ -51,8 +51,11 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
-use qiskit_circuit::SliceOrInt;
+use qiskit_circuit::operations::Param;
+use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::{Qubit, SliceOrInt};
 
 const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
@@ -2142,16 +2145,35 @@ fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
 fn two_qubit_decompose_up_to_diagonal(
     py: Python,
     mat: PyReadonlyArray2<Complex64>,
-) -> PyResult<(PyObject, TwoQubitGateSequence)> {
+) -> PyResult<(PyObject, CircuitData)> {
     let mat_arr: ArrayView2<Complex64> = mat.as_array();
     let (su4, phase) = u4_to_su4(mat_arr);
     let mut real_map = real_trace_transform(su4.view());
     let mapped_su4 = real_map.dot(&su4.view());
     let decomp =
-        TwoQubitBasisDecomposer::new_inner("cx".to_string(), aview2(&CXGATE), 1.0, "U", None)?;
+        TwoQubitBasisDecomposer::new_inner("cx".to_string(), aview2(&CX_GATE), 1.0, "U", None)?;
 
-    let mut circ = decomp.call_inner(mapped_su4.view(), None, true, None)?;
-    circ.global_phase += phase;
+    let circ_seq = decomp.call_inner(mapped_su4.view(), None, true, None)?;
+    let circ = CircuitData::from_standard_gates(
+        py,
+        2,
+        circ_seq
+            .gates
+            .into_iter()
+            .map(|(gate, param_floats, qubit_index)| {
+                let params: SmallVec<[Param; 3]> =
+                    param_floats.into_iter().map(Param::Float).collect();
+                let qubits: SmallVec<[Qubit; 2]> =
+                    qubit_index.into_iter().map(|x| Qubit(x as u32)).collect();
+                let gate = if gate == "cx" {
+                    StandardGate::CXGate
+                } else {
+                    StandardGate::UGate
+                };
+                (gate, params, qubits)
+            }),
+        Param::Float(circ_seq.global_phase + phase),
+    )?;
     real_map.mapv_inplace(|x| x.conj());
     Ok((real_map.into_pyarray_bound(py).into(), circ))
 }
