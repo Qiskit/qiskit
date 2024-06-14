@@ -12,10 +12,12 @@
 
 """Test the Solovay Kitaev transpilation pass."""
 
+import os
 import unittest
 import math
 import numpy as np
 import scipy
+import tempfile
 
 from ddt import ddt, data
 
@@ -229,6 +231,35 @@ class TestSolovayKitaev(QiskitTestCase):
 
         included_gates = set(discretized.count_ops().keys())
         self.assertEqual(set(basis_gates), included_gates)
+
+    def test_load_from_file(self):
+        """Test loading basic approximations from a file works.
+
+        Regression test of Qiskit/qiskit#12576.
+        """
+        filename = "approximations.npy"
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fullpath = os.path.join(tmp_dir, filename)
+
+            # dump approximations to file
+            generate_basic_approximations(basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath)
+
+            # circuit to decompose and reference decomp
+            circuit = QuantumCircuit(1)
+            circuit.rx(0.8, 0)
+
+            reference = QuantumCircuit(1, global_phase=3 * np.pi / 4)
+            reference.h(0)
+            reference.s(0)
+            reference.h(0)
+
+            # load the decomp and compare to reference
+            skd = SolovayKitaev(basic_approximations=fullpath)
+            # skd = SolovayKitaev(basic_approximations=filename)
+            discretized = skd(circuit)
+
+        self.assertEqual(discretized, reference)
 
 
 @ddt
