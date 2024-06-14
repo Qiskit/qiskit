@@ -28,6 +28,7 @@ from functools import lru_cache
 
 import rustworkx as rx
 
+
 @lru_cache(maxsize=1024)
 def get_node(dag, node_id):
     """Wrapper for rustworkx get node object from index."""

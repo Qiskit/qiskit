@@ -44,7 +44,7 @@ class SubstitutionConfig:
         anc_block,
         qubit_config,
         template_dag_dep,
-        clbit_config=[],
+        clbit_config=None,
     ):
         self.circuit_config = circuit_config
         self.template_config = template_config
@@ -68,9 +68,7 @@ class TemplateSubstitution:
     Class to run the substitution algorithm from the list of maximal matches.
     """
 
-    def __init__(
-        self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None
-    ):
+    def __init__(self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None):
         """
         Initialize TemplateSubstitution with necessary arguments.
         Args:

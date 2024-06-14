@@ -48,8 +48,8 @@ class TemplateMatching:
         self,
         circuit_dag_dep,
         template_dag_dep,
-        heuristics_qubits_param=[],
-        heuristics_backward_param=[],
+        heuristics_qubits_param=None,
+        heuristics_backward_param=None,
     ):
         """
         Create a TemplateMatching object with necessary arguments.

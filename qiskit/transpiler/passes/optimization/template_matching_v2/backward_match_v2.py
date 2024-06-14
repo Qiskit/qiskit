@@ -120,8 +120,8 @@ class BackwardMatch:
         matchedwith,
         isblocked,
         qubits,
-        clbits=[],
-        heuristics_backward_param=[],
+        clbits=None,
+        heuristics_backward_param=None,
     ):
         """
         Create a BackwardMatch class with necessary arguments.

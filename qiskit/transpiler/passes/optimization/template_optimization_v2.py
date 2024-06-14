@@ -47,8 +47,8 @@ class TemplateOptimizationV2(TransformationPass):
     def __init__(
         self,
         template_list=None,
-        heuristics_qubits_param=[],
-        heuristics_backward_param=[],
+        heuristics_qubits_param=None,
+        heuristics_backward_param=None,
         user_cost_dict=None,
     ):
         """

@@ -48,7 +48,7 @@ class ForwardMatch:
         node_t,
         successorstovisit,
         qubits,
-        clbits=[],
+        clbits=None,
     ):
         """
         Create a ForwardMatch class with necessary arguments.
@@ -187,7 +187,7 @@ class ForwardMatch:
         """
         if (getattr(node_c.op, "condition", None) and getattr(node_t.op, "condition", None)) and (
             getattr(node_c.op, "condition", None)[1] != getattr(node_t.op, "condition", None)[1]
-            or set(carg_circuit) != set(get_cindices(self.template_dag_dep, node_t))
+            or set(self.carg_indices) != set(get_cindices(self.template_dag_dep, node_t))
         ):
             return False
         return True
