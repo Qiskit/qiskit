@@ -46,13 +46,13 @@ def get_cindices(dag, node):
     return [dag.find_bit(carg).index for carg in node.cargs]
 
 
-@lru_cache(maxsize=1024)
+@lru_cache(maxsize=4096)
 def get_descendants(dag, node_id):
     """Wrapper for rustworkx get all descendants of a node."""
     return rx.descendants(dag._multi_graph, node_id)
 
 
-@lru_cache(maxsize=1024)
+@lru_cache(maxsize=4096)
 def get_ancestors(dag, node_id):
     """Wrapper for rustworkx get all ancestors of a node."""
     return rx.ancestors(dag._multi_graph, node_id)
