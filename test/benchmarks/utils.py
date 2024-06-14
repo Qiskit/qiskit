@@ -224,6 +224,7 @@ def build_ripple_adder_circuit(size):
 
     return qc
 
+
 def dtc_unitary(num_qubits, g=0.95, seed=12345):
     """Generate a Floquet unitary for DTC evolution
     Parameters:
@@ -252,6 +253,7 @@ def dtc_unitary(num_qubits, g=0.95, seed=12345):
 
     return qc
 
+
 def multi_control_circuit(num_qubits):
     """A circuit with multi-control X-gates
     Parameters:
@@ -260,12 +262,13 @@ def multi_control_circuit(num_qubits):
         QuantumCircuit: Output circuit
     """
     gate = XGate()
-    out = QuantumCircuit(num_qubits)
-    out.compose(gate, range(gate.num_qubits), inplace=True)
+    qc = QuantumCircuit(num_qubits)
+    qc.compose(gate, range(gate.num_qubits), inplace=True)
     for _ in range(num_qubits - 1):
         gate = gate.control()
-        out.compose(gate, range(gate.num_qubits), inplace=True)
-    return out
+        qc.compose(gate, range(gate.num_qubits), inplace=True)
+    return qc
+
 
 def bv_all_ones(N):
     """A circuit to generate a BV circuit over N
@@ -282,6 +285,7 @@ def bv_all_ones(N):
     qc.h(range(N - 1))
     qc.measure(range(N - 1), range(N - 1))
     return qc
+
 
 def trivial_bvlike_circuit(N):
     """A trivial circuit that should boil down
