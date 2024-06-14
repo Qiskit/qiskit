@@ -11,16 +11,27 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use ndarray::{s, Array1, Array2, ArrayView2, Axis};
+use ndarray::{s, Array1, Array2, Axis};
+use numpy::PyReadonlyArray2;
+use smallvec::smallvec;
 use std::cmp;
+
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::Qubit;
+
+use pyo3::prelude::*;
 
 // from Shelly's PR: consolidate later
 fn _add(mat: &mut Array2<bool>, axis: Axis, ctrl: usize, trgt: usize) {
+    // assert!(ctrl != trgt);
     let row0 = mat.index_axis(axis, ctrl).to_owned();
+    // let row0 = mat.index_axis(axis, ctrl);
     let mut row1 = mat.index_axis_mut(axis, trgt);
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
+/// This helper function allows transposed access to a matrix.
 fn _index(axis: Axis, i: &usize, j: &usize) -> (usize, usize) {
     if axis.index() == 0 {
         (*i, *j)
@@ -29,15 +40,37 @@ fn _index(axis: Axis, i: &usize, j: &usize) -> (usize, usize) {
     }
 }
 
-pub fn pmh_synth(
-    matrix: ArrayView2<bool>,
-    section_size: &usize,
-) -> (Vec<(usize, usize)>, Vec<(usize, usize)>) {
-    let mut mat = matrix.to_owned();
-    let lower_cnots = lower_cnot_synth(&mut mat, section_size, &0);
+#[pyfunction]
+#[pyo3(signature = (matrix, section_size=2))]
+pub fn synth_cnot_count_full_pmh(
+    py: Python,
+    matrix: PyReadonlyArray2<bool>,
+    section_size: i64,
+) -> PyResult<CircuitData> {
+    let mut mat: Array2<bool> = matrix.as_array().to_owned();
+    // let mut mat = matrix.to_owned();
+    let num_qubits = mat.nrows(); // is a quadratic matrix
+    let lower_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &0);
     // let mut mat_t = mat.t().to_owned();
-    let upper_cnots = lower_cnot_synth(&mut mat, section_size, &1);
-    (lower_cnots, upper_cnots)
+    let upper_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &1);
+
+    // iterator over the gates
+    let instructions = upper_cnots
+        .iter()
+        .map(|(i, j)| (*j, *i))
+        .chain(lower_cnots.into_iter().rev())
+        .map(|(ctrl, target)| {
+            (
+                StandardGate::CXGate,
+                smallvec![],
+                smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
+            )
+        });
+
+    Ok(
+        CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+            .expect("Something went sideways in Qiskit's Python realm!"),
+    )
 }
 
 /// instead of transposing the matrix, allow setting the axis in this function
@@ -52,7 +85,6 @@ fn lower_cnot_synth(
 
     // to apply to the transposed matrix, we can just set axis = 1
     let row_axis = Axis(*axis);
-    // let col_axis = Axis((*axis + 1) % 2);
 
     // get number of columns (same as rows) and the number of sections
     let n = matrix.raw_dim()[0];
@@ -70,7 +102,6 @@ fn lower_cnot_synth(
                 .index_axis(row_axis, row_idx)
                 .slice(section_slice)
                 .to_owned();
-            // let pattern: Array1<bool> = matrix.row(row_idx).slice(section_slice).to_owned();
 
             // skip if the row is empty (i.e. all elements are false)
             if pattern.iter().any(|&el| el) {

@@ -22,22 +22,14 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 
-from qiskit._accelerate.synthesis import synth_cnot_count_full_pmh as _fast
+from qiskit._accelerate.synthesis import synth_cnot_count_full_pmh as fast_pmh
 
 
 def synth_cnot_count_full_pmh(
     state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
 ) -> QuantumCircuit:
-    # normalize input
-    print("input:\n", state)
-    inp = np.asarray(state).astype(bool)
-    lower_cnots, upper_cnots = _fast(inp, section_size)
-    print("lower:", lower_cnots)
-    print("upper:", upper_cnots)
-    lower_cnots.reverse()
-    upper_cnots = [(b, a) for a, b in upper_cnots]
+    # call Rust implementation with normalized input
+    circuit_data = fast_pmh(np.asarray(state).astype(bool), section_size)
 
-    circ = QuantumCircuit(inp.shape[0])
-    for i in upper_cnots + lower_cnots:
-        circ.cx(i[0], i[1])
-    return circ
+    # construct circuit from the data
+    return QuantumCircuit._from_circuit_data(circuit_data)

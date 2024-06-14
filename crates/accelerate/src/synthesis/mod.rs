@@ -12,25 +12,14 @@
 
 mod cnot_synthesis;
 
-use ndarray::ArrayView2;
-use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-#[pyfunction]
-#[pyo3(signature = (matrix, section_size))]
-fn synth_cnot_count_full_pmh(
-    py: Python,
-    matrix: PyReadonlyArray2<bool>,
-    section_size: i64,
-) -> PyResult<PyObject> {
-    let view: ArrayView2<bool> = matrix.as_array();
-    let result = cnot_synthesis::pmh_synth(view, &(section_size as usize));
-    Ok(result.to_object(py))
-}
-
 #[pymodule]
 pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(synth_cnot_count_full_pmh, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        cnot_synthesis::synth_cnot_count_full_pmh,
+        m
+    )?)?;
     Ok(())
 }
