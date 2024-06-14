@@ -11,13 +11,13 @@
 // that they have been altered from the originals.
 
 use itertools::Itertools;
+use smallvec::{smallvec, SmallVec};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
 use hashbrown::{HashMap, HashSet};
-use pyo3::sync::GILOnceCell;
 use pyo3::types::PyDict;
 use pyo3::{prelude::*, types::IntoPyDict};
 
@@ -26,52 +26,18 @@ use rustworkx_core::petgraph::{
     visit::EdgeRef,
 };
 
+use crate::circuit_instruction::{
+    convert_py_to_operation_type, CircuitInstruction as CircuitInstructionBase,
+    OperationTypeConstruct,
+};
+use crate::imports::ImportOnceCell;
+use crate::operations::Param;
+use crate::operations::{Operation, OperationType};
+
 mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
 }
-
-/// Helper wrapper around `GILOnceCell` instances that are just intended to store a Python object
-/// that is lazily imported.
-pub struct ImportOnceCell {
-    module: &'static str,
-    object: &'static str,
-    cell: GILOnceCell<Py<PyAny>>,
-}
-
-impl ImportOnceCell {
-    const fn new(module: &'static str, object: &'static str) -> Self {
-        Self {
-            module,
-            object,
-            cell: GILOnceCell::new(),
-        }
-    }
-
-    /// Get the underlying GIL-independent reference to the contained object, importing if
-    /// required.
-    #[inline]
-    pub fn get(&self, py: Python) -> &Py<PyAny> {
-        self.cell.get_or_init(py, || {
-            py.import_bound(self.module)
-                .unwrap()
-                .getattr(self.object)
-                .unwrap()
-                .unbind()
-        })
-    }
-
-    /// Get a GIL-bound reference to the contained object, importing if required.
-    #[inline]
-    pub fn get_bound<'py>(&self, py: Python<'py>) -> &Bound<'py, PyAny> {
-        self.get(py).bind(py)
-    }
-}
-
-pub static PARAMETER_EXPRESSION: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
-pub static QUANTUM_CIRCUIT: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
 
 // Custom Structs
@@ -82,14 +48,14 @@ pub struct Key {
     #[pyo3(get)]
     pub name: String,
     #[pyo3(get)]
-    pub num_qubits: usize,
+    pub num_qubits: u32,
 }
 
 #[pymethods]
 impl Key {
     #[new]
     #[pyo3(signature = (name="".to_string(), num_qubits=0))]
-    fn new(name: String, num_qubits: usize) -> Self {
+    fn new(name: String, num_qubits: u32) -> Self {
         Self { name, num_qubits }
     }
 
@@ -107,11 +73,11 @@ impl Key {
         slf.to_string()
     }
 
-    fn __getstate__(slf: PyRef<Self>) -> (String, usize) {
+    fn __getstate__(slf: PyRef<Self>) -> (String, u32) {
         (slf.name.to_owned(), slf.num_qubits)
     }
 
-    fn __setstate__(mut slf: PyRefMut<Self>, state: (String, usize)) {
+    fn __setstate__(mut slf: PyRefMut<Self>, state: (String, u32)) {
         slf.name = state.0;
         slf.num_qubits = state.1;
     }
@@ -140,7 +106,7 @@ impl Default for Key {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Equivalence {
     #[pyo3(get)]
-    pub params: Vec<Param>,
+    pub params: SmallVec<[Param; 3]>,
     #[pyo3(get)]
     pub circuit: CircuitRep,
 }
@@ -148,8 +114,8 @@ pub struct Equivalence {
 #[pymethods]
 impl Equivalence {
     #[new]
-    #[pyo3(signature = (params=vec![], circuit=CircuitRep::default()))]
-    fn new(params: Vec<Param>, circuit: CircuitRep) -> Self {
+    #[pyo3(signature = (params=smallvec![], circuit=CircuitRep::default()))]
+    fn new(params: SmallVec<[Param; 3]>, circuit: CircuitRep) -> Self {
         Self { circuit, params }
     }
 
@@ -161,11 +127,11 @@ impl Equivalence {
         self.eq(&other)
     }
 
-    fn __getstate__(slf: PyRef<Self>) -> (Vec<Param>, CircuitRep) {
+    fn __getstate__(slf: PyRef<Self>) -> (SmallVec<[Param; 3]>, CircuitRep) {
         (slf.params.to_owned(), slf.circuit.to_owned())
     }
 
-    fn __setstate__(mut slf: PyRefMut<Self>, state: (Vec<Param>, CircuitRep)) {
+    fn __setstate__(mut slf: PyRefMut<Self>, state: (SmallVec<[Param; 3]>, CircuitRep)) {
         slf.params = state.0;
         slf.circuit = state.1;
     }
@@ -288,135 +254,40 @@ impl Display for EdgeData {
     }
 }
 
-// REPRESENTATIONS of non rust objects
-// Temporary definition of Parameter
-#[derive(Clone, Debug)]
-pub enum Param {
-    ParameterExpression(ParamExpRep),
-    Float(f64),
-    Obj(PyObject),
+// Enum to extract circuit instructions more broadly
+#[derive(Debug, Clone)]
+pub enum CircuitInstruction {
+    Instruction(CircuitInstructionBase),
+    OperationTypeConstruct(OperationTypeConstruct),
 }
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(
-            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
-                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
-            {
-                let id = b.getattr("_uuid")?.getattr("hex")?.extract::<String>()?;
-                Param::ParameterExpression(ParamExpRep {
-                    id,
-                    object: b.clone().unbind(),
-                })
-            } else if let Ok(val) = b.extract::<f64>() {
-                Param::Float(val)
-            } else {
-                Param::Obj(b.clone().unbind())
-            },
-        )
-    }
-}
-
-impl IntoPy<PyObject> for Param {
-    fn into_py(self, py: Python) -> PyObject {
-        match &self {
-            Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.object.clone_ref(py),
-            Self::Obj(val) => val.clone_ref(py),
-        }
-    }
-}
-
-impl ToPyObject for Param {
-    fn to_object(&self, py: Python) -> PyObject {
+impl CircuitInstruction {
+    #[inline]
+    pub fn operation(&self) -> &OperationType {
         match self {
-            Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.object.clone_ref(py),
-            Self::Obj(val) => val.clone_ref(py),
+            CircuitInstruction::Instruction(instruction) => &instruction.operation,
+            CircuitInstruction::OperationTypeConstruct(operation) => &operation.operation,
+        }
+    }
+
+    #[inline]
+    pub fn params(&self) -> &[Param] {
+        match self {
+            CircuitInstruction::Instruction(instruction) => &instruction.params,
+            CircuitInstruction::OperationTypeConstruct(operation) => &operation.params,
         }
     }
 }
 
-impl Param {
-    fn compare(one: &PyObject, other: &PyObject) -> bool {
-        Python::with_gil(|py| -> PyResult<bool> {
-            let other_bound = other.bind(py);
-            other_bound.eq(one)
-        })
-        .unwrap_or_default()
-    }
-}
-
-impl PartialEq for Param {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Param::Float(s), Param::Float(other)) => s == other,
-            (Param::Float(_), Param::ParameterExpression(_)) => false,
-            (Param::ParameterExpression(_), Param::Float(_)) => false,
-            (Param::ParameterExpression(s), Param::ParameterExpression(other)) => s.id == other.id,
-            (Param::ParameterExpression(_), Param::Obj(_)) => false,
-            (Param::Float(_), Param::Obj(_)) => false,
-            (Param::Obj(_), Param::ParameterExpression(_)) => false,
-            (Param::Obj(_), Param::Float(_)) => false,
-            (Param::Obj(one), Param::Obj(other)) => Self::compare(one, other),
+impl<'py> FromPyObject<'py> for CircuitInstruction {
+    fn extract(ob: &'py PyAny) -> PyResult<Self> {
+        match ob.extract::<CircuitInstructionBase>() {
+            Ok(inst) => Ok(Self::Instruction(inst)),
+            Err(_) => Ok(Self::OperationTypeConstruct(convert_py_to_operation_type(
+                ob.py(),
+                ob.into(),
+            )?)),
         }
-    }
-}
-
-/// ParamExpIdentifier
-#[derive(Debug, Clone)]
-pub struct ParamExpRep {
-    id: String,
-    object: PyObject,
-}
-
-/// Temporary interpretation of Gate
-#[derive(Debug, Clone)]
-pub struct GateRep {
-    object: PyObject,
-    pub num_qubits: Option<usize>,
-    pub num_clbits: Option<usize>,
-    pub name: Option<String>,
-    pub label: Option<String>,
-    pub params: Vec<Param>,
-}
-
-impl FromPyObject<'_> for GateRep {
-    fn extract(ob: &'_ PyAny) -> PyResult<Self> {
-        let num_qubits = match ob.getattr("num_qubits") {
-            Ok(num_qubits) => num_qubits.extract::<usize>().ok(),
-            Err(_) => None,
-        };
-        let num_clbits = match ob.getattr("num_clbits") {
-            Ok(num_clbits) => num_clbits.extract::<usize>().ok(),
-            Err(_) => None,
-        };
-        let name = match ob.getattr("name") {
-            Ok(name) => name.extract::<String>().ok(),
-            Err(_) => None,
-        };
-        let label = match ob.getattr("label") {
-            Ok(label) => label.extract::<String>().ok(),
-            Err(_) => None,
-        };
-        let params = match ob.getattr("params") {
-            Ok(params) => params.extract::<Vec<Param>>().ok(),
-            Err(_) => Some(vec![]),
-        }
-        .unwrap_or_default();
-        Ok(Self {
-            object: ob.into(),
-            num_qubits,
-            num_clbits,
-            name,
-            label,
-            params,
-        })
-    }
-}
-impl IntoPy<PyObject> for GateRep {
-    fn into_py(self, _py: Python<'_>) -> PyObject {
-        self.object
     }
 }
 
@@ -424,23 +295,25 @@ impl IntoPy<PyObject> for GateRep {
 #[derive(Debug, Clone)]
 pub struct CircuitRep {
     object: PyObject,
-    pub num_qubits: Option<usize>,
-    pub num_clbits: Option<usize>,
+    pub num_qubits: u32,
+    pub num_clbits: u32,
     pub label: Option<String>,
-    pub params: Vec<Param>,
-    pub data: Vec<CircuitInstructionRep>,
+    pub params: SmallVec<[Param; 3]>,
+    pub data: Vec<CircuitInstruction>,
 }
 
 impl FromPyObject<'_> for CircuitRep {
     fn extract(ob: &'_ PyAny) -> PyResult<Self> {
         let num_qubits = match ob.getattr("num_qubits") {
-            Ok(num_qubits) => num_qubits.extract::<usize>().ok(),
+            Ok(num_qubits) => num_qubits.extract::<u32>().ok(),
             Err(_) => None,
-        };
+        }
+        .unwrap_or_default();
         let num_clbits = match ob.getattr("num_clbits") {
-            Ok(num_clbits) => num_clbits.extract::<usize>().ok(),
+            Ok(num_clbits) => num_clbits.extract::<u32>().ok(),
             Err(_) => None,
-        };
+        }
+        .unwrap_or_default();
         let label = match ob.getattr("label") {
             Ok(label) => label.extract::<String>().ok(),
             Err(_) => None,
@@ -448,10 +321,10 @@ impl FromPyObject<'_> for CircuitRep {
         let params = ob
             .getattr("parameters")?
             .getattr("data")?
-            .extract::<Vec<Param>>()
+            .extract::<SmallVec<[Param; 3]>>()
             .unwrap_or_default();
         let data = match ob.getattr("data") {
-            Ok(data) => data.extract::<Vec<CircuitInstructionRep>>().ok(),
+            Ok(data) => data.extract::<Vec<CircuitInstruction>>().ok(),
             Err(_) => Some(vec![]),
         }
         .unwrap_or_default();
@@ -495,27 +368,12 @@ impl Default for CircuitRep {
     fn default() -> Self {
         Self {
             object: Python::with_gil(|py| py.None()),
-            num_qubits: None,
-            num_clbits: None,
+            num_qubits: 0,
+            num_clbits: 0,
             label: None,
-            params: vec![],
+            params: smallvec![],
             data: vec![],
         }
-    }
-}
-
-// Temporary Representation of CircuitInstruction
-#[derive(Debug, Clone)]
-pub struct CircuitInstructionRep {
-    operation: GateRep,
-    qubits: Vec<PyObject>,
-}
-
-impl FromPyObject<'_> for CircuitInstructionRep {
-    fn extract(ob: &'_ PyAny) -> PyResult<Self> {
-        let qubits = ob.getattr("qubits")?.extract::<Vec<PyObject>>()?;
-        let operation = ob.getattr("operation")?.extract::<GateRep>()?;
-        Ok(Self { operation, qubits })
     }
 }
 
@@ -576,7 +434,11 @@ impl EquivalenceLibrary {
     ///     gate (Gate): A Gate instance.
     ///     equivalent_circuit (QuantumCircuit): A circuit equivalently
     ///         implementing the given Gate.
-    fn add_equivalence(&mut self, gate: GateRep, equivalent_circuit: CircuitRep) -> PyResult<()> {
+    fn add_equivalence(
+        &mut self,
+        gate: CircuitInstruction,
+        equivalent_circuit: CircuitRep,
+    ) -> PyResult<()> {
         match self.add_equiv(gate, equivalent_circuit) {
             Ok(_) => Ok(()),
             Err(e) => Err(CircuitError::new_err(e.message)),
@@ -591,10 +453,10 @@ impl EquivalenceLibrary {
     ///     Returns:
     ///         Bool: True if gate has a known decomposition in the library.
     ///             False otherwise.
-    pub fn has_entry(&self, gate: GateRep) -> bool {
+    pub fn has_entry(&self, gate: CircuitInstruction) -> bool {
         let key = Key {
-            name: gate.name.unwrap_or_default(),
-            num_qubits: gate.num_qubits.unwrap_or_default(),
+            name: gate.operation().name().to_string(),
+            num_qubits: gate.operation().num_qubits(),
         };
         self.key_to_node_index.contains_key(&key)
     }
@@ -610,7 +472,7 @@ impl EquivalenceLibrary {
     ///     gate (Gate): A Gate instance.
     ///     entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
     ///         equivalently implementing the given Gate.
-    fn set_entry(&mut self, gate: GateRep, entry: Vec<CircuitRep>) -> PyResult<()> {
+    fn set_entry(&mut self, gate: CircuitInstruction, entry: Vec<CircuitRep>) -> PyResult<()> {
         match self.set_entry_native(&gate, &entry) {
             Ok(_) => Ok(()),
             Err(e) => Err(CircuitError::new_err(e.message)),
@@ -634,16 +496,16 @@ impl EquivalenceLibrary {
     ///         the library, from earliest to latest, from top to base. The
     ///         ordering of the StandardEquivalenceLibrary will not generally be
     ///         consistent across Qiskit versions.
-    pub fn get_entry(&self, py: Python<'_>, gate: GateRep) -> Vec<CircuitRep> {
+    pub fn get_entry(&self, py: Python<'_>, gate: CircuitInstruction) -> Vec<CircuitRep> {
         let key = Key {
-            name: gate.name.unwrap_or_default(),
-            num_qubits: gate.num_qubits.unwrap_or_default(),
+            name: gate.operation().name().to_string(),
+            num_qubits: gate.operation().num_qubits(),
         };
-        let query_params = gate.params;
+        let query_params = gate.params();
 
         self.get_equivalences(&key)
             .into_iter()
-            .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok())
+            .filter_map(|equivalence| rebind_equiv(py, equivalence, query_params).ok())
             .collect()
     }
 
@@ -668,7 +530,7 @@ impl EquivalenceLibrary {
     fn __getstate__(slf: PyRef<Self>) -> PyResult<Bound<'_, PyDict>> {
         let ret = PyDict::new_bound(slf.py());
         ret.set_item("rule_id", slf.rule_id)?;
-        let key_to_usize_node: HashMap<(String, usize), usize> = HashMap::from_iter(
+        let key_to_usize_node: HashMap<(String, u32), usize> = HashMap::from_iter(
             slf.key_to_node_index
                 .iter()
                 .map(|(key, val)| ((key.name.to_string(), key.num_qubits), val.index())),
@@ -696,7 +558,7 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<HashMap<(String, usize), usize>>()?
+            .extract::<HashMap<(String, u32), usize>>()?
             .into_iter()
             .map(|((name, num_qubits), val)| (Key::new(name, num_qubits), NodeIndex::new(val)))
             .collect();
@@ -758,18 +620,18 @@ impl EquivalenceLibrary {
     ///         implementing the given Gate.
     pub fn add_equiv(
         &mut self,
-        gate: GateRep,
+        gate: CircuitInstruction,
         equivalent_circuit: CircuitRep,
     ) -> Result<(), EquivalenceError> {
         raise_if_shape_mismatch(&gate, &equivalent_circuit)?;
-        raise_if_param_mismatch(&gate.params, &equivalent_circuit.params)?;
+        raise_if_param_mismatch(gate.params(), &equivalent_circuit.params)?;
 
         let key: Key = Key {
-            name: gate.name.unwrap_or_default(),
-            num_qubits: gate.num_qubits.unwrap_or_default(),
+            name: gate.operation().name().to_string(),
+            num_qubits: gate.operation().num_qubits(),
         };
         let equiv = Equivalence {
-            params: gate.params,
+            params: gate.params().into(),
             circuit: equivalent_circuit.to_owned(),
         };
 
@@ -779,8 +641,8 @@ impl EquivalenceLibrary {
         }
         let sources: HashSet<Key> =
             HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
-                name: inst.operation.name.to_owned().unwrap_or_default(),
-                num_qubits: inst.qubits.len(),
+                name: inst.operation().name().to_owned(),
+                num_qubits: inst.operation().num_qubits(),
             }));
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (
@@ -816,17 +678,17 @@ impl EquivalenceLibrary {
     ///         equivalently implementing the given Gate.
     pub fn set_entry_native(
         &mut self,
-        gate: &GateRep,
+        gate: &CircuitInstruction,
         entry: &Vec<CircuitRep>,
     ) -> Result<(), EquivalenceError> {
         for equiv in entry {
             raise_if_shape_mismatch(gate, equiv)?;
-            raise_if_param_mismatch(&gate.params, &equiv.params)?;
+            raise_if_param_mismatch(gate.params(), &equiv.params)?;
         }
 
         let key = Key {
-            name: gate.name.to_owned().unwrap_or_default(),
-            num_qubits: gate.num_qubits.unwrap_or_default(),
+            name: gate.operation().name().to_owned(),
+            num_qubits: gate.operation().num_qubits(),
         };
         let node_index = self.set_default_node(key);
 
@@ -863,23 +725,17 @@ fn raise_if_param_mismatch(
     gate_params: &[Param],
     circuit_parameters: &[Param],
 ) -> Result<(), EquivalenceError> {
-    let uid_gate_parameters: HashSet<String> = gate_params
+    let gate_params = gate_params
         .iter()
-        .filter_map(|x| match x {
-            Param::ParameterExpression(param) => Some(param.id.to_string()),
-            Param::Float(_) => None,
-            Param::Obj(_) => None,
-        })
-        .collect();
-    let uid_circuit_parameters: HashSet<String> = circuit_parameters
+        .filter(|param| matches!(param, Param::ParameterExpression(_)))
+        .collect_vec();
+    let circuit_parameters = circuit_parameters
         .iter()
-        .filter_map(|x| match x {
-            Param::ParameterExpression(param) => Some(param.id.to_string()),
-            Param::Float(_) => None,
-            Param::Obj(_) => None,
-        })
-        .collect();
-    if uid_gate_parameters != uid_circuit_parameters {
+        .filter(|param| matches!(param, Param::ParameterExpression(_)))
+        .collect_vec();
+    if gate_params.len() == circuit_parameters.len()
+        && gate_params.iter().any(|x| !circuit_parameters.contains(x))
+    {
         return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different parameters. Gate params: {:#?}. \
@@ -890,16 +746,21 @@ fn raise_if_param_mismatch(
     Ok(())
 }
 
-fn raise_if_shape_mismatch(gate: &GateRep, circuit: &CircuitRep) -> Result<(), EquivalenceError> {
-    if gate.num_qubits != circuit.num_qubits || gate.num_clbits != circuit.num_clbits {
+fn raise_if_shape_mismatch(
+    gate: &CircuitInstruction,
+    circuit: &CircuitRep,
+) -> Result<(), EquivalenceError> {
+    if gate.operation().num_qubits() != circuit.num_qubits
+        || gate.operation().num_clbits() != circuit.num_clbits
+    {
         return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different shapes. Gate: {} qubits and {} clbits. \
             Circuit: {} qubits and {} clbits.",
-            gate.num_qubits.unwrap_or_default(),
-            gate.num_clbits.unwrap_or_default(),
-            circuit.num_qubits.unwrap_or_default(),
-            circuit.num_clbits.unwrap_or_default()
+            gate.operation().num_qubits(),
+            gate.operation().num_clbits(),
+            circuit.num_qubits,
+            circuit.num_clbits
         )));
     }
     Ok(())
