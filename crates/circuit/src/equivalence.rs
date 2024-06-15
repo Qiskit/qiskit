@@ -141,8 +141,9 @@ impl Display for Equivalence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Equivalence(params={:?}, circuit={})",
-            self.params, self.circuit
+            "Equivalence(params=[{}], circuit={})",
+            self.params.iter().format(", "),
+            self.circuit
         )
     }
 }
@@ -354,7 +355,11 @@ impl Display for CircuitRep {
 
 impl PartialEq for CircuitRep {
     fn eq(&self, other: &Self) -> bool {
-        self.object.is(&other.object)
+        Python::with_gil(|py| -> PyResult<bool> {
+            let bound = other.object.bind(py);
+            bound.eq(&self.object)
+        })
+        .unwrap_or_default()
     }
 }
 
