@@ -19,15 +19,18 @@ pub mod dense_layout;
 pub mod edge_collections;
 pub mod error_map;
 pub mod euler_one_qubit_decomposer;
+pub mod isometry;
 pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
+pub mod permutation;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
 pub mod sparse_pauli_op;
 pub mod stochastic_swap;
 pub mod two_qubit_decompose;
+pub mod uc_gate;
 pub mod utils;
 pub mod vf2_layout;
 

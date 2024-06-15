@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
 from qiskit.qasm3.exporter import QASM3Builder
@@ -948,7 +948,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
     def test_simple_for_loop(self):
         """Test that a simple for loop outputs the expected result."""
-        parameter = Parameter("x")
+        parameter = Parameter("my_x")
         loop_body = QuantumCircuit(1)
         loop_body.rx(parameter, 0)
         loop_body.break_loop()
@@ -978,8 +978,8 @@ class TestCircuitQASM3(QiskitTestCase):
 
     def test_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result."""
-        inner_parameter = Parameter("x")
-        outer_parameter = Parameter("y")
+        inner_parameter = Parameter("my_x")
+        outer_parameter = Parameter("my_y")
 
         inner_body = QuantumCircuit(2)
         inner_body.rz(inner_parameter, 0)
@@ -1024,9 +1024,9 @@ class TestCircuitQASM3(QiskitTestCase):
     def test_regular_parameter_in_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result, including
         defining parameters that are used in nested loop scopes."""
-        inner_parameter = Parameter("x")
-        outer_parameter = Parameter("y")
-        regular_parameter = Parameter("t")
+        inner_parameter = Parameter("my_x")
+        outer_parameter = Parameter("my_y")
+        regular_parameter = Parameter("my_t")
 
         inner_body = QuantumCircuit(2)
         inner_body.h(0)
@@ -1471,6 +1471,17 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertIn("clash", parameter_name["name"])
         self.assertNotEqual(register_name["name"], parameter_name["name"])
 
+    def test_parameters_and_gates_cannot_have_naming_clashes(self):
+        """Test that parameters are renamed to avoid collisions with gate names."""
+        qc = QuantumCircuit(QuantumRegister(1, "q"))
+        qc.rz(Parameter("rz"), 0)
+
+        out_qasm = dumps(qc)
+        parameter_name = self.scalar_parameter_regex.search(out_qasm)
+        self.assertTrue(parameter_name)
+        self.assertIn("rz", parameter_name["name"])
+        self.assertNotEqual(parameter_name["name"], "rz")
+
     # Not necessarily all the reserved keywords, just a sensibly-sized subset.
     @data("bit", "const", "def", "defcal", "float", "gate", "include", "int", "let", "measure")
     def test_reserved_keywords_as_names_are_escaped(self, keyword):
@@ -1574,11 +1585,20 @@ while (cr == 3) {
         qc.if_test(expr.equal(expr.bit_and(expr.bit_and(cr1, cr2), cr3), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_or(expr.bit_or(cr1, cr2), cr3), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_xor(expr.bit_xor(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(
+            expr.equal(expr.shift_left(expr.shift_left(cr1, cr2), cr3), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_right(expr.shift_right(cr1, cr2), cr3), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_left(expr.shift_right(cr1, cr2), cr3), 7), body.copy(), [], []
+        )
         qc.if_test(expr.logic_and(expr.logic_and(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
         qc.if_test(expr.logic_or(expr.logic_or(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
 
-        # Note that bitwise operations have lower priority than `==` so there's extra parentheses.
-        # All these operators are left-associative in OQ3.
+        # Note that bitwise operations except shift have lower priority than `==` so there's extra
+        # parentheses.  All these operators are left-associative in OQ3.
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
@@ -1590,6 +1610,12 @@ if ((cr1 & cr2 & cr3) == 7) {
 if ((cr1 | cr2 | cr3) == 7) {
 }
 if ((cr1 ^ cr2 ^ cr3) == 7) {
+}
+if (cr1 << cr2 << cr3 == 7) {
+}
+if (cr1 >> cr2 >> cr3 == 7) {
+}
+if (cr1 >> cr2 << cr3 == 7) {
 }
 if (cr1[0] && cr1[1] && cr1[2]) {
 }
@@ -1610,6 +1636,15 @@ if (cr1[0] || cr1[1] || cr1[2]) {
         qc.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_or(cr1, expr.bit_or(cr2, cr3)), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_xor(cr1, expr.bit_xor(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(
+            expr.equal(expr.shift_left(cr1, expr.shift_left(cr2, cr3)), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_right(cr1, expr.shift_right(cr2, cr3)), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_left(cr1, expr.shift_right(cr2, cr3)), 7), body.copy(), [], []
+        )
         qc.if_test(expr.logic_and(cr1[0], expr.logic_and(cr1[1], cr1[2])), body.copy(), [], [])
         qc.if_test(expr.logic_or(cr1[0], expr.logic_or(cr1[1], cr1[2])), body.copy(), [], [])
 
@@ -1628,6 +1663,12 @@ if ((cr1 & (cr2 & cr3)) == 7) {
 if ((cr1 | (cr2 | cr3)) == 7) {
 }
 if ((cr1 ^ (cr2 ^ cr3)) == 7) {
+}
+if (cr1 << (cr2 << cr3) == 7) {
+}
+if (cr1 >> (cr2 >> cr3) == 7) {
+}
+if (cr1 << (cr2 >> cr3) == 7) {
 }
 if (cr1[0] && (cr1[1] && cr1[2])) {
 }
@@ -1698,10 +1739,21 @@ if (!!cr[0]) {
             ),
         )
 
+        # An extra test of the bitshifting rules, since we have to pick one or the other of
+        # bitshifts vs comparisons due to the typing.  The first operand is inside out, the second
+        bitshifts = expr.equal(
+            expr.shift_left(expr.bit_and(expr.bit_xor(cr, cr), cr), expr.bit_or(cr, cr)),
+            expr.bit_or(
+                expr.bit_xor(expr.shift_right(cr, 3), expr.shift_left(cr, 4)),
+                expr.shift_left(cr, 1),
+            ),
+        )
+
         qc = QuantumCircuit(cr)
         qc.if_test(inside_out, body.copy(), [], [])
         qc.if_test(outside_in, body.copy(), [], [])
         qc.if_test(logics, body.copy(), [], [])
+        qc.if_test(bitshifts, body.copy(), [], [])
 
         expected = """\
 OPENQASM 3.0;
@@ -1714,6 +1766,8 @@ if ((cr | cr) == (cr & cr) && (cr & cr) == (cr | cr)\
  || (cr | cr) > (cr ^ cr) && (cr ^ cr) <= (cr | cr)) {
 }
 if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !cr[0])) {
+}
+if (((cr ^ cr) & cr) << (cr | cr) == (cr >> 3 ^ cr << 4 | cr << 1)) {
 }
 """
         self.assertEqual(dumps(qc), expected)
@@ -1739,6 +1793,145 @@ if (cr == 1) {
 """
         self.assertEqual(dumps(qc), expected)
 
+    def test_var_use(self):
+        """Test that input and declared vars work in simple local scopes and can be set."""
+        qc = QuantumCircuit()
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_input("b", types.Uint(8))
+        qc.store(a, expr.logic_not(a))
+        qc.store(b, expr.bit_and(b, 8))
+        qc.add_var("c", expr.bit_not(b))
+        # All inputs should come first, regardless of declaration order.
+        qc.add_input("d", types.Bool())
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool a;
+input uint[8] b;
+input bool d;
+uint[8] c;
+a = !a;
+b = b & 8;
+c = ~b;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_use_in_scopes(self):
+        """Test that usage of `Var` nodes works in capturing scopes."""
+        qc = QuantumCircuit(2, 2)
+        a = qc.add_input("a", types.Bool())
+        b_outer = qc.add_var("b", expr.lift(5, types.Uint(16)))
+        with qc.if_test(expr.logic_not(a)) as else_:
+            qc.store(b_outer, expr.bit_not(b_outer))
+            qc.h(0)
+        with else_:
+            # Shadow of the same type.
+            qc.add_var("b", expr.lift(7, b_outer.type))
+        with qc.while_loop(a):
+            # Shadow of a different type.
+            qc.add_var("b", a)
+        with qc.switch(b_outer) as case:
+            with case(0):
+                qc.store(b_outer, expr.lift(3, b_outer.type))
+            with case(case.DEFAULT):
+                qc.add_var("b", expr.logic_not(a))
+                qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool a;
+bit[2] c;
+int switch_dummy;
+qubit[2] q;
+uint[16] b;
+b = 5;
+if (!a) {
+  b = ~b;
+  h q[0];
+} else {
+  uint[16] b;
+  b = 7;
+}
+while (a) {
+  bool b;
+  b = a;
+}
+switch_dummy = b;
+switch (switch_dummy) {
+  case 0 {
+    b = 3;
+  }
+  default {
+    bool b;
+    b = !a;
+    cx q[0], q[1];
+  }
+}
+c[0] = measure q[0];
+c[1] = measure q[1];
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_naming_clash_parameter(self):
+        """We should support a `Var` clashing in name with a `Parameter` if `QuantumCircuit` allows
+        it."""
+        qc = QuantumCircuit(1)
+        qc.add_var("a", False)
+        qc.rx(Parameter("a"), 0)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input float[64] a;
+qubit[1] q;
+bool a__generated0;
+a__generated0 = false;
+rx(a) q[0];
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_naming_clash_register(self):
+        """We should support a `Var` clashing in name with a `Register` if `QuantumCircuit` allows
+        it."""
+        qc = QuantumCircuit(QuantumRegister(2, "q"), ClassicalRegister(2, "c"))
+        qc.add_input("c", types.Bool())
+        qc.add_var("q", False)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool c__generated0;
+bit[2] c;
+qubit[2] q;
+bool q__generated1;
+q__generated1 = false;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_naming_clash_gate(self):
+        """We should support a `Var` clashing in name with some gate if `QuantumCircuit` allows
+        it."""
+        qc = QuantumCircuit(2)
+        qc.add_input("cx", types.Bool())
+        qc.add_input("U", types.Bool())
+        qc.add_var("rx", expr.lift(5, types.Uint(8)))
+
+        qc.cx(0, 1)
+        qc.u(0.5, 0.125, 0.25, 0)
+        # We don't actually use `rx`, but it's still in the `stdgates` include.
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool cx__generated0;
+input bool U__generated1;
+qubit[2] q;
+uint[8] rx__generated2;
+rx__generated2 = 5;
+cx q[0], q[1];
+U(0.5, 0.125, 0.25) q[0];
+"""
+        self.assertEqual(dumps(qc), expected)
+
 
 class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCase):
     """Test functionality that is not what we _want_, but is what we need to do while the definition
@@ -1753,7 +1946,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
     def test_basis_gates(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)
-        first_h = qc.h(1)[0].operation
+        qc.h(1)
         qc.cx(1, 2)
         qc.barrier()
         qc.cx(0, 1)
@@ -1764,52 +1957,51 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         first_x = qc.x(2).c_if(qc.clbits[1], 1)[0].operation
         qc.z(2).c_if(qc.clbits[0], 1)
 
-        u2 = first_h.definition.data[0].operation
-        u3_1 = u2.definition.data[0].operation
-        u3_2 = first_x.definition.data[0].operation
-
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2)}(0, pi) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi, 0, pi) _gate_q_0;",
-                "}",
-                "gate x _gate_q_0 {",
-                f"  u3_{id(u3_2)}(pi, 0, pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "qubit[3] q;",
-                "h q[1];",
-                "cx q[1], q[2];",
-                "barrier q[0], q[1], q[2];",
-                "cx q[0], q[1];",
-                "h q[0];",
-                "barrier q[0], q[1], q[2];",
-                "c[0] = measure q[0];",
-                "c[1] = measure q[1];",
-                "barrier q[0], q[1], q[2];",
-                "if (c[1]) {",
-                "  x q[2];",
-                "}",
-                "if (c[0]) {",
-                "  z q[2];",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(
-            Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc),
-            expected_qasm,
-        )
+        id_len = len(str(id(first_x)))
+        expected_qasm = [
+            "OPENQASM 3.0;",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi/2, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate h _gate_q_0 {",
+            re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi, 0, pi) _gate_q_0;",
+            "}",
+            "gate x _gate_q_0 {",
+            re.compile(r"  u3_\d{%s}\(pi, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "bit[2] c;",
+            "qubit[3] q;",
+            "h q[1];",
+            "cx q[1], q[2];",
+            "barrier q[0], q[1], q[2];",
+            "cx q[0], q[1];",
+            "h q[0];",
+            "barrier q[0], q[1], q[2];",
+            "c[0] = measure q[0];",
+            "c[1] = measure q[1];",
+            "barrier q[0], q[1], q[2];",
+            "if (c[1]) {",
+            "  x q[2];",
+            "}",
+            "if (c[0]) {",
+            "  z q[2];",
+            "}",
+            "",
+        ]
+        res = Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
 
     def test_teleportation(self):
         """Teleportation with physical qubits"""
@@ -1927,62 +2119,58 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         circuit.sx(0)
         circuit.cx(0, 1)
 
-        rz = circuit.data[0].operation
-        u1_1 = rz.definition.data[0].operation
-        u3_1 = u1_1.definition.data[0].operation
-        sx = circuit.data[1].operation
-        sdg = sx.definition.data[0].operation
-        u1_2 = sdg.definition.data[0].operation
-        u3_2 = u1_2.definition.data[0].operation
-        h_ = sx.definition.data[1].operation
-        u2_1 = h_.definition.data[0].operation
-        u3_3 = u2_1.definition.data[0].operation
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_1)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate rz_{id(rz)}(_gate_p_0) _gate_q_0 {{",
-                f"  u1_{id(u1_1)}(pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_2)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_2)}(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                "gate sdg _gate_q_0 {",
-                f"  u1_{id(u1_2)}(-pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_3)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2_1)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_3)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2_1)}(0, pi) _gate_q_0;",
-                "}",
-                "gate sx _gate_q_0 {",
-                "  sdg _gate_q_0;",
-                "  h _gate_q_0;",
-                "  sdg _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                "qubit[2] q;",
-                f"rz_{id(rz)}(pi/2) q[0];",
-                "sx q[0];",
-                "cx q[0], q[1];",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
+        id_len = len(str(id(circuit.data[0].operation)))
+        expected_qasm = [
+            "OPENQASM 3.0;",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, pi/2) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate rz_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u1_\d{%s}\(pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, -pi/2) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, -pi/2\) _gate_q_0;" % id_len),
+            "}",
+            "gate sdg _gate_q_0 {",
+            re.compile(r"  u1_\d{%s}\(-pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi/2, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate h _gate_q_0 {",
+            re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate sx _gate_q_0 {",
+            "  sdg _gate_q_0;",
+            "  h _gate_q_0;",
+            "  sdg _gate_q_0;",
+            "}",
+            "gate cx c, t {",
+            "  ctrl @ U(pi, 0, pi) c, t;",
+            "}",
+            "qubit[2] q;",
+            re.compile(r"rz_\d{%s}\(pi/2\) q\[0\];" % id_len),
+            "sx q[0];",
+            "cx q[0], q[1];",
+            "",
+        ]
+        res = Exporter(includes=[]).dumps(circuit).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
 
     def test_unusual_conditions(self):
         """Test that special QASM constructs such as ``measure`` are correctly handled when the
@@ -2654,3 +2842,11 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             QASM3ExporterError, "Exporting opaque instructions .* is not yet supported"
         ):
             exporter.dumps(qc)
+
+    def test_disallow_export_of_inner_scope(self):
+        """A circuit with captures can't be a top-level OQ3 program."""
+        qc = QuantumCircuit(captures=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "cannot export an inner scope.*as a top-level program"
+        ):
+            dumps(qc)

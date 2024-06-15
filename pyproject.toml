@@ -136,7 +136,7 @@ target-version = ['py38', 'py39', 'py310', 'py311']
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686"
+skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686 cp38-macosx_arm64"
 test-skip = "*win32 *linux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -209,29 +209,20 @@ disable = [
     "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
     "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
     "unnecessary-pass", # allow for methods with just "pass", for clarity
+    "unnecessary-dunder-call", # do not want to implement
     "no-else-return",  # relax "elif" after a clause with a return
     "docstring-first-line-empty", # relax docstring style
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
     "nested-min-max", # this gives false equivalencies if implemented for the current lint version
+    "consider-using-max-builtin", "consider-using-min-builtin",  # unnecessary stylistic opinion
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
-    "arguments-renamed",
-    "broad-exception-raised",
-    "consider-iterating-dictionary",
-    "consider-using-dict-items",
-    "consider-using-enumerate",
     "consider-using-f-string",
-    "no-member",
-    "no-value-for-parameter",
+    "no-member",  # for dynamically created members
     "not-context-manager",
-    "unexpected-keyword-arg",
-    "unnecessary-dict-index-lookup",
-    "unnecessary-dunder-call",
-    "unnecessary-lambda-assignment",
-    "unspecified-encoding",
-    "unsupported-assignment-operation",
-    "use-implicit-booleaness-not-comparison",
+    "unnecessary-lambda-assignment",  # do not want to implement
+    "unspecified-encoding",  # do not want to implement
 ]
 
 enable = [
@@ -240,3 +231,12 @@ enable = [
 
 [tool.pylint.spelling]
 spelling-private-dict-file = ".local-spellings"
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",               # Printable epresentational string does not typically execute during testing
+    "raise NotImplementedError",  # Abstract methods are not testable
+    "raise RuntimeError",         # Exceptions for defensive programming that cannot be tested a head
+    "if TYPE_CHECKING:",          # Code that only runs during type checks
+    "@abstractmethod",            # Abstract methods are not testable
+    ]

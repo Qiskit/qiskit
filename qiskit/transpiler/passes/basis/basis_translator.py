@@ -97,8 +97,8 @@ class BasisTranslator(TransformationPass):
 
     When this error occurs it typically means that either the target basis
     is not universal or there are additional equivalence rules needed in the
-    :clas:~.EquivalenceLibrary` instance being used by the
-    :class:~.BasisTranslator` pass. You can refer to
+    :class:`~.EquivalenceLibrary` instance being used by the
+    :class:`~.BasisTranslator` pass. You can refer to
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
@@ -148,12 +148,12 @@ class BasisTranslator(TransformationPass):
 
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
-            basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
+            basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay", "store"]
             target_basis = set(self._target_basis)
             source_basis = set(self._extract_basis(dag))
             qargs_local_source_basis = {}
         else:
-            basic_instrs = ["barrier", "snapshot"]
+            basic_instrs = ["barrier", "snapshot", "store"]
             target_basis = self._target.keys() - set(self._non_global_operations)
             source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
@@ -207,7 +207,7 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                    "https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes."
                     "BasisTranslator#translation-errors"
                 )
 
@@ -225,7 +225,7 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                "https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes."
                 "BasisTranslator#translation-errors"
             )
 
