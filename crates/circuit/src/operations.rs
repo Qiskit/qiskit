@@ -196,6 +196,20 @@ impl PartialEq for Param {
     }
 }
 
+impl std::fmt::Display for Param {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let display_name: String = Python::with_gil(|py| -> PyResult<String> {
+            match self {
+                Param::ParameterExpression(obj) => obj.call_method0(py, "__repr__")?.extract(py),
+                Param::Float(float_param) => Ok(format!("Parameter({})", float_param)),
+                Param::Obj(obj) => obj.call_method0(py, "__repr__")?.extract(py),
+            }
+        })
+        .unwrap_or("None".to_owned());
+        write!(f, "{}", display_name)
+    }
+}
+
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[pyclass(module = "qiskit._accelerate.circuit")]
 pub enum StandardGate {
