@@ -15,9 +15,9 @@
 import os
 import unittest
 import math
+import tempfile
 import numpy as np
 import scipy
-import tempfile
 
 from ddt import ddt, data
 
