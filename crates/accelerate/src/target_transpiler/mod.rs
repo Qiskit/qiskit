@@ -949,7 +949,7 @@ impl Target {
 // Rust native methods
 impl Target {
     /// Generate non global operations if missing
-    fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &Vec<String> {
+    fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &[String] {
         let mut search_set: HashSet<Qargs, RandomState> = HashSet::default();
         if strict_direction {
             // Build search set
@@ -1012,13 +1012,13 @@ impl Target {
     }
 
     /// Get all non_global operation names.
-    pub fn get_non_global_op_names(&mut self, strict_direction: bool) -> Option<&Vec<String>> {
+    pub fn get_non_global_op_names(&mut self, strict_direction: bool) -> Option<&[String]> {
         if strict_direction {
             if self.non_global_strict_basis.is_some() {
-                return self.non_global_strict_basis.as_ref();
+                return self.non_global_strict_basis.as_deref();
             }
         } else if self.non_global_basis.is_some() {
-            return self.non_global_basis.as_ref();
+            return self.non_global_basis.as_deref();
         }
         return Some(self.generate_non_global_op_names(strict_direction));
     }
