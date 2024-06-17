@@ -600,13 +600,6 @@ impl EquivalenceLibrary {
             self.key_to_node_index.insert(key, node);
             node
         }
-        // *self
-        //     .key_to_node_index
-        //     .entry(key.to_owned())
-        //     .or_insert(self._graph.add_node(NodeData {
-        //         key,
-        //         equivs: vec![],
-        //     }))
     }
 
     /// Rust native equivalent to `EquivalenceLibrary.add_equivalence()`
@@ -779,12 +772,9 @@ fn rebind_equiv(
     let (equiv_params, equiv_circuit) = (equiv.params, equiv.circuit);
     let param_map: Vec<(Param, Param)> = equiv_params
         .into_iter()
-        .filter_map(|param| {
-            if matches!(param, Param::ParameterExpression(_)) {
-                Some(param)
-            } else {
-                None
-            }
+        .filter_map(|param| match param {
+            Param::ParameterExpression(_) => Some(param),
+            _ => None,
         })
         .zip(query_params.iter().cloned())
         .collect();
@@ -828,10 +818,10 @@ where
     for node in node_weights {
         graph.call_method1("add_node", (node.to_owned(),))?;
     }
-    let edge_weights = pet_graph.edge_indices().map(|edge| {
+    let edge_weights = pet_graph.edge_references().map(|edge| {
         (
-            pet_graph.edge_endpoints(edge).unwrap(),
-            pet_graph.edge_weight(edge).unwrap(),
+            pet_graph.edge_endpoints(edge.id()).unwrap(),
+            pet_graph.edge_weight(edge.id()).unwrap(),
         )
     });
     for ((source, target), weight) in edge_weights {
