@@ -411,6 +411,8 @@ class Operator(LinearOp):
 
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
+        op = Operator(circuit)
+
         if initial_layout is not None:
             input_qubits = [None] * len(layout.input_qubit_mapping)
             for q, p in layout.input_qubit_mapping.items():
@@ -418,21 +420,17 @@ class Operator(LinearOp):
 
             initial_permutation = initial_layout.to_permutation(input_qubits)
             initial_permutation_inverse = _inverse_pattern(initial_permutation)
-
-        if final_layout is not None:
-            final_permutation = final_layout.to_permutation(circuit.qubits)
-            final_permutation_inverse = _inverse_pattern(final_permutation)
-
-        op = Operator(circuit)
-
-        if initial_layout:
             op = op.apply_permutation(initial_permutation, True)
 
-        if final_layout:
-            op = op.apply_permutation(final_permutation_inverse, False)
-
-        if initial_layout:
+            if final_layout is not None:
+                final_permutation = final_layout.to_permutation(circuit.qubits)
+                final_permutation_inverse = _inverse_pattern(final_permutation)
+                op = op.apply_permutation(final_permutation_inverse, False)
             op = op.apply_permutation(initial_permutation_inverse, False)
+        elif final_layout is not None:
+            final_permutation = final_layout.to_permutation(circuit.qubits)
+            final_permutation_inverse = _inverse_pattern(final_permutation)
+            op = op.apply_permutation(final_permutation_inverse, False)
 
         return op
 

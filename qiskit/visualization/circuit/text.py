@@ -739,13 +739,7 @@ class TextDrawing:
         self._wire_map = {}
         self.cregbundle = cregbundle
 
-        if encoding:
-            self.encoding = encoding
-        else:
-            if sys.stdout.encoding:
-                self.encoding = sys.stdout.encoding
-            else:
-                self.encoding = "utf8"
+        self.encoding = encoding or sys.stdout.encoding or "utf8"
 
         self._nest_depth = 0  # nesting depth for control flow ops
         self._expr_text = ""  # expression text to display

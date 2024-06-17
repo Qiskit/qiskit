@@ -124,8 +124,13 @@ def _measure_v1(
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
     for measure_group_qubits in measure_groups:
-        if qubit_mem_slots is not None:
-            unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+
+        unused_mem_slots = (
+            set()
+            if qubit_mem_slots is None
+            else set(measure_group_qubits) - set(qubit_mem_slots.values())
+        )
+
         try:
             default_sched = inst_map.get(measure_name, measure_group_qubits)
         except exceptions.PulseError as ex:
