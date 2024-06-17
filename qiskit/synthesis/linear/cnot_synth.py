@@ -17,10 +17,8 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
 
 from __future__ import annotations
-import copy
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
 
 from qiskit._accelerate.synthesis import synth_cnot_count_full_pmh as fast_pmh
 
@@ -28,6 +26,31 @@ from qiskit._accelerate.synthesis import synth_cnot_count_full_pmh as fast_pmh
 def synth_cnot_count_full_pmh(
     state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
 ) -> QuantumCircuit:
+    r"""
+    Synthesize linear reversible circuits for all-to-all architecture
+    using Patel, Markov and Hayes method.
+
+    This function is an implementation of the Patel, Markov and Hayes algorithm from [1]
+    for optimal synthesis of linear reversible circuits for all-to-all architecture,
+    as specified by an :math:`n \times n` matrix.
+
+    Args:
+        state: :math:`n \times n` boolean invertible matrix, describing
+            the state of the input circuit.
+        section_size: The size of each section in the Patel–Markov–Hayes algorithm [1].
+
+    Returns:
+        A CX-only circuit implementing the linear transformation.
+
+    Raises:
+        QiskitError: when variable ``state`` isn't of type ``numpy.ndarray``.
+
+    References:
+        1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
+           *Optimal synthesis of linear reversible circuits*,
+           Quantum Information & Computation 8.3 (2008): 282-294.
+           `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
+    """
     # call Rust implementation with normalized input
     circuit_data = fast_pmh(np.asarray(state).astype(bool), section_size)
 
