@@ -194,13 +194,15 @@ pub enum StandardGate {
     HGate = 15,
     PhaseGate = 16,
     UGate = 17,
+    SGate = 18,
+    SdgGate = 19,
 }
 
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] =
-    [1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1];
+    [1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1];
 
 static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] =
-    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3];
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3, 0, 0];
 
 static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "z",
@@ -221,6 +223,8 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "h",
     "p",
     "u",
+    "s",
+    "sdg",
 ];
 
 #[pymethods]
@@ -269,7 +273,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 18;
+pub const STANDARD_GATE_SIZE: usize = 20;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
@@ -372,6 +376,14 @@ impl Operation for StandardGate {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(aview2(&gate_matrix::u_gate(*theta, *phi, *lam)).to_owned())
                 }
+                _ => None,
+            },
+            Self::SGate => match params {
+                [] => Some(aview2(&gate_matrix::S_GATE).to_owned()),
+                _ => None,
+            },
+            Self::SdgGate => match params {
+                [] => Some(aview2(&gate_matrix::SDG_GATE).to_owned()),
                 _ => None,
             },
         }
@@ -540,6 +552,8 @@ impl Operation for StandardGate {
                 )
             }),
             Self::UGate => None,
+            Self::SGate => None,
+            Self::SdgGate => None,
         }
     }
 

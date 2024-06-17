@@ -23,7 +23,13 @@ use numpy::{PyArray2, PyReadonlyArray2};
 use crate::QiskitError;
 use numpy::ndarray::{aview2, Array2, ArrayView2};
 use pyo3::callback::IntoPyCallbackOutput;
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
+
+
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::{circuit, Qubit};
+
 
 // /// Symplectic tableau
 // #[pyclass(module = "qiskit._accelerate.clifford")]
@@ -89,7 +95,7 @@ static E_CLASS: [[[bool; 2]; 2]; 1] = [
     [[false, false], [false, false]], // 'II'
 ];
 
-fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> PyResult<usize> {
+fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> usize {
     let mut a_num = 0;
     let mut b_num = 0;
     let mut c_num = 0;
@@ -108,9 +114,10 @@ fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> PyResult<usize> {
     }
 
     if a_num % 2 == 0 {
-        return Err(QiskitError::new_err(
-            "Symplectic Gaussian elimination fails",
-        ));
+        panic!("Symplectic Gaussian elimination fails");
+        // return Err(QiskitError::new_err(
+        //     "Symplectic Gaussian elimination fails",
+        // ));
     }
 
     let mut cnot_cost: usize =
@@ -119,11 +126,14 @@ fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> PyResult<usize> {
     if !A_CLASS.contains(&pairs[0]) {
         cnot_cost += 3;
     }
-    Ok(cnot_cost)
+
+    cnot_cost
 }
 
-// hack: for single-qubit gates second arg is always 0
-type CliffordSequenceVec = Vec<(String, u8, u8)>;
+type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Qubit; 2]>)>;
+
+
+
 
 fn from_pair_paulis_to_type(
     pauli_x: ArrayView1<bool>,
@@ -138,9 +148,6 @@ fn from_pair_paulis_to_type(
 }
 
 fn adjoint_no_phase(symp_mat: &mut Array2<bool>, num_qubits: usize)  {
-    println!("Original:");
-    println!("{:?}", symp_mat);
-
     let transposed = symp_mat.t().to_owned();
     *symp_mat = transposed;
 
@@ -158,10 +165,10 @@ fn adjoint_no_phase(symp_mat: &mut Array2<bool>, num_qubits: usize)  {
 
 
 // for now modify clifford in-place
-fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> PyResult<()> {
+fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
    println!("I AM IN SYNTH_CLIFFORD_INNER!");
 
-    let mut clifford_gates = CliffordSequenceVec::new();
+    let mut clifford_gates  = CliffordGatesVec::new();
 
     let num_qubits = clifford.shape()[0] / 2;
     println!("num_qubits = {:?}", num_qubits);
@@ -193,7 +200,7 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> PyResult<()> {
 
             println!("{:?}", list_pairs);
 
-            let cost = compute_greedy_cost(&list_pairs)?;
+            let cost = compute_greedy_cost(&list_pairs);
             println!("{}", cost);
             list_greedy_cost.push((cost, *qubit));
         }
@@ -211,20 +218,23 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> PyResult<()> {
 
         let mut decouple_cliff = calc_decoupling(&mut clifford_gates, pauli_x, pauli_z, &qubit_list, min_qubit, num_qubits);
 
-        println!("Decoupling cliff");
+
+        println!("====================================================");
+        println!("DECOUPLER CLIFF:");
         println!("{:?}", decouple_cliff);
+        println!("====================================================");
+
+
         adjoint_no_phase(&mut decouple_cliff, num_qubits);
-        println!("After adjoint:");
-        println!("{:?}", decouple_cliff);
         let composed_cliff = compose_ignore_phase(num_qubits, symplectic_mat.view(), decouple_cliff.view());
-        println!("Composed:");
-        println!("{:?}", composed_cliff);
+
 
         symplectic_mat = composed_cliff;
 
         println!("====================================================");
         println!("CLIFFORD CURRENT:");
         println!("{:?}", symplectic_mat);
+        println!("====================================================");
 
         // qubit_list.remove(&min_qubit);
         qubit_list.retain(|&x| x != min_qubit);
@@ -239,10 +249,9 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> PyResult<()> {
     println!("{:?}", clifford_gates);
     println!("====================================================");
 
-
-
-    Ok(())
+    clifford_gates
 }
+
 
 // Zip::from(clifford.column_mut(2 * num_qubits))
 //     .and(&x)
@@ -320,6 +329,8 @@ fn append_cx(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1:usize, num_q
 
 
 fn append_s_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
+    println!("_append_s: {}", qubit);
+
     let (x, mut z) = clifford.multi_slice_mut((
         s![.., qubit],
         s![.., num_qubits + qubit],
@@ -329,16 +340,18 @@ fn append_s_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: 
 }
 
 fn append_h_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
+    println!("_append_h: {}", qubit);
     let (mut x, mut z, ) = clifford.multi_slice_mut((
         s![.., qubit],
         s![.., num_qubits + qubit],
     ));
 
     azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
-    println!("OK");
 }
 
 fn append_swap_no_phase(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1:usize, num_qubits:usize) {
+    println!("_append_swap: {} {}", qubit0, qubit1);
+
     let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
         s![.., qubit0],
         s![.., num_qubits + qubit0],
@@ -350,6 +363,8 @@ fn append_swap_no_phase(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1:u
 }
 
 fn append_cx_no_phase(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1:usize, num_qubits:usize) {
+    println!("_append_cx: {} {}", qubit0, qubit1);
+
     let (mut x0, mut z0, mut x1, mut z1, ) = clifford.multi_slice_mut((
         s![.., qubit0],
         s![.., num_qubits + qubit0],
@@ -402,7 +417,7 @@ fn compose_ignore_phase(nq: usize, cliff1: ArrayView2<bool>, cliff2: ArrayView2<
 /// D^{-1} * Oz * D = z1
 /// and reduce the clifford such that it will act trivially on min_qubit
 fn calc_decoupling(
-                   gate_seq: &mut CliffordSequenceVec,
+                   gate_seq: &mut CliffordGatesVec,
                    pauli_x: ArrayView1<bool>,
                    pauli_z: ArrayView1<bool>,
                    qubit_list: &Vec<usize>,
@@ -416,11 +431,9 @@ fn calc_decoupling(
 
     for qubit in qubit_list {
         let typeq = from_pair_paulis_to_type(pauli_x, pauli_z, *qubit);
-        println!("qubit ={}, typeq = {:?}", qubit, typeq);
 
         if typeq == [[true, true], [false, false]] || typeq == [[true, true], [true, true]] || typeq == [[true, true], [true, false]] {
-            println!("=> S GATE on qubit {}", qubit);
-            gate_seq.push(("s".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
             append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
         }
         else if
@@ -429,32 +442,28 @@ fn calc_decoupling(
             typeq == [[true, false], [false, true]] ||
             typeq == [[false, false], [false, true]] {
 
-            println!("=> H GATE on qubit {}", qubit);
-            gate_seq.push(("h".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
             append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
         }
         else if typeq == [[false, false], [true, true]] ||
             typeq == [[true, false], [true, true]] {
-            println!("=> SH GATE on qubit {}", qubit);
-            gate_seq.push(("s".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
             append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
-            gate_seq.push(("h".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
             append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
         }
         else if typeq == [[true, true], [false, true]]  {
-            println!("=> HS GATE on qubit {}", qubit);
-            gate_seq.push(("h".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
             append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
-            gate_seq.push(("s".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
             append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
         }
         else if typeq == [[false, true], [true, true]]  {
-            println!("=> SHS GATE on qubit {}", qubit);
-            gate_seq.push(("s".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
             append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
-            gate_seq.push(("h".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
             append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
-            gate_seq.push(("s".to_string(), *qubit as u8, 0));
+            gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
             append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
         }
     }
@@ -486,8 +495,7 @@ fn calc_decoupling(
 
     if !a_qubits.contains(&min_qubit) {
         let qubit_a = a_qubits[0];
-        println!("=> SWAP GATE on qubits {} and {}", min_qubit, qubit_a);
-        gate_seq.push(("swap".to_string(), min_qubit as u8, qubit_a as u8));
+        gate_seq.push((StandardGate::SwapGate, smallvec![Qubit(min_qubit as u32), Qubit(qubit_a as u32)]));
         append_swap_no_phase(&mut decouple_mat, min_qubit, qubit_a, num_qubits);
 
         if b_qubits.contains(&min_qubit) {
@@ -508,40 +516,33 @@ fn calc_decoupling(
     }
 
     for qubit in c_qubits {
-        println!("=> C_QUBITS: CX GATE on qubits {} and {}", min_qubit, qubit);
-        gate_seq.push(("cx".to_string(), min_qubit as u8, qubit as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(min_qubit as u32), Qubit(qubit as u32)]));
         append_cx_no_phase(&mut decouple_mat, min_qubit, qubit, num_qubits);
     }
 
     for qubit in d_qubits {
-        println!("=> D_QUBITS: CX GATE on qubits {} and {}", qubit, min_qubit);
-        gate_seq.push(("cx".to_string(), qubit as u8, min_qubit as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(qubit as u32), Qubit(min_qubit as u32)]));
         append_cx_no_phase(&mut decouple_mat, qubit, min_qubit, num_qubits);
     }
 
     if b_qubits.len() > 1 {
         let qubit_b = b_qubits[0];
         for qubit in &b_qubits[1..] {
-            println!("=> B_QUBITS: CX GATE on qubits {} and {}", qubit_b, qubit);
-            gate_seq.push(("cx".to_string(), qubit_b as u8, *qubit as u8));
-            append_cx_no_phase(&mut decouple_mat, *qubit, qubit_b, num_qubits);
+            gate_seq.push((StandardGate::CXGate, smallvec![Qubit(qubit_b as u32), Qubit(*qubit as u32)]));
+            append_cx_no_phase(&mut decouple_mat, qubit_b, *qubit, num_qubits);
         }
     }
 
     if b_qubits.len() > 0 {
         let qubit_b = b_qubits[0];
-        println!("=> B_QUBITS: CX GATE on qubits {} and {}", min_qubit, qubit_b);
-        gate_seq.push(("cx".to_string(), min_qubit as u8, qubit_b as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(min_qubit as u32), Qubit(qubit_b as u32)]));
         append_cx_no_phase(&mut decouple_mat, min_qubit, qubit_b, num_qubits);
 
-        println!("=> B_QUBITS: H GATE on qubit {}", qubit_b);
-        gate_seq.push(("h".to_string(), qubit_b as u8, 0));
+        gate_seq.push((StandardGate::HGate, smallvec![Qubit(qubit_b as u32)]));
         append_h_no_phase(&mut decouple_mat, qubit_b, num_qubits);
 
-        println!("=> B_QUBITS: CX GATE on qubits {} and {}", qubit_b, min_qubit);
-        gate_seq.push(("cx".to_string(), qubit_b as u8, min_qubit as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(qubit_b as u32), Qubit(min_qubit as u32)]));
         append_cx_no_phase(&mut decouple_mat, qubit_b, min_qubit, num_qubits);
-
     }
 
     let a_len: usize = (a_qubits.len() - 1) / 2;
@@ -550,18 +551,14 @@ fn calc_decoupling(
     }
 
     for qubit in 0..a_len {
-        println!("=> A_QUBITS: CX GATE on qubits {} and {}", a_qubits[2 * qubit + 1], a_qubits[2 * qubit]);
-        gate_seq.push(("cx".to_string(), a_qubits[2 * qubit + 1] as u8, a_qubits[2 * qubit] as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(a_qubits[2 * qubit + 1] as u32), Qubit(a_qubits[2 * qubit] as u32)]));
         append_cx_no_phase(&mut decouple_mat, a_qubits[2 * qubit + 1], a_qubits[2 * qubit], num_qubits);
 
-        println!("=> A_QUBITS: CX GATE on qubits {} and {}", a_qubits[2 * qubit], min_qubit);
-        gate_seq.push(("cx".to_string(), a_qubits[2 * qubit] as u8, min_qubit as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(a_qubits[2 * qubit] as u32), Qubit(min_qubit as u32)]));
         append_cx_no_phase(&mut decouple_mat, a_qubits[2 * qubit], min_qubit, num_qubits);
 
-        println!("=> A_QUBITS: CX GATE on qubits {} and {}", min_qubit, a_qubits[2 * qubit + 1]);
-        gate_seq.push(("cx".to_string(), min_qubit as u8, a_qubits[2 * qubit + 1] as u8));
+        gate_seq.push((StandardGate::CXGate, smallvec![Qubit(min_qubit as u32), Qubit(a_qubits[2 * qubit + 1] as u32)]));
         append_cx_no_phase(&mut decouple_mat, min_qubit, a_qubits[2 * qubit + 1], num_qubits);
-
     }
     println!("---------------------------------------------------------------------");
 
@@ -572,14 +569,28 @@ fn calc_decoupling(
 
 #[pyfunction]
 #[pyo3(signature = (tableau))]
-fn synth_clifford_greedy_new(tableau: PyReadonlyArray2<bool>) {
-    let mut clifford_gates = CliffordSequenceVec::new();
+fn synth_clifford_greedy_new(py: Python, tableau: PyReadonlyArray2<bool>) -> PyResult<Option<CircuitData>> {
     let clifford = tableau.as_array().to_owned();
 
     println!("I AM IN SYNTH_CLIFFORD_GREEDY_NEW!");
+    let num_qubits = clifford.shape()[0] / 2;
 
-    synth_clifford_greedy_inner(&clifford);
+
+    let clifford_gates = synth_clifford_greedy_inner(&clifford);
+
+    let circuit_data = CircuitData::from_standard_gates(
+        py,
+        num_qubits as u32,
+        clifford_gates.into_iter().map(|(gate, qubits)| (gate, smallvec![], qubits)),
+        Param::Float(0.0),
+    ).expect("Something went wrong on Qiskit's Python side, nothing to do here!");
+
+    Ok(Some(circuit_data))
+
 }
+
+
+
 
 #[pymodule]
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {

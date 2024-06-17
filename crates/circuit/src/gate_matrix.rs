@@ -222,3 +222,13 @@ pub fn u_gate(theta: f64, phi: f64, lam: f64) -> [[Complex64; 2]; 2] {
         [c64(0., phi).exp() * sin, c64(0., phi + lam).exp() * cos],
     ]
 }
+
+pub static S_GATE: [[Complex64; 2]; 2] = [
+    [c64(1., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 1.)],
+];
+
+pub static SDG_GATE: [[Complex64; 2]; 2] = [
+    [c64(1., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(-0., -1.)],
+];
