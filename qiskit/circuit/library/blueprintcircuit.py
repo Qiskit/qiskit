@@ -191,6 +191,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         return super().count_ops()
 
     def num_nonlocal_gates(self, n=2):
+        """Returns the number of n-qubit gates that contain at least n qubits."""
         if not self._is_built:
             self._build()
         return super().num_nonlocal_gates(n)
