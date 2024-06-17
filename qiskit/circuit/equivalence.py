@@ -12,18 +12,12 @@
 
 """Gate equivalence library."""
 
-import copy
-from collections import namedtuple
-
 from rustworkx.visualization import graphviz_draw
 import rustworkx as rx
 
 
 from qiskit.exceptions import InvalidFileError
-from .exceptions import CircuitError
-from .parameter import Parameter
-from .parameterexpression import ParameterExpression
-from qiskit._accelerate.circuit.equivalence import (
+from qiskit._accelerate.circuit.equivalence import (  # pylint: disable=unused-import
     BaseEquivalenceLibrary,
     Key,
     Equivalence,
