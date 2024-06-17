@@ -16,15 +16,13 @@ use pyo3::prelude::*;
 
 // Perform ROW operation on a matrix mat
 fn _row_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
-    let row0 = mat.row(ctrl).to_owned();
-    let mut row1 = mat.row_mut(trgt);
+    let (row0, mut row1) = mat.multi_slice_mut((s![ctrl, ..], s![trgt, ..]));
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
 // Perform COL operation on a matrix mat
 fn _col_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
-    let col0 = mat.column(ctrl).to_owned();
-    let mut col1 = mat.column_mut(trgt);
+    let (col0, mut col1) = mat.multi_slice_mut((s![.., ctrl], s![.., trgt]));
     col1.zip_mut_with(&col0, |x, &y| *x ^= y);
 }
 
