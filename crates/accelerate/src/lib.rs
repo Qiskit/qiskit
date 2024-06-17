@@ -14,6 +14,7 @@ use std::env;
 
 use pyo3::import_exception;
 
+pub mod clifford;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;
 pub mod edge_collections;
@@ -24,7 +25,6 @@ pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
 pub mod permutation;
-pub mod clifford;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
