@@ -54,6 +54,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_mpl_config_with_path(self):
+        # pylint: disable=possibly-used-before-assignment
         # It's too easy to get too nested in a test with many context managers.
         tempdir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
         self.addCleanup(tempdir.cleanup)
@@ -127,6 +128,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @_latex_drawer_condition
     def test_latex_output_file_correct_format(self):
+        # pylint: disable=possibly-used-before-assignment
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
             filename = "file.gif"
