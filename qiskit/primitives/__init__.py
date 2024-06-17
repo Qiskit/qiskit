@@ -156,7 +156,7 @@ Here is an example of how a sampler is used.
     print(f"The primitive-job finished with result {job_result}")
 
     # run a sampler job on the parameterized circuits
-    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)]
+    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)])
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 
