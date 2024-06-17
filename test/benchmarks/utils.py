@@ -15,10 +15,12 @@
 """Benchmark utility functions."""
 
 import numpy as np
-from scipy import stats
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.operators import Operator
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, controlledgate, parameter
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    QuantumCircuit,
+)
 from qiskit.circuit import Reset
 from qiskit.circuit.library import (
     IGate,
@@ -47,7 +49,6 @@ from qiskit.circuit.library import (
     RZZGate,
     CCXGate,
     CSwapGate,
-    UnitaryGate,
 )
 
 
@@ -257,7 +258,7 @@ def dtc_unitary(num_qubits, g=0.95, seed=12345):
 def multi_control_circuit(num_qubits):
     """A circuit with multi-control X-gates
     Parameters:
-        N (int): Number of qubits
+        num_qubits (int): Number of qubits
     Returns:
         QuantumCircuit: Output circuit
     """
@@ -270,20 +271,20 @@ def multi_control_circuit(num_qubits):
     return qc
 
 
-def bv_all_ones(N):
+def bv_all_ones(n_qubits):
     """A circuit to generate a BV circuit over N
     qubits for an all-ones bit-string
     Parameters:
-        N (int): Number of qubits
+        n_qubits (int): Number of qubits
     Returns:
         QuantumCircuit: Output circuit
     """
-    qc = QuantumCircuit(N, N - 1)
-    qc.x(N - 1)
-    qc.h(range(N))
-    qc.cx(range(N - 1), N - 1)
-    qc.h(range(N - 1))
-    qc.measure(range(N - 1), range(N - 1))
+    qc = QuantumCircuit(n_qubits, n_qubits - 1)
+    qc.x(n_qubits - 1)
+    qc.h(range(n_qubits))
+    qc.cx(range(n_qubits - 1), n_qubits - 1)
+    qc.h(range(n_qubits - 1))
+    qc.measure(range(n_qubits - 1), range(n_qubits - 1))
     return qc
 
 
@@ -303,4 +304,3 @@ def trivial_bvlike_circuit(N):
     for kk in range(N - 2, -1, -1):
         qc.cx(kk, N - 1)
     return qc
-

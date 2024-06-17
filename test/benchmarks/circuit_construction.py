@@ -13,10 +13,13 @@
 # pylint: disable=missing-docstring,invalid-name,no-member
 # pylint: disable=attribute-defined-outside-init
 
+import os
 import itertools
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
+from qiskit.circuit.library import EfficientSU2, QuantumVolume
+from .utils import dtc_unitary, multi_control_circuit
 
 
 def build_circuit(width, gates):
@@ -96,3 +99,79 @@ class ParameterizedCircuitBindBench:
         # TODO: write more complete benchmarks of assign_parameters
         #  that test more of the input formats / combinations
         self.circuit.assign_parameters({x: 3.14 for x in self.params})
+
+
+class ParamaterizedDifferentCircuit:
+    SEED = 12345
+    ITER_CIRCUIT_WIDTH = 16
+    N = 100
+
+    def time_QV100_build(self):
+        """Measures an SDKs ability to build a 100Q
+        QV circit from scratch.
+        """
+        return QuantumVolume(100, 100, self.SEED)
+
+    def time_multi_control_circuit(self):
+        """Measures an SDKs ability to build a circuit
+        with a multi-controlled X-gate
+        """
+        out = multi_control_circuit(self.ITER_CIRCUIT_WIDTH)
+        return out
+
+class GateCountCircuit:
+    SEED = 12345
+    ITER_CIRCUIT_WIDTH = 16
+    N = 100
+
+    def track_DTC100_set_build(self):
+        """Measures an SDKs ability to build a set
+        of 100Q DTC circuits out to 100 layers of
+        the underlying unitary
+        """
+        max_cycles = 100
+        num_qubits = 100
+        initial_state = QuantumCircuit(num_qubits)
+        dtc_circuit = dtc_unitary(num_qubits, g=0.95, seed=self.SEED)
+
+        circs = [initial_state]
+        for tt in range(max_cycles):
+            qc = circs[tt].compose(dtc_circuit)
+            circs.append(qc)
+            result = circs[-1]
+
+        assert result.num_parameters == 0
+        return result.count_ops()
+
+    def time_param_circSU2_100_build(self):
+        """Measures an SDKs ability to build a
+        parameterized efficient SU2 circuit with circular entanglement
+        over 100Q utilizing 4 repetitions.  This will yield a
+        circuit with 1000 parameters
+        """
+        out = EfficientSU2(self.N, reps=4, entanglement="circular", flatten=True)
+        out._build()
+        assert out.num_parameters == 1000
+        return out
+    
+    def time_param_circSU2_100_bind(self):
+        """Measures an SDKs ability to build a
+        parameterized efficient SU2 circuit with circular entanglement
+        over 100Q utilizing 4 repetitions.  This will yield a
+        circuit with 1000 parameters
+        """
+        out = EfficientSU2(self.N, reps=4, entanglement="circular", flatten=True)
+        out._build()
+        assert out.num_parameters == 0
+        return out
+
+    def track_QV100_qasm2_import(self):
+        """QASM import of QV100 circuit"""
+        self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
+
+        out = QuantumCircuit.from_qasm_file(os.path.join(self.qasm_path, "qv_N100_12345.qasm"))
+        ops = out.count_ops()
+        assert ops.get("rz", 0) == 120000
+        assert ops.get("rx", 0) == 80000
+        assert ops.get("cx", 0) == 15000
+        return ops
