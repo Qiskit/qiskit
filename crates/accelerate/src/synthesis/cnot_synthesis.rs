@@ -22,24 +22,33 @@ use qiskit_circuit::Qubit;
 
 use pyo3::prelude::*;
 
-// from Shelly's PR: consolidate later
-fn _add(mat: &mut Array2<bool>, axis: Axis, ctrl: usize, trgt: usize) {
-    // assert!(ctrl != trgt);
-    let row0 = mat.index_axis(axis, ctrl).to_owned();
-    // let row0 = mat.index_axis(axis, ctrl);
-    let mut row1 = mat.index_axis_mut(axis, trgt);
+/// Mutate a matrix inplace by adding the value of the ``ctrl`` row to the
+/// ``target`` row. If ``add_columns`` is true, add columns instead of rows.
+fn _add(mat: &mut Array2<bool>, add_columns: &bool, ctrl: usize, trgt: usize) {
+    // get the two rows (or columns)
+    let info = if *add_columns {
+        (s![.., ctrl], s![.., trgt])
+    } else {
+        (s![ctrl, ..], s![trgt, ..])
+    };
+    let (row0, mut row1) = mat.multi_slice_mut(info);
+
+    // add them inplace
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
 /// This helper function allows transposed access to a matrix.
-fn _index(axis: Axis, i: &usize, j: &usize) -> (usize, usize) {
-    if axis.index() == 0 {
-        (*i, *j)
-    } else {
+fn _index(transpose: &bool, i: &usize, j: &usize) -> (usize, usize) {
+    if *transpose {
         (*j, *i)
+    } else {
+        (*i, *j)
     }
 }
 
+/// Synthesize a linear function, given by a boolean square matrix, into a circuit.
+/// This function uses the Patel-Markov-Hayes algorithm, described in arXiv:quant-ph/0302002,
+/// using section-wise elimination of the rows.
 #[pyfunction]
 #[pyo3(signature = (matrix, section_size=2))]
 pub fn synth_cnot_count_full_pmh(
@@ -50,9 +59,9 @@ pub fn synth_cnot_count_full_pmh(
     let mut mat: Array2<bool> = matrix.as_array().to_owned();
     // let mut mat = matrix.to_owned();
     let num_qubits = mat.nrows(); // is a quadratic matrix
-    let lower_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &0);
+    let lower_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &false);
     // let mut mat_t = mat.t().to_owned();
-    let upper_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &1);
+    let upper_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &true);
 
     // iterator over the gates
     let instructions = upper_cnots
@@ -77,14 +86,14 @@ pub fn synth_cnot_count_full_pmh(
 fn lower_cnot_synth(
     matrix: &mut Array2<bool>,
     section_size: &usize,
-    axis: &usize,
+    transpose: &bool,
 ) -> Vec<(usize, usize)> {
     // The vector of CNOTs to be applied. Called ``circuit`` here for consistency with the paper.
     let mut circuit: Vec<(usize, usize)> = Vec::new();
     let cutoff = 1;
 
     // to apply to the transposed matrix, we can just set axis = 1
-    let row_axis = Axis(*axis);
+    let row_axis = if *transpose { Axis(1) } else { Axis(0) };
 
     // get number of columns (same as rows) and the number of sections
     let n = matrix.raw_dim()[0];
@@ -98,6 +107,7 @@ fn lower_cnot_synth(
 
         // iterate over the rows (note we only iterate from the diagonal downwards)
         for row_idx in (section - 1) * section_size..n {
+            // we need to keep track of the rows we saw already, called ``pattern`` here
             let pattern: Array1<bool> = matrix
                 .index_axis(row_axis, row_idx)
                 .slice(section_slice)
@@ -109,31 +119,29 @@ fn lower_cnot_synth(
                     // store CX location
                     circuit.push((patterns[&pattern], row_idx));
                     // remove the row
-                    _add(matrix, row_axis, patterns[&pattern], row_idx);
+                    _add(matrix, transpose, patterns[&pattern], row_idx);
                 } else {
+                    // if we have not seen this pattern yet, keep track of it
                     patterns.insert(pattern, row_idx);
                 }
             }
         }
 
-        // gaussian eliminate the rest
+        // gaussian eliminate the remainder of the section
         for col_idx in (section - 1) * section_size..section * section_size {
-            let mut diag_el = true;
-            if !matrix[[col_idx, col_idx]] {
-                diag_el = false; // TODO why not just diag_el = state[col, col]
-            }
+            let mut diag_el = matrix[[col_idx, col_idx]];
 
             for r in col_idx + 1..n {
-                // if matrix[[r, col_idx]] {
-                if matrix[_index(row_axis, &r, &col_idx)] {
+                if matrix[_index(transpose, &r, &col_idx)] {
                     if !diag_el {
-                        _add(matrix, row_axis, r, col_idx); // remove row with index col_idx
+                        _add(matrix, transpose, r, col_idx);
                         circuit.push((r, col_idx));
                         diag_el = true
                     }
-                    _add(matrix, row_axis, col_idx, r); // remove row with index r
+                    _add(matrix, transpose, col_idx, r);
                     circuit.push((col_idx, r));
                 }
+
                 // check if the logical and between the two target rows has more ``true`` elements
                 // than ``cutoff``
                 if matrix
@@ -145,7 +153,7 @@ fn lower_cnot_synth(
                     .count()
                     > cutoff
                 {
-                    _add(matrix, row_axis, r, col_idx);
+                    _add(matrix, transpose, r, col_idx);
                     circuit.push((r, col_idx));
                 }
             }
