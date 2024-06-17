@@ -115,8 +115,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             cls=type(self).__name__
         )
 
-        print(f"In BasePauli::compose {self = }, {other = }")
-
         # Validation
         if qargs is None and other.num_qubits != self.num_qubits:
             raise QiskitError(f"other {type(self).__name__} must be on the same number of qubits.")
