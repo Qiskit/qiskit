@@ -17,10 +17,7 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit._accelerate.permutation import _synth_permutation_acg
-from .permutation_utils import (
-    _get_ordered_swap,
-    _pattern_to_swaps,
-)
+from .permutation_utils import _get_ordered_swap
 
 
 def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
