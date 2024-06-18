@@ -146,10 +146,13 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
         stab = clifford_current.stab_phase[qubit]
         destab = clifford_current.destab_phase[qubit]
         if destab and stab:
+            print(f"Adding Y on {qubit}")
             circ.y(qubit)
         elif not destab and stab:
+            print(f"Adding X on {qubit}")
             circ.x(qubit)
         elif destab and not stab:
+            print(f"Adding Z on {qubit}")
             circ.z(qubit)
 
 
@@ -388,5 +391,6 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
         _append_cx(decouple_cliff, A_qubits[2 * qubit], qubit0)
         _append_cx(decouple_cliff, qubit0, A_qubits[2 * qubit + 1])
     print("-------------------------------------------------------------------")
+
 
     return circ, decouple_cliff

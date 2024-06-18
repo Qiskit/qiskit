@@ -17,6 +17,7 @@ use qiskit_accelerate::{
     clifford::clifford, convert_2q_block_matrix::convert_2q_block_matrix,
     dense_layout::dense_layout, error_map::error_map,
     euler_one_qubit_decomposer::euler_one_qubit_decomposer, isometry::isometry, nlayout::nlayout,
+    linear_matrix::linear_matrix,
     optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval, permutation::permutation,
     results::results, sabre::sabre, sampled_exp_val::sampled_exp_val,
     sparse_pauli_op::sparse_pauli_op, stochastic_swap::stochastic_swap,
@@ -34,6 +35,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(error_map))?;
     m.add_wrapped(wrap_pymodule!(euler_one_qubit_decomposer))?;
     m.add_wrapped(wrap_pymodule!(isometry))?;
+    m.add_wrapped(wrap_pymodule!(linear_matrix))?;
     m.add_wrapped(wrap_pymodule!(nlayout))?;
     m.add_wrapped(wrap_pymodule!(optimize_1q_gates))?;
     m.add_wrapped(wrap_pymodule!(pauli_expval))?;
