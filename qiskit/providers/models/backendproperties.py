@@ -406,7 +406,7 @@ class BackendProperties:
         except KeyError as ex:
             formatted_name = "y '" + name + "'" if name else "ies"
             raise BackendPropertyError(
-                f"Couldn't find the propert{formatted_name} for qubit " f"{qubit}."
+                f"Couldn't find the propert{formatted_name} for qubit {qubit}."
             ) from ex
         return result
 
