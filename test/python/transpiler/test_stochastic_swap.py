@@ -1556,8 +1556,7 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
         )
         self.assert_valid_circuit(tqc)
 
-    # @data(*range(4, 27))
-    @data(12)
+    @data(*range(4, 27))
     def test_random_circuit_for_loop(self, size):
         """Test that transpiled random circuits with nested for loops are physical circuits."""
         circuit = random_circuit(size, 3, measure=False, seed=12342)
