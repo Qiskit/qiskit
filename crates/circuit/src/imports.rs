@@ -77,7 +77,7 @@ pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
 /// when a gate is added directly via the StandardGate path and there isn't a Python object
 /// to poll the _standard_gate attribute for.
 ///
-/// NOTE: the order here is significant it must match the StandardGate variant's number must match
+/// NOTE: the order here is significant, the StandardGate variant's number must match
 /// index of it's entry in this table. This is all done statically for performance
 static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // ZGate = 0
@@ -119,6 +119,18 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     ["qiskit.circuit.library.standard_gates.p", "PhaseGate"],
     // UGate = 17
     ["qiskit.circuit.library.standard_gates.u", "UGate"],
+    // SGate = 18
+    ["qiskit.circuit.library.standard_gates.s", "SGate"],
+    // SdgGate = 19
+    ["qiskit.circuit.library.standard_gates.s", "SdgGate"],
+    // TGate = 20
+    ["qiskit.circuit.library.standard_gates.s", "TGate"],
+    // TdgGate = 21
+    ["qiskit.circuit.library.standard_gates.s", "TdgGate"],
+    // SXdgGate = 22
+    ["qiskit.circuit.library.standard_gates.sx", "SXdgGate"],
+    // iSWAPGate = 23
+    ["qiskit.circuit.library.standard_gates.iswap", "iSwapGate"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the
