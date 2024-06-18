@@ -87,7 +87,7 @@ class TwoLocal(NLocal):
 
         >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
         >>> qc = QuantumCircuit(3)
-        >>> qc += two
+        >>> qc &= two
         >>> print(qc.decompose().draw())
              ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
