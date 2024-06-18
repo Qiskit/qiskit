@@ -21,7 +21,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
-SKIP_LIST = {"cy", "ccx", "rx", "ry", "ecr", "sx"}
+SKIP_LIST = {"ccx", "rx", "ry", "ecr"}
 CUSTOM_MAPPING = {"x", "rz"}
 
 

@@ -236,7 +236,7 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "sdg",
     "t",
     "tdg",
-    "sdg",
+    "sxdg",
     "iswap",
 ];
 
