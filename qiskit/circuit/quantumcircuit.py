@@ -5190,7 +5190,6 @@ class QuantumCircuit:
         """
         return self._append_standard_gate(StandardGate.TGate, [], [qubit], cargs=None)
 
-
     def tdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TdgGate`.
 
