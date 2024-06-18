@@ -139,10 +139,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     _COMPOSE_PHASE_LOOKUP = None
     _COMPOSE_1Q_LOOKUP = None
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
@@ -181,8 +182,17 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         # Initialize StabilizerTable directly from the data
         else:
-            if isinstance(data, (list, np.ndarray)) and np.asarray(data, dtype=bool).ndim == 2:
-                data = np.array(data, dtype=bool, copy=copy)
+            if (
+                isinstance(data, (list, np.ndarray))
+                and (data_asarray := np.asarray(data, dtype=bool)).ndim == 2
+            ):
+                # This little dance is to avoid Numpy 1/2 incompatiblities between the availability
+                # and meaning of the 'copy' argument in 'array' and 'asarray', when the input needs
+                # its dtype converting.  'asarray' prefers to return 'self' if possible in both.
+                if copy and np.may_share_memory(data, data_asarray):
+                    data = data_asarray.copy()
+                else:
+                    data = data_asarray
                 if data.shape[0] == data.shape[1]:
                     self.tableau = self._stack_table_phase(
                         data, np.zeros(data.shape[0], dtype=bool)

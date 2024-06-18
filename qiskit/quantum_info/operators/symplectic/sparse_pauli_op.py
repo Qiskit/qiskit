@@ -144,7 +144,12 @@ class SparsePauliOp(LinearOp):
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
-            coeffs = np.array(coeffs, copy=copy, dtype=dtype)
+            coeffs_asarray = np.asarray(coeffs, dtype=dtype)
+            coeffs = (
+                coeffs_asarray.copy()
+                if copy and np.may_share_memory(coeffs, coeffs_asarray)
+                else coeffs_asarray
+            )
 
         if ignore_pauli_phase:
             # Fast path used in copy operations, where the phase of the PauliList is already known
@@ -168,10 +173,11 @@ class SparsePauliOp(LinearOp):
         # Initialize LinearOp
         super().__init__(num_qubits=self._pauli_list.num_qubits)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __repr__(self):
         prefix = "SparsePauliOp("

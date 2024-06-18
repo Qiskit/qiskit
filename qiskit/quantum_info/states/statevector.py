@@ -14,12 +14,13 @@
 Statevector quantum state class.
 """
 from __future__ import annotations
-import copy
+import copy as _copy
 import re
 from numbers import Number
 
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -103,10 +104,9 @@ class Statevector(QuantumState, TolerancesMixin):
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     def __eq__(self, other):
         return super().__eq__(other) and np.allclose(
@@ -276,7 +276,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._op_shape = self._op_shape.tensor(other._op_shape)
         ret._data = np.kron(self._data, other._data)
         return ret
@@ -317,7 +317,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._op_shape = self._op_shape.expand(other._op_shape)
         ret._data = np.kron(other._data, self._data)
         return ret
@@ -338,7 +338,7 @@ class Statevector(QuantumState, TolerancesMixin):
         if not isinstance(other, Statevector):
             other = Statevector(other)
         self._op_shape._validate_add(other._op_shape)
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = self.data + other.data
         return ret
 
@@ -356,7 +356,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = other * self.data
         return ret
 
@@ -381,7 +381,7 @@ class Statevector(QuantumState, TolerancesMixin):
             qargs = getattr(other, "qargs", None)
 
         # Get return vector
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
 
         # Evolution by a circuit or instruction
         if isinstance(other, QuantumCircuit):
@@ -447,7 +447,7 @@ class Statevector(QuantumState, TolerancesMixin):
         Returns:
             Statevector: the Statevector with reversed subsystem order.
         """
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
         ret._data = np.reshape(
             np.transpose(np.reshape(self.data, self._op_shape.tensor_shape), axes),
@@ -618,7 +618,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if qargs is None:
             # Resetting all qubits does not require sampling or RNG
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             state = np.zeros(self._op_shape.shape, dtype=complex)
             state[0] = 1
             ret._data = state
