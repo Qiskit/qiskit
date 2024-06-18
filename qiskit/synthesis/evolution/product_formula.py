@@ -315,7 +315,7 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
 
 def _default_atomic_evolution(operator, time, cx_structure):
     if isinstance(operator, Pauli):
-        # single Pauli operator: just exponential it
+        # single Pauli operator: just exponentiate it
         evolution_circuit = evolve_pauli(operator, time, cx_structure)
     else:
         # sum of Pauli operators: exponential each term (this assumes they commute)
