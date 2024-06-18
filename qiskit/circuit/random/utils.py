@@ -17,7 +17,6 @@ from qiskit.circuit import (
     ClassicalRegister,
     QuantumCircuit,
     CircuitInstruction,
-    Qubit,
     QuantumRegister,
 )
 from qiskit.circuit import Reset
@@ -114,10 +113,11 @@ def random_circuit_from_graph(
 
     If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs
     are chosen at random, the qubit-pairs are also chosen at random based on the probability
-    attached to the qubit-pair, the 2Q gates are applied on the qubit-paris which are unused
-    for that iteration, in case for a qubit-pair where target or control is already used up
-    for that iteration, if `insert_1q_oper` is enabled, then 1Q gates are applied to control or target
-    respectively, which are also chosen at random.
+    attached to the qubit-pair, the 2Q gates are applied on the qubit-paris on which are no gates
+    already present for that particular iteration, this is to make sure that for a particular
+    iteration only one circuit layer exists, now for those qubits for this particular iteration on which
+    there are no 2Q gates applied on those qubits, if `insert_1q_oper` is set to True, random chosen
+    1Q gates are applied.
 
     Example:
 
@@ -136,10 +136,12 @@ def random_circuit_from_graph(
 
     Args:
         interaction_graph (int): Interaction Graph
-        min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used.
+        min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used
+        in the random circuit.
         max_operands (int): maximum qubit operands of each gate (between 1 and 2)
         measure (bool): if True, measure all qubits at the end
-        conditional (bool): if True, insert middle measurements and conditionals
+        conditional (bool): if True, insert middle measurements and conditionals, `insert_1q_oper`
+        has to be set to True for this.
         reset (bool): if True, insert middle resets. ( insert_1q_oper should be true )
         seed (int): sets random seed (optional)
         insert_1q_oper (bool): Insert 1Q operations to the qubits which are left after
@@ -151,39 +153,26 @@ def random_circuit_from_graph(
         QuantumCircuit: constructed circuit
 
     Raises:
-        CircuitError: when invalid options given
-        ValueError: when the probabilities for qubit-pairs are passed and they do not add to 1.0.
-        ValueError: when some edges have probability as None.
+        CircuitError: when invalid options given.
+        CircuitError: When `reset` is set to true, but no 1Q operations are allowed by setting
+        `insert_1q_oper` to false.
+        ValueError: when some edges have probability as None, but not all.
     """
+
+    # If conditionals are set but not 1Q operation are allowed, raise an error in that case.
+    if reset and not insert_1q_oper:
+        raise CircuitError(
+            "Reset are required in the circuit, but no 1 qubit operation is allowed! "
+            "set argument: `insert_1q_oper` to true to allow reset"
+        )
+
+    if max_operands < 1 or max_operands > 2:
+        raise CircuitError(
+            "This function is intended to only work on single-qubit and two-qubit gates"
+        )
+
     # Leaving out 'free_nodes'
     pydi_graph, pydi_graph_node_map, _, _ = interaction_graph
-    edges_probs = pydi_graph.edges()
-    num_edges = pydi_graph.num_edges()
-
-    # Just a switch for the probability weighted selection of a particular qubit-pair.
-    prob_weighted_mapping = False
-
-    # If all edge weights are none, assume the weight of each edge to be 1/N.
-    # If any of the values of the probability is None, then it would raise an error.
-    if all(edges_probs):
-        prob_weighted_mapping = True
-    elif any(edges_probs):
-        raise ValueError("The probabilities of a qubit-pair getting seleted contains `None`")
-    elif None in edges_probs:
-        prob_weighted_mapping = True
-        edges_probs = [1.0 / num_edges for _ in range(num_edges)]
-
-    # edge weights in interaction_graph must be positive
-    if prob_weighted_mapping:
-        for prob in edges_probs:
-            if prob < 0:
-                raise ValueError("The probability should be positive")
-
-    # edge weights in interaction_graph should be normalized to sum up to 1.0
-    if prob_weighted_mapping and not np.isclose(np.sum(edges_probs), 1.000, rtol=0.001):
-        raise ValueError(
-            "The sum of all the probabilities of a qubit-pair to be selected is not 1.0"
-        )
 
     if pydi_graph_node_map is not None:
         # The number of vertices in interaction_graph define the number of qubits
@@ -191,18 +180,16 @@ def random_circuit_from_graph(
         qubits = list(pydi_graph_node_map.keys())
     else:
         n_q = pydi_graph.num_nodes()
-        qubits = [Qubit(QuantumRegister(n_q, "q"), idx) for idx in pydi_graph.nodes()]
+        qubits = QuantumRegister(n_q)._bits
     num_qubits = len(qubits)
 
     if num_qubits == 0:
         return QuantumCircuit()
 
-    if max_operands < 1 or max_operands > 2:
-        raise CircuitError("max_operands must be between 1 and 2")
-
     max_operands = max_operands if num_qubits > max_operands else num_qubits
 
-    edge_list = list(pydi_graph.edge_list())
+    edges_probs = pydi_graph.edges()
+    num_edges = pydi_graph.num_edges()
 
     if num_edges == 0 or max_operands == 1:
         # If there is no edge then there could be no 2Q operation
@@ -216,6 +203,33 @@ def random_circuit_from_graph(
             reset=reset,
             seed=seed,
         )
+
+    # Just a switch for the probability weighted selection of a particular qubit-pair.
+    prob_weighted_mapping = False
+
+    # If edge weights are not already normalized, they will be normalized.
+    # If all edge weights are none, assume the weight of each edge to be 1/N.
+    # If any of the values of the probability is None, then it would raise an error.
+    if all(edges_probs):
+        prob_weighted_mapping = True
+
+        if not np.isclose(np.sum(edges_probs), 1.000, rtol=0.001):
+            # Normalize edge weights if not already normalized.
+            edges_probs = edges_probs / np.sum(edges_probs)
+
+    elif any(edges_probs):
+        raise ValueError("The probabilities of a qubit-pair getting seleted contains `None`")
+    elif None in edges_probs:
+        prob_weighted_mapping = True
+        edges_probs = [1.0 / num_edges for _ in range(num_edges)]
+
+    # edge weights in interaction_graph must be positive
+    if prob_weighted_mapping:
+        for prob in edges_probs:
+            if prob < 0:
+                raise ValueError("The probability should be positive")
+
+    edge_list = list(pydi_graph.edge_list())
 
     gates_1q, gates_2q, _, _ = _get_gates()
 
@@ -244,14 +258,6 @@ def random_circuit_from_graph(
 
     qubits = np.array(qc.qubits, dtype=object, copy=True)
 
-    def _get_extra_1q_oper(extra_1q_gates, parameters):
-        current_gate = extra_1q_gates[0]
-        extra_1q_gates = extra_1q_gates[1:]
-        num_params = current_gate["num_params"]
-        params = parameters[:num_params]
-        parameters = parameters[num_params:]
-        return current_gate["class"](*params)
-
     stop = False
     layer_idx = 0
     edges_used = {edge: 0 for edge in edge_list}
@@ -272,12 +278,6 @@ def random_circuit_from_graph(
             p=edges_probs if prob_weighted_mapping else None,
         )
         gate_choices = rng.choice(gates_2q, size=num_edges, replace=True)
-
-        # Some extra 1Q Gate in case we need to fill an empty qubit
-        if insert_1q_oper:
-            extra_1q_gates = rng.choice(gates_1q, size=num_qubits, replace=True)
-            cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)
-            parameters_1q = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
 
         cumsum_params = np.cumsum(gate_choices["num_params"], dtype=np.int64)
         parameters = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
@@ -307,30 +307,7 @@ def random_circuit_from_graph(
                     operation = operation.c_if(cr, int(condition_values[c_ptr]))
                     c_ptr += 1
 
-                if control_qubit in qubit_idx_used and target_qubit not in qubit_idx_used:
-                    if insert_1q_oper:
-                        qc._append(
-                            CircuitInstruction(
-                                operation=_get_extra_1q_oper(extra_1q_gates, parameters_1q),
-                                qubits=[qubits[target_qubit]],
-                            )
-                        )
-                        qubit_idx_used.update({target_qubit})
-                        qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
-                elif control_qubit not in qubit_idx_used and target_qubit in qubit_idx_used:
-                    if insert_1q_oper:
-                        qc._append(
-                            CircuitInstruction(
-                                operation=_get_extra_1q_oper(extra_1q_gates, parameters_1q),
-                                qubits=[qubits[control_qubit]],
-                            )
-                        )
-                        qubit_idx_used.update({control_qubit})
-                        qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
-                elif control_qubit in qubit_idx_used and target_qubit in qubit_idx_used:
-                    continue
-
-                else:
+                if control_qubit in qubit_idx_not_used and target_qubit in qubit_idx_not_used:
                     qc._append(
                         CircuitInstruction(
                             operation=operation,
@@ -340,6 +317,29 @@ def random_circuit_from_graph(
                     qubit_idx_used.update(set(edge))
                     qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
                     edges_used[(control_qubit, target_qubit)] += 1
+
+            if insert_1q_oper:
+                if not len(qubit_idx_not_used) == 0:
+                    # Some extra 1Q Gate in to fill empty qubits for this while iteration.
+
+                    extra_1q_gates = rng.choice(
+                        gates_1q, size=len(qubit_idx_not_used), replace=True
+                    )
+                    cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)
+                    parameters_1q = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
+
+                    for current_gate, num_gate_params, qubit_idx in zip(
+                        extra_1q_gates["class"], extra_1q_gates["num_params"], qubit_idx_not_used
+                    ):
+
+                        param = parameters_1q[:num_gate_params]
+                        parameters_1q = parameters_1q[num_gate_params:]
+                        qc._append(
+                            CircuitInstruction(
+                                operation=current_gate(*param),
+                                qubits=[qubits[qubit_idx]],
+                            )
+                        )
 
         else:
             for current_gate, num_gate_params, edge in zip(
@@ -352,30 +352,7 @@ def random_circuit_from_graph(
                 operation = current_gate(*params)
                 control_qubit, target_qubit = tuple(edge)
 
-                if control_qubit in qubit_idx_used and target_qubit not in qubit_idx_used:
-                    if insert_1q_oper:
-                        qc._append(
-                            CircuitInstruction(
-                                operation=_get_extra_1q_oper(extra_1q_gates, parameters_1q),
-                                qubits=[qubits[target_qubit]],
-                            )
-                        )
-                        qubit_idx_used.update({target_qubit})
-                        qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
-                elif control_qubit not in qubit_idx_used and target_qubit in qubit_idx_used:
-                    if insert_1q_oper:
-                        qc._append(
-                            CircuitInstruction(
-                                operation=_get_extra_1q_oper(extra_1q_gates, parameters_1q),
-                                qubits=[qubits[control_qubit]],
-                            )
-                        )
-                        qubit_idx_used.update({control_qubit})
-                        qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
-                elif control_qubit in qubit_idx_used and target_qubit in qubit_idx_used:
-                    continue
-
-                else:
+                if control_qubit in qubit_idx_not_used and target_qubit in qubit_idx_not_used:
                     qc._append(
                         CircuitInstruction(
                             operation=operation,
@@ -385,6 +362,30 @@ def random_circuit_from_graph(
                     qubit_idx_used.update(set(edge))
                     qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
                     edges_used[(control_qubit, target_qubit)] += 1
+
+            if insert_1q_oper:
+
+                if not len(qubit_idx_not_used) == 0:
+                    # Some extra 1Q Gate in to fill empty qubits for this while iteration.
+
+                    extra_1q_gates = rng.choice(
+                        gates_1q, size=len(qubit_idx_not_used), replace=True
+                    )
+                    cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)
+                    parameters_1q = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
+
+                    for current_gate, num_gate_params, qubit_idx in zip(
+                        extra_1q_gates["class"], extra_1q_gates["num_params"], qubit_idx_not_used
+                    ):
+
+                        param = parameters_1q[:num_gate_params]
+                        parameters_1q = parameters_1q[num_gate_params:]
+                        qc._append(
+                            CircuitInstruction(
+                                operation=current_gate(*param),
+                                qubits=[qubits[qubit_idx]],
+                            )
+                        )
 
         layer_idx += 1
 

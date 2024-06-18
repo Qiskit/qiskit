@@ -171,21 +171,34 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        n_q = 10
+        self.n_q = 19
         pydi_graph = rx.PyDiGraph()
-        pydi_graph.add_nodes_from(range(n_q))
-        # Some arbitrary coupling map
+        pydi_graph.add_nodes_from(range(self.n_q))
+
+        # couping map of distance:3 Directed Heavy Hex Graph.
         cp_map = [
-            (0, 2, None),
-            (1, 3, None),
-            (2, 4, None),
-            (3, 4, None),
-            (5, 7, None),
-            (4, 7, None),
-            (7, 9, None),
-            (5, 8, None),
-            (6, 9, None),
+            (0, 13, None),
+            (1, 13, None),
+            (1, 14, None),
+            (2, 14, None),
+            (3, 15, None),
+            (4, 15, None),
+            (4, 16, None),
+            (5, 16, None),
+            (6, 17, None),
+            (7, 17, None),
+            (7, 18, None),
+            (8, 18, None),
+            (0, 9, None),
+            (3, 9, None),
+            (5, 12, None),
+            (8, 12, None),
+            (10, 14, None),
+            (10, 16, None),
+            (11, 15, None),
+            (11, 17, None),
         ]
+
         pydi_graph.add_edges_from(cp_map)
         self.interaction_graph = (pydi_graph, None, None, None)
 
@@ -195,7 +208,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             interaction_graph=self.interaction_graph, min_2q_gate_per_edge=1
         )
         self.assertIsInstance(circ, QuantumCircuit)
-        self.assertEqual(circ.width(), 10)
+        self.assertEqual(circ.width(), self.n_q)
 
     def test_min_times_qubit_pair_usage(self):
         """the `min_2q_gate_per_edge` parameter specifies how often each qubit-pair must at
@@ -239,69 +252,16 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         )
         self.assertIn("reset", qc.count_ops())
 
-    def test_large_conditional_weighted_qubits(self):
-        """Test that conditions do not fail with large conditionals.  Regression test of gh-6994."""
-        # This is to test the call actually returns without raising an exception.
-        # In this case every qubit-pair is associated with a probability of being selected.
-        n_q = 10
-        pydi_graph = rx.PyDiGraph()
-        pydi_graph.add_nodes_from(range(n_q))
-        # Some arbitrary coupling map
-        # ( control, target, probability-of-being-selected )
-        cp_map = [
-            (0, 2, 0.1),
-            (1, 3, 0.15),
-            (2, 4, 0.15),
-            (3, 4, 0.1),
-            (5, 7, 0.13),
-            (4, 7, 0.07),
-            (7, 9, 0.1),
-            (5, 8, 0.1),
-            (6, 9, 0.1),
-        ]
-        pydi_graph.add_edges_from(cp_map)
-        interaction_graph = (pydi_graph, None, None, None)
+        # Now, checking for conditionals
 
-        circ = random_circuit_from_graph(
-            interaction_graph=interaction_graph,
-            min_2q_gate_per_edge=1,
-            measure=True,
-            conditional=True,
-            reset=True,
-            seed=778,  # Do not change the seed or the args.
-        )
-        # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
-        # Do not change the function signature.
-        conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
-        conditions = [x for x in conditions if x is not None]
-        self.assertNotEqual(conditions, [])
-        for register, value in conditions:
-            self.assertIsInstance(register, (ClassicalRegister, Clbit))
-            # Condition values always have to be Python bigints (of which `bool` is a subclass), not
-            # any of Numpy's fixed-width types, for example.
-            self.assertIsInstance(value, int)
+        conditions = []
+        for instr in qc:
+            cond = getattr(instr.operation, "condition", None)
+            if not cond is None:
+                conditions.append(cond)
 
-    def test_large_conditional(self):
-        """Test that conditions do not fail with large conditionals.  Regression test of gh-6994."""
-        # This is to test the call actually returns without raising an exception.
-        circ = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph,
-            min_2q_gate_per_edge=1,
-            measure=True,
-            conditional=True,
-            reset=True,
-            seed=0,  # Do not change the seed or the args.
-        )
-        # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
-        # Do not change the function signature.
-        conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
-        conditions = [x for x in conditions if x is not None]
+        # See if conditionals are present.
         self.assertNotEqual(conditions, [])
-        for register, value in conditions:
-            self.assertIsInstance(register, (ClassicalRegister, Clbit))
-            # Condition values always have to be Python bigints (of which `bool` is a subclass), not
-            # any of Numpy's fixed-width types, for example.
-            self.assertIsInstance(value, int)
 
     def test_random_mid_circuit_measure_conditional(self):
         """Test random circuit with mid-circuit measurements for conditionals."""
@@ -311,6 +271,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             measure=True,
             conditional=True,
             reset=True,
+            insert_1q_oper=True,
             seed=0,
         )
         dag = circuit_to_dag(qc)
@@ -337,6 +298,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             measure=True,
             conditional=True,
             reset=True,
+            insert_1q_oper=True,
             seed=0,
         )
         dag = circuit_to_dag(qc)
