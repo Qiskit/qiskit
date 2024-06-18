@@ -95,15 +95,26 @@ static E_CLASS: [[[bool; 2]; 2]; 1] = [
     [[false, false], [false, false]], // 'II'
 ];
 
-fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> usize {
+
+fn compute_greedy_cost(symplectic_mat: ArrayView2<bool>, qubit: usize, qubit_list: &Vec<usize>, num_qubits: usize) -> usize {
+    let pauli_x = symplectic_mat.column(qubit + num_qubits);
+    let pauli_z = symplectic_mat.column(qubit);
+
     let mut a_num = 0;
     let mut b_num = 0;
     let mut c_num = 0;
     let mut d_num = 0;
 
-    for pair in pairs {
+    let mut qubit_is_in_a = false;
+
+    for q in qubit_list {
+        let pair = from_pair_paulis_to_type(pauli_x, pauli_z, *q);
+
         if A_CLASS.contains(&pair) {
             a_num += 1;
+            if *q == qubit {
+                qubit_is_in_a = true;
+            }
         } else if B_CLASS.contains(&pair) {
             b_num += 1;
         } else if C_CLASS.contains(&pair) {
@@ -112,6 +123,7 @@ fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> usize {
             d_num += 1;
         }
     }
+
 
     if a_num % 2 == 0 {
         panic!("Symplectic Gaussian elimination fails");
@@ -123,7 +135,7 @@ fn compute_greedy_cost(pairs: &Vec<[[bool; 2]; 2]>) -> usize {
     let mut cnot_cost: usize =
         3 * (a_num - 1) / 2 + (b_num + 1) * ((b_num > 0) as usize) + c_num + d_num;
 
-    if !A_CLASS.contains(&pairs[0]) {
+    if !qubit_is_in_a {
         cnot_cost += 3;
     }
 
@@ -174,22 +186,7 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
         let mut list_greedy_cost = Vec::<(usize, usize)>::new();
 
         for qubit in &qubit_list {
-            let pauli_x = symplectic_mat.column(*qubit + num_qubits);
-            let pauli_z = symplectic_mat.column(*qubit);
-
-            // println!(
-            //     "HERE: qubit = {}, pauli_x = {:?}, pauli_z = {:?}",
-            //     qubit, pauli_x, pauli_z
-            // );
-
-            let list_pairs: Vec<[[bool; 2]; 2]> = qubit_list
-                .iter()
-                .map(|i| from_pair_paulis_to_type(pauli_x, pauli_z, *i))
-                .collect();
-
-            // println!("{:?}", list_pairs);
-
-            let cost = compute_greedy_cost(&list_pairs);
+            let cost = compute_greedy_cost(symplectic_mat.view(), *qubit, &qubit_list, num_qubits);
             // println!("{}", cost);
             list_greedy_cost.push((cost, *qubit));
         }
