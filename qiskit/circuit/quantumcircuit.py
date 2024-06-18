@@ -4995,9 +4995,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.s import SGate
-
-        return self.append(SGate(), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.SGate, [], [qubit], cargs=None)
 
     def sdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SdgGate`.
@@ -5010,9 +5008,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.s import SdgGate
-
-        return self.append(SdgGate(), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.SdgGate, [], [qubit], cargs=None)
 
     def cs(
         self,
@@ -5105,9 +5101,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.iswap import iSwapGate
-
-        return self.append(iSwapGate(), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(StandardGate.ISwapGate, [], [qubit1, qubit2], cargs=None)
 
     def cswap(
         self,
@@ -5166,9 +5160,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.sx import SXdgGate
-
-        return self.append(SXdgGate(), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.SXdgGate, None, qargs=[qubit])
 
     def csx(
         self,
@@ -5212,9 +5204,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.t import TGate
-
-        return self.append(TGate(), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.TGate, [], [qubit], cargs=None)
 
     def tdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TdgGate`.
@@ -5227,9 +5217,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.t import TdgGate
-
-        return self.append(TdgGate(), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.TdgGate, [], [qubit], cargs=None)
 
     def u(
         self,
