@@ -21,6 +21,8 @@ from qiskit._accelerate.linear_matrix import (
     _gauss_elimination,
     _gauss_elimination_with_perm,
     _compute_rank_after_gauss_elim,
+    _row_op,
+    _col_op,
 )
 
 
@@ -107,13 +109,3 @@ def _compute_rank(mat):
     mat = mat.astype(bool)
     _gauss_elimination(mat)
     return np.sum(mat.any(axis=1))
-
-
-def _row_op(mat, ctrl, trgt):
-    # Perform ROW operation on a matrix mat
-    mat[trgt] = mat[trgt] ^ mat[ctrl]
-
-
-def _col_op(mat, ctrl, trgt):
-    # Perform COL operation on a matrix mat
-    mat[:, ctrl] = mat[:, trgt] ^ mat[:, ctrl]

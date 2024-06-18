@@ -14,18 +14,6 @@ use ndarray::{s, ArrayViewMut2, Axis};
 use numpy::{PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
-// Perform ROW operation on a matrix mat
-fn _row_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
-    let (row0, mut row1) = mat.multi_slice_mut((s![ctrl, ..], s![trgt, ..]));
-    row1.zip_mut_with(&row0, |x, &y| *x ^= y);
-}
-
-// Perform COL operation on a matrix mat
-fn _col_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
-    let (col0, mut col1) = mat.multi_slice_mut((s![.., ctrl], s![.., trgt]));
-    col1.zip_mut_with(&col0, |x, &y| *x ^= y);
-}
-
 // Gauss elimination of a matrix mat with m rows and n columns.
 // If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 // Returns the matrix mat, and the permutation perm that was done on the rows during the process.
@@ -98,8 +86,8 @@ fn _gauss_elimination_with_perm(
     ncols: Option<usize>,
     full_elim: Option<bool>,
 ) -> PyResult<PyObject> {
-    let view = mat.as_array_mut();
-    let perm = gauss_elimination_with_perm(view, ncols, full_elim);
+    let matmut = mat.as_array_mut();
+    let perm = gauss_elimination_with_perm(matmut, ncols, full_elim);
     Ok(perm.to_object(py))
 }
 
@@ -113,8 +101,8 @@ fn _gauss_elimination(
     ncols: Option<usize>,
     full_elim: Option<bool>,
 ) {
-    let view = mat.as_array_mut();
-    let _perm = gauss_elimination_with_perm(view, ncols, full_elim);
+    let matmut = mat.as_array_mut();
+    let _perm = gauss_elimination_with_perm(matmut, ncols, full_elim);
 }
 
 #[pyfunction]
@@ -130,10 +118,30 @@ fn _compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> Py
     Ok(rank.to_object(py))
 }
 
+#[pyfunction]
+#[pyo3(signature = (mat, ctrl, trgt))]
+// Perform ROW operation on a matrix mat
+fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
+    let mut matmut = mat.as_array_mut();
+    let (row0, mut row1) = matmut.multi_slice_mut((s![ctrl, ..], s![trgt, ..]));
+    row1.zip_mut_with(&row0, |x, &y| *x ^= y);
+}
+
+#[pyfunction]
+#[pyo3(signature = (mat, ctrl, trgt))]
+// Perform COL operation on a matrix mat
+fn _col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
+    let mut matmut = mat.as_array_mut();
+    let (col0, mut col1) = matmut.multi_slice_mut((s![.., trgt], s![.., ctrl]));
+    col1.zip_mut_with(&col0, |x, &y| *x ^= y);
+}
+
 #[pymodule]
 pub fn linear_matrix(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_gauss_elimination_with_perm))?;
     m.add_wrapped(wrap_pyfunction!(_gauss_elimination))?;
     m.add_wrapped(wrap_pyfunction!(_compute_rank_after_gauss_elim))?;
+    m.add_wrapped(wrap_pyfunction!(_row_op))?;
+    m.add_wrapped(wrap_pyfunction!(_col_op))?;
     Ok(())
 }
