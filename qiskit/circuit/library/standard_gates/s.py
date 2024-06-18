@@ -20,6 +20,7 @@ import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _S_ARRAY = numpy.array([[1, 0], [0, 1j]])
@@ -56,6 +57,8 @@ class SGate(SingletonGate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
+
+    _standard_gate = StandardGate.SGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
@@ -133,6 +136,8 @@ class SdgGate(SingletonGate):
 
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
+
+    _standard_gate = StandardGate.SdgGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
