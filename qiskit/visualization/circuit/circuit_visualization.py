@@ -48,7 +48,6 @@ from . import text as _text
 
 if typing.TYPE_CHECKING:
     from typing import Any
-
     from qiskit.circuit import QuantumCircuit  # pylint: disable=cyclic-import
 
 

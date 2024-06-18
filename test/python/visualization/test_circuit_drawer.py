@@ -18,13 +18,13 @@ import shutil
 import tempfile
 import unittest
 import warnings
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
 from qiskit.utils import optionals
 from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib import figure
