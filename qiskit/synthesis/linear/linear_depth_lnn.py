@@ -45,7 +45,6 @@ def _get_lower_triangular(n, mat, mat_inv):
     mat = mat.copy()
     mat_t = mat.copy()
     mat_inv_t = mat_inv.copy()
-    mat_inv_t = mat_inv_t.astype(bool)
 
     cx_instructions_rows = []
 
@@ -223,7 +222,7 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
     # According to [1] the synthesis is done on the inverse matrix
     # so the matrix mat is inverted at this step
-    mat_inv = mat.copy()
+    mat_inv = mat.copy().astype(bool)
     mat_cpy = calc_inverse_matrix(mat_inv).astype(bool)
 
     n = len(mat_cpy)
