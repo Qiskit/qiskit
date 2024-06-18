@@ -55,7 +55,7 @@ class Kernel:
         self.params = params
 
     def __repr__(self):
-        name_repr = "'" + self.name + "', " or ""
+        name_repr = "'" + self.name + "', "
         params_repr = ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items())
         return f"{self.__class__.__name__}({name_repr}{params_repr})"
 
