@@ -45,6 +45,7 @@ def _get_lower_triangular(n, mat, mat_inv):
     mat = mat.copy()
     mat_t = mat.copy()
     mat_inv_t = mat_inv.copy()
+    mat_inv_t = mat_inv_t.astype(bool)
 
     cx_instructions_rows = []
 
