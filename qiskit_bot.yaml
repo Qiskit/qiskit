@@ -41,7 +41,6 @@ notifications:
     ".*\\.rs$|^Cargo":
         - "`@mtreinish`"
         - "`@kevinhartman`"
-        - "@Eric-Arellano"
     "(?!.*pulse.*)\\bvisualization\\b":
         - "@enavarro51"
     "^docs/":
