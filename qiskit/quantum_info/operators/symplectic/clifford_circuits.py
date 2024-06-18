@@ -278,7 +278,6 @@ def _append_h(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    print(f"_append_h: {qubit}")
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
     clifford.phase ^= x & z
@@ -298,7 +297,6 @@ def _append_s(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    print(f"_append_s: {qubit}")
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
 
@@ -317,7 +315,6 @@ def _append_sdg(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    print(f"_append_sdg: {qubit}")
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
     clifford.phase ^= x & ~z
@@ -412,7 +409,6 @@ def _append_cx(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    print(f"_append_cx: {control} {target}")
     x0 = clifford.x[:, control]
     z0 = clifford.z[:, control]
     x1 = clifford.x[:, target]
@@ -472,7 +468,6 @@ def _append_swap(clifford, qubit0, qubit1):
     Returns:
         Clifford: the updated Clifford.
     """
-    print(f"_append_swap: {qubit0} {qubit1}")
     clifford.x[:, [qubit0, qubit1]] = clifford.x[:, [qubit1, qubit0]]
     clifford.z[:, [qubit0, qubit1]] = clifford.z[:, [qubit1, qubit0]]
     return clifford

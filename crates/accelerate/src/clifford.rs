@@ -161,18 +161,10 @@ fn adjoint_no_phase(symp_mat: &mut Array2<bool>, num_qubits: usize) {
 
 // for now modify clifford in-place
 fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
-    println!("I AM IN SYNTH_CLIFFORD_INNER!");
-
     let mut clifford_gates = CliffordGatesVec::new();
-
     let num_qubits = clifford.shape()[0] / 2;
-    println!("num_qubits = {:?}", num_qubits);
-
     let clifford_slice = clifford.slice(s![.., 0..2 * num_qubits]);
-    println!("clifford slice = {:?}", clifford_slice);
-
     let mut symplectic_mat: Array2<bool> = clifford_slice.to_owned();
-    println!("symplectic_mat = {:?}", symplectic_mat);
 
     // ToDo: this is a vector for now to be compatible with the python
     // implementation, but we should really turn it into a set
@@ -185,29 +177,29 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
             let pauli_x = symplectic_mat.column(*qubit + num_qubits);
             let pauli_z = symplectic_mat.column(*qubit);
 
-            println!(
-                "HERE: qubit = {}, pauli_x = {:?}, pauli_z = {:?}",
-                qubit, pauli_x, pauli_z
-            );
+            // println!(
+            //     "HERE: qubit = {}, pauli_x = {:?}, pauli_z = {:?}",
+            //     qubit, pauli_x, pauli_z
+            // );
 
             let list_pairs: Vec<[[bool; 2]; 2]> = qubit_list
                 .iter()
                 .map(|i| from_pair_paulis_to_type(pauli_x, pauli_z, *i))
                 .collect();
 
-            println!("{:?}", list_pairs);
+            // println!("{:?}", list_pairs);
 
             let cost = compute_greedy_cost(&list_pairs);
-            println!("{}", cost);
+            // println!("{}", cost);
             list_greedy_cost.push((cost, *qubit));
         }
-        println!("list_greedy_cost = {:?}", list_greedy_cost);
+        // println!("list_greedy_cost = {:?}", list_greedy_cost);
         let min_qubit = list_greedy_cost
             .iter()
             .min_by_key(|(cost, qubit)| cost)
             .unwrap()
             .1;
-        println!("min_qubit = {:?}", min_qubit);
+        // println!("min_qubit = {:?}", min_qubit);
         // clifford[0 : self.num_qubits, :]
 
         let pauli_x = symplectic_mat.column(min_qubit + num_qubits);
@@ -222,10 +214,10 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
             num_qubits,
         );
 
-        println!("====================================================");
-        println!("DECOUPLER CLIFF:");
-        println!("{:?}", decouple_cliff);
-        println!("====================================================");
+        // println!("====================================================");
+        // println!("DECOUPLER CLIFF:");
+        // println!("{:?}", decouple_cliff);
+        // println!("====================================================");
 
         adjoint_no_phase(&mut decouple_cliff, num_qubits);
         let composed_cliff =
@@ -233,24 +225,22 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
 
         symplectic_mat = composed_cliff;
 
-        println!("====================================================");
-        println!("CLIFFORD CURRENT:");
-        println!("{:?}", symplectic_mat);
-        println!("====================================================");
+        // println!("====================================================");
+        // println!("CLIFFORD CURRENT:");
+        // println!("{:?}", symplectic_mat);
+        // println!("====================================================");
 
         // qubit_list.remove(&min_qubit);
         qubit_list.retain(|&x| x != min_qubit);
     }
 
     // the symplectic matrix should be ok, but the phase is not
-    // todo: fix final phase
-    println!("====================================================");
-    println!("SMAT END:");
-    println!("{:?}", symplectic_mat);
-    println!("{:?}", clifford_gates);
-    println!("====================================================");
+    // println!("====================================================");
+    // println!("SMAT END:");
+    // println!("{:?}", symplectic_mat);
+    // println!("{:?}", clifford_gates);
+    // println!("====================================================");
 
-    println!("Fixing final phase:");
     fix_phase(&mut clifford_gates, clifford, num_qubits);
 
     clifford_gates
@@ -265,7 +255,7 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
 //     .for_each(|z, x| *z ^= x );
 
 fn append_s(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    println!("_append_s_clifford {}; num_qubits = {}", qubit, num_qubits);
+    // println!("_append_s_clifford {}; num_qubits = {}", qubit, num_qubits);
 
     let (x, mut z, mut p) = clifford.multi_slice_mut((
         s![.., qubit],
@@ -285,7 +275,7 @@ fn append_s(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
 
  */
 fn append_sdg(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    println!("_append_sdg_clifford {}; num_qubits = {}", qubit, num_qubits);
+    // println!("_append_sdg_clifford {}; num_qubits = {}", qubit, num_qubits);
 
     let (x, mut z, mut p) = clifford.multi_slice_mut((
         s![.., qubit],
@@ -297,9 +287,8 @@ fn append_sdg(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) 
     azip!((mut z in &mut z, &x in &x) *z ^= x);
 }
 
-
 fn append_h(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    println!("_append_h_clifford {}; num_qubits = {}", qubit, num_qubits);
+    // println!("_append_h_clifford {}; num_qubits = {}", qubit, num_qubits);
 
     let (mut x, mut z, mut p) = clifford.multi_slice_mut((
         s![.., qubit],
@@ -311,17 +300,11 @@ fn append_h(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
     azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
 }
 
-/*
-   clifford.x[:, [qubit0, qubit1]] = clifford.x[:, [qubit1, qubit0]]
-   clifford.z[:, [qubit0, qubit1]] = clifford.z[:, [qubit1, qubit0]]
-   return clifford
-
-*/
 fn append_swap(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
-    println!(
-        "_append_swap_clifford {} {}; num_qubits = {}",
-        qubit0, qubit1, num_qubits
-    );
+    // println!(
+    //     "_append_swap_clifford {} {}; num_qubits = {}",
+    //     qubit0, qubit1, num_qubits
+    // );
 
     let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
         s![.., qubit0],
@@ -333,18 +316,12 @@ fn append_swap(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, nu
     azip!((mut z0 in &mut z0, mut z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
 }
 
-/*
-   clifford.phase ^= (x1 ^ z0 ^ True) & z1 & x0
-   x1 ^= x0
-   z0 ^= z1
-
-*/
 // x0, z0 - control, x1, z1 - target
 fn append_cx(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
-    println!(
-        "_append_cx_clifford {} {}; num_qubits = {}",
-        qubit0, qubit1, num_qubits
-    );
+    // println!(
+    //     "_append_cx_clifford {} {}; num_qubits = {}",
+    //     qubit0, qubit1, num_qubits
+    // );
 
     let (mut x0, mut z0, mut x1, mut z1, mut p) = clifford.multi_slice_mut((
         s![.., qubit0],
@@ -359,7 +336,7 @@ fn append_cx(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_
 }
 
 fn append_s_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    println!("_append_s: {}", qubit);
+    // println!("_append_s: {}", qubit);
 
     let (x, mut z) = clifford.multi_slice_mut((s![.., qubit], s![.., num_qubits + qubit]));
 
@@ -367,7 +344,7 @@ fn append_s_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: 
 }
 
 fn append_h_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    println!("_append_h: {}", qubit);
+    // println!("_append_h: {}", qubit);
     let (mut x, mut z) = clifford.multi_slice_mut((s![.., qubit], s![.., num_qubits + qubit]));
 
     azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
@@ -379,7 +356,7 @@ fn append_swap_no_phase(
     qubit1: usize,
     num_qubits: usize,
 ) {
-    println!("_append_swap: {} {}", qubit0, qubit1);
+    // println!("_append_swap: {} {}", qubit0, qubit1);
 
     let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
         s![.., qubit0],
@@ -397,7 +374,7 @@ fn append_cx_no_phase(
     qubit1: usize,
     num_qubits: usize,
 ) {
-    println!("_append_cx: {} {}", qubit0, qubit1);
+    // println!("_append_cx: {} {}", qubit0, qubit1);
 
     let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
         s![.., qubit0],
@@ -409,27 +386,6 @@ fn append_cx_no_phase(
     azip!((mut z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
 }
 
-//
-// fn append_s(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-//     let x = clifford.column(qubit).to_owned();
-//     let z = clifford.column(num_qubits + qubit).to_owned();
-//
-//     azip!((phase in clifford.column_mut(2 * num_qubits), &x in &x, &z in &z)  *phase ^= x & z);
-//     azip!((z in clifford.column_mut(num_qubits + qubit), &x in &x) *z ^= x);
-// }
-
-// fn append_h(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-//     let x = clifford.column(qubit).to_owned();
-//     let z = clifford.column(num_qubits + qubit).to_owned();
-//     azip!((phase in clifford.column_mut(2 * num_qubits), &x in &x, &z in &z)  *phase ^= x & z);
-//     //
-//     // tmp = x.copy()
-//     // x[:] = z
-//     // z[:] = tmp
-//
-// }
-
-//
 
 fn compose_ignore_phase(
     nq: usize,
@@ -454,10 +410,9 @@ fn calc_decoupling(
     min_qubit: usize,
     num_qubits: usize,
 ) -> Array2<bool> {
-    println!("---------------------------------------------------------------------");
     let mut decouple_mat: Array2<bool> = Array2::<usize>::eye(2 * num_qubits).map(|v| v % 2 == 1);
-    println!("pauli_x = {:?}", pauli_x);
-    println!("pauli_z = {:?}", pauli_z);
+    // println!("pauli_x = {:?}", pauli_x);
+    // println!("pauli_z = {:?}", pauli_z);
 
     for qubit in qubit_list {
         let typeq = from_pair_paulis_to_type(pauli_x, pauli_z, *qubit);
@@ -631,7 +586,6 @@ fn calc_decoupling(
             num_qubits,
         );
     }
-    println!("---------------------------------------------------------------------");
 
     decouple_mat
 }
@@ -676,39 +630,32 @@ fn fix_phase(gate_seq: &mut CliffordGatesVec, target_clifford: &Array2<bool>, nu
         .map(|(&a, &b)| a ^ b)
         .collect();
 
-    println!("DELTA:");
-    println!("{:?}", delta_phase);
-
     // compute inverse of the symplectic matrix
     let smat = target_clifford.slice(s![.., .. 2 * num_qubits]);
     let smat_inv = calc_inverse_matrix_inner(smat);
 
-    println!("INVMAT:");
-    println!("{:?}", smat_inv);
-
     // compute smat_inv * delta_phase
-
     let arr1 = smat_inv.map(|v| *v as usize);
     let vec2 : Vec<usize> = delta_phase.into_iter().map(|v| v as usize).collect();
     let arr2 = Array1::from(vec2);
     let delta_phase_pre = arr1.dot(&arr2).map(|v| v % 2 == 1);
 
 
-    println!("delta_phase_pre:");
-    println!("{:?}", delta_phase_pre);
+    // println!("delta_phase_pre:");
+    // println!("{:?}", delta_phase_pre);
 
 
     for qubit in 0..num_qubits {
         if delta_phase_pre[qubit] && delta_phase_pre[qubit + num_qubits] {
-            println!("=> Adding Y-gate on {}", qubit);
+            // println!("=> Adding Y-gate on {}", qubit);
             gate_seq.push((StandardGate::YGate, smallvec![Qubit(qubit as u32)]));
         }
         else if delta_phase_pre[qubit] {
-            println!("=> Adding Z-gate on {}", qubit);
+            // println!("=> Adding Z-gate on {}", qubit);
             gate_seq.push((StandardGate::ZGate, smallvec![Qubit(qubit as u32)]));
         }
         else if delta_phase_pre[qubit + num_qubits] {
-            println!("=> Adding X-gate on {}", qubit);
+            // println!("=> Adding X-gate on {}", qubit);
             gate_seq.push((StandardGate::XGate, smallvec![Qubit(qubit as u32)]));
         }
     }
@@ -721,12 +668,8 @@ fn synth_clifford_greedy_new(
     tableau: PyReadonlyArray2<bool>,
 ) -> PyResult<Option<CircuitData>> {
     let clifford = tableau.as_array().to_owned();
-
-    println!("I AM IN SYNTH_CLIFFORD_GREEDY_NEW!");
     let num_qubits = clifford.shape()[0] / 2;
-
     let clifford_gates = synth_clifford_greedy_inner(&clifford);
-
     let circuit_data = CircuitData::from_standard_gates(
         py,
         num_qubits as u32,
@@ -736,7 +679,6 @@ fn synth_clifford_greedy_new(
         Param::Float(0.0),
     )
     .expect("Something went wrong on Qiskit's Python side, nothing to do here!");
-
     Ok(Some(circuit_data))
 }
 
@@ -744,82 +686,4 @@ fn synth_clifford_greedy_new(
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(synth_clifford_greedy_new, m)?)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test::*;
-    use ndarray::arr2;
-
-    // for quicker development
-    fn example_clifford() -> Array2<bool> {
-        arr2(&[
-            [
-                false, false, true, true, false, true, false, false, false, true, true,
-            ],
-            [
-                false, false, false, true, false, false, false, true, true, false, false,
-            ],
-            [
-                false, true, true, true, false, false, false, false, false, false, true,
-            ],
-            [
-                false, false, true, true, false, false, false, false, false, false, true,
-            ],
-            [
-                false, false, true, false, false, true, false, true, true, false, true,
-            ],
-            [
-                false, true, false, true, true, true, false, true, true, false, false,
-            ],
-            [
-                true, false, false, false, true, true, false, true, true, false, false,
-            ],
-            [
-                false, true, true, false, false, false, true, true, true, true, true,
-            ],
-            [
-                true, false, true, true, false, true, true, true, false, false, false,
-            ],
-            [
-                true, true, true, false, true, true, false, true, true, true, true,
-            ],
-        ])
-    }
-
-    #[test]
-    fn test_example_clifford() {
-        println!("===========================");
-        println!("TEST!!!");
-        let mut cliff = example_clifford();
-        println!("{:?}", cliff);
-
-        synth_clifford_greedy_inner(&cliff);
-        println!("===========================");
-    }
-
-    #[test]
-    fn test_compose() {
-        let cliff1 = arr2(&[
-            [true, false, false, true, true, true, false],
-            [false, false, false, false, false, true, true],
-            [true, true, false, false, false, true, true],
-            [true, false, false, false, false, false, false],
-            [true, false, true, false, true, true, false],
-            [false, false, false, false, true, false, true],
-        ]);
-        let cliff2 = arr2(&[
-            [true, false, false, true, false, false, true],
-            [true, true, false, true, true, false, true],
-            [false, false, true, false, false, false, true],
-            [true, false, true, false, true, false, true],
-            [true, true, false, true, false, false, true],
-            [true, false, false, true, false, true, false],
-        ]);
-
-        println!("{:?}", cliff1);
-        println!("{:?}", cliff2);
-        compose_ignore_phase(3, cliff1.view(), cliff2.view());
-    }
 }

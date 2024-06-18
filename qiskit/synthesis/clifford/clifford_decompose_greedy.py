@@ -62,8 +62,8 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
     qubit_list = list(range(num_qubits))
     clifford_current = clifford.copy()
 
-    print(f"symplectic_mat:")
-    print(clifford_current.symplectic_matrix)
+    # print(f"symplectic_mat:")
+    # print(clifford_current.symplectic_matrix)
 
     # Reducing the original Clifford to identity
     # via symplectic Gaussian elimination
@@ -92,12 +92,12 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
             list_pairs = [_from_pair_paulis_to_type(pauli_x, pauli_z, i) for i in qubit_list]
 
             cost = _compute_greedy_cost(list_pairs)
-            print(f"HERE: qubit = {qubit}, pauli_x = {pauli_x}, pauli_z = {pauli_z}, cost = {cost}")
+            # print(f"HERE: qubit = {qubit}, pauli_x = {pauli_x}, pauli_z = {pauli_z}, cost = {cost}")
 
             list_greedy_cost.append([cost, qubit])
 
         _, min_qubit = (sorted(list_greedy_cost))[0]
-        print(f"{min_qubit = }")
+        # print(f"{min_qubit = }")
 
         # Gaussian elimination step for the qubit with minimal CNOT cost
         pauli_x = Pauli(
@@ -121,38 +121,35 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
         )
 
         circ = circ.compose(decouple_circ)
-        print(f"DECOUPLER CLIFF")
-        print("======================================")
-        print(decouple_cliff.symplectic_matrix)
-        print("======================================")
+        # print(f"DECOUPLER CLIFF")
+        # print("======================================")
+        # print(decouple_cliff.symplectic_matrix)
+        # print("======================================")
 
         # Now the clifford acts trivially on min_qubit
         clifford_current = decouple_cliff.adjoint().compose(clifford_current)
 
-        print(f"CLIFFORD CURRENT")
-        print("======================================")
-        print(clifford_current.symplectic_matrix)
-        print("======================================")
+        # print(f"CLIFFORD CURRENT")
+        # print("======================================")
+        # print(clifford_current.symplectic_matrix)
+        # print("======================================")
         qubit_list.remove(min_qubit)
 
-    print("======================================")
-    print(f"CLIFFORD END")
-    print(clifford_current.symplectic_matrix)
-    print(circ.data)
-    print("======================================")
+    # print("======================================")
+    # print(f"CLIFFORD END")
+    # print(clifford_current.symplectic_matrix)
+    # print(circ.data)
+    # print("======================================")
 
     # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
         stab = clifford_current.stab_phase[qubit]
         destab = clifford_current.destab_phase[qubit]
         if destab and stab:
-            print(f"Adding Y on {qubit}")
             circ.y(qubit)
         elif not destab and stab:
-            print(f"Adding X on {qubit}")
             circ.x(qubit)
         elif destab and not stab:
-            print(f"Adding Z on {qubit}")
             circ.z(qubit)
 
 
@@ -246,8 +243,6 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
     D^{-1} * Oz * D = z1
     and reduce the clifford such that it will act trivially on min_qubit
     """
-    print("-------------------------------------------------------------------")
-
     circ = QuantumCircuit(num_qubits)
 
     # decouple_cliff is initialized to an identity clifford
@@ -257,9 +252,6 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
     decouple_cliff.symplectic_matrix = np.eye(2 * num_qubits)
 
     qubit0 = min_qubit  # The qubit for the symplectic Gaussian elimination
-
-    print(f"{pauli_x = }")
-    print(f"{pauli_z = }")
 
     # Reduce the pair of Paulis to a representative in the equivalence class
     # ['XZ', 'XX', 'XI', 'IZ', 'II'] by adding single-qubit gates
@@ -390,7 +382,5 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
         _append_cx(decouple_cliff, A_qubits[2 * qubit + 1], A_qubits[2 * qubit])
         _append_cx(decouple_cliff, A_qubits[2 * qubit], qubit0)
         _append_cx(decouple_cliff, qubit0, A_qubits[2 * qubit + 1])
-    print("-------------------------------------------------------------------")
-
 
     return circ, decouple_cliff
