@@ -1376,6 +1376,21 @@ class TestParameters(QiskitTestCase):
             self.assertEqual(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
 
+    def test_parametervector_repr(self):
+        """Test the __repr__ method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(repr(vec), "ParameterVector(name='x', length=2)")
+
+    def test_parametervector_str(self):
+        """Test the __str__ method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(str(vec), "x, ['x[0]', 'x[1]']")
+
+    def test_parametervector_index(self):
+        """Test the index method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(vec.index(vec[1]), 1)
+
     def test_raise_if_sub_unknown_parameters(self):
         """Verify we raise if asked to sub a parameter not in self."""
         x = Parameter("x")
