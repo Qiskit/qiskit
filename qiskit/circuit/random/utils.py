@@ -194,7 +194,7 @@ def random_circuit(
     for layer_number in range(depth):
         # We generate all the randomness for the layer in one go, to avoid many separate calls to
         # the randomization routines, which can be fairly slow.
-        
+
         # This reliably draws too much randomness, but it's less expensive than looping over more
         # calls to the rng. After, trim it down by finding the point when we've used all the qubits.
 
