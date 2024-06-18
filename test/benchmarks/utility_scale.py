@@ -47,8 +47,6 @@ class UtilityScaleBenchmarks:
         self.square_heisenberg_qc = QuantumCircuit.from_qasm_file(self.square_heisenberg_qasm)
         self.qaoa_qasm = os.path.join(qasm_dir, "qaoa_barabasi_albert_N100_3reps.qasm")
         self.qaoa_qc = QuantumCircuit.from_qasm_file(self.qaoa_qasm)
-        # self.qv_qasm = os.path.join(qasm_dir, "qv_N100_12345.qasm")
-        # self.qv_qc = QuantumCircuit.from_qasm_file(self.qv_qasm)
         self.qv_qc = build_qv_model_circuit(50, 50, SEED)
         self.circSU2 = EfficientSU2(100, reps=3, entanglement="circular")
         self.bv_100 = bv_all_ones(100)
@@ -80,15 +78,6 @@ class UtilityScaleBenchmarks:
             custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
             strict=False,
         )
-
-    # def time_parse_qv_n100(self, _):
-    #     qasm2.load(
-    #         self.qv_qasm,
-    #         include_path=qasm2.LEGACY_INCLUDE_PATH,
-    #         custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
-    #         custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
-    #         strict=False,
-    #     )
 
     def time_qft(self, _):
         self.pm.run(self.qft_qc)

@@ -119,6 +119,7 @@ class ParamaterizedDifferentCircuit:
         out = multi_control_circuit(self.ITER_CIRCUIT_WIDTH)
         return out
 
+
 class GateCountCircuit:
     SEED = 12345
     ITER_CIRCUIT_WIDTH = 16
@@ -153,7 +154,7 @@ class GateCountCircuit:
         out._build()
         assert out.num_parameters == 1000
         return out
-    
+
     def time_param_circSU2_100_bind(self):
         """Measures an SDKs ability to build a
         parameterized efficient SU2 circuit with circular entanglement
