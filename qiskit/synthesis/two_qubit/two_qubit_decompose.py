@@ -116,7 +116,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
     if deviation > 1.0e-13:
         raise QiskitError(
             "decompose_two_qubit_product_gate: decomposition failed: "
-            "deviation too large: {}".format(deviation)
+            f"deviation too large: {deviation}"
         )
 
     return L, R, phase
