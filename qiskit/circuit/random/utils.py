@@ -100,7 +100,7 @@ def random_circuit_from_graph(
     prob_conditional: float = 0.1,
     rel_diff: float = 0.80,
 ):
-    """Generate random circuit of arbitrary size and form which strictly respects the interaction
+    """Generate random circuit of arbitrary size and form which strictly respect the interaction
     graph passed as argument. Interaction Graph is a graph G=(V, E) where V are the qubits in the
     circuit, and, E is the set of two-qubit gate interactions between two particular qubits in the
     circuit.
@@ -126,6 +126,14 @@ def random_circuit_from_graph(
     iteration only one circuit layer exists, now for those qubits for this particular iteration on
     which there are no 2Q gates already applied, if `insert_1q_oper` is set to True, randomly
     chosen 1Q gates are applied.
+
+    Post normalization of the edge weights, a relative difference between the minimum and maximum
+    probabilities are calculated, because this is the variable that would determine the depth of
+    the circuit. A user can keep a check on the circuit size, by controlling this variable. More
+    relative difference means there is huge difference in the probabilistic selection of the edges,
+    this would force more iterations to happen just to find that edge whose probability of getting
+    selected is comparatively low, thereby increasing the depth of the circuit, and thus the whole
+    size of the circuit.
 
     Example:
 
@@ -156,16 +164,17 @@ def random_circuit_from_graph(
         insert_1q_oper (bool): Insert 1Q operations to the circuit. (optional, default: False)
         prob_conditional (float): Probability less than 1.0, this is used to control the
         occurence of conditionals in the circuit. (optional, default: 0.1)
-        rel_diff (float): A term to control the size of circuit generated.
+        rel_diff (float): A variable to control the size of circuit generated.
 
     Returns:
         QuantumCircuit: constructed circuit
 
     Raises:
-        CircuitError: when invalid options given.
+        CircuitError: When `max_operands` is not 1 or 2.
         CircuitError: When `reset` is set to true, but no 1Q operations are allowed by setting
         `insert_1q_oper` to false.
-        ValueError: when some edges have probability as None, but not all.
+        ValueError: when any edge have probability as zero or some are None but not all.
+        or, any of the probabilities are negatve.
     """
 
     # If conditionals are set but not 1Q operation are allowed, raise an error in that case.

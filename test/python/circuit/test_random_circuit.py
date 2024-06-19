@@ -386,7 +386,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             )
 
     def test_max_operands_not_between_1_2_raises(self):
-        """Test if the function raises CircuitError when max_operands is not between 1 and 2"""
+        """Test if the function raises CircuitError when max_operands is not 1 or 2"""
 
         pydi_graph = rx.PyDiGraph()
         pydi_graph.add_nodes_from(range(10))
