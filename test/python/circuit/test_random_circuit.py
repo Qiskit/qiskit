@@ -386,7 +386,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
             )
 
     def test_max_operands_not_between_1_2_raises(self):
-        """Test if the function raises ValueError when max_operands is not between 1 and 2"""
+        """Test if the function raises CircuitError when max_operands is not between 1 and 2"""
 
         pydi_graph = rx.PyDiGraph()
         pydi_graph.add_nodes_from(range(10))
@@ -396,6 +396,46 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
                 interaction_graph=inter_graph,
                 min_2q_gate_per_edge=2,
                 max_operands=3,  # This would fail
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_zero_edge_weight_raises(self):
+        """Test if any of the edge weights happends to be zero this raises a ValueError"""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(5))
+        cp_mp = [(0, 1, 0), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
+
+        pydi_graph.add_edges_from(cp_mp)
+        with self.assertRaisesRegex(ValueError, ".or, is zero."):
+            _ = random_circuit_from_graph(
+                interaction_graph=(pydi_graph, None, None, None),
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_negative_edge_weight_raises(self):
+        """Test if negative edge weights raises ValueError"""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(5))
+        cp_mp = [(0, 1, -10), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
+
+        pydi_graph.add_edges_from(cp_mp)
+        with self.assertRaisesRegex(ValueError, ".probability."):
+            _ = random_circuit_from_graph(
+                interaction_graph=(pydi_graph, None, None, None),
+                min_2q_gate_per_edge=2,
                 measure=True,
                 conditional=True,
                 reset=True,

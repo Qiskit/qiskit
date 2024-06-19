@@ -98,26 +98,34 @@ def random_circuit_from_graph(
     seed=None,
     insert_1q_oper=False,
     prob_conditional: float = 0.1,
+    rel_diff: float = 0.80,
 ):
-    """Generate random circuit of arbitrary size and form which strictly respects
-    the interaction graph passed as argument.
+    """Generate random circuit of arbitrary size and form which strictly respects the interaction
+    graph passed as argument. Interaction Graph is a graph G=(V, E) where V are the qubits in the
+    circuit, and, E is the set of two-qubit gate interactions between two particular qubits in the
+    circuit.
 
-    This function will generate a random circuit by randomly selecting gates
-    from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`.
-    User can attach a float value indicating the probability of getting selected as a metadata to
-    the edge of the graph generated. If all the probabilities is passed as `None`, then the
-    probability of each qubit-pair of getting selected is set to 1/N.
-    (where N is the number of edges in the interaction_graph passed in)
+    This function will generate a random circuit by randomly selecting gates from the set of
+    standard gates in :mod:`qiskit.circuit.library.standard_gates`. User can attach a numerical
+    value as a metadata to the edge of the graph indicating the edge weight for that particular edge,
+    These edge weights  would be normalized to the probabilities for the edges of getting selected.
+    If all the edge weights are passed as `None`, then the probability of each qubit-pair of getting
+    selected is set to 1/N. (where N is the number of edges in the interaction_graph passed in)
 
-    If float values are present as probabilities but some are None, this will raise a ValueError.
+    If numerical values are present as probabilities but some/any are None, or zero, or negative,
+    this will raise a ValueError.
+
+    If :arg:`max_operands` is set to 1, then there are no 2Q operations, so no need to take care
+    of the edges, in such case the function will return a circuit from the `random_circuit` function,
+    which would be passed with the :arg:`max_operands` as 1.
 
     If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs
     are chosen at random, the qubit-pairs are also chosen at random based on the probability
     attached to the qubit-pair, the 2Q gates are applied on the qubit-paris on which are no gates
     already present for that particular iteration, this is to make sure that for a particular
-    iteration only one circuit layer exists, now for those qubits for this particular iteration on which
-    there are no 2Q gates applied on those qubits, if `insert_1q_oper` is set to True, random chosen
-    1Q gates are applied.
+    iteration only one circuit layer exists, now for those qubits for this particular iteration on
+    which there are no 2Q gates already applied, if `insert_1q_oper` is set to True, randomly
+    chosen 1Q gates are applied.
 
     Example:
 
@@ -127,8 +135,8 @@ def random_circuit_from_graph(
        from qiskit.circuit.random.utils import random_circuit_from_graph
        import rustworkx as rx
        pydi_graph = rx.PyDiGraph()
-       pydi_graph.add_nodes_from(range(8))
-       cp_map = [(0, 2, 0.18), (1, 3, 0.15), (2, 4, 0.15), (3, 4, 0.22), (5, 7, 0.13), (4, 7, 0.17)]
+       pydi_graph.add_nodes_from(range(7))
+       cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22), (4, 5, 0.13), (5, 6, 0.17)]
        pydi_graph.add_edges_from(cp_map)
        inter_graph = (pydi_graph, None, None, None)
        qc = random_circuit_from_graph(inter_graph, min_2q_gate_per_edge=1, measure = True)
@@ -138,16 +146,17 @@ def random_circuit_from_graph(
         interaction_graph (int): Interaction Graph
         min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used
         in the random circuit.
-        max_operands (int): maximum qubit operands of each gate (between 1 and 2)
-        measure (bool): if True, measure all qubits at the end
-        conditional (bool): if True, insert middle measurements and conditionals, `insert_1q_oper`
-        has to be set to True for this.
+        max_operands (int): maximum qubit operands of each gate(between 1 and 2) (optional, default:2)
+        measure (bool): if True, measure all qubits at the end. (optional, default: False)
+        conditional (bool): if True, insert middle measurements and conditionals.
+        (optional, default: False)
         reset (bool): if True, insert middle resets. ( insert_1q_oper should be true )
-        seed (int): sets random seed (optional)
-        insert_1q_oper (bool): Insert 1Q operations to the qubits which are left after
-        applying a 2Q gate on the selected qubit-pair.
+        (optional, default: False)
+        seed (int): sets random seed. (If `None`, a random seed is chosen) (optional)
+        insert_1q_oper (bool): Insert 1Q operations to the circuit. (optional, default: False)
         prob_conditional (float): Probability less than 1.0, this is used to control the
-        occurence of conditionals in the circuit.
+        occurence of conditionals in the circuit. (optional, default: 0.1)
+        rel_diff (float): A term to control the size of circuit generated.
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -221,7 +230,7 @@ def random_circuit_from_graph(
     elif any(edges_probs):
         raise ValueError(
             "The probabilities of a qubit-pair getting seleted contains `None`"
-            " It should either be all `None` or all numerical weights. "
+            " or, is zero. It should either be all `None` or all numerical weights greater than zero. "
         )
     elif None in edges_probs:
         prob_weighted_mapping = True
@@ -232,6 +241,19 @@ def random_circuit_from_graph(
         for prob in edges_probs:
             if prob < 0:
                 raise ValueError("The probability should be positive")
+
+    # If relative-difference post normalization of the edge weights cross a certain
+    # threshold, raises an error, and let the user decide how to chage the edge weights of
+    # the interaction graph. This step is to make sure the size of the circuit doesn't
+    # blow beyond a certain huge size/ or beyond a moderate size, let the user decide.
+    # argument: `rel_diff` is a float number between 0 and 0.99, which user can provide
+    # to tune the size of the output circuit.
+    if (np.max(edges_probs) - np.min(edges_probs)) > rel_diff:
+        raise CircuitError(
+            "The relative difference between the maximum/minimum probability"
+            " has crossed the `rel_diff` please tune the edges weights or"
+            " change the `rel_diff` argument to a higher threshold."
+        )
 
     edge_list = list(pydi_graph.edge_list())
 
