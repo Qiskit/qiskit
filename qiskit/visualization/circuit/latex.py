@@ -545,7 +545,7 @@ class QCircuitImage:
             else:
                 wire2 = self._wire_map[node.cargs[0]]
             self._latex[wire2][col] = (
-                f"\\dstick{{_{{_{{\\hspace{{{cond_offset}em}} {idx_str}}}}}}} "
+                f"\\dstick{{_{{_{{\\hspace{{{cond_offset}em}}{idx_str}}}}}}} "
                 f"\\cw \\ar @{{<=}} [-{str(wire2 - wire1)},0]"
             )
         else:
@@ -571,7 +571,7 @@ class QCircuitImage:
             if node.op.label is not None:
                 pos = indexes[0]
                 label = node.op.label.replace(" ", "\\,")
-                self._latex[pos][col] = f"\\cds{{0}}{{^{{\\mathrm{{{label}}} }}}}"
+                self._latex[pos][col] = f"\\cds{{0}}{{^{{\\mathrm{{{label}}}}}}}"
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
         """Add one or more controls to a gate"""
@@ -615,7 +615,7 @@ class QCircuitImage:
             control = "\\control" if op.condition[1] else "\\controlo"
             self._latex[cwire][
                 col
-            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}} }}}} \\cwx[-{str(gap)}]"
+            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}}}}}} \\cwx[-{str(gap)}]"
 
         # If condition is a register and cregbundle is false
         else:
