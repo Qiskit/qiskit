@@ -10,19 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use itertools::min;
-use ndarray::{azip, s, ArrayView1, ArrayViewMut2, Zip, Array1};
+use ndarray::{azip, s, ArrayView1, Array1};
 use pyo3::prelude::*;
 use std::collections::HashSet;
-use std::ffi::c_long;
 
 use numpy::prelude::*;
 
-use numpy::{PyArray2, PyReadonlyArray2};
+use numpy::{PyReadonlyArray2};
 
 use crate::QiskitError;
-use numpy::ndarray::{aview2, Array2, ArrayView2};
-use pyo3::callback::IntoPyCallbackOutput;
+use numpy::ndarray::{Array2};
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -184,7 +181,7 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
         // println!("list_greedy_cost = {:?}", list_greedy_cost);
         let min_qubit = list_greedy_cost
             .iter()
-            .min_by_key(|(cost, qubit)| cost)
+            .min_by_key(|(cost, _qubit)| cost)
             .unwrap()
             .1;
         // println!("min_qubit = {:?}", min_qubit);
@@ -242,7 +239,7 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
 //     .and(&x)
 //     .for_each(|z, x| *z ^= x );
 
-fn append_s(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
+fn append_s(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
     // println!("_append_s_clifford {}; num_qubits = {}", qubit, num_qubits);
 
     let (x, mut z, mut p) = clifford.multi_slice_mut((
@@ -251,8 +248,8 @@ fn append_s(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
         s![.., 2 * num_qubits],
     ));
 
-    azip!((mut p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-    azip!((mut z in &mut z, &x in &x) *z ^= x);
+    azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
+    azip!((z in &mut z, &x in &x) *z ^= x);
 }
 
 /*
@@ -262,20 +259,20 @@ fn append_s(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
     clifford.phase ^= x & ~z
 
  */
-fn append_sdg(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    // println!("_append_sdg_clifford {}; num_qubits = {}", qubit, num_qubits);
+// fn append_sdg(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
+//     // println!("_append_sdg_clifford {}; num_qubits = {}", qubit, num_qubits);
+//
+//     let (x, mut z, mut p) = clifford.multi_slice_mut((
+//         s![.., qubit],
+//         s![.., num_qubits + qubit],
+//         s![.., 2 * num_qubits],
+//     ));
+//
+//     azip!((mut p in &mut p, &x in &x, &z in &z)  *p ^= x & !z);
+//     azip!((mut z in &mut z, &x in &x) *z ^= x);
+// }
 
-    let (x, mut z, mut p) = clifford.multi_slice_mut((
-        s![.., qubit],
-        s![.., num_qubits + qubit],
-        s![.., 2 * num_qubits],
-    ));
-
-    azip!((mut p in &mut p, &x in &x, &z in &z)  *p ^= x & !z);
-    azip!((mut z in &mut z, &x in &x) *z ^= x);
-}
-
-fn append_h(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
+fn append_h(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
     // println!("_append_h_clifford {}; num_qubits = {}", qubit, num_qubits);
 
     let (mut x, mut z, mut p) = clifford.multi_slice_mut((
@@ -284,43 +281,38 @@ fn append_h(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
         s![.., 2 * num_qubits],
     ));
 
-    azip!((mut p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-    azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
+    azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
+    azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
 }
 
-fn append_swap(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
-    // println!(
-    //     "_append_swap_clifford {} {}; num_qubits = {}",
-    //     qubit0, qubit1, num_qubits
-    // );
-
+fn append_swap(clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
     let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
         s![.., qubit0],
         s![.., num_qubits + qubit0],
         s![.., qubit1],
         s![.., num_qubits + qubit1],
     ));
-    azip!((mut x0 in &mut x0, mut x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
-    azip!((mut z0 in &mut z0, mut z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
+    azip!((x0 in &mut x0, x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
+    azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
 }
 
 // x0, z0 - control, x1, z1 - target
-fn append_cx(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
+fn append_cx(clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
     // println!(
     //     "_append_cx_clifford {} {}; num_qubits = {}",
     //     qubit0, qubit1, num_qubits
     // );
 
-    let (mut x0, mut z0, mut x1, mut z1, mut p) = clifford.multi_slice_mut((
+    let (x0, mut z0, mut x1, z1, mut p) = clifford.multi_slice_mut((
         s![.., qubit0],
         s![.., num_qubits + qubit0],
         s![.., qubit1],
         s![.., num_qubits + qubit1],
         s![.., 2 * num_qubits],
     ));
-    azip!((mut p in &mut p, &x0 in &x0, &z0 in &z0, &x1 in &x1, &z1 in &z1) *p ^= (x1 ^ z0 ^ true) & z1 & x0);
-    azip!((mut x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
-    azip!((mut z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
+    azip!((p in &mut p, &x0 in &x0, &z0 in &z0, &x1 in &x1, &z1 in &z1) *p ^= (x1 ^ z0 ^ true) & z1 & x0);
+    azip!((x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
+    azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
 }
 
 // CODE FOR SYMPLECTIC MATRICES!
@@ -338,13 +330,15 @@ impl SymplecticMatrix {
     // Modifies the matrix in-place by appending S-gate
     fn append_s(&mut self, qubit: usize) {
         let (x, mut z) = self.smat.multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
-        azip!((mut z in &mut z, &x in &x) *z ^= x);
+        azip!((z in &mut z, &x in &x) *z ^= x);
     }
+
+
 
     // Modifies the matrix in-place by appending H-gate
     fn append_h(&mut self, qubit: usize) {
         let (mut x, mut z) = self.smat.multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
-        azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
+        azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
     }
 
     // Modifies the matrix in-place by appending SWAP-gate
@@ -359,8 +353,8 @@ impl SymplecticMatrix {
             s![.., qubit1],
             s![.., self.num_qubits + qubit1],
         ));
-        azip!((mut x0 in &mut x0, mut x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
-        azip!((mut z0 in &mut z0, mut z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
+        azip!((x0 in &mut x0, x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
+        azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
     }
 
     // Modifies the matrix in-place by appending SWAP-gate
@@ -369,14 +363,14 @@ impl SymplecticMatrix {
         qubit0: usize,
         qubit1: usize,
     ) {
-        let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
+        let (x0, mut z0, mut x1, z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
             s![.., qubit1],
             s![.., self.num_qubits + qubit1],
         ));
-        azip!((mut x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
-        azip!((mut z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
+        azip!((x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
+        azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
     }
 
     // Multiplies two symplectic matrices and returns the result
@@ -410,8 +404,8 @@ impl SymplecticMatrix {
             s![self.num_qubits..2 * self.num_qubits, self.num_qubits..2 * self.num_qubits],
         ));
 
-        azip!((mut a in &mut a, mut d in &mut d)  (*a, *d) = (*d, *a));
-        azip!((mut b in &mut b, mut c in &mut c)  (*b, *c) = (*c, *b));
+        azip!((a in &mut a, d in &mut d)  (*a, *d) = (*d, *a));
+        azip!((b in &mut b, c in &mut c)  (*b, *c) = (*c, *b));
     }
 
 }
