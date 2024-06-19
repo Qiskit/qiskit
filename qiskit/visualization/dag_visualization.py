@@ -152,7 +152,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "lightblue"
                 return n
             else:
-                raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+                raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
         edge_attr_func = None
 
@@ -197,7 +197,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "red"
                 return n
             else:
-                raise VisualizationError("Invalid style %s" % style)
+                raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}
