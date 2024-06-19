@@ -286,6 +286,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
+
 pub const STANDARD_GATE_SIZE: usize = 24;
 
 impl Operation for StandardGate {
