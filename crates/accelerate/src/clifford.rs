@@ -127,6 +127,17 @@ enum PauliClass {
     ClassE,
 }
 
+#[derive(Clone, Copy)]
+enum SingleQubitGate {
+    I,
+    S,
+    H,
+    SH,
+    HS,
+    SHS,
+}
+
+
 struct GreedyCliffordSynthesis<'a> {
     // The Clifford to be synthesized.
     clifford: ArrayView2<'a, bool>,
@@ -134,6 +145,10 @@ struct GreedyCliffordSynthesis<'a> {
     // The 16 pairs of Pauli operators are divided into 5 equivalence classes
     // under the action of single-qubit Cliffords.
     pauli_to_class: HashMap<[[bool; 2]; 2], PauliClass>,
+
+    // Map pair of pauli operators to the single-qubit gate required
+    // for the decoupling step.
+    pauli_to_single_qubit: HashMap<[[bool; 2]; 2], SingleQubitGate>,
 
     // The total number of qubits
     num_qubits: usize,
@@ -179,9 +194,29 @@ impl GreedyCliffordSynthesis<'_> {
             ([[false, false], [false, false]], PauliClass::ClassE), // 'II'
         ]);
 
+        let pauli_to_single_qubit = HashMap::<[[bool; 2]; 2], SingleQubitGate>::from([
+            ([[true, true], [false, false]], SingleQubitGate::S), // 'YI'
+            ([[true, true], [true, true]], SingleQubitGate::S), // 'YY'
+            ([[true, true], [true, false]], SingleQubitGate::S), // 'YZ'
+            ([[true, false], [false, false]], SingleQubitGate::H), // 'ZI'
+            ([[true, false], [true, false]], SingleQubitGate::H), // 'ZZ'
+            ([[true, false], [false, true]], SingleQubitGate::H), // 'ZX'
+            ([[false, false], [false, true]], SingleQubitGate::H), // 'IX'
+            ([[false, false], [true, true]], SingleQubitGate::SH), // 'IY'
+            ([[true, false], [true, true]], SingleQubitGate::SH), // 'ZY'
+            ([[true, true], [false, true]], SingleQubitGate::HS), // 'YX'
+            ([[false, true], [true, true]], SingleQubitGate::SHS), // 'XY'
+            // ([[false, true], [true, false]], SingleQubitGate::I), // 'XZ'
+            // ([[false, true], [false, true]], SingleQubitGate::I), // 'XX'
+            // ([[false, true], [false, false]], SingleQubitGate::I), // 'XI'
+            // ([[false, false], [true, false]], SingleQubitGate::I), // 'IZ'
+            // ([[false, false], [false, false]], SingleQubitGate::I), // 'II'
+        ]);
+
         GreedyCliffordSynthesis {
             clifford,
             pauli_to_class,
+            pauli_to_single_qubit,
             num_qubits,
             symplectic_matrix,
             unprocessed_qubits,
@@ -259,6 +294,12 @@ impl GreedyCliffordSynthesis<'_> {
     /// D^{-1} * Oz * D = z1
     /// and reduce the clifford such that it will act trivially on min_qubit
     fn decouple_qubit(&mut self, gate_seq: &mut CliffordGatesVec, min_qubit: usize) {
+        let mut a_qubits = Vec::<usize>::new();
+        let mut b_qubits = Vec::<usize>::new();
+        let mut c_qubits = Vec::<usize>::new();
+        let mut d_qubits = Vec::<usize>::new();
+
+
         let pauli_x = self
             .symplectic_matrix
             .smat
@@ -269,48 +310,39 @@ impl GreedyCliffordSynthesis<'_> {
         for qubit in &self.unprocessed_qubits {
             let typeq = self.pair_paulis_to_type(pauli_x.view(), pauli_z.view(), *qubit);
 
-            if typeq == [[true, true], [false, false]]
-                || typeq == [[true, true], [true, true]]
-                || typeq == [[true, true], [true, false]]
-            {
-                gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_s(*qubit);
-            } else if typeq == [[true, false], [false, false]]
-                || typeq == [[true, false], [true, false]]
-                || typeq == [[true, false], [false, true]]
-                || typeq == [[false, false], [false, true]]
-            {
-                gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_h(*qubit);
-            } else if typeq == [[false, false], [true, true]]
-                || typeq == [[true, false], [true, true]]
-            {
-                gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_s(*qubit);
-                gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_h(*qubit);
-            } else if typeq == [[true, true], [false, true]] {
-                gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_h(*qubit);
-                gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_s(*qubit);
-            } else if typeq == [[false, true], [true, true]] {
-                gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_s(*qubit);
-                gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_h(*qubit);
-                gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-                self.symplectic_matrix.prepend_s(*qubit);
+            let single_qubit_gate = self.pauli_to_single_qubit.get(&typeq).unwrap_or(&SingleQubitGate::I);
+            match single_qubit_gate {
+                SingleQubitGate::S => {
+                    gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
+                    self.symplectic_matrix.prepend_s(*qubit);
+                },
+                SingleQubitGate::H => {
+                    gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
+                    self.symplectic_matrix.prepend_h(*qubit);
+                },
+                SingleQubitGate::SH => {
+                    gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
+                    gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
+                    self.symplectic_matrix.prepend_s(*qubit);
+                    self.symplectic_matrix.prepend_h(*qubit);
+                },
+                SingleQubitGate::HS => {
+                    gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
+                    gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
+                    self.symplectic_matrix.prepend_h(*qubit);
+                    self.symplectic_matrix.prepend_s(*qubit);
+                },
+                SingleQubitGate::SHS => {
+                    gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
+                    gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
+                    gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
+                    self.symplectic_matrix.prepend_s(*qubit);
+                    self.symplectic_matrix.prepend_h(*qubit);
+                    self.symplectic_matrix.prepend_s(*qubit);
+                },
+                SingleQubitGate::I => {},
             }
-        }
 
-        let mut a_qubits = Vec::<usize>::new();
-        let mut b_qubits = Vec::<usize>::new();
-        let mut c_qubits = Vec::<usize>::new();
-        let mut d_qubits = Vec::<usize>::new();
-
-        for qubit in &self.unprocessed_qubits {
-            let typeq = self.pair_paulis_to_type(pauli_x.view(), pauli_z.view(), *qubit);
             let pauli_class = self.pauli_to_class.get(&typeq).unwrap();
             match pauli_class {
                 PauliClass::ClassA => a_qubits.push(*qubit),
@@ -320,6 +352,8 @@ impl GreedyCliffordSynthesis<'_> {
                 PauliClass::ClassE => {}
             }
         }
+
+
 
         if a_qubits.len() % 2 != 1 {
             panic!("Symplectic elim fails");
