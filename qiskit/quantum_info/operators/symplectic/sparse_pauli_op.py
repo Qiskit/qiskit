@@ -172,7 +172,7 @@ class SparsePauliOp(LinearOp):
         if self._coeffs.shape != (self._pauli_list.size,):
             raise QiskitError(
                 "coeff vector is incorrect shape for number"
-                " of Paulis {} != {}".format(self._coeffs.shape, self._pauli_list.size)
+                f" of Paulis {self._coeffs.shape} != {self._pauli_list.size}"
             )
         # Initialize LinearOp
         super().__init__(num_qubits=self._pauli_list.num_qubits)
@@ -186,11 +186,9 @@ class SparsePauliOp(LinearOp):
     def __repr__(self):
         prefix = "SparsePauliOp("
         pad = len(prefix) * " "
-        return "{}{},\n{}coeffs={})".format(
-            prefix,
-            self.paulis.to_labels(),
-            pad,
-            np.array2string(self.coeffs, separator=", "),
+        return (
+            f"{prefix}{self.paulis.to_labels()},\n{pad}"
+            f"coeffs={np.array2string(self.coeffs, separator=', ')})"
         )
 
     def __eq__(self, other):

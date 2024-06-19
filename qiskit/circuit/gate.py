@@ -177,7 +177,7 @@ class Gate(Instruction):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
-            raise CircuitError("Not sure how to combine these qubit arguments:\n %s\n" % qargs)
+            raise CircuitError(f"Not sure how to combine these qubit arguments:\n {qargs}\n")
 
     def broadcast_arguments(self, qargs: list, cargs: list) -> Iterable[tuple[list, list]]:
         """Validation and handling of the arguments and its relationship.
@@ -236,7 +236,7 @@ class Gate(Instruction):
         elif len(qargs) >= 3:
             return Gate._broadcast_3_or_more_args(qargs)
         else:
-            raise CircuitError("This gate cannot handle %i arguments" % len(qargs))
+            raise CircuitError(f"This gate cannot handle {len(qargs)} arguments")
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""

@@ -308,7 +308,7 @@ class Optimize1qGates(TransformationPass):
                 if "u3" in self.basis:
                     new_op = U3Gate(*right_parameters)
                 else:
-                    raise TranspilerError("It was not possible to use the basis %s" % self.basis)
+                    raise TranspilerError(f"It was not possible to use the basis {self.basis}")
 
             dag.global_phase += right_global_phase
 
