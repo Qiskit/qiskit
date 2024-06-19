@@ -53,8 +53,7 @@ def synth_cnot_count_full_pmh(
     """
     if not isinstance(state, (list, np.ndarray)):
         raise QiskitError(
-            "state should be of type list or numpy.ndarray, "
-            "but was of the type {}".format(type(state))
+            f"state should be of type list or numpy.ndarray, but was of the type {type(state)}"
         )
     state = np.array(state)
     # Synthesize lower triangular part

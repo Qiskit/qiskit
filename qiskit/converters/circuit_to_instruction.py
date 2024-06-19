@@ -89,10 +89,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     if parameter_dict.keys() != circuit.parameters:
         raise QiskitError(
-            (
-                "parameter_map should map all circuit parameters. "
-                "Circuit parameters: {}, parameter_map: {}"
-            ).format(circuit.parameters, parameter_dict)
+            "parameter_map should map all circuit parameters. "
+            f"Circuit parameters: {circuit.parameters}, parameter_map: {parameter_dict}"
         )
 
     out_instruction = Instruction(
