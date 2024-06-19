@@ -115,12 +115,12 @@ class Instruction(Operation):
         The "base class" of an instruction is the lowest class in its inheritance tree that the
         object should be considered entirely compatible with for _all_ circuit applications.  This
         typically means that the subclass is defined purely to offer some sort of programmer
-        convenience over the base class, and the base class is the "true" class for a behavioural
+        convenience over the base class, and the base class is the "true" class for a behavioral
         perspective.  In particular, you should *not* override :attr:`base_class` if you are
         defining a custom version of an instruction that will be implemented differently by
-        hardware, such as an alternative measurement strategy, or a version of a parametrised gate
+        hardware, such as an alternative measurement strategy, or a version of a parametrized gate
         with a particular set of parameters for the purposes of distinguishing it in a
-        :class:`.Target` from the full parametrised gate.
+        :class:`.Target` from the full parametrized gate.
 
         This is often exactly equivalent to ``type(obj)``, except in the case of singleton instances
         of standard-library instructions.  These singleton instances are special subclasses of their

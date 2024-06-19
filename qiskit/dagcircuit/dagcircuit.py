@@ -1525,7 +1525,7 @@ class DAGCircuit:
             )[0]
             self._multi_graph.add_edge(pred._node_id, succ._node_id, contracted_var)
 
-        # Exlude any nodes from in_dag that are not a DAGOpNode or are on
+        # Exclude any nodes from in_dag that are not a DAGOpNode or are on
         # wires outside the set specified by the wires kwarg
         def filter_fn(node):
             if not isinstance(node, DAGOpNode):
@@ -1615,7 +1615,7 @@ class DAGCircuit:
                 be used.
             propagate_condition (bool): Optional, default True.  If True, a condition on the
                 ``node`` to be replaced will be applied to the new ``op``.  This is the legacy
-                behaviour.  If either node is a control-flow operation, this will be ignored.  If
+                behavior.  If either node is a control-flow operation, this will be ignored.  If
                 the ``op`` already has a condition, :exc:`.DAGCircuitError` is raised.
 
         Returns:
