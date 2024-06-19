@@ -14,6 +14,7 @@ use ndarray::{azip, s, Array1, ArrayView1, ArrayView2};
 use pyo3::prelude::*;
 use std::collections::HashSet;
 use hashbrown::HashMap;
+use indexmap::IndexSet;
 
 use numpy::PyReadonlyArray2;
 
@@ -134,9 +135,11 @@ struct GreedyCliffordSynthesis<'a> {
     // under the action of single-qubit Cliffords.
     pauli_to_class: HashMap<[[bool; 2]; 2], PauliClass>,
 
-    // The number of qubits
+    // The total number of qubits
     num_qubits: usize,
 
+    // Unprocessed qubits
+    unprocessed_qubits: IndexSet<usize>,
 }
 
 
@@ -146,6 +149,8 @@ impl GreedyCliffordSynthesis<'_> {
 
     fn new(clifford: ArrayView2<bool>) -> GreedyCliffordSynthesis<'_> {
         let num_qubits = clifford.shape()[0] / 2;
+
+        let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
 
         let pauli_to_class = HashMap::<[[bool; 2]; 2], PauliClass>::from(
             [
@@ -172,6 +177,7 @@ impl GreedyCliffordSynthesis<'_> {
             clifford,
             pauli_to_class,
             num_qubits,
+            unprocessed_qubits,
         }
     }
 
@@ -192,7 +198,6 @@ impl GreedyCliffordSynthesis<'_> {
         &self,
         symplectic_matrix: &SymplecticMatrix,
         qubit: usize,
-        qubit_list: &Vec<usize>,
     ) -> usize {
         // todo: remove to_owned
         let pauli_x = symplectic_matrix.smat.column(qubit + self.num_qubits);
@@ -205,7 +210,7 @@ impl GreedyCliffordSynthesis<'_> {
 
         let mut qubit_is_in_a = false;
 
-        for q in qubit_list {
+        for q in &self.unprocessed_qubits {
             let pair = self.pair_paulis_to_type(pauli_x, pauli_z, *q);
             let pauli_class = self.pauli_to_class.get(&pair).unwrap();
 
@@ -255,7 +260,6 @@ impl GreedyCliffordSynthesis<'_> {
         &self,
         symplectic_matrix: &mut SymplecticMatrix,
         gate_seq: &mut CliffordGatesVec,
-        qubit_list: &Vec<usize>,
         min_qubit: usize,
     ) {
         let pauli_x = symplectic_matrix
@@ -264,7 +268,7 @@ impl GreedyCliffordSynthesis<'_> {
             .to_owned();
         let pauli_z = symplectic_matrix.smat.column(min_qubit).to_owned();
 
-        for qubit in qubit_list {
+        for qubit in &self.unprocessed_qubits {
 
             let typeq = self.pair_paulis_to_type(pauli_x.view(), pauli_z.view(), *qubit);
 
@@ -307,7 +311,7 @@ impl GreedyCliffordSynthesis<'_> {
         let mut c_qubits = Vec::<usize>::new();
         let mut d_qubits = Vec::<usize>::new();
 
-        for qubit in qubit_list {
+        for qubit in &self.unprocessed_qubits {
             let typeq = self.pair_paulis_to_type(pauli_x.view(), pauli_z.view(), *qubit);
             let pauli_class = self.pauli_to_class.get(&typeq).unwrap();
             match pauli_class {
@@ -425,7 +429,7 @@ impl GreedyCliffordSynthesis<'_> {
     }
 
     // The main synthesis function
-    fn run(&self) -> CliffordGatesVec {
+    fn run(&mut self) -> CliffordGatesVec {
         let mut clifford_gates = CliffordGatesVec::new();
 
         let mut symplectic_matrix = SymplecticMatrix {
@@ -433,15 +437,11 @@ impl GreedyCliffordSynthesis<'_> {
             smat: self.clifford.slice(s![.., 0..2 * self.num_qubits]).to_owned(),
         };
 
-        // ToDo: this is a vector for now to be compatible with the python
-        // implementation, but we should really turn it into a set
-        let mut qubit_list: Vec<usize> = (0..self.num_qubits).collect();
-
-        while qubit_list.len() > 0 {
+        while self.unprocessed_qubits.len() > 0 {
             let mut list_greedy_cost = Vec::<(usize, usize)>::new();
 
-            for qubit in &qubit_list {
-                let cost = self.compute_greedy_cost(&symplectic_matrix, *qubit, &qubit_list);
+            for qubit in &self.unprocessed_qubits {
+                let cost = self.compute_greedy_cost(&symplectic_matrix, *qubit);
                 // println!("{}", cost);
                 list_greedy_cost.push((cost, *qubit));
             }
@@ -454,12 +454,10 @@ impl GreedyCliffordSynthesis<'_> {
             self.calc_decoupling(
                 &mut symplectic_matrix,
                 &mut clifford_gates,
-                &qubit_list,
                 min_qubit,
             );
 
-            // qubit_list.remove(&min_qubit);
-            qubit_list.retain(|&x| x != min_qubit);
+            self.unprocessed_qubits.swap_remove(&min_qubit);
         }
 
         fix_phase(&mut clifford_gates, self.clifford, self.num_qubits);
@@ -477,7 +475,7 @@ impl GreedyCliffordSynthesis<'_> {
 type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Qubit; 2]>)>;
 
 fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
-    let greedy_synthesis = GreedyCliffordSynthesis::new(clifford.view());
+    let mut greedy_synthesis = GreedyCliffordSynthesis::new(clifford.view());
     greedy_synthesis.run()
 }
 
