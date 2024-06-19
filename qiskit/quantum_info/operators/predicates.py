@@ -22,6 +22,7 @@ RTOL_DEFAULT = 1e-5
 
 
 def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT, props=None):
+    # pylint: disable-next=consider-using-f-string
     """Test if two arrays are equal.
 
     The final comparison is implemented using Numpy.allclose. See its

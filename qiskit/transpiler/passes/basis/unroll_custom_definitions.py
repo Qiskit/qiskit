@@ -95,9 +95,9 @@ class UnrollCustomDefinitions(TransformationPass):
             if unrolled is None:
                 # opaque node
                 raise QiskitError(
-                    "Cannot unroll the circuit to the given basis, %s. "
-                    "Instruction %s not found in equivalence library "
-                    "and no rule found to expand." % (str(self._basis_gates), node.op.name)
+                    f"Cannot unroll the circuit to the given basis, {str(self._basis_gates)}. "
+                    f"Instruction {node.op.name} not found in equivalence library "
+                    "and no rule found to expand."
                 )
 
             decomposition = circuit_to_dag(unrolled, copy_operations=False)

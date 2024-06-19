@@ -382,8 +382,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if max(ind) >= len(self):
                 raise QiskitError(
-                    "Indices {} are not all less than the size"
-                    " of the PauliList ({})".format(ind, len(self))
+                    f"Indices {ind} are not all less than the size"
+                    f" of the PauliList ({len(self)})"
                 )
             z = np.delete(self._z, ind, axis=0)
             x = np.delete(self._x, ind, axis=0)
@@ -394,8 +394,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
             raise QiskitError(
-                "Indices {} are not all less than the number of"
-                " qubits in the PauliList ({})".format(ind, self.num_qubits)
+                f"Indices {ind} are not all less than the number of"
+                f" qubits in the PauliList ({self.num_qubits})"
             )
         z = np.delete(self._z, ind, axis=1)
         x = np.delete(self._x, ind, axis=1)
@@ -432,8 +432,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if ind > size:
                 raise QiskitError(
-                    "Index {} is larger than the number of rows in the"
-                    " PauliList ({}).".format(ind, size)
+                    f"Index {ind} is larger than the number of rows in the" f" PauliList ({size})."
                 )
             base_z = np.insert(self._z, ind, value._z, axis=0)
             base_x = np.insert(self._x, ind, value._x, axis=0)
@@ -443,8 +442,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column insertion
         if ind > self.num_qubits:
             raise QiskitError(
-                "Index {} is greater than number of qubits"
-                " in the PauliList ({})".format(ind, self.num_qubits)
+                f"Index {ind} is greater than number of qubits"
+                f" in the PauliList ({self.num_qubits})"
             )
         if len(value) == 1:
             # Pad blocks to correct size
@@ -461,7 +460,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             raise QiskitError(
                 "Input PauliList must have a single row, or"
                 " the same number of rows as the Pauli Table"
-                " ({}).".format(size)
+                f" ({size})."
             )
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
