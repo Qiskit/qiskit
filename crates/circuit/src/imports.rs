@@ -131,6 +131,12 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     ["qiskit.circuit.library.standard_gates.sx", "SXdgGate"],
     // iSWAPGate = 23
     ["qiskit.circuit.library.standard_gates.iswap", "iSwapGate"],
+    // CRXGate = 24
+    ["qiskit.circuit.library.standard_gates.crx", "CRXGate"],
+    // CRYGate = 25
+    ["qiskit.circuit.library.standard_gates.cry", "CRYGate"],
+    // CRZGate = 26
+    ["qiskit.circuit.library.standard_gates.crz", "CRZGate"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the

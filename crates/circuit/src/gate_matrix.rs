@@ -46,6 +46,43 @@ pub fn rz_gate(theta: f64) -> [[Complex64; 2]; 2] {
     [[(-ilam2).exp(), c64(0., 0.)], [c64(0., 0.), ilam2.exp()]]
 }
 
+#[inline]
+pub fn crx_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let isin = c64(0., -half_theta.sin());
+    [
+        [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+        [c64(0., 0.), cos, c64(0., 0.), -isin],
+        [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
+        [c64(0., 0.), -isin, c64(0., 0.), cos],
+    ]
+}
+
+#[inline]
+pub fn cry_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let sin = c64(half_theta.sin(), 0.);
+    [
+        [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+        [c64(0., 0.), cos, c64(0., 0.), -sin],
+        [c64(0., 0.), c64(0., 0.), c64(0., 1.), c64(0., 0.)],
+        [c64(0., 0.), sin, c64(0., 0.), cos],
+    ]
+}
+
+#[inline]
+pub fn crz_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let i_half_theta = c64(0., theta / 2.);
+    [
+        [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+        [c64(0., 0.), (-i_half_theta).exp(), c64(0., 0.), c64(0., 0.)],
+        [c64(0., 0.), c64(0., 0.), c64(-1., 0.), c64(0., 0.)],
+        [c64(0., 0.), c64(0., 0.), i_half_theta.exp(), c64(0., 0.)],
+    ]
+}
+
 pub static H_GATE: [[Complex64; 2]; 2] = [
     [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
     [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
