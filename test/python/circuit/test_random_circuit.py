@@ -18,6 +18,7 @@ import numpy as np
 import ddt
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.random.utils import random_circuit_from_graph
 from qiskit.converters import circuit_to_dag
@@ -173,11 +174,24 @@ def incomplete_graph(n_nodes):
     return pydi_graph
 
 
+def digraph_with_no_edges(n_nodes):
+    # pylint: disable=missing-function-docstring
+    graph = rx.PyDiGraph()
+    graph.add_nodes_from(range(n_nodes))
+    return graph
+
+
 test_cases = (
     (rx.generators.directed_cycle_graph(5), 1550),
     (rx.generators.directed_mesh_graph(4), 87978),
+    # The (almost) fully connected graph.
     (incomplete_graph(4), 154),
     (rx.generators.directed_heavy_hex_graph(3), 458),
+    # Sparse connected graph
+    (rx.generators.directed_path_graph(10), 458),
+    # A graph with no edges, should yeild a circuit with no edges,
+    # this means there would be no 2Q gates on that circuit.
+    (digraph_with_no_edges(10), 0),
 )
 
 
@@ -245,7 +259,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         inter_graph = (graph, None, None, None)
         qc = random_circuit_from_graph(
             interaction_graph=inter_graph,
-            min_2q_gate_per_edge=1,
+            min_2q_gate_per_edge=2,
             conditional=True,
             reset=True,
             seed=seed,  # Do not change the seed or the args.486
@@ -273,7 +287,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         inter_graph = (graph, None, None, None)
         qc = random_circuit_from_graph(
             interaction_graph=inter_graph,
-            min_2q_gate_per_edge=1,
+            min_2q_gate_per_edge=2,
             measure=True,
             conditional=True,
             reset=True,
@@ -330,3 +344,62 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # make sure every qubit-pair from the circuit actually present in the edge_list
         for cp in cp_mp:
             self.assertTrue(cp in edge_list)
+
+    def test_reset_with_no_insert_1q_oper_raise_error(self):
+        """Test if the functon raises CircuitError if `reset` is enabled,
+        but, `insert_1q_oper` is disabled."""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(10))
+        inter_graph = (pydi_graph, None, None, None)
+        with self.assertRaisesRegex(CircuitError, ".but no 1 qubit operation is allowed."):
+            _ = random_circuit_from_graph(
+                interaction_graph=inter_graph,
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=False,  # this should fail because of this.
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_edges_weight_with_some_None_raises(self):
+        """Test if the function raises ValueError, if some of the edge
+        weights are None, but not all."""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(5))
+        cp_mp = [(0, 1, None), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
+
+        pydi_graph.add_edges_from(cp_mp)
+        with self.assertRaisesRegex(ValueError, ".getting seleted contains."):
+            _ = random_circuit_from_graph(
+                interaction_graph=(pydi_graph, None, None, None),
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_max_operands_not_between_1_2_raises(self):
+        """Test if the function raises ValueError when max_operands is not between 1 and 2"""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(10))
+        inter_graph = (pydi_graph, None, None, None)
+        with self.assertRaisesRegex(CircuitError, ".function is intended to only work on."):
+            _ = random_circuit_from_graph(
+                interaction_graph=inter_graph,
+                min_2q_gate_per_edge=2,
+                max_operands=3,  # This would fail
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )

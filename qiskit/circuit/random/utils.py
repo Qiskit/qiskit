@@ -189,6 +189,7 @@ def random_circuit_from_graph(
     max_operands = max_operands if num_qubits > max_operands else num_qubits
 
     edges_probs = pydi_graph.edges()
+
     num_edges = pydi_graph.num_edges()
 
     if num_edges == 0 or max_operands == 1:
@@ -218,7 +219,10 @@ def random_circuit_from_graph(
             edges_probs = edges_probs / np.sum(edges_probs)
 
     elif any(edges_probs):
-        raise ValueError("The probabilities of a qubit-pair getting seleted contains `None`")
+        raise ValueError(
+            "The probabilities of a qubit-pair getting seleted contains `None`"
+            " It should either be all `None` or all numerical weights. "
+        )
     elif None in edges_probs:
         prob_weighted_mapping = True
         edges_probs = [1.0 / num_edges for _ in range(num_edges)]
