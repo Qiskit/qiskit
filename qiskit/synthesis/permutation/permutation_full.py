@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit._accelerate.permutation import _synth_permutation_basic
 from .permutation_utils import (
-    _get_ordered_swap,
     _inverse_pattern,
     _pattern_to_cycles,
     _decompose_cycles,
@@ -44,17 +44,7 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
     Returns:
         The synthesized quantum circuit.
     """
-    # This is the very original Qiskit algorithm for synthesizing permutations.
-
-    num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
-
-    swaps = _get_ordered_swap(pattern)
-
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
-
-    return qc
+    return QuantumCircuit._from_circuit_data(_synth_permutation_basic(pattern))
 
 
 def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:

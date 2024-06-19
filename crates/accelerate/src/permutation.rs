@@ -14,7 +14,12 @@ use ndarray::{Array1, ArrayView1};
 use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use smallvec::smallvec;
 use std::vec::Vec;
+
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::Qubit;
 
 fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     let n = pattern.len();
@@ -111,10 +116,31 @@ fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<
     Ok(get_ordered_swap(&view).to_object(py))
 }
 
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+    let view = pattern.as_array();
+    let num_qubits = view.len();
+    Ok(CircuitData::from_standard_gates(
+        py,
+        num_qubits as u32,
+        get_ordered_swap(&view).iter().map(|(i, j)| {
+            (
+                StandardGate::SwapGate,
+                smallvec![],
+                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            )
+        }),
+        Param::Float(0.0),
+    )
+    .expect("Something went wrong in Qiskit's Python realm"))
+}
+
 #[pymodule]
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
+    m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
     Ok(())
 }
