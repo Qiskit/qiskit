@@ -94,7 +94,7 @@ class SwitchCaseOp(ControlFlowOp):
         it's easier for things like `assign_parameters`, which need to touch each circuit object
         exactly once, to function."""
         self._label_spec: List[Tuple[Union[int, Literal[CASE_DEFAULT]], ...]] = []
-        """List of the normalised jump value specifiers.  This is a list of tuples, where each tuple
+        """List of the normalized jump value specifiers.  This is a list of tuples, where each tuple
         contains the values, and the indexing is the same as the values of `_case_map` and
         `_params`."""
         self._params = []

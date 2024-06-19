@@ -119,7 +119,7 @@ def _create_patterns(n):
 
 
 def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
-    r"""Synthesis of a CZ circuit for linear nearest neighbour (LNN) connectivity,
+    r"""Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
     based on Maslov and Roetteler.
 
     Note that this method *reverts* the order of qubits in the circuit,
