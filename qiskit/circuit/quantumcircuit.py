@@ -1067,8 +1067,9 @@ class QuantumCircuit:
 
             if not valid_reg_size:
                 raise CircuitError(
-                    "Circuit args must be Registers or integers. (%s '%s' was "
-                    "provided)" % ([type(reg).__name__ for reg in regs], regs)
+                    "Circuit args must be Registers or integers. ("
+                    f"{[type(reg).__name__ for reg in regs]} '{regs}' was "
+                    "provided)"
                 )
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
@@ -1659,7 +1660,7 @@ class QuantumCircuit:
             raise CircuitError(
                 "Cannot raise a parameterized circuit to a non-positive power "
                 "or matrix-power, please bind the free parameters: "
-                "{}".format(self.parameters)
+                f"{self.parameters}"
             )
 
         try:
@@ -2957,14 +2958,14 @@ class QuantumCircuit:
                 raise CircuitError(
                     "QuantumCircuit parameters can be Registers or Integers."
                     " If Integers, up to 2 arguments. QuantumCircuit was called"
-                    " with %s." % (regs,)
+                    f" with {(regs,)}."
                 )
 
         for register in regs:
             if isinstance(register, Register) and any(
                 register.name == reg.name for reg in self.qregs + self.cregs
             ):
-                raise CircuitError('register name "%s" already exists' % register.name)
+                raise CircuitError(f'register name "{register.name}" already exists')
 
             if isinstance(register, AncillaRegister):
                 for bit in register:
@@ -3020,7 +3021,7 @@ class QuantumCircuit:
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
-                    "AncillaQubit, but was passed {}".format(bit)
+                    f"AncillaQubit, but was passed {bit}"
                 )
 
     def find_bit(self, bit: Bit) -> BitLocations:
