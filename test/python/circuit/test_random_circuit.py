@@ -15,6 +15,7 @@
 from collections import defaultdict
 import rustworkx as rx
 import numpy as np
+import ddt
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
@@ -165,58 +166,50 @@ class TestCircuitRandom(QiskitTestCase):
         self.assertEqual(gate_type_counter[2], 0.0)
 
 
+def incomplete_graph(n_nodes):
+    # pylint: disable=missing-function-docstring
+    pydi_graph = rx.generators.directed_complete_graph(n_nodes)
+    pydi_graph.remove_edge(1, 3)
+    return pydi_graph
+
+
+test_cases = (
+    (rx.generators.directed_cycle_graph(5), 1550),
+    (rx.generators.directed_mesh_graph(4), 87978),
+    (incomplete_graph(4), 154),
+    (rx.generators.directed_heavy_hex_graph(3), 458),
+)
+
+
+@ddt.ddt
 class TestRandomCircuitFromGraph(QiskitTestCase):
     """Testing random_circuit_from_graph from
     qiskit.circuit.random.utils.py"""
 
-    def setUp(self):
-        super().setUp()
-        self.n_q = 19
-        pydi_graph = rx.PyDiGraph()
-        pydi_graph.add_nodes_from(range(self.n_q))
-
-        # couping map of distance:3 Directed Heavy Hex Graph.
-        cp_map = [
-            (0, 13, None),
-            (1, 13, None),
-            (1, 14, None),
-            (2, 14, None),
-            (3, 15, None),
-            (4, 15, None),
-            (4, 16, None),
-            (5, 16, None),
-            (6, 17, None),
-            (7, 17, None),
-            (7, 18, None),
-            (8, 18, None),
-            (0, 9, None),
-            (3, 9, None),
-            (5, 12, None),
-            (8, 12, None),
-            (10, 14, None),
-            (10, 16, None),
-            (11, 15, None),
-            (11, 17, None),
-        ]
-
-        pydi_graph.add_edges_from(cp_map)
-        self.interaction_graph = (pydi_graph, None, None, None)
-
-    def test_simple_random(self):
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_simple_random(self, graph, seed):
         """Test creating a simple random circuit."""
-        circ = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph, min_2q_gate_per_edge=1
-        )
-        self.assertIsInstance(circ, QuantumCircuit)
-        self.assertEqual(circ.width(), self.n_q)
 
-    def test_min_times_qubit_pair_usage(self):
+        n_nodes = graph.num_nodes()
+        inter_graph = (graph, None, None, None)
+        circ = random_circuit_from_graph(
+            interaction_graph=inter_graph, min_2q_gate_per_edge=1, seed=seed
+        )
+
+        self.assertIsInstance(circ, QuantumCircuit)
+        self.assertEqual(circ.width(), n_nodes)
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_min_times_qubit_pair_usage(self, graph, seed):
         """the `min_2q_gate_per_edge` parameter specifies how often each qubit-pair must at
         least be used in a two-qubit gate before the circuit is returned"""
 
+        inter_graph = (graph, None, None, None)
         freq = 1
         qc = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph, min_2q_gate_per_edge=freq, seed=0
+            interaction_graph=inter_graph, min_2q_gate_per_edge=freq, seed=seed
         )
         dag = circuit_to_dag(qc)
         count_register = defaultdict(int)
@@ -232,23 +225,32 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         for occurence in count_register.values():
             self.assertLessEqual(freq, occurence)
 
-    def test_random_measure(self):
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_random_measure(self, graph, seed):
         """Test random circuit with final measurement."""
+
+        inter_graph = (graph, None, None, None)
         qc = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph, min_2q_gate_per_edge=1, measure=True
+            interaction_graph=inter_graph, min_2q_gate_per_edge=1, measure=True, seed=seed
         )
         self.assertIn("measure", qc.count_ops())
 
-    def test_random_circuit_conditional_reset(self):
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_random_circuit_conditional_reset(self, graph, seed):
         """Test generating random circuits with conditional and reset."""
         # Presence of 'reset' in the circuit is probabilistic, at seed 0 reset exists in circuit.
+
+        inter_graph = (graph, None, None, None)
         qc = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph,
+            interaction_graph=inter_graph,
             min_2q_gate_per_edge=1,
             conditional=True,
             reset=True,
-            seed=486,  # Do not change the seed or the args.
+            seed=seed,  # Do not change the seed or the args.486
             insert_1q_oper=True,
+            prob_conditional=0.21,
         )
         self.assertIn("reset", qc.count_ops())
 
@@ -263,16 +265,21 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         # See if conditionals are present.
         self.assertNotEqual(conditions, [])
 
-    def test_random_mid_circuit_measure_conditional(self):
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_random_mid_circuit_measure_conditional(self, graph, seed):
         """Test random circuit with mid-circuit measurements for conditionals."""
+
+        inter_graph = (graph, None, None, None)
         qc = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph,
+            interaction_graph=inter_graph,
             min_2q_gate_per_edge=1,
             measure=True,
             conditional=True,
             reset=True,
             insert_1q_oper=True,
-            seed=0,
+            seed=seed,
+            prob_conditional=0.21,
         )
         dag = circuit_to_dag(qc)
 
@@ -290,21 +297,26 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
         self.assertGreater(condition_at["layer_no"], measure_at["layer_no"])
 
-    def test_2q_gates_applied_to_edges_from_interaction_graph(self):
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_2q_gates_applied_to_edges_from_interaction_graph(self, graph, seed):
         """Test 2Q gates are applied to the qubit-pairs given by the interaction graph supplied"""
+
+        inter_graph = (graph, None, None, None)
         qc = random_circuit_from_graph(
-            interaction_graph=self.interaction_graph,
+            interaction_graph=inter_graph,
             min_2q_gate_per_edge=1,
             measure=True,
             conditional=True,
             reset=True,
             insert_1q_oper=True,
-            seed=0,
+            seed=seed,
+            prob_conditional=0.21,
         )
         dag = circuit_to_dag(qc)
 
         cp_mp = set()
-        pydi_graph, _, _, _ = self.interaction_graph
+        pydi_graph, _, _, _ = inter_graph
         edge_list = set(pydi_graph.edge_list())
 
         for wire in dag.wires:
