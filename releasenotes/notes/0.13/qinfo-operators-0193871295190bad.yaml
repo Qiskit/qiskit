@@ -23,7 +23,7 @@ features:
     Numpy arrays or :class:`~qiskit.quantum_info.Operator` objects can be
     converted to a :class:`~qiskit.quantum_info.SparsePauliOp` using the
     `:class:`~qiskit.quantum_info.SparsePauliOp.from_operator` method.
-    :class:`~qiskit.quantum_info.SparsePauliOp` can be covered to a sparse
+    :class:`~qiskit.quantum_info.SparsePauliOp` can be converted to a sparse
     csr_matrix or dense Numpy array using the
     :class:`~qiskit.quantum_info.SparsePauliOp.to_matrix` method, or to an
     :class:`~qiskit.quantum_info.Operator` object using the

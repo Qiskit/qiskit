@@ -352,7 +352,7 @@ def _superop_to_ptm(data, input_dim):
 
 
 def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
-    """Tensor product (A ⊗ B) to bipartite matrices and reveal indices.
+    """Tensor product (A ⊗ B) to bipartite matrices and reravel indices.
 
     This is used for tensor product of superoperators and Choi matrices.
 
@@ -363,7 +363,7 @@ def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
         shape2 (tuple): bipartite-shape for matrix B (b0, b1, b2, b3)
 
     Returns:
-        np.array: a bipartite matrix for reveal(A ⊗ B).
+        np.array: a bipartite matrix for reravel(A ⊗ B).
 
     Raises:
         QiskitError: if input matrices are wrong shape.
