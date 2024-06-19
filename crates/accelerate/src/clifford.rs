@@ -10,11 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashMap;
+use indexmap::IndexSet;
 use ndarray::{azip, s, Array1, ArrayView1, ArrayView2};
 use pyo3::prelude::*;
 use std::collections::HashSet;
-use hashbrown::HashMap;
-use indexmap::IndexSet;
 
 use numpy::PyReadonlyArray2;
 
@@ -145,11 +145,9 @@ struct GreedyCliffordSynthesis<'a> {
     unprocessed_qubits: IndexSet<usize>,
 }
 
-
 // todo: next step is to change pauli_to_class map to be a map from 4-tuple of ints
 
 impl GreedyCliffordSynthesis<'_> {
-
     fn new(clifford: ArrayView2<bool>) -> GreedyCliffordSynthesis<'_> {
         let num_qubits = clifford.shape()[0] / 2;
 
@@ -162,26 +160,24 @@ impl GreedyCliffordSynthesis<'_> {
 
         let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
 
-        let pauli_to_class = HashMap::<[[bool; 2]; 2], PauliClass>::from(
-            [
-                ([[false, true], [true, true]], PauliClass::ClassA),    // 'XY'
-                ([[false, true], [true, false]], PauliClass::ClassA),   // 'XZ'
-                ([[true, true], [false, true]], PauliClass::ClassA),    // 'YX'
-                ([[true, true], [true, false]], PauliClass::ClassA),    // 'YZ'
-                ([[true, false], [false, true]], PauliClass::ClassA),   // 'ZX'
-                ([[true, false], [true, true]], PauliClass::ClassA),    // 'ZY'
-                ([[true, false], [true, false]], PauliClass::ClassB),   // 'ZZ'
-                ([[false, true], [false, true]], PauliClass::ClassB),   // 'XX'
-                ([[true, true], [true, true]], PauliClass::ClassB),     // 'YY'
-                ([[true, false], [false, false]], PauliClass::ClassC),  // 'ZI'
-                ([[false, true], [false, false]], PauliClass::ClassC),  // 'XI'
-                ([[true, true], [false, false]], PauliClass::ClassC),   // 'YI'
-                ([[false, false], [false, true]], PauliClass::ClassD),  // 'IX'
-                ([[false, false], [true, false]], PauliClass::ClassD),  // 'IZ'
-                ([[false, false], [true, true]], PauliClass::ClassD),   // 'IY'
-                ([[false, false], [false, false]], PauliClass::ClassE), // 'II'
-            ]
-        );
+        let pauli_to_class = HashMap::<[[bool; 2]; 2], PauliClass>::from([
+            ([[false, true], [true, true]], PauliClass::ClassA), // 'XY'
+            ([[false, true], [true, false]], PauliClass::ClassA), // 'XZ'
+            ([[true, true], [false, true]], PauliClass::ClassA), // 'YX'
+            ([[true, true], [true, false]], PauliClass::ClassA), // 'YZ'
+            ([[true, false], [false, true]], PauliClass::ClassA), // 'ZX'
+            ([[true, false], [true, true]], PauliClass::ClassA), // 'ZY'
+            ([[true, false], [true, false]], PauliClass::ClassB), // 'ZZ'
+            ([[false, true], [false, true]], PauliClass::ClassB), // 'XX'
+            ([[true, true], [true, true]], PauliClass::ClassB),  // 'YY'
+            ([[true, false], [false, false]], PauliClass::ClassC), // 'ZI'
+            ([[false, true], [false, false]], PauliClass::ClassC), // 'XI'
+            ([[true, true], [false, false]], PauliClass::ClassC), // 'YI'
+            ([[false, false], [false, true]], PauliClass::ClassD), // 'IX'
+            ([[false, false], [true, false]], PauliClass::ClassD), // 'IZ'
+            ([[false, false], [true, true]], PauliClass::ClassD), // 'IY'
+            ([[false, false], [false, false]], PauliClass::ClassE), // 'II'
+        ]);
 
         GreedyCliffordSynthesis {
             clifford,
@@ -205,10 +201,7 @@ impl GreedyCliffordSynthesis<'_> {
     }
 
     // todo: move more arguments to the main algo class
-    fn compute_greedy_cost(
-        &self,
-        qubit: usize,
-    ) -> usize {
+    fn compute_cost(&self, qubit: usize) -> usize {
         // todo: remove to_owned
         let pauli_x = self.symplectic_matrix.smat.column(qubit + self.num_qubits);
         let pauli_z = self.symplectic_matrix.smat.column(qubit);
@@ -230,18 +223,17 @@ impl GreedyCliffordSynthesis<'_> {
                     if *q == qubit {
                         qubit_is_in_a = true;
                     }
-                },
+                }
                 PauliClass::ClassB => {
                     b_num += 1;
-                },
+                }
                 PauliClass::ClassC => {
                     c_num += 1;
-                },
+                }
                 PauliClass::ClassD => {
                     d_num += 1;
                 }
-                PauliClass::ClassE => {
-                }
+                PauliClass::ClassE => {}
             }
         }
 
@@ -266,19 +258,15 @@ impl GreedyCliffordSynthesis<'_> {
     /// D^{-1} * Ox * D = x1
     /// D^{-1} * Oz * D = z1
     /// and reduce the clifford such that it will act trivially on min_qubit
-    fn calc_decoupling(
-        &mut self,
-        gate_seq: &mut CliffordGatesVec,
-        min_qubit: usize,
-    ) {
-        let pauli_x = self.symplectic_matrix
+    fn decouple_qubit(&mut self, gate_seq: &mut CliffordGatesVec, min_qubit: usize) {
+        let pauli_x = self
+            .symplectic_matrix
             .smat
             .column(min_qubit + self.num_qubits)
             .to_owned();
         let pauli_z = self.symplectic_matrix.smat.column(min_qubit).to_owned();
 
         for qubit in &self.unprocessed_qubits {
-
             let typeq = self.pair_paulis_to_type(pauli_x.view(), pauli_z.view(), *qubit);
 
             if typeq == [[true, true], [false, false]]
@@ -294,7 +282,8 @@ impl GreedyCliffordSynthesis<'_> {
             {
                 gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
                 self.symplectic_matrix.prepend_h(*qubit);
-            } else if typeq == [[false, false], [true, true]] || typeq == [[true, false], [true, true]]
+            } else if typeq == [[false, false], [true, true]]
+                || typeq == [[true, false], [true, true]]
             {
                 gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
                 self.symplectic_matrix.prepend_s(*qubit);
@@ -328,8 +317,7 @@ impl GreedyCliffordSynthesis<'_> {
                 PauliClass::ClassB => b_qubits.push(*qubit),
                 PauliClass::ClassC => c_qubits.push(*qubit),
                 PauliClass::ClassD => d_qubits.push(*qubit),
-                PauliClass::ClassE => { },
-
+                PauliClass::ClassE => {}
             }
         }
 
@@ -418,13 +406,15 @@ impl GreedyCliffordSynthesis<'_> {
                     Qubit(a_qubits[2 * qubit] as u32)
                 ],
             ));
-            self.symplectic_matrix.prepend_cx(a_qubits[2 * qubit + 1], a_qubits[2 * qubit]);
+            self.symplectic_matrix
+                .prepend_cx(a_qubits[2 * qubit + 1], a_qubits[2 * qubit]);
 
             gate_seq.push((
                 StandardGate::CXGate,
                 smallvec![Qubit(a_qubits[2 * qubit] as u32), Qubit(min_qubit as u32)],
             ));
-            self.symplectic_matrix.prepend_cx(a_qubits[2 * qubit], min_qubit);
+            self.symplectic_matrix
+                .prepend_cx(a_qubits[2 * qubit], min_qubit);
 
             gate_seq.push((
                 StandardGate::CXGate,
@@ -433,7 +423,8 @@ impl GreedyCliffordSynthesis<'_> {
                     Qubit(a_qubits[2 * qubit + 1] as u32)
                 ],
             ));
-            self.symplectic_matrix.prepend_cx(min_qubit, a_qubits[2 * qubit + 1]);
+            self.symplectic_matrix
+                .prepend_cx(min_qubit, a_qubits[2 * qubit + 1]);
         }
     }
 
@@ -442,25 +433,19 @@ impl GreedyCliffordSynthesis<'_> {
         let mut clifford_gates = CliffordGatesVec::new();
 
         while self.unprocessed_qubits.len() > 0 {
-            let mut list_greedy_cost = Vec::<(usize, usize)>::new();
-
-            for qubit in &self.unprocessed_qubits {
-                let cost = self.compute_greedy_cost(*qubit);
-                // println!("{}", cost);
-                list_greedy_cost.push((cost, *qubit));
-            }
-            let min_qubit = list_greedy_cost
+            let min_cost_qubit = self
+                .unprocessed_qubits
                 .iter()
-                .min_by_key(|(cost, _qubit)| cost)
+                .map(|q| (self.compute_cost(*q), *q))
+                .collect::<Vec<(usize, usize)>>()
+                .iter()
+                .min_by_key(|(cost, _)| cost)
                 .unwrap()
                 .1;
 
-            self.calc_decoupling(
-                &mut clifford_gates,
-                min_qubit,
-            );
+            self.decouple_qubit(&mut clifford_gates, min_cost_qubit);
 
-            self.unprocessed_qubits.swap_remove(&min_qubit);
+            self.unprocessed_qubits.swap_remove(&min_cost_qubit);
         }
 
         fix_phase(&mut clifford_gates, self.clifford, self.num_qubits);
@@ -469,21 +454,12 @@ impl GreedyCliffordSynthesis<'_> {
     }
 }
 
-
-
-
-
-
-
 type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Qubit; 2]>)>;
 
 fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
     let mut greedy_synthesis = GreedyCliffordSynthesis::new(clifford.view());
     greedy_synthesis.run()
 }
-
-
-
 
 fn append_s(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
     let (x, mut z, mut p) = clifford.multi_slice_mut((
@@ -544,9 +520,6 @@ fn append_cx(clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubi
     azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
 }
 
-
-
-
 fn clifford_sim(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Array2<bool> {
     let mut current_clifford: Array2<bool> =
         Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| i == j);
@@ -572,7 +545,11 @@ fn clifford_sim(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Array2<bool> 
 }
 
 /// Fixes the phase
-fn fix_phase(gate_seq: &mut CliffordGatesVec, target_clifford: ArrayView2<bool>, num_qubits: usize) {
+fn fix_phase(
+    gate_seq: &mut CliffordGatesVec,
+    target_clifford: ArrayView2<bool>,
+    num_qubits: usize,
+) {
     // simulate the clifford circuit that we have constructed
     let simulated_clifford = clifford_sim(gate_seq, num_qubits);
 
