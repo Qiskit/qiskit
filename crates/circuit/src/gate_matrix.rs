@@ -212,6 +212,7 @@ pub static ISWAP_GATE: [[Complex64; 4]; 4] = [
 ];
 
 pub static S_GATE: [[Complex64; 2]; 2] = [[c64(1., 0.), c64(0., 0.)], [c64(0., 0.), c64(0., 1.)]];
+
 pub static SDG_GATE: [[Complex64; 2]; 2] =
     [[c64(1., 0.), c64(0., 0.)], [c64(0., 0.), c64(0., -1.)]];
 
@@ -219,6 +220,7 @@ pub static T_GATE: [[Complex64; 2]; 2] = [
     [c64(1., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(FRAC_1_SQRT_2, FRAC_1_SQRT_2)],
 ];
+
 pub static TDG_GATE: [[Complex64; 2]; 2] = [
     [c64(1., 0.), c64(0., 0.)],
     [c64(0., 0.), c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2)],
@@ -244,5 +246,29 @@ pub fn u_gate(theta: f64, phi: f64, lam: f64) -> [[Complex64; 2]; 2] {
     [
         [c64(cos, 0.), (-c64(0., lam).exp()) * sin],
         [c64(0., phi).exp() * sin, c64(0., phi + lam).exp() * cos],
+    ]
+}
+
+#[inline]
+pub fn xx_minus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
+    let cos = (theta / 2.).cos();
+    let sin = (theta / 2.).sin();
+    [
+    [c64(cos, 0.), c64(0., 0.), c64(0., 0.), c64(0., -sin) * c64(0., -beta).exp()],
+    [c64(0., 0.), c64(1., 0.), c64(0., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
+    [c64(0., -sin) * c64(0., beta).exp(), c64(0., 0.), c64(0., 0.), c64(cos, 0.)],
+    ]
+}
+
+#[inline]
+pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
+    let cos = (theta / 2.).cos();
+    let sin = (theta / 2.).sin();
+    [
+    [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(cos, 0.), c64(0., -sin) * c64(0., -beta).exp(), c64(0., 0.)],
+    [c64(0., 0.), c64(0., -sin) * c64(0., -beta).exp(), c64(cos, 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
     ]
 }
