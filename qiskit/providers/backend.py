@@ -95,7 +95,7 @@ class BackendV1(Backend, ABC):
         if fields:
             for field in fields:
                 if field not in self._options.data:
-                    raise AttributeError("Options field %s is not valid for this backend" % field)
+                    raise AttributeError(f"Options field {field} is not valid for this backend")
             self._options.update_config(**fields)
 
     @classmethod
@@ -129,7 +129,7 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this backend" % field)
+                raise AttributeError(f"Options field {field} is not valid for this backend")
         self._options.update_options(**fields)
 
     def configuration(self):
@@ -352,7 +352,7 @@ class BackendV2(Backend, ABC):
         if fields:
             for field in fields:
                 if field not in self._options.data:
-                    raise AttributeError("Options field %s is not valid for this backend" % field)
+                    raise AttributeError(f"Options field {field} is not valid for this backend")
             self._options.update_config(**fields)
         self.name = name
         """Name of the backend."""
@@ -598,7 +598,7 @@ class BackendV2(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this backend" % field)
+                raise AttributeError(f"Options field {field} is not valid for this backend")
         self._options.update_options(**fields)
 
     @property

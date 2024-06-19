@@ -441,9 +441,8 @@ class NLocal(BlueprintCircuit):
         ):
             raise ValueError(
                 "The length of ordered parameters must be equal to the number of "
-                "settable parameters in the circuit ({}), but is {}".format(
-                    self.num_parameters_settable, len(parameters)
-                )
+                f"settable parameters in the circuit ({self.num_parameters_settable}),"
+                f" but is {len(parameters)}"
             )
         self._ordered_parameters = parameters
         self._invalidate()

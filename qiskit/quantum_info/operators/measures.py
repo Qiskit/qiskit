@@ -93,7 +93,7 @@ def process_fidelity(
         if channel.dim != target.dim:
             raise QiskitError(
                 "Input quantum channel and target unitary must have the same "
-                "dimensions ({} != {}).".format(channel.dim, target.dim)
+                f"dimensions ({channel.dim} != {target.dim})."
             )
 
     # Validate complete-positivity and trace-preserving

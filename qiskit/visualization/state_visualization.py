@@ -971,10 +971,10 @@ def plot_state_qsphere(
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         if use_degrees:
-                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
+                            element_text += f"\n${element_angle * 180 / np.pi:.1f}^\\circ$"
                         else:
                             element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
-                            element_text += "\n$%s$" % (element_angle)
+                            element_text += f"\n${element_angle}$"
                     ax.text(
                         xvalue_text,
                         yvalue_text,
@@ -1463,11 +1463,10 @@ def state_drawer(state, output=None, **drawer_args):
         return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
-            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            f"""'{output}' is not a valid option for drawing {type(state).__name__}
+             objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch', 'city' or 'paulivec'.""".format(
-                output, type(state).__name__
-            )
+            'bloch', 'city' or 'paulivec'."""
         ) from err
 
 

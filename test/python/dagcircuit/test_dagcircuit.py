@@ -83,8 +83,8 @@ def raise_if_dagcircuit_invalid(dag):
     ]
     if edges_outside_wires:
         raise DAGCircuitError(
-            "multi_graph contains one or more edges ({}) "
-            "not found in DAGCircuit.wires ({}).".format(edges_outside_wires, dag.wires)
+            f"multi_graph contains one or more edges ({edges_outside_wires}) "
+            f"not found in DAGCircuit.wires ({dag.wires})."
         )
 
     # Every wire should have exactly one input node and one output node.
@@ -134,9 +134,7 @@ def raise_if_dagcircuit_invalid(dag):
         all_bits = node_qubits | node_clbits | node_cond_bits
 
         assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
-        assert out_wires == all_bits, "Out-edge wires {} != node bits {}".format(
-            out_wires, all_bits
-        )
+        assert out_wires == all_bits, f"Out-edge wires {out_wires} != node bits {all_bits}"
 
 
 class TestDagRegisters(QiskitTestCase):

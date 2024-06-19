@@ -81,7 +81,7 @@ class Instruction(Operation):
             raise CircuitError("num_qubits and num_clbits must be integer.")
         if num_qubits < 0 or num_clbits < 0:
             raise CircuitError(
-                "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
+                f"bad instruction dimensions: {num_qubits} qubits, {num_clbits} clbits."
             )
         self._name = name
         self._num_qubits = num_qubits
@@ -222,8 +222,9 @@ class Instruction(Operation):
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
         """
-        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-            self.name, self.num_qubits, self.num_clbits, self.params
+        return (
+            f"Instruction(name='{self.name}', num_qubits={self.num_qubits}, "
+            f"num_clbits={self.num_clbits}, params={self.params})"
         )
 
     def soft_compare(self, other: "Instruction") -> bool:
@@ -456,7 +457,7 @@ class Instruction(Operation):
             return AnnotatedOperation(self, InverseModifier())
 
         if self.definition is None:
-            raise CircuitError("inverse() not implemented for %s." % self.name)
+            raise CircuitError(f"inverse() not implemented for {self.name}.")
 
         from qiskit.circuit import Gate  # pylint: disable=cyclic-import
 
