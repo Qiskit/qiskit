@@ -126,12 +126,12 @@ enum PauliClass {
 
 #[derive(Clone, Copy)]
 enum SingleQubitGate {
-    I,
-    S,
-    H,
-    SH,
-    HS,
-    SHS,
+    GateI,
+    GateS,
+    GateH,
+    GateSH,
+    GateHS,
+    GateSHS,
 }
 
 struct GreedyCliffordSynthesis<'a> {
@@ -148,19 +148,13 @@ struct GreedyCliffordSynthesis<'a> {
     unprocessed_qubits: IndexSet<usize>,
 }
 
-
-fn pauli_pair_to_index(
-    xs: bool,
-    xd: bool,
-    zs: bool,
-    zd: bool) -> usize
-{
-    ((xs as usize) << 3) | ((xd as usize) << 2) | ((zs as usize) << 1) | ((zd as usize) << 0)
+fn pauli_pair_to_index(xs: bool, xd: bool, zs: bool, zd: bool) -> usize {
+    ((xs as usize) << 3) | ((xd as usize) << 2) | ((zs as usize) << 1) | (zd as usize)
 }
 
 // The 16 pairs of Pauli operators are divided into 5 equivalence classes
 // under the action of single-qubit Cliffords.
-static PAULI_INDEX_TO_CLASS : [PauliClass; 16] = [
+static PAULI_INDEX_TO_CLASS: [PauliClass; 16] = [
     PauliClass::ClassE, // 'II'
     PauliClass::ClassD, // 'IX'
     PauliClass::ClassD, // 'IZ'
@@ -181,23 +175,23 @@ static PAULI_INDEX_TO_CLASS : [PauliClass; 16] = [
 
 // Map pair of pauli operators to the single-qubit gate required
 // for the decoupling step.
-static PAULI_INDEX_TO_1Q_GATE : [SingleQubitGate; 16] = [
-    SingleQubitGate::I, // 'II'
-    SingleQubitGate::H, // 'IX'
-    SingleQubitGate::I, // 'IZ'
-    SingleQubitGate::SH, // 'IY'
-    SingleQubitGate::I, // 'XI'
-    SingleQubitGate::I, // 'XX'
-    SingleQubitGate::I, // 'XZ'
-    SingleQubitGate::SHS, // 'XY'
-    SingleQubitGate::H, // 'ZI'
-    SingleQubitGate::H, // 'ZX'
-    SingleQubitGate::H, // 'ZZ'
-    SingleQubitGate::SH, // 'ZY'
-    SingleQubitGate::S, // 'YI'
-    SingleQubitGate::HS, // 'YX'
-    SingleQubitGate::S, // 'YZ'
-    SingleQubitGate::S, // 'YY'
+static PAULI_INDEX_TO_1Q_GATE: [SingleQubitGate; 16] = [
+    SingleQubitGate::GateI,   // 'II'
+    SingleQubitGate::GateH,   // 'IX'
+    SingleQubitGate::GateI,   // 'IZ'
+    SingleQubitGate::GateSH,  // 'IY'
+    SingleQubitGate::GateI,   // 'XI'
+    SingleQubitGate::GateI,   // 'XX'
+    SingleQubitGate::GateI,   // 'XZ'
+    SingleQubitGate::GateSHS, // 'XY'
+    SingleQubitGate::GateH,   // 'ZI'
+    SingleQubitGate::GateH,   // 'ZX'
+    SingleQubitGate::GateH,   // 'ZZ'
+    SingleQubitGate::GateSH,  // 'ZY'
+    SingleQubitGate::GateS,   // 'YI'
+    SingleQubitGate::GateHS,  // 'YX'
+    SingleQubitGate::GateS,   // 'YZ'
+    SingleQubitGate::GateS,   // 'YY'
 ];
 
 impl GreedyCliffordSynthesis<'_> {
@@ -236,7 +230,7 @@ impl GreedyCliffordSynthesis<'_> {
                 self.symplectic_matrix.smat[[*q, qubit + self.num_qubits]],
                 self.symplectic_matrix.smat[[*q + self.num_qubits, qubit + self.num_qubits]],
                 self.symplectic_matrix.smat[[*q, qubit]],
-                self.symplectic_matrix.smat[[*q + self.num_qubits, qubit]]
+                self.symplectic_matrix.smat[[*q + self.num_qubits, qubit]],
             );
             let pauli_class = PAULI_INDEX_TO_CLASS[pauli_pair_index];
 
@@ -290,7 +284,8 @@ impl GreedyCliffordSynthesis<'_> {
         for qubit in &self.unprocessed_qubits {
             let pauli_pair_index = pauli_pair_to_index(
                 self.symplectic_matrix.smat[[*qubit, min_qubit + self.num_qubits]],
-                self.symplectic_matrix.smat[[*qubit + self.num_qubits, min_qubit + self.num_qubits]],
+                self.symplectic_matrix.smat
+                    [[*qubit + self.num_qubits, min_qubit + self.num_qubits]],
                 self.symplectic_matrix.smat[[*qubit, min_qubit]],
                 self.symplectic_matrix.smat[[*qubit + self.num_qubits, min_qubit]],
             );
@@ -298,27 +293,27 @@ impl GreedyCliffordSynthesis<'_> {
             let single_qubit_gate = PAULI_INDEX_TO_1Q_GATE[pauli_pair_index];
 
             match single_qubit_gate {
-                SingleQubitGate::S => {
+                SingleQubitGate::GateS => {
                     gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
                     self.symplectic_matrix.prepend_s(*qubit);
                 }
-                SingleQubitGate::H => {
+                SingleQubitGate::GateH => {
                     gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
                     self.symplectic_matrix.prepend_h(*qubit);
                 }
-                SingleQubitGate::SH => {
+                SingleQubitGate::GateSH => {
                     gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
                     gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
                     self.symplectic_matrix.prepend_s(*qubit);
                     self.symplectic_matrix.prepend_h(*qubit);
                 }
-                SingleQubitGate::HS => {
+                SingleQubitGate::GateHS => {
                     gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
                     gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
                     self.symplectic_matrix.prepend_h(*qubit);
                     self.symplectic_matrix.prepend_s(*qubit);
                 }
-                SingleQubitGate::SHS => {
+                SingleQubitGate::GateSHS => {
                     gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
                     gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
                     gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
@@ -326,7 +321,7 @@ impl GreedyCliffordSynthesis<'_> {
                     self.symplectic_matrix.prepend_h(*qubit);
                     self.symplectic_matrix.prepend_s(*qubit);
                 }
-                SingleQubitGate::I => {}
+                SingleQubitGate::GateI => {}
             }
 
             let pauli_class = PAULI_INDEX_TO_CLASS[pauli_pair_index];
@@ -401,7 +396,7 @@ impl GreedyCliffordSynthesis<'_> {
             }
         }
 
-        if b_qubits.len() > 0 {
+        if !b_qubits.is_empty() {
             let qubit_b = b_qubits[0];
             gate_seq.push((
                 StandardGate::CXGate,
@@ -458,7 +453,7 @@ impl GreedyCliffordSynthesis<'_> {
     fn run(&mut self) -> CliffordGatesVec {
         let mut clifford_gates = CliffordGatesVec::new();
 
-        while self.unprocessed_qubits.len() > 0 {
+        while !self.unprocessed_qubits.is_empty() {
             let min_cost_qubit = self
                 .unprocessed_qubits
                 .iter()
