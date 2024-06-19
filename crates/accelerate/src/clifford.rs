@@ -10,16 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{azip, s, ArrayView1, Array1};
+use ndarray::{azip, s, Array1, ArrayView1};
 use pyo3::prelude::*;
 use std::collections::HashSet;
 
 use numpy::prelude::*;
 
-use numpy::{PyReadonlyArray2};
+use numpy::PyReadonlyArray2;
 
 use crate::QiskitError;
-use numpy::ndarray::{Array2};
+use numpy::ndarray::Array2;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -92,8 +92,12 @@ static E_CLASS: [[[bool; 2]; 2]; 1] = [
     [[false, false], [false, false]], // 'II'
 ];
 
-
-fn compute_greedy_cost(symplectic_matrix: &SymplecticMatrix, qubit: usize, qubit_list: &Vec<usize>, num_qubits: usize) -> usize {
+fn compute_greedy_cost(
+    symplectic_matrix: &SymplecticMatrix,
+    qubit: usize,
+    qubit_list: &Vec<usize>,
+    num_qubits: usize,
+) -> usize {
     let pauli_x = symplectic_matrix.smat.column(qubit + num_qubits);
     let pauli_z = symplectic_matrix.smat.column(qubit);
 
@@ -120,7 +124,6 @@ fn compute_greedy_cost(symplectic_matrix: &SymplecticMatrix, qubit: usize, qubit
             d_num += 1;
         }
     }
-
 
     if a_num % 2 == 0 {
         panic!("Symplectic Gaussian elimination fails");
@@ -152,8 +155,6 @@ fn from_pair_paulis_to_type(
         [pauli_z[qubit], pauli_z[num_qubits + qubit]],
     ]
 }
-
-
 
 // for now modify clifford in-place
 fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
@@ -208,8 +209,6 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
         let composed_matrix = symplectic_matrix.compose(&decouple_matrix);
         symplectic_matrix = composed_matrix;
 
-
-
         // println!("====================================================");
         // println!("CLIFFORD CURRENT:");
         // println!("{:?}", symplectic_mat);
@@ -254,11 +253,11 @@ fn append_s(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
 
 /*
 
-    x = clifford.x[:, qubit]
-    z = clifford.z[:, qubit]
-    clifford.phase ^= x & ~z
+   x = clifford.x[:, qubit]
+   z = clifford.z[:, qubit]
+   clifford.phase ^= x & ~z
 
- */
+*/
 // fn append_sdg(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
 //     // println!("_append_sdg_clifford {}; num_qubits = {}", qubit, num_qubits);
 //
@@ -326,27 +325,24 @@ struct SymplecticMatrix {
 }
 
 impl SymplecticMatrix {
-
     // Modifies the matrix in-place by appending S-gate
     fn append_s(&mut self, qubit: usize) {
-        let (x, mut z) = self.smat.multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
+        let (x, mut z) = self
+            .smat
+            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
         azip!((z in &mut z, &x in &x) *z ^= x);
     }
 
-
-
     // Modifies the matrix in-place by appending H-gate
     fn append_h(&mut self, qubit: usize) {
-        let (mut x, mut z) = self.smat.multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
+        let (mut x, mut z) = self
+            .smat
+            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
         azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
     }
 
     // Modifies the matrix in-place by appending SWAP-gate
-    fn append_swap(
-        &mut self,
-        qubit0: usize,
-        qubit1: usize,
-    ) {
+    fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
         let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
@@ -358,11 +354,7 @@ impl SymplecticMatrix {
     }
 
     // Modifies the matrix in-place by appending SWAP-gate
-    fn append_cx(
-        &mut self,
-        qubit0: usize,
-        qubit1: usize,
-    ) {
+    fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
         let (x0, mut z0, mut x1, z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
@@ -377,13 +369,14 @@ impl SymplecticMatrix {
     // other * self
     // ToDo: can we avoid all the copying?
     // ToDo: the order of operation is funny
-    fn compose(
-        &self, other: &SymplecticMatrix
-    ) -> Self {
+    fn compose(&self, other: &SymplecticMatrix) -> Self {
         // ToDo: get rid of slicing
         let num_qubits = self.num_qubits;
         let smat1 = self.smat.slice(s![.., 0..2 * num_qubits]).map(|v| *v as u8);
-        let smat2 = other.smat.slice(s![.., 0..2 * num_qubits]).map(|v| *v as u8);
+        let smat2 = other
+            .smat
+            .slice(s![.., 0..2 * num_qubits])
+            .map(|v| *v as u8);
         let smat3 = smat2.dot(&smat1).map(|v| (*v % 2) == 1);
         SymplecticMatrix {
             num_qubits,
@@ -401,16 +394,16 @@ impl SymplecticMatrix {
             s![0..self.num_qubits, 0..self.num_qubits],
             s![0..self.num_qubits, self.num_qubits..2 * self.num_qubits],
             s![self.num_qubits..2 * self.num_qubits, 0..self.num_qubits],
-            s![self.num_qubits..2 * self.num_qubits, self.num_qubits..2 * self.num_qubits],
+            s![
+                self.num_qubits..2 * self.num_qubits,
+                self.num_qubits..2 * self.num_qubits
+            ],
         ));
 
         azip!((a in &mut a, d in &mut d)  (*a, *d) = (*d, *a));
         azip!((b in &mut b, c in &mut c)  (*b, *c) = (*c, *b));
     }
-
 }
-
-
 
 /// Calculate a decoupling operator D:
 /// D^{-1} * Ox * D = x1
@@ -428,7 +421,6 @@ fn calc_decoupling(
         num_qubits,
         smat: Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits), |(i, j)| i == j),
     };
-
 
     for qubit in qubit_list {
         let typeq = from_pair_paulis_to_type(pauli_x, pauli_z, *qubit);
@@ -615,7 +607,6 @@ fn clifford_sim(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Array2<bool> 
     current_clifford
 }
 
-
 /// Fixes the phase
 fn fix_phase(gate_seq: &mut CliffordGatesVec, target_clifford: &Array2<bool>, num_qubits: usize) {
     // simulate the clifford circuit that we have constructed
@@ -632,30 +623,26 @@ fn fix_phase(gate_seq: &mut CliffordGatesVec, target_clifford: &Array2<bool>, nu
         .collect();
 
     // compute inverse of the symplectic matrix
-    let smat = target_clifford.slice(s![.., .. 2 * num_qubits]);
+    let smat = target_clifford.slice(s![.., ..2 * num_qubits]);
     let smat_inv = calc_inverse_matrix_inner(smat);
 
     // compute smat_inv * delta_phase
     let arr1 = smat_inv.map(|v| *v as usize);
-    let vec2 : Vec<usize> = delta_phase.into_iter().map(|v| v as usize).collect();
+    let vec2: Vec<usize> = delta_phase.into_iter().map(|v| v as usize).collect();
     let arr2 = Array1::from(vec2);
     let delta_phase_pre = arr1.dot(&arr2).map(|v| v % 2 == 1);
 
-
     // println!("delta_phase_pre:");
     // println!("{:?}", delta_phase_pre);
-
 
     for qubit in 0..num_qubits {
         if delta_phase_pre[qubit] && delta_phase_pre[qubit + num_qubits] {
             // println!("=> Adding Y-gate on {}", qubit);
             gate_seq.push((StandardGate::YGate, smallvec![Qubit(qubit as u32)]));
-        }
-        else if delta_phase_pre[qubit] {
+        } else if delta_phase_pre[qubit] {
             // println!("=> Adding Z-gate on {}", qubit);
             gate_seq.push((StandardGate::ZGate, smallvec![Qubit(qubit as u32)]));
-        }
-        else if delta_phase_pre[qubit + num_qubits] {
+        } else if delta_phase_pre[qubit + num_qubits] {
             // println!("=> Adding X-gate on {}", qubit);
             gate_seq.push((StandardGate::XGate, smallvec![Qubit(qubit as u32)]));
         }
