@@ -96,9 +96,9 @@ static E_CLASS: [[[bool; 2]; 2]; 1] = [
 ];
 
 
-fn compute_greedy_cost(symplectic_mat: ArrayView2<bool>, qubit: usize, qubit_list: &Vec<usize>, num_qubits: usize) -> usize {
-    let pauli_x = symplectic_mat.column(qubit + num_qubits);
-    let pauli_z = symplectic_mat.column(qubit);
+fn compute_greedy_cost(symplectic_matrix: &SymplecticMatrix, qubit: usize, qubit_list: &Vec<usize>, num_qubits: usize) -> usize {
+    let pauli_x = symplectic_matrix.smat.column(qubit + num_qubits);
+    let pauli_z = symplectic_matrix.smat.column(qubit);
 
     let mut a_num = 0;
     let mut b_num = 0;
@@ -156,27 +156,18 @@ fn from_pair_paulis_to_type(
     ]
 }
 
-fn adjoint_no_phase(symp_mat: &mut Array2<bool>, num_qubits: usize) {
-    let transposed = symp_mat.t().to_owned();
-    *symp_mat = transposed;
 
-    let (mut a, mut b, mut c, mut d) = symp_mat.multi_slice_mut((
-        s![0..num_qubits, 0..num_qubits],
-        s![0..num_qubits, num_qubits..2 * num_qubits],
-        s![num_qubits..2 * num_qubits, 0..num_qubits],
-        s![num_qubits..2 * num_qubits, num_qubits..2 * num_qubits],
-    ));
-
-    azip!((mut a in &mut a, mut d in &mut d)  (*a, *d) = (*d, *a));
-    azip!((mut b in &mut b, mut c in &mut c)  (*b, *c) = (*c, *b));
-}
 
 // for now modify clifford in-place
 fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
     let mut clifford_gates = CliffordGatesVec::new();
+
     let num_qubits = clifford.shape()[0] / 2;
-    let clifford_slice = clifford.slice(s![.., 0..2 * num_qubits]);
-    let mut symplectic_mat: Array2<bool> = clifford_slice.to_owned();
+
+    let mut symplectic_matrix = SymplecticMatrix {
+        num_qubits,
+        smat: clifford.slice(s![.., 0..2 * num_qubits]).to_owned(),
+    };
 
     // ToDo: this is a vector for now to be compatible with the python
     // implementation, but we should really turn it into a set
@@ -186,7 +177,7 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
         let mut list_greedy_cost = Vec::<(usize, usize)>::new();
 
         for qubit in &qubit_list {
-            let cost = compute_greedy_cost(symplectic_mat.view(), *qubit, &qubit_list, num_qubits);
+            let cost = compute_greedy_cost(&symplectic_matrix, *qubit, &qubit_list, num_qubits);
             // println!("{}", cost);
             list_greedy_cost.push((cost, *qubit));
         }
@@ -199,10 +190,10 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
         // println!("min_qubit = {:?}", min_qubit);
         // clifford[0 : self.num_qubits, :]
 
-        let pauli_x = symplectic_mat.column(min_qubit + num_qubits);
-        let pauli_z = symplectic_mat.column(min_qubit);
+        let pauli_x = symplectic_matrix.smat.column(min_qubit + num_qubits);
+        let pauli_z = symplectic_matrix.smat.column(min_qubit);
 
-        let mut decouple_cliff = calc_decoupling(
+        let mut decouple_matrix = calc_decoupling(
             &mut clifford_gates,
             pauli_x,
             pauli_z,
@@ -216,11 +207,11 @@ fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
         // println!("{:?}", decouple_cliff);
         // println!("====================================================");
 
-        adjoint_no_phase(&mut decouple_cliff, num_qubits);
-        let composed_cliff =
-            compose_ignore_phase(num_qubits, symplectic_mat.view(), decouple_cliff.view());
+        decouple_matrix.adjoint();
+        let composed_matrix = symplectic_matrix.compose(&decouple_matrix);
+        symplectic_matrix = composed_matrix;
 
-        symplectic_mat = composed_cliff;
+
 
         // println!("====================================================");
         // println!("CLIFFORD CURRENT:");
@@ -332,68 +323,100 @@ fn append_cx(mut clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_
     azip!((mut z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
 }
 
-fn append_s_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    // println!("_append_s: {}", qubit);
+// CODE FOR SYMPLECTIC MATRICES!
 
-    let (x, mut z) = clifford.multi_slice_mut((s![.., qubit], s![.., num_qubits + qubit]));
-
-    azip!((mut z in &mut z, &x in &x) *z ^= x);
-}
-
-fn append_h_no_phase(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    // println!("_append_h: {}", qubit);
-    let (mut x, mut z) = clifford.multi_slice_mut((s![.., qubit], s![.., num_qubits + qubit]));
-
-    azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
-}
-
-fn append_swap_no_phase(
-    mut clifford: &mut Array2<bool>,
-    qubit0: usize,
-    qubit1: usize,
+/// Basic functionality for symplectic matrices
+struct SymplecticMatrix {
+    // number of qubits
     num_qubits: usize,
-) {
-    // println!("_append_swap: {} {}", qubit0, qubit1);
-
-    let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
-        s![.., qubit0],
-        s![.., num_qubits + qubit0],
-        s![.., qubit1],
-        s![.., num_qubits + qubit1],
-    ));
-    azip!((mut x0 in &mut x0, mut x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
-    azip!((mut z0 in &mut z0, mut z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
+    // symplectic matrix with dimensions (2 * num_qubits) x (2 * num_qubits)
+    smat: Array2<bool>,
 }
 
-fn append_cx_no_phase(
-    mut clifford: &mut Array2<bool>,
-    qubit0: usize,
-    qubit1: usize,
-    num_qubits: usize,
-) {
-    // println!("_append_cx: {} {}", qubit0, qubit1);
+impl SymplecticMatrix {
 
-    let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
-        s![.., qubit0],
-        s![.., num_qubits + qubit0],
-        s![.., qubit1],
-        s![.., num_qubits + qubit1],
-    ));
-    azip!((mut x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
-    azip!((mut z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
+    // Modifies the matrix in-place by appending S-gate
+    fn append_s(&mut self, qubit: usize) {
+        let (x, mut z) = self.smat.multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
+        azip!((mut z in &mut z, &x in &x) *z ^= x);
+    }
+
+    // Modifies the matrix in-place by appending H-gate
+    fn append_h(&mut self, qubit: usize) {
+        let (mut x, mut z) = self.smat.multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
+        azip!((mut x in &mut x, mut z in &mut z)  (*x, *z) = (*z, *x));
+    }
+
+    // Modifies the matrix in-place by appending SWAP-gate
+    fn append_swap(
+        &mut self,
+        qubit0: usize,
+        qubit1: usize,
+    ) {
+        let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
+            s![.., qubit0],
+            s![.., self.num_qubits + qubit0],
+            s![.., qubit1],
+            s![.., self.num_qubits + qubit1],
+        ));
+        azip!((mut x0 in &mut x0, mut x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
+        azip!((mut z0 in &mut z0, mut z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
+    }
+
+    // Modifies the matrix in-place by appending SWAP-gate
+    fn append_cx(
+        &mut self,
+        qubit0: usize,
+        qubit1: usize,
+    ) {
+        let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
+            s![.., qubit0],
+            s![.., self.num_qubits + qubit0],
+            s![.., qubit1],
+            s![.., self.num_qubits + qubit1],
+        ));
+        azip!((mut x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
+        azip!((mut z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
+    }
+
+    // Multiplies two symplectic matrices and returns the result
+    // other * self
+    // ToDo: can we avoid all the copying?
+    // ToDo: the order of operation is funny
+    fn compose(
+        &self, other: &SymplecticMatrix
+    ) -> Self {
+        // ToDo: get rid of slicing
+        let num_qubits = self.num_qubits;
+        let smat1 = self.smat.slice(s![.., 0..2 * num_qubits]).map(|v| *v as u8);
+        let smat2 = other.smat.slice(s![.., 0..2 * num_qubits]).map(|v| *v as u8);
+        let smat3 = smat2.dot(&smat1).map(|v| (*v % 2) == 1);
+        SymplecticMatrix {
+            num_qubits,
+            smat: smat3,
+        }
+    }
+
+    // Modifies the matrix in-place by computing its adjoint
+    fn adjoint(&mut self) {
+        // ToDo: get rid of this extra copying
+        self.smat = self.smat.t().to_owned();
+        // *(self.smat) = transposed;
+
+        let (mut a, mut b, mut c, mut d) = self.smat.multi_slice_mut((
+            s![0..self.num_qubits, 0..self.num_qubits],
+            s![0..self.num_qubits, self.num_qubits..2 * self.num_qubits],
+            s![self.num_qubits..2 * self.num_qubits, 0..self.num_qubits],
+            s![self.num_qubits..2 * self.num_qubits, self.num_qubits..2 * self.num_qubits],
+        ));
+
+        azip!((mut a in &mut a, mut d in &mut d)  (*a, *d) = (*d, *a));
+        azip!((mut b in &mut b, mut c in &mut c)  (*b, *c) = (*c, *b));
+    }
+
 }
 
 
-fn compose_ignore_phase(
-    nq: usize,
-    cliff1: ArrayView2<bool>,
-    cliff2: ArrayView2<bool>,
-) -> Array2<bool> {
-    let arr1 = cliff1.slice(s![.., 0..2 * nq]).map(|v| *v as u8);
-    let arr2 = cliff2.slice(s![.., 0..2 * nq]).map(|v| *v as u8);
-    let arr3 = arr2.dot(&arr1).map(|v| (*v % 2) == 1);
-    arr3
-}
 
 /// Calculate a decoupling operator D:
 /// D^{-1} * Ox * D = x1
@@ -406,10 +429,12 @@ fn calc_decoupling(
     qubit_list: &Vec<usize>,
     min_qubit: usize,
     num_qubits: usize,
-) -> Array2<bool> {
-    let mut decouple_mat: Array2<bool> = Array2::<usize>::eye(2 * num_qubits).map(|v| v % 2 == 1);
-    // println!("pauli_x = {:?}", pauli_x);
-    // println!("pauli_z = {:?}", pauli_z);
+) -> SymplecticMatrix {
+    let mut decouple_matrix = SymplecticMatrix {
+        num_qubits,
+        smat: Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits), |(i, j)| i == j),
+    };
+
 
     for qubit in qubit_list {
         let typeq = from_pair_paulis_to_type(pauli_x, pauli_z, *qubit);
@@ -419,32 +444,32 @@ fn calc_decoupling(
             || typeq == [[true, true], [true, false]]
         {
             gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-            append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_s(*qubit);
         } else if typeq == [[true, false], [false, false]]
             || typeq == [[true, false], [true, false]]
             || typeq == [[true, false], [false, true]]
             || typeq == [[false, false], [false, true]]
         {
             gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-            append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_h(*qubit);
         } else if typeq == [[false, false], [true, true]] || typeq == [[true, false], [true, true]]
         {
             gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-            append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_s(*qubit);
             gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-            append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_h(*qubit);
         } else if typeq == [[true, true], [false, true]] {
             gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-            append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_h(*qubit);
             gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-            append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_s(*qubit);
         } else if typeq == [[false, true], [true, true]] {
             gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-            append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_s(*qubit);
             gate_seq.push((StandardGate::HGate, smallvec![Qubit(*qubit as u32)]));
-            append_h_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_h(*qubit);
             gate_seq.push((StandardGate::SGate, smallvec![Qubit(*qubit as u32)]));
-            append_s_no_phase(&mut decouple_mat, *qubit, num_qubits);
+            decouple_matrix.append_s(*qubit);
         }
     }
 
@@ -476,7 +501,7 @@ fn calc_decoupling(
             StandardGate::SwapGate,
             smallvec![Qubit(min_qubit as u32), Qubit(qubit_a as u32)],
         ));
-        append_swap_no_phase(&mut decouple_mat, min_qubit, qubit_a, num_qubits);
+        decouple_matrix.append_swap(min_qubit, qubit_a);
 
         if b_qubits.contains(&min_qubit) {
             b_qubits.retain(|&x| x != min_qubit);
@@ -498,7 +523,7 @@ fn calc_decoupling(
             StandardGate::CXGate,
             smallvec![Qubit(min_qubit as u32), Qubit(qubit as u32)],
         ));
-        append_cx_no_phase(&mut decouple_mat, min_qubit, qubit, num_qubits);
+        decouple_matrix.append_cx(min_qubit, qubit);
     }
 
     for qubit in d_qubits {
@@ -506,7 +531,7 @@ fn calc_decoupling(
             StandardGate::CXGate,
             smallvec![Qubit(qubit as u32), Qubit(min_qubit as u32)],
         ));
-        append_cx_no_phase(&mut decouple_mat, qubit, min_qubit, num_qubits);
+        decouple_matrix.append_cx(qubit, min_qubit);
     }
 
     if b_qubits.len() > 1 {
@@ -516,7 +541,7 @@ fn calc_decoupling(
                 StandardGate::CXGate,
                 smallvec![Qubit(qubit_b as u32), Qubit(*qubit as u32)],
             ));
-            append_cx_no_phase(&mut decouple_mat, qubit_b, *qubit, num_qubits);
+            decouple_matrix.append_cx(qubit_b, *qubit);
         }
     }
 
@@ -526,16 +551,16 @@ fn calc_decoupling(
             StandardGate::CXGate,
             smallvec![Qubit(min_qubit as u32), Qubit(qubit_b as u32)],
         ));
-        append_cx_no_phase(&mut decouple_mat, min_qubit, qubit_b, num_qubits);
+        decouple_matrix.append_cx(min_qubit, qubit_b);
 
         gate_seq.push((StandardGate::HGate, smallvec![Qubit(qubit_b as u32)]));
-        append_h_no_phase(&mut decouple_mat, qubit_b, num_qubits);
+        decouple_matrix.append_h(qubit_b);
 
         gate_seq.push((
             StandardGate::CXGate,
             smallvec![Qubit(qubit_b as u32), Qubit(min_qubit as u32)],
         ));
-        append_cx_no_phase(&mut decouple_mat, qubit_b, min_qubit, num_qubits);
+        decouple_matrix.append_cx(qubit_b, min_qubit);
     }
 
     let a_len: usize = (a_qubits.len() - 1) / 2;
@@ -551,23 +576,13 @@ fn calc_decoupling(
                 Qubit(a_qubits[2 * qubit] as u32)
             ],
         ));
-        append_cx_no_phase(
-            &mut decouple_mat,
-            a_qubits[2 * qubit + 1],
-            a_qubits[2 * qubit],
-            num_qubits,
-        );
+        decouple_matrix.append_cx(a_qubits[2 * qubit + 1], a_qubits[2 * qubit]);
 
         gate_seq.push((
             StandardGate::CXGate,
             smallvec![Qubit(a_qubits[2 * qubit] as u32), Qubit(min_qubit as u32)],
         ));
-        append_cx_no_phase(
-            &mut decouple_mat,
-            a_qubits[2 * qubit],
-            min_qubit,
-            num_qubits,
-        );
+        decouple_matrix.append_cx(a_qubits[2 * qubit], min_qubit);
 
         gate_seq.push((
             StandardGate::CXGate,
@@ -576,15 +591,10 @@ fn calc_decoupling(
                 Qubit(a_qubits[2 * qubit + 1] as u32)
             ],
         ));
-        append_cx_no_phase(
-            &mut decouple_mat,
-            min_qubit,
-            a_qubits[2 * qubit + 1],
-            num_qubits,
-        );
+        decouple_matrix.append_cx(min_qubit, a_qubits[2 * qubit + 1]);
     }
 
-    decouple_mat
+    decouple_matrix
 }
 
 fn clifford_sim(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Array2<bool> {
