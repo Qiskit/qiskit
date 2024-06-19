@@ -48,7 +48,7 @@ class ParameterExpression:
             expr (sympy.Expr): Expression of :class:`sympy.Symbol` s.
         """
         # NOTE: `Parameter.__init__` does not call up to this method, since this method is dependent
-        # on `Parameter` instances already being initialised enough to be hashable.  If changing
+        # on `Parameter` instances already being initialized enough to be hashable.  If changing
         # this method, check that `Parameter.__init__` and `__setstate__` are still valid.
         self._parameter_symbols = symbol_map
         self._parameter_keys = frozenset(p._hash_key() for p in self._parameter_symbols)
@@ -421,8 +421,8 @@ class ParameterExpression:
                 ) from None
             # In symengine, if an expression was complex at any time, its type is likely to have
             # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
-            # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
-            # real.  This second attempt at a cast is a way of unifying the behaviour to the
+            # cancelled out.  Sympy tends to more aggressively recognize these as symbolically
+            # real.  This second attempt at a cast is a way of unifying the behavior to the
             # more expected form for our users.
             cval = complex(self)
             if cval.imag == 0.0:

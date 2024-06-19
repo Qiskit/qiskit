@@ -928,7 +928,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.clbits, [])
 
     def test_remove_final_measurements_bit_locations(self):
-        """Test remove_final_measurements properly recalculates clbit indicies
+        """Test remove_final_measurements properly recalculates clbit indices
         and preserves order of remaining cregs and clbits.
         """
         c0 = ClassicalRegister(1)

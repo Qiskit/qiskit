@@ -2045,7 +2045,7 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         self.assertEqual(pass_(qc), expected)
 
     def test_leave_store_alone_basis(self):
-        """Don't attempt to synthesise `Store` instructions with basis gates."""
+        """Don't attempt to synthesize `Store` instructions with basis gates."""
 
         pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u", "cx"])
 
@@ -2068,7 +2068,7 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         self.assertEqual(pass_(qc), expected)
 
     def test_leave_store_alone_with_target(self):
-        """Don't attempt to synthesise `Store` instructions with a `Target`."""
+        """Don't attempt to synthesize `Store` instructions with a `Target`."""
 
         # Note no store.
         target = Target()

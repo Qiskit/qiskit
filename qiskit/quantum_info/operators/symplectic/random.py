@@ -163,7 +163,7 @@ def _sample_qmallows(n, rng=None):
     if rng is None:
         rng = np.random.default_rng()
 
-    # Hadmard layer
+    # Hadamard layer
     had = np.zeros(n, dtype=bool)
 
     # Permutation layer

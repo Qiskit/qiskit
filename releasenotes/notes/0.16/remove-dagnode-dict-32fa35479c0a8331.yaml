@@ -3,7 +3,7 @@ upgrade:
   - |
     The previously deprecated support for passing in a dictionary as the
     first positional argument to :class:`~qiskit.dagcircuit.DAGNode` constructor
-    has been removed. Using a dictonary for the first positional argument
+    has been removed. Using a dictionary for the first positional argument
     was deprecated in the 0.13.0 release. To create a
     :class:`~qiskit.dagcircuit.DAGNode` object now you should directly
     pass the attributes as kwargs on the constructor.

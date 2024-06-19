@@ -8,7 +8,7 @@ prelude: |
     structure behind all operations to be based on
     `retworkx <https://pypi.org/project/retworkx/>`_ for greatly improved
     performance. Circuit transpilation speed in the 0.13.0 release should
-    be significanlty faster than in previous releases.
+    be significantly faster than in previous releases.
 
     There has been a significant simplification to the style in which Pulse
     instructions are built. Now, ``Command`` s are deprecated and a unified

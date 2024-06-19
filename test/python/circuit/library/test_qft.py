@@ -183,7 +183,7 @@ class TestQFT(QiskitTestCase):
                 raise self
 
         # We don't want to issue a warning on mutation until we know that the values are
-        # finalised; this is because a user might want to mutate the number of qubits and the
+        # finalized; this is because a user might want to mutate the number of qubits and the
         # approximation degree.  In these cases, wait until we try to build the circuit.
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
