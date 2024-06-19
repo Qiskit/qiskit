@@ -452,8 +452,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             new_qubits = [bit_indices[tup] for tup in instruction.qubits]
             if instruction.operation.name == "p":
                 params = 2 * np.pi - instruction.operation.params[0]
-                instruction.operation.params[0] = params
-                new_circ.append(instruction.operation, new_qubits)
+                new_circ.p(params, new_qubits)
             elif instruction.operation.name == "t":
                 instruction.operation.name = "tdg"
                 new_circ.append(instruction.operation, new_qubits)

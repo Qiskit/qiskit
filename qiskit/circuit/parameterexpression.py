@@ -140,7 +140,7 @@ class ParameterExpression:
             raise ZeroDivisionError(
                 "Binding provided for expression "
                 "results in division by zero "
-                "(Expression: {}, Bindings: {}).".format(self, parameter_values)
+                f"(Expression: {self}, Bindings: {parameter_values})."
             )
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
@@ -199,8 +199,8 @@ class ParameterExpression:
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
             raise CircuitError(
-                "Cannot bind Parameters ({}) not present in "
-                "expression.".format([str(p) for p in unknown_parameters])
+                f"Cannot bind Parameters ({[str(p) for p in unknown_parameters]}) not present in "
+                "expression."
             )
 
     def _raise_if_passed_nan(self, parameter_values):
@@ -404,8 +404,8 @@ class ParameterExpression:
         except (TypeError, RuntimeError) as exc:
             if self.parameters:
                 raise TypeError(
-                    "ParameterExpression with unbound parameters ({}) "
-                    "cannot be cast to a complex.".format(self.parameters)
+                    f"ParameterExpression with unbound parameters ({self.parameters}) "
+                    "cannot be cast to a complex."
                 ) from None
             raise TypeError("could not cast expression to complex") from exc
 
@@ -416,8 +416,8 @@ class ParameterExpression:
         except (TypeError, RuntimeError) as exc:
             if self.parameters:
                 raise TypeError(
-                    "ParameterExpression with unbound parameters ({}) "
-                    "cannot be cast to a float.".format(self.parameters)
+                    f"ParameterExpression with unbound parameters ({self.parameters}) "
+                    "cannot be cast to a float."
                 ) from None
             # In symengine, if an expression was complex at any time, its type is likely to have
             # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
@@ -436,12 +436,15 @@ class ParameterExpression:
         except RuntimeError as exc:
             if self.parameters:
                 raise TypeError(
-                    "ParameterExpression with unbound parameters ({}) "
-                    "cannot be cast to an int.".format(self.parameters)
+                    f"ParameterExpression with unbound parameters ({self.parameters}) "
+                    "cannot be cast to an int."
                 ) from None
             raise TypeError("could not cast expression to int") from exc
 
     def __hash__(self):
+        if not self._parameter_symbols:
+            # For fully bound expressions, fall back to the underlying value
+            return hash(self.numeric())
         return hash((self._parameter_keys, self._symbol_expr))
 
     def __copy__(self):

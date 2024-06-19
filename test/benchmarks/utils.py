@@ -126,6 +126,8 @@ def random_circuit(
                 operation = rng.choice(two_q_ops)
             elif num_operands == 3:
                 operation = rng.choice(three_q_ops)
+            else:
+                raise RuntimeError("not supported number of operands")
             if operation in one_param:
                 num_angles = 1
             elif operation in two_param:
@@ -213,7 +215,7 @@ def build_ripple_adder_circuit(size):
     qc.x(a[0])  # Set input a = 0...0001
     qc.x(b)  # Set input b = 1...1111
     # Apply the adder
-    qc += adder_subcircuit
+    qc &= adder_subcircuit
 
     # Measure the output register in the computational basis
     for j in range(n):

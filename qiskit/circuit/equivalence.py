@@ -249,7 +249,7 @@ class EquivalenceLibrary:
                     )
                     node_map[decomp_basis] = decomp_basis_node
 
-                label = "{}\n{}".format(str(params), str(decomp) if num_qubits <= 5 else "...")
+                label = f"{str(params)}\n{str(decomp) if num_qubits <= 5 else '...'}"
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],
@@ -273,8 +273,8 @@ def _raise_if_param_mismatch(gate_params, circuit_parameters):
     if set(gate_parameters) != circuit_parameters:
         raise CircuitError(
             "Cannot add equivalence between circuit and gate "
-            "of different parameters. Gate params: {}. "
-            "Circuit params: {}.".format(gate_parameters, circuit_parameters)
+            f"of different parameters. Gate params: {gate_parameters}. "
+            f"Circuit params: {circuit_parameters}."
         )
 
 
@@ -282,10 +282,8 @@ def _raise_if_shape_mismatch(gate, circuit):
     if gate.num_qubits != circuit.num_qubits or gate.num_clbits != circuit.num_clbits:
         raise CircuitError(
             "Cannot add equivalence between circuit and gate "
-            "of different shapes. Gate: {} qubits and {} clbits. "
-            "Circuit: {} qubits and {} clbits.".format(
-                gate.num_qubits, gate.num_clbits, circuit.num_qubits, circuit.num_clbits
-            )
+            f"of different shapes. Gate: {gate.num_qubits} qubits and {gate.num_clbits} clbits. "
+            f"Circuit: {circuit.num_qubits} qubits and {circuit.num_clbits} clbits."
         )
 
 

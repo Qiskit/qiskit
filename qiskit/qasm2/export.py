@@ -157,7 +157,7 @@ def dumps(circuit: QuantumCircuit, /) -> str:
                 _make_unique(_escape_name(reg.name, "reg_"), register_escaped_names)
             ] = reg
     bit_labels: dict[Qubit | Clbit, str] = {
-        bit: "%s[%d]" % (name, idx)
+        bit: f"{name}[{idx}]"
         for name, register in register_escaped_names.items()
         for (idx, bit) in enumerate(register)
     }
@@ -244,18 +244,14 @@ def _instruction_call_site(operation):
     else:
         qasm2_call = operation.name
     if operation.params:
-        qasm2_call = "{}({})".format(
-            qasm2_call,
-            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
-        )
+        params = ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params])
+        qasm2_call = f"{qasm2_call}({params})"
     if operation.condition is not None:
         if not isinstance(operation.condition[0], ClassicalRegister):
             raise QASM2ExportError(
                 "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
             )
-        qasm2_call = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
-        )
+        qasm2_call = f"if({operation.condition[0].name}=={operation.condition[1]:d}) " + qasm2_call
     return qasm2_call
 
 

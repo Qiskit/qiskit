@@ -209,8 +209,8 @@ class PulseQobjInstruction:
         return out
 
     def __str__(self):
-        out = "Instruction: %s\n" % self.name
-        out += "\t\tt0: %s\n" % self.t0
+        out = f"Instruction: {self.name}\n"
+        out += f"\t\tt0: {self.t0}\n"
         for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
                 out += f"\t\t{attr}: {getattr(self, attr)}\n"
@@ -434,10 +434,10 @@ class PulseQobjExperiment:
             header = pprint.pformat(self.header.to_dict() or {})
         else:
             header = "{}"
-        out += "Header:\n%s\n" % header
-        out += "Config:\n%s\n\n" % config
+        out += f"Header:\n{header}\n"
+        out += f"Config:\n{config}\n\n"
         for instruction in self.instructions:
-            out += "\t%s\n" % instruction
+            out += f"\t{instruction}\n"
         return out
 
     @classmethod
@@ -567,23 +567,20 @@ class PulseQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "PulseQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
-            self.qobj_id,
-            repr(self.config),
-            experiments_repr,
-            repr(self.header),
+        return (
+            f"PulseQobj(qobj_id='{self.qobj_id}', config={repr(self.config)}, "
+            f"experiments={experiments_repr}, header={repr(self.header)})"
         )
-        return out
 
     def __str__(self):
-        out = "Pulse Qobj: %s:\n" % self.qobj_id
+        out = f"Pulse Qobj: {self.qobj_id}:\n"
         config = pprint.pformat(self.config.to_dict())
-        out += "Config: %s\n" % str(config)
+        out += f"Config: {str(config)}\n"
         header = pprint.pformat(self.header.to_dict())
-        out += "Header: %s\n" % str(header)
+        out += f"Header: {str(header)}\n"
         out += "Experiments:\n"
         for experiment in self.experiments:
-            out += "%s" % str(experiment)
+            out += str(experiment)
         return out
 
     def to_dict(self):

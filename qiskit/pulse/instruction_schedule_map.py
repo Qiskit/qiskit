@@ -169,10 +169,8 @@ class InstructionScheduleMap:
         if not self.has(instruction, _to_tuple(qubits)):
             if instruction in self._map:
                 raise PulseError(
-                    "Operation '{inst}' exists, but is only defined for qubits "
-                    "{qubits}.".format(
-                        inst=instruction, qubits=self.qubits_with_instruction(instruction)
-                    )
+                    f"Operation '{instruction}' exists, but is only defined for qubits "
+                    f"{self.qubits_with_instruction(instruction)}."
                 )
             raise PulseError(f"Operation '{instruction}' is not defined for this system.")
 
