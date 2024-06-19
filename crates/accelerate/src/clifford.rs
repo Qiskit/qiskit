@@ -10,10 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
 use indexmap::IndexSet;
-use itertools::min;
-use ndarray::{azip, s, Array1, ArrayView1, ArrayView2};
+use ndarray::{azip, s, Array1, ArrayView2};
 use pyo3::prelude::*;
 
 use numpy::PyReadonlyArray2;
@@ -162,7 +160,7 @@ fn pauli_pair_to_index(
 
 // The 16 pairs of Pauli operators are divided into 5 equivalence classes
 // under the action of single-qubit Cliffords.
-static pauli_to_class : [PauliClass; 16] = [
+static PAULI_INDEX_TO_CLASS : [PauliClass; 16] = [
     PauliClass::ClassE, // 'II'
     PauliClass::ClassD, // 'IX'
     PauliClass::ClassD, // 'IZ'
@@ -183,7 +181,7 @@ static pauli_to_class : [PauliClass; 16] = [
 
 // Map pair of pauli operators to the single-qubit gate required
 // for the decoupling step.
-static pauli_to_single_qubit : [SingleQubitGate; 16] = [
+static PAULI_INDEX_TO_1Q_GATE : [SingleQubitGate; 16] = [
     SingleQubitGate::I, // 'II'
     SingleQubitGate::H, // 'IX'
     SingleQubitGate::I, // 'IZ'
@@ -223,26 +221,9 @@ impl GreedyCliffordSynthesis<'_> {
         }
     }
 
-    fn pair_paulis_to_type(
-        &self,
-        pauli_x: ArrayView1<bool>,
-        pauli_z: ArrayView1<bool>,
-        qubit: usize,
-    ) -> [usize; 4] {
-        [
-            pauli_x[qubit] as usize,
-            pauli_x[self.num_qubits + qubit] as usize,
-            pauli_z[qubit] as usize,
-            pauli_z[self.num_qubits + qubit] as usize,
-        ]
-    }
-
-    // todo: move more arguments to the main algo class
+    // Computes the CX cost of decoupling the symplectic matrix on the
+    // given qubit
     fn compute_cost(&self, qubit: usize) -> usize {
-        // todo: remove to_owned
-        let pauli_x = self.symplectic_matrix.smat.column(qubit + self.num_qubits);
-        let pauli_z = self.symplectic_matrix.smat.column(qubit);
-
         let mut a_num = 0;
         let mut b_num = 0;
         let mut c_num = 0;
@@ -252,12 +233,12 @@ impl GreedyCliffordSynthesis<'_> {
 
         for q in &self.unprocessed_qubits {
             let pauli_pair_index = pauli_pair_to_index(
-                pauli_x[*q],
-                pauli_x[*q + self.num_qubits],
-                pauli_z[*q],
-                pauli_z[*q + self.num_qubits]
+                self.symplectic_matrix.smat[[*q, qubit + self.num_qubits]],
+                self.symplectic_matrix.smat[[*q + self.num_qubits, qubit + self.num_qubits]],
+                self.symplectic_matrix.smat[[*q, qubit]],
+                self.symplectic_matrix.smat[[*q + self.num_qubits, qubit]]
             );
-            let pauli_class = pauli_to_class[pauli_pair_index];
+            let pauli_class = PAULI_INDEX_TO_CLASS[pauli_pair_index];
 
             match pauli_class {
                 PauliClass::ClassA => {
@@ -314,7 +295,7 @@ impl GreedyCliffordSynthesis<'_> {
                 self.symplectic_matrix.smat[[*qubit + self.num_qubits, min_qubit]],
             );
 
-            let single_qubit_gate = pauli_to_single_qubit[pauli_pair_index];
+            let single_qubit_gate = PAULI_INDEX_TO_1Q_GATE[pauli_pair_index];
 
             match single_qubit_gate {
                 SingleQubitGate::S => {
@@ -348,7 +329,7 @@ impl GreedyCliffordSynthesis<'_> {
                 SingleQubitGate::I => {}
             }
 
-            let pauli_class = pauli_to_class[pauli_pair_index];
+            let pauli_class = PAULI_INDEX_TO_CLASS[pauli_pair_index];
             match pauli_class {
                 PauliClass::ClassA => {
                     a_qubits.insert(*qubit);
