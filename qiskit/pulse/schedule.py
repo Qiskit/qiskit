@@ -252,7 +252,7 @@ class Schedule:
 
         Notes:
             Nested schedules are returned as-is. If you want to collect only instructions,
-            use py:meth:`~Schedule.instructions` instead.
+            use :py:meth:`~Schedule.instructions` instead.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
@@ -1309,7 +1309,7 @@ class ScheduleBlock:
     ):
         """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
         *failing* at least one of the provided filters.
-        This method is the complement of py:meth:`~self.filter`, so that::
+        This method is the complement of :py:meth:`~self.filter`, so that::
 
             self.filter(args) + self.exclude(args) == self in terms of instructions included.
 
