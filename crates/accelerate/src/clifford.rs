@@ -141,11 +141,11 @@ struct GreedyCliffordSynthesis<'a> {
 
     // The 16 pairs of Pauli operators are divided into 5 equivalence classes
     // under the action of single-qubit Cliffords.
-    pauli_to_class: HashMap<[[bool; 2]; 2], PauliClass>,
+    pauli_to_class: HashMap<[usize; 4], PauliClass>,
 
     // Map pair of pauli operators to the single-qubit gate required
     // for the decoupling step.
-    pauli_to_single_qubit: HashMap<[[bool; 2]; 2], SingleQubitGate>,
+    pauli_to_single_qubit: HashMap<[usize; 4], SingleQubitGate>,
 
     // The total number of qubits
     num_qubits: usize,
@@ -172,37 +172,37 @@ impl GreedyCliffordSynthesis<'_> {
 
         let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
 
-        let pauli_to_class = HashMap::<[[bool; 2]; 2], PauliClass>::from([
-            ([[false, true], [true, true]], PauliClass::ClassA), // 'XY'
-            ([[false, true], [true, false]], PauliClass::ClassA), // 'XZ'
-            ([[true, true], [false, true]], PauliClass::ClassA), // 'YX'
-            ([[true, true], [true, false]], PauliClass::ClassA), // 'YZ'
-            ([[true, false], [false, true]], PauliClass::ClassA), // 'ZX'
-            ([[true, false], [true, true]], PauliClass::ClassA), // 'ZY'
-            ([[true, false], [true, false]], PauliClass::ClassB), // 'ZZ'
-            ([[false, true], [false, true]], PauliClass::ClassB), // 'XX'
-            ([[true, true], [true, true]], PauliClass::ClassB),  // 'YY'
-            ([[true, false], [false, false]], PauliClass::ClassC), // 'ZI'
-            ([[false, true], [false, false]], PauliClass::ClassC), // 'XI'
-            ([[true, true], [false, false]], PauliClass::ClassC), // 'YI'
-            ([[false, false], [false, true]], PauliClass::ClassD), // 'IX'
-            ([[false, false], [true, false]], PauliClass::ClassD), // 'IZ'
-            ([[false, false], [true, true]], PauliClass::ClassD), // 'IY'
-            ([[false, false], [false, false]], PauliClass::ClassE), // 'II'
+        let pauli_to_class = HashMap::<[usize; 4], PauliClass>::from([
+            ([0, 1, 1, 1], PauliClass::ClassA), // 'XY'
+            ([0, 1, 1, 0], PauliClass::ClassA), // 'XZ'
+            ([1, 1, 0, 1], PauliClass::ClassA), // 'YX'
+            ([1, 1, 1, 0], PauliClass::ClassA), // 'YZ'
+            ([1, 0, 0, 1], PauliClass::ClassA), // 'ZX'
+            ([1, 0, 1, 1], PauliClass::ClassA), // 'ZY'
+            ([1, 0, 1, 0], PauliClass::ClassB), // 'ZZ'
+            ([0, 1, 0, 1], PauliClass::ClassB), // 'XX'
+            ([1, 1, 1, 1], PauliClass::ClassB), // 'YY'
+            ([1, 0, 0, 0], PauliClass::ClassC), // 'ZI'
+            ([0, 1, 0, 0], PauliClass::ClassC), // 'XI'
+            ([1, 1, 0, 0], PauliClass::ClassC), // 'YI'
+            ([0, 0, 0, 1], PauliClass::ClassD), // 'IX'
+            ([0, 0, 1, 0], PauliClass::ClassD), // 'IZ'
+            ([0, 0, 1, 1], PauliClass::ClassD), // 'IY'
+            ([0, 0, 0, 0], PauliClass::ClassE), // 'II'
         ]);
 
-        let pauli_to_single_qubit = HashMap::<[[bool; 2]; 2], SingleQubitGate>::from([
-            ([[true, true], [false, false]], SingleQubitGate::S), // 'YI'
-            ([[true, true], [true, true]], SingleQubitGate::S),   // 'YY'
-            ([[true, true], [true, false]], SingleQubitGate::S),  // 'YZ'
-            ([[true, false], [false, false]], SingleQubitGate::H), // 'ZI'
-            ([[true, false], [true, false]], SingleQubitGate::H), // 'ZZ'
-            ([[true, false], [false, true]], SingleQubitGate::H), // 'ZX'
-            ([[false, false], [false, true]], SingleQubitGate::H), // 'IX'
-            ([[false, false], [true, true]], SingleQubitGate::SH), // 'IY'
-            ([[true, false], [true, true]], SingleQubitGate::SH), // 'ZY'
-            ([[true, true], [false, true]], SingleQubitGate::HS), // 'YX'
-            ([[false, true], [true, true]], SingleQubitGate::SHS), // 'XY'
+        let pauli_to_single_qubit = HashMap::<[usize; 4], SingleQubitGate>::from([
+            ([1, 1, 0, 0], SingleQubitGate::S),   // 'YI'
+            ([1, 1, 1, 1], SingleQubitGate::S),   // 'YY'
+            ([1, 1, 1, 0], SingleQubitGate::S),   // 'YZ'
+            ([1, 0, 0, 0], SingleQubitGate::H),   // 'ZI'
+            ([1, 0, 1, 0], SingleQubitGate::H),   // 'ZZ'
+            ([1, 0, 0, 1], SingleQubitGate::H),   // 'ZX'
+            ([0, 0, 0, 1], SingleQubitGate::H),   // 'IX'
+            ([0, 0, 1, 1], SingleQubitGate::SH),  // 'IY'
+            ([1, 0, 1, 1], SingleQubitGate::SH),  // 'ZY'
+            ([1, 1, 0, 1], SingleQubitGate::HS),  // 'YX'
+            ([0, 1, 1, 1], SingleQubitGate::SHS), // 'XY'
         ]);
 
         GreedyCliffordSynthesis {
@@ -220,10 +220,12 @@ impl GreedyCliffordSynthesis<'_> {
         pauli_x: ArrayView1<bool>,
         pauli_z: ArrayView1<bool>,
         qubit: usize,
-    ) -> [[bool; 2]; 2] {
+    ) -> [usize; 4] {
         [
-            [pauli_x[qubit], pauli_x[self.num_qubits + qubit]],
-            [pauli_z[qubit], pauli_z[self.num_qubits + qubit]],
+            pauli_x[qubit] as usize,
+            pauli_x[self.num_qubits + qubit] as usize,
+            pauli_z[qubit] as usize,
+            pauli_z[self.num_qubits + qubit] as usize,
         ]
     }
 
@@ -287,9 +289,9 @@ impl GreedyCliffordSynthesis<'_> {
     /// and reduce the clifford such that it will act trivially on min_qubit
     fn decouple_qubit(&mut self, gate_seq: &mut CliffordGatesVec, min_qubit: usize) {
         let mut a_qubits = IndexSet::new();
-        let mut b_qubits =  IndexSet::new();
-        let mut c_qubits =  IndexSet::new();
-        let mut d_qubits =  IndexSet::new();
+        let mut b_qubits = IndexSet::new();
+        let mut c_qubits = IndexSet::new();
+        let mut d_qubits = IndexSet::new();
 
         for qubit in &self.unprocessed_qubits {
             let typeq = self.pair_paulis_to_type(
@@ -339,11 +341,19 @@ impl GreedyCliffordSynthesis<'_> {
 
             let pauli_class = self.pauli_to_class.get(&typeq).unwrap();
             match pauli_class {
-                PauliClass::ClassA => { a_qubits.insert(*qubit); },
-                PauliClass::ClassB => { b_qubits.insert(*qubit); },
-                PauliClass::ClassC => { c_qubits.insert(*qubit); },
-                PauliClass::ClassD => { d_qubits.insert(*qubit); },
-                PauliClass::ClassE => {},
+                PauliClass::ClassA => {
+                    a_qubits.insert(*qubit);
+                }
+                PauliClass::ClassB => {
+                    b_qubits.insert(*qubit);
+                }
+                PauliClass::ClassC => {
+                    c_qubits.insert(*qubit);
+                }
+                PauliClass::ClassD => {
+                    d_qubits.insert(*qubit);
+                }
+                PauliClass::ClassE => {}
             }
         }
 
