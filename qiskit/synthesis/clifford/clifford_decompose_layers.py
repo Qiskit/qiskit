@@ -36,6 +36,7 @@ from qiskit.synthesis.linear.linear_matrix_utils import (
     _compute_rank,
     _gauss_elimination,
     _gauss_elimination_with_perm,
+    _binary_matmul,
 )
 
 
@@ -279,7 +280,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     stabx = cliff.stab_x
     stabz = cliff.stab_z
     stabx_inv = calc_inverse_matrix(stabx, validate)
-    stabz_update = np.matmul(stabx_inv, stabz) % 2
+    stabz_update = _binary_matmul(stabx_inv, stabz)
 
     # Assert that stabz_update is a symmetric matrix.
     if validate:
@@ -341,7 +342,7 @@ def _decompose_hadamard_free(
     if not (stabx == np.zeros((num_qubits, num_qubits))).all():
         raise QiskitError("The given Clifford is not Hadamard-free.")
 
-    destabz_update = np.matmul(calc_inverse_matrix(destabx), destabz) % 2
+    destabz_update = _binary_matmul(calc_inverse_matrix(destabx), destabz)
     # Assert that destabz_update is a symmetric matrix.
     if validate:
         if (destabz_update != destabz_update.T).any():
