@@ -23,10 +23,10 @@ use qiskit_circuit::Qubit;
 use pyo3::prelude::*;
 
 /// Mutate a matrix inplace by adding the value of the ``ctrl`` row to the
-/// ``target`` row. If ``add_columns`` is true, add columns instead of rows.
-fn _add(mat: &mut Array2<bool>, add_columns: &bool, ctrl: usize, trgt: usize) {
+/// ``target`` row. If ``add_cols`` is true, add columns instead of rows.
+fn _add_row_or_col(mat: &mut Array2<bool>, add_cols: &bool, ctrl: usize, trgt: usize) {
     // get the two rows (or columns)
-    let info = if *add_columns {
+    let info = if *add_cols {
         (s![.., ctrl], s![.., trgt])
     } else {
         (s![ctrl, ..], s![trgt, ..])
@@ -57,10 +57,8 @@ pub fn synth_cnot_count_full_pmh(
     section_size: i64,
 ) -> PyResult<CircuitData> {
     let mut mat: Array2<bool> = matrix.as_array().to_owned();
-    // let mut mat = matrix.to_owned();
     let num_qubits = mat.nrows(); // is a quadratic matrix
     let lower_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &false);
-    // let mut mat_t = mat.t().to_owned();
     let upper_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &true);
 
     // iterator over the gates
@@ -82,7 +80,34 @@ pub fn synth_cnot_count_full_pmh(
     )
 }
 
-/// instead of transposing the matrix, allow setting the axis in this function
+/// This function is a helper function of the algorithm for optimal synthesis
+/// of linear reversible circuits (the Patel–Markov–Hayes algorithm). It works
+/// like gaussian elimination, except that it works a lot faster, and requires
+/// fewer steps (and therefore fewer CNOTs). It takes the matrix and
+/// splits it into sections of size section_size. Then it eliminates all non-zero
+/// sub-rows within each section, which are the same as a non-zero sub-row
+/// above. Once this has been done, it continues with normal gaussian elimination.
+/// The benefit is that with small section sizes, most of the sub-rows will
+/// be cleared in the first step, resulting in a factor ``section_size`` fewer row row operations
+/// during Gaussian elimination.
+///
+/// The algorithm is described in detail in the following paper
+/// "Optimal synthesis of linear reversible circuits."
+/// Patel, Ketan N., Igor L. Markov, and John P. Hayes.
+/// Quantum Information & Computation 8.3 (2008): 282-294.
+///
+/// Note:
+/// This implementation tweaks the Patel, Markov, and Hayes algorithm by adding
+/// a "back reduce" which adds rows below the pivot row with a high degree of
+/// overlap back to it. The intuition is to avoid a high-weight pivot row
+/// increasing the weight of lower rows.
+///
+/// Args:
+///     matrix: square matrix, describing a linear quantum circuit
+///     section_size: the section size the matrix columns are divided into
+///
+/// Returns:
+///     A vector of CX locations (control, target) that need to be applied.
 fn lower_cnot_synth(
     matrix: &mut Array2<bool>,
     section_size: &usize,
@@ -119,7 +144,7 @@ fn lower_cnot_synth(
                     // store CX location
                     circuit.push((patterns[&pattern], row_idx));
                     // remove the row
-                    _add(matrix, transpose, patterns[&pattern], row_idx);
+                    _add_row_or_col(matrix, transpose, patterns[&pattern], row_idx);
                 } else {
                     // if we have not seen this pattern yet, keep track of it
                     patterns.insert(pattern, row_idx);
@@ -134,16 +159,16 @@ fn lower_cnot_synth(
             for r in col_idx + 1..n {
                 if matrix[_index(transpose, &r, &col_idx)] {
                     if !diag_el {
-                        _add(matrix, transpose, r, col_idx);
+                        _add_row_or_col(matrix, transpose, r, col_idx);
                         circuit.push((r, col_idx));
                         diag_el = true
                     }
-                    _add(matrix, transpose, col_idx, r);
+                    _add_row_or_col(matrix, transpose, col_idx, r);
                     circuit.push((col_idx, r));
                 }
 
-                // check if the logical and between the two target rows has more ``true`` elements
-                // than ``cutoff``
+                // back-reduce to the pivot row: this one-line-magic checks if the logical AND
+                // between the two target rows has more ``true`` elements is larger than the cutoff
                 if matrix
                     .index_axis(row_axis, col_idx)
                     .iter()
@@ -153,7 +178,7 @@ fn lower_cnot_synth(
                     .count()
                     > cutoff
                 {
-                    _add(matrix, transpose, r, col_idx);
+                    _add_row_or_col(matrix, transpose, r, col_idx);
                     circuit.push((r, col_idx));
                 }
             }
