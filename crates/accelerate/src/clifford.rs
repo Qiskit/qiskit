@@ -526,11 +526,6 @@ impl GreedyCliffordSynthesis<'_> {
 
 type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
-fn synth_clifford_greedy_inner(clifford: &Array2<bool>) -> CliffordGatesVec {
-    let mut greedy_synthesis = GreedyCliffordSynthesis::new(clifford.view());
-    greedy_synthesis.run()
-}
-
 fn append_s(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
     let (x, mut z, mut p) = clifford.multi_slice_mut((
         s![.., qubit],
@@ -686,7 +681,8 @@ fn synth_clifford_greedy_new(
 ) -> PyResult<Option<CircuitData>> {
     let clifford = tableau.as_array().to_owned();
     let num_qubits = clifford.shape()[0] / 2;
-    let clifford_gates = synth_clifford_greedy_inner(&clifford);
+    let mut greedy_synthesis = GreedyCliffordSynthesis::new(clifford.view());
+    let clifford_gates = greedy_synthesis.run();
     let circuit_data =
         CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
             .expect("Something went wrong on Qiskit's Python side, nothing to do here!");
