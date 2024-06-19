@@ -11,7 +11,7 @@ deprecations:
     deprecation warning). The schema files have been moved
     to the `Qiskit/ibmq-schemas <https://github.com/Qiskit/ibmq-schemas>`__
     repository and those should be treated as the canonical versions of the
-    API schemas. Moving forward only those schemas will recieve updates and
+    API schemas. Moving forward only those schemas will receive updates and
     will be used as the source of truth for the schemas. If you were relying
     on the schemas bundled in qiskit-terra you should update to
     use that repository instead.

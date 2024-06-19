@@ -31,7 +31,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     call its :meth:`map_condition`, :meth:`map_target` or :meth:`map_expr` methods as appropriate,
     which will return the new object that should be used.
 
-    If an ``add_register`` callable is given to the initialiser, the mapper will use it to attempt
+    If an ``add_register`` callable is given to the initializer, the mapper will use it to attempt
     to add new aliasing registers to the outer circuit object, if there is not already a suitable
     register for the mapping available in the circuit.  If this parameter is not given, a
     ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
@@ -73,12 +73,12 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     def map_condition(self, condition, /, *, allow_reorder=False):
         """Map the given ``condition`` so that it only references variables in the destination
-        circuit (as given to this class on initialisation).
+        circuit (as given to this class on initialization).
 
         If ``allow_reorder`` is ``True``, then when a legacy condition (the two-tuple form) is made
         on a register that has a counterpart in the destination with all the same (mapped) bits but
         in a different order, then that register will be used and the value suitably modified to
-        make the equality condition work.  This is maintaining legacy (tested) behaviour of
+        make the equality condition work.  This is maintaining legacy (tested) behavior of
         :meth:`.DAGCircuit.compose`; nowhere else does this, and in general this would require *far*
         more complex classical rewriting than Terra needs to worry about in the full expression era.
         """
@@ -91,7 +91,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
             return (self.bit_map[target], value)
         if not allow_reorder:
             return (self._map_register(target), value)
-        # This is maintaining the legacy behaviour of `DAGCircuit.compose`.  We don't attempt to
+        # This is maintaining the legacy behavior of `DAGCircuit.compose`.  We don't attempt to
         # speed-up this lookup with a cache, since that would just make the more standard cases more
         # annoying to deal with.
         mapped_bits_order = [self.bit_map[bit] for bit in target]
@@ -114,7 +114,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     def map_target(self, target, /):
         """Map the real-time variables in a ``target`` of a :class:`.SwitchCaseOp` to the new
-        circuit, as defined in the ``circuit`` argument of the initialiser of this class."""
+        circuit, as defined in the ``circuit`` argument of the initializer of this class."""
         if isinstance(target, Clbit):
             return self.bit_map[target]
         if isinstance(target, ClassicalRegister):
