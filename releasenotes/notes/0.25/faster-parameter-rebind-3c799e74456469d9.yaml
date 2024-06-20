@@ -15,6 +15,6 @@ features:
     reduce the overhead of input normalisation in this function.
 fixes:
   - |
-    A parametrised circuit that contains a custom gate whose definition has a parametrised global phase
+    A parametrized circuit that contains a custom gate whose definition has a parametrized global phase
     can now successfully bind the parameter in the inner global phase.
     See `#10283 <https://github.com/Qiskit/qiskit-terra/issues/10283>`__ for more detail.

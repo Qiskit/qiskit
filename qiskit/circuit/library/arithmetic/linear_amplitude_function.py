@@ -119,7 +119,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
         self._image = image
         self._rescaling_factor = rescaling_factor
 
-        # do rescalings
+        # do rescaling
         a, b = domain
         c, d = image
 

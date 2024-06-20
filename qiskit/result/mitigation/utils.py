@@ -120,9 +120,7 @@ def marganalize_counts(
         clbits_len = len(clbits) if not clbits is None else 0
         if clbits_len not in (0, qubits_len):
             raise QiskitError(
-                "Num qubits ({}) does not match number of clbits ({}).".format(
-                    qubits_len, clbits_len
-                )
+                f"Num qubits ({qubits_len}) does not match number of clbits ({clbits_len})."
             )
         counts = marginal_counts(counts, clbits)
     if clbits is None and qubits is not None:

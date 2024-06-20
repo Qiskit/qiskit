@@ -355,8 +355,8 @@ class SuperOp(QuantumChannel):
                 raise QiskitError(f"Cannot apply Instruction: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    "{} instruction definition is {}; "
-                    "expected QuantumCircuit".format(obj.name, type(obj.definition))
+                    f"{obj.name} instruction definition is {type(obj.definition)}; "
+                    "expected QuantumCircuit"
                 )
             qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
             for instruction in obj.definition.data:

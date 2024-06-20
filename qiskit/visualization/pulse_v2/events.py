@@ -196,7 +196,7 @@ class ChannelEvents:
 
     def get_frame_changes(self) -> Iterator[PulseInstruction]:
         """Return frame change type instructions with total frame change amount."""
-        # TODO parse parametrised FCs correctly
+        # TODO parse parametrized FCs correctly
 
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
 

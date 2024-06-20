@@ -93,7 +93,7 @@ def process_fidelity(
         if channel.dim != target.dim:
             raise QiskitError(
                 "Input quantum channel and target unitary must have the same "
-                "dimensions ({} != {}).".format(channel.dim, target.dim)
+                f"dimensions ({channel.dim} != {target.dim})."
             )
 
     # Validate complete-positivity and trace-preserving
@@ -316,7 +316,7 @@ def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> 
     iden = sparse.eye(dim_out)
 
     # Watrous uses row-vec convention for his Choi matrix while we use
-    # col-vec. It turns out row-vec convention is requried for CVXPY too
+    # col-vec. It turns out row-vec convention is required for CVXPY too
     # since the cvxpy.kron function must have a constant as its first argument.
     c_r = cvxpy.bmat([[cvxpy.kron(iden, r0_r), x_r], [x_r.T, cvxpy.kron(iden, r1_r)]])
     c_i = cvxpy.bmat([[cvxpy.kron(iden, r0_i), x_i], [-x_i.T, cvxpy.kron(iden, r1_i)]])

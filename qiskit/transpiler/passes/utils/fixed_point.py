@@ -37,12 +37,12 @@ class FixedPoint(AnalysisPass):
     def run(self, dag):
         """Run the FixedPoint pass on `dag`."""
         current_value = self.property_set[self._property]
-        fixed_point_previous_property = "_fixed_point_previous_%s" % self._property
+        fixed_point_previous_property = f"_fixed_point_previous_{self._property}"
 
         if self.property_set[fixed_point_previous_property] is None:
-            self.property_set["%s_fixed_point" % self._property] = False
+            self.property_set[f"{self._property}_fixed_point"] = False
         else:
             fixed_point_reached = self.property_set[fixed_point_previous_property] == current_value
-            self.property_set["%s_fixed_point" % self._property] = fixed_point_reached
+            self.property_set[f"{self._property}_fixed_point"] = fixed_point_reached
 
         self.property_set[fixed_point_previous_property] = deepcopy(current_value)

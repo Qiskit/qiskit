@@ -507,7 +507,7 @@ class TemplateSubstitution:
             to_native_symbolic = lambda x: x
 
         circuit_params, template_params = [], []
-        # Set of all parameter names that are present in the circuits to be optimised.
+        # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)

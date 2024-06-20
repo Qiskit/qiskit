@@ -357,9 +357,7 @@ class StochasticSwap(TransformationPass):
 
                     # Give up if we fail again
                     if not success_flag:
-                        raise TranspilerError(
-                            "swap mapper failed: " + "layer %d, sublayer %d" % (i, j)
-                        )
+                        raise TranspilerError(f"swap mapper failed: layer {i}, sublayer {j}")
 
                     # Update the record of qubit positions
                     # for each inner iteration

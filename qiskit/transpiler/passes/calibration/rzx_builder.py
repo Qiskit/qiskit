@@ -204,7 +204,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
             xgate = self._inst_map.get("x", qubits[0])
             with builder.build(
-                default_alignment="sequential", name="rzx(%.3f)" % theta
+                default_alignment="sequential", name=f"rzx({theta:.3f})"
             ) as rzx_theta_native:
                 for cr_tone, comp_tone in zip(cr_tones, comp_tones):
                     with builder.align_left():
@@ -230,7 +230,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             builder.call(szt, name="szt")
 
         with builder.build(
-            default_alignment="sequential", name="rzx(%.3f)" % theta
+            default_alignment="sequential", name=f"rzx({theta:.3f})"
         ) as rzx_theta_flip:
             builder.call(hadamard, name="hadamard")
             for cr_tone, comp_tone in zip(cr_tones, comp_tones):
@@ -297,7 +297,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         # RZXCalibrationNoEcho only good for forward CR direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
-            with builder.build(default_alignment="left", name="rzx(%.3f)" % theta) as rzx_theta:
+            with builder.build(default_alignment="left", name=f"rzx({theta:.3f})") as rzx_theta:
                 stretched_dur = self.rescale_cr_inst(cr_tones[0], 2 * theta)
                 self.rescale_cr_inst(comp_tones[0], 2 * theta)
                 # Placeholder to make pulse gate work

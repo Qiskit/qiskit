@@ -398,9 +398,7 @@ class AlignFunc(AlignmentKind):
             _t_center = self.duration * self.func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
-                raise PulseError(
-                    "Invalid schedule position t=%d is specified at index=%d" % (_t0, ind)
-                )
+                raise PulseError(f"Invalid schedule position t={_t0} is specified at index={ind}")
             aligned.insert(_t0, child, inplace=True)
 
         return aligned

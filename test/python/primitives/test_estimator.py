@@ -346,9 +346,9 @@ class TestObservableValidation(QiskitTestCase):
         ),
     )
     @unpack
-    def test_validate_observables(self, obsevables, expected):
-        """Test obsevables standardization."""
-        self.assertEqual(validation._validate_observables(obsevables), expected)
+    def test_validate_observables(self, observables, expected):
+        """Test observables standardization."""
+        self.assertEqual(validation._validate_observables(observables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):
@@ -358,7 +358,7 @@ class TestObservableValidation(QiskitTestCase):
 
     @data((), [])
     def test_value_error(self, observables):
-        """Test value error if no obsevables are provided."""
+        """Test value error if no observables are provided."""
         with self.assertRaises(ValueError):
             validation._validate_observables(observables)
 

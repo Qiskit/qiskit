@@ -32,7 +32,7 @@ class Delay(Instruction):
             unit: the unit of the duration.  Must be ``"dt"`` or an SI-prefixed seconds unit.
         """
         if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
-            raise CircuitError("Unknown unit %s is specified." % unit)
+            raise CircuitError(f"Unknown unit {unit} is specified.")
 
         super().__init__("delay", 1, 0, params=[duration], unit=unit)
 

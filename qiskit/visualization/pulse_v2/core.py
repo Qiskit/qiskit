@@ -220,7 +220,7 @@ class DrawerCanvas:
         elif isinstance(program, (pulse.Waveform, pulse.SymbolicPulse)):
             self._waveform_loader(program)
         else:
-            raise VisualizationError("Data type %s is not supported." % type(program))
+            raise VisualizationError(f"Data type {type(program)} is not supported.")
 
         # update time range
         self.set_time_range(0, program.duration, seconds=False)

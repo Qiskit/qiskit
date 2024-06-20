@@ -270,7 +270,7 @@ circuit.  The top-level ones are:
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
-    * :class:`SwitchCaseOp`, to conditionally enter one of many subcicuits
+    * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
     * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
 
 :ref:`Circuits can include classical expressions that are evaluated in real time

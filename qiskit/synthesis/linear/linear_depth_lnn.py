@@ -210,7 +210,7 @@ def _north_west_to_identity(n, mat):
 def _optimize_cx_circ_depth_5n_line(mat):
     # Optimize CX circuit in depth bounded by 5n for LNN connectivity.
     # The algorithm [1] has two steps:
-    # a) transform the originl matrix to a north-west matrix (m2nw),
+    # a) transform the original matrix to a north-west matrix (m2nw),
     # b) transform the north-west matrix to identity (nw2id).
     #
     # A square n-by-n matrix A is called north-west if A[i][j]=0 for all i+j>=n

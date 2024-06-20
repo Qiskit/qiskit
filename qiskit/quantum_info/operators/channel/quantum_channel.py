@@ -66,12 +66,9 @@ class QuantumChannel(LinearOp):
     def __repr__(self):
         prefix = f"{self._channel_rep}("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(np.asarray(self.data), separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(np.asarray(self.data), separator=', ', prefix=prefix)}"
+            f",\n{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other: Self):

@@ -42,7 +42,7 @@ The same can be true for, for example, :class:`.Measure`, except that it's a sub
     heart of Qiskit's data model for circuits.
 
 From a library-author perspective, the minimum that is needed to enhance a :class:`.Gate` or
-:class:`~.circuit.Instruction` with this behaviour is to inherit from :class:`SingletonGate`
+:class:`~.circuit.Instruction` with this behavior is to inherit from :class:`SingletonGate`
 (:class:`SingletonInstruction`) instead of :class:`.Gate` (:class:`~.circuit.Instruction`), and for
 the ``__init__`` method to have defaults for all of its arguments (these will be the state of the
 singleton instance).  For example::
@@ -175,7 +175,7 @@ Implementation
     This section is primarily developer documentation for the code; none of the machinery described
     here is public, and it is not safe to inherit from any of it directly.
 
-There are several moving parts to tackle here.  The behaviour of having ``XGate()`` return some
+There are several moving parts to tackle here.  The behavior of having ``XGate()`` return some
 singleton object that is an (inexact) instance of :class:`.XGate` but *without* calling ``__init__``
 requires us to override :class:`type.__call__ <type>`.  This means that :class:`.XGate` must have a
 metaclass that defines ``__call__`` to return the singleton instance.
@@ -484,7 +484,7 @@ class _SingletonInstructionOverrides(Instruction):
         instruction._define()
         # We use this `list` subclass that rejects all mutation rather than a simple `tuple` because
         # the `params` typing is specified as `list`. Various places in the library and beyond do
-        # `x.params.copy()` when they want to produce a version they own, which is good behaviour,
+        # `x.params.copy()` when they want to produce a version they own, which is good behavior,
         # and would fail if we switched to a `tuple`, which has no `copy` method.
         instruction._params = _frozenlist(instruction._params)
         return instruction

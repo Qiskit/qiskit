@@ -5626,7 +5626,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_draw_hamiltonian_multi(self):
-        """Text Hamiltonian gate with mutiple qubits."""
+        """Text Hamiltonian gate with multiple qubits."""
         expected = "\n".join(
             [
                 "      ┌──────────────┐",
@@ -5647,7 +5647,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
 
 
 class TestTextPhase(QiskitTestCase):
-    """Testing the draweing a circuit with phase"""
+    """Testing the drawing a circuit with phase"""
 
     def test_bell(self):
         """Text Bell state with phase."""

@@ -167,7 +167,7 @@ measure qr[1] -> cr[1];"""
         my_gate_inst2_id = id(circuit.data[-1].operation)
         circuit.append(my_gate_inst3, [qr[0]])
         my_gate_inst3_id = id(circuit.data[-1].operation)
-
+        # pylint: disable-next=consider-using-f-string
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 gate my_gate q0 {{ h q0; }}

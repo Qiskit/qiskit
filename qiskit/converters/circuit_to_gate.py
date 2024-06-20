@@ -64,10 +64,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     for instruction in circuit.data:
         if not _check_is_gate(instruction.operation):
             raise QiskitError(
-                (
-                    "One or more instructions cannot be converted to"
-                    ' a gate. "{}" is not a gate instruction'
-                ).format(instruction.operation.name)
+                "One or more instructions cannot be converted to"
+                f' a gate. "{instruction.operation.name}" is not a gate instruction'
             )
 
     if parameter_map is None:
@@ -77,10 +75,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     if parameter_dict.keys() != circuit.parameters:
         raise QiskitError(
-            (
-                "parameter_map should map all circuit parameters. "
-                "Circuit parameters: {}, parameter_map: {}"
-            ).format(circuit.parameters, parameter_dict)
+            "parameter_map should map all circuit parameters. "
+            f"Circuit parameters: {circuit.parameters}, parameter_map: {parameter_dict}"
         )
 
     gate = Gate(

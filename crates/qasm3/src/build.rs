@@ -69,7 +69,7 @@ impl BuilderState {
                     Err(QASM3ImporterError::new_err("cannot handle consts"))
                 } else if decl.initializer().is_some() {
                     Err(QASM3ImporterError::new_err(
-                        "cannot handle initialised bits",
+                        "cannot handle initialized bits",
                     ))
                 } else {
                     self.add_clbit(py, name_id.clone())
@@ -80,7 +80,7 @@ impl BuilderState {
                     Err(QASM3ImporterError::new_err("cannot handle consts"))
                 } else if decl.initializer().is_some() {
                     Err(QASM3ImporterError::new_err(
-                        "cannot handle initialised registers",
+                        "cannot handle initialized registers",
                     ))
                 } else {
                     match dims {

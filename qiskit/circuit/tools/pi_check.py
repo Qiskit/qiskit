@@ -104,9 +104,9 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
             if power[0].shape[0]:
                 if output == "qasm":
                     if ndigits is None:
-                        str_out = "{}".format(single_inpt)
+                        str_out = str(single_inpt)
                     else:
-                        str_out = "{:.{}g}".format(single_inpt, ndigits)
+                        str_out = f"{single_inpt:.{ndigits}g}"
                 elif output == "latex":
                     str_out = f"{neg_str}{pi}^{power[0][0] + 2}"
                 elif output == "mpl":
@@ -119,9 +119,9 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         # multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
         if abs(single_inpt) >= (MAX_FRAC * np.pi):
             if ndigits is None:
-                str_out = "{}".format(single_inpt)
+                str_out = str(single_inpt)
             else:
-                str_out = "{:.{}g}".format(single_inpt, ndigits)
+                str_out = f"{single_inpt:.{ndigits}g}"
             return str_out
 
         # Fourth check is for fractions for 1*pi in the numer and any

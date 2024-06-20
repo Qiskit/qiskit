@@ -495,7 +495,7 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
     def test_unknown_parameterized_gate_called_multiple_times(self):
-        """Test that a parameterised gate is called correctly if the first instance of it is
+        """Test that a parameterized gate is called correctly if the first instance of it is
         generic."""
         x, y = Parameter("x"), Parameter("y")
         qc = QuantumCircuit(2)
@@ -1310,7 +1310,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "",
             ]
         )
-        # This is not the default behaviour, and it's pretty buried how you'd access it.
+        # This is not the default behavior, and it's pretty buried how you'd access it.
         builder = QASM3Builder(
             qc,
             includeslist=("stdgates.inc",),
@@ -1370,7 +1370,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "",
             ]
         )
-        # This is not the default behaviour, and it's pretty buried how you'd access it.
+        # This is not the default behavior, and it's pretty buried how you'd access it.
         builder = QASM3Builder(
             qc,
             includeslist=("stdgates.inc",),
@@ -1935,7 +1935,7 @@ U(0.5, 0.125, 0.25) q[0];
 
 class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCase):
     """Test functionality that is not what we _want_, but is what we need to do while the definition
-    of custom gates with parameterisation does not work correctly.
+    of custom gates with parameterization does not work correctly.
 
     These tests are modified versions of those marked with the `requires_fixed_parameterisation`
     decorator, and this whole class can be deleted once those are fixed.  See gh-7335.

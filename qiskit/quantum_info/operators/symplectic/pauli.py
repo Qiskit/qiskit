@@ -344,7 +344,7 @@ class Pauli(BasePauli):
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
                 "Qubit index is larger than the number of qubits "
-                "({}>{}).".format(max(qubits), self.num_qubits - 1)
+                f"({max(qubits)}>{self.num_qubits - 1})."
             )
         if len(qubits) == self.num_qubits:
             raise QiskitError("Cannot delete all qubits of Pauli")
@@ -379,12 +379,12 @@ class Pauli(BasePauli):
         if len(qubits) != value.num_qubits:
             raise QiskitError(
                 "Number of indices does not match number of qubits for "
-                "the inserted Pauli ({}!={})".format(len(qubits), value.num_qubits)
+                f"the inserted Pauli ({len(qubits)}!={value.num_qubits})"
             )
         if max(qubits) > ret.num_qubits - 1:
             raise QiskitError(
                 "Index is too larger for combined Pauli number of qubits "
-                "({}>{}).".format(max(qubits), ret.num_qubits - 1)
+                f"({max(qubits)}>{ret.num_qubits - 1})."
             )
         # Qubit positions for original op
         self_qubits = [i for i in range(ret.num_qubits) if i not in qubits]

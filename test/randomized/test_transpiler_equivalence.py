@@ -306,10 +306,9 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
-        assert (
-            count_differences == ""
-        ), "Counts not equivalent: {}\nFailing QASM Input:\n{}\n\nFailing QASM Output:\n{}".format(
-            count_differences, qasm2.dumps(self.qc), qasm2.dumps(xpiled_qc)
+        assert count_differences == "", (
+            f"Counts not equivalent: {count_differences}\nFailing QASM Input:\n"
+            f"{qasm2.dumps(self.qc)}\n\nFailing QASM Output:\n{qasm2.dumps(xpiled_qc)}"
         )
 
 

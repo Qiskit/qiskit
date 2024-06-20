@@ -496,8 +496,8 @@ class GenericBackendV2(BackendV2):
                     pulse_job = False
         if pulse_job is None:  # submitted job is invalid
             raise QiskitError(
-                "Invalid input object %s, must be either a "
-                "QuantumCircuit, Schedule, or a list of either" % circuits
+                f"Invalid input object {circuits}, must be either a "
+                "QuantumCircuit, Schedule, or a list of either"
             )
         if pulse_job:  # pulse job
             raise QiskitError("Pulse simulation is currently not supported for V2 backends.")

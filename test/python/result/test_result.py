@@ -105,7 +105,7 @@ class TestResultOperations(QiskitTestCase):
             result.get_counts("foo")
 
     def test_result_repr(self):
-        """Test that repr is contstructed correctly for a results object."""
+        """Test that repr is constructed correctly for a results object."""
         raw_counts = {"0x0": 4, "0x2": 10}
         data = models.ExperimentResultData(counts=raw_counts)
         exp_result_header = QobjExperimentHeader(

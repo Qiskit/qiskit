@@ -423,7 +423,7 @@ class TestLazyDependencyTester(QiskitTestCase):
 
     def test_import_allows_attributes_failure(self):
         """Check that the import tester can accept a dictionary mapping module names to attributes,
-        and that these are recognised when they are missing."""
+        and that these are recognized when they are missing."""
         # We can just use existing modules for this.
         name_map = {
             "sys": ("executable", "path"),

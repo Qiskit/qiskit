@@ -119,7 +119,7 @@ class TestCliffordPasses(QiskitTestCase):
         cliff2 = self.create_cliff2()
         cliff3 = self.create_cliff3()
 
-        # Create a circuit with two consective cliffords
+        # Create a circuit with two consecutive cliffords
         qc1 = QuantumCircuit(4)
         qc1.append(cliff1, [3, 1, 2])
         qc1.append(cliff2, [3, 1, 2])

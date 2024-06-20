@@ -1,6 +1,6 @@
 name: Backport metadata
 
-# Mergify manages the opening of the backport PR, this workflow is just to extend its behaviour to
+# Mergify manages the opening of the backport PR, this workflow is just to extend its behavior to
 # do useful things like copying across the tagged labels and milestone from the base PR.
 
 on:

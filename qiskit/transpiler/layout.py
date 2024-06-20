@@ -98,8 +98,8 @@ class Layout:
             virtual = value1
         else:
             raise LayoutError(
-                "The map (%s -> %s) has to be a (Bit -> integer)"
-                " or the other way around." % (type(value1), type(value2))
+                f"The map ({type(value1)} -> {type(value2)}) has to be a (Bit -> integer)"
+                " or the other way around."
             )
         return virtual, physical
 
@@ -137,7 +137,7 @@ class Layout:
         else:
             raise LayoutError(
                 "The key to remove should be of the form"
-                " Qubit or integer) and %s was provided" % (type(key),)
+                f" Qubit or integer) and {type(key)} was provided"
             )
 
     def __len__(self):

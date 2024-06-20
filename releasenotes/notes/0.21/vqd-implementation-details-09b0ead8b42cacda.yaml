@@ -2,7 +2,7 @@
 features:
   - |
     The algorithm iteratively computes each eigenstate by starting from the ground 
-    state (which is computed as in VQE) and then optimising a modified cost function 
+    state (which is computed as in VQE) and then optimizing a modified cost function 
     that tries to compute eigen states that are orthogonal to the states computed in 
     the previous iterations and have the lowest energy when computed over the ansatz.
     The interface implemented is very similar to that of VQE and is of the form:

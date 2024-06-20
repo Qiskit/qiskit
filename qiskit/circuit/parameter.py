@@ -62,7 +62,7 @@ class Parameter(ParameterExpression):
     __slots__ = ("_uuid", "_hash")
 
     # This `__init__` does not call the super init, because we can't construct the
-    # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialised
+    # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialized
     # anyway, because `ParameterExpression` depends heavily on the structure of `Parameter`.
 
     def __init__(
@@ -109,8 +109,8 @@ class Parameter(ParameterExpression):
         if allow_unknown_parameters:
             return self
         raise CircuitError(
-            "Cannot bind Parameters ({}) not present in "
-            "expression.".format([str(p) for p in parameter_map])
+            f"Cannot bind Parameters ({[str(p) for p in parameter_map]}) not present in "
+            "expression."
         )
 
     @property

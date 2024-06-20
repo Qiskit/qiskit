@@ -116,7 +116,7 @@ class BooleanExpression(ClassicalElement):
 
         expr_obj = cls.__new__(cls)
         if not isfile(filename):
-            raise FileNotFoundError("The file %s does not exists." % filename)
+            raise FileNotFoundError(f"The file {filename} does not exists.")
         expr_obj._tweedledum_bool_expression = BoolFunction.from_dimacs_file(filename)
 
         num_qubits = (

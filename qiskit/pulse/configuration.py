@@ -55,11 +55,9 @@ class Kernel:
         self.params = params
 
     def __repr__(self):
-        return "{}({}{})".format(
-            self.__class__.__name__,
-            "'" + self.name + "', " or "",
-            ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items()),
-        )
+        name_repr = "'" + self.name + "', "
+        params_repr = ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items())
+        return f"{self.__class__.__name__}({name_repr}{params_repr})"
 
     def __eq__(self, other):
         if isinstance(other, Kernel):
@@ -83,11 +81,9 @@ class Discriminator:
         self.params = params
 
     def __repr__(self):
-        return "{}({}{})".format(
-            self.__class__.__name__,
-            "'" + self.name + "', " or "",
-            ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items()),
-        )
+        name_repr = "'" + self.name + "', " or ""
+        params_repr = ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items())
+        return f"{self.__class__.__name__}({name_repr}{params_repr})"
 
     def __eq__(self, other):
         if isinstance(other, Discriminator):
@@ -184,7 +180,7 @@ class LoConfig:
             self.check_lo(channel, freq)
             self._m_lo_freq[channel] = freq
         else:
-            raise PulseError("Specified channel %s cannot be configured." % channel.name)
+            raise PulseError(f"Specified channel {channel.name} cannot be configured.")
 
     def add_lo_range(
         self, channel: DriveChannel | MeasureChannel, lo_range: LoRange | tuple[int, int]
@@ -236,7 +232,7 @@ class LoConfig:
             if channel in self.meas_los:
                 return self.meas_los[channel]
 
-        raise PulseError("Channel %s is not configured" % channel)
+        raise PulseError(f"Channel {channel} is not configured")
 
     @property
     def qubit_los(self) -> dict[DriveChannel, float]:

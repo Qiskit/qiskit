@@ -76,7 +76,7 @@ class TestCircuitVars(QiskitTestCase):
         )
 
     def test_initialise_declarations_dependencies(self):
-        """Test that the cirucit initialiser can take in declarations with dependencies between
+        """Test that the circuit initializer can take in declarations with dependencies between
         them, provided they're specified in a suitable order."""
         a = expr.Var.new("a", types.Bool())
         vars_ = [

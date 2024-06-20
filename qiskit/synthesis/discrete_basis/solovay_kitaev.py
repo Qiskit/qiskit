@@ -109,7 +109,7 @@ class SolovayKitaevDecomposition:
         gate_matrix_su2 = GateSequence.from_matrix(z * gate_matrix)
         global_phase = np.arctan2(np.imag(z), np.real(z))
 
-        # get the decompositon as GateSequence type
+        # get the decomposition as GateSequence type
         decomposition = self._recurse(gate_matrix_su2, recursion_degree, check_input=check_input)
 
         # simplify

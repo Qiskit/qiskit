@@ -133,7 +133,7 @@ def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
         links = {i: list(range(num_qubits)) for i in range(num_qubits)}
 
     elif connectivity == "line":
-        # Every qubit is connected to its immediate neighbours only.
+        # Every qubit is connected to its immediate neighbors only.
         links = {i: [i - 1, i, i + 1] for i in range(1, num_qubits - 1)}
 
         # first qubit

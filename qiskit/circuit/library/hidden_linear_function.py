@@ -82,7 +82,7 @@ class HiddenLinearFunction(QuantumCircuit):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
         num_qubits = len(adjacency_matrix)
-        circuit = QuantumCircuit(num_qubits, name="hlf: %s" % adjacency_matrix)
+        circuit = QuantumCircuit(num_qubits, name=f"hlf: {adjacency_matrix}")
 
         circuit.h(range(num_qubits))
         for i in range(num_qubits):

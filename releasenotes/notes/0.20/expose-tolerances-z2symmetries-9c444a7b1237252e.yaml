@@ -35,7 +35,7 @@ features:
         SparsePauliOp(['X', 'Y'],
                       coeffs=[1.+0.j, 0.+1.j])
 
-    Note that the chop method does not accumulate the coefficents of the same Paulis, e.g.
+    Note that the chop method does not accumulate the coefficients of the same Paulis, e.g.
 
     .. code-block::
 

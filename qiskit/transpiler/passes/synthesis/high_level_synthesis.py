@@ -540,8 +540,8 @@ class HighLevelSynthesis(TransformationPass):
             if isinstance(plugin_specifier, str):
                 if plugin_specifier not in hls_plugin_manager.method_names(op.name):
                     raise TranspilerError(
-                        "Specified method: %s not found in available plugins for %s"
-                        % (plugin_specifier, op.name)
+                        f"Specified method: {plugin_specifier} not found in available "
+                        f"plugins for {op.name}"
                     )
                 plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
             else:

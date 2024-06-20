@@ -975,7 +975,7 @@ def load_qpy(qpy_files, version_parts):
 
 
 def _main():
-    parser = argparse.ArgumentParser(description="Test QPY backwards compatibilty")
+    parser = argparse.ArgumentParser(description="Test QPY backwards compatibility")
     parser.add_argument("command", choices=["generate", "load"])
     parser.add_argument(
         "--version",

@@ -103,7 +103,7 @@ features:
     :attr:`.Instruction.mutable` which is used to get a mutable copy and check whether
     an :class:`~.circuit.Instruction` object is mutable. With the introduction
     of :class:`~.SingletonGate` these methods can be used to have a unified interface
-    to deal with the mutablitiy of instruction objects.
+    to deal with the mutability of instruction objects.
   - |
     Added an attribute :attr:`.Instruction.base_class`, which gets the "base" type of an
     instruction.  Many instructions will satisfy ``type(obj) == obj.base_class``, however the

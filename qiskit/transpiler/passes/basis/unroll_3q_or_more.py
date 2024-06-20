@@ -78,7 +78,7 @@ class Unroll3qOrMore(TransformationPass):
                     continue
                 raise QiskitError(
                     "Cannot unroll all 3q or more gates. "
-                    "No rule to expand instruction %s." % node.op.name
+                    f"No rule to expand instruction {node.op.name}."
                 )
             decomposition = circuit_to_dag(node.op.definition, copy_operations=False)
             decomposition = self.run(decomposition)  # recursively unroll

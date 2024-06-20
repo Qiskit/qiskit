@@ -199,7 +199,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         super().__init__(
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
         )
-        # Set the condition after super().__init__() has initialised it to None.
+        # Set the condition after super().__init__() has initialized it to None.
         self.condition = validate_condition(condition)
 
     def with_false_block(self, false_block: ControlFlowBuilderBlock) -> "IfElsePlaceholder":
@@ -236,7 +236,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
     def _calculate_placeholder_resources(self) -> InstructionResources:
         """Get the placeholder resources (see :meth:`.placeholder_resources`).
 
-        This is a separate function because we use the resources during the initialisation to
+        This is a separate function because we use the resources during the initialization to
         determine how we should set our ``num_qubits`` and ``num_clbits``, so we implement the
         public version as a cache access for efficiency.
         """

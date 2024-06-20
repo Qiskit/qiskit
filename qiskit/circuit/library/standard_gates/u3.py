@@ -344,7 +344,7 @@ def _generate_gray_code(num_bits):
     result = [0]
     for i in range(num_bits):
         result += [x + 2**i for x in reversed(result)]
-    return [format(x, "0%sb" % num_bits) for x in result]
+    return [format(x, f"0{num_bits}b") for x in result]
 
 
 def _gray_code_chain(q, num_ctrl_qubits, gate):

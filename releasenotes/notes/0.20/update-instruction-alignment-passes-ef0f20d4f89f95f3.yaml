@@ -12,7 +12,7 @@ features:
 
     Previously, the pass chain would have been implemented as ``scheduling -> alignment``
     which were both transform passes thus there were multiple :class:`~.DAGCircuit`
-    instances recreated during each pass. In addition, scheduling occured in each pass
+    instances recreated during each pass. In addition, scheduling occurred in each pass
     to obtain instruction start time. Now the required pass chain becomes
     ``scheduling -> alignment -> padding`` where the :class:`~.DAGCircuit` update only
     occurs at the end with the ``padding`` pass.
@@ -59,7 +59,7 @@ features:
     The :class:`~.ConstrainedReschedule` pass considers both hardware
     alignment constraints that can be definied in a :class:`.BackendConfiguration`
     object, ``pulse_alignment`` and ``acquire_alignment``. This new class superscedes
-    the previosuly existing :class:`~.AlignMeasures` as it performs the same alignment
+    the previously existing :class:`~.AlignMeasures` as it performs the same alignment
     (via the property set) for measurement instructions in addition to general instruction
     alignment. By setting the ``acquire_alignment`` constraint argument for the
     :class:`~.ConstrainedReschedule` pass it is a drop-in replacement of
@@ -67,7 +67,7 @@ features:
   - |
     Added two new transpiler passes :class:`~.ALAPScheduleAnalysis` and :class:`~.ASAPScheduleAnalysis`
     which superscede the :class:`~.ALAPSchedule` and :class:`~.ASAPSchedule` as part of the
-    reworked transpiler workflow for schedling. The new passes perform the same scheduling but
+    reworked transpiler workflow for scheduling. The new passes perform the same scheduling but
     in the property set and relying on a :class:`~.BasePadding` pass to adjust the circuit
     based on all the scheduling alignment analysis.
 
@@ -155,5 +155,5 @@ features:
     Added a new transpiler pass :class:`~.PadDynamicalDecoupling`
     which superscedes the :class:`~.DynamicalDecoupling` pass as part of the
     reworked transpiler workflow for scheduling. This new pass will insert dynamical decoupling
-    sequences into the circuit per any scheduling and alignment analysis that occured in earlier
+    sequences into the circuit per any scheduling and alignment analysis that occurred in earlier
     passes.

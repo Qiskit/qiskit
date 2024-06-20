@@ -101,7 +101,7 @@ class Counts(dict):
             else:
                 raise TypeError(
                     "Invalid input key type %s, must be either an int "
-                    "key or string key with hexademical value or bit string"
+                    "key or string key with hexadecimal value or bit string"
                 )
         header = {}
         self.creg_sizes = creg_sizes
@@ -130,7 +130,7 @@ class Counts(dict):
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
             raise exceptions.QiskitError(
-                "Multiple values have the same maximum counts: %s" % ",".join(max_values_counts)
+                f"Multiple values have the same maximum counts: {','.join(max_values_counts)}"
             )
         return max_values_counts[0]
 

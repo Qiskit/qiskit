@@ -67,7 +67,7 @@ class GateDirection(TransformationPass):
              └──────┘          └───┘└──────┘└───┘
 
     This pass assumes that the positions of the qubits in the :attr:`.DAGCircuit.qubits` attribute
-    are the physical qubit indicies. For example if ``dag.qubits[0]`` is qubit 0 in the
+    are the physical qubit indices. For example if ``dag.qubits[0]`` is qubit 0 in the
     :class:`.CouplingMap` or :class:`.Target`.
     """
 

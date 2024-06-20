@@ -522,7 +522,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
         metadata_deserializer (JSONDecoder): An optional JSONDecoder class
             that will be used for the ``cls`` kwarg on the internal
             ``json.load`` call used to deserialize the JSON payload used for
-            the :attr:`.ScheduleBlock.metadata` attribute for a schdule block
+            the :attr:`.ScheduleBlock.metadata` attribute for a schedule block
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.

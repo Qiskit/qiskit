@@ -1630,7 +1630,7 @@ impl State {
 
     /// Update the parser state with the definition of a particular gate.  This does not emit any
     /// bytecode because not all gate definitions need something passing to Python.  For example,
-    /// the Python parser initialises its state including the built-in gates `U` and `CX`, and
+    /// the Python parser initializes its state including the built-in gates `U` and `CX`, and
     /// handles the `qelib1.inc` include specially as well.
     fn define_gate(
         &mut self,

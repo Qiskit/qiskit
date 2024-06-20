@@ -34,7 +34,7 @@ class TestCXCZSynth(QiskitTestCase):
 
     @combine(num_qubits=[3, 4, 5, 6, 7, 8, 9, 10])
     def test_cx_cz_synth_lnn(self, num_qubits):
-        """Test the CXCZ synthesis code for linear nearest neighbour connectivity."""
+        """Test the CXCZ synthesis code for linear nearest neighbor connectivity."""
         seed = 1234
         rng = np.random.default_rng(seed)
         num_gates = 10

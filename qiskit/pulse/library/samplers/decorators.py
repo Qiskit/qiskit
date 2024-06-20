@@ -182,9 +182,9 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
     header, body = wrapped_docstring.split("\n", 1)
     body = textwrap.indent(body, "                    ")
     wrapped_docstring = header + body
-    updated_ds = """
-                Discretized continuous pulse function: `{continuous_name}` using
-                sampler: `{sampler_name}`.
+    updated_ds = f"""
+                Discretized continuous pulse function: `{discretized_pulse.__name__}` using
+                sampler: `{sampler_inst.__name__}`.
 
                  The first argument (time) of the continuous pulse function has been replaced with
                  a discretized `duration` of type (int).
@@ -198,12 +198,8 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
 
                  Sampled continuous function:
 
-                    {continuous_doc}
-                """.format(
-        continuous_name=discretized_pulse.__name__,
-        sampler_name=sampler_inst.__name__,
-        continuous_doc=wrapped_docstring,
-    )
+                    {wrapped_docstring}
+                """
 
     discretized_pulse.__doc__ = updated_ds
     return discretized_pulse

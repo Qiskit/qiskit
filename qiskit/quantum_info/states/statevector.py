@@ -117,11 +117,9 @@ class Statevector(QuantumState, TolerancesMixin):
     def __repr__(self):
         prefix = "Statevector("
         pad = len(prefix) * " "
-        return "{}{},\n{}dims={})".format(
-            prefix,
-            np.array2string(self._data, separator=", ", prefix=prefix),
-            pad,
-            self._op_shape.dims_l(),
+        return (
+            f"{prefix}{np.array2string(self._data, separator=', ', prefix=prefix)},\n{pad}"
+            f"dims={self._op_shape.dims_l()})"
         )
 
     @property
@@ -940,9 +938,7 @@ class Statevector(QuantumState, TolerancesMixin):
             raise QiskitError(f"Cannot apply Instruction: {obj.name}")
         if not isinstance(obj.definition, QuantumCircuit):
             raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    obj.name, type(obj.definition)
-                )
+                f"{obj.name} instruction definition is {type(obj.definition)}; expected QuantumCircuit"
             )
 
         if obj.definition.global_phase:

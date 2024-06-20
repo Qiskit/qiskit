@@ -54,8 +54,8 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         else:
             if len(qubits) != matrix_qubits_num:
                 raise QiskitError(
-                    "The number of given qubits ({}) is different than the number of "
-                    "qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num)
+                    f"The number of given qubits ({len(qubits)}) is different than the number of "
+                    f"qubits inferred from the matrices ({matrix_qubits_num})"
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)

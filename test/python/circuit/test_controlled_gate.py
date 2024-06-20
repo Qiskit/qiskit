@@ -1262,7 +1262,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(cu.base_gate.params, [0.4, 0.3, 0.2])
 
     def test_assign_nested_controlled_cu(self):
-        """Test assignment of an arbitrary controlled parametrised gate that appears through the
+        """Test assignment of an arbitrary controlled parametrized gate that appears through the
         `Gate.control()` method on an already-controlled gate."""
         theta = Parameter("t")
         qc_c = QuantumCircuit(2)

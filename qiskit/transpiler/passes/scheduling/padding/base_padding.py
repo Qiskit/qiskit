@@ -202,7 +202,7 @@ class BasePadding(TransformationPass):
     ):
         """Add new operation to DAG with scheduled information.
 
-        This is identical to apply_operation_back + updating the node_start_time propety.
+        This is identical to apply_operation_back + updating the node_start_time property.
 
         Args:
             dag: DAG circuit on which the sequence is applied.

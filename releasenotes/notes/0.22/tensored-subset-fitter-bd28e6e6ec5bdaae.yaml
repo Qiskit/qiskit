@@ -5,5 +5,5 @@ features:
     class. The implementation is restricted to mitigation patterns in which each
     qubit is mitigated individually, e.g. ``[[0], [1], [2]]``. This is, however,
     the most widely used case. It allows the :class:`.TensoredMeasFitter` to
-    be used in cases where the numberical order of the physical qubits does not
+    be used in cases where the numerical order of the physical qubits does not
     match the index of the classical bit.

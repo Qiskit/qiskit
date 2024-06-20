@@ -5,7 +5,7 @@ features:
     to limit the number of times a job will attempt to be executed on a backend.
     Previously the submission and fetching of results would be attempted
     infinitely, even if the job was cancelled or errored on the backend.  The
-    default is now 50, and the previous behaviour can be achieved by setting
+    default is now 50, and the previous behavior can be achieved by setting
     ``max_job_tries=-1``.  Fixes `#6872
     <https://github.com/Qiskit/qiskit-terra/issues/6872>`__ and `#6821
     <https://github.com/Qiskit/qiskit-terra/issues/6821>`__.

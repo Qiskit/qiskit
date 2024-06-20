@@ -194,7 +194,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         )
 
     def test_bad_layout(self):
-        """Layout referes to a register that do not exist in the circuit"""
+        """Layout refers to a register that do not exist in the circuit"""
         qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)

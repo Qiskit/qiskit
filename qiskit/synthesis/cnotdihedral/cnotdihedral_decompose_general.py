@@ -38,7 +38,7 @@ def synth_cnotdihedral_general(elem: CNOTDihedral) -> QuantumCircuit:
 
     References:
         1. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-           *Scalable randomised benchmarking of non-Clifford gates*,
+           *Scalable randomized benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
     """
 

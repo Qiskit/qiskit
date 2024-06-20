@@ -5,6 +5,6 @@ fixes:
     :class:`qiskit.circuit.library.NLocal` circuit class for the edge
     case where the circuit has the same size as the entanglement block (e.g. a two-qubit
     circuit and CZ entanglement gates). In this case there should only be one entanglement
-    gate, but there was accidentially added a second one in the inverse direction as the 
+    gate, but there was accidentally added a second one in the inverse direction as the 
     first.
     Fixed `Qiskit/qiskit-aqua#1452 <https://github.com/Qiskit/qiskit-aqua/issues/1452>`__

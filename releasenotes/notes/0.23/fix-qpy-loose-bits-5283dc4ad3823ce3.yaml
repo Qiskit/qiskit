@@ -1,9 +1,9 @@
 ---
 fixes:
   - |
-    QPY deserialisation will no longer add extra :class:`.Clbit` instances to the
+    QPY deserialization will no longer add extra :class:`.Clbit` instances to the
     circuit if there are both loose :class:`.Clbit`\ s in the circuit and more
     :class:`~qiskit.circuit.Qubit`\ s than :class:`.Clbit`\ s.
   - |
-    QPY deserialisation will no longer add registers named `q` and `c` if the
+    QPY deserialization will no longer add registers named `q` and `c` if the
     input circuit contained only loose bits.

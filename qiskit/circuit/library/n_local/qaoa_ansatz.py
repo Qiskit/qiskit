@@ -97,20 +97,18 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             valid = False
             if raise_on_failure:
                 raise ValueError(
-                    "The number of qubits of the initial state {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.initial_state.num_qubits, self.num_qubits
-                    )
+                    f"The number of qubits of the initial state {self.initial_state.num_qubits}"
+                    " does not match "
+                    f"the number of qubits of the cost operator {self.num_qubits}"
                 )
 
         if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
                 raise ValueError(
-                    "The number of qubits of the mixer {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.mixer_operator.num_qubits, self.num_qubits
-                    )
+                    f"The number of qubits of the mixer {self.mixer_operator.num_qubits}"
+                    f" does not match "
+                    f"the number of qubits of the cost operator {self.num_qubits}"
                 )
 
         return valid

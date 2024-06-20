@@ -78,17 +78,13 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern_out_of_range[0] = width
             with self.assertRaises(ValueError) as exc:
                 _validate_permutation(pattern_out_of_range)
-                self.assertIn(
-                    "input has length {0} and contains {0}".format(width), str(exc.exception)
-                )
+                self.assertIn(f"input has length {width} and contains {width}", str(exc.exception))
 
             pattern_duplicate = np.copy(pattern)
             pattern_duplicate[-1] = pattern[0]
             with self.assertRaises(ValueError) as exc:
                 _validate_permutation(pattern_duplicate)
-                self.assertIn(
-                    "input contains {} more than once".format(pattern[0]), str(exc.exception)
-                )
+                self.assertIn(f"input contains {pattern[0]} more than once", str(exc.exception))
 
     @data(4, 5, 10, 15, 20)
     def test_synth_permutation_basic(self, width):

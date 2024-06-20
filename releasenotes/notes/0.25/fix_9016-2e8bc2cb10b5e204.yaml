@@ -3,5 +3,5 @@ fixes:
   - |
     When the parameter ``conditional=True`` is set in 
     ``qiskit.circuit.random.random_circuit``, the conditional operations will
-    be preceded by a full mid-circuit measurment.
+    be preceded by a full mid-circuit measurement.
     Fixes `#9016 <https://github.com/Qiskit/qiskit-terra/issues/9016>`__

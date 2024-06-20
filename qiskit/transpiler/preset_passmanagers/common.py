@@ -518,7 +518,7 @@ def generate_translation_passmanager(
             ),
         ]
     else:
-        raise TranspilerError("Invalid translation method %s." % method)
+        raise TranspilerError(f"Invalid translation method {method}.")
     return PassManager(unroll)
 
 
@@ -557,7 +557,7 @@ def generate_scheduling(
         try:
             scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
+            raise TranspilerError(f"Invalid scheduling method {scheduling_method}.") from ex
     elif instruction_durations:
         # No scheduling. But do unit conversion for delays.
         def _contains_delay(property_set):

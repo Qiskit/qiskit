@@ -421,7 +421,7 @@ fn decompose_dense_inner(
 ) {
     if num_qubits == 0 {
         // It would be safe to `return` here, but if it's unreachable then LLVM is allowed to
-        // optimise out this branch entirely in release mode, which is good for a ~2% speedup.
+        // optimize out this branch entirely in release mode, which is good for a ~2% speedup.
         unreachable!("should not call this with an empty operator")
     }
     // Base recursion case.
@@ -529,7 +529,7 @@ fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec
         out
     };
     let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-        // Doing the initialisation here means that when we're in parallel contexts, we do the
+        // Doing the initialization here means that when we're in parallel contexts, we do the
         // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
         // contexts, but I don't understand that. ---Jake
         row.fill(Complex64::new(0.0, 0.0));
@@ -721,7 +721,7 @@ macro_rules! impl_to_matrix_sparse {
 
             // The parallel overhead from splitting a subtask is fairly high (allocating and
             // potentially growing a couple of vecs), so we're trading off some of Rayon's ability
-            // to keep threads busy by subdivision with minimising overhead; we're setting the
+            // to keep threads busy by subdivision with minimizing overhead; we're setting the
             // chunk size such that the iterator will have as many elements as there are threads.
             let num_threads = rayon::current_num_threads();
             let chunk_size = (side + num_threads - 1) / num_threads;
@@ -738,7 +738,7 @@ macro_rules! impl_to_matrix_sparse {
                     // Since we compressed the Paulis by summing equal elements, we're
                     // lower-bounded on the number of elements per row by this value, up to
                     // cancellations.  This should be a reasonable trade-off between sometimes
-                    // expandin the vector and overallocation.
+                    // expanding the vector and overallocation.
                     let mut values =
                         Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);

@@ -68,8 +68,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         else:
             if len(qubits) != len(assignment_matrices):
                 raise QiskitError(
-                    "The number of given qubits ({}) is different than the number of qubits "
-                    "inferred from the matrices ({})".format(len(qubits), len(assignment_matrices))
+                    f"The number of given qubits ({len(qubits)}) is different than the number of qubits "
+                    f"inferred from the matrices ({len(assignment_matrices)})"
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)

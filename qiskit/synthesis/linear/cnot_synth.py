@@ -19,6 +19,7 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 
 from qiskit._accelerate.synthesis import synth_cnot_count_full_pmh as fast_pmh
 
@@ -51,6 +52,11 @@ def synth_cnot_count_full_pmh(
            Quantum Information & Computation 8.3 (2008): 282-294.
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
+    if not isinstance(state, (list, np.ndarray)):
+        raise QiskitError(
+            f"state should be of type list or numpy.ndarray, but was of the type {type(state)}"
+        )
+
     # call Rust implementation with normalized input
     circuit_data = fast_pmh(np.asarray(state).astype(bool), section_size)
 

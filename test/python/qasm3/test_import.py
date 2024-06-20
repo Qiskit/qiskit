@@ -13,7 +13,7 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 # Since the import is nearly entirely delegated to an external package, most of the testing is done
-# there.  Here we need to test our wrapping behaviour for base functionality and exceptions.  We
+# there.  Here we need to test our wrapping behavior for base functionality and exceptions.  We
 # don't want to get into a situation where updates to `qiskit_qasm3_import` breaks Terra's test
 # suite due to too specific tests on the Terra side.
 

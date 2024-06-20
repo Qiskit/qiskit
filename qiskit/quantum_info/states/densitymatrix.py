@@ -123,11 +123,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
     def __repr__(self):
         prefix = "DensityMatrix("
         pad = len(prefix) * " "
-        return "{}{},\n{}dims={})".format(
-            prefix,
-            np.array2string(self._data, separator=", ", prefix=prefix),
-            pad,
-            self._op_shape.dims_l(),
+        return (
+            f"{prefix}{np.array2string(self._data, separator=', ', prefix=prefix)},\n"
+            f"{pad}dims={self._op_shape.dims_l()})"
         )
 
     @property
@@ -771,9 +769,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             raise QiskitError(f"Cannot apply Instruction: {other.name}")
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    other.name, type(other.definition)
-                )
+                f"{other.name} instruction definition is {type(other.definition)};"
+                f" expected QuantumCircuit"
             )
         qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
         for instruction in other.definition:

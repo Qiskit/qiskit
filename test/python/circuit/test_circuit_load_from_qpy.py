@@ -1163,7 +1163,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_clbit_switch(self):
-        """Test QPY serialisation for a switch statement with a Clbit target."""
+        """Test QPY serialization for a switch statement with a Clbit target."""
         case_t = QuantumCircuit(2, 1)
         case_t.x(0)
         case_f = QuantumCircuit(2, 1)
@@ -1180,7 +1180,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_register_switch(self):
-        """Test QPY serialisation for a switch statement with a ClassicalRegister target."""
+        """Test QPY serialization for a switch statement with a ClassicalRegister target."""
         qreg = QuantumRegister(2, "q")
         creg = ClassicalRegister(3, "c")
 

@@ -130,7 +130,7 @@ class DynamicalDecoupling(TransformationPass):
                 will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits (bool): if True, does not insert DD on idle
                 periods that immediately follow initialized/reset qubits (as
-                qubits in the ground state are less susceptile to decoherence).
+                qubits in the ground state are less susceptible to decoherence).
             target (Target): The :class:`~.Target` representing the target backend, if both
                   ``durations`` and this are specified then this argument will take
                   precedence and ``durations`` will be ignored.

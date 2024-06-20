@@ -68,7 +68,7 @@ class BaseSchedulerTransform(TransformationPass):
         However, such optimization should be done by another pass,
         otherwise scheduling may break topological ordering of the original circuit.
 
-    Realistic control flow scheduling respecting for microarcitecture
+    Realistic control flow scheduling respecting for microarchitecture
 
         In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
         followed by resonator ring-down (depopulation). This microwave signal is recorded

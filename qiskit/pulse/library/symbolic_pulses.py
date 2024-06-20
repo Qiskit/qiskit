@@ -570,11 +570,8 @@ class SymbolicPulse(Pulse):
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-        return "{}({}{})".format(
-            self._pulse_type,
-            param_repr,
-            f", name='{self.name}'" if self.name is not None else "",
-        )
+        name_repr = f", name='{self.name}'" if self.name is not None else ""
+        return f"{self._pulse_type}({param_repr}{name_repr})"
 
     __hash__ = None
 

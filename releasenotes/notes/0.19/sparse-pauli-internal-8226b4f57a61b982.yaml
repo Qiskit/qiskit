@@ -12,5 +12,5 @@ upgrade:
     The return type of :func:`~qiskit.quantum_info.pauli_basis` will change from
     :class:`~qiskit.quantum_info.PauliTable` to
     :class:`~qiskit.quantum_info.PauliList` in a future release of Qiskit Terra.
-    To immediately swap to the new behaviour, pass the keyword argument
+    To immediately swap to the new behavior, pass the keyword argument
     ``pauli_list=True``.

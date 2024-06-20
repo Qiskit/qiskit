@@ -52,7 +52,7 @@ class CircuitConstructionBench:
 
 
 def build_parameterized_circuit(width, gates, param_count):
-    params = [Parameter("param-%s" % x) for x in range(param_count)]
+    params = [Parameter(f"param-{x}") for x in range(param_count)]
     param_iter = itertools.cycle(params)
 
     qr = QuantumRegister(width)

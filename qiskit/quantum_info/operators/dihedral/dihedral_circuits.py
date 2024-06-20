@@ -92,9 +92,7 @@ def _append_circuit(elem, circuit, qargs=None):
         raise QiskitError(f"Cannot apply Instruction: {gate.name}")
     if not isinstance(gate.definition, QuantumCircuit):
         raise QiskitError(
-            "{} instruction definition is {}; expected QuantumCircuit".format(
-                gate.name, type(gate.definition)
-            )
+            f"{gate.name} instruction definition is {type(gate.definition)}; expected QuantumCircuit"
         )
 
     flat_instr = gate.definition

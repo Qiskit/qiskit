@@ -3,7 +3,7 @@ features:
   - |
     Added new methods for executing primitives: :meth:`.BaseSampler.run` and :meth:`.BaseEstimator.run`.
     These methods execute asynchronously and return :class:`.JobV1` objects which
-    provide a handle to the exections. These new run methods can be passed :class:`~.QuantumCircuit`
+    provide a handle to the exceptions. These new run methods can be passed :class:`~.QuantumCircuit`
     objects (and observables for :class:`~.BaseEstimator`) that are not registered in the constructor.
     For example::
 

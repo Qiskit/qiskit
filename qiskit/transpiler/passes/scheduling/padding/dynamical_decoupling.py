@@ -128,7 +128,7 @@ class PadDynamicalDecoupling(BasePadding):
                 will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits: If True, does not insert DD on idle periods that
                 immediately follow initialized/reset qubits
-                (as qubits in the ground state are less susceptile to decoherence).
+                (as qubits in the ground state are less susceptible to decoherence).
             pulse_alignment: The hardware constraints for gate timing allocation.
                 This is usually provided from ``backend.configuration().timing_constraints``.
                 If provided, the delay length, i.e. ``spacing``, is implicitly adjusted to
@@ -311,7 +311,7 @@ class PadDynamicalDecoupling(BasePadding):
         # slack = 992 dt - 4 x 160 dt = 352 dt
         #
         # unconstraind sequence: 44dt-X1-88dt-Y2-88dt-X3-88dt-Y4-44dt
-        # constraind sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
+        # constrained sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
         #
         # Now we evenly split extra slack into start and end of the sequence.
         # The distributed slack should be multiple of 16.

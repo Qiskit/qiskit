@@ -112,7 +112,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         self.assertEqual(obs["Z"], 1)
 
     def test_coerce_observable_duplicate_sparse_pauli_op(self):
-        """Test coerce_observable for SparsePauliOp wiht duplicate paulis"""
+        """Test coerce_observable for SparsePauliOp with duplicate paulis"""
         op = qi.SparsePauliOp(["XX", "-XX", "XX", "-XX"], [2, 1, 3, 2])
         obs = ObservablesArray.coerce_observable(op)
         self.assertIsInstance(obs, dict)
