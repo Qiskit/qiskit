@@ -14,7 +14,7 @@ use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
-// Binary matrix multiplication
+/// Binary matrix multiplication
 fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool> {
     let n1_rows = mat1.nrows();
     let n1_cols = mat1.ncols();
@@ -39,10 +39,10 @@ fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool>
     result
 }
 
-// Gauss elimination of a matrix mat with m rows and n columns.
-// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
-// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
+/// Gauss elimination of a matrix mat with m rows and n columns.
+/// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+/// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
+/// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
 fn gauss_elimination_with_perm(
     mut mat: ArrayViewMut2<bool>,
     ncols: Option<usize>,
@@ -103,8 +103,8 @@ fn gauss_elimination_with_perm(
     perm
 }
 
-// Given a boolean matrix A after Gaussian elimination, computes its rank
-// (i.e. simply the number of nonzero rows)
+/// Given a boolean matrix A after Gaussian elimination, computes its rank
+/// (i.e. simply the number of nonzero rows)
 fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
     let rank: usize = mat
         .axis_iter(Axis(0))
@@ -113,7 +113,7 @@ fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
     rank
 }
 
-// Given a square boolean matrix mat, tries to compute its inverse.
+/// Given a square boolean matrix mat, tries to compute its inverse.
 fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<bool> {
     if mat.shape()[0] != mat.shape()[1] {
         panic!("Matrix to invert is a non-square matrix.");
@@ -146,6 +146,10 @@ fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<bool
 
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
+/// Gauss elimination of a matrix mat with m rows and n columns.
+/// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+/// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
+/// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
 fn _gauss_elimination_with_perm(
     py: Python,
     mut mat: PyReadwriteArray2<bool>,
@@ -159,9 +163,9 @@ fn _gauss_elimination_with_perm(
 
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
-// Gauss elimination of a matrix mat with m rows and n columns.
-// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-// Returns the updated matrix mat.
+/// Gauss elimination of a matrix mat with m rows and n columns.
+/// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+/// Returns the updated matrix mat.
 fn _gauss_elimination(
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
@@ -173,8 +177,8 @@ fn _gauss_elimination(
 
 #[pyfunction]
 #[pyo3(signature = (mat))]
-// Given a boolean matrix A after Gaussian elimination, computes its rank
-// (i.e. simply the number of nonzero rows)
+/// Given a boolean matrix A after Gaussian elimination, computes its rank
+/// (i.e. simply the number of nonzero rows)
 fn _compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let view = mat.as_array();
     let rank = compute_rank_after_gauss_elim(view);
@@ -183,7 +187,15 @@ fn _compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> Py
 
 #[pyfunction]
 #[pyo3(signature = (mat, verify=false))]
-// Calculates the inverse matrix
+/// Given a boolean matrix mat, tries to calculate its inverse matrix
+/// Args:
+///    mat: a boolean square matrix.
+///    verify: if True asserts that the multiplication of mat and its inverse is the identity matrix.
+/// Returns:
+///   the inverse matrix.
+/// Raises:
+///  QiskitError: if the matrix is not square.
+///  QiskitError: if the matrix is not invertible.
 pub fn calc_inverse_matrix(
     py: Python,
     mat: PyReadonlyArray2<bool>,
