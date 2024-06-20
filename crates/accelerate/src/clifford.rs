@@ -630,8 +630,8 @@ impl GreedyCliffordSynthesis<'_> {
             let costs: Vec<(usize, usize)> = self
                 .unprocessed_qubits
                 .iter()
-                .map(|q| (self.compute_cost(*q).unwrap(), *q))
-                .collect();
+                .map(|q| self.compute_cost(*q).map(|cost| (cost, *q)))
+                .collect::<Result<Vec<_>, _>>()?;
 
             let min_cost_qubit = costs.iter().min_by_key(|(cost, _)| cost).unwrap().1;
 
