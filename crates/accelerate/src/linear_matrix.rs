@@ -206,6 +206,21 @@ pub fn calc_inverse_matrix(
     Ok(invmat.into_pyarray_bound(py).unbind())
 }
 
+/// Mutate a matrix inplace by adding the value of the ``ctrl`` row to the
+/// ``target`` row. If ``add_cols`` is true, add columns instead of rows.
+fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usize, trgt: usize) {
+    // get the two rows (or columns)
+    let info = if *add_cols {
+        (s![.., ctrl], s![.., trgt])
+    } else {
+        (s![ctrl, ..], s![trgt, ..])
+    };
+    let (row0, mut row1) = mat.multi_slice_mut(info);
+
+    // add them inplace
+    row1.zip_mut_with(&row0, |x, &y| *x ^= y);
+}
+
 #[pyfunction]
 #[pyo3(signature = (mat1, mat2))]
 // Binary matrix multiplication
@@ -224,18 +239,16 @@ pub fn _binary_matmul(
 #[pyo3(signature = (mat, ctrl, trgt))]
 // Perform ROW operation on a matrix mat
 fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
-    let mut matmut = mat.as_array_mut();
-    let (row0, mut row1) = matmut.multi_slice_mut((s![ctrl, ..], s![trgt, ..]));
-    row1.zip_mut_with(&row0, |x, &y| *x ^= y);
+    let matmut = mat.as_array_mut();
+    _add_row_or_col(matmut, &false, ctrl, trgt)
 }
 
 #[pyfunction]
 #[pyo3(signature = (mat, ctrl, trgt))]
-// Perform COL operation on a matrix mat
+// Perform COL operation on a matrix mat (in the inverse direction)
 fn _col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
-    let mut matmut = mat.as_array_mut();
-    let (col0, mut col1) = matmut.multi_slice_mut((s![.., trgt], s![.., ctrl]));
-    col1.zip_mut_with(&col0, |x, &y| *x ^= y);
+    let matmut = mat.as_array_mut();
+    _add_row_or_col(matmut, &true, trgt, ctrl)
 }
 
 #[pymodule]
