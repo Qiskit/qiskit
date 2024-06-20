@@ -683,6 +683,16 @@ fn adjust_final_pauli_gates(
     }
 }
 
+/// Create a circuit that synthesizes a given Clifford operator represented as a tableau.
+///
+/// This is an implementation of the "greedy Clifford compiler" presented in
+/// Appendix A of the paper "Clifford Circuit Optimization with Templates and Symbolic
+/// Pauli Gates" by Bravyi, Shaydulin, Hu, and Maslov (2021), `<https://arxiv.org/abs/2105.02291>`__.
+///
+/// This method typically yields better CX cost compared to the Aaronson-Gottesman method.
+///
+/// Note that this function only implements the greedy Clifford compiler and not the
+/// templates and symbolic Pauli gates optimizations that are also described in the paper.
 #[pyfunction]
 #[pyo3(signature = (clifford))]
 fn synth_clifford_greedy(
