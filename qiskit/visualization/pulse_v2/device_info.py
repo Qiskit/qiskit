@@ -166,7 +166,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
                     except Exception:  # pylint: disable=broad-except
                         pass
         else:
-            raise RuntimeError("Backend object not yet supported")        
+            raise RuntimeError("Backend object not yet supported")
 
         return OpenPulseBackendInfo(
             name=name, dt=dt, channel_frequency_map=chan_freqs, qubit_channel_map=qubit_channel_map
