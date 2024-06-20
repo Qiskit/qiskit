@@ -12,6 +12,8 @@
 
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
+use std::error::Error;
+use std::fmt;
 
 use indexmap::IndexSet;
 use ndarray::{azip, s, Array1, Array2, ArrayView2};
@@ -22,6 +24,11 @@ use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use crate::linear_matrix::calc_inverse_matrix_inner;
+use crate::QiskitError;
+
+/// Internal error handling for synthesis algorithms.
+#[derive(Debug)]
+pub struct SynthesisError;
 
 /// Symplectic matrices.
 pub struct SymplecticMatrix {
@@ -42,6 +49,13 @@ pub struct Clifford {
 /// A sequence of Clifford gates.
 /// Represents the return type of Clifford synthesis algorithms.
 type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
+
+impl Error for SynthesisError {}
+impl fmt::Display for SynthesisError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Synthesis fails.")
+    }
+}
 
 impl SymplecticMatrix {
     /// Modifies the matrix in-place by appending S-gate
@@ -297,8 +311,13 @@ struct GreedyCliffordSynthesis<'a> {
 }
 
 impl GreedyCliffordSynthesis<'_> {
-    fn new(tableau: ArrayView2<bool>) -> GreedyCliffordSynthesis<'_> {
-        let num_qubits = tableau.shape()[0] / 2;
+    fn new(tableau: ArrayView2<bool>) -> Result<GreedyCliffordSynthesis<'_>, SynthesisError> {
+        let tableau_shape = tableau.shape();
+        if (tableau_shape[0] % 2 == 1) || (tableau_shape[1] != tableau_shape[0] + 1) {
+            return Err(SynthesisError);
+        }
+
+        let num_qubits = tableau_shape[0] / 2;
 
         // We are going to modify symplectic_matrix in-place until it
         // becomes the identity.
@@ -309,17 +328,17 @@ impl GreedyCliffordSynthesis<'_> {
 
         let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
 
-        GreedyCliffordSynthesis {
+        Ok(GreedyCliffordSynthesis {
             tableau,
             num_qubits,
             symplectic_matrix,
             unprocessed_qubits,
-        }
+        })
     }
 
     /// Computes the CX cost of decoupling the symplectic matrix on the
     /// given qubit.
-    fn compute_cost(&self, qubit: usize) -> usize {
+    fn compute_cost(&self, qubit: usize) -> Result<usize, SynthesisError> {
         let mut a_num = 0;
         let mut b_num = 0;
         let mut c_num = 0;
@@ -357,10 +376,7 @@ impl GreedyCliffordSynthesis<'_> {
         }
 
         if a_num % 2 == 0 {
-            panic!("Symplectic Gaussian elimination fails");
-            // return Err(QiskitError::new_err(
-            //     "Symplectic Gaussian elimination fails",
-            // ));
+            return Err(SynthesisError);
         }
 
         let mut cnot_cost: usize =
@@ -370,14 +386,18 @@ impl GreedyCliffordSynthesis<'_> {
             cnot_cost += 3;
         }
 
-        cnot_cost
+        Ok(cnot_cost)
     }
 
     /// Calculate a decoupling operator D:
     /// D^{-1} * Ox * D = x1
     /// D^{-1} * Oz * D = z1
     /// and reduces the clifford such that it will act trivially on min_qubit.
-    fn decouple_qubit(&mut self, gate_seq: &mut CliffordGatesVec, min_qubit: usize) {
+    fn decouple_qubit(
+        &mut self,
+        gate_seq: &mut CliffordGatesVec,
+        min_qubit: usize,
+    ) -> Result<(), SynthesisError> {
         let mut a_qubits = IndexSet::new();
         let mut b_qubits = IndexSet::new();
         let mut c_qubits = IndexSet::new();
@@ -480,7 +500,7 @@ impl GreedyCliffordSynthesis<'_> {
         }
 
         if a_qubits.len() % 2 != 1 {
-            panic!("Symplectic elim fails");
+            return Err(SynthesisError);
         }
 
         if !a_qubits.contains(&min_qubit) {
@@ -597,31 +617,32 @@ impl GreedyCliffordSynthesis<'_> {
             self.symplectic_matrix
                 .prepend_cx(min_qubit, a_qubits[2 * qubit + 1]);
         }
+
+        Ok(())
     }
 
     /// The main synthesis function.
-    fn run(&mut self) -> (usize, CliffordGatesVec) {
+    fn run(&mut self) -> Result<(usize, CliffordGatesVec), SynthesisError> {
         let mut clifford_gates = CliffordGatesVec::new();
 
         while !self.unprocessed_qubits.is_empty() {
-            let min_cost_qubit = self
+            // todo: handle panic! in unwrap
+            let costs: Vec<(usize, usize)> = self
                 .unprocessed_qubits
                 .iter()
-                .map(|q| (self.compute_cost(*q), *q))
-                .collect::<Vec<(usize, usize)>>()
-                .iter()
-                .min_by_key(|(cost, _)| cost)
-                .unwrap()
-                .1;
+                .map(|q| (self.compute_cost(*q).unwrap(), *q))
+                .collect();
 
-            self.decouple_qubit(&mut clifford_gates, min_cost_qubit);
+            let min_cost_qubit = costs.iter().min_by_key(|(cost, _)| cost).unwrap().1;
+
+            self.decouple_qubit(&mut clifford_gates, min_cost_qubit)?;
 
             self.unprocessed_qubits.swap_remove(&min_cost_qubit);
         }
 
         adjust_final_pauli_gates(&mut clifford_gates, self.tableau, self.num_qubits);
 
-        (self.num_qubits, clifford_gates)
+        Ok((self.num_qubits, clifford_gates))
     }
 }
 
@@ -700,11 +721,15 @@ fn synth_clifford_greedy(
     clifford: PyReadonlyArray2<bool>,
 ) -> PyResult<Option<CircuitData>> {
     let tableau = clifford.as_array();
-    let mut greedy_synthesis = GreedyCliffordSynthesis::new(tableau.view());
-    let (num_qubits, clifford_gates) = greedy_synthesis.run();
+    let mut greedy_synthesis = GreedyCliffordSynthesis::new(tableau.view()).map_err(|_| {
+        QiskitError::new_err("Clifford greedy synthesis did not initialize successfully.")
+    })?;
+    let (num_qubits, clifford_gates) = greedy_synthesis
+        .run()
+        .map_err(|_| QiskitError::new_err("Clifford greedy synthesis failed."))?;
     let circuit_data =
         CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
-            .expect("Something went wrong on Qiskit's Python side, nothing to do here!");
+            .map_err(|_| QiskitError::new_err("Circuit construction failed unexpectedly."))?;
     Ok(Some(circuit_data))
 }
 
