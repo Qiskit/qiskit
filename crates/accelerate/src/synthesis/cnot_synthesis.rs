@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use ndarray::{s, Array1, Array2, Axis};
+use ndarray::{s, Array1, Array2, ArrayViewMut2, Axis};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use std::cmp;
@@ -24,7 +24,7 @@ use pyo3::prelude::*;
 
 /// Mutate a matrix inplace by adding the value of the ``ctrl`` row to the
 /// ``target`` row. If ``add_cols`` is true, add columns instead of rows.
-fn _add_row_or_col(mat: &mut Array2<bool>, add_cols: &bool, ctrl: usize, trgt: usize) {
+fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usize, trgt: usize) {
     // get the two rows (or columns)
     let info = if *add_cols {
         (s![.., ctrl], s![.., trgt])
@@ -56,10 +56,13 @@ pub fn synth_cnot_count_full_pmh(
     matrix: PyReadonlyArray2<bool>,
     section_size: i64,
 ) -> PyResult<CircuitData> {
-    let mut mat: Array2<bool> = matrix.as_array().to_owned();
+    let arrayview = matrix.as_array();
+    let mut mat: Array2<bool> = arrayview.to_owned();
+    // let mat: ArrayViewMut2<bool> = matrix.as_array().to_owned().view_mut();
+    // let mut mat: ArrayViewMut2<bool> = matrix.as_array().to_owned().view_mut();
     let num_qubits = mat.nrows(); // is a quadratic matrix
-    let lower_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &false);
-    let upper_cnots = lower_cnot_synth(&mut mat, &(section_size as usize), &true);
+    let lower_cnots = lower_cnot_synth(mat.view_mut(), &(section_size as usize), &false);
+    let upper_cnots = lower_cnot_synth(mat.view_mut(), &(section_size as usize), &true);
 
     // iterator over the gates
     let instructions = upper_cnots
@@ -109,7 +112,7 @@ pub fn synth_cnot_count_full_pmh(
 /// Returns:
 ///     A vector of CX locations (control, target) that need to be applied.
 fn lower_cnot_synth(
-    matrix: &mut Array2<bool>,
+    mut matrix: ArrayViewMut2<bool>,
     section_size: &usize,
     transpose: &bool,
 ) -> Vec<(usize, usize)> {
@@ -144,7 +147,7 @@ fn lower_cnot_synth(
                     // store CX location
                     circuit.push((patterns[&pattern], row_idx));
                     // remove the row
-                    _add_row_or_col(matrix, transpose, patterns[&pattern], row_idx);
+                    _add_row_or_col(matrix.view_mut(), transpose, patterns[&pattern], row_idx);
                 } else {
                     // if we have not seen this pattern yet, keep track of it
                     patterns.insert(pattern, row_idx);
@@ -159,11 +162,11 @@ fn lower_cnot_synth(
             for r in col_idx + 1..n {
                 if matrix[_index(transpose, &r, &col_idx)] {
                     if !diag_el {
-                        _add_row_or_col(matrix, transpose, r, col_idx);
+                        _add_row_or_col(matrix.view_mut(), transpose, r, col_idx);
                         circuit.push((r, col_idx));
                         diag_el = true
                     }
-                    _add_row_or_col(matrix, transpose, col_idx, r);
+                    _add_row_or_col(matrix.view_mut(), transpose, col_idx, r);
                     circuit.push((col_idx, r));
                 }
 
@@ -178,7 +181,7 @@ fn lower_cnot_synth(
                     .count()
                     > cutoff
                 {
-                    _add_row_or_col(matrix, transpose, r, col_idx);
+                    _add_row_or_col(matrix.view_mut(), transpose, r, col_idx);
                     circuit.push((r, col_idx));
                 }
             }
