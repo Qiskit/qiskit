@@ -176,6 +176,103 @@ class TestParameters(QiskitTestCase):
         for i, vi in enumerate(v):
             self.assertEqual(vi, qc.parameters[i])
 
+<<<<<<< HEAD
+=======
+    def test_parameters_property_independent_after_copy(self):
+        """Test that any `parameters` property caching is invalidated after a copy operation."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+
+        qc1 = QuantumCircuit(1)
+        qc1.rz(a, 0)
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc2 = qc1.copy_empty_like()
+        self.assertEqual(set(qc2.parameters), set())
+
+        qc3 = qc1.copy()
+        self.assertEqual(set(qc3.parameters), {a})
+        qc3.rz(b, 0)
+        self.assertEqual(set(qc3.parameters), {a, b})
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc1.rz(c, 0)
+        self.assertEqual(set(qc1.parameters), {a, c})
+        self.assertEqual(set(qc3.parameters), {a, b})
+
+    def test_get_parameter(self):
+        """Test the `get_parameter` method."""
+        x = Parameter("x")
+        y = Parameter("y")
+        z = Parameter("z")
+        v = ParameterVector("v", 3)
+
+        qc = QuantumCircuit(1)
+        qc.rx(x + y + z + sum(v), 0)
+
+        self.assertIs(qc.get_parameter("x"), x)
+        self.assertIs(qc.get_parameter("y"), y)
+        self.assertIs(qc.get_parameter("z"), z)
+        self.assertIs(qc.get_parameter(v[1].name), v[1])
+
+        self.assertIsNone(qc.get_parameter("abc", None))
+        self.assertEqual(qc.get_parameter("jfkdla", "not present"), "not present")
+
+        with self.assertRaisesRegex(KeyError, "no parameter named"):
+            qc.get_parameter("jfklda")
+
+    def test_get_parameter_global_phase(self):
+        """Test that `get_parameter` works on parameters that only appear in the global phase."""
+        x = Parameter("x")
+        qc = QuantumCircuit(0, global_phase=x)
+
+        self.assertIs(qc.get_parameter("x"), x)
+        self.assertIsNone(qc.get_parameter("y", None), None)
+
+    def test_setting_global_phase_invalidates_cache(self):
+        """Test that setting the global phase to a non-parametric value invalidates the `parameters`
+        cache of the circuit."""
+        x = Parameter("x")
+        qc = QuantumCircuit(0, global_phase=x)
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
+        qc.global_phase = 0
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+
+        qc = QuantumCircuit(0, global_phase=0)
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+        qc.global_phase = x
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
+
+    def test_has_parameter(self):
+        """Test the `has_parameter` method."""
+        x = Parameter("x")
+        y = Parameter("y")
+        z = Parameter("z")
+        v = ParameterVector("v", 3)
+
+        qc = QuantumCircuit(1)
+        qc.rx(x + y + z + sum(v), 0)
+
+        self.assertTrue(qc.has_parameter("x"))
+        self.assertTrue(qc.has_parameter("y"))
+        self.assertTrue(qc.has_parameter("z"))
+        self.assertTrue(qc.has_parameter(v[1].name))
+
+        self.assertFalse(qc.has_parameter("abc"))
+        self.assertFalse(qc.has_parameter("jfkdla"))
+
+        self.assertTrue(qc.has_parameter(x))
+        self.assertTrue(qc.has_parameter(y))
+
+        # This `z` should compare unequal to the first one, so it should appear absent.
+        self.assertFalse(qc.has_parameter(Parameter("z")))
+
+>>>>>>> b6c616612 (Invalidate `parameters` cache on circuit copy (#12619))
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
         phase = Parameter("phase")
