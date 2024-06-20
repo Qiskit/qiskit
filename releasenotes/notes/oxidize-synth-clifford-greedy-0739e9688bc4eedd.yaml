@@ -1,0 +1,5 @@
+---
+upgrade_synthesis:
+  - |
+    The function :func:`.synth_clifford_greedy` that synthesizes :class:`.Clifford` operators
+    was ported to Rust.
