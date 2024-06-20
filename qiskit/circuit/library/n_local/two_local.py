@@ -135,7 +135,7 @@ class TwoLocal(NLocal):
 
         >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
         >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        >>> circuit = two + two
+        >>> circuit = two.compose(two)
         >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
         q_0: ─────■───────────■───────────■───────────■──────
                   │           │           │           │
