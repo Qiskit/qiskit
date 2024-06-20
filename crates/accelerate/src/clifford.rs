@@ -10,13 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use indexmap::IndexSet;
-use ndarray::{azip, s, Array1, ArrayView2};
+use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 
-use numpy::PyReadonlyArray2;
-
-use numpy::ndarray::Array2;
+use indexmap::IndexSet;
+use ndarray::{azip, s, Array1, Array2, ArrayView2};
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -25,16 +23,28 @@ use qiskit_circuit::Qubit;
 
 use crate::linear_matrix::calc_inverse_matrix_inner;
 
-/// Basic functionality for symplectic matrices
+/// Symplectic matrices.
 pub struct SymplecticMatrix {
-    // number of qubits
+    /// Number of qubits.
     num_qubits: usize,
-    // symplectic matrix with dimensions (2 * num_qubits) x (2 * num_qubits)
+    /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits).
     smat: Array2<bool>,
 }
 
+/// Cliffords.
+pub struct Clifford {
+    /// Number of qubits.
+    num_qubits: usize,
+    /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits + 1).
+    tableau: Array2<bool>,
+}
+
+/// A sequence of Clifford gates.
+/// Represents the return type of Clifford synthesis algorithms.
+type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
+
 impl SymplecticMatrix {
-    // Modifies the matrix in-place by appending S-gate
+    /// Modifies the matrix in-place by appending S-gate
     pub fn append_s(&mut self, qubit: usize) {
         let (x, mut z) = self
             .smat
@@ -42,7 +52,7 @@ impl SymplecticMatrix {
         azip!((z in &mut z, &x in &x) *z ^= x);
     }
 
-    // Modifies the matrix in-place by prepending S-gate
+    /// Modifies the matrix in-place by prepending S-gate
     pub fn prepend_s(&mut self, qubit: usize) {
         let (x, mut z) = self
             .smat
@@ -50,7 +60,7 @@ impl SymplecticMatrix {
         azip!((z in &mut z, &x in &x) *z ^= x);
     }
 
-    // Modifies the matrix in-place by appending H-gate
+    /// Modifies the matrix in-place by appending H-gate
     pub fn append_h(&mut self, qubit: usize) {
         let (mut x, mut z) = self
             .smat
@@ -58,7 +68,7 @@ impl SymplecticMatrix {
         azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
     }
 
-    // Modifies the matrix in-place by prepending H-gate
+    /// Modifies the matrix in-place by prepending H-gate
     pub fn prepend_h(&mut self, qubit: usize) {
         let (mut x, mut z) = self
             .smat
@@ -66,7 +76,7 @@ impl SymplecticMatrix {
         azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
     }
 
-    // Modifies the matrix in-place by appending SWAP-gate
+    /// Modifies the matrix in-place by appending SWAP-gate
     pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
         let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
@@ -78,7 +88,7 @@ impl SymplecticMatrix {
         azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
     }
 
-    // Modifies the matrix in-place by prepending SWAP-gate
+    /// Modifies the matrix in-place by prepending SWAP-gate
     pub fn prepend_swap(&mut self, qubit0: usize, qubit1: usize) {
         let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
             s![qubit0, ..],
@@ -90,7 +100,7 @@ impl SymplecticMatrix {
         azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
     }
 
-    // Modifies the matrix in-place by appending CX-gate
+    /// Modifies the matrix in-place by appending CX-gate
     pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
         let (x0, mut z0, mut x1, z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
@@ -102,7 +112,7 @@ impl SymplecticMatrix {
         azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
     }
 
-    // Modifies the matrix in-place by prepending CX-gate
+    /// Modifies the matrix in-place by prepending CX-gate
     pub fn prepend_cx(&mut self, qubit0: usize, qubit1: usize) {
         let (x0, mut z0, mut x1, z1) = self.smat.multi_slice_mut((
             s![qubit1, ..],
@@ -115,6 +125,101 @@ impl SymplecticMatrix {
     }
 }
 
+impl Clifford {
+    /// Modifies the tableau in-place by appending S-gate
+    pub fn append_s(&mut self, qubit: usize) {
+        let (x, mut z, mut p) = self.tableau.multi_slice_mut((
+            s![.., qubit],
+            s![.., self.num_qubits + qubit],
+            s![.., 2 * self.num_qubits],
+        ));
+
+        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
+        azip!((z in &mut z, &x in &x) *z ^= x);
+    }
+
+    /// Modifies the tableau in-place by appending Sdg-gate
+    pub fn append_sdg(&mut self, qubit: usize) {
+        let (x, mut z, mut p) = self.tableau.multi_slice_mut((
+            s![.., qubit],
+            s![.., self.num_qubits + qubit],
+            s![.., 2 * self.num_qubits],
+        ));
+
+        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & !z);
+        azip!((z in &mut z, &x in &x) *z ^= x);
+    }
+
+    /// Modifies the tableau in-place by appending H-gate
+    pub fn append_h(&mut self, qubit: usize) {
+        let (mut x, mut z, mut p) = self.tableau.multi_slice_mut((
+            s![.., qubit],
+            s![.., self.num_qubits + qubit],
+            s![.., 2 * self.num_qubits],
+        ));
+
+        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
+        azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
+    }
+
+    /// Modifies the tableau in-place by appending SWAP-gate
+    pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
+        let (mut x0, mut z0, mut x1, mut z1) = self.tableau.multi_slice_mut((
+            s![.., qubit0],
+            s![.., self.num_qubits + qubit0],
+            s![.., qubit1],
+            s![.., self.num_qubits + qubit1],
+        ));
+        azip!((x0 in &mut x0, x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
+        azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
+    }
+
+    /// Modifies the tableau in-place by appending CX-gate
+    pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
+        let (x0, mut z0, mut x1, z1, mut p) = self.tableau.multi_slice_mut((
+            s![.., qubit0],
+            s![.., self.num_qubits + qubit0],
+            s![.., qubit1],
+            s![.., self.num_qubits + qubit1],
+            s![.., 2 * self.num_qubits],
+        ));
+        azip!((p in &mut p, &x0 in &x0, &z0 in &z0, &x1 in &x1, &z1 in &z1) *p ^= (x1 ^ z0 ^ true) & z1 & x0);
+        azip!((x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
+        azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
+    }
+
+    /// Creates a Clifford from a given sequence of Clifford gates.
+    /// In essence, starts from the identity tableau and modifies it
+    /// based on the gates in the sequence.
+    pub fn from_gate_sequence(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Clifford {
+        // create the identity
+        let mut clifford = Clifford {
+            num_qubits,
+            tableau: Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| i == j),
+        };
+
+        gate_seq
+            .iter()
+            .for_each(|(gate, _params, qubits)| match *gate {
+                StandardGate::SGate => clifford.append_s(qubits[0].0 as usize),
+                StandardGate::HGate => clifford.append_h(qubits[0].0 as usize),
+                StandardGate::CXGate => {
+                    clifford.append_cx(qubits[0].0 as usize, qubits[1].0 as usize)
+                }
+                StandardGate::SwapGate => {
+                    clifford.append_swap(qubits[0].0 as usize, qubits[1].0 as usize)
+                }
+                _ => panic!("We should never get here!"),
+            });
+        clifford
+    }
+}
+
+fn pauli_pair_to_index(xs: bool, xd: bool, zs: bool, zd: bool) -> usize {
+    ((xs as usize) << 3) | ((xd as usize) << 2) | ((zs as usize) << 1) | (zd as usize)
+}
+
+/// The five classes of Pauli operators as described in the paper.
 #[derive(Clone, Copy)]
 enum PauliClass {
     ClassA,
@@ -124,36 +229,8 @@ enum PauliClass {
     ClassE,
 }
 
-#[derive(Clone, Copy)]
-enum SingleQubitGate {
-    GateI,
-    GateS,
-    GateH,
-    GateSH,
-    GateHS,
-    GateSHS,
-}
-
-struct GreedyCliffordSynthesis<'a> {
-    // The Clifford to be synthesized.
-    clifford: ArrayView2<'a, bool>,
-
-    // The total number of qubits
-    num_qubits: usize,
-
-    // Symplectic matrix being reduced
-    symplectic_matrix: SymplecticMatrix,
-
-    // Unprocessed qubits
-    unprocessed_qubits: IndexSet<usize>,
-}
-
-fn pauli_pair_to_index(xs: bool, xd: bool, zs: bool, zd: bool) -> usize {
-    ((xs as usize) << 3) | ((xd as usize) << 2) | ((zs as usize) << 1) | (zd as usize)
-}
-
-// The 16 pairs of Pauli operators are divided into 5 equivalence classes
-// under the action of single-qubit Cliffords.
+/// The 16 pairs of Pauli operators are divided into 5 equivalence classes
+/// under the action of single-qubit Cliffords.
 static PAULI_INDEX_TO_CLASS: [PauliClass; 16] = [
     PauliClass::ClassE, // 'II'
     PauliClass::ClassD, // 'IX'
@@ -173,8 +250,19 @@ static PAULI_INDEX_TO_CLASS: [PauliClass; 16] = [
     PauliClass::ClassB, // 'YY'
 ];
 
-// Map pair of pauli operators to the single-qubit gate required
-// for the decoupling step.
+/// Single-qubit Clifford gates modulo Paulis.
+#[derive(Clone, Copy)]
+enum SingleQubitGate {
+    GateI,
+    GateS,
+    GateH,
+    GateSH,
+    GateHS,
+    GateSHS,
+}
+
+/// Maps pair of pauli operators to the single-qubit gate required
+/// for the decoupling step.
 static PAULI_INDEX_TO_1Q_GATE: [SingleQubitGate; 16] = [
     SingleQubitGate::GateI,   // 'II'
     SingleQubitGate::GateH,   // 'IX'
@@ -194,29 +282,43 @@ static PAULI_INDEX_TO_1Q_GATE: [SingleQubitGate; 16] = [
     SingleQubitGate::GateS,   // 'YY'
 ];
 
+struct GreedyCliffordSynthesis<'a> {
+    /// The Clifford tableau to be synthesized.
+    tableau: ArrayView2<'a, bool>,
+
+    /// The total number of qubits.
+    num_qubits: usize,
+
+    /// Symplectic matrix being reduced.
+    symplectic_matrix: SymplecticMatrix,
+
+    /// Unprocessed qubits.
+    unprocessed_qubits: IndexSet<usize>,
+}
+
 impl GreedyCliffordSynthesis<'_> {
-    fn new(clifford: ArrayView2<bool>) -> GreedyCliffordSynthesis<'_> {
-        let num_qubits = clifford.shape()[0] / 2;
+    fn new(tableau: ArrayView2<bool>) -> GreedyCliffordSynthesis<'_> {
+        let num_qubits = tableau.shape()[0] / 2;
 
         // We are going to modify symplectic_matrix in-place until it
         // becomes the identity.
         let symplectic_matrix = SymplecticMatrix {
             num_qubits,
-            smat: clifford.slice(s![.., 0..2 * num_qubits]).to_owned(),
+            smat: tableau.slice(s![.., 0..2 * num_qubits]).to_owned(),
         };
 
         let unprocessed_qubits: IndexSet<usize> = (0..num_qubits).collect();
 
         GreedyCliffordSynthesis {
-            clifford,
+            tableau,
             num_qubits,
             symplectic_matrix,
             unprocessed_qubits,
         }
     }
 
-    // Computes the CX cost of decoupling the symplectic matrix on the
-    // given qubit
+    /// Computes the CX cost of decoupling the symplectic matrix on the
+    /// given qubit.
     fn compute_cost(&self, qubit: usize) -> usize {
         let mut a_num = 0;
         let mut b_num = 0;
@@ -274,7 +376,7 @@ impl GreedyCliffordSynthesis<'_> {
     /// Calculate a decoupling operator D:
     /// D^{-1} * Ox * D = x1
     /// D^{-1} * Oz * D = z1
-    /// and reduce the clifford such that it will act trivially on min_qubit
+    /// and reduces the clifford such that it will act trivially on min_qubit.
     fn decouple_qubit(&mut self, gate_seq: &mut CliffordGatesVec, min_qubit: usize) {
         let mut a_qubits = IndexSet::new();
         let mut b_qubits = IndexSet::new();
@@ -291,7 +393,6 @@ impl GreedyCliffordSynthesis<'_> {
             );
 
             let single_qubit_gate = PAULI_INDEX_TO_1Q_GATE[pauli_pair_index];
-
             match single_qubit_gate {
                 SingleQubitGate::GateS => {
                     gate_seq.push((
@@ -462,7 +563,7 @@ impl GreedyCliffordSynthesis<'_> {
 
         let a_len: usize = (a_qubits.len() - 1) / 2;
         if a_len > 0 {
-            a_qubits.retain(|&x| x != min_qubit);
+            a_qubits.swap_remove(&min_qubit);
         }
 
         for qubit in 0..a_len {
@@ -498,7 +599,7 @@ impl GreedyCliffordSynthesis<'_> {
         }
     }
 
-    // The main synthesis function
+    /// The main synthesis function.
     fn run(&mut self) -> CliffordGatesVec {
         let mut clifford_gates = CliffordGatesVec::new();
 
@@ -518,115 +619,26 @@ impl GreedyCliffordSynthesis<'_> {
             self.unprocessed_qubits.swap_remove(&min_cost_qubit);
         }
 
-        fix_phase(&mut clifford_gates, self.clifford, self.num_qubits);
+        adjust_final_pauli_gates(&mut clifford_gates, self.tableau, self.num_qubits);
 
         clifford_gates
     }
 }
 
-type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
-
-fn append_s(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    let (x, mut z, mut p) = clifford.multi_slice_mut((
-        s![.., qubit],
-        s![.., num_qubits + qubit],
-        s![.., 2 * num_qubits],
-    ));
-
-    azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-    azip!((z in &mut z, &x in &x) *z ^= x);
-}
-
-// fn append_sdg(mut clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-//     // println!("_append_sdg_clifford {}; num_qubits = {}", qubit, num_qubits);
-//
-//     let (x, mut z, mut p) = clifford.multi_slice_mut((
-//         s![.., qubit],
-//         s![.., num_qubits + qubit],
-//         s![.., 2 * num_qubits],
-//     ));
-//
-//     azip!((mut p in &mut p, &x in &x, &z in &z)  *p ^= x & !z);
-//     azip!((mut z in &mut z, &x in &x) *z ^= x);
-// }
-
-fn append_h(clifford: &mut Array2<bool>, qubit: usize, num_qubits: usize) {
-    let (mut x, mut z, mut p) = clifford.multi_slice_mut((
-        s![.., qubit],
-        s![.., num_qubits + qubit],
-        s![.., 2 * num_qubits],
-    ));
-
-    azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-    azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
-}
-
-fn append_swap(clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
-    let (mut x0, mut z0, mut x1, mut z1) = clifford.multi_slice_mut((
-        s![.., qubit0],
-        s![.., num_qubits + qubit0],
-        s![.., qubit1],
-        s![.., num_qubits + qubit1],
-    ));
-    azip!((x0 in &mut x0, x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
-    azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
-}
-
-fn append_cx(clifford: &mut Array2<bool>, qubit0: usize, qubit1: usize, num_qubits: usize) {
-    let (x0, mut z0, mut x1, z1, mut p) = clifford.multi_slice_mut((
-        s![.., qubit0],
-        s![.., num_qubits + qubit0],
-        s![.., qubit1],
-        s![.., num_qubits + qubit1],
-        s![.., 2 * num_qubits],
-    ));
-    azip!((p in &mut p, &x0 in &x0, &z0 in &z0, &x1 in &x1, &z1 in &z1) *p ^= (x1 ^ z0 ^ true) & z1 & x0);
-    azip!((x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
-    azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
-}
-
-fn clifford_sim(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Array2<bool> {
-    let mut current_clifford: Array2<bool> =
-        Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| i == j);
-
-    gate_seq
-        .iter()
-        .for_each(|(gate, _params, qubits)| match *gate {
-            StandardGate::SGate => {
-                append_s(&mut current_clifford, qubits[0].0 as usize, num_qubits)
-            }
-            StandardGate::HGate => {
-                append_h(&mut current_clifford, qubits[0].0 as usize, num_qubits)
-            }
-            StandardGate::CXGate => append_cx(
-                &mut current_clifford,
-                qubits[0].0 as usize,
-                qubits[1].0 as usize,
-                num_qubits,
-            ),
-            StandardGate::SwapGate => append_swap(
-                &mut current_clifford,
-                qubits[0].0 as usize,
-                qubits[1].0 as usize,
-                num_qubits,
-            ),
-            _ => panic!("We should never get here!"),
-        });
-    current_clifford
-}
-
-/// Fixes the phase
-fn fix_phase(
+/// Given a sequence of Clifford gates that correctly implements the symplectic matrix
+/// of the target clifford tableau, adds the Pauli gates to also match the phase of
+/// the tableau.
+fn adjust_final_pauli_gates(
     gate_seq: &mut CliffordGatesVec,
-    target_clifford: ArrayView2<bool>,
+    target_tableau: ArrayView2<bool>,
     num_qubits: usize,
 ) {
     // simulate the clifford circuit that we have constructed
-    let simulated_clifford = clifford_sim(gate_seq, num_qubits);
+    let simulated_clifford = Clifford::from_gate_sequence(gate_seq, num_qubits);
 
-    // compute phase difference
-    let target_phase = target_clifford.column(2 * num_qubits);
-    let sim_phase = simulated_clifford.column(2 * num_qubits);
+    // compute the phase difference
+    let target_phase = target_tableau.column(2 * num_qubits);
+    let sim_phase = simulated_clifford.tableau.column(2 * num_qubits);
 
     let delta_phase: Vec<bool> = target_phase
         .iter()
@@ -635,7 +647,7 @@ fn fix_phase(
         .collect();
 
     // compute inverse of the symplectic matrix
-    let smat = target_clifford.slice(s![.., ..2 * num_qubits]);
+    let smat = target_tableau.slice(s![.., ..2 * num_qubits]);
     let smat_inv = calc_inverse_matrix_inner(smat);
 
     // compute smat_inv * delta_phase
@@ -644,9 +656,7 @@ fn fix_phase(
     let arr2 = Array1::from(vec2);
     let delta_phase_pre = arr1.dot(&arr2).map(|v| v % 2 == 1);
 
-    // println!("delta_phase_pre:");
-    // println!("{:?}", delta_phase_pre);
-
+    // add pauli gates
     for qubit in 0..num_qubits {
         if delta_phase_pre[qubit] && delta_phase_pre[qubit + num_qubits] {
             // println!("=> Adding Y-gate on {}", qubit);
