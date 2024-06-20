@@ -604,7 +604,7 @@ impl Operation for StandardGate {
                                 (
                                     Self::UGate,
                                     smallvec![
-                                        Param::Float(0.5 * theta),
+                                        Param::Float(-0.5 * theta),
                                         Param::Float(0.0),
                                         Param::Float(0.0)
                                     ],
@@ -614,7 +614,7 @@ impl Operation for StandardGate {
                                 (
                                     Self::UGate,
                                     smallvec![
-                                        Param::Float(-0.5 * theta),
+                                        Param::Float(0.5 * theta),
                                         Param::Float(-PI2),
                                         Param::Float(0.0)
                                     ],
