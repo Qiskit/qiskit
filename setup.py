@@ -22,7 +22,7 @@ from setuptools_rust import Binding, RustExtension
 #
 #   python setup.py build_rust --inplace --release
 #
-# to make optimised Rust components even for editable releases, which would otherwise be quite
+# to make optimized Rust components even for editable releases, which would otherwise be quite
 # unergonomic to do otherwise.
 
 

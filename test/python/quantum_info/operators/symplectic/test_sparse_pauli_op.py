@@ -181,7 +181,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
 
     def test_from_index_list_parameters(self):
-        """Test from_list method specifying the Paulis via indices with paramteres."""
+        """Test from_list method specifying the Paulis via indices with parameters."""
         expected_labels = ["XXZ", "IXI", "YIZ", "III"]
         paulis = ["XXZ", "X", "YZ", ""]
         indices = [[2, 1, 0], [1], [2, 0], []]
@@ -1028,7 +1028,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
         sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
         groups = sparse_pauli_list.group_commuting(qubit_wise)
-        # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
+        # checking that every input Pauli in sparse_pauli_list is in a group in the output
         output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # checking that every coeffs are grouped according to sparse_pauli_list group
@@ -1056,7 +1056,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             )
 
     def test_dot_real(self):
-        """Test dot for real coefficiets."""
+        """Test dot for real coefficients."""
         x = SparsePauliOp("X", np.array([1]))
         y = SparsePauliOp("Y", np.array([1]))
         iz = SparsePauliOp("Z", 1j)

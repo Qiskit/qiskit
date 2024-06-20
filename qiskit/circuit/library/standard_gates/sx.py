@@ -167,6 +167,8 @@ class SXdgGate(SingletonGate):
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
     """
 
+    _standard_gate = StandardGate.SXdgGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SXdg gate."""
         super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
