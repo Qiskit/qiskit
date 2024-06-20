@@ -60,6 +60,15 @@ fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
     inverse
 }
 
+/// Sorts the input permutation by iterating through the permutation list
+/// and putting each element to its correct position via a SWAP (if it's not
+/// at the correct position already). If ``n`` is the length of the input
+/// permutation, this requires at most ``n`` SWAPs.
+///
+/// More precisely, if the input permutation is a cycle of length ``m``,
+/// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
+/// if the input  permutation consists of several disjoint cycles, then each cycle
+/// is essentially treated independently.
 fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
     let mut permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
     let mut index_map = invert(pattern);
@@ -100,22 +109,6 @@ fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject
     Ok(inverse_i64.to_object(py))
 }
 
-/// Sorts the input permutation by iterating through the permutation list
-/// and putting each element to its correct position via a SWAP (if it's not
-/// at the correct position already). If ``n`` is the length of the input
-/// permutation, this requires at most ``n`` SWAPs.
-///
-/// More precisely, if the input permutation is a cycle of length ``m``,
-/// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
-/// if the input  permutation consists of several disjoint cycles, then each cycle
-/// is essentially treated independently.
-#[pyfunction]
-#[pyo3(signature = (permutation_in))]
-fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<PyObject> {
-    let view = permutation_in.as_array();
-    Ok(get_ordered_swap(&view).to_object(py))
-}
-
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
@@ -140,7 +133,6 @@ fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
-    m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
     m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
     Ok(())
 }
