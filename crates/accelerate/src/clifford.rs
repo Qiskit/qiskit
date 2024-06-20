@@ -600,7 +600,7 @@ impl GreedyCliffordSynthesis<'_> {
     }
 
     /// The main synthesis function.
-    fn run(&mut self) -> CliffordGatesVec {
+    fn run(&mut self) -> (usize, CliffordGatesVec) {
         let mut clifford_gates = CliffordGatesVec::new();
 
         while !self.unprocessed_qubits.is_empty() {
@@ -621,7 +621,7 @@ impl GreedyCliffordSynthesis<'_> {
 
         adjust_final_pauli_gates(&mut clifford_gates, self.tableau, self.num_qubits);
 
-        clifford_gates
+        (self.num_qubits, clifford_gates)
     }
 }
 
@@ -684,15 +684,14 @@ fn adjust_final_pauli_gates(
 }
 
 #[pyfunction]
-#[pyo3(signature = (tableau))]
-fn synth_clifford_greedy_new(
+#[pyo3(signature = (clifford))]
+fn synth_clifford_greedy(
     py: Python,
-    tableau: PyReadonlyArray2<bool>,
+    clifford: PyReadonlyArray2<bool>,
 ) -> PyResult<Option<CircuitData>> {
-    let clifford = tableau.as_array().to_owned();
-    let num_qubits = clifford.shape()[0] / 2;
-    let mut greedy_synthesis = GreedyCliffordSynthesis::new(clifford.view());
-    let clifford_gates = greedy_synthesis.run();
+    let tableau = clifford.as_array();
+    let mut greedy_synthesis = GreedyCliffordSynthesis::new(tableau.view());
+    let (num_qubits, clifford_gates) = greedy_synthesis.run();
     let circuit_data =
         CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
             .expect("Something went wrong on Qiskit's Python side, nothing to do here!");
@@ -701,6 +700,6 @@ fn synth_clifford_greedy_new(
 
 #[pymodule]
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(synth_clifford_greedy_new, m)?)?;
+    m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
     Ok(())
 }
