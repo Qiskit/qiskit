@@ -1,4 +1,7 @@
 ---
 deprecations_providers:
   - |
-     related to the qiskit.providers module.
+    BackendV1 is deprecated and it will be removed not earlier than the next major release.
+    If providers want to explose a backend only as a hardware description, consider constructing a :class:`.Target`.
+    If the provider also provides access for execution, that can be done via the primitives interfaces.
+    Alternatebly, if the previous model is prefered, consider moving to :class:`.BackendV2` (see https://ibm.biz/qiskit_backendv1-to-v2).

@@ -44,7 +44,7 @@ class BackendV1(Backend, ABC):
     This abstract class is to be used for Backend objects.
     There are several classes of information contained in a Backend.
     The first are the attributes of the class itself. These should be used to
-    defined the immutable characteristics of the backend. The ``options``
+    define the immutable characteristics of the backend. The ``options``
     attribute of the backend is used to contain the dynamic user configurable
     options of the backend. It should be used more for runtime options
     that configure how the backend is used. For example, something like a
@@ -72,7 +72,14 @@ class BackendV1(Backend, ABC):
 
     version = 1
 
-    @deprecate_func(since=1.2, removal_timeline="in the 2.0.0 release")
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="If this backend is only a hardware description, consider constructing a "
+        "Target. If the provider also provides access for execution, it can construct "
+        "Primitives. Alternatebly, consider moving to BackendV2 "
+        "(see https://ibm.biz/qiskit_backendv1-to-v2).",
+    )
     def __init__(self, configuration, provider=None, **fields):
         """Initialize a backend class
 
