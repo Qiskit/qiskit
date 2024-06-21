@@ -1336,6 +1336,16 @@ class DAGCircuit:
                 else:
                     block_cargs.update(node_resources(nd.op.target).clbits)
 
+        # check the op to insert matches the number of qubits we put it on
+        print("replacing", op.num_qubits, "on", len(block_qargs))
+        print(op)
+        print()
+        if op.num_qubits != len(block_qargs):
+            raise DAGCircuitError(
+                f"Number of qubits in the replacement operation ({op.num_qubits}) does not match "
+                f"the number of qubits ({len(block_qargs)})!"
+            )
+
         block_qargs = [bit for bit in block_qargs if bit in wire_pos_map]
         block_qargs.sort(key=wire_pos_map.get)
         block_cargs = [bit for bit in block_cargs if bit in wire_pos_map]
