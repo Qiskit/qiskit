@@ -114,7 +114,7 @@ fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject
 fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
     let view = pattern.as_array();
     let num_qubits = view.len();
-    Ok(CircuitData::from_standard_gates(
+    CircuitData::from_standard_gates(
         py,
         num_qubits as u32,
         get_ordered_swap(&view).iter().map(|(i, j)| {
@@ -126,7 +126,6 @@ fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<
         }),
         Param::Float(0.0),
     )
-    .expect("Something went wrong in Qiskit's Python realm"))
 }
 
 #[pymodule]
