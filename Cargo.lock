@@ -556,6 +556,7 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
+ "rayon",
 ]
 
 [[package]]
@@ -996,9 +997,9 @@ dependencies = [
 
 [[package]]
 name = "petgraph"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
+checksum = "b4c5cc86750666a3ed20bdaf5ca2a0344f9c67674cae0515bec2da16fbaa47db"
 dependencies = [
  "fixedbitset",
  "indexmap 2.2.6",
@@ -1018,12 +1019,13 @@ checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
 name = "priority-queue"
-version = "1.4.0"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0bda9164fe05bc9225752d54aae413343c36f684380005398a6a8fde95fe785"
+checksum = "70c501afe3a2e25c9bd219aa56ec1e04cdb3fcdd763055be268778c13fa82c1f"
 dependencies = [
  "autocfg",
- "indexmap 1.9.3",
+ "equivalent",
+ "indexmap 2.2.6",
 ]
 
 [[package]]
@@ -1195,11 +1197,14 @@ dependencies = [
 name = "qiskit-circuit"
 version = "1.2.0"
 dependencies = [
+ "ahash 0.8.11",
  "hashbrown 0.14.5",
+ "indexmap 2.2.6",
  "ndarray",
  "num-complex",
  "numpy",
  "pyo3",
+ "rustworkx-core",
  "smallvec",
 ]
 
@@ -1399,14 +1404,14 @@ checksum = "80af6f9131f277a45a3fba6ce8e2258037bb0477a67e610d3c1fe046ab31de47"
 
 [[package]]
 name = "rustworkx-core"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "529027dfaa8125aa61bb7736ae9484f41e8544f448af96918c8da6b1def7f57b"
+version = "0.15.0"
+source = "git+https://github.com/Qiskit/rustworkx.git#70b71260ecc1d7aeb9bc5a456e87b4c89b8f5370"
 dependencies = [
  "ahash 0.8.11",
  "fixedbitset",
  "hashbrown 0.14.5",
- "indexmap 2.2.6",
+ "indexmap 1.9.3",
+ "ndarray",
  "num-traits",
  "petgraph",
  "priority-queue",

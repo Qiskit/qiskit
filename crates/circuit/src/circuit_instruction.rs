@@ -107,6 +107,41 @@ impl PackedInstruction {
     }
 }
 
+impl PackedInstruction {
+    pub fn new(
+        op: OperationType,
+        qubits_id: Index,
+        clbits_id: Index,
+        params: SmallVec<[Param; 3]>,
+        label: Option<String>,
+        duration: Option<PyObject>,
+        unit: Option<String>,
+        condition: Option<PyObject>,
+        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
+    ) -> Self {
+        let extra_attrs =
+            if label.is_some() || duration.is_some() || unit.is_some() || condition.is_some() {
+                Some(Box::new(ExtraInstructionAttributes {
+                    label,
+                    duration,
+                    unit,
+                    condition,
+                }))
+            } else {
+                None
+            };
+        PackedInstruction {
+            op,
+            qubits_id,
+            clbits_id,
+            params,
+            extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            py_op,
+        }
+    }
+}
+
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
 ///

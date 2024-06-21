@@ -14,41 +14,70 @@ use crate::circuit_instruction::{
     convert_py_to_operation_type, operation_type_to_py, CircuitInstruction,
     ExtraInstructionAttributes,
 };
-use crate::operations::Operation;
+use crate::operations::{Operation, OperationType, Param};
+use crate::TupleLikeArg;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
 use pyo3::{intern, PyObject, PyResult};
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::SmallVec;
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
 #[derive(Clone, Debug)]
 pub struct DAGNode {
-    #[pyo3(get, set)]
-    pub _node_id: isize,
+    pub node: Option<NodeIndex>,
+}
+
+impl DAGNode {
+    #[inline]
+    pub fn py_nid(&self) -> isize {
+        self.node
+            .map(|node| node.index().try_into().unwrap())
+            .unwrap_or(-1)
+    }
 }
 
 #[pymethods]
 impl DAGNode {
     #[new]
     #[pyo3(signature=(nid=-1))]
-    fn new(nid: isize) -> Self {
-        DAGNode { _node_id: nid }
+    fn py_new(nid: isize) -> Self {
+        DAGNode {
+            node: match nid {
+                -1 => None,
+                nid => Some(NodeIndex::new(nid.try_into().unwrap())),
+            },
+        }
     }
 
-    fn __getstate__(&self) -> isize {
-        self._node_id
+    #[getter]
+    fn get__node_id(&self) -> isize {
+        self.py_nid()
     }
 
-    fn __setstate__(&mut self, nid: isize) {
-        self._node_id = nid;
+    #[setter]
+    fn set__node_id(&mut self, nid: isize) {
+        self.node = match nid {
+            -1 => None,
+            nid => Some(NodeIndex::new(nid.try_into().unwrap())),
+        }
+    }
+
+    fn __getstate__(&self) -> Option<usize> {
+        self.node.map(|node| node.index())
+    }
+
+    fn __setstate__(&mut self, index: Option<usize>) {
+        self.node = index.map(|index| NodeIndex::new(index));
     }
 
     fn __lt__(&self, other: &DAGNode) -> bool {
-        self._node_id < other._node_id
+        self.py_nid() < other.py_nid()
     }
 
     fn __gt__(&self, other: &DAGNode) -> bool {
-        self._node_id > other._node_id
+        self.py_nid() > other.py_nid()
     }
 
     fn __str__(_self: &Bound<DAGNode>) -> String {
@@ -56,7 +85,7 @@ impl DAGNode {
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
-        self._node_id.into_py(py).bind(py).hash()
+        self.py_nid().into_py(py).bind(py).hash()
     }
 }
 
@@ -68,20 +97,45 @@ pub struct DAGOpNode {
     pub sort_key: PyObject,
 }
 
+impl DAGOpNode {
+    pub fn new<T1, T2, U1, U2>(
+        py: Python,
+        node: NodeIndex,
+        op: OperationType,
+        qargs: impl IntoIterator<Item = T1, IntoIter = U1>,
+        cargs: impl IntoIterator<Item = T2, IntoIter = U2>,
+        params: SmallVec<[Param; 3]>,
+        extra_attrs: Option<Box<ExtraInstructionAttributes>>,
+        sort_key: Py<PyAny>,
+    ) -> (Self, DAGNode)
+    where
+        T1: ToPyObject,
+        T2: ToPyObject,
+        U1: ExactSizeIterator<Item = T1>,
+        U2: ExactSizeIterator<Item = T2>,
+    {
+        (
+            DAGOpNode {
+                instruction: CircuitInstruction::new(py, op, qargs, cargs, params, extra_attrs),
+                sort_key,
+            },
+            DAGNode { node: Some(node) },
+        )
+    }
+}
+
 #[pymethods]
 impl DAGOpNode {
     #[new]
-    fn new(
+    pub fn py_new(
         py: Python,
         op: PyObject,
-        qargs: Option<&Bound<PySequence>>,
-        cargs: Option<&Bound<PySequence>>,
+        qargs: Option<TupleLikeArg>,
+        cargs: Option<TupleLikeArg>,
         dag: Option<&Bound<PyAny>>,
-    ) -> PyResult<(Self, DAGNode)> {
-        let qargs =
-            qargs.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
-        let cargs =
-            cargs.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
+    ) -> PyResult<Py<Self>> {
+        let qargs = qargs.map_or_else(|| PyTuple::empty_bound(py), |q| q.value);
+        let cargs = cargs.map_or_else(|| PyTuple::empty_bound(py), |c| c.value);
 
         let sort_key = match dag {
             Some(dag) => {
@@ -127,25 +181,28 @@ impl DAGOpNode {
             None
         };
 
-        Ok((
-            DAGOpNode {
-                instruction: CircuitInstruction {
-                    operation: res.operation,
-                    qubits: qargs.unbind(),
-                    clbits: cargs.unbind(),
-                    params: res.params,
-                    extra_attrs,
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: Some(op),
+        Py::new(
+            py,
+            (
+                DAGOpNode {
+                    instruction: CircuitInstruction {
+                        operation: res.operation,
+                        qubits: qargs.unbind(),
+                        clbits: cargs.unbind(),
+                        params: res.params,
+                        extra_attrs,
+                        #[cfg(feature = "cache_pygates")]
+                        py_op: Some(op),
+                    },
+                    sort_key: sort_key.unbind(),
                 },
-                sort_key: sort_key.unbind(),
-            },
-            DAGNode { _node_id: -1 },
-        ))
+                DAGNode { node: None },
+            ),
+        )
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
-        let state = (slf.as_ref()._node_id, &slf.sort_key);
+        let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
         Ok((
             py.get_type_bound::<Self>(),
             (
@@ -159,8 +216,8 @@ impl DAGOpNode {
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
-        let (nid, sort_key): (isize, PyObject) = state.extract()?;
-        slf.as_mut()._node_id = nid;
+        let (index, sort_key): (Option<usize>, PyObject) = state.extract()?;
+        slf.as_mut().node = index.map(|index| NodeIndex::new(index));
         slf.sort_key = sort_key;
         Ok(())
     }
@@ -251,27 +308,39 @@ pub struct DAGInNode {
     sort_key: PyObject,
 }
 
+impl DAGInNode {
+    pub fn new(py: Python, node: NodeIndex, wire: PyObject) -> (Self, DAGNode) {
+        (
+            DAGInNode {
+                wire,
+                sort_key: PyList::empty_bound(py).str().unwrap().into_any().unbind(),
+            },
+            DAGNode { node: Some(node) },
+        )
+    }
+}
+
 #[pymethods]
 impl DAGInNode {
     #[new]
-    fn new(py: Python, wire: PyObject) -> PyResult<(Self, DAGNode)> {
+    fn py_new(py: Python, wire: PyObject) -> PyResult<(Self, DAGNode)> {
         Ok((
             DAGInNode {
                 wire,
                 sort_key: PyList::empty_bound(py).str()?.into_any().unbind(),
             },
-            DAGNode { _node_id: -1 },
+            DAGNode { node: None },
         ))
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
-        let state = (slf.as_ref()._node_id, &slf.sort_key);
+        let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
         (py.get_type_bound::<Self>(), (&slf.wire,), state).into_py(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
-        let (nid, sort_key): (isize, PyObject) = state.extract()?;
-        slf.as_mut()._node_id = nid;
+        let (index, sort_key): (Option<usize>, PyObject) = state.extract()?;
+        slf.as_mut().node = index.map(|index| NodeIndex::new(index));
         slf.sort_key = sort_key;
         Ok(())
     }
@@ -291,27 +360,39 @@ pub struct DAGOutNode {
     sort_key: PyObject,
 }
 
+impl DAGOutNode {
+    pub fn new(py: Python, node: NodeIndex, wire: PyObject) -> (Self, DAGNode) {
+        (
+            DAGOutNode {
+                wire,
+                sort_key: PyList::empty_bound(py).str().unwrap().into_any().unbind(),
+            },
+            DAGNode { node: Some(node) },
+        )
+    }
+}
+
 #[pymethods]
 impl DAGOutNode {
     #[new]
-    fn new(py: Python, wire: PyObject) -> PyResult<(Self, DAGNode)> {
+    fn py_new(py: Python, wire: PyObject) -> PyResult<(Self, DAGNode)> {
         Ok((
             DAGOutNode {
                 wire,
                 sort_key: PyList::empty_bound(py).str()?.into_any().unbind(),
             },
-            DAGNode { _node_id: -1 },
+            DAGNode { node: None },
         ))
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
-        let state = (slf.as_ref()._node_id, &slf.sort_key);
+        let state = (slf.as_ref().node.map(|node| node.index()), &slf.sort_key);
         (py.get_type_bound::<Self>(), (&slf.wire,), state).into_py(py)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
-        let (nid, sort_key): (isize, PyObject) = state.extract()?;
-        slf.as_mut()._node_id = nid;
+        let (index, sort_key): (Option<usize>, PyObject) = state.extract()?;
+        slf.as_mut().node = index.map(|index| NodeIndex::new(index));
         slf.sort_key = sort_key;
         Ok(())
     }

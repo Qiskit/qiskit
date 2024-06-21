@@ -12,17 +12,20 @@
 
 pub mod circuit_data;
 pub mod circuit_instruction;
-pub mod dag_node;
+pub mod dag_circuit;
 pub mod gate_matrix;
 pub mod imports;
 pub mod operations;
 pub mod parameter_table;
 
 mod bit_data;
+mod dag_node;
+mod error;
 mod interner;
 
 use pyo3::prelude::*;
-use pyo3::types::PySlice;
+use pyo3::types::{PySequence, PySlice, PyTuple};
+use std::ops::Deref;
 
 /// A private enumeration type used to extract arguments to pymethod
 /// that may be either an index or a slice
@@ -39,6 +42,18 @@ pub type BitType = u32;
 pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Clbit(pub BitType);
+
+pub struct TupleLikeArg<'py> {
+    value: Bound<'py, PyTuple>,
+}
+
+impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(TupleLikeArg {
+            value: ob.downcast::<PySequence>()?.to_tuple()?,
+        })
+    }
+}
 
 impl From<BitType> for Qubit {
     fn from(value: BitType) -> Self {
@@ -67,11 +82,12 @@ impl From<Clbit> for BitType {
 #[pymodule]
 pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<circuit_instruction::CircuitInstruction>()?;
+    m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
-    m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::PyInstruction>()?;
     m.add_class::<operations::PyGate>()?;

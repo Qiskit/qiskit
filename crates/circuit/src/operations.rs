@@ -21,6 +21,7 @@ use num_complex::Complex64;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
+use pyo3::types::PyType;
 use pyo3::{intern, IntoPy, Python};
 use smallvec::smallvec;
 
@@ -36,6 +37,26 @@ pub enum OperationType {
     Instruction(PyInstruction),
     Gate(PyGate),
     Operation(PyOperation),
+}
+
+impl OperationType {
+    pub fn is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
+        let py = py_type.py();
+        let our_py_type = match self {
+            OperationType::Standard(op) => {
+                let their_standard_gate: Option<StandardGate> =
+                    match py_type.getattr(intern!(py, "_standard_gate")).ok() {
+                        None => None,
+                        Some(standard_gate) => standard_gate.extract()?,
+                    };
+                return Ok(Some(*op) == their_standard_gate);
+            }
+            OperationType::Instruction(op) => op.instruction.bind(py).get_type(),
+            OperationType::Gate(op) => op.gate.bind(py).get_type(),
+            OperationType::Operation(op) => op.operation.bind(py).get_type(),
+        };
+        return our_py_type.eq(py_type);
+    }
 }
 
 impl Operation for OperationType {
