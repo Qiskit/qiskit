@@ -325,6 +325,8 @@ class TestOptimize1qGates(QiskitTestCase):
         """Check proper phase accumulation with instruction with no definition."""
 
         class CustomGate(Gate):
+            """Custom u1 gate definition."""
+
             def __init__(self, lam):
                 super().__init__("u1", 1, [lam])
 
@@ -352,6 +354,8 @@ class TestOptimize1qGates(QiskitTestCase):
         """Check proper phase accumulation with instruction with no definition."""
 
         class CustomGate(Gate):
+            """Custom u1 gate."""
+
             def __init__(self, lam):
                 super().__init__("u1", 1, [lam])
 
