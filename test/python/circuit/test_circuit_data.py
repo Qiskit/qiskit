@@ -403,6 +403,22 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
     # but are included as tests to maintain compatability with the previous
     # list interface of circuit.data.
 
+    def test_iteration_of_data_entry(self):
+        """Verify that the base types of the legacy tuple iteration are correct, since they're
+        different to attribute access."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.measure([0, 1, 2], [0, 1, 2])
+
+        def to_legacy(instruction):
+            return (instruction.operation, list(instruction.qubits), list(instruction.clbits))
+
+        expected = [to_legacy(instruction) for instruction in qc.data]
+        actual = [tuple(instruction) for instruction in qc.data]
+        self.assertEqual(actual, expected)
+
     def test_getitem_by_insertion_order(self):
         """Verify one can get circuit.data items in insertion order."""
         qr = QuantumRegister(2)
