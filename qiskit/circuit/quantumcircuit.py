@@ -3634,20 +3634,14 @@ class QuantumCircuit:
         else:  # pragma: no cover
             raise ValueError(f"unknown vars_mode: '{vars_mode}'")
 
-<<<<<<< HEAD
         cpy._parameter_table = ParameterTable()
         for parameter in getattr(cpy.global_phase, "parameters", ()):
             cpy._parameter_table[parameter] = ParameterReferences(
                 [(ParameterTable.GLOBAL_PHASE, None)]
             )
         cpy._data = CircuitData(self._data.qubits, self._data.clbits)
-=======
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
         # Invalidate parameters caching.
         cpy._parameters = None
->>>>>>> b6c616612 (Invalidate `parameters` cache on circuit copy (#12619))
 
         cpy._calibrations = _copy.deepcopy(self._calibrations)
         cpy._metadata = _copy.deepcopy(self._metadata)
