@@ -12,7 +12,7 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
-from typing import Optional, Union
+from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -1101,8 +1101,9 @@ class MCXGate(ControlledGate):
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
-        # The CXGate, CCXGate, C3XGate, and C4XGate will be implemented for all modes of the MCX.
-        explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
+        # The CXGate and CCXGate will be implemented for all modes of the MCX, and
+        # the C3XGate and C4XGate are handled in the gate definition.
+        explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
             gate = gate_class.__new__(
