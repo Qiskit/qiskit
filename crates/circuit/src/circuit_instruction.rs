@@ -542,7 +542,11 @@ impl CircuitInstruction {
 
         Ok(PyTuple::new_bound(
             py,
-            [op, self.qubits.to_object(py), self.clbits.to_object(py)],
+            [
+                op,
+                self.qubits.bind(py).to_list().into(),
+                self.clbits.bind(py).to_list().into(),
+            ],
         ))
     }
 
@@ -558,7 +562,11 @@ impl CircuitInstruction {
         };
         Ok(PyTuple::new_bound(
             py,
-            [op, self.qubits.to_object(py), self.clbits.to_object(py)],
+            [
+                op,
+                self.qubits.bind(py).to_list().into(),
+                self.clbits.bind(py).to_list().into(),
+            ],
         ))
     }
 
