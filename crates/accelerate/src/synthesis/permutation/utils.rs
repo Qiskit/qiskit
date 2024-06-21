@@ -11,17 +11,11 @@
 // that they have been altered from the originals.
 
 use ndarray::{Array1, ArrayView1};
-use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use smallvec::smallvec;
 use std::vec::Vec;
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
-
-fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
+pub fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     let n = pattern.len();
     let mut seen: Vec<bool> = vec![false; n];
 
@@ -52,7 +46,7 @@ fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     Ok(())
 }
 
-fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
+pub fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
     let mut inverse: Array1<usize> = Array1::zeros(pattern.len());
     pattern.iter().enumerate().for_each(|(ii, &jj)| {
         inverse[jj as usize] = ii;
@@ -69,7 +63,7 @@ fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
 /// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
 /// if the input  permutation consists of several disjoint cycles, then each cycle
 /// is essentially treated independently.
-fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
+pub fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
     let mut permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
     let mut index_map = invert(pattern);
 
@@ -89,49 +83,4 @@ fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
 
     swaps[..].reverse();
     swaps
-}
-
-/// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
-#[pyfunction]
-#[pyo3(signature = (pattern))]
-fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
-    let view = pattern.as_array();
-    validate_permutation(&view)?;
-    Ok(py.None())
-}
-
-/// Finds inverse of a permutation pattern.
-#[pyfunction]
-#[pyo3(signature = (pattern))]
-fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
-    let view = pattern.as_array();
-    let inverse_i64: Vec<i64> = invert(&view).iter().map(|&x| x as i64).collect();
-    Ok(inverse_i64.to_object(py))
-}
-
-#[pyfunction]
-#[pyo3(signature = (pattern))]
-fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
-    let view = pattern.as_array();
-    let num_qubits = view.len();
-    CircuitData::from_standard_gates(
-        py,
-        num_qubits as u32,
-        get_ordered_swap(&view).iter().map(|(i, j)| {
-            (
-                StandardGate::SwapGate,
-                smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
-            )
-        }),
-        Param::Float(0.0),
-    )
-}
-
-#[pymodule]
-pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
-    m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
-    m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
-    Ok(())
 }

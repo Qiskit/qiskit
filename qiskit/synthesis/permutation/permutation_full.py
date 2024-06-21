@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit._accelerate.permutation import _synth_permutation_basic
+from qiskit._accelerate.synthesis.permutation import _synth_permutation_basic
 from .permutation_utils import (
     _inverse_pattern,
     _pattern_to_cycles,

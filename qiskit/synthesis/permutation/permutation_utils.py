@@ -13,7 +13,7 @@
 """Utility functions for handling permutations."""
 
 # pylint: disable=unused-import
-from qiskit._accelerate.permutation import (
+from qiskit._accelerate.synthesis.permutation import (
     _inverse_pattern,
     _validate_permutation,
 )
