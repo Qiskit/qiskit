@@ -142,28 +142,24 @@ fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Option<CircuitData>> {
+fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
     let view = pattern.as_array();
     let num_qubits = view.len();
     let cycles = pattern_to_cycles(&view, &true);
     let swaps = decompose_cycles(&cycles);
 
-    Ok(Some(
-        CircuitData::from_standard_gates(
-            py,
-            num_qubits as u32,
-            swaps.iter().map(|(i, j)| {
-                (
-                    StandardGate::SwapGate,
-                    smallvec![],
-                    smallvec![Qubit(*i as u32), Qubit(*j as u32)],
-                )
-            }),
-            Param::Float(0.0),
-        )
-        .expect("Something went wrong on Qiskit's Python side, nothing to do here!"),
-    ))
-    // let swaps_i64: Vec<(i64, i64)> = swaps.iter().map(|&x| (x.0 as i64, x.1 as i64)).collect();
+    CircuitData::from_standard_gates(
+        py,
+        num_qubits as u32,
+        swaps.iter().map(|(i, j)| {
+            (
+                StandardGate::SwapGate,
+                smallvec![],
+                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            )
+        }),
+        Param::Float(0.0),
+    )
 }
 
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
