@@ -314,7 +314,7 @@ def make_output(graph, raw, filename):
 
         with Image.open(tmppath) as test_image:
             image = test_image.copy()
-
+        os.remove(tmppath)
         if filename:
             image.save(filename, "PNG")
         return image
