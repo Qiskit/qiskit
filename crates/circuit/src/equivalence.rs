@@ -77,7 +77,7 @@ impl Key {
     }
 
     fn __getstate__(slf: PyRef<Self>) -> (String, u32) {
-        (slf.name.to_owned(), slf.num_qubits)
+        (slf.name.clone(), slf.num_qubits)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: (String, u32)) {
@@ -131,7 +131,7 @@ impl Equivalence {
     }
 
     fn __getstate__(slf: PyRef<Self>) -> (SmallVec<[Param; 3]>, CircuitRep) {
-        (slf.params.to_owned(), slf.circuit.to_owned())
+        (slf.params.clone(), slf.circuit.clone())
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: (SmallVec<[Param; 3]>, CircuitRep)) {
@@ -177,7 +177,7 @@ impl NodeData {
     }
 
     fn __getstate__(slf: PyRef<Self>) -> (Key, Vec<Equivalence>) {
-        (slf.key.to_owned(), slf.equivs.to_owned())
+        (slf.key.clone(), slf.equivs.clone())
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: (Key, Vec<Equivalence>)) {
@@ -235,8 +235,8 @@ impl EdgeData {
         (
             slf.index,
             slf.num_gates,
-            slf.rule.to_owned(),
-            slf.source.to_owned(),
+            slf.rule.clone(),
+            slf.source.clone(),
         )
     }
 
@@ -348,7 +348,7 @@ impl Display for CircuitRep {
         let py_rep_str = Python::with_gil(|py| -> PyResult<String> {
             match self.object.call_method0(py, "__repr__") {
                 Ok(str_obj) => str_obj.extract::<String>(py),
-                Err(_) => Ok("None".to_owned()),
+                Err(_) => Ok("None".to_string()),
             }
         })
         .unwrap();
@@ -520,17 +520,21 @@ impl EquivalenceLibrary {
     #[getter]
     fn get_graph(&mut self, py: Python<'_>) -> PyResult<PyObject> {
         if let Some(graph) = &self.graph {
-            Ok(graph.to_owned())
+            Ok(graph.clone_ref(py))
         } else {
             self.graph = Some(to_pygraph(py, &self._graph)?);
-            Ok(self.graph.to_object(py))
+            Ok(self
+                .graph
+                .as_ref()
+                .map(|graph| graph.clone_ref(py))
+                .unwrap())
         }
     }
 
     /// Get all the equivalences for the given key
     pub fn _get_equivalences(&self, key: &Key) -> Vec<Equivalence> {
         if let Some(key_in) = self.key_to_node_index.get(key) {
-            self._graph[*key_in].equivs.to_owned()
+            self._graph[*key_in].equivs.clone()
         } else {
             vec![]
         }
@@ -564,7 +568,7 @@ impl EquivalenceLibrary {
                     slf._graph.edge_weight(edge_id).unwrap(),
                 )
             })
-            .map(|((source, target), weight)| (source.index(), target.index(), weight.to_owned()))
+            .map(|((source, target), weight)| (source.index(), target.index(), weight.clone()))
             .collect_vec();
         ret.set_item("graph_edges", graph_edges.into_py(slf.py()))?;
         Ok(ret)
@@ -606,7 +610,7 @@ impl EquivalenceLibrary {
             *value
         } else {
             let node = self._graph.add_node(NodeData {
-                key: key.to_owned(),
+                key: key.clone(),
                 equivs: vec![],
             });
             self.key_to_node_index.insert(key, node);
@@ -642,27 +646,27 @@ impl EquivalenceLibrary {
         };
         let equiv = Equivalence {
             params: gate.params().into(),
-            circuit: equivalent_circuit.to_owned(),
+            circuit: equivalent_circuit.clone(),
         };
 
         let target = self.set_default_node(key);
         if let Some(node) = self._graph.node_weight_mut(target) {
-            node.equivs.push(equiv.to_owned());
+            node.equivs.push(equiv.clone());
         }
         let sources: HashSet<Key> =
             HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
-                name: inst.operation().name().to_owned(),
+                name: inst.operation().name().to_string(),
                 num_qubits: inst.operation().num_qubits(),
             }));
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (
-                self.set_default_node(source.to_owned()),
+                self.set_default_node(source.clone()),
                 target,
                 EdgeData {
                     index: self.rule_id,
                     num_gates: sources.len(),
-                    rule: equiv.to_owned(),
-                    source: source.to_owned(),
+                    rule: equiv.clone(),
+                    source: source.clone(),
                 },
             )
         }));
@@ -697,7 +701,7 @@ impl EquivalenceLibrary {
         }
 
         let key = Key {
-            name: gate.operation().name().to_owned(),
+            name: gate.operation().name().to_string(),
             num_qubits: gate.operation().num_qubits(),
         };
         let node_index = self.set_default_node(key);
@@ -715,7 +719,7 @@ impl EquivalenceLibrary {
             self._graph.remove_edge(edge);
         }
         for equiv in entry {
-            self.add_equiv(gate.to_owned(), equiv.to_owned())?
+            self.add_equiv(gate.clone(), equiv.clone())?
         }
         self.graph = None;
         Ok(())
@@ -825,7 +829,7 @@ where
             (
                 edge.source().index(),
                 edge.target().index(),
-                edge.weight().to_owned(),
+                edge.weight().clone(),
             )
         })
         .collect();
