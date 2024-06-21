@@ -176,6 +176,29 @@ class TestParameters(QiskitTestCase):
         for i, vi in enumerate(v):
             self.assertEqual(vi, qc.parameters[i])
 
+    def test_parameters_property_independent_after_copy(self):
+        """Test that any `parameters` property caching is invalidated after a copy operation."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+
+        qc1 = QuantumCircuit(1)
+        qc1.rz(a, 0)
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc2 = qc1.copy_empty_like()
+        self.assertEqual(set(qc2.parameters), set())
+
+        qc3 = qc1.copy()
+        self.assertEqual(set(qc3.parameters), {a})
+        qc3.rz(b, 0)
+        self.assertEqual(set(qc3.parameters), {a, b})
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc1.rz(c, 0)
+        self.assertEqual(set(qc1.parameters), {a, c})
+        self.assertEqual(set(qc3.parameters), {a, b})
+
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
         phase = Parameter("phase")

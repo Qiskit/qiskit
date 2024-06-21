@@ -2147,6 +2147,8 @@ class QuantumCircuit:
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)
+        # Invalidate parameters caching.
+        cpy._parameters = None
 
         if name:
             cpy.name = name
