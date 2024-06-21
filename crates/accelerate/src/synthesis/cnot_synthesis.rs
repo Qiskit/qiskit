@@ -77,10 +77,7 @@ pub fn synth_cnot_count_full_pmh(
             )
         });
 
-    Ok(
-        CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
-            .expect("Something went sideways in Qiskit's Python realm!"),
-    )
+    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
 
 /// This function is a helper function of the algorithm for optimal synthesis
