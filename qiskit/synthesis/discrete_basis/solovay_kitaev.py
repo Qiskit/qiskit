@@ -16,8 +16,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from qiskit.circuit.gate import Gate
-
 from .gate_sequence import GateSequence
 from .commutator_decompose import commutator_decompose
 from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
@@ -157,14 +155,14 @@ class SolovayKitaevDecomposition:
         w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
-    def find_basic_approximation(self, sequence: GateSequence) -> Gate:
-        """Finds gate in ``self._basic_approximations`` that best represents ``sequence``.
+    def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
+        """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
 
         Args:
-            sequence: The gate to find the approximation to.
+            sequence: ``GateSequence`` to find the approximation to.
 
         Returns:
-            Gate in basic approximations that is closest to ``sequence``.
+            ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
         """
         # TODO explore using a k-d tree here
 
