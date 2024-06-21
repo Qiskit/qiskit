@@ -95,8 +95,8 @@ def generate_preset_pass_manager(
 ):
     """Generate a preset :class:`~.PassManager`
 
-    This function is used to quickly generate a preset pass manager. A preset pass
-    manager are the default pass managers used by the :func:`~.transpile`
+    This function is used to quickly generate a preset pass manager. Preset pass
+    managers are the default pass managers used by the :func:`~.transpile`
     function. This function provides a convenient and simple method to construct
     a standalone :class:`~.PassManager` object that mirrors what the :func:`~.transpile`
     function internally builds and uses.
