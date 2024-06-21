@@ -274,8 +274,8 @@ pub fn xx_minus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
 #[inline]
 pub fn u1_gate(lam: f64) -> [[Complex64; 2]; 2] {
     [
-        [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-        [Complex64::new(0., 0.), Complex64::new(0., lam).exp()],
+        [c64(1., 0.), c64(0., 0.)],
+        [c64(0., 0.), c64(0., lam).exp()],
     ]
 }
 
@@ -283,12 +283,12 @@ pub fn u1_gate(lam: f64) -> [[Complex64; 2]; 2] {
 pub fn u2_gate(phi: f64, lam: f64) -> [[Complex64; 2]; 2] {
     [
         [
-            Complex64::new(FRAC_1_SQRT_2, 0.),
-            (-Complex64::new(0., lam).exp()) * FRAC_1_SQRT_2,
+            c64(FRAC_1_SQRT_2, 0.),
+            (-c64(0., lam).exp()) * FRAC_1_SQRT_2,
         ],
         [
-            Complex64::new(0., phi).exp() * FRAC_1_SQRT_2,
-            Complex64::new(0., phi + lam).exp() * FRAC_1_SQRT_2,
+            c64(0., phi).exp() * FRAC_1_SQRT_2,
+            c64(0., phi + lam).exp() * FRAC_1_SQRT_2,
         ],
     ]
 }
@@ -298,14 +298,8 @@ pub fn u3_gate(theta: f64, phi: f64, lam: f64) -> [[Complex64; 2]; 2] {
     let cos = (theta / 2.).cos();
     let sin = (theta / 2.).sin();
     [
-        [
-            Complex64::new(cos, 0.),
-            (-Complex64::new(0., lam).exp()) * sin,
-        ],
-        [
-            Complex64::new(0., phi).exp() * sin,
-            Complex64::new(0., phi + lam).exp() * cos,
-        ],
+        [c64(cos, 0.), -(c64(0., lam).exp()) * sin],
+        [c64(0., phi).exp() * sin, c64(0., phi + lam).exp() * cos],
     ]
 }
 

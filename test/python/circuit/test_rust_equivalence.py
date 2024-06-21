@@ -113,7 +113,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
-                params = [pi] * standard_gate._num_params()
+                params = [0.1] * standard_gate._num_params()
                 py_def = gate_class.base_class(*params).to_matrix()
                 rs_def = standard_gate._to_matrix(params)
                 np.testing.assert_allclose(rs_def, py_def)
