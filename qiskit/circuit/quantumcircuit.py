@@ -2145,19 +2145,10 @@ class QuantumCircuit:
         cpy._parameter_table = ParameterTable()
         cpy._data = []
 
-<<<<<<< HEAD
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)
-=======
-        cpy._data = CircuitData(
-            self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
-        )
         # Invalidate parameters caching.
         cpy._parameters = None
-
-        cpy._calibrations = _copy.deepcopy(self._calibrations)
-        cpy._metadata = _copy.deepcopy(self._metadata)
->>>>>>> b6c616612 (Invalidate `parameters` cache on circuit copy (#12619))
 
         if name:
             cpy.name = name
