@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "cache_pygates")]
+use std::cell::RefCell;
+
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -47,8 +50,61 @@ pub(crate) struct PackedInstruction {
     pub clbits_id: Index,
     pub params: SmallVec<[Param; 3]>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
+
     #[cfg(feature = "cache_pygates")]
-    pub py_op: Option<PyObject>,
+    /// This is hidden in a `RefCell` because, while that has additional memory-usage implications
+    /// while we're still building with the feature enabled, we intend to remove the feature in the
+    /// future, and hiding the cache within a `RefCell` lets us keep the cache transparently in our
+    /// interfaces, without needing various functions to unnecessarily take `&mut` references.
+    pub py_op: RefCell<Option<PyObject>>,
+}
+
+impl PackedInstruction {
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
+    /// instruction.  This may construct the reference if the `PackedInstruction` is a standard
+    /// gate with no already stored operation.
+    ///
+    /// A standard-gate operation object returned by this function is disconnected from the
+    /// containing circuit; updates to its label, duration, unit and condition will not be
+    /// propagated back.
+    pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(cached_op) = self.py_op.borrow().as_ref() {
+                return Ok(cached_op.clone_ref(py));
+            }
+        }
+        let (label, duration, unit, condition) = match self.extra_attrs.as_deref() {
+            Some(ExtraInstructionAttributes {
+                label,
+                duration,
+                unit,
+                condition,
+            }) => (
+                label.as_deref(),
+                duration.as_ref(),
+                unit.as_deref(),
+                condition.as_ref(),
+            ),
+            None => (None, None, None, None),
+        };
+        let out = operation_type_and_data_to_py(
+            py,
+            &self.op,
+            &self.params,
+            label,
+            duration,
+            unit,
+            condition,
+        )?;
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Ok(mut cell) = self.py_op.try_borrow_mut() {
+                cell.get_or_insert_with(|| out.clone_ref(py));
+            }
+        }
+        Ok(out)
+    }
 }
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -666,20 +722,20 @@ pub(crate) fn operation_type_to_py(
     let (label, duration, unit, condition) = match &circuit_inst.extra_attrs {
         None => (None, None, None, None),
         Some(extra_attrs) => (
-            extra_attrs.label.clone(),
-            extra_attrs.duration.clone(),
-            extra_attrs.unit.clone(),
-            extra_attrs.condition.clone(),
+            extra_attrs.label.as_deref(),
+            extra_attrs.duration.as_ref(),
+            extra_attrs.unit.as_deref(),
+            extra_attrs.condition.as_ref(),
         ),
     };
     operation_type_and_data_to_py(
         py,
         &circuit_inst.operation,
         &circuit_inst.params,
-        &label,
-        &duration,
-        &unit,
-        &condition,
+        label,
+        duration,
+        unit,
+        condition,
     )
 }
 
@@ -692,10 +748,10 @@ pub(crate) fn operation_type_and_data_to_py(
     py: Python,
     operation: &OperationType,
     params: &[Param],
-    label: &Option<String>,
-    duration: &Option<PyObject>,
-    unit: &Option<String>,
-    condition: &Option<PyObject>,
+    label: Option<&str>,
+    duration: Option<&PyObject>,
+    unit: Option<&str>,
+    condition: Option<&PyObject>,
 ) -> PyResult<PyObject> {
     match &operation {
         OperationType::Standard(op) => {
