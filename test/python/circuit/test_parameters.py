@@ -176,8 +176,6 @@ class TestParameters(QiskitTestCase):
         for i, vi in enumerate(v):
             self.assertEqual(vi, qc.parameters[i])
 
-<<<<<<< HEAD
-=======
     def test_parameters_property_independent_after_copy(self):
         """Test that any `parameters` property caching is invalidated after a copy operation."""
         a = Parameter("a")
@@ -272,7 +270,6 @@ class TestParameters(QiskitTestCase):
         # This `z` should compare unequal to the first one, so it should appear absent.
         self.assertFalse(qc.has_parameter(Parameter("z")))
 
->>>>>>> b6c616612 (Invalidate `parameters` cache on circuit copy (#12619))
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
         phase = Parameter("phase")
