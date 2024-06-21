@@ -972,7 +972,7 @@ class C4XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3sqrtx a,b,c,d

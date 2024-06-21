@@ -84,7 +84,7 @@ class EquivalenceLibrary(BaseEquivalenceLibrary):
                     )
                     node_map[decomp_basis] = decomp_basis_node
 
-                label = "{}\n{}".format(str(params), str(decomp) if num_qubits <= 5 else "...")
+                label = f"{str(params)}\n{str(decomp) if num_qubits <= 5 else '...'}"
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],
@@ -92,7 +92,3 @@ class EquivalenceLibrary(BaseEquivalenceLibrary):
                 )
 
         return graph
-
-    def _get_equivalences(self, key):
-        """Get all the equivalences for the given key"""
-        return self.graph[self.node_index(key)].equivs if key in self.keys() else []

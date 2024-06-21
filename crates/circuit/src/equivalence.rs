@@ -511,7 +511,7 @@ impl EquivalenceLibrary {
         };
         let query_params = gate.params();
 
-        self.get_equivalences(&key)
+        self._get_equivalences(&key)
             .into_iter()
             .filter_map(|equivalence| rebind_equiv(equivalence, query_params))
             .collect()
@@ -524,6 +524,15 @@ impl EquivalenceLibrary {
         } else {
             self.graph = Some(to_pygraph(py, &self._graph)?);
             Ok(self.graph.to_object(py))
+        }
+    }
+
+    /// Get all the equivalences for the given key
+    pub fn _get_equivalences(&self, key: &Key) -> Vec<Equivalence> {
+        if let Some(key_in) = self.key_to_node_index.get(key) {
+            self._graph[*key_in].equivs.to_owned()
+        } else {
+            vec![]
         }
     }
 
@@ -710,15 +719,6 @@ impl EquivalenceLibrary {
         }
         self.graph = None;
         Ok(())
-    }
-
-    /// Get all the equivalences for the given key
-    fn get_equivalences(&self, key: &Key) -> Vec<Equivalence> {
-        if let Some(key_in) = self.key_to_node_index.get(key) {
-            self._graph[*key_in].equivs.to_owned()
-        } else {
-            vec![]
-        }
     }
 }
 

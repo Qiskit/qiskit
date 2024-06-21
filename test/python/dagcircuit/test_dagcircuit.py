@@ -83,8 +83,8 @@ def raise_if_dagcircuit_invalid(dag):
     ]
     if edges_outside_wires:
         raise DAGCircuitError(
-            "multi_graph contains one or more edges ({}) "
-            "not found in DAGCircuit.wires ({}).".format(edges_outside_wires, dag.wires)
+            f"multi_graph contains one or more edges ({edges_outside_wires}) "
+            f"not found in DAGCircuit.wires ({dag.wires})."
         )
 
     # Every wire should have exactly one input node and one output node.
@@ -134,9 +134,7 @@ def raise_if_dagcircuit_invalid(dag):
         all_bits = node_qubits | node_clbits | node_cond_bits
 
         assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
-        assert out_wires == all_bits, "Out-edge wires {} != node bits {}".format(
-            out_wires, all_bits
-        )
+        assert out_wires == all_bits, f"Out-edge wires {out_wires} != node bits {all_bits}"
 
 
 class TestDagRegisters(QiskitTestCase):
@@ -855,7 +853,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
-        # Ordering between Reset and out[q1] is indeterminant.
+        # Ordering between Reset and out[q1] is indeterminate.
 
         successor1 = next(successor_cnot)
         successor2 = next(successor_cnot)
@@ -904,7 +902,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
-        # Ordering between Reset and in[q1] is indeterminant.
+        # Ordering between Reset and in[q1] is indeterminate.
 
         predecessor1 = next(predecessor_cnot)
         predecessor2 = next(predecessor_cnot)
@@ -1613,7 +1611,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
         qc.h(0)
         qc.measure(0, 0)
         # The depth of an if-else is the path through the longest block (regardless of the
-        # condition).  The size is the sum of both blocks (mostly for optimisation-target purposes).
+        # condition).  The size is the sum of both blocks (mostly for optimization-target purposes).
         with qc.if_test((qc.clbits[0], True)) as else_:
             qc.x(1)
             qc.cx(2, 3)
@@ -2422,11 +2420,11 @@ class TestDagSubstitute(QiskitTestCase):
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
-        # The `propagate_condition=True` argument (and behaviour of `substitute_node_with_dag`
+        # The `propagate_condition=True` argument (and behavior of `substitute_node_with_dag`
         # before the parameter was added) treats the replacement DAG as implementing only the
         # un-controlled operation.  The original contract considers it an error to replace a node
         # with an operation that may modify one of the condition bits in case this affects
-        # subsequent operations, so when `propagate_condition=True`, this error behaviour is
+        # subsequent operations, so when `propagate_condition=True`, this error behavior is
         # maintained.
 
         instr = Instruction("opaque", 1, 1, [])
