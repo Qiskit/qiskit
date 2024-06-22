@@ -451,8 +451,8 @@ class UniformSuperpositionGate(Gate):
             num_superpos_states (int):
                 A positive integer M = num_superpos_states (> 1) representing the number of computational
                 basis states with an amplitude of 1/sqrt(M) in the uniform superposition
-                state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $, where
-                $1< M <= 2^n$). Note that the remaining (2^n - M) computational basis
+                state (:math:`\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}`, where
+                :math:`1< M <= 2^n`). Note that the remaining (2^n - M) computational basis
                 states have zero amplitudes. Here M need not be an integer power of 2.
 
             num_qubits (int):
@@ -477,8 +477,6 @@ class UniformSuperpositionGate(Gate):
         """
         Defines the gate operation.
 
-        Returns:
-            QuantumCircuit: The quantum circuit implementing the gate.
         """
         qreg = QuantumRegister(self._num_qubits, "q")
         qc = QuantumCircuit(self._num_qubits)
