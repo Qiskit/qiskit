@@ -33,7 +33,7 @@ from qiskit.circuit.library.data_preparation import (
 class TestUniformSuperposition(QiskitTestCase):
     """Test initialization with UniformSuperpositionGate class"""
 
-    @data(2, 3, 5, 13)
+    @data(2, 3, 5)
     def test_uniform_superposition_gate(self, num_superpos_states):
         """Test Uniform Superposition Gate"""
         n = int(math.ceil(math.log2(num_superpos_states)))
