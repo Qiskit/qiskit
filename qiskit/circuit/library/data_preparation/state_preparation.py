@@ -447,8 +447,6 @@ class UniformSuperpositionGate(Gate):
         num_qubits: Optional[int] = None,
     ):
         r"""
-        Initializes UniformSuperpositionGate.
-
         Args:
             num_superpos_states (int):
                 A positive integer M = num_superpos_states (> 1) representing the number of computational
