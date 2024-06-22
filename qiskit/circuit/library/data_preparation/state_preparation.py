@@ -421,29 +421,24 @@ class StatePreparation(Gate):
 
 
 class UniformSuperpositionGate(Gate):
-    r"""
-    Class that implements a uniform superposition state, using n qubits,
-    following the Shukla-Vedula algorithm [SV24].
+    r"""Implements a uniform superposition state.
 
     This gate is used to create the uniform superposition state
-    $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $ when it acts on an input
-    state $\ket{0}$ (i.e. $\ket{0...0}$). The effect on other input states is
-    deterministic but undefined.
+    :math:`\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  |j\rangle` when it acts on an input
+    state :math:`|0...0\rangle`. Note, that `M` is not required to be 
+    a power of 2, in which case the uniform superposition could be 
+    prepared by a single layer of Hadamard gates.
 
     .. note::
-    The Shukla-Vedula algorithm [SV24] provides an efficient approach for
-    creation of a uniform superposition state of the form,
-    $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. It needs only
-    $O(\log_2 (M))$ qubits and $O(\log_2 (M))$ gates, hence providing a
-    significant improvement, in terms of reduced resources and complexity,
-    compared to the use of StatePreparation gate for preparation of uniform
-    superposition state.
+
+        This class uses the Shukla-Vedula algorithm [1], which only needs
+        :math:`O(\log_2 (M))` qubits and :math:`O(\log_2 (M))` gates, 
+        to prepare the superposition.
 
     **References:**
-    [SV24]
-    A. Shukla and P. Vedula, ``An efficient quantum algorithm for preparation
-    of uniform quantum superposition states,`` Quantum Information Processing,
-    23(38): pp. 1-32 (2024).
+    [1]: A. Shukla and P. Vedula (2024), An efficient quantum algorithm for preparation
+    of uniform quantum superposition states, `Quantum Inf Process 23, 38
+    <https://link.springer.com/article/10.1007/s11128-024-04258-4>`_.
     """
 
     def __init__(
