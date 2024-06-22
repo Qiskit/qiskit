@@ -444,7 +444,7 @@ class UniformSuperpositionGate(Gate):
     def __init__(
         self,
         num_superpos_states: int = 2,
-        num_qubits: Optional[int] = None,
+        num_qubits: int | None = None,
     ):
         r"""
         Args:
