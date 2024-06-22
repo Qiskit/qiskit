@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    Implemented UniformSuperpositionGate class, which allows 
+    Implemented :class:`.UniformSuperpositionGate` class, which allows 
+
     the creation of a uniform superposition state using 
     the Shukla-Vedula algorithm [SV24]. This feature facilitates the 
     creation of quantum circuits that produce a uniform superposition 
