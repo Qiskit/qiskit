@@ -8,7 +8,7 @@ upgrade_algorithms:
 
 
   - |
-    A series of legacy quantum execution utililties have been removed, following their deprecation in Qiskit 0.44.
+    A series of legacy quantum execution utilities have been removed, following their deprecation in Qiskit 0.44.
     These include the ``qiskit.utils.QuantumInstance`` class, as well the modules:
 
      - ``qiskit.utils.backend_utils``

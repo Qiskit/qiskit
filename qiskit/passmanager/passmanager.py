@@ -130,7 +130,7 @@ class BasePassManager(ABC):
                 return new_passmanager
             except PassManagerError as ex:
                 raise TypeError(
-                    "unsupported operand type + for %s and %s" % (self.__class__, other.__class__)
+                    f"unsupported operand type + for {self.__class__} and {other.__class__}"
                 ) from ex
 
     @abstractmethod
@@ -225,7 +225,7 @@ class BasePassManager(ABC):
             in_programs = [in_programs]
             is_list = False
 
-        # If we're not going to run in parallel, we want to avoid spending time `dill` serialising
+        # If we're not going to run in parallel, we want to avoid spending time `dill` serializing
         # ourselves, since that can be quite expensive.
         if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
             out = [
@@ -242,7 +242,7 @@ class BasePassManager(ABC):
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
-        # Thus, we can resue the same manager without state collision, without building it per thread.
+        # Thus, we can reuse the same manager without state collision, without building it per thread.
         return parallel_map(
             _run_workflow_in_new_process,
             values=in_programs,

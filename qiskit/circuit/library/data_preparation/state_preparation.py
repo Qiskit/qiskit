@@ -154,8 +154,8 @@ class StatePreparation(Gate):
         # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
             raise QiskitError(
-                "StatePreparation integer has %s bits, but this exceeds the"
-                " number of qubits in the circuit, %s." % (len(intstr), self.num_qubits)
+                f"StatePreparation integer has {len(intstr)} bits, but this exceeds the"
+                f" number of qubits in the circuit, {self.num_qubits}."
             )
 
         for qubit, bit in enumerate(intstr):
@@ -212,9 +212,9 @@ class StatePreparation(Gate):
 
         if self.num_qubits != len(flat_qargs):
             raise QiskitError(
-                "StatePreparation parameter vector has %d elements, therefore expects %s "
-                "qubits. However, %s were provided."
-                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
+                f"StatePreparation parameter vector has {2**self.num_qubits}"
+                f" elements, therefore expects {self.num_qubits} "
+                f"qubits. However, {len(flat_qargs)} were provided."
             )
         yield flat_qargs, []
 
@@ -226,8 +226,8 @@ class StatePreparation(Gate):
             if parameter in ["0", "1", "+", "-", "l", "r"]:
                 return parameter
             raise CircuitError(
-                "invalid param label {} for instruction {}. Label should be "
-                "0, 1, +, -, l, or r ".format(type(parameter), self.name)
+                f"invalid param label {type(parameter)} for instruction {self.name}. Label should be "
+                "0, 1, +, -, l, or r "
             )
 
         # StatePreparation instruction parameter can be int, float, and complex.

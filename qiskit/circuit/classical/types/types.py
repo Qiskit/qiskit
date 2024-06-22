@@ -29,7 +29,7 @@ import typing
 
 
 class _Singleton(type):
-    """Metaclass to make the child, which should take zero initialisation arguments, a singleton
+    """Metaclass to make the child, which should take zero initialization arguments, a singleton
     object."""
 
     def _get_singleton_instance(cls):
@@ -76,7 +76,7 @@ class Type:
     def __setstate__(self, state):
         _dict, slots = state
         for slot, value in slots.items():
-            # We need to overcome the type's enforcement of immutability post initialisation.
+            # We need to overcome the type's enforcement of immutability post initialization.
             super().__setattr__(slot, value)
 
 
