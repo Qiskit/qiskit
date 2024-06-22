@@ -17,8 +17,9 @@ features:
 
        from qiskit import UniformSuperpositionGate, QuantumCircuit
        M = 5
-       n = 3
-       usp_gate = UniformSuperpositionGate(M, n)
-       qc = QuantumCircuit(n)
-       qc.append(usp_gate, list(range(n)))
+       num_qubits = 3
+       usp_gate = UniformSuperpositionGate(M, num_qubits)
+       qc = QuantumCircuit(num_qubits)
+       qc.append(usp_gate, list(range(num_qubits)))
+
        qc.draw()
