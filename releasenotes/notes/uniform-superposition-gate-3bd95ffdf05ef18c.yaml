@@ -3,7 +3,7 @@ features:
   - |
     Implemented :class:`.UniformSuperpositionGate` class, which allows
     the creation of a uniform superposition state using 
-    the Shukla-Vedula algorithm [SV24]. This feature facilitates the 
+    the Shukla-Vedula algorithm. This feature facilitates the 
     creation of quantum circuits that produce a uniform superposition 
     state :math:`$\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}`, where 
     :math:`M` is a positive integer representing the number of 
