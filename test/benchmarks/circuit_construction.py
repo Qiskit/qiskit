@@ -24,6 +24,7 @@ from .utils import dtc_unitary, multi_control_circuit
 
 SEED = 12345
 
+
 def build_circuit(width, gates):
     qr = QuantumRegister(width)
     qc = QuantumCircuit(qr)
@@ -102,8 +103,9 @@ class ParameterizedCircuitBindBench:
         #  that test more of the input formats / combinations
         self.circuit.assign_parameters({x: 3.14 for x in self.params})
 
+
 class ParamaterizedDifferentCircuit:
-    param_names = ['circuit_size', 'num_qubits']
+    param_names = ["circuit_size", "num_qubits"]
     params = ([10, 50, 100], [10, 50, 150])
 
     def time_QV100_build(self, circuit_size, num_qubits):
@@ -128,10 +130,11 @@ class ParamaterizedDifferentCircuit:
             result = circs[-1]
 
         return result
-        
+
+
 class MultiControl:
-    param_names = (['width'])
-    params = ([10,16,20])
+    param_names = ["width"]
+    params = [10, 16, 20]
 
     def time_multi_control_circuit(self, width):
         """Measures an SDKs ability to build a circuit
@@ -140,9 +143,11 @@ class MultiControl:
         out = multi_control_circuit(width)
         return out
 
+
 class ParameterizedCirc:
-    param_names = (['num_qubits'])
-    params = ([5, 10, 16])
+    param_names = ["num_qubits"]
+    params = [5, 10, 16]
+
     def time_param_circSU2_100_build(self, num_qubits):
         """Measures an SDKs ability to build a
         parameterized efficient SU2 circuit with circular entanglement
@@ -152,6 +157,7 @@ class ParameterizedCirc:
         out = EfficientSU2(num_qubits, reps=4, entanglement="circular", flatten=True)
         out._build()
         return out
+
 
 class QasmImport:
     def time_QV100_qasm2_import(self):
