@@ -27,16 +27,11 @@ fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool>
         );
     }
 
-    let mut result: Array2<bool> = Array2::from_shape_fn((n1_rows, n2_cols), |(_i, _j)| false);
-    for i in 0..n1_rows {
-        for j in 0..n2_cols {
-            for k in 0..n2_rows {
-                result[(i, j)] ^= mat1[(i, k)] & mat2[(k, j)];
-            }
-        }
-    }
-
-    result
+    Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
+        (0..n2_rows)
+            .map(|k| mat1[[i, k]] & mat2[[k, j]])
+            .fold(false, |acc, v| acc ^ v)
+    })
 }
 
 /// Gauss elimination of a matrix mat with m rows and n columns.
