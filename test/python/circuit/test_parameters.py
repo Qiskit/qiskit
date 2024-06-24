@@ -203,6 +203,29 @@ class TestParameters(QiskitTestCase):
         for i, vi in enumerate(v):
             self.assertEqual(vi, qc.parameters[i])
 
+    def test_parameters_property_independent_after_copy(self):
+        """Test that any `parameters` property caching is invalidated after a copy operation."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+
+        qc1 = QuantumCircuit(1)
+        qc1.rz(a, 0)
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc2 = qc1.copy_empty_like()
+        self.assertEqual(set(qc2.parameters), set())
+
+        qc3 = qc1.copy()
+        self.assertEqual(set(qc3.parameters), {a})
+        qc3.rz(b, 0)
+        self.assertEqual(set(qc3.parameters), {a, b})
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc1.rz(c, 0)
+        self.assertEqual(set(qc1.parameters), {a, c})
+        self.assertEqual(set(qc3.parameters), {a, b})
+
     def test_get_parameter(self):
         """Test the `get_parameter` method."""
         x = Parameter("x")
@@ -1374,6 +1397,21 @@ class TestParameters(QiskitTestCase):
             # ensure we still have an element with the same uuid
             self.assertEqual(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
+
+    def test_parametervector_repr(self):
+        """Test the __repr__ method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(repr(vec), "ParameterVector(name='x', length=2)")
+
+    def test_parametervector_str(self):
+        """Test the __str__ method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(str(vec), "x, ['x[0]', 'x[1]']")
+
+    def test_parametervector_index(self):
+        """Test the index method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(vec.index(vec[1]), 1)
 
     def test_raise_if_sub_unknown_parameters(self):
         """Verify we raise if asked to sub a parameter not in self."""

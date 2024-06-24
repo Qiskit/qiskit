@@ -18,6 +18,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U2Gate(Gate):
@@ -85,6 +86,8 @@ class U2Gate(Gate):
         U3 is a generalization of U2 that covers all single-qubit rotations,
         using two X90 pulses.
     """
+
+    _standard_gate = StandardGate.U2Gate
 
     def __init__(
         self,

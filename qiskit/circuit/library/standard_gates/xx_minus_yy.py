@@ -27,6 +27,7 @@ from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class XXMinusYYGate(Gate):
@@ -90,6 +91,8 @@ class XXMinusYYGate(Gate):
                 -i\sin\left(\rotationangle\right)e^{-i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.XXMinusYYGate
 
     def __init__(
         self,
