@@ -4526,7 +4526,7 @@ class QuantumCircuit:
                 copy=False,
             )
         return self._append_standard_gate(
-            StandardGate.CHGate, [], qargs=[control_qubit, target_qubit]
+            StandardGate.CHGate, [], qargs=[control_qubit, target_qubit], label=label
         )
 
     def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
@@ -4607,7 +4607,7 @@ class QuantumCircuit:
                 copy=False,
             )
         return self._append_standard_gate(
-            StandardGate.CPhaseGate, [theta], qargs=[control_qubit, target_qubit]
+            StandardGate.CPhaseGate, [theta], qargs=[control_qubit, target_qubit], label=label
         )
 
     def mcp(
@@ -4975,9 +4975,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(
-            StandardGate.ECRGate, [], qargs=[qubit1, qubit2], cargs=None
-        )
+        return self._append_standard_gate(StandardGate.ECRGate, [], qargs=[qubit1, qubit2])
 
     def s(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SGate`.
@@ -4990,7 +4988,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SGate, [], [qubit], cargs=None)
+        return self._append_standard_gate(StandardGate.SGate, [], qargs=[qubit])
 
     def sdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SdgGate`.
@@ -5003,7 +5001,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SdgGate, [], [qubit], cargs=None)
+        return self._append_standard_gate(StandardGate.SdgGate, [], qargs=[qubit])
 
     def cs(
         self,
@@ -5038,7 +5036,7 @@ class QuantumCircuit:
             )
 
         return self._append_standard_gate(
-            StandardGate.CSGate, [], [control_qubit, target_qubit], cargs=None
+            StandardGate.CSGate, [], qargs=[control_qubit, target_qubit], label=label
         )
 
     def csdg(
@@ -5073,7 +5071,7 @@ class QuantumCircuit:
                 copy=False,
             )
         return self._append_standard_gate(
-            StandardGate.CSdgGate, [], [control_qubit, target_qubit], cargs=None
+            StandardGate.CSdgGate, [], qargs=[control_qubit, target_qubit], label=label
         )
 
     def swap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
@@ -5091,7 +5089,6 @@ class QuantumCircuit:
             StandardGate.SwapGate,
             [],
             qargs=[qubit1, qubit2],
-            cargs=None,
         )
 
     def iswap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
@@ -5105,7 +5102,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.ISwapGate, [], [qubit1, qubit2], cargs=None)
+        return self._append_standard_gate(StandardGate.ISwapGate, [], qargs=[qubit1, qubit2])
 
     def cswap(
         self,
@@ -5132,7 +5129,6 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         if ctrl_state is not None:
-
             from .library.standard_gates.swap import CSwapGate
 
             return self.append(
@@ -5142,7 +5138,10 @@ class QuantumCircuit:
                 copy=False,
             )
         return self._append_standard_gate(
-            StandardGate.CSwapGate, [], [control_qubit, target_qubit1, target_qubit2], cargs=None
+            StandardGate.CSwapGate,
+            [],
+            qargs=[control_qubit, target_qubit1, target_qubit2],
+            label=label,
         )
 
     def sx(self, qubit: QubitSpecifier) -> InstructionSet:
@@ -5156,7 +5155,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SXGate, None, qargs=[qubit])
+        return self._append_standard_gate(StandardGate.SXGate, [], qargs=[qubit])
 
     def sxdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SXdgGate`.
@@ -5169,7 +5168,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SXdgGate, None, qargs=[qubit])
+        return self._append_standard_gate(StandardGate.SXdgGate, [], qargs=[qubit])
 
     def csx(
         self,
@@ -5193,13 +5192,17 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.sx import CSXGate
+        if ctrl_state is not None:
+            from .library.standard_gates.sx import CSXGate
 
-        return self.append(
-            CSXGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
-            copy=False,
+            return self.append(
+                CSXGate(label=label, ctrl_state=ctrl_state),
+                [control_qubit, target_qubit],
+                [],
+                copy=False,
+            )
+        return self._append_standard_gate(
+            StandardGate.CSXGate, [], qargs=[control_qubit, target_qubit], label=label
         )
 
     def t(self, qubit: QubitSpecifier) -> InstructionSet:
@@ -5213,7 +5216,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.TGate, [], [qubit], cargs=None)
+        return self._append_standard_gate(StandardGate.TGate, [], qargs=[qubit])
 
     def tdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TdgGate`.
@@ -5226,7 +5229,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.TdgGate, [], [qubit], cargs=None)
+        return self._append_standard_gate(StandardGate.TdgGate, [], qargs=[qubit])
 
     def u(
         self,
@@ -5571,7 +5574,7 @@ class QuantumCircuit:
             )
 
         return self._append_standard_gate(
-            StandardGate.CZGate, [], qargs=[control_qubit, target_qubit], cargs=None, label=label
+            StandardGate.CZGate, [], qargs=[control_qubit, target_qubit], label=label
         )
 
     def ccz(

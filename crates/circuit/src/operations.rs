@@ -289,7 +289,7 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "crz",          // 31
     "r",            // 32
     "ch",           // 33
-    "cphase",       // 34
+    "cp",           // 34
     "cs",           // 35
     "csdg",         // 36
     "csx",          // 37
@@ -1000,7 +1000,7 @@ impl Operation for StandardGate {
                         2,
                         [
                             (Self::HGate, smallvec![], q1.clone()),
-                            (Self::CU1Gate, smallvec![Param::Float(PI2)], q0_1),
+                            (Self::CPhaseGate, smallvec![Param::Float(PI2)], q0_1),
                             (Self::HGate, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
