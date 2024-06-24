@@ -682,6 +682,8 @@ class C3XGate(SingletonControlledGate):
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
 
+    _standard_gate = StandardGate.C3XGate
+
     def __init__(
         self,
         label: Optional[str] = None,

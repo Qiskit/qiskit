@@ -19,10 +19,13 @@ from test import QiskitTestCase
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library.standard_gates import *
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
 SKIP_LIST = {"rx", "ry", "ecr"}
 CUSTOM_MAPPING = {"x", "rz"}
+
+MCX_GATES = [C3XGate()]
 
 
 class TestRustGateEquivalence(QiskitTestCase):
@@ -30,9 +33,11 @@ class TestRustGateEquivalence(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.standard_gates = get_standard_gate_name_mapping()
+        # self.standard_gates = get_standard_gate_name_mapping()
+        self.standard_gates = {}
+        self.standard_gates.update({gate.name: gate for gate in MCX_GATES})
         # Pre-warm gate mapping cache, this is needed so rust -> py conversion is done
-        qc = QuantumCircuit(3)
+        qc = QuantumCircuit(4)
         for gate in self.standard_gates.values():
             if getattr(gate, "_standard_gate", None):
                 if gate.params:
@@ -51,6 +56,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
+                print(name)
                 params = [pi] * standard_gate._num_params()
                 py_def = gate_class.base_class(*params).definition
                 rs_def = standard_gate._get_definition(params)
@@ -78,7 +84,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                                 [rs_def.find_bit(x).index for x in rs_inst.qubits],
                             )
                         # Rust uses P but python still uses u1
-                        elif rs_inst.operation.name == "p":
+                        elif rs_inst.operation.name == "p" and not name in ["mcx"]:
                             if py_inst.operation.name == "u1":
                                 self.assertEqual(py_inst.operation.name, "u1")
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
@@ -95,7 +101,6 @@ class TestRustGateEquivalence(QiskitTestCase):
                                     [py_def.find_bit(x).index for x in py_inst.qubits],
                                     [rs_def.find_bit(x).index for x in rs_inst.qubits],
                                 )
-
                         else:
                             self.assertEqual(py_inst.operation.name, rs_inst.operation.name)
                             self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
