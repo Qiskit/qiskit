@@ -19,6 +19,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U3Gate(Gate):
@@ -79,6 +80,8 @@ class U3Gate(Gate):
 
         U3(\theta, 0, 0) = RY(\theta)
     """
+
+    _standard_gate = StandardGate.U3Gate
 
     def __init__(
         self,
