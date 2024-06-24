@@ -53,7 +53,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
           option is ignored.
     """
 
-    @deprecate_func(since="1.0", additional_msg="Use StatevectorSampler instead.")
+    @deprecate_func(since="1.2", additional_msg="Use StatevectorSampler instead.")
     def __init__(self, *, options: dict | None = None):
         """
         Args:

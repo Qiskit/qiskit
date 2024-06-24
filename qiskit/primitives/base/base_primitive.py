@@ -23,7 +23,7 @@ from qiskit.utils.deprecation import deprecate_func
 class BasePrimitive(ABC):
     """Primitive abstract base class."""
 
-    @deprecate_func(since="1.0", additional_msg="Use BasePrimitiveV2 instead.")
+    @deprecate_func(since="1.2", additional_msg="Use BasePrimitiveV2 instead.")
     def __init__(self, options: dict | None = None):
         self._run_options = Options()
         if options is not None:

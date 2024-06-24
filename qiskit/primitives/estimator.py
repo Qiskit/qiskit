@@ -52,7 +52,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
           this option is ignored.
     """
 
-    @deprecate_func(since="1.0", additional_msg="Use StatevectorEstimator instead.")
+    @deprecate_func(since="1.2", additional_msg="Use StatevectorEstimator instead.")
     def __init__(self, *, options: dict | None = None):
         """
         Args:

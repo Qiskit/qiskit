@@ -47,7 +47,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    @deprecate_func(since="1.0", additional_msg="Use BackendSamplerV2 instead.")
+    @deprecate_func(since="1.2", additional_msg="Use BackendSamplerV2 instead.")
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
