@@ -68,11 +68,9 @@ sys.modules["qiskit._accelerate.uc_gate"] = _accelerate.uc_gate
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     _accelerate.euler_one_qubit_decomposer
 )
-sys.modules["qiskit._accelerate.linear_matrix"] = _accelerate.linear_matrix
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
-sys.modules["qiskit._accelerate.permutation"] = _accelerate.permutation
 sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
 sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
 sys.modules["qiskit._accelerate.results"] = _accelerate.results
@@ -82,6 +80,8 @@ sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.stochastic_swap"] = _accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
 sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
+sys.modules["qiskit._accelerate.synthesis.permutation"] = _accelerate.synthesis.permutation
+sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linear
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

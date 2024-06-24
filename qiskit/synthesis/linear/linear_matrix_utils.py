@@ -17,7 +17,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=unused-import
-from qiskit._accelerate.linear_matrix import (
+from qiskit._accelerate.synthesis.linear import (
     _gauss_elimination,
     _gauss_elimination_with_perm,
     _compute_rank_after_gauss_elim,

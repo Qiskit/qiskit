@@ -11,11 +11,9 @@
 // that they have been altered from the originals.
 
 use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
-use pyo3::prelude::*;
 
 /// Binary matrix multiplication
-fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool> {
+pub fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool> {
     let n1_rows = mat1.nrows();
     let n1_cols = mat1.ncols();
     let n2_rows = mat2.nrows();
@@ -38,7 +36,7 @@ fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool>
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 /// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
 /// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
-fn gauss_elimination_with_perm(
+pub fn gauss_elimination_with_perm(
     mut mat: ArrayViewMut2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
@@ -100,7 +98,7 @@ fn gauss_elimination_with_perm(
 
 /// Given a boolean matrix A after Gaussian elimination, computes its rank
 /// (i.e. simply the number of nonzero rows)
-fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
+pub fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
     let rank: usize = mat
         .axis_iter(Axis(0))
         .map(|row| row.fold(false, |out, val| out | *val) as usize)
@@ -109,7 +107,7 @@ fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
 }
 
 /// Given a square boolean matrix mat, tries to compute its inverse.
-fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<bool> {
+pub fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<bool> {
     if mat.shape()[0] != mat.shape()[1] {
         panic!("Matrix to invert is a non-square matrix.");
     }
@@ -139,71 +137,9 @@ fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<bool
     invmat
 }
 
-#[pyfunction]
-#[pyo3(signature = (mat, ncols=None, full_elim=false))]
-/// Gauss elimination of a matrix mat with m rows and n columns.
-/// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-/// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
-/// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
-fn _gauss_elimination_with_perm(
-    py: Python,
-    mut mat: PyReadwriteArray2<bool>,
-    ncols: Option<usize>,
-    full_elim: Option<bool>,
-) -> PyResult<PyObject> {
-    let matmut = mat.as_array_mut();
-    let perm = gauss_elimination_with_perm(matmut, ncols, full_elim);
-    Ok(perm.to_object(py))
-}
-
-#[pyfunction]
-#[pyo3(signature = (mat, ncols=None, full_elim=false))]
-/// Gauss elimination of a matrix mat with m rows and n columns.
-/// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-/// Returns the updated matrix mat.
-fn _gauss_elimination(
-    mut mat: PyReadwriteArray2<bool>,
-    ncols: Option<usize>,
-    full_elim: Option<bool>,
-) {
-    let matmut = mat.as_array_mut();
-    let _perm = gauss_elimination_with_perm(matmut, ncols, full_elim);
-}
-
-#[pyfunction]
-#[pyo3(signature = (mat))]
-/// Given a boolean matrix A after Gaussian elimination, computes its rank
-/// (i.e. simply the number of nonzero rows)
-fn _compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
-    let view = mat.as_array();
-    let rank = compute_rank_after_gauss_elim(view);
-    Ok(rank.to_object(py))
-}
-
-#[pyfunction]
-#[pyo3(signature = (mat, verify=false))]
-/// Given a boolean matrix mat, tries to calculate its inverse matrix
-/// Args:
-///    mat: a boolean square matrix.
-///    verify: if True asserts that the multiplication of mat and its inverse is the identity matrix.
-/// Returns:
-///   the inverse matrix.
-/// Raises:
-///  QiskitError: if the matrix is not square.
-///  QiskitError: if the matrix is not invertible.
-pub fn calc_inverse_matrix(
-    py: Python,
-    mat: PyReadonlyArray2<bool>,
-    verify: Option<bool>,
-) -> PyResult<Py<PyArray2<bool>>> {
-    let view = mat.as_array();
-    let invmat = calc_inverse_matrix_inner(view, verify.is_some());
-    Ok(invmat.into_pyarray_bound(py).unbind())
-}
-
 /// Mutate a matrix inplace by adding the value of the ``ctrl`` row to the
 /// ``target`` row. If ``add_cols`` is true, add columns instead of rows.
-fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usize, trgt: usize) {
+pub fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usize, trgt: usize) {
     // get the two rows (or columns)
     let info = if *add_cols {
         (s![.., ctrl], s![.., trgt])
@@ -214,46 +150,4 @@ fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usize, t
 
     // add them inplace
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
-}
-
-#[pyfunction]
-#[pyo3(signature = (mat1, mat2))]
-// Binary matrix multiplication
-pub fn _binary_matmul(
-    py: Python,
-    mat1: PyReadonlyArray2<bool>,
-    mat2: PyReadonlyArray2<bool>,
-) -> PyResult<Py<PyArray2<bool>>> {
-    let view1 = mat1.as_array();
-    let view2 = mat2.as_array();
-    let result = binary_matmul(view1, view2);
-    Ok(result.into_pyarray_bound(py).unbind())
-}
-
-#[pyfunction]
-#[pyo3(signature = (mat, ctrl, trgt))]
-// Perform ROW operation on a matrix mat
-fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
-    let matmut = mat.as_array_mut();
-    _add_row_or_col(matmut, &false, ctrl, trgt)
-}
-
-#[pyfunction]
-#[pyo3(signature = (mat, ctrl, trgt))]
-// Perform COL operation on a matrix mat (in the inverse direction)
-fn _col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
-    let matmut = mat.as_array_mut();
-    _add_row_or_col(matmut, &true, trgt, ctrl)
-}
-
-#[pymodule]
-pub fn linear_matrix(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(_gauss_elimination_with_perm))?;
-    m.add_wrapped(wrap_pyfunction!(_gauss_elimination))?;
-    m.add_wrapped(wrap_pyfunction!(_compute_rank_after_gauss_elim))?;
-    m.add_wrapped(wrap_pyfunction!(calc_inverse_matrix))?;
-    m.add_wrapped(wrap_pyfunction!(_row_op))?;
-    m.add_wrapped(wrap_pyfunction!(_col_op))?;
-    m.add_wrapped(wrap_pyfunction!(_binary_matmul))?;
-    Ok(())
 }

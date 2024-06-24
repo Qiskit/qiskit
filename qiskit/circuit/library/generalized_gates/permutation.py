@@ -80,15 +80,13 @@ class Permutation(QuantumCircuit):
 
         name = "permutation_" + np.array_str(pattern).replace(" ", ",")
 
-        circuit = QuantumCircuit(num_qubits, name=name)
-
         super().__init__(num_qubits, name=name)
 
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+        from qiskit.synthesis.permutation import synth_permutation_basic
 
-        for i, j in _get_ordered_swap(pattern):
-            circuit.swap(i, j)
+        circuit = synth_permutation_basic(pattern)
+        circuit.name = name
 
         all_qubits = self.qubits
         self.append(circuit.to_gate(), all_qubits)
@@ -184,10 +182,11 @@ class PermutationGate(Gate):
 
     def _qasm2_decomposition(self):
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+        from qiskit.synthesis.permutation import synth_permutation_basic
 
         name = f"permutation__{'_'.join(str(n) for n in self.pattern)}_"
-        out = QuantumCircuit(self.num_qubits, name=name)
-        for i, j in _get_ordered_swap(self.pattern):
-            out.swap(i, j)
+
+        out = synth_permutation_basic(self.pattern)
+        out.name = name
+
         return out.to_gate()

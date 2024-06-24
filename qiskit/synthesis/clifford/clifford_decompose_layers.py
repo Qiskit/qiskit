@@ -414,7 +414,7 @@ def _calc_pauli_diff(cliff, cliff_target):
 
 
 def synth_clifford_depth_lnn(cliff):
-    """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbour connectivity.
+    """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbor connectivity.
 
     The depth of the synthesized n-qubit circuit is bounded by :math:`7n+2`, which is not optimal.
     It should be replaced by a better algorithm that provides depth bounded by :math:`7n-4` [3].
