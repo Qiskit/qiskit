@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-from qiskit.circuit.parametertable import ParameterTable, ParameterReferences
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -63,7 +62,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     if circuit.num_input_vars:
         # This could be supported by moving the `input` variables to be parameters of the
-        # instruction, but we don't really have a good reprssentation of that yet, so safer to
+        # instruction, but we don't really have a good representation of that yet, so safer to
         # forbid it.
         raise QiskitError("Circuits with 'input' variables cannot yet be converted to instructions")
     if circuit.num_captured_vars:
@@ -90,10 +89,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     if parameter_dict.keys() != circuit.parameters:
         raise QiskitError(
-            (
-                "parameter_map should map all circuit parameters. "
-                "Circuit parameters: {}, parameter_map: {}"
-            ).format(circuit.parameters, parameter_dict)
+            "parameter_map should map all circuit parameters. "
+            f"Circuit parameters: {circuit.parameters}, parameter_map: {parameter_dict}"
         )
 
     out_instruction = Instruction(
@@ -121,7 +118,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         regs.append(creg)
 
     clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
-    operation_map = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
+    operation_map = {}
 
     def fix_condition(op):
         original_id = id(op)
@@ -149,15 +146,6 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
     qc._data = data
-    qc._parameter_table = ParameterTable(
-        {
-            param: ParameterReferences(
-                (operation_map[id(operation)], param_index)
-                for operation, param_index in target._parameter_table[param]
-            )
-            for param in target._parameter_table
-        }
-    )
 
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase

@@ -226,7 +226,7 @@ class TestCircuitToInstruction(QiskitTestCase):
             qc.to_instruction()
 
     def test_forbids_input_vars(self):
-        """This test can be relaxed when we have proper support for the behaviour.
+        """This test can be relaxed when we have proper support for the behavior.
 
         This actually has a natural meaning; the input variables could become typed parameters.
         We don't have a formal structure for managing that yet, though, so it's forbidden until the
@@ -236,7 +236,7 @@ class TestCircuitToInstruction(QiskitTestCase):
             qc.to_instruction()
 
     def test_forbids_declared_vars(self):
-        """This test can be relaxed when we have proper support for the behaviour.
+        """This test can be relaxed when we have proper support for the behavior.
 
         This has a very natural representation, which needs basically zero special handling, since
         the variables are necessarily entirely internal to the subroutine.  The reason it is

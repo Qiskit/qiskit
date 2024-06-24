@@ -187,7 +187,7 @@ class DAGDependency:
 
         duplicate_qubits = set(self.qubits).intersection(qubits)
         if duplicate_qubits:
-            raise DAGDependencyError("duplicate qubits %s" % duplicate_qubits)
+            raise DAGDependencyError(f"duplicate qubits {duplicate_qubits}")
 
         self.qubits.extend(qubits)
 
@@ -198,7 +198,7 @@ class DAGDependency:
 
         duplicate_clbits = set(self.clbits).intersection(clbits)
         if duplicate_clbits:
-            raise DAGDependencyError("duplicate clbits %s" % duplicate_clbits)
+            raise DAGDependencyError(f"duplicate clbits {duplicate_clbits}")
 
         self.clbits.extend(clbits)
 
@@ -207,7 +207,7 @@ class DAGDependency:
         if not isinstance(qreg, QuantumRegister):
             raise DAGDependencyError("not a QuantumRegister instance.")
         if qreg.name in self.qregs:
-            raise DAGDependencyError("duplicate register %s" % qreg.name)
+            raise DAGDependencyError(f"duplicate register {qreg.name}")
         self.qregs[qreg.name] = qreg
         existing_qubits = set(self.qubits)
         for j in range(qreg.size):
@@ -219,7 +219,7 @@ class DAGDependency:
         if not isinstance(creg, ClassicalRegister):
             raise DAGDependencyError("not a ClassicalRegister instance.")
         if creg.name in self.cregs:
-            raise DAGDependencyError("duplicate register %s" % creg.name)
+            raise DAGDependencyError(f"duplicate register {creg.name}")
         self.cregs[creg.name] = creg
         existing_clbits = set(self.clbits)
         for j in range(creg.size):

@@ -622,7 +622,7 @@ class BackwardMatch:
                     )
                     self.matching_list.append_scenario(new_matching_scenario)
 
-                # Third option: if blocking the succesors breaks a match, we consider
+                # Third option: if blocking the successors breaks a match, we consider
                 # also the possibility to block all predecessors (push the gate to the left).
                 if broken_matches and all(global_broken):
 

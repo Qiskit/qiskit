@@ -65,6 +65,8 @@ def _run_circuits(
         max_circuits = getattr(backend.configuration(), "max_experiments", None)
     elif isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
+    else:
+        raise RuntimeError("Backend version not supported")
     if max_circuits:
         jobs = [
             backend.run(circuits[pos : pos + max_circuits], **run_options)
@@ -198,7 +200,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 transpiled_circuit = common_circuit.copy()
                 final_index_layout = list(range(common_circuit.num_qubits))
             else:
-                transpiled_circuit = transpile(
+                transpiled_circuit = transpile(  # pylint:disable=unexpected-keyword-arg
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
                 if transpiled_circuit.layout is not None:

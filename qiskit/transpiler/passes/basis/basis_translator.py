@@ -207,7 +207,7 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                    "https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes."
                     "BasisTranslator#translation-errors"
                 )
 
@@ -225,7 +225,7 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
+                "https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes."
                 "BasisTranslator#translation-errors"
             )
 
@@ -302,9 +302,7 @@ class BasisTranslator(TransformationPass):
         if len(node.op.params) != len(target_params):
             raise TranspilerError(
                 "Translation num_params not equal to op num_params."
-                "Op: {} {} Translation: {}\n{}".format(
-                    node.op.params, node.op.name, target_params, target_dag
-                )
+                f"Op: {node.op.params} {node.op.name} Translation: {target_params}\n{target_dag}"
             )
         if node.op.params:
             parameter_map = dict(zip(target_params, node.op.params))
@@ -468,7 +466,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
                 score,
             )
             self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
-        # we can stop the search if we have found all gates in the original ciruit.
+        # we can stop the search if we have found all gates in the original circuit.
         if not self._source_gates_remain:
             # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
             # up with gates in the target basis. Note though that `basis_transforms` may include
@@ -550,7 +548,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     if not source_basis:
         return []
 
-    # This is only neccessary since gates in target basis are currently reported by
+    # This is only necessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
     target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
 

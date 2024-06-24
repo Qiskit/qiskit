@@ -109,12 +109,12 @@ def generate_preset_pass_manager(
     This function is used to quickly generate a preset pass manager. Preset pass
     managers are the default pass managers used by the :func:`~.transpile`
     function. This function provides a convenient and simple method to construct
-    a standalone :class:`~.PassManager` object that mirrors what the transpile
+    a standalone :class:`~.PassManager` object that mirrors what the :func:`~.transpile`
     function internally builds and uses.
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
-    instance, a `.BackendV1` or `.BackendV2` instance, or via loose constraints (``basis_gates``,
-    ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    instance, a :class:`.BackendV1` or :class:`.BackendV2` instance, or via loose constraints
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
     ``dt`` or ``timing_constraints``).
     The order of priorities for target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints.

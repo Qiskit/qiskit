@@ -271,7 +271,7 @@ class DAGCircuit:
 
         duplicate_qubits = set(self.qubits).intersection(qubits)
         if duplicate_qubits:
-            raise DAGCircuitError("duplicate qubits %s" % duplicate_qubits)
+            raise DAGCircuitError(f"duplicate qubits {duplicate_qubits}")
 
         for qubit in qubits:
             self.qubits.append(qubit)
@@ -285,7 +285,7 @@ class DAGCircuit:
 
         duplicate_clbits = set(self.clbits).intersection(clbits)
         if duplicate_clbits:
-            raise DAGCircuitError("duplicate clbits %s" % duplicate_clbits)
+            raise DAGCircuitError(f"duplicate clbits {duplicate_clbits}")
 
         for clbit in clbits:
             self.clbits.append(clbit)
@@ -297,7 +297,7 @@ class DAGCircuit:
         if not isinstance(qreg, QuantumRegister):
             raise DAGCircuitError("not a QuantumRegister instance.")
         if qreg.name in self.qregs:
-            raise DAGCircuitError("duplicate register %s" % qreg.name)
+            raise DAGCircuitError(f"duplicate register {qreg.name}")
         self.qregs[qreg.name] = qreg
         existing_qubits = set(self.qubits)
         for j in range(qreg.size):
@@ -315,7 +315,7 @@ class DAGCircuit:
         if not isinstance(creg, ClassicalRegister):
             raise DAGCircuitError("not a ClassicalRegister instance.")
         if creg.name in self.cregs:
-            raise DAGCircuitError("duplicate register %s" % creg.name)
+            raise DAGCircuitError(f"duplicate register {creg.name}")
         self.cregs[creg.name] = creg
         existing_clbits = set(self.clbits)
         for j in range(creg.size):
@@ -451,17 +451,17 @@ class DAGCircuit:
         """
         if any(not isinstance(clbit, Clbit) for clbit in clbits):
             raise DAGCircuitError(
-                "clbits not of type Clbit: %s" % [b for b in clbits if not isinstance(b, Clbit)]
+                f"clbits not of type Clbit: {[b for b in clbits if not isinstance(b, Clbit)]}"
             )
 
         clbits = set(clbits)
         unknown_clbits = clbits.difference(self.clbits)
         if unknown_clbits:
-            raise DAGCircuitError("clbits not in circuit: %s" % unknown_clbits)
+            raise DAGCircuitError(f"clbits not in circuit: {unknown_clbits}")
 
         busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
         if busy_clbits:
-            raise DAGCircuitError("clbits not idle: %s" % busy_clbits)
+            raise DAGCircuitError(f"clbits not idle: {busy_clbits}")
 
         # remove any references to bits
         cregs_to_remove = {creg for creg in self.cregs.values() if not clbits.isdisjoint(creg)}
@@ -487,13 +487,13 @@ class DAGCircuit:
         """
         if any(not isinstance(creg, ClassicalRegister) for creg in cregs):
             raise DAGCircuitError(
-                "cregs not of type ClassicalRegister: %s"
-                % [r for r in cregs if not isinstance(r, ClassicalRegister)]
+                "cregs not of type ClassicalRegister: "
+                f"{[r for r in cregs if not isinstance(r, ClassicalRegister)]}"
             )
 
         unknown_cregs = set(cregs).difference(self.cregs.values())
         if unknown_cregs:
-            raise DAGCircuitError("cregs not in circuit: %s" % unknown_cregs)
+            raise DAGCircuitError(f"cregs not in circuit: {unknown_cregs}")
 
         for creg in cregs:
             del self.cregs[creg.name]
@@ -517,17 +517,17 @@ class DAGCircuit:
         """
         if any(not isinstance(qubit, Qubit) for qubit in qubits):
             raise DAGCircuitError(
-                "qubits not of type Qubit: %s" % [b for b in qubits if not isinstance(b, Qubit)]
+                f"qubits not of type Qubit: {[b for b in qubits if not isinstance(b, Qubit)]}"
             )
 
         qubits = set(qubits)
         unknown_qubits = qubits.difference(self.qubits)
         if unknown_qubits:
-            raise DAGCircuitError("qubits not in circuit: %s" % unknown_qubits)
+            raise DAGCircuitError(f"qubits not in circuit: {unknown_qubits}")
 
         busy_qubits = {bit for bit in qubits if not self._is_wire_idle(bit)}
         if busy_qubits:
-            raise DAGCircuitError("qubits not idle: %s" % busy_qubits)
+            raise DAGCircuitError(f"qubits not idle: {busy_qubits}")
 
         # remove any references to bits
         qregs_to_remove = {qreg for qreg in self.qregs.values() if not qubits.isdisjoint(qreg)}
@@ -544,7 +544,7 @@ class DAGCircuit:
 
     def remove_qregs(self, *qregs):
         """
-        Remove classical registers from the circuit, leaving underlying bits
+        Remove quantum registers from the circuit, leaving underlying bits
         in place.
 
         Raises:
@@ -553,13 +553,13 @@ class DAGCircuit:
         """
         if any(not isinstance(qreg, QuantumRegister) for qreg in qregs):
             raise DAGCircuitError(
-                "qregs not of type QuantumRegister: %s"
-                % [r for r in qregs if not isinstance(r, QuantumRegister)]
+                f"qregs not of type QuantumRegister: "
+                f"{[r for r in qregs if not isinstance(r, QuantumRegister)]}"
             )
 
         unknown_qregs = set(qregs).difference(self.qregs.values())
         if unknown_qregs:
-            raise DAGCircuitError("qregs not in circuit: %s" % unknown_qregs)
+            raise DAGCircuitError(f"qregs not in circuit: {unknown_qregs}")
 
         for qreg in qregs:
             del self.qregs[qreg.name]
@@ -581,13 +581,13 @@ class DAGCircuit:
             DAGCircuitError: the wire is not in the circuit.
         """
         if wire not in self._wires:
-            raise DAGCircuitError("wire %s not in circuit" % wire)
+            raise DAGCircuitError(f"wire {wire} not in circuit")
 
         try:
             child = next(self.successors(self.input_map[wire]))
         except StopIteration as e:
             raise DAGCircuitError(
-                "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+                f"Invalid dagcircuit input node {self.input_map[wire]} has no output"
             ) from e
         return child is self.output_map[wire]
 
@@ -950,12 +950,11 @@ class DAGCircuit:
                     # the mapped wire should already exist
                     if m_wire not in dag.output_map:
                         raise DAGCircuitError(
-                            "wire %s[%d] not in self" % (m_wire.register.name, m_wire.index)
+                            f"wire {m_wire.register.name}[{m_wire.index}] not in self"
                         )
                     if nd.wire not in other._wires:
                         raise DAGCircuitError(
-                            "inconsistent wire type for %s[%d] in other"
-                            % (nd.register.name, nd.wire.index)
+                            f"inconsistent wire type for {nd.register.name}[{nd.wire.index}] in other"
                         )
                 # If it's a Var wire, we already checked that it exists in the destination.
             elif isinstance(nd, DAGOutNode):
@@ -974,7 +973,7 @@ class DAGCircuit:
                     op.target = variable_mapper.map_target(op.target)
                 dag.apply_operation_back(op, m_qargs, m_cargs, check=False)
             else:
-                raise DAGCircuitError("bad node type %s" % type(nd))
+                raise DAGCircuitError(f"bad node type {type(nd)}")
 
         if not inplace:
             return dag
@@ -1526,7 +1525,7 @@ class DAGCircuit:
             )[0]
             self._multi_graph.add_edge(pred._node_id, succ._node_id, contracted_var)
 
-        # Exlude any nodes from in_dag that are not a DAGOpNode or are on
+        # Exclude any nodes from in_dag that are not a DAGOpNode or are on
         # wires outside the set specified by the wires kwarg
         def filter_fn(node):
             if not isinstance(node, DAGOpNode):
@@ -1616,7 +1615,7 @@ class DAGCircuit:
                 be used.
             propagate_condition (bool): Optional, default True.  If True, a condition on the
                 ``node`` to be replaced will be applied to the new ``op``.  This is the legacy
-                behaviour.  If either node is a control-flow operation, this will be ignored.  If
+                behavior.  If either node is a control-flow operation, this will be ignored.  If
                 the ``op`` already has a condition, :exc:`.DAGCircuitError` is raised.
 
         Returns:
@@ -1632,10 +1631,10 @@ class DAGCircuit:
 
         if node.op.num_qubits != op.num_qubits or node.op.num_clbits != op.num_clbits:
             raise DAGCircuitError(
-                "Cannot replace node of width ({} qubits, {} clbits) with "
-                "operation of mismatched width ({} qubits, {} clbits).".format(
-                    node.op.num_qubits, node.op.num_clbits, op.num_qubits, op.num_clbits
-                )
+                f"Cannot replace node of width ({node.op.num_qubits} qubits, "
+                f"{node.op.num_clbits} clbits) with "
+                f"operation of mismatched width ({op.num_qubits} qubits, "
+                f"{op.num_clbits} clbits)."
             )
 
         # This might include wires that are inherent to the node, like in its `condition` or
@@ -1953,8 +1952,8 @@ class DAGCircuit:
         """
         if not isinstance(node, DAGOpNode):
             raise DAGCircuitError(
-                'The method remove_op_node only works on DAGOpNodes. A "%s" '
-                "node type was wrongly provided." % type(node)
+                f'The method remove_op_node only works on DAGOpNodes. A "{type(node)}" '
+                "node type was wrongly provided."
             )
 
         self._multi_graph.remove_node_retain_edges(
@@ -2182,7 +2181,7 @@ class DAGCircuit:
         current_node = self.input_map.get(wire, None)
 
         if not current_node:
-            raise DAGCircuitError("The given wire %s is not present in the circuit" % str(wire))
+            raise DAGCircuitError(f"The given wire {str(wire)} is not present in the circuit")
 
         more_nodes = True
         while more_nodes:

@@ -45,7 +45,7 @@ def _write_parameter_vec(file_obj, obj):
         struct.pack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
             len(name_bytes),
-            obj._vector._size,
+            len(obj._vector),
             obj.uuid.bytes,
             obj._index,
         )
@@ -277,7 +277,7 @@ def _read_parameter_expression(file_obj):
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(binary_data, _read_parameter_expression)
         else:
-            raise exceptions.QpyError("Invalid parameter expression map type: %s" % elem_key)
+            raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
     return ParameterExpression(symbol_map, expr_)
@@ -311,7 +311,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
             symbol = _read_parameter_vec(file_obj, vectors)
         else:
-            raise exceptions.QpyError("Invalid parameter expression map type: %s" % symbol_key)
+            raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
         elem_key = type_keys.Value(elem_data.type)
         binary_data = file_obj.read(elem_data.size)
@@ -331,7 +331,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
                 use_symengine=use_symengine,
             )
         else:
-            raise exceptions.QpyError("Invalid parameter expression map type: %s" % elem_key)
+            raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
     return ParameterExpression(symbol_map, expr_)
