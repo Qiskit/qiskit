@@ -18,11 +18,19 @@ from types import SimpleNamespace
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
+from qiskit.utils import deprecate_func
 
 
 class QasmQobjInstruction:
     """A class representing a single instruction in an QasmQobj Experiment."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including PulseQobj class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(
         self,
         name,
@@ -200,6 +208,13 @@ class QasmQobjExperiment:
     part of a larger OpenQASM 2 qobj.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including QasmQobjExperiment class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(self, config=None, header=None, instructions=None):
         """Instantiate a QasmQobjExperiment.
 
@@ -276,6 +291,13 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for an OpenQASM 2 Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including QasmQobjConfig class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(
         self,
         shots=None,
@@ -410,6 +432,14 @@ class QasmQobjExperimentHeader(QobjDictField):
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single OpenQASM 2 experiment in the qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including QasmQobjExperimentConfig "
+        "class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(self, calibrations=None, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """
         Args:
@@ -446,6 +476,14 @@ class QasmExperimentCalibrations:
     GateCalibrations.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including QasmExperimentCalibrations "
+        "class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(self, gates):
         """
         Initialize a container for calibrations.
@@ -486,6 +524,13 @@ class GateCalibration:
     """Each calibration specifies a unique gate by name, qubits and params, and
     contains the Pulse instructions to implement it."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including GateCalibration class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(self, name, qubits, params, instructions):
         """
         Initialize a single gate calibration. Instructions may reference waveforms which should be
@@ -541,6 +586,13 @@ class GateCalibration:
 class QasmQobj:
     """An OpenQASM 2 Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including QasmQobj class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Instantiate a new OpenQASM 2 Qobj Object.
 
