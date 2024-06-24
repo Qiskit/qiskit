@@ -60,9 +60,8 @@ fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyR
 #[pyfunction]
 #[pyo3(signature = (mat))]
 /// Given a boolean matrix mat computes its rank
-fn compute_rank(py: Python, mut mat: PyReadwriteArray2<bool>) -> PyResult<PyObject> {
-    let matmut = mat.as_array_mut();
-    let rank = utils::compute_rank_inner(matmut);
+fn compute_rank(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+    let rank = utils::compute_rank_inner(mat.as_array());
     Ok(rank.to_object(py))
 }
 
@@ -82,8 +81,8 @@ pub fn calc_inverse_matrix(
     verify: Option<bool>,
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view = mat.as_array();
-    let invmat = utils::calc_inverse_matrix_inner(view, verify.is_some())
-        .map_err(QiskitError::new_err)?;
+    let invmat =
+        utils::calc_inverse_matrix_inner(view, verify.is_some()).map_err(QiskitError::new_err)?;
     Ok(invmat.into_pyarray_bound(py).unbind())
 }
 
@@ -97,8 +96,7 @@ pub fn binary_matmul(
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view1 = mat1.as_array();
     let view2 = mat2.as_array();
-    let result =
-        utils::binary_matmul_inner(view1, view2).map_err(QiskitError::new_err)?;
+    let result = utils::binary_matmul_inner(view1, view2).map_err(QiskitError::new_err)?;
     Ok(result.into_pyarray_bound(py).unbind())
 }
 

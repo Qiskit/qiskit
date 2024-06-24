@@ -40,9 +40,8 @@ def check_invertible_binary_matrix(mat: np.ndarray):
     if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
         return False
 
-    matcpy = mat.copy()
-    rank = compute_rank(matcpy)
-    return rank == matcpy.shape[0]
+    rank = compute_rank(mat)
+    return rank == mat.shape[0]
 
 
 def random_invertible_binary_matrix(

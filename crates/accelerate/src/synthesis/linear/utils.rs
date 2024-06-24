@@ -110,9 +110,10 @@ pub fn compute_rank_after_gauss_elim_inner(mat: ArrayView2<bool>) -> usize {
 }
 
 /// Given a boolean matrix mat computes its rank
-pub fn compute_rank_inner(mut mat: ArrayViewMut2<bool>) -> usize {
-    gauss_elimination_with_perm_inner(mat.view_mut(), None, Some(false));
-    let rank = compute_rank_after_gauss_elim_inner(mat.view());
+pub fn compute_rank_inner(mat: ArrayView2<bool>) -> usize {
+    let mut temp_mat = mat.to_owned();
+    gauss_elimination_with_perm_inner(temp_mat.view_mut(), None, Some(false));
+    let rank = compute_rank_after_gauss_elim_inner(temp_mat.view());
     rank
 }
 
