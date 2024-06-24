@@ -78,26 +78,8 @@ class TestRustGateEquivalence(QiskitTestCase):
                                 [py_def.find_bit(x).index for x in py_inst.qubits],
                                 [rs_def.find_bit(x).index for x in rs_inst.qubits],
                             )
-<<<<<<< HEAD
-                        # Rust uses p but python still uses u1 in some cases
+                        # Rust uses p but python still uses u1/u3 in some cases
                         elif rs_inst.operation.name == "p" and not name in ["cp", "cs", "csdg"]:
-                            self.assertEqual(py_inst.operation.name, "u1")
-                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                            self.assertEqual(
-                                [py_def.find_bit(x).index for x in py_inst.qubits],
-                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                            )
-                        # Rust uses cp but python still uses cu1 in some cases
-                        elif rs_inst.operation.name == "cp":
-                            self.assertEqual(py_inst.operation.name, "cu1")
-                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                            self.assertEqual(
-                                [py_def.find_bit(x).index for x in py_inst.qubits],
-                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                            )
-=======
-                        # Rust uses P but python still uses u1
-                        elif rs_inst.operation.name == "p":
                             if py_inst.operation.name == "u1":
                                 self.assertEqual(py_inst.operation.name, "u1")
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
@@ -114,8 +96,14 @@ class TestRustGateEquivalence(QiskitTestCase):
                                     [py_def.find_bit(x).index for x in py_inst.qubits],
                                     [rs_def.find_bit(x).index for x in rs_inst.qubits],
                                 )
-
->>>>>>> bf8f398fa4ddf287c6182b39bd27b324ab11dda0
+                        # Rust uses cp but python still uses cu1 in some cases
+                        elif rs_inst.operation.name == "cp":
+                            self.assertEqual(py_inst.operation.name, "cu1")
+                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
+                            self.assertEqual(
+                                [py_def.find_bit(x).index for x in py_inst.qubits],
+                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
+                            )
                         else:
                             self.assertEqual(py_inst.operation.name, rs_inst.operation.name)
                             self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
