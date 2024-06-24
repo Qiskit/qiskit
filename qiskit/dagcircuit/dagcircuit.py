@@ -1345,8 +1345,8 @@ class DAGCircuit:
         # check the op to insert matches the number of qubits we put it on
         if op.num_qubits != len(block_qargs):
             raise DAGCircuitError(
-                f"Number of qubits in the replacement operation ({op.num_qubits}) does not match "
-                f"the number of qubits ({len(block_qargs)})!"
+                f"Number of qubits in the replacement operation ({op.num_qubits}) is not equal to "
+                f"the number of qubits in the block ({len(block_qargs)})!"
             )
 
         try:
