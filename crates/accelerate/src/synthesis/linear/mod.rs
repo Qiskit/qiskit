@@ -49,11 +49,20 @@ fn gauss_elimination(
 
 #[pyfunction]
 #[pyo3(signature = (mat))]
-/// Given a boolean matrix A after Gaussian elimination, computes its rank
+/// Given a boolean matrix mat after Gaussian elimination, computes its rank
 /// (i.e. simply the number of nonzero rows)
 fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let view = mat.as_array();
     let rank = utils::compute_rank_after_gauss_elim_inner(view);
+    Ok(rank.to_object(py))
+}
+
+#[pyfunction]
+#[pyo3(signature = (mat))]
+/// Given a boolean matrix mat computes its rank
+fn compute_rank(py: Python, mut mat: PyReadwriteArray2<bool>) -> PyResult<PyObject> {
+    let matmut = mat.as_array_mut();
+    let rank = utils::compute_rank_inner(matmut);
     Ok(rank.to_object(py))
 }
 
@@ -66,8 +75,7 @@ fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyR
 /// Returns:
 ///   the inverse matrix.
 /// Raises:
-///  QiskitError: if the matrix is not square.
-///  QiskitError: if the matrix is not invertible.
+///  QiskitError: if the matrix is not square or not invertible.
 pub fn calc_inverse_matrix(
     py: Python,
     mat: PyReadonlyArray2<bool>,
@@ -75,7 +83,7 @@ pub fn calc_inverse_matrix(
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view = mat.as_array();
     let invmat = utils::calc_inverse_matrix_inner(view, verify.is_some())
-        .map_err(|_| QiskitError::new_err("Inverse matrix computation failed."))?;
+        .map_err(QiskitError::new_err)?;
     Ok(invmat.into_pyarray_bound(py).unbind())
 }
 
@@ -89,8 +97,8 @@ pub fn binary_matmul(
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view1 = mat1.as_array();
     let view2 = mat2.as_array();
-    let result = utils::binary_matmul_inner(view1, view2)
-        .map_err(|_| QiskitError::new_err("Binary matrix multiplication failed."))?;
+    let result =
+        utils::binary_matmul_inner(view1, view2).map_err(QiskitError::new_err)?;
     Ok(result.into_pyarray_bound(py).unbind())
 }
 
@@ -115,6 +123,7 @@ pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(gauss_elimination_with_perm))?;
     m.add_wrapped(wrap_pyfunction!(gauss_elimination))?;
     m.add_wrapped(wrap_pyfunction!(compute_rank_after_gauss_elim))?;
+    m.add_wrapped(wrap_pyfunction!(compute_rank))?;
     m.add_wrapped(wrap_pyfunction!(calc_inverse_matrix))?;
     m.add_wrapped(wrap_pyfunction!(row_op))?;
     m.add_wrapped(wrap_pyfunction!(col_op))?;

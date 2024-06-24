@@ -109,6 +109,13 @@ pub fn compute_rank_after_gauss_elim_inner(mat: ArrayView2<bool>) -> usize {
     rank
 }
 
+/// Given a boolean matrix mat computes its rank
+pub fn compute_rank_inner(mut mat: ArrayViewMut2<bool>) -> usize {
+    gauss_elimination_with_perm_inner(mat.view_mut(), None, Some(false));
+    let rank = compute_rank_after_gauss_elim_inner(mat.view());
+    rank
+}
+
 /// Given a square boolean matrix mat, tries to compute its inverse.
 pub fn calc_inverse_matrix_inner(
     mat: ArrayView2<bool>,

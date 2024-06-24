@@ -20,6 +20,7 @@ from qiskit._accelerate.synthesis.linear import (
     gauss_elimination,
     gauss_elimination_with_perm,
     compute_rank_after_gauss_elim,
+    compute_rank,
     calc_inverse_matrix,
     binary_matmul,
     row_op,
@@ -39,8 +40,9 @@ def check_invertible_binary_matrix(mat: np.ndarray):
     if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
         return False
 
-    rank = compute_rank(mat)
-    return rank == mat.shape[0]
+    matcpy = mat.copy()
+    rank = compute_rank(matcpy)
+    return rank == matcpy.shape[0]
 
 
 def random_invertible_binary_matrix(
@@ -62,13 +64,6 @@ def random_invertible_binary_matrix(
 
     rank = 0
     while rank != num_qubits:
-        mat = rng.integers(2, size=(num_qubits, num_qubits))
+        mat = rng.integers(2, size=(num_qubits, num_qubits), dtype=bool)
         rank = compute_rank(mat)
     return mat
-
-
-def compute_rank(mat):
-    """Given a boolean matrix A computes its rank"""
-    mat = mat.astype(bool)
-    gauss_elimination(mat)
-    return np.sum(mat.any(axis=1))
