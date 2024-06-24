@@ -289,7 +289,7 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "crz",          // 31
     "r",            // 32
     "ch",           // 33
-    "cphase",       // 34
+    "cp",           // 34
     "cs",           // 35
     "csdg",         // 36
     "csx",          // 37
