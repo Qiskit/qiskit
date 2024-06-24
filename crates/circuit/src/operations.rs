@@ -205,17 +205,20 @@ pub enum StandardGate {
     ISwapGate = 23,
     XXMinusYYGate = 24,
     XXPlusYYGate = 25,
+    U1Gate = 26,
+    U2Gate = 27,
+    U3Gate = 28,
     CRXGate = 29,
     CRYGate = 30,
     CRZGate = 31,
 }
 
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
-    1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+    1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2,
 ];
 
 static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
-    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 2, 2, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 2, 2, 1, 2, 3, 1, 1, 1,
 ];
 
 static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
@@ -245,6 +248,9 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "iswap",
     "xx_minus_yy",
     "xx_plus_yy",
+    "u1",
+    "u2",
+    "u3",
     "crx",
     "cry",
     "crz",
@@ -296,8 +302,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-
-pub const STANDARD_GATE_SIZE: usize = 29;
+pub const STANDARD_GATE_SIZE: usize = 32;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
@@ -447,6 +452,22 @@ impl Operation for StandardGate {
             Self::XXPlusYYGate => match params {
                 [Param::Float(theta), Param::Float(beta)] => {
                     Some(aview2(&gate_matrix::xx_plus_yy_gate(*theta, *beta)).to_owned())
+                }
+                _ => None,
+            },
+            Self::U1Gate => match params[0] {
+                Param::Float(val) => Some(aview2(&gate_matrix::u1_gate(val)).to_owned()),
+                _ => None,
+            },
+            Self::U2Gate => match params {
+                [Param::Float(phi), Param::Float(lam)] => {
+                    Some(aview2(&gate_matrix::u2_gate(*phi, *lam)).to_owned())
+                }
+                _ => None,
+            },
+            Self::U3Gate => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(aview2(&gate_matrix::u3_gate(*theta, *phi, *lam)).to_owned())
                 }
                 _ => None,
             },
@@ -773,6 +794,21 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
+            Self::U1Gate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::PhaseGate,
+                            params.iter().cloned().collect(),
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::SdgGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
@@ -788,6 +824,21 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
+            Self::U2Gate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::UGate,
+                            smallvec![Param::Float(PI / 2.), params[0].clone(), params[1].clone()],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::TGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
@@ -796,6 +847,21 @@ impl Operation for StandardGate {
                         [(
                             Self::PhaseGate,
                             smallvec![Param::Float(PI4)],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
+            Self::U3Gate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::UGate,
+                            params.iter().cloned().collect(),
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
