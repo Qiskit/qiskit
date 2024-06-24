@@ -24,8 +24,8 @@ from qiskit.synthesis.linear import (
     random_invertible_binary_matrix,
     check_invertible_binary_matrix,
     calc_inverse_matrix,
+    binary_matmul,
 )
-from qiskit.synthesis.linear.linear_matrix_utils import _binary_matmul
 from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -110,7 +110,7 @@ class TestLinearSynth(QiskitTestCase):
         out = check_invertible_binary_matrix(mat)
         mat = mat.astype(bool)
         mat_inv = calc_inverse_matrix(mat, verify=True)
-        mat_out = _binary_matmul(mat, mat_inv)
+        mat_out = binary_matmul(mat, mat_inv)
         self.assertTrue(np.array_equal(mat_out, np.eye(n)))
         self.assertTrue(out)
 
