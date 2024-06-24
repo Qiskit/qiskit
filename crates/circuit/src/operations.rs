@@ -953,7 +953,6 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::U1Gate | Self::U2Gate | Self::U3Gate => todo!(),
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
             Self::RGate => todo!(),
             Self::CHGate => todo!(),
