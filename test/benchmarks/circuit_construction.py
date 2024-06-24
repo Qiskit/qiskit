@@ -15,7 +15,6 @@
 
 import os
 import itertools
-import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
