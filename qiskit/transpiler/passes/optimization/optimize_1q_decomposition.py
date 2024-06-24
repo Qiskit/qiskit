@@ -111,16 +111,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         else:
             return None
 
-    def _resynthesize_run(self, matrix, qubit=None):
-        """
-        Re-synthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
-
-        Returns the newly synthesized circuit in the indicated basis, or None
-        if no synthesis routine applied.
-
-        When multiple synthesis options are available, it prefers the one with the lowest
-        error when the circuit is applied to `qubit`.
-        """
+    def _get_decomposer(self, qubit=None):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         if self._target is not None and self._target.num_qubits is not None:
             if qubit is not None:
@@ -134,6 +125,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 decomposers = _possible_decomposers(available_1q_basis)
         else:
             decomposers = self._global_decomposers
+        return decomposers
+
+    def _resynthesize_run(self, matrix, qubit=None):
+        """
+        Re-synthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
+
+        Returns the newly synthesized circuit in the indicated basis, or None
+        if no synthesis routine applied.
+
+        When multiple synthesis options are available, it prefers the one with the lowest
+        error when the circuit is applied to `qubit`.
+        """
+        decomposers = self._get_decomposer(qubit)
 
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             matrix,
@@ -210,19 +214,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
         bases = []
         for run in dag.collect_1q_runs():
             qubit = dag.find_bit(run[0].qargs[0]).index
-            if self._target is None:
-                basis = self._basis_gates
-            else:
-                basis = self._target.operation_names_for_qargs((qubit,))
             runs.append(run)
             qubits.append(qubit)
-            bases.append(_possible_decomposers(basis))
+            bases.append(self._get_decomposer(qubit))
         best_sequences = euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
             runs, qubits, bases, simplify=True, error_map=self.error_map
         )
         for index, best_circuit_sequence in enumerate(best_sequences):
             run = runs[index]
             qubit = qubits[index]
+            if self._target is None:
+                basis = self._basis_gates
+            else:
+                basis = self._target.operation_names_for_qargs((qubit,))
             if best_circuit_sequence is not None:
                 (old_error, new_error, best_circuit_sequence) = best_circuit_sequence
                 if self._substitution_checks(
