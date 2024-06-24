@@ -532,7 +532,7 @@ we used in our CI systems more closely.
 
 ### Snapshot Testing for Visualizations
 
-If you are working on code that makes changes to any matplotlib visualisations
+If you are working on code that makes changes to any matplotlib visualizations
 you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
@@ -543,7 +543,7 @@ the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
 
    <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
-4. Fix any broken tests. Working on code for one aspect of the visualisations
+4. Fix any broken tests. Working on code for one aspect of the visualizations
 can sometimes result in minor changes elsewhere to spacing etc. In these cases
 you just need to update the reference images as follows:
     - download the mismatched images (link at top of Jupyter Notebook output)

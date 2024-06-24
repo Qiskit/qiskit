@@ -124,18 +124,28 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // SdgGate = 19
     ["qiskit.circuit.library.standard_gates.s", "SdgGate"],
     // TGate = 20
-    ["qiskit.circuit.library.standard_gates.s", "TGate"],
+    ["qiskit.circuit.library.standard_gates.t", "TGate"],
     // TdgGate = 21
-    ["qiskit.circuit.library.standard_gates.s", "TdgGate"],
+    ["qiskit.circuit.library.standard_gates.t", "TdgGate"],
     // SXdgGate = 22
     ["qiskit.circuit.library.standard_gates.sx", "SXdgGate"],
     // iSWAPGate = 23
     ["qiskit.circuit.library.standard_gates.iswap", "iSwapGate"],
-    // CRXGate = 24
+    //XXMinusYYGate = 24
+    [
+        "qiskit.circuit.library.standard_gates.xx_minus_yy",
+        "XXMinusYYGate",
+    ],
+    //XXPlusYYGate = 25
+    [
+        "qiskit.circuit.library.standard_gates.xx_plus_yy",
+        "XXPlusYYGate",
+    ],
+    // CRXGate = 26
     ["qiskit.circuit.library.standard_gates.crx", "CRXGate"],
-    // CRYGate = 25
+    // CRYGate = 27
     ["qiskit.circuit.library.standard_gates.cry", "CRYGate"],
-    // CRZGate = 26
+    // CRZGate = 28
     ["qiskit.circuit.library.standard_gates.crz", "CRZGate"],
 ];
 
