@@ -205,14 +205,15 @@ pub enum StandardGate {
     ISwapGate = 23,
     XXMinusYYGate = 24,
     XXPlusYYGate = 25,
+    DCXGate = 26,
 }
 
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
-    1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2,
+    1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2,
 ];
 
 static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
-    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 2, 2,
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 2, 2, 0,
 ];
 
 static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
@@ -242,6 +243,7 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "iswap",
     "xx_minus_yy",
     "xx_plus_yy",
+    "dcx",
 ];
 
 #[pymethods]
@@ -291,7 +293,7 @@ impl StandardGate {
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
 
-pub const STANDARD_GATE_SIZE: usize = 26;
+pub const STANDARD_GATE_SIZE: usize = 27;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
