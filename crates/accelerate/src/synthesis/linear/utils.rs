@@ -13,7 +13,7 @@
 use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
 
 /// Binary matrix multiplication
-pub fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool> {
+pub fn binary_matmul_inner(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool> {
     let n1_rows = mat1.nrows();
     let n1_cols = mat1.ncols();
     let n2_rows = mat2.nrows();
@@ -36,7 +36,7 @@ pub fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<b
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 /// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
 /// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
-pub fn gauss_elimination_with_perm(
+pub fn gauss_elimination_with_perm_inner(
     mut mat: ArrayViewMut2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
@@ -98,7 +98,7 @@ pub fn gauss_elimination_with_perm(
 
 /// Given a boolean matrix A after Gaussian elimination, computes its rank
 /// (i.e. simply the number of nonzero rows)
-pub fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
+pub fn compute_rank_after_gauss_elim_inner(mat: ArrayView2<bool>) -> usize {
     let rank: usize = mat
         .axis_iter(Axis(0))
         .map(|row| row.fold(false, |out, val| out | *val) as usize)
@@ -117,9 +117,9 @@ pub fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<
     let identity_matrix: Array2<bool> = Array2::from_shape_fn((n, n), |(i, j)| i == j);
     let mut mat1 = concatenate(Axis(1), &[mat.view(), identity_matrix.view()]).unwrap();
 
-    gauss_elimination_with_perm(mat1.view_mut(), None, Some(true));
+    gauss_elimination_with_perm_inner(mat1.view_mut(), None, Some(true));
 
-    let r = compute_rank_after_gauss_elim(mat1.slice(s![.., 0..n]));
+    let r = compute_rank_after_gauss_elim_inner(mat1.slice(s![.., 0..n]));
     if r < n {
         panic!("The matrix is not invertible.");
     }
@@ -127,7 +127,7 @@ pub fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<
     let invmat = mat1.slice(s![.., n..2 * n]).to_owned();
 
     if verify {
-        let mat2 = binary_matmul(mat, (&invmat).into());
+        let mat2 = binary_matmul_inner(mat, (&invmat).into());
         let identity_matrix: Array2<bool> = Array2::from_shape_fn((n, n), |(i, j)| i == j);
         if mat2.ne(&identity_matrix) {
             panic!("The inverse matrix is not correct.");

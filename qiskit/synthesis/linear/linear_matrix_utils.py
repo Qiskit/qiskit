@@ -14,17 +14,16 @@
 
 from typing import Optional, Union
 import numpy as np
-from qiskit.exceptions import QiskitError
 
 # pylint: disable=unused-import
 from qiskit._accelerate.synthesis.linear import (
-    _gauss_elimination,
-    _gauss_elimination_with_perm,
-    _compute_rank_after_gauss_elim,
+    gauss_elimination,
+    gauss_elimination_with_perm,
+    compute_rank_after_gauss_elim,
     calc_inverse_matrix,
-    _binary_matmul,
-    _row_op,
-    _col_op,
+    binary_matmul,
+    row_op,
+    col_op,
 )
 
 
@@ -40,7 +39,7 @@ def check_invertible_binary_matrix(mat: np.ndarray):
     if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
         return False
 
-    rank = _compute_rank(mat)
+    rank = compute_rank(mat)
     return rank == mat.shape[0]
 
 
@@ -64,12 +63,12 @@ def random_invertible_binary_matrix(
     rank = 0
     while rank != num_qubits:
         mat = rng.integers(2, size=(num_qubits, num_qubits))
-        rank = _compute_rank(mat)
+        rank = compute_rank(mat)
     return mat
 
 
-def _compute_rank(mat):
+def compute_rank(mat):
     """Given a boolean matrix A computes its rank"""
     mat = mat.astype(bool)
-    _gauss_elimination(mat)
+    gauss_elimination(mat)
     return np.sum(mat.any(axis=1))

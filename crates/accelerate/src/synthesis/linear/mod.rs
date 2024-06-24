@@ -21,14 +21,14 @@ mod utils;
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 /// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
 /// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
-fn _gauss_elimination_with_perm(
+fn gauss_elimination_with_perm(
     py: Python,
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
 ) -> PyResult<PyObject> {
     let matmut = mat.as_array_mut();
-    let perm = utils::gauss_elimination_with_perm(matmut, ncols, full_elim);
+    let perm = utils::gauss_elimination_with_perm_inner(matmut, ncols, full_elim);
     Ok(perm.to_object(py))
 }
 
@@ -37,22 +37,22 @@ fn _gauss_elimination_with_perm(
 /// Gauss elimination of a matrix mat with m rows and n columns.
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 /// Returns the updated matrix mat.
-fn _gauss_elimination(
+fn gauss_elimination(
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
 ) {
     let matmut = mat.as_array_mut();
-    let _perm = utils::gauss_elimination_with_perm(matmut, ncols, full_elim);
+    let _perm = utils::gauss_elimination_with_perm_inner(matmut, ncols, full_elim);
 }
 
 #[pyfunction]
 #[pyo3(signature = (mat))]
 /// Given a boolean matrix A after Gaussian elimination, computes its rank
 /// (i.e. simply the number of nonzero rows)
-fn _compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let view = mat.as_array();
-    let rank = utils::compute_rank_after_gauss_elim(view);
+    let rank = utils::compute_rank_after_gauss_elim_inner(view);
     Ok(rank.to_object(py))
 }
 
@@ -80,21 +80,21 @@ pub fn calc_inverse_matrix(
 #[pyfunction]
 #[pyo3(signature = (mat1, mat2))]
 // Binary matrix multiplication
-pub fn _binary_matmul(
+pub fn binary_matmul(
     py: Python,
     mat1: PyReadonlyArray2<bool>,
     mat2: PyReadonlyArray2<bool>,
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view1 = mat1.as_array();
     let view2 = mat2.as_array();
-    let result = utils::binary_matmul(view1, view2);
+    let result = utils::binary_matmul_inner(view1, view2);
     Ok(result.into_pyarray_bound(py).unbind())
 }
 
 #[pyfunction]
 #[pyo3(signature = (mat, ctrl, trgt))]
 // Perform ROW operation on a matrix mat
-fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
+fn row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
     let matmut = mat.as_array_mut();
     utils::_add_row_or_col(matmut, &false, ctrl, trgt)
 }
@@ -102,19 +102,19 @@ fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
 #[pyfunction]
 #[pyo3(signature = (mat, ctrl, trgt))]
 // Perform COL operation on a matrix mat (in the inverse direction)
-fn _col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
+fn col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
     let matmut = mat.as_array_mut();
     utils::_add_row_or_col(matmut, &true, trgt, ctrl)
 }
 
 #[pymodule]
 pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(_gauss_elimination_with_perm))?;
-    m.add_wrapped(wrap_pyfunction!(_gauss_elimination))?;
-    m.add_wrapped(wrap_pyfunction!(_compute_rank_after_gauss_elim))?;
+    m.add_wrapped(wrap_pyfunction!(gauss_elimination_with_perm))?;
+    m.add_wrapped(wrap_pyfunction!(gauss_elimination))?;
+    m.add_wrapped(wrap_pyfunction!(compute_rank_after_gauss_elim))?;
     m.add_wrapped(wrap_pyfunction!(calc_inverse_matrix))?;
-    m.add_wrapped(wrap_pyfunction!(_row_op))?;
-    m.add_wrapped(wrap_pyfunction!(_col_op))?;
-    m.add_wrapped(wrap_pyfunction!(_binary_matmul))?;
+    m.add_wrapped(wrap_pyfunction!(row_op))?;
+    m.add_wrapped(wrap_pyfunction!(col_op))?;
+    m.add_wrapped(wrap_pyfunction!(binary_matmul))?;
     Ok(())
 }
