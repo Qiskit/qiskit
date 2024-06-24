@@ -72,6 +72,8 @@ pub static SINGLETON_GATE: ImportOnceCell =
 pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
 
+pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
+
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table
 /// when a gate is added directly via the StandardGate path and there isn't a Python object
