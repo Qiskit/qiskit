@@ -378,10 +378,10 @@ class TestObservableValidation(QiskitTestCase):
         ),
     )
     @unpack
-    def test_validate_observables(self, obsevables, expected):
+    def test_validate_observables(self, observables, expected):
         """Test observables standardization."""
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(validation._validate_observables(obsevables), expected)
+            self.assertEqual(validation._validate_observables(observables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):
