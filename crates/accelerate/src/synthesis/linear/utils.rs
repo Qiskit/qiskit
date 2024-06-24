@@ -13,23 +13,26 @@
 use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
 
 /// Binary matrix multiplication
-pub fn binary_matmul(mat1: ArrayView2<bool>, mat2: ArrayView2<bool>) -> Array2<bool> {
+pub fn binary_matmul(
+    mat1: ArrayView2<bool>,
+    mat2: ArrayView2<bool>,
+) -> Result<Array2<bool>, String> {
     let n1_rows = mat1.nrows();
     let n1_cols = mat1.ncols();
     let n2_rows = mat2.nrows();
     let n2_cols = mat2.ncols();
     if n1_cols != n2_rows {
-        panic!(
+        return Err(format!(
             "Cannot multiply matrices with inappropriate dimensions {}, {}",
             n1_cols, n2_rows
-        );
+        ));
     }
 
-    Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
+    Ok(Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
         (0..n2_rows)
             .map(|k| mat1[[i, k]] & mat2[[k, j]])
             .fold(false, |acc, v| acc ^ v)
-    })
+    }))
 }
 
 /// Gauss elimination of a matrix mat with m rows and n columns.
@@ -107,9 +110,12 @@ pub fn compute_rank_after_gauss_elim(mat: ArrayView2<bool>) -> usize {
 }
 
 /// Given a square boolean matrix mat, tries to compute its inverse.
-pub fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<bool> {
+pub fn calc_inverse_matrix_inner(
+    mat: ArrayView2<bool>,
+    verify: bool,
+) -> Result<Array2<bool>, String> {
     if mat.shape()[0] != mat.shape()[1] {
-        panic!("Matrix to invert is a non-square matrix.");
+        return Err("Matrix to invert is a non-square matrix.".to_string());
     }
     let n = mat.shape()[0];
 
@@ -121,20 +127,20 @@ pub fn calc_inverse_matrix_inner(mat: ArrayView2<bool>, verify: bool) -> Array2<
 
     let r = compute_rank_after_gauss_elim(mat1.slice(s![.., 0..n]));
     if r < n {
-        panic!("The matrix is not invertible.");
+        return Err("The matrix is not invertible.".to_string());
     }
 
     let invmat = mat1.slice(s![.., n..2 * n]).to_owned();
 
     if verify {
-        let mat2 = binary_matmul(mat, (&invmat).into());
+        let mat2 = binary_matmul(mat, (&invmat).into())?;
         let identity_matrix: Array2<bool> = Array2::from_shape_fn((n, n), |(i, j)| i == j);
         if mat2.ne(&identity_matrix) {
-            panic!("The inverse matrix is not correct.");
+            return Err("The inverse matrix is not correct.".to_string());
         }
     }
 
-    invmat
+    Ok(invmat)
 }
 
 /// Mutate a matrix inplace by adding the value of the ``ctrl`` row to the

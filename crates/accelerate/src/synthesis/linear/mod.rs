@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
@@ -73,13 +74,14 @@ pub fn calc_inverse_matrix(
     verify: Option<bool>,
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view = mat.as_array();
-    let invmat = utils::calc_inverse_matrix_inner(view, verify.is_some());
+    let invmat = utils::calc_inverse_matrix_inner(view, verify.is_some())
+        .map_err(|_| QiskitError::new_err("Inverse matrix computation failed."))?;
     Ok(invmat.into_pyarray_bound(py).unbind())
 }
 
 #[pyfunction]
 #[pyo3(signature = (mat1, mat2))]
-// Binary matrix multiplication
+/// Binary matrix multiplication
 pub fn _binary_matmul(
     py: Python,
     mat1: PyReadonlyArray2<bool>,
@@ -87,13 +89,14 @@ pub fn _binary_matmul(
 ) -> PyResult<Py<PyArray2<bool>>> {
     let view1 = mat1.as_array();
     let view2 = mat2.as_array();
-    let result = utils::binary_matmul(view1, view2);
+    let result = utils::binary_matmul(view1, view2)
+        .map_err(|_| QiskitError::new_err("Binary matrix multiplication failed."))?;
     Ok(result.into_pyarray_bound(py).unbind())
 }
 
 #[pyfunction]
 #[pyo3(signature = (mat, ctrl, trgt))]
-// Perform ROW operation on a matrix mat
+/// Perform ROW operation on a matrix mat
 fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
     let matmut = mat.as_array_mut();
     utils::_add_row_or_col(matmut, &false, ctrl, trgt)
@@ -101,7 +104,7 @@ fn _row_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
 
 #[pyfunction]
 #[pyo3(signature = (mat, ctrl, trgt))]
-// Perform COL operation on a matrix mat (in the inverse direction)
+/// Perform COL operation on a matrix mat (in the inverse direction)
 fn _col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
     let matmut = mat.as_array_mut();
     utils::_add_row_or_col(matmut, &true, trgt, ctrl)
