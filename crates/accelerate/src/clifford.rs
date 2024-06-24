@@ -716,10 +716,7 @@ fn adjust_final_pauli_gates(
 /// templates and symbolic Pauli gates optimizations that are also described in the paper.
 #[pyfunction]
 #[pyo3(signature = (clifford))]
-fn synth_clifford_greedy(
-    py: Python,
-    clifford: PyReadonlyArray2<bool>,
-) -> PyResult<Option<CircuitData>> {
+fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
     let tableau = clifford.as_array();
     let mut greedy_synthesis = GreedyCliffordSynthesis::new(tableau.view()).map_err(|_| {
         QiskitError::new_err("Clifford greedy synthesis did not initialize successfully.")
@@ -727,10 +724,8 @@ fn synth_clifford_greedy(
     let (num_qubits, clifford_gates) = greedy_synthesis
         .run()
         .map_err(|_| QiskitError::new_err("Clifford greedy synthesis failed."))?;
-    let circuit_data =
-        CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
-            .map_err(|_| QiskitError::new_err("Circuit construction failed unexpectedly."))?;
-    Ok(Some(circuit_data))
+
+    CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
 #[pymodule]
