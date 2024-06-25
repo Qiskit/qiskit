@@ -18,11 +18,17 @@ import datetime
 from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
 
 from .fake_backend import FakeBackend
+from ...utils import deprecate_func
 
 
 class Fake1Q(FakeBackend):
     """A fake 1Q backend."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Fake backendV1 are deprecated in favor of GenericBackendV2",
+    )
     def __init__(self):
         """
         0

@@ -54,7 +54,8 @@ class Test1QFailing(QiskitTestCase):
     def test(self, circuit, level):
         """All the levels with all the 1Q backendV1"""
         with self.assertRaises(TranspilerError):
-            transpile(circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42)
+            with self.assertWarns(DeprecationWarning):
+                transpile(circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42)
 
 
 @ddt
@@ -85,14 +86,17 @@ class Test1QWorking(QiskitTestCase):
     )
     def test_device(self, circuit, level):
         """All the levels with all the 1Q backendV1"""
-        result = transpile(
-            circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42
-        )
+        with self.assertWarns(DeprecationWarning):
+            result = transpile(
+                circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42
+            )
         self.assertIsInstance(result, QuantumCircuit)
 
 
 @ddt
 class TestBasicSimulatorWorking(QiskitTestCase):
+    """Test with a simulator backend"""
+
     @combine(
         circuit=[circuit_3516],
         level=[0, 1, 2, 3],
