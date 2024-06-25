@@ -5328,9 +5328,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.dcx import DCXGate
-
-        return self.append(DCXGate(), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(op=StandardGate.DCXGate, qargs=[qubit1, qubit2])
 
     def ccx(
         self,
