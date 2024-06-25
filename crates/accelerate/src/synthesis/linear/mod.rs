@@ -117,7 +117,7 @@ fn col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
 }
 
 #[pyfunction]
-#[pyo3(signature = (num_qubits, seed))]
+#[pyo3(signature = (num_qubits, seed=None))]
 /// Generate a random invertible n x n binary matrix.
 ///  Args:
 ///     num_qubits: the matrix size.
