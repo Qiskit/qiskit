@@ -205,43 +205,109 @@ pub enum StandardGate {
     ISwapGate = 23,
     XXMinusYYGate = 24,
     XXPlusYYGate = 25,
+    U1Gate = 26,
+    U2Gate = 27,
+    U3Gate = 28,
+    CRXGate = 29,
+    CRYGate = 30,
+    CRZGate = 31,
+    RGate = 32,
+    CHGate = 33,
+    CPhaseGate = 34,
+    CSGate = 35,
+    CSdgGate = 36,
+    CSXGate = 37,
+    CSwapGate = 38,
+    CUGate = 39,
+    CU1Gate = 40,
+    CU3Gate = 41,
+    C3XGate = 42,
+    C3SXGate = 43,
+    C4XGate = 44,
+    DCXGate = 45,
+    CCZGate = 46,
+    RCCXGate = 47,
+    RC3XGate = 48,
+    RXXGate = 49,
+    RYYGate = 50,
+    RZZGate = 51,
+    RZXGate = 52,
 }
 
+// TODO: replace all 34s (placeholders) with actual number
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
-    1, 1, 1, 2, 2, 2, 3, 1, 1, 1, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2,
+    1, 1, 1, 2, 2, 2, 3, 1, 1, 1, // 0-9
+    2, 2, 1, 0, 1, 1, 1, 1, 1, 1, // 10-19
+    1, 1, 1, 2, 2, 2, 1, 1, 1, 34, // 20-29
+    34, 34, 34, 2, 2, 2, 2, 2, 3, 2, // 30-39
+    2, 2, 34, 34, 34, 34, 34, 34, 34, 34, // 40-49
+    34, 34, 34, // 50-52
 ];
 
+// TODO: replace all 34s (placeholders) with actual number
 static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
-    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 2, 2,
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, // 0-9
+    0, 0, 0, 1, 0, 0, 1, 3, 0, 0, // 10-19
+    0, 0, 0, 0, 2, 2, 1, 2, 3, 34, // 20-29
+    34, 34, 34, 0, 1, 0, 0, 0, 0, 3, // 30-39
+    1, 3, 34, 34, 34, 34, 34, 34, 34, 34, // 40-49
+    34, 34, 34, // 50-52
 ];
 
 static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
-    "z",
-    "y",
-    "x",
-    "cz",
-    "cy",
-    "cx",
-    "ccx",
-    "rx",
-    "ry",
-    "rz",
-    "ecr",
-    "swap",
-    "sx",
-    "global_phase",
-    "id",
-    "h",
-    "p",
-    "u",
-    "s",
-    "sdg",
-    "t",
-    "tdg",
-    "sxdg",
-    "iswap",
-    "xx_minus_yy",
-    "xx_plus_yy",
+    "z",            // 0
+    "y",            // 1
+    "x",            // 2
+    "cz",           // 3
+    "cy",           // 4
+    "cx",           // 5
+    "ccx",          // 6
+    "rx",           // 7
+    "ry",           // 8
+    "rz",           // 9
+    "ecr",          // 10
+    "swap",         // 11
+    "sx",           // 12
+    "global_phase", // 13
+    "id",           // 14
+    "h",            // 15
+    "p",            // 16
+    "u",            // 17
+    "s",            // 18
+    "sdg",          // 19
+    "t",            // 20
+    "tdg",          // 21
+    "sxdg",         // 22
+    "iswap",        // 23
+    "xx_minus_yy",  // 24
+    "xx_plus_yy",   // 25
+    "u1",           // 26
+    "u2",           // 27
+    "u3",           // 28
+    "crx",          // 29
+    "cry",          // 30
+    "crz",          // 31
+    "r",            // 32
+    "ch",           // 33
+    "cp",           // 34
+    "cs",           // 35
+    "csdg",         // 36
+    "csx",          // 37
+    "cswap",        // 38
+    "cu",           // 39
+    "cu1",          // 40
+    "cu3",          // 41
+    "c3x",          // 42
+    "c3sx",         // 43
+    "c4x",          // 44
+    "dcx",          // 45
+    "ccz",          // 46
+    "rccx",         // 47
+    "rc3x",         // 48
+    "rxx",          // 49
+    "ryy",          // 50
+    "rzz",          // 51
+    "rzx",          // 52
 ];
 
 #[pymethods]
@@ -290,8 +356,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-
-pub const STANDARD_GATE_SIZE: usize = 26;
+pub const STANDARD_GATE_SIZE: usize = 53;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
@@ -432,6 +497,37 @@ impl Operation for StandardGate {
                 }
                 _ => None,
             },
+            Self::U1Gate => match params[0] {
+                Param::Float(val) => Some(aview2(&gate_matrix::u1_gate(val)).to_owned()),
+                _ => None,
+            },
+            Self::U2Gate => match params {
+                [Param::Float(phi), Param::Float(lam)] => {
+                    Some(aview2(&gate_matrix::u2_gate(*phi, *lam)).to_owned())
+                }
+                _ => None,
+            },
+            Self::U3Gate => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(aview2(&gate_matrix::u3_gate(*theta, *phi, *lam)).to_owned())
+                }
+                _ => None,
+            },
+            Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
+            Self::RGate => todo!(),
+            Self::CHGate => todo!(),
+            Self::CPhaseGate => todo!(),
+            Self::CSGate => todo!(),
+            Self::CSdgGate => todo!(),
+            Self::CSXGate => todo!(),
+            Self::CSwapGate => todo!(),
+            Self::CUGate | Self::CU1Gate | Self::CU3Gate => todo!(),
+            Self::C3XGate | Self::C3SXGate | Self::C4XGate => todo!(),
+            Self::DCXGate => todo!(),
+            Self::CCZGate => todo!(),
+            Self::RCCXGate | Self::RC3XGate => todo!(),
+            Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
+            Self::RZXGate => todo!(),
         }
     }
 
@@ -667,6 +763,21 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
+            Self::U1Gate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::PhaseGate,
+                            params.iter().cloned().collect(),
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::SdgGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
@@ -682,6 +793,21 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
+            Self::U2Gate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::UGate,
+                            smallvec![Param::Float(PI / 2.), params[0].clone(), params[1].clone()],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::TGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
@@ -690,6 +816,21 @@ impl Operation for StandardGate {
                         [(
                             Self::PhaseGate,
                             smallvec![Param::Float(PI4)],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
+            Self::U3Gate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::UGate,
+                            params.iter().cloned().collect(),
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
@@ -812,6 +953,23 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
+            Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
+            Self::RGate => todo!(),
+            Self::CHGate => todo!(),
+            Self::CPhaseGate => todo!(),
+            Self::CSGate => todo!(),
+            Self::CSdgGate => todo!(),
+            Self::CSXGate => todo!(),
+            Self::CSwapGate => todo!(),
+            Self::CUGate => todo!(),
+            Self::CU1Gate => todo!(),
+            Self::CU3Gate => todo!(),
+            Self::C3XGate | Self::C3SXGate | Self::C4XGate => todo!(),
+            Self::DCXGate => todo!(),
+            Self::CCZGate => todo!(),
+            Self::RCCXGate | Self::RC3XGate => todo!(),
+            Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
+            Self::RZXGate => todo!(),
         }
     }
 
