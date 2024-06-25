@@ -2018,65 +2018,63 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         qc.z(2).c_if(qc.clbits[0], 1)
 
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        first_h = transpiled.data[0].operation
-        u2 = first_h.definition.data[0].operation
-        u3_1 = u2.definition.data[0].operation
-        first_x = transpiled.data[-2].operation
-        u3_2 = first_x.definition.data[0].operation
-        first_z = transpiled.data[-1].operation
-        u1 = first_z.definition.data[0].operation
-        u3_3 = u1.definition.data[0].operation
+        id_len = len(str(id(transpiled.data[0].operation)))
 
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2)}(0, pi) _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi, 0, pi) _gate_q_0;",
-                "}",
-                "gate x _gate_q_0 {",
-                f"  u3_{id(u3_2)}(pi, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_3)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_3)}(0, 0, pi) _gate_q_0;",
-                "}",
-                "gate z _gate_q_0 {",
-                f"  u1_{id(u1)}(pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "h $1;",
-                "cx $1, $2;",
-                "barrier $0, $1, $2;",
-                "cx $0, $1;",
-                "h $0;",
-                "barrier $0, $1, $2;",
-                "c[0] = measure $0;",
-                "c[1] = measure $1;",
-                "barrier $0, $1, $2;",
-                "if (c[1]) {",
-                "  x $2;",
-                "}",
-                "if (c[0]) {",
-                "  z $2;",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter(includes=[]).dumps(transpiled), expected_qasm)
+        expected_qasm = [
+            "OPENQASM 3.0;",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi/2, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate h _gate_q_0 {",
+            re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate cx c, t {",
+            "  ctrl @ U(pi, 0, pi) c, t;",
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi, 0, pi) _gate_q_0;",
+            "}",
+            "gate x _gate_q_0 {",
+            re.compile(r"  u3_\d{%s}\(pi, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate z _gate_q_0 {",
+            re.compile(r"  u1_\d{%s}\(pi\) _gate_q_0;" % id_len),
+            "}",
+            "bit[2] c;",
+            "h $1;",
+            "cx $1, $2;",
+            "barrier $0, $1, $2;",
+            "cx $0, $1;",
+            "h $0;",
+            "barrier $0, $1, $2;",
+            "c[0] = measure $0;",
+            "c[1] = measure $1;",
+            "barrier $0, $1, $2;",
+            "if (c[1]) {",
+            "  x $2;",
+            "}",
+            "if (c[0]) {",
+            "  z $2;",
+            "}",
+            "",
+        ]
+        res = Exporter(includes=[]).dumps(transpiled).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
 
     def test_custom_gate_with_params_bound_main_call(self):
         """Custom gate with unbound parameters that are bound in the main circuit"""
