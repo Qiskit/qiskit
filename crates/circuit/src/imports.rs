@@ -151,11 +151,11 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // U3Gate = 28
     ["qiskit.circuit.library.standard_gates.u3", "U3Gate"],
     // CRXGate = 29
-    ["qiskit.circuit.library.standard_gates.crx", "CRXGate"],
+    ["qiskit.circuit.library.standard_gates.rx", "CRXGate"],
     // CRYGate = 30
-    ["qiskit.circuit.library.standard_gates.cry", "CRYGate"],
+    ["qiskit.circuit.library.standard_gates.ry", "CRYGate"],
     // CRZGate = 31
-    ["qiskit.circuit.library.standard_gates.crz", "CRZGate"],
+    ["qiskit.circuit.library.standard_gates.rz", "CRZGate"],
     // RGate 32
     ["placeholder", "placeholder"],
     // CHGate = 33
