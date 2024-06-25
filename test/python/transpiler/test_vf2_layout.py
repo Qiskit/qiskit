@@ -629,7 +629,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_with_properties(self):
         """Test it finds the least noise perfect layout with no properties."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -643,7 +644,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_max_trials_exceeded(self):
         """Test it exits when max_trials is reached."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -663,7 +665,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_time_limit_exceeded(self):
         """Test the pass stops after time_limit is reached."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -706,7 +709,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qc = QuantumCircuit(3)
         qc.h(0)
         cmap = CouplingMap(backend.configuration().coupling_map)
