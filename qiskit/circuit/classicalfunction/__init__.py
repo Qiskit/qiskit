@@ -51,6 +51,12 @@ QuantumCircuit:
 Following Qiskit's little-endian bit ordering convention, the left-most bit (``a``) is the most
 significant bit and the right-most bit (``d``) is the least significant bit.
 
+.. warning::
+
+    The functionality of `qiskit.circuit.classicalfunction` requires the `tweedledum` package, 
+    which isn't available on all platforms (up to Python version 3.11).
+    See `tweedledum installation guide <https://github.com/boschmitt/tweedledum/tree/master?tab=readme-ov-file#installation>`_ for more details.
+
 Supplementary Information
 =========================
 
