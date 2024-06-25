@@ -11,6 +11,8 @@
 // that they have been altered from the originals.
 
 use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
+use rand::{Rng, SeedableRng};
+use rand_pcg::Pcg64Mcg;
 
 /// Binary matrix multiplication
 pub fn binary_matmul_inner(
@@ -164,4 +166,35 @@ pub fn _add_row_or_col(mut mat: ArrayViewMut2<bool>, add_cols: &bool, ctrl: usiz
 
     // add them inplace
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
+}
+
+/// Generate a random invertible n x n binary matrix.
+pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
+    let mut rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
+
+    let mut matrix = Array2::from_elem((num_qubits, num_qubits), false);
+
+    loop {
+        for value in matrix.iter_mut() {
+            *value = rng.gen_bool(0.5);
+        }
+
+        let rank = compute_rank_inner(matrix.view());
+        if rank == num_qubits {
+            break;
+        }
+    }
+    matrix
+}
+
+/// Check that a binary matrix is invertible.
+pub fn check_invertible_binary_matrix_inner(mat: ArrayView2<bool>) -> bool {
+    if mat.nrows() != mat.ncols() {
+        return false;
+    }
+    let rank = compute_rank_inner(mat);
+    rank == mat.nrows()
 }

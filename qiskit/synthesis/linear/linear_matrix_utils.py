@@ -23,46 +23,8 @@ from qiskit._accelerate.synthesis.linear import (
     compute_rank,
     calc_inverse_matrix,
     binary_matmul,
+    random_invertible_binary_matrix,
+    check_invertible_binary_matrix,
     row_op,
     col_op,
 )
-
-
-def check_invertible_binary_matrix(mat: np.ndarray):
-    """Check that a binary matrix is invertible.
-
-    Args:
-        mat: a binary matrix.
-
-    Returns:
-        bool: True if mat in invertible and False otherwise.
-    """
-    if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
-        return False
-
-    rank = compute_rank(mat)
-    return rank == mat.shape[0]
-
-
-def random_invertible_binary_matrix(
-    num_qubits: int, seed: Optional[Union[np.random.Generator, int]] = None
-):
-    """Generates a random invertible n x n binary matrix.
-
-    Args:
-        num_qubits: the matrix size.
-        seed: a random seed.
-
-    Returns:
-        np.ndarray: A random invertible binary matrix of size num_qubits.
-    """
-    if isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-
-    rank = 0
-    while rank != num_qubits:
-        mat = rng.integers(2, size=(num_qubits, num_qubits), dtype=bool)
-        rank = compute_rank(mat)
-    return mat

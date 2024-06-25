@@ -116,6 +116,36 @@ fn col_op(mut mat: PyReadwriteArray2<bool>, ctrl: usize, trgt: usize) {
     utils::_add_row_or_col(matmut, &true, trgt, ctrl)
 }
 
+#[pyfunction]
+#[pyo3(signature = (num_qubits, seed))]
+/// Generate a random invertible n x n binary matrix.
+///  Args:
+///     num_qubits: the matrix size.
+///     seed: a random seed.
+///  Returns:
+///     np.ndarray: A random invertible binary matrix of size num_qubits.
+fn random_invertible_binary_matrix(
+    py: Python,
+    num_qubits: usize,
+    seed: Option<u64>,
+) -> PyResult<Py<PyArray2<bool>>> {
+    let matrix = utils::random_invertible_binary_matrix_inner(num_qubits, seed);
+    Ok(matrix.into_pyarray_bound(py).unbind())
+}
+
+#[pyfunction]
+#[pyo3(signature = (mat))]
+/// Check that a binary matrix is invertible.
+/// Args:
+///     mat: a binary matrix.
+/// Returns:
+///     bool: True if mat in invertible and False otherwise.
+fn check_invertible_binary_matrix(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+    let view = mat.as_array();
+    let out = utils::check_invertible_binary_matrix_inner(view);
+    Ok(out.to_object(py))
+}
+
 #[pymodule]
 pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(gauss_elimination_with_perm))?;
@@ -126,5 +156,7 @@ pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(row_op))?;
     m.add_wrapped(wrap_pyfunction!(col_op))?;
     m.add_wrapped(wrap_pyfunction!(binary_matmul))?;
+    m.add_wrapped(wrap_pyfunction!(random_invertible_binary_matrix))?;
+    m.add_wrapped(wrap_pyfunction!(check_invertible_binary_matrix))?;
     Ok(())
 }
