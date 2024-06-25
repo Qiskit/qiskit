@@ -23,7 +23,7 @@ from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 Fake1QV2 = GenericBackendV2(
-    num_qubits=1, basis_gates=["u1", "u2", "u3", "cx"], coupling_map=None, dtm=1.3333, seed=42
+    num_qubits=1, basis_gates=["u1", "u2", "u3"], coupling_map=None, dtm=1.3333, seed=42
 )
 
 
@@ -95,7 +95,7 @@ class Test1QWorking(QiskitTestCase):
 
 @ddt
 class TestBasicSimulatorWorking(QiskitTestCase):
-    """Test with a simulator backend"""
+    """All the levels with a simulator backend"""
 
     @combine(
         circuit=[circuit_3516],
