@@ -27,16 +27,15 @@ CUSTOM_MAPPING = {"x", "rz"}
 MATRIX_SKIP_LIST = {"c3sx"}
 MCX_GATES = {
     "c3x": C3XGate(),
-    "c4x": C4XGate(),
 }
+
 
 class TestRustGateEquivalence(QiskitTestCase):
     """Tests that compile time rust gate definitions is correct."""
 
     def setUp(self):
         super().setUp()
-        # self.standard_gates = get_standard_gate_name_mapping()
-        self.standard_gates = {}
+        self.standard_gates = get_standard_gate_name_mapping()
         self.standard_gates.update(MCX_GATES)
         # Pre-warm gate mapping cache, this is needed so rust -> py conversion is done
         qc = QuantumCircuit(5)
@@ -84,8 +83,8 @@ class TestRustGateEquivalence(QiskitTestCase):
                                 [py_def.find_bit(x).index for x in py_inst.qubits],
                                 [rs_def.find_bit(x).index for x in rs_inst.qubits],
                             )
-                        # Rust uses P but python still uses u1
-                        elif rs_inst.operation.name == "p" and not name in ["cu"]:
+                        # Rust uses P but python still uses u1 in some cases
+                        elif rs_inst.operation.name == "p" and not name in ["cu", "c3x"]:
                             if py_inst.operation.name == "u1":
                                 self.assertEqual(py_inst.operation.name, "u1")
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
@@ -114,7 +113,6 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test matrices are the same in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
-            print(name, gate_class, standard_gate)
             if name in MATRIX_SKIP_LIST:
                 # to_matrix not defined for type
                 continue
@@ -132,7 +130,7 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test that the gate name properties match in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
-            if standard_gate is None or gate_class.name =='mcx':
+            if standard_gate is None or gate_class.name == "mcx":
                 # gate is not in rust yet
                 continue
 

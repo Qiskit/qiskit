@@ -120,8 +120,6 @@ pub static C3X_GATE: [[Complex64; 16]; 16] = make_n_controlled_gate!(X_GATE, 3);
 
 pub static C3SX_GATE: [[Complex64; 16]; 16] = make_n_controlled_gate!(SX_GATE, 3);
 
-pub static C4X_GATE: [[Complex64; 32]; 32] = make_n_controlled_gate!(X_GATE, 4);
-
 pub static ECR_GATE: [[Complex64; 4]; 4] = [
     [
         c64(0., 0.),

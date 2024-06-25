@@ -950,8 +950,6 @@ class C4XGate(SingletonControlledGate):
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
-    _standard_gate = StandardGate.C4XGate
-
     def __init__(
         self,
         label: Optional[str] = None,

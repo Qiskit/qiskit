@@ -16,7 +16,7 @@ use crate::circuit_data::CircuitData;
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, Qubit};
 
-use ndarray::{arr2, aview2, Array2};
+use ndarray::{aview2, Array2};
 use num_complex::Complex64;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
@@ -541,10 +541,6 @@ impl Operation for StandardGate {
                 [] => Some(aview2(&gate_matrix::C3X_GATE).to_owned()),
                 _ => None,
             },
-            Self::C4XGate => match params {
-                [] => Some(arr2(&gate_matrix::C4X_GATE)),
-                _ => None,
-            },
             Self::C3SXGate => match params {
                 [] => Some(aview2(&gate_matrix::C3SX_GATE).to_owned()),
                 _ => None,
@@ -557,6 +553,7 @@ impl Operation for StandardGate {
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
             Self::RZXGate => todo!(),
+            Self::C4XGate => todo!(),
         }
     }
 
@@ -1237,52 +1234,6 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::C4XGate => Python::with_gil(|py| -> Option<CircuitData> {
-                Some(
-                    CircuitData::from_standard_gates(
-                        py,
-                        5,
-                        [
-                            (Self::HGate, smallvec![], smallvec![Qubit(4)]),
-                            (
-                                Self::CPhaseGate,
-                                smallvec![Param::Float(PI2)],
-                                smallvec![Qubit(3), Qubit(4)],
-                            ),
-                            (Self::HGate, smallvec![], smallvec![Qubit(4)]),
-                            (
-                                Self::RC3XGate,
-                                smallvec![],
-                                smallvec![Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
-                            ),
-                            (Self::HGate, smallvec![], smallvec![Qubit(4)]),
-                            (
-                                Self::CPhaseGate,
-                                smallvec![Param::Float(-PI2)],
-                                smallvec![Qubit(3), Qubit(4)],
-                            ),
-                            (Self::HGate, smallvec![], smallvec![Qubit(4)]),
-                            (
-                                Self::RC3XGate,
-                                smallvec![],
-                                smallvec![Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
-                            ),
-                            (
-                                Self::RC3XGate, //inverse? TODO
-                                smallvec![],
-                                smallvec![Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
-                            ),
-                            (
-                                Self::C3SXGate,
-                                smallvec![],
-                                smallvec![Qubit(0), Qubit(1), Qubit(2), Qubit(4)],
-                            ),
-                        ],
-                        FLOAT_ZERO,
-                    )
-                    .expect("Unexpected Qiskit python bug"),
-                )
-            }),
             Self::C3SXGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
@@ -1355,6 +1306,7 @@ impl Operation for StandardGate {
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
             Self::RZXGate => todo!(),
+            Self::C4XGate => todo!(),
         }
     }
 
