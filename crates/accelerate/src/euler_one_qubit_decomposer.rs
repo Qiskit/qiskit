@@ -1021,7 +1021,7 @@ pub fn optimize_1q_gates_decomposition(
                 None => raw_run.len() as f64,
             };
             let qubit = qubits[index];
-            let operator = raw_run
+            let operator = &raw_run
                 .iter()
                 .map(|node| {
                     if let Some(err_map) = error_map {
@@ -1033,8 +1033,16 @@ pub fn optimize_1q_gates_decomposition(
                         .matrix(&node.instruction.params)
                         .unwrap()
                 })
-                .reduce(|operator, node| node.dot(&operator))
-                .unwrap();
+                .fold(
+                    [
+                        [Complex64::new(1., 0.), Complex64::new(0., 0.)],
+                        [Complex64::new(0., 0.), Complex64::new(1., 0.)],
+                    ],
+                    |mut operator, node| {
+                        matmul_1q(&mut operator, node);
+                        operator
+                    },
+                );
             let old_error = if error_map.is_some() {
                 (1. - error, raw_run.len())
             } else {
@@ -1047,7 +1055,7 @@ pub fn optimize_1q_gates_decomposition(
                 target_basis_vec.push(basis_enum)
             }
             unitary_to_gate_sequence_inner(
-                operator.view(),
+                aview2(operator),
                 &target_basis_vec,
                 qubit,
                 error_map,
@@ -1060,6 +1068,19 @@ pub fn optimize_1q_gates_decomposition(
             })
         })
         .collect()
+}
+
+fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
+    *operator = [
+        [
+            other[[0, 0]] * operator[0][0] + other[[0, 1]] * operator[1][0],
+            other[[0, 0]] * operator[0][1] + other[[0, 1]] * operator[1][1],
+        ],
+        [
+            other[[1, 0]] * operator[0][0] + other[[1, 1]] * operator[1][0],
+            other[[1, 0]] * operator[0][1] + other[[1, 1]] * operator[1][1],
+        ],
+    ];
 }
 
 #[pyfunction]
