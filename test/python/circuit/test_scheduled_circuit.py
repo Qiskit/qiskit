@@ -33,8 +33,9 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend_with_dt = Fake27QPulseV1()
-        self.backend_without_dt = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend_with_dt = Fake27QPulseV1()
+            self.backend_without_dt = Fake27QPulseV1()
         delattr(self.backend_without_dt.configuration(), "dt")
         # Remove timing constraints from the backends (alignment values,
         # granularity and min_length), so that these values will default
