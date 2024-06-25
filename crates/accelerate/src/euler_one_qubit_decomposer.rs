@@ -1010,9 +1010,6 @@ pub fn optimize_1q_gates_decomposition(
     error_map: Option<&OneQubitGateErrorMap>,
     atol: Option<f64>,
 ) -> Vec<OptimizeDecompositionReturn> {
-    // The array collection is done serially because we need to use a PyRef to get a reference
-    // input to the DAGOpNode (as a side effect of being a subclass in rust space). This prohibits
-    // using paralleism because PyRef is neither sync or send.
     runs.iter()
         .enumerate()
         .map(|(index, raw_run)| -> OptimizeDecompositionReturn {
