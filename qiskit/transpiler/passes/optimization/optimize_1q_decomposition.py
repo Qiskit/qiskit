@@ -263,8 +263,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
         of circuit as a weak proxy for error.
         """
         if isinstance(circuit, euler_one_qubit_decomposer.OneQubitGateSequence):
-            if not isinstance(qubit, int):
-                dag
             return euler_one_qubit_decomposer.compute_error_one_qubit_sequence(
                 circuit, qubit, self.error_map
             )
