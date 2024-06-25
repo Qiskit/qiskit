@@ -244,7 +244,8 @@ class TestPulseGate(QiskitTestCase):
 
     def test_transpile_with_multiple_circuits(self):
         """Test transpile with multiple circuits with custom gate."""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add(
             "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
         )
