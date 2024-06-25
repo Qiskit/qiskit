@@ -12,9 +12,6 @@
 
 """Utility functions for handling binary matrices."""
 
-from typing import Optional, Union
-import numpy as np
-
 # pylint: disable=unused-import
 from qiskit._accelerate.synthesis.linear import (
     gauss_elimination,
