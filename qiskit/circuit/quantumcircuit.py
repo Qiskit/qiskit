@@ -1161,9 +1161,11 @@ class QuantumCircuit:
     def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit()
-        out.add_bits(data.qubits)
-        out.add_bits(data.clbits)
         out._data = data
+        for index, bit in enumerate(data.qubits):
+            out._qubit_indices[bit] = BitLocations(index, [])
+        for index, bit in enumerate(data.clbits):
+            out._clbit_indices[bit] = BitLocations(index, [])
         return out
 
     @staticmethod
