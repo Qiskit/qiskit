@@ -208,8 +208,33 @@ pub enum StandardGate {
     U1Gate = 26,
     U2Gate = 27,
     U3Gate = 28,
+    CRXGate = 29,
+    CRYGate = 30,
+    CRZGate = 31,
+    RGate = 32,
+    CHGate = 33,
+    CPhaseGate = 34,
+    CSGate = 35,
+    CSdgGate = 36,
+    CSXGate = 37,
+    CSwapGate = 38,
+    CUGate = 39,
+    CU1Gate = 40,
+    CU3Gate = 41,
+    C3XGate = 42,
+    C3SXGate = 43,
+    C4XGate = 44,
+    DCXGate = 45,
+    CCZGate = 46,
+    RCCXGate = 47,
+    RC3XGate = 48,
+    RXXGate = 49,
+    RYYGate = 50,
+    RZZGate = 51,
+    RZXGate = 52,
 }
 
+// TODO: replace all 34s (placeholders) with actual number
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     1, 1, 1, 2, 2, 2, 3, 1, 1, 1, // 0-9
     2, 2, 1, 0, 1, 1, 1, 1, 1, 1, // 10-19
@@ -219,6 +244,7 @@ static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     34, 34, 34, // 50-52
 ];
 
+// TODO: replace all 34s (placeholders) with actual number
 static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, // 0-9
     0, 0, 0, 1, 0, 0, 1, 3, 0, 0, // 10-19
@@ -263,7 +289,7 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "crz",          // 31
     "r",            // 32
     "ch",           // 33
-    "cphase",       // 34
+    "cp",           // 34
     "cs",           // 35
     "csdg",         // 36
     "csx",          // 37
@@ -330,7 +356,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 29;
+pub const STANDARD_GATE_SIZE: usize = 53;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
@@ -500,7 +526,6 @@ impl Operation for StandardGate {
                 [] => Some(aview2(&gate_matrix::C3X_GATE).to_owned()),
                 _ => None,
             },
-
             Self::C3SXGate | Self::C4XGate => todo!(),
             Self::DCXGate => todo!(),
             Self::CCZGate => todo!(),
