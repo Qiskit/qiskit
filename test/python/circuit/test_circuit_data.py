@@ -416,7 +416,11 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
             return (instruction.operation, list(instruction.qubits), list(instruction.clbits))
 
         expected = [to_legacy(instruction) for instruction in qc.data]
-        actual = [tuple(instruction) for instruction in qc.data]
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Treating CircuitInstruction as an iterable is deprecated"
+        ):
+            actual = [tuple(instruction) for instruction in qc.data]
         self.assertEqual(actual, expected)
 
     def test_getitem_by_insertion_order(self):
