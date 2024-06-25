@@ -22,6 +22,14 @@ mod utils;
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 /// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
 /// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
+/// Args:
+///     mat: a boolean matrix with n rows and m columns
+///     ncols: the number of columns for the gaussian elimination,
+///            if ncols=None, then the elimination is done over all the colums
+///     full_elim: whether to do a full elimination, or partial (upper triangular form)
+/// Returns:
+///     mat: the matrix after the gaussian elimination
+///     perm: the permutation perm that was done on the rows during the process
 fn gauss_elimination_with_perm(
     py: Python,
     mut mat: PyReadwriteArray2<bool>,
@@ -38,6 +46,13 @@ fn gauss_elimination_with_perm(
 /// Gauss elimination of a matrix mat with m rows and n columns.
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 /// Returns the updated matrix mat.
+/// Args:
+///     mat: a boolean matrix with n rows and m columns
+///     ncols: the number of columns for the gaussian elimination,
+///            if ncols=None, then the elimination is done over all the colums
+///     full_elim: whether to do a full elimination, or partial (upper triangular form)
+/// Returns:
+///     mat: the matrix after the gaussian elimination
 fn gauss_elimination(
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
@@ -51,6 +66,10 @@ fn gauss_elimination(
 #[pyo3(signature = (mat))]
 /// Given a boolean matrix mat after Gaussian elimination, computes its rank
 /// (i.e. simply the number of nonzero rows)
+/// Args:
+///     mat: a boolean matrix after gaussian elimination
+/// Returns:
+///     rank: the rank of the matrix
 fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let view = mat.as_array();
     let rank = utils::compute_rank_after_gauss_elim_inner(view);
@@ -60,6 +79,10 @@ fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyR
 #[pyfunction]
 #[pyo3(signature = (mat))]
 /// Given a boolean matrix mat computes its rank
+/// Args:
+///     mat: a boolean matrix
+/// Returns:
+///     rank: the rank of the matrix
 fn compute_rank(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
     let rank = utils::compute_rank_inner(mat.as_array());
     Ok(rank.to_object(py))
@@ -89,6 +112,13 @@ pub fn calc_inverse_matrix(
 #[pyfunction]
 #[pyo3(signature = (mat1, mat2))]
 /// Binary matrix multiplication
+/// Args:
+///     mat1: a boolean matrix
+///     mat2: a boolean matrix
+/// Returns:
+///     a boolean matrix which is the multiplication of mat1 and mat2
+/// Raises:
+///     QiskitError: if the dimensions of mat1 and mat2 do not match
 pub fn binary_matmul(
     py: Python,
     mat1: PyReadonlyArray2<bool>,
