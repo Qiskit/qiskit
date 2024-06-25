@@ -3,10 +3,16 @@
 # https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
 scipy<1.11; python_version<'3.12'
 
+<<<<<<< HEAD
 # Aer 0.13 causes several randomised tests to begin failing, and some
 # `QuantumInstance` use of noise models to raise exceptions.  These need fixes
 # on Terra.
 qiskit-aer<0.13.0
+=======
+# Temporary pin to avoid CI issues caused by scipy 1.14.0
+# See https://github.com/Qiskit/qiskit/issues/12655 for current details.
+scipy==1.13.1; python_version=='3.12'
+>>>>>>> 1ed5951a9 (Pin scipy to 1.13.1 to bypass CI failures (#12654))
 
 # z3-solver from 4.12.3 onwards upped the minimum macOS API version for its
 # wheels to 11.7. The Azure VM images contain pre-built CPythons, of which at
