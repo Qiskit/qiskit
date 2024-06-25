@@ -15,6 +15,7 @@
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
@@ -47,6 +48,8 @@ class DCXGate(SingletonGate):
                 0 & 0 & 1 & 0
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.DCXGate
 
     def __init__(self, label=None, *, duration=None, unit="dt"):
         """Create new DCX gate."""

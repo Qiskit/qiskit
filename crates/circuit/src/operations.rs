@@ -434,6 +434,10 @@ impl Operation for StandardGate {
                 }
                 _ => None,
             },
+            Self::DCXGate => match params {
+                [] => Some(aview2(&gate_matrix::DCX_GATE).to_owned()),
+                _ => None,
+            }
         }
     }
 
@@ -808,6 +812,20 @@ impl Operation for StandardGate {
                             (Self::SXdgGate, smallvec![], q1.clone()),
                             (Self::RZGate, smallvec![Param::Float(PI2)], q1),
                             (Self::RZGate, smallvec![multiply_param(beta, -1.0, py)], q0),
+                        ],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
+            Self::DCXGate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        2,
+                        [
+                            (Self::CXGate, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (Self::CXGate, smallvec![], smallvec![Qubit(1), Qubit(0)]),
                         ],
                         FLOAT_ZERO,
                     )
