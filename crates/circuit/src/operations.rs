@@ -1301,7 +1301,21 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CCZGate => todo!(),
+            Self::CCZGate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        3,
+                        [
+                            (Self::HGate, smallvec![], smallvec![Qubit(2)]),
+                            (Self::CCXGate, smallvec![], smallvec![Qubit(0), Qubit(1), Qubit(2)]),
+                            (Self::HGate, smallvec![], smallvec![Qubit(2)]),
+                        ],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::DCXGate => todo!(),
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),

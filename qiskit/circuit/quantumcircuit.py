@@ -5258,13 +5258,20 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.u import CUGate
+        if ctrl_state is not None:
+            from .library.standard_gates.u import CUGate
 
-        return self.append(
-            CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
-            copy=False,
+            return self.append(
+                CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
+                [control_qubit, target_qubit],
+                [],
+                copy=False,
+            )
+        return self._append_standard_gate(
+            StandardGate.CUGate,
+            [theta, phi, lam, gamma],
+            qargs=[control_qubit, target_qubit],
+            label=label,
         )
 
     def x(self, qubit: QubitSpecifier, label: str | None = None) -> InstructionSet:
@@ -5576,13 +5583,20 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.z import CCZGate
+        if ctrl_state is not None:
+            from .library.standard_gates.z import CCZGate
 
-        return self.append(
-            CCZGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit1, control_qubit2, target_qubit],
+            return self.append(
+                CCZGate(label=label, ctrl_state=ctrl_state),
+                [control_qubit1, control_qubit2, target_qubit],
+                [],
+                copy=False,
+            )
+        return self._append_standard_gate(
+            StandardGate.CCZGate,
             [],
-            copy=False,
+            qargs=[control_qubit1, control_qubit2, target_qubit],
+            label=label,
         )
 
     def pauli(
