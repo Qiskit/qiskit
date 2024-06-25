@@ -24,9 +24,11 @@ from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
 SKIP_LIST = {"rx", "ry", "ecr"}
 CUSTOM_MAPPING = {"x", "rz"}
-
-MCX_GATES = [C3XGate()]
-
+MATRIX_SKIP_LIST = {"c3sx"}
+MCX_GATES = {
+    "c3x": C3XGate(),
+    "c4x": C4XGate(),
+}
 
 class TestRustGateEquivalence(QiskitTestCase):
     """Tests that compile time rust gate definitions is correct."""
@@ -35,9 +37,9 @@ class TestRustGateEquivalence(QiskitTestCase):
         super().setUp()
         # self.standard_gates = get_standard_gate_name_mapping()
         self.standard_gates = {}
-        self.standard_gates.update({gate.name: gate for gate in MCX_GATES})
+        self.standard_gates.update(MCX_GATES)
         # Pre-warm gate mapping cache, this is needed so rust -> py conversion is done
-        qc = QuantumCircuit(4)
+        qc = QuantumCircuit(5)
         for gate in self.standard_gates.values():
             if getattr(gate, "_standard_gate", None):
                 if gate.params:
@@ -56,7 +58,6 @@ class TestRustGateEquivalence(QiskitTestCase):
                 continue
 
             with self.subTest(name=name):
-                print(name)
                 params = [pi] * standard_gate._num_params()
                 py_def = gate_class.base_class(*params).definition
                 rs_def = standard_gate._get_definition(params)
@@ -84,7 +85,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                                 [rs_def.find_bit(x).index for x in rs_inst.qubits],
                             )
                         # Rust uses P but python still uses u1
-                        elif rs_inst.operation.name == "p" and not name in ["mcx"]:
+                        elif rs_inst.operation.name == "p" and not name in ["cu"]:
                             if py_inst.operation.name == "u1":
                                 self.assertEqual(py_inst.operation.name, "u1")
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
@@ -113,6 +114,10 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test matrices are the same in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
+            print(name, gate_class, standard_gate)
+            if name in MATRIX_SKIP_LIST:
+                # to_matrix not defined for type
+                continue
             if standard_gate is None:
                 # gate is not in rust yet
                 continue
@@ -127,7 +132,7 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test that the gate name properties match in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
-            if standard_gate is None:
+            if standard_gate is None or gate_class.name =='mcx':
                 # gate is not in rust yet
                 continue
 

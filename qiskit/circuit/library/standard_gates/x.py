@@ -578,6 +578,8 @@ class C3SXGate(SingletonControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
+    _standard_gate = StandardGate.C3SXGate
+
     def __init__(
         self,
         label: Optional[str] = None,
@@ -947,6 +949,8 @@ class C4XGate(SingletonControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
+
+    _standard_gate = StandardGate.C4XGate
 
     def __init__(
         self,

@@ -261,6 +261,7 @@ class CUGate(ControlledGate):
             e^{i(\gamma + \phi)}\sin(\rotationangle) & e^{i(\gamma + \phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
     """
+    _standard_gate = StandardGate.CUGate
 
     def __init__(
         self,
