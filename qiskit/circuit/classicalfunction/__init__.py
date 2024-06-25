@@ -55,7 +55,9 @@ significant bit and the right-most bit (``d``) is the least significant bit.
 
     The functionality of `qiskit.circuit.classicalfunction` requires `tweedledum`, 
     which isn't available on all platforms (up to Python version 3.11).
-    See `tweedledum installation guide <https://github.com/boschmitt/tweedledum/tree/master?tab=readme-ov-file#installation>`_ for more details.
+    See `tweedledum installation guide 
+    <https://github.com/boschmitt/tweedledum/tree/master?tab=readme-ov-file#installation>`_ 
+    for more details.
 
 Supplementary Information
 =========================
