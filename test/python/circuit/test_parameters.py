@@ -1092,7 +1092,6 @@ class TestParameters(QiskitTestCase):
                     [2, 4],
                     [4, 2],
                 ],
-                basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
             ),
             optimization_level=opt_level,
         )
