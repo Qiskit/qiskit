@@ -732,6 +732,10 @@ fn compute_error(
     }
 }
 
+fn compute_error_term(gate: &str, error_map: &OneQubitGateErrorMap, qubit: usize) -> f64 {
+    1. - error_map.error_map[qubit].get(gate).unwrap_or(&0.)
+}
+
 fn compute_error_str(
     gates: &[(String, SmallVec<[f64; 3]>)],
     error_map: Option<&OneQubitGateErrorMap>,
@@ -742,7 +746,7 @@ fn compute_error_str(
             let num_gates = gates.len();
             let gate_fidelities: f64 = gates
                 .iter()
-                .map(|x| 1. - err_map.error_map[qubit].get(&x.0).unwrap_or(&0.))
+                .map(|x| compute_error_term(x.0.as_str(), err_map, qubit))
                 .product();
             (1. - gate_fidelities, num_gates)
         }
@@ -1011,53 +1015,50 @@ pub fn optimize_1q_gates_decomposition(
     // using paralleism because PyRef is neither sync or send.
     runs.iter()
         .enumerate()
-        .map(
-            |(index, raw_run)| -> OptimizeDecompositionReturn {
-                let run = raw_run
-                    .iter()
-                    .map(|node| {
-                        node.instruction
-                            .operation
-                            .matrix(&node.instruction.params)
-                            .unwrap()
-                    })
-                    .collect::<Vec<Array2<Complex64>>>();
-                let qubit = qubits[index];
-                let circuit_list: Vec<(String, SmallVec<[f64; 3]>)> = raw_run
-                    .iter()
-                    .map(|node| {
-                        (
-                            node.instruction.operation.name().to_string(),
-                            smallvec![], // Params not needed in this path
-                        )
-                    })
-                    .collect();
-                let old_error = compute_error_str(&circuit_list, error_map, qubit);
-                let target_basis_list = &bases[index];
-                let mut operator: Array2<Complex64> = run[0].to_owned();
-                for node in &run[1..] {
-                    operator = node.dot(&operator);
-                }
-                let mut target_basis_vec: Vec<EulerBasis> =
-                    Vec::with_capacity(target_basis_list.len());
-                for basis in target_basis_list {
-                    let basis_enum = EulerBasis::__new__(basis.deref()).unwrap();
-                    target_basis_vec.push(basis_enum)
-                }
-                unitary_to_gate_sequence_inner(
-                    operator.view(),
-                    &target_basis_vec,
-                    qubit,
-                    error_map,
-                    simplify,
-                    atol,
-                )
-                .map(|out_seq| {
-                    let new_error = compute_error_one_qubit_sequence(&out_seq, qubit, error_map);
-                    (old_error, new_error, out_seq)
+        .map(|(index, raw_run)| -> OptimizeDecompositionReturn {
+            let mut error = match error_map {
+                Some(_) => 1.,
+                None => raw_run.len() as f64,
+            };
+            let qubit = qubits[index];
+            let operator = raw_run
+                .iter()
+                .map(|node| {
+                    if let Some(err_map) = error_map {
+                        error *=
+                            compute_error_term(node.instruction.operation.name(), err_map, qubit)
+                    }
+                    node.instruction
+                        .operation
+                        .matrix(&node.instruction.params)
+                        .unwrap()
                 })
-            },
-        )
+                .reduce(|operator, node| node.dot(&operator))
+                .unwrap();
+            let old_error = if error_map.is_some() {
+                (1. - error, raw_run.len())
+            } else {
+                (error, raw_run.len())
+            };
+            let target_basis_list = &bases[index];
+            let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
+            for basis in target_basis_list {
+                let basis_enum = EulerBasis::__new__(basis.deref()).unwrap();
+                target_basis_vec.push(basis_enum)
+            }
+            unitary_to_gate_sequence_inner(
+                operator.view(),
+                &target_basis_vec,
+                qubit,
+                error_map,
+                simplify,
+                atol,
+            )
+            .map(|out_seq| {
+                let new_error = compute_error_one_qubit_sequence(&out_seq, qubit, error_map);
+                (old_error, new_error, out_seq)
+            })
+        })
         .collect()
 }
 
