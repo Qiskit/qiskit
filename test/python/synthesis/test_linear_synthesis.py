@@ -119,8 +119,9 @@ class TestLinearSynth(QiskitTestCase):
         """Test that synth_cnot_depth_line_kms produces the correct synthesis."""
         rng = np.random.default_rng(1234)
         num_trials = 10
-        for _ in range(num_trials):
-            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+        seeds = rng.integers(100000, size=num_trials, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
             mat = np.array(mat, dtype=bool)
             qc = synth_cnot_depth_line_kms(mat)
             mat1 = LinearFunction(qc).linear
