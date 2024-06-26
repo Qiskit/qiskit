@@ -269,7 +269,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         """After each circuit operation, it should be possible to build QASM."""
         qasm2.dumps(self.qc)
 
-    @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
+    @precondition(lambda self: any(isinstance(d.operation, Measure) for d in self.qc.data))
     @rule(kwargs=transpiler_conf())
     def equivalent_transpile(self, kwargs):
         """Simulate, transpile and simulate the present circuit. Verify that the
