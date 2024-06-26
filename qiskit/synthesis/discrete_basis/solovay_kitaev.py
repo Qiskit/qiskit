@@ -51,14 +51,19 @@ class SolovayKitaevDecomposition:
 
         self.basic_approximations = self.load_basic_approximations(basic_approximations)
 
-    def load_basic_approximations(self, data: list | str | dict) -> list[GateSequence]:
+    @staticmethod
+    def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
         Args:
             data: If a string, specifies the path to the file from where to load the data.
-                If a dictionary, directly specifies the decompositions as ``{gates: matrix}``.
-                There ``gates`` are the names of the gates producing the SO(3) matrix ``matrix``,
-                e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
+                If a dictionary, directly specifies the decompositions as ``{gates: matrix}``
+                or ``{gates: (matrix, global_phase)}``. There, ``gates`` are the names of the gates
+                producing the SO(3) matrix ``matrix``, e.g.
+                ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``
+                and the ``global_phase`` can be given to account for a global phase difference
+                between the U(2) matrix of the quantum gates and the stored SO(3) matrix.
+                If not given, the ``global_phase`` will be assumed to be 0.
 
         Returns:
             A list of basic approximations as type ``GateSequence``.
@@ -72,13 +77,20 @@ class SolovayKitaevDecomposition:
 
         # if a file, load the dictionary
         if isinstance(data, str):
-            data = np.load(data, allow_pickle=True)
+            data = np.load(data, allow_pickle=True).item()
 
         sequences = []
-        for gatestring, matrix in data.items():
+        for gatestring, matrix_and_phase in data.items():
+            if isinstance(matrix_and_phase, tuple):
+                matrix, global_phase = matrix_and_phase
+            else:
+                matrix, global_phase = matrix_and_phase, 0
+
             sequence = GateSequence()
             sequence.gates = [_1q_gates[element] for element in gatestring.split()]
+            sequence.labels = [gate.name for gate in sequence.gates]
             sequence.product = np.asarray(matrix)
+            sequence.global_phase = global_phase
             sequences.append(sequence)
 
         return sequences
