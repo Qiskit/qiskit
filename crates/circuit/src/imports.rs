@@ -74,6 +74,8 @@ pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
 pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 
 pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
+pub static NUMPY_COPY_ONLY_IF_REQUIRED: ImportOnceCell =
+    ImportOnceCell::new("qiskit._numpy_compat", "NUMPY_COPY_ONLY_IF_REQUIRED");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

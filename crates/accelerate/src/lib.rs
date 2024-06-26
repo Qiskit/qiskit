@@ -26,6 +26,7 @@ pub mod pauli_exp_val;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
+pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod stochastic_swap;
 pub mod synthesis;
