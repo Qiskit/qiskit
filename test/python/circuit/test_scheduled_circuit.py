@@ -51,7 +51,7 @@ class TestScheduledCircuit(QiskitTestCase):
     def test_schedule_circuit_when_backend_tells_dt(self):
         """dt is known to transpiler by backend"""
         qc = QuantumCircuit(2)
-        qc.delay(0.1, 0, unit="ms")  # 450000[dt]
+        qc.delay(0.1, 0, unit="ms")  # 450450[dt]
         qc.delay(100, 0, unit="ns")  # 450[dt]
         qc.h(0)  # 195[dt]
         qc.h(1)  # 210[dt]
@@ -124,7 +124,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertAlmostEqual(sc.data[4].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[4].operation.unit, "s")
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(sc, self.backend_without_dt)
 
     def test_cannot_schedule_circuit_with_mixed_SI_and_dt_when_no_one_tells_dt(self):
@@ -382,7 +382,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(100, 0, "ns")
         circ = transpile(qc, self.simulator_backend)
         self.assertEqual(circ.duration, None)  # not scheduled
-        qobj = assemble(circ, self.simulator_backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[0].name, "delay")
         self.assertEqual(qobj.experiments[0].instructions[0].params[0], 1e-7)
 
@@ -394,7 +395,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.measure(0, 0)
         circ = transpile(qc, self.simulator_backend)
         self.assertEqual(circ.duration, None)  # not scheduled
-        qobj = assemble(circ, self.simulator_backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, self.simulator_backend)
         self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
         self.assertAlmostEqual(qobj.experiments[0].instructions[1].params[0], 1e-7)
 
@@ -420,7 +422,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.measure(0, 0)
         circ = transpile(qc, self.backend_with_dt)
         circ = circ.assign_parameters({idle_dur: 0.1})
-        qobj = assemble(circ, self.backend_with_dt)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, self.backend_with_dt)
         self.assertEqual(qobj.experiments[0].instructions[1].name, "delay")
         self.assertEqual(qobj.experiments[0].instructions[1].params[0], 450)
 
@@ -445,7 +448,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(idle_dur, 0, "us")
         qc.measure(0, 0)
         qc = transpile(qc, self.backend_with_dt)
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(qc, self.backend_with_dt)
 
     @data("asap", "alap")
