@@ -16,7 +16,6 @@ import pickle
 import unittest
 import contextlib
 import logging
-import math
 import numpy as np
 import scipy
 import scipy.stats
