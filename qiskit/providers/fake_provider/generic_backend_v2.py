@@ -368,7 +368,7 @@ class GenericBackendV2(BackendV2):
                     f"in the standard qiskit circuit library."
                 )
             gate = self._supported_gates[name]
-            
+
             if self.num_qubits < gate.num_qubits:
                 raise QiskitError(
                     f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
