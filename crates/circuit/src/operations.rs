@@ -277,7 +277,7 @@ static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     2, 2, 1, 0, 1, 1, 1, 1, 1, 1, // 10-19
     1, 1, 1, 2, 2, 2, 1, 1, 1, 34, // 20-29
     34, 34, 34, 2, 2, 2, 2, 2, 3, 2, // 30-39
-    2, 2, 34, 34, 34, 34, 34, 34, 34, 34, // 40-49
+    2, 2, 34, 34, 34, 2, 34, 34, 34, 34, // 40-49
     34, 34, 34, // 50-52
 ];
 
@@ -287,7 +287,7 @@ static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     0, 0, 0, 1, 0, 0, 1, 3, 0, 0, // 10-19
     0, 0, 0, 0, 2, 2, 1, 2, 3, 34, // 20-29
     34, 34, 34, 0, 1, 0, 0, 0, 0, 3, // 30-39
-    1, 3, 34, 34, 34, 34, 34, 34, 34, 34, // 40-49
+    1, 3, 34, 34, 34, 0, 34, 34, 34, 34, // 40-49
     34, 34, 34, // 50-52
 ];
 
@@ -560,7 +560,10 @@ impl Operation for StandardGate {
             Self::CSwapGate => todo!(),
             Self::CUGate | Self::CU1Gate | Self::CU3Gate => todo!(),
             Self::C3XGate | Self::C3SXGate | Self::C4XGate => todo!(),
-            Self::DCXGate => todo!(),
+            Self::DCXGate => match params {
+                [] => Some(aview2(&gate_matrix::DCX_GATE).to_owned()),
+                _ => None,
+            },
             Self::CCZGate => todo!(),
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
@@ -1002,7 +1005,21 @@ impl Operation for StandardGate {
             Self::CU1Gate => todo!(),
             Self::CU3Gate => todo!(),
             Self::C3XGate | Self::C3SXGate | Self::C4XGate => todo!(),
-            Self::DCXGate => todo!(),
+            Self::DCXGate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        2,
+                        [
+                            (Self::CXGate, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (Self::CXGate, smallvec![], smallvec![Qubit(1), Qubit(0)]),
+                        ],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
+
             Self::CCZGate => todo!(),
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
