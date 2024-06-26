@@ -1018,9 +1018,7 @@ const FLOAT_ZERO: Param = Param::Float(0.0);
 fn clone_param(param: &Param, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta),
-        Param::ParameterExpression(theta) => {
-            Param::ParameterExpression(theta.clone_ref(py))
-        }
+        Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone_ref(py)),
         Param::Obj(_) => unreachable!(),
     }
 }
