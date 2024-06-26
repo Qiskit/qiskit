@@ -3186,7 +3186,8 @@ class QuantumCircuit:
         deprecation_description="Setting QuantumCircuit.draw()’s justify argument to a value other than"
         "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
         predicate=lambda justify: (
-            not isinstance(justify, str) or justify.lower() not in ("left", "right", "none")
+            justify is not None and
+            (not isinstance(justify, str) or justify.lower() not in ("left", "right", "none"))
         ),
     )
     def draw(
@@ -3198,7 +3199,7 @@ class QuantumCircuit:
         interactive: bool = False,
         plot_barriers: bool = True,
         reverse_bits: bool | None = None,
-        justify: str | None = "left",
+        justify: str | None = None,
         vertical_compression: str | None = "medium",
         idle_wires: bool | None = None,
         with_layout: bool = True,
@@ -3335,12 +3336,12 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
-        from qiskit.visualization.circuit._utils import _is_valid_justify_arg
+        from qiskit.visualization.circuit._utils import _get_valid_justify_arg
 
         # We set this here to avoid the same deprecation warning
         # from ``circuit_drawer()`` triggering again. This code
         # should be removed once the deprecation is complete.
-        justify = justify if _is_valid_justify_arg(justify) else "left"
+        justify = _get_valid_justify_arg(justify)
 
         return circuit_drawer(
             self,

@@ -245,7 +245,7 @@ class TestCircuitDrawer(QiskitTestCase):
         for both of the public interfaces."""
         circuit = QuantumCircuit()
 
-        for bad_justify in ["bad", None]:
+        for bad_justify in ["bad", True, 0]:
 
             with self.assertWarns(DeprecationWarning):
                 visualization.circuit_drawer(circuit, justify=bad_justify)

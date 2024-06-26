@@ -373,12 +373,19 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
-def _is_valid_justify_arg(justify):
+def _get_valid_justify_arg(justify):
     """Return True if the `justify` argument is valid."""
     if isinstance(justify, str):
         justify = justify.lower()
 
-    return justify in ("left", "right", "none")
+    if justify is None:
+        justify = "left"
+
+    if justify not in ("left", "right", "none"):
+        # This assignation should be changed by an error raise, once the deprecation is complete.
+        justify = "left"
+
+    return justify
 
 
 def _get_layered_instructions(
@@ -405,7 +412,7 @@ def _get_layered_instructions(
     Raises:
         VisualizationError: if both reverse_bits and wire_order are entered.
     """
-    justify = justify.lower() if _is_valid_justify_arg(justify) else "left"
+    justify = _get_valid_justify_arg(justify)
 
     if wire_map is not None:
         qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]

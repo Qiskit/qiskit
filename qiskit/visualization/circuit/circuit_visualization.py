@@ -60,7 +60,8 @@ logger = logging.getLogger(__name__)
     deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
     "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
     predicate=lambda justify: (
-        not isinstance(justify, str) or justify.lower() not in ("left", "right", "none")
+        justify is not None and
+        (not isinstance(justify, str) or justify.lower() not in ("left", "right", "none"))
     ),
 )
 def circuit_drawer(
@@ -72,7 +73,7 @@ def circuit_drawer(
     interactive: bool = False,
     plot_barriers: bool = True,
     reverse_bits: bool | None = None,
-    justify: str | None = "left",
+    justify: str | None = None,
     vertical_compression: str | None = "medium",
     idle_wires: bool | None = None,
     with_layout: bool = True,
@@ -374,7 +375,7 @@ def _text_circuit_drawer(
     filename=None,
     reverse_bits=False,
     plot_barriers=True,
-    justify="left",
+    justify=None,
     vertical_compression="high",
     idle_wires=True,
     with_layout=True,
@@ -466,7 +467,7 @@ def _latex_circuit_drawer(
     filename=None,
     plot_barriers=True,
     reverse_bits=False,
-    justify="left",
+    justify=None,
     idle_wires=True,
     with_layout=True,
     initial_state=False,
@@ -585,7 +586,7 @@ def _generate_latex_source(
     style=None,
     reverse_bits=False,
     plot_barriers=True,
-    justify="left",
+    justify=None,
     idle_wires=True,
     with_layout=True,
     initial_state=False,
@@ -658,7 +659,7 @@ def _matplotlib_circuit_drawer(
     style=None,
     plot_barriers=True,
     reverse_bits=False,
-    justify="left",
+    justify=None,
     idle_wires=True,
     with_layout=True,
     fold=None,
