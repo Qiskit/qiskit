@@ -127,17 +127,9 @@ impl IntoPy<PyObject> for NormalOperation {
 
 impl ToPyObject for NormalOperation {
     fn to_object(&self, py: Python<'_>) -> PyObject {
-        operation_type_and_data_to_py(
-            py,
-            &self.operation,
-            &self.params,
-            &None,
-            &None,
-            &None,
-            &None,
-        )
-        .ok()
-        .to_object(py)
+        operation_type_and_data_to_py(py, &self.operation, &self.params, None, None, None, None)
+            .ok()
+            .to_object(py)
     }
 }
 

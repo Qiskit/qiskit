@@ -87,7 +87,7 @@ class ParameterVector:
         return f"{self.name}, {[str(item) for item in self.params]}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, length={len(self)})"
+        return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
 
     def resize(self, length):
         """Resize the parameter vector.  If necessary, new elements are generated.

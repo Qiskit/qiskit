@@ -19,7 +19,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
@@ -323,9 +323,24 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u3_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate definition."""
+
+            def __init__(self, lam):
+                super().__init__("u1", 1, [lam])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.p(*self.params, 0)
+                self.definition = qc
+
+            def _matrix(self):
+                return U1Gate(*self.params).to_matrix()
+
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        u1 = U1Gate(0.1)
+        u1 = CustomGate(0.1)
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3
@@ -337,9 +352,24 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate."""
+
+            def __init__(self, lam):
+                super().__init__("u1", 1, [lam])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.p(*self.params, 0)
+                self.definition = qc
+
+            def _matrix(self):
+                return U1Gate(*self.params).to_matrix()
+
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        u1 = U1Gate(0.1)
+        u1 = CustomGate(0.1)
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3

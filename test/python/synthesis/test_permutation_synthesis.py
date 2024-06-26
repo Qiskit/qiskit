@@ -27,7 +27,6 @@ from qiskit.synthesis.permutation import (
 )
 from qiskit.synthesis.permutation.permutation_utils import (
     _inverse_pattern,
-    _get_ordered_swap,
     _validate_permutation,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -46,19 +45,6 @@ class TestPermutationSynthesis(QiskitTestCase):
             inverse = _inverse_pattern(pattern)
             for ii, jj in enumerate(pattern):
                 self.assertTrue(inverse[jj] == ii)
-
-    @data(4, 5, 10, 15, 20)
-    def test_get_ordered_swap(self, width):
-        """Test _get_ordered_swap function produces correct swap list."""
-        np.random.seed(1)
-        for _ in range(5):
-            pattern = np.random.permutation(width)
-            swap_list = _get_ordered_swap(pattern)
-            output = list(range(width))
-            for i, j in swap_list:
-                output[i], output[j] = output[j], output[i]
-            self.assertTrue(np.array_equal(pattern, output))
-            self.assertLess(len(swap_list), width)
 
     @data(10, 20)
     def test_invalid_permutations(self, width):

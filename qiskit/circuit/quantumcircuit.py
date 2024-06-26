@@ -1161,9 +1161,9 @@ class QuantumCircuit:
     def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit()
-        out.add_bits(data.qubits)
-        out.add_bits(data.clbits)
         out._data = data
+        out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
+        out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
         return out
 
     @staticmethod
@@ -3674,6 +3674,8 @@ class QuantumCircuit:
         cpy._data = CircuitData(
             self._data.qubits, self._data.clbits, global_phase=self._data.global_phase
         )
+        # Invalidate parameters caching.
+        cpy._parameters = None
 
         cpy._calibrations = _copy.deepcopy(self._calibrations)
         cpy._metadata = _copy.deepcopy(self._metadata)
