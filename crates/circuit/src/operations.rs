@@ -526,7 +526,7 @@ impl Operation for StandardGate {
             Self::DCXGate => match params {
                 [] => Some(aview2(&gate_matrix::DCX_GATE).to_owned()),
                 _ => None,
-            }
+            },
             Self::CCZGate => todo!(),
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),

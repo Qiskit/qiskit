@@ -331,5 +331,3 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
         [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
     ]
 }
-
-
