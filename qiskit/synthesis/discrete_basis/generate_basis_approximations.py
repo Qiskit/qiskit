@@ -156,7 +156,7 @@ def generate_basic_approximations(
         data = {}
         for sequence in sequences:
             gatestring = sequence.name
-            data[gatestring] = sequence.product
+            data[gatestring] = (sequence.product, sequence.global_phase)
 
         np.save(filename, data)
 
