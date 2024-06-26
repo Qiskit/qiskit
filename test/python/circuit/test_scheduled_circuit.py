@@ -53,25 +53,29 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(0.1, 0, unit="ms")  # 450000[dt]
         qc.delay(100, 0, unit="ns")  # 450[dt]
-        qc.h(0)  # 160[dt]
-        qc.h(1)  # 160[dt]
-        sc = transpile(qc, self.backend_with_dt, scheduling_method="alap", layout_method="trivial")
-        self.assertEqual(sc.duration, 450546)
+        qc.h(0)  # 195[dt]
+        qc.h(1)  # 210[dt]
+
+        backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
+
+        sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
+        self.assertEqual(sc.duration, 451096)
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
-        self.assertEqual(sc.data[0].operation.duration, 450450)
+        self.assertEqual(sc.data[0].operation.duration, 450900)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
         self.assertEqual(sc.data[1].operation.duration, 0)
         self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
-        self.assertEqual(sc.data[4].operation.duration, 450450)
+        self.assertEqual(sc.data[4].operation.duration, 450928)
         self.assertEqual(sc.data[4].operation.unit, "dt")
-        qobj = assemble(sc, self.backend_with_dt)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(sc, self.backend_with_dt)
         self.assertEqual(qobj.experiments[0].instructions[0].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 450450)
+        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 450900)
         self.assertEqual(qobj.experiments[0].instructions[4].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[4].params[0], 450450)
+        self.assertEqual(qobj.experiments[0].instructions[4].params[0], 450928)
 
     def test_schedule_circuit_when_transpile_option_tells_dt(self):
         """dt is known to transpiler by transpile option"""
