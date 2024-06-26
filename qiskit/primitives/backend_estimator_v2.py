@@ -87,7 +87,18 @@ class BackendEstimatorV2(BaseEstimatorV2):
     precludes doing any provider- or backend-specific optimizations.
 
     This class does not perform any measurement or gate mitigation, and, presently, is only
-    compatible with Pauli-based observables.
+    compatible with Pauli-based observables. More formally, given an observable of the type
+    :math:`O=\sum_{i=1}^Na_iP_i`, where :math:`a_i` is a complex number and :math:`P_i` is a
+    Pauli operator, the estimator calculates the expectation :math:`E(P_i)` of each :math:`P_i`
+    and finally calculates the expectation value of :math:`O` as
+    :math:`E(O)==\sum_{i=1}^Na_iE(P_i)`. The reported ``std`` is calculated as
+
+    .. math::
+
+        \frac{\sum_{i=1}^{n}a_i\sqrt{\textrm{Var}\big(P_i\big)}}{\sqrt{N}}\:,
+
+    where :math:`\textrm{Var}(P_i)` is the variance of :math:`P_i`, :math:`N=O(\epsilon^{-2})` is
+    the number of shots, and :math:`\epsilon` is the target precision.
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
@@ -255,8 +266,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 expval, variance = expval_map[param_index, pauli]
                 evs[index] += expval * coeff
                 variances[index] += (variance * coeff**2)**0.5
-        stds = np.sqrt(variances**2 / shots)
-        print(shots)
+        stds = variances / np.sqrt(shots)
         data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
         return PubResult(data_bin, metadata={"target_precision": pub.precision})
 
