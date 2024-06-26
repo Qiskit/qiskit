@@ -71,7 +71,7 @@ impl Key {
         hasher.finish()
     }
 
-    fn __repr__(slf: PyRef<'_, Self>) -> String {
+    fn __repr__(slf: PyRef<Self>) -> String {
         slf.to_string()
     }
 
