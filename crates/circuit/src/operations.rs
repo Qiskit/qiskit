@@ -967,7 +967,7 @@ impl Operation for StandardGate {
                     }
                     Param::Obj(_) => unreachable!(),
                 };
-                let (phi_expr1, phi_expr2) = match &params[0] {
+                let (phi_expr1, phi_expr2) = match &params[1] {
                     Param::Float(phi) => (Param::Float(*phi - 1.0), Param::Float(-*phi + 1.0)),
                     Param::ParameterExpression(phi) => {
                         let phiexpr1 = phi
