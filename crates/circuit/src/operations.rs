@@ -208,10 +208,10 @@ pub enum StandardGate {
     U1Gate = 26,
     U2Gate = 27,
     U3Gate = 28,
-    CRXGate = 29, //TODO
-    CRYGate = 30, //TODO
-    CRZGate = 31, //TODO
-    RGate = 32,   //TODO
+    CRXGate = 29,
+    CRYGate = 30,
+    CRZGate = 31,
+    RGate = 32,
     CHGate = 33,
     CPhaseGate = 34,
     CSGate = 35,
@@ -224,7 +224,7 @@ pub enum StandardGate {
     C3XGate = 42,
     C3SXGate = 43,
     C4XGate = 44,
-    DCXGate = 45, //TODO
+    DCXGate = 45,
     CCZGate = 46,
     RCCXGate = 47, //TODO
     RC3XGate = 48, //TODO
@@ -1333,7 +1333,7 @@ const FLOAT_ZERO: Param = Param::Float(0.0);
 
 fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     match param {
-        Param::Float(theta) => Param::Float(*theta * mult),
+        Param::Float(theta) => Param::Float(theta * mult),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
             theta
                 .clone_ref(py)

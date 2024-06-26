@@ -5208,7 +5208,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         expected = "\n".join(
             [
                 "                                                           ",
-                "qr_0: |0>─o─────────o─────────o─────────o─────────■────────",
+                "qr_0: |0>─■─────────o─────────o─────────o─────────■────────",
                 "          │U1(0.1)  │         │         │         │        ",
                 "qr_1: |0>─■─────────o─────────■─────────■─────────o────────",
                 "                    │U1(0.2)  │U1(0.3)  │         │        ",
@@ -5232,7 +5232,6 @@ class TestTextOpenControlledGate(QiskitTestCase):
         circuit.append(control3, [0, 1, 2, 3])
         control3 = U1Gate(0.5).control(4, ctrl_state="0101")
         circuit.append(control3, [0, 1, 4, 2, 3])
-
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_open_controlled_swap(self):
