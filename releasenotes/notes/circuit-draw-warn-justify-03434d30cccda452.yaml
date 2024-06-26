@@ -2,7 +2,7 @@
 deprecations_visualization:
   - |
     The ``justify`` argument of :func:`circuit_drawer` or :meth:`QuantumCircuit.draw`, will
-    no longer support invalid values (previously changing it to the default), and in a future
+    no longer support invalid values (previously changing them to the default), and in a future
     release they will error. Valid justify values are ``"left"``, ``"right"`` or ``"none"``.
 fixes:
   - |

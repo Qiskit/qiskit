@@ -54,16 +54,6 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@deprecate_arg(
-    "justify",
-    since="1.2.0",
-    deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
-    "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
-    predicate=lambda justify: (
-        justify is not None and
-        (not isinstance(justify, str) or justify.lower() not in ("left", "right", "none"))
-    ),
-)
 def circuit_drawer(
     circuit: QuantumCircuit,
     scale: float | None = None,

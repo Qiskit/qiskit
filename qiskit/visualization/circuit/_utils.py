@@ -14,6 +14,7 @@
 
 import re
 from collections import OrderedDict
+from warnings import warn
 
 import numpy as np
 
@@ -374,7 +375,7 @@ def generate_latex_label(label):
 
 
 def _get_valid_justify_arg(justify):
-    """Return True if the `justify` argument is valid."""
+    """Returns a valid `justify` argument, warning if necessary."""
     if isinstance(justify, str):
         justify = justify.lower()
 
@@ -382,7 +383,15 @@ def _get_valid_justify_arg(justify):
         justify = "left"
 
     if justify not in ("left", "right", "none"):
-        # This assignation should be changed by an error raise, once the deprecation is complete.
+        # This code should be changed to an error raise, once the deprecation is complete.
+        warn(
+            "Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument to a value other "
+            f"than 'left', 'right', 'none' or None (='left'): {justify}. Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of qiskit 1.2.0. Starting no "
+            " earlier than 3 months after the release date, invalid arguments will error.",
+            DeprecationWarning,
+            2,
+        )
         justify = "left"
 
     return justify
@@ -402,9 +411,10 @@ def _get_layered_instructions(
         reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-            the circuit should be justified.
+            the circuit should be justified. If an invalid value is provided,
+            default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
-        wire_order (list): A list of ints that modifies the order of the bits
+        wire_order (list): A list of ints that modifies the order of the bits.
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
