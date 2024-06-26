@@ -297,8 +297,10 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_v1(self):
-        """Test BackendEstimator respects job size limit"""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimator respects job size limit
+        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
@@ -314,8 +316,10 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertEqual(run_mock.call_count, 10)
 
     def test_no_max_circuits(self):
-        """Test BackendEstimator works with BackendV1 and no max_experiments set."""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimator works with BackendV1 and no max_experiments set.
+        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         del config.max_experiments
         backend._configuration = config
@@ -352,7 +356,9 @@ class TestBackendEstimator(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
-            estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
+            estimator = BackendEstimator(
+                backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
+            )
             _ = estimator.run(qc, op).result()
             expected = [
                 "bound_pass_manager",
@@ -372,7 +378,9 @@ class TestBackendEstimator(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
+                estimator = BackendEstimator(
+                    backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
+                )
                 _ = estimator.run([qc, qc], [op, op]).result()
                 expected = [
                     "bound_pass_manager",
