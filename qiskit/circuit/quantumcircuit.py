@@ -39,7 +39,6 @@ import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate, PyGate, PyInstruction, PyOperation
 from qiskit.exceptions import QiskitError
-from qiskit.utils import deprecate_arg
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate

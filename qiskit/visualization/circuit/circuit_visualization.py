@@ -36,7 +36,6 @@ from warnings import warn
 
 from qiskit import user_config
 from qiskit.circuit import ControlFlowOp, Measure
-from qiskit.utils import deprecate_arg
 from qiskit.utils import optionals as _optionals
 
 from ..exceptions import VisualizationError

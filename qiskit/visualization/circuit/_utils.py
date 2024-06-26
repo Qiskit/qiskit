@@ -398,7 +398,7 @@ def _get_valid_justify_arg(justify):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify="left", idle_wires=True, wire_order=None, wire_map=None
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
