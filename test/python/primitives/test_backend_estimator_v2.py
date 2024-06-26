@@ -388,6 +388,24 @@ class TestBackendEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result[0].data.evs, [1.901141473854881], rtol=self._rtol)
         np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
 
+    @combine(backend=BACKENDS, abelian_grouping=[True, False])
+    def test_error(self, backend, abelian_grouping):
+        "Test for error"
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator.options.abelian_grouping = abelian_grouping
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        psi1 = pm.run(self.psi[0])
+        hamiltonian1 = self.hamiltonian[0].apply_layout(psi1.layout)
+        theta1 = self.theta[0]
+        job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=self._precision)
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.stds, [self._precision], rtol=self._rtol)
+        # The result of the second run is the same
+        job = estimator.run([(psi1, hamiltonian1, [theta1]), (psi1, hamiltonian1, [theta1])], precision=self._precision)
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.stds, [self._precision], rtol=self._rtol)
+        np.testing.assert_allclose(result[1].data.stds, [self._precision], rtol=self._rtol)
+        
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     @combine(abelian_grouping=[True, False])
     def test_aer(self, abelian_grouping):
