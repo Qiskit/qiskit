@@ -389,7 +389,11 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 1 qubit backend"""
         # getting the mock backend from FakeProvider
 
+<<<<<<< HEAD
         backend = FakeArmonk()
+=======
+        backend = GenericBackendV2(num_qubits=1, basis_gates=["id", "rz", "sx", "x"])
+>>>>>>> e36027c01 (GenericBackendV2 should fail when the backend cannot allocate the basis gate because its size (#12653))
 
         fname = "1_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
