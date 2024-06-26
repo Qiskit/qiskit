@@ -693,7 +693,7 @@ class C3XGate(SingletonControlledGate):
     ):
         """Create a new 3-qubit controlled X gate."""
         super().__init__(
-            "c3x",
+            "mcx",
             4,
             [],
             num_ctrl_qubits=3,
@@ -959,7 +959,7 @@ class C4XGate(SingletonControlledGate):
         if unit is None:
             unit = "dt"
         super().__init__(
-            "c4x",
+            "mcx",
             5,
             [],
             num_ctrl_qubits=4,
