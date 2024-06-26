@@ -258,9 +258,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         last_gate = self.qc.data[-1]
 
         # Conditional instructions are not supported
-        assume(isinstance(last_gate[0], Gate))
+        assume(isinstance(last_gate.operation, Gate))
 
-        last_gate[0].c_if(creg, val)
+        last_gate.operation.c_if(creg, val)
 
     # Properties to check
 
