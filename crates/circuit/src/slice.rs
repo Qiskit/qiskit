@@ -79,7 +79,9 @@ impl<'py> PySequenceIndex<'py> {
                     })
                 } else {
                     Ok(SequenceIndex::NegRange {
-                        start: indices.start as usize,
+                        // `indices.start` can be negative if the collection length is 0.
+                        start: (indices.start >= 0).then_some(indices.start as usize),
+                        // `indices.stop` can be negative if the 0 index should be output.
                         stop: (indices.stop >= 0).then_some(indices.stop as usize),
                         step: abs(indices.step)?,
                     })
@@ -122,7 +124,7 @@ pub enum SequenceIndex {
         step: usize,
     },
     NegRange {
-        start: usize,
+        start: Option<usize>,
         stop: Option<usize>,
         step: usize,
     },
@@ -137,10 +139,11 @@ impl SequenceIndex {
                 let gap = stop.saturating_sub(*start);
                 gap / *step + (gap % *step != 0) as usize
             }
-            Self::NegRange { start, stop, step } => {
+            Self::NegRange { start, stop, step } => 'arm: {
+                let Some(start) = start else { break 'arm 0 };
                 let gap = stop
                     .map(|stop| start.saturating_sub(stop))
-                    .unwrap_or(start + 1);
+                    .unwrap_or(*start + 1);
                 gap / step + (gap % step != 0) as usize
             }
         }
@@ -162,7 +165,9 @@ impl SequenceIndex {
                 indices: 0..self.len(),
             },
             Self::NegRange { start, step, .. } => SequenceIndexIter::NegRange {
-                highest: *start,
+                // We can unwrap `highest` to an arbitrary value if `None`, because in that case the
+                // `len` is 0 and the iterator will not yield any objects.
+                highest: start.unwrap_or_default(),
                 step: *step,
                 indices: 0..self.len(),
             },
@@ -306,12 +311,14 @@ mod test {
             (pos(0, 5, 2), vec![0, 2, 4]),
             (pos(2, 10, 1), vec![2, 3, 4, 5, 6, 7, 8, 9]),
             (pos(1, 15, 3), vec![1, 4, 7, 10, 13]),
-            (neg(3, None, 1), vec![3, 2, 1, 0]),
-            (neg(3, None, 2), vec![3, 1]),
-            (neg(2, Some(0), 1), vec![2, 1]),
-            (neg(2, Some(0), 2), vec![2]),
-            (neg(2, Some(0), 3), vec![2]),
-            (neg(10, Some(2), 3), vec![10, 7, 4]),
+            (neg(Some(3), None, 1), vec![3, 2, 1, 0]),
+            (neg(Some(3), None, 2), vec![3, 1]),
+            (neg(Some(2), Some(0), 1), vec![2, 1]),
+            (neg(Some(2), Some(0), 2), vec![2]),
+            (neg(Some(2), Some(0), 3), vec![2]),
+            (neg(Some(10), Some(2), 3), vec![10, 7, 4]),
+            (neg(None, None, 1), vec![]),
+            (neg(None, None, 3), vec![]),
         ]
         .into_iter()
     }
