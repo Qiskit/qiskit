@@ -72,6 +72,8 @@ pub static SINGLETON_GATE: ImportOnceCell =
 pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
 
+pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
+
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table
 /// when a gate is added directly via the StandardGate path and there isn't a Python object
@@ -79,6 +81,7 @@ pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
 ///
 /// NOTE: the order here is significant, the StandardGate variant's number must match
 /// index of it's entry in this table. This is all done statically for performance
+// TODO: replace placeholders with actual implementation
 static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // ZGate = 0
     ["qiskit.circuit.library.standard_gates.z", "ZGate"],
@@ -131,16 +134,70 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     ["qiskit.circuit.library.standard_gates.sx", "SXdgGate"],
     // iSWAPGate = 23
     ["qiskit.circuit.library.standard_gates.iswap", "iSwapGate"],
-    //XXMinusYYGate = 24
+    // XXMinusYYGate = 24
     [
         "qiskit.circuit.library.standard_gates.xx_minus_yy",
         "XXMinusYYGate",
     ],
-    //XXPlusYYGate = 25
+    // XXPlusYYGate = 25
     [
         "qiskit.circuit.library.standard_gates.xx_plus_yy",
         "XXPlusYYGate",
     ],
+    // U1Gate = 26
+    ["qiskit.circuit.library.standard_gates.u1", "U1Gate"],
+    // U2Gate = 27
+    ["qiskit.circuit.library.standard_gates.u2", "U2Gate"],
+    // U3Gate = 28
+    ["qiskit.circuit.library.standard_gates.u3", "U3Gate"],
+    // CRXGate = 29
+    ["placeholder", "placeholder"],
+    // CRYGate = 30
+    ["placeholder", "placeholder"],
+    // CRZGate = 31
+    ["placeholder", "placeholder"],
+    // RGate 32
+    ["placeholder", "placeholder"],
+    // CHGate = 33
+    ["qiskit.circuit.library.standard_gates.h", "CHGate"],
+    // CPhaseGate = 34
+    ["qiskit.circuit.library.standard_gates.p", "CPhaseGate"],
+    // CSGate = 35
+    ["qiskit.circuit.library.standard_gates.s", "CSGate"],
+    // CSdgGate = 36
+    ["qiskit.circuit.library.standard_gates.s", "CSdgGate"],
+    // CSXGate = 37
+    ["qiskit.circuit.library.standard_gates.sx", "CSXGate"],
+    // CSwapGate = 38
+    ["qiskit.circuit.library.standard_gates.swap", "CSwapGate"],
+    // CUGate = 39
+    ["qiskit.circuit.library.standard_gates.u", "CUGate"],
+    // CU1Gate = 40
+    ["qiskit.circuit.library.standard_gates.u1", "CU1Gate"],
+    // CU3Gate = 41
+    ["qiskit.circuit.library.standard_gates.u3", "CU3Gate"],
+    // C3XGate = 42
+    ["placeholder", "placeholder"],
+    // C3SXGate = 43
+    ["placeholder", "placeholder"],
+    // C4XGate = 44
+    ["placeholder", "placeholder"],
+    // DCXGate = 45
+    ["placeholder", "placeholder"],
+    // CCZGate = 46
+    ["placeholder", "placeholder"],
+    // RCCXGate = 47
+    ["placeholder", "placeholder"],
+    // RC3XGate = 48
+    ["placeholder", "placeholder"],
+    // RXXGate = 49
+    ["placeholder", "placeholder"],
+    // RYYGate = 50
+    ["placeholder", "placeholder"],
+    // RZZGate = 51
+    ["placeholder", "placeholder"],
+    // RZXGate = 52
+    ["placeholder", "placeholder"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the

@@ -215,6 +215,15 @@ class QiskitTestCase(BaseQiskitTestCase):
             module=r"seaborn(\..*)?",
         )
 
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message="Treating CircuitInstruction as an iterable is deprecated",
+            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+        )
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
