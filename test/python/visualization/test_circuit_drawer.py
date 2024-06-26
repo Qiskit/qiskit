@@ -14,6 +14,7 @@
 
 import os
 import pathlib
+import re
 import shutil
 import tempfile
 import unittest
@@ -244,14 +245,19 @@ class TestCircuitDrawer(QiskitTestCase):
         """Test that the correct DeprecationWarning is raised when the justify parameter is badly input,
         for both of the public interfaces."""
         circuit = QuantumCircuit()
+        bad_arg = "bad"
+        error_message = re.escape(
+            f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {bad_arg}, to a "
+            "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of qiskit 1.2.0. Starting no "
+            "earlier than 3 months after the release date, invalid arguments will error.",
+        )
 
-        for bad_justify in ["bad", True, 0]:
+        with self.assertWarnsRegex(DeprecationWarning, error_message):
+            visualization.circuit_drawer(circuit, justify=bad_arg)
 
-            with self.assertWarns(DeprecationWarning):
-                visualization.circuit_drawer(circuit, justify=bad_justify)
-
-            with self.assertWarns(DeprecationWarning):
-                circuit.draw(justify=bad_justify)
+        with self.assertWarnsRegex(DeprecationWarning, error_message):
+            circuit.draw(justify=bad_arg)
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc for LaTeX conversion")
     def test_no_explict_cregbundle(self):
