@@ -368,16 +368,13 @@ class GenericBackendV2(BackendV2):
                     f"in the standard qiskit circuit library."
                 )
             gate = self._supported_gates[name]
-<<<<<<< HEAD
-            noise_params = self._get_noise_defaults(name)
-=======
+            
             if self.num_qubits < gate.num_qubits:
                 raise QiskitError(
                     f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
                     f"which is the size of the backend."
                 )
-            noise_params = self._get_noise_defaults(name, gate.num_qubits)
->>>>>>> e36027c01 (GenericBackendV2 should fail when the backend cannot allocate the basis gate because its size (#12653))
+            noise_params = self._get_noise_defaults(name)
             self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
 
         if self._control_flow:
