@@ -18,7 +18,7 @@ from test import QiskitTestCase
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
 SKIP_LIST = {"rx", "ry", "ecr"}
@@ -38,6 +38,21 @@ class TestRustGateEquivalence(QiskitTestCase):
                 if gate.params:
                     gate = gate.base_class(*[pi] * len(gate.params))
                 qc.append(gate, list(range(gate.num_qubits)))
+
+    def test_gate_cross_domain_conversion(self):
+        """Test the rust -> python conversion returns the right class."""
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # Gate not in rust yet or no constructor method
+                continue
+            with self.subTest(name=name):
+                qc = QuantumCircuit(standard_gate.num_qubits)
+                qc._append(
+                    CircuitInstruction(standard_gate, qubits=qc.qubits, params=gate_class.params)
+                )
+                self.assertEqual(qc.data[0].operation.base_class, gate_class.base_class)
+                self.assertEqual(qc.data[0].operation, gate_class)
 
     def test_definitions(self):
         """Test definitions are the same in rust space."""
