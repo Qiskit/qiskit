@@ -58,8 +58,8 @@ def raise_if_parameter_table_invalid(circuit):
     if circuit_parameters != table_parameters:
         raise CircuitError(
             "Circuit/ParameterTable Parameter mismatch. "
-            "Circuit parameters: {}. "
-            "Table parameters: {}.".format(circuit_parameters, table_parameters)
+            f"Circuit parameters: {circuit_parameters}. "
+            f"Table parameters: {table_parameters}."
         )
 
     # Assert parameter locations in table are present in circuit.
@@ -75,16 +75,15 @@ def raise_if_parameter_table_invalid(circuit):
             if not isinstance(instr.params[param_index], ParameterExpression):
                 raise CircuitError(
                     "ParameterTable instruction does not have a "
-                    "ParameterExpression at param_index {}: {}."
-                    "".format(param_index, instr)
+                    f"ParameterExpression at param_index {param_index}: {instr}."
                 )
 
             if parameter not in instr.params[param_index].parameters:
                 raise CircuitError(
                     "ParameterTable instruction parameters does "
                     "not match ParameterTable key. Instruction "
-                    "parameters: {} ParameterTable key: {}."
-                    "".format(instr.params[param_index].parameters, parameter)
+                    f"parameters: {instr.params[param_index].parameters}"
+                    f" ParameterTable key: {parameter}."
                 )
 
     # Assert circuit has no other parameter locations other than those in table.
@@ -99,8 +98,8 @@ def raise_if_parameter_table_invalid(circuit):
                     ):
                         raise CircuitError(
                             "Found parameterized instruction not "
-                            "present in table. Instruction: {} "
-                            "param_index: {}".format(instruction.operation, param_index)
+                            f"present in table. Instruction: {instruction.operation} "
+                            f"param_index: {param_index}"
                         )
 
 
@@ -203,6 +202,29 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(z, qc.parameters[5])
         for i, vi in enumerate(v):
             self.assertEqual(vi, qc.parameters[i])
+
+    def test_parameters_property_independent_after_copy(self):
+        """Test that any `parameters` property caching is invalidated after a copy operation."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+
+        qc1 = QuantumCircuit(1)
+        qc1.rz(a, 0)
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc2 = qc1.copy_empty_like()
+        self.assertEqual(set(qc2.parameters), set())
+
+        qc3 = qc1.copy()
+        self.assertEqual(set(qc3.parameters), {a})
+        qc3.rz(b, 0)
+        self.assertEqual(set(qc3.parameters), {a, b})
+        self.assertEqual(set(qc1.parameters), {a})
+
+        qc1.rz(c, 0)
+        self.assertEqual(set(qc1.parameters), {a, c})
+        self.assertEqual(set(qc3.parameters), {a, b})
 
     def test_get_parameter(self):
         """Test the `get_parameter` method."""
@@ -315,7 +337,7 @@ class TestParameters(QiskitTestCase):
         )
 
     def test_bind_parameters_custom_definition_global_phase(self):
-        """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
+        """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")
         custom = QuantumCircuit(1, global_phase=x).to_gate()
         base = QuantumCircuit(1)
@@ -1376,6 +1398,21 @@ class TestParameters(QiskitTestCase):
             self.assertEqual(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
 
+    def test_parametervector_repr(self):
+        """Test the __repr__ method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(repr(vec), "ParameterVector(name='x', length=2)")
+
+    def test_parametervector_str(self):
+        """Test the __str__ method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(str(vec), "x, ['x[0]', 'x[1]']")
+
+    def test_parametervector_index(self):
+        """Test the index method of the parameter vector."""
+        vec = ParameterVector("x", 2)
+        self.assertEqual(vec.index(vec[1]), 1)
+
     def test_raise_if_sub_unknown_parameters(self):
         """Verify we raise if asked to sub a parameter not in self."""
         x = Parameter("x")
@@ -1486,7 +1523,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_cast_to_float_intermediate_complex_value(self):
         """Verify expression can be cast to a float when it is fully bound, but an intermediate part
         of the expression evaluation involved complex types.  Sympy is generally more permissive
-        than symengine here, and sympy's tends to be the expected behaviour for our users."""
+        than symengine here, and sympy's tends to be the expected behavior for our users."""
         x = Parameter("x")
         bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
         self.assertEqual(float(bound_expr), 1.0)
@@ -2167,7 +2204,7 @@ class TestParameterEquality(QiskitTestCase):
         self.assertEqual(theta, expr)
 
     def test_parameter_symbol_equal_after_ufunc(self):
-        """Verfiy ParameterExpression phi
+        """Verify ParameterExpression phi
         and ParameterExpression cos(phi) have the same symbol map"""
         phi = Parameter("phi")
         cos_phi = numpy.cos(phi)

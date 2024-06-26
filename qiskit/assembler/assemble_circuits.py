@@ -153,9 +153,9 @@ def _assemble_circuit(
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(
                 name="bfunc",
-                mask="0x%X" % mask,
+                mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
                 relation="==",
-                val="0x%X" % val,
+                val="0x%X" % val,  # pylint: disable=consider-using-f-string
                 register=conditional_reg_idx,
             )
             instructions.append(conversion_bfunc)

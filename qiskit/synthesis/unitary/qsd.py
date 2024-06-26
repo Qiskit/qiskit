@@ -270,7 +270,7 @@ def _apply_a2(circ):
     # rolling over diagonals
     ind2 = None  # lint
     for ind1, ind2 in zip(ind2q[0:-1:], ind2q[1::]):
-        # get neigboring 2q gates separated by controls
+        # get neighboring 2q gates separated by controls
         instr1 = ccirc.data[ind1]
         mat1 = Operator(instr1.operation).data
         instr2 = ccirc.data[ind2]

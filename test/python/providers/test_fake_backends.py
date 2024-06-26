@@ -105,7 +105,7 @@ class TestFakeBackends(QiskitTestCase):
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
-            self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.name)
+            self.skipTest(f"Unable to run fake_backend {backend.name} without qiskit-aer")
         job = backend.run(
             transpile(
                 self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
@@ -126,8 +126,7 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
-                "Unable to run fake_backend %s without qiskit-aer"
-                % backend.configuration().backend_name
+                f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
         job = backend.run(
             transpile(
@@ -202,7 +201,7 @@ class TestFakeBackends(QiskitTestCase):
                 self.assertGreater(i, 1e6)
                 self.assertGreater(i, 1e6)
         else:
-            self.skipTest("Backend %s does not have defaults" % backend)
+            self.skipTest(f"Backend {backend} does not have defaults")
 
     def test_delay_circuit(self):
         backend = Fake27QPulseV1()
