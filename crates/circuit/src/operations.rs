@@ -961,22 +961,8 @@ impl Operation for StandardGate {
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
             Self::RGate => Python::with_gil(|py| -> Option<CircuitData> {
                 let theta_expr = clone_param(&params[0], py);
-                let (phi_expr1, phi_expr2) = match &params[1] {
-                    Param::Float(phi) => (Param::Float(*phi - PI2), Param::Float(-*phi + PI2)),
-                    Param::ParameterExpression(phi) => {
-                        let phiexpr1 = phi
-                            .call_method1(py, intern!(py, "__add__"), ((-PI / 2.0),))
-                            .expect("Unexpected Qiskit python bug");
-                        let phiexpr2 = phiexpr1
-                            .call_method1(py, intern!(py, "__rmul__"), (-1.0,))
-                            .expect("Unexpected Qiskit python bug");
-                        (
-                            Param::ParameterExpression(phiexpr1),
-                            Param::ParameterExpression(phiexpr2),
-                        )
-                    }
-                    Param::Obj(_) => unreachable!(),
-                };
+                let phi_expr1 = add_param(&params[1], -PI2, py);
+                let phi_expr2 = multiply_param(&phi_expr1, -1.0, py);
                 let defparams = smallvec![theta_expr, phi_expr1, phi_expr2];
                 Some(
                     CircuitData::from_standard_gates(
@@ -1030,7 +1016,20 @@ fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
             theta
                 .clone_ref(py)
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
-                .expect("Parameter expression for global phase failed"),
+                .expect("Multiplication of Parameter expression by float failed."),
+        ),
+        Param::Obj(_) => unreachable!(),
+    }
+}
+
+fn add_param(param: &Param, summand: f64, py: Python) -> Param {
+    match param {
+        Param::Float(theta) => Param::Float(*theta + summand),
+        Param::ParameterExpression(theta) => Param::ParameterExpression(
+            theta
+                .clone_ref(py)
+                .call_method1(py, intern!(py, "__add__"), (summand,))
+                .expect("Sum of Parameter expression and float failed."),
         ),
         Param::Obj(_) => unreachable!(),
     }
