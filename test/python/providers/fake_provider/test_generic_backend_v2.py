@@ -36,6 +36,16 @@ class TestGenericBackendV2(QiskitTestCase):
         with self.assertRaises(QiskitError):
             GenericBackendV2(num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"])
 
+    def test_cx_1Q(self):
+        """Test failing with a backend with single qubit but with a two-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=1, basis_gates=["cx", "id"])
+
+    def test_ccx_2Q(self):
+        """Test failing with a backend with two qubits but with a three-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=2, basis_gates=["ccx", "id"])
+
     def test_operation_names(self):
         """Test that target basis gates include "delay", "measure" and "reset" even
         if not provided by user."""
