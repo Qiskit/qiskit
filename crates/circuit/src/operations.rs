@@ -960,13 +960,7 @@ impl Operation for StandardGate {
             }),
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
             Self::RGate => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta_expr = match &params[0] {
-                    Param::Float(theta) => Param::Float(*theta),
-                    Param::ParameterExpression(theta) => {
-                        Param::ParameterExpression(theta.clone_ref(py))
-                    }
-                    Param::Obj(_) => unreachable!(),
-                };
+                let theta_expr = clone_param(&params[0], py);
                 let (phi_expr1, phi_expr2) = match &params[1] {
                     Param::Float(phi) => (Param::Float(*phi - PI2), Param::Float(-*phi + PI2)),
                     Param::ParameterExpression(phi) => {
@@ -1018,6 +1012,18 @@ impl Operation for StandardGate {
 }
 
 const FLOAT_ZERO: Param = Param::Float(0.0);
+
+// Return explictly requested copy of `param`, handling
+// each variant separately.
+fn clone_param(param: &Param, py: Python) -> Param {
+    match param {
+        Param::Float(theta) => Param::Float(*theta),
+        Param::ParameterExpression(theta) => {
+            Param::ParameterExpression(theta.clone_ref(py))
+        }
+        Param::Obj(_) => unreachable!(),
+    }
+}
 
 fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     match param {
