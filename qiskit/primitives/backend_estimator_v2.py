@@ -265,7 +265,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             for pauli, coeff in bc_obs[index].items():
                 expval, variance = expval_map[param_index, pauli]
                 evs[index] += expval * coeff
-                variances[index] += (variance * coeff**2)**0.5
+                variances[index] += coeff * variance**0.5
         stds = variances / np.sqrt(shots)
         data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
         return PubResult(data_bin, metadata={"target_precision": pub.precision})
