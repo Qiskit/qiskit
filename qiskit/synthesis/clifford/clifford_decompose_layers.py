@@ -204,7 +204,7 @@ def _create_graph_state(cliff, validate=False):
     """
 
     num_qubits = cliff.num_qubits
-    rank = compute_rank((cliff.stab_x).astype(bool, copy=False))
+    rank = compute_rank(np.asarray(cliff.stab_x, dtype=bool))
     H1_circ = QuantumCircuit(num_qubits, name="H1")
     cliffh = cliff.copy()
 
