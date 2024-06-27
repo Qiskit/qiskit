@@ -1308,7 +1308,11 @@ impl Operation for StandardGate {
                         3,
                         [
                             (Self::HGate, smallvec![], smallvec![Qubit(2)]),
-                            (Self::CCXGate, smallvec![], smallvec![Qubit(0), Qubit(1), Qubit(2)]),
+                            (
+                                Self::CCXGate,
+                                smallvec![],
+                                smallvec![Qubit(0), Qubit(1), Qubit(2)],
+                            ),
                             (Self::HGate, smallvec![], smallvec![Qubit(2)]),
                         ],
                         FLOAT_ZERO,

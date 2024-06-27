@@ -21,7 +21,7 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 use smallvec::{smallvec, SmallVec};
 
 use crate::imports::{
-    get_std_gate_class, populate_std_gate_map, GATE, INSTRUCTION, OPERATION,
+    get_std_gate_class, populate_std_gate_map, CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION,
     SINGLETON_CONTROLLED_GATE, SINGLETON_GATE, WARNINGS_WARN,
 };
 use crate::interner::Index;
@@ -831,20 +831,37 @@ pub(crate) fn convert_py_to_operation_type(
         },
         Err(_) => None,
     };
-    // If the input instruction is a standard gate and a singleton instance
+    // If the input instruction is a standard gate and a singleton instance,
     // we should check for mutable state. A mutable instance should be treated
     // as a custom gate not a standard gate because it has custom properties.
-    //
-    // In the futuer we can revisit this when we've dropped `duration`, `unit`,
+    // Controlled gates with non-default control states are also considered
+    // custom gates even if a standard representation exists for the default
+    // control state.
+
+    // In the future we can revisit this when we've dropped `duration`, `unit`,
     // and `condition` from the api as we should own the label in the
     // `CircuitInstruction`. The other piece here is for controlled gates there
     // is the control state, so for `SingletonControlledGates` we'll still need
     // this check.
     if standard.is_some() {
         let mutable: bool = py_op.getattr(py, intern!(py, "mutable"))?.extract(py)?;
-        if mutable
+        // The default ctrl_states are 1, "1" and None. These are the only cases where controlled
+        // gates can be standard.
+        let is_default_ctrl_state: bool = match py_op.getattr(py, intern!(py, "ctrl_state")) {
+            Ok(c_state) => match c_state.extract::<Option<i32>>(py) {
+                Ok(c_state_int) => match c_state_int {
+                    Some(c_int) => c_int == 1,
+                    None => true,
+                },
+                Err(_) => false,
+            },
+            Err(_) => false,
+        };
+
+        if (mutable
             && (py_op_bound.is_instance(SINGLETON_GATE.get_bound(py))?
-                || py_op_bound.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?)
+                || py_op_bound.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?))
+            || (py_op_bound.is_instance(CONTROLLED_GATE.get_bound(py))? && !is_default_ctrl_state)
         {
             standard = None;
         }

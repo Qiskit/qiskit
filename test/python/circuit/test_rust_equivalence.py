@@ -19,8 +19,9 @@ from test import QiskitTestCase
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import *
+from qiskit.circuit.library.standard_gates import C3XGate, U1Gate, ZGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.quantum_info import Operator
 
 SKIP_LIST = {"rx", "ry", "ecr"}
 CUSTOM_MAPPING = {"x", "rz"}
@@ -160,3 +161,39 @@ class TestRustGateEquivalence(QiskitTestCase):
                 self.assertEqual(
                     len(gate_class.params), standard_gate.num_params, msg=f"{name} not equal"
                 )
+
+    def test_non_default_controls(self):
+        """Test that controlled gates with a non-default ctrl_state
+        are not using the standard rust representation."""
+
+        z_gate = ZGate()
+        u1_gate = U1Gate(0.1)
+
+        z_term = -1
+        u1_term = 0.99500417 + 0.09983342j
+
+        for gate, term in zip([z_gate, u1_gate], [z_term, u1_term]):
+            default_ctrl_gates = [
+                gate.control(1, ctrl_state=1),
+                gate.control(1, ctrl_state="1"),
+                gate.control(1, ctrl_state=None),
+            ]
+            non_default_ctrl_gates = [
+                gate.control(1, ctrl_state=0),
+                gate.control(1, ctrl_state="0"),
+            ]
+            default_ctrl_op, non_default_ctrl_op = np.diag(np.ones(4, dtype=complex)), np.diag(
+                np.ones(4, dtype=complex)
+            )
+            default_ctrl_op[3, 3] = term
+            non_default_ctrl_op[2, 2] = term
+
+            for gate in default_ctrl_gates:
+                circuit = QuantumCircuit(2)
+                circuit.append(gate, [0, 1])
+                np.testing.assert_almost_equal(Operator(circuit).to_matrix(), default_ctrl_op)
+
+            for gate in non_default_ctrl_gates:
+                circuit = QuantumCircuit(2)
+                circuit.append(gate, [0, 1])
+                np.testing.assert_almost_equal(Operator(circuit).to_matrix(), non_default_ctrl_op)
