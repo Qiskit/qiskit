@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 
-from qiskit.assembler import assemble_circuits, assemble_schedules
+from qiskit.assembler import assemble_schedules
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import Parameter, QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
@@ -30,6 +30,7 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QasmQobj, PulseQobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.utils import deprecate_func
+from qiskit.assembler.assemble_circuits import _assemble_circuits
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ def assemble(
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
 
-    NOTE: Backend.options is not used within assemble. The required values
+    NOTE: ``Backend.options`` is not used within assemble. The required values
     (previously given by backend.set_options) should be manually extracted
     from options and supplied directly when calling.
 
@@ -161,26 +162,90 @@ def assemble(
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
-    start_time = time()
-    experiments = experiments if isinstance(experiments, list) else [experiments]
-    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
-    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+    return _assemble(
+        experiments,
         backend,
         qobj_id,
         qobj_header,
         shots,
         memory,
         seed_simulator,
-        init_qubits,
-        rep_delay,
         qubit_lo_freq,
         meas_lo_freq,
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
-        pulse_qobj=pulse_qobj,
+        meas_level,
+        meas_return,
+        meas_map,
+        memory_slot_size,
+        rep_time,
+        rep_delay,
+        parameter_binds,
+        parametric_pulses,
+        init_qubits,
         **run_config,
     )
+
+
+def _assemble(
+    experiments: Union[
+        QuantumCircuit,
+        List[QuantumCircuit],
+        Schedule,
+        List[Schedule],
+        ScheduleBlock,
+        List[ScheduleBlock],
+    ],
+    backend: Optional[Backend] = None,
+    qobj_id: Optional[str] = None,
+    qobj_header: Optional[Union[QobjHeader, Dict]] = None,
+    shots: Optional[int] = None,
+    memory: Optional[bool] = False,
+    seed_simulator: Optional[int] = None,
+    qubit_lo_freq: Optional[List[float]] = None,
+    meas_lo_freq: Optional[List[float]] = None,
+    qubit_lo_range: Optional[List[float]] = None,
+    meas_lo_range: Optional[List[float]] = None,
+    schedule_los: Optional[
+        Union[
+            List[Union[Dict[PulseChannel, float], LoConfig]],
+            Union[Dict[PulseChannel, float], LoConfig],
+        ]
+    ] = None,
+    meas_level: Union[int, MeasLevel] = MeasLevel.CLASSIFIED,
+    meas_return: Union[str, MeasReturnType] = MeasReturnType.AVERAGE,
+    meas_map: Optional[List[List[Qubit]]] = None,
+    memory_slot_size: int = 100,
+    rep_time: Optional[int] = None,
+    rep_delay: Optional[float] = None,
+    parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
+    parametric_pulses: Optional[List[str]] = None,
+    init_qubits: bool = True,
+    **run_config: Dict,
+) -> Union[QasmQobj, PulseQobj]:
+    start_time = time()
+    experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+            backend,
+            qobj_id,
+            qobj_header,
+            shots,
+            memory,
+            seed_simulator,
+            init_qubits,
+            rep_delay,
+            qubit_lo_freq,
+            meas_lo_freq,
+            qubit_lo_range,
+            meas_lo_range,
+            schedule_los,
+            pulse_qobj=pulse_qobj,
+            **run_config,
+        )
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -199,7 +264,7 @@ def assemble(
         )
         end_time = time()
         _log_assembly_time(start_time, end_time)
-        return assemble_circuits(
+        return _assemble_circuits(
             circuits=bound_experiments,
             qobj_id=qobj_id,
             qobj_header=qobj_header,
