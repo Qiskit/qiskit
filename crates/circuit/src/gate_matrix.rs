@@ -25,6 +25,19 @@ pub static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] =
     [[c64(1., 0.), c64(0., 0.)], [c64(0., 0.), c64(1., 0.)]];
 
 #[inline]
+pub fn r_gate(theta: f64, phi: f64) -> [[Complex64; 2]; 2] {
+    let half_theta = theta / 2.;
+    let cost = c64(half_theta.cos(), 0.);
+    let sint = half_theta.sin();
+    let cosphi = phi.cos();
+    let sinphi = phi.sin();
+    [
+        [cost, c64(-sint * sinphi, -sint * cosphi)],
+        [c64(sint * sinphi, -sint * cosphi), cost],
+    ]
+}
+
+#[inline]
 pub fn rx_gate(theta: f64) -> [[Complex64; 2]; 2] {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
@@ -226,6 +239,13 @@ pub static TDG_GATE: [[Complex64; 2]; 2] = [
     [c64(0., 0.), c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2)],
 ];
 
+pub static DCX_GATE: [[Complex64; 4]; 4] = [
+    [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
+    [c64(0., 0.), c64(1., 0.), c64(0., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
+];
+
 #[inline]
 pub fn global_phase_gate(theta: f64) -> [[Complex64; 1]; 1] {
     [[c64(0., theta).exp()]]
@@ -322,16 +342,5 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
             c64(0., 0.),
         ],
         [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
-    ]
-}
-
-pub fn r_gate(theta: f64, phi: f64) -> [[Complex64; 2]; 2] {
-    let cos = (theta / 2.).cos();
-    let sin = (theta / 2.).sin();
-    let exp_m = c64(0., -phi).exp();
-    let exp_p = c64(0., phi).exp();
-    [
-        [c64(cos, 0.), c64(0., -1.) * exp_m * sin],
-        [c64(0., -1.) * exp_p * sin, c64(cos, 0.)],
     ]
 }
