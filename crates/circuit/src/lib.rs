@@ -17,6 +17,7 @@ pub mod gate_matrix;
 pub mod imports;
 pub mod operations;
 pub mod parameter_table;
+pub mod util;
 
 mod bit_data;
 mod interner;
