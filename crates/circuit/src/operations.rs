@@ -35,6 +35,17 @@ pub enum OperationType {
     Operation(PyOperation),
 }
 
+impl IntoPy<PyObject> for OperationType {
+    fn into_py(self, py: Python) -> PyObject {
+        match self {
+            Self::Standard(gate) => gate.into_py(py),
+            Self::Instruction(inst) => inst.into_py(py),
+            Self::Gate(gate) => gate.into_py(py),
+            Self::Operation(op) => op.into_py(py),
+        }
+    }
+}
+
 impl Operation for OperationType {
     fn name(&self) -> &str {
         match self {

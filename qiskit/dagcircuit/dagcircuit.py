@@ -717,6 +717,18 @@ class DAGCircuit:
 
         return target_dag
 
+    def _apply_op_node_back(self, node: DAGOpNode):
+        node._node_id = self._multi_graph.add_node(node)
+        self._increment_op(node)
+
+        # Add new in-edges from predecessors of the output nodes to the
+        # operation node while deleting the old in-edges of the output nodes
+        # and adding new edges from the operation node to each output node
+        self._multi_graph.insert_node_on_in_edges_multiple(
+            node._node_id,
+            [self.output_map[bit]._node_id for bits in (node.qargs, node.cargs) for bit in bits],
+        )
+
     def apply_operation_back(
         self,
         op: Operation,
