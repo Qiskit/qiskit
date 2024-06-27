@@ -25,6 +25,19 @@ pub static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] =
     [[c64(1., 0.), c64(0., 0.)], [c64(0., 0.), c64(1., 0.)]];
 
 #[inline]
+pub fn r_gate(theta: f64, phi: f64) -> [[Complex64; 2]; 2] {
+    let half_theta = theta / 2.;
+    let cost = c64(half_theta.cos(), 0.);
+    let sint = half_theta.sin();
+    let cosphi = phi.cos();
+    let sinphi = phi.sin();
+    [
+        [cost, c64(-sint * sinphi, -sint * cosphi)],
+        [c64(sint * sinphi, -sint * cosphi), cost],
+    ]
+}
+
+#[inline]
 pub fn rx_gate(theta: f64) -> [[Complex64; 2]; 2] {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
