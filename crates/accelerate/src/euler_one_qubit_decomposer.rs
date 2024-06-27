@@ -34,6 +34,7 @@ use pyo3::pybacked::PyBackedStr;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::util::c64;
 use qiskit_circuit::{Qubit, SliceOrInt};
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
@@ -971,16 +972,16 @@ pub fn params_xyx(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 
 fn params_xzx_inner(umat: ArrayView2<Complex64>) -> [f64; 4] {
     let det = det_one_qubit(umat);
-    let phase = (Complex64::new(0., -1.) * det.ln()).re / 2.;
+    let phase = det.ln().im / 2.;
     let sqrt_det = det.sqrt();
     let mat_zyz = arr2(&[
         [
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
-            Complex64::new((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
+            c64((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
         ],
         [
-            Complex64::new(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
+            c64(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
         ],
     ]);
     let [theta, phi, lam, phase_zxz] = params_zxz_inner(mat_zyz.view());
