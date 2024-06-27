@@ -1161,9 +1161,9 @@ class QuantumCircuit:
     def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit()
-        out.add_bits(data.qubits)
-        out.add_bits(data.clbits)
         out._data = data
+        out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
+        out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
         return out
 
     @staticmethod
@@ -5328,9 +5328,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.dcx import DCXGate
-
-        return self.append(DCXGate(), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(op=StandardGate.DCXGate, qargs=[qubit1, qubit2])
 
     def ccx(
         self,
