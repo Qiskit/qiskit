@@ -245,7 +245,6 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
     n = len(mat_x)
     mat_x = calc_inverse_matrix(mat_x)
 
-    mat_x = mat_x.astype(bool)
     cx_instructions_rows_m2nw, cx_instructions_rows_nw2id = _optimize_cx_circ_depth_5n_line(mat_x)
 
     # Meanwhile, also build the -CZ- circuit via Phase gate insertions as per Algorithm 2 [2]

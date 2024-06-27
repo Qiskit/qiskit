@@ -54,7 +54,7 @@ def random_cnotdihedral(num_qubits, seed=None):
     )
 
     seed = rng.integers(100000, size=1, dtype=np.uint64)[0]
-    linear = random_invertible_binary_matrix(num_qubits, seed=seed).astype(int)
+    linear = random_invertible_binary_matrix(num_qubits, seed=seed).astype(int, copy=False)
     elem.linear = linear
 
     # Random shift

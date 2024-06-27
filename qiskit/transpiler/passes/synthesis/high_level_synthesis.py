@@ -779,7 +779,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
 
-        mat = high_level_object.linear.astype(bool)
+        mat = high_level_object.linear.astype(bool, copy=False)
 
         if use_transposed:
             mat = np.transpose(mat)
@@ -831,7 +831,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
 
-        mat = high_level_object.linear.astype(bool)
+        mat = high_level_object.linear.astype(bool, copy=False)
 
         if use_transposed:
             mat = np.transpose(mat)

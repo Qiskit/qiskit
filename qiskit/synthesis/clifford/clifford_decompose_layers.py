@@ -204,7 +204,7 @@ def _create_graph_state(cliff, validate=False):
     """
 
     num_qubits = cliff.num_qubits
-    rank = compute_rank((cliff.stab_x).astype(bool))
+    rank = compute_rank((cliff.stab_x).astype(bool, copy=False))
     H1_circ = QuantumCircuit(num_qubits, name="H1")
     cliffh = cliff.copy()
 
@@ -238,7 +238,7 @@ def _create_graph_state(cliff, validate=False):
 
         # validate that a layer of Hadamard gates and then appending cliff, provides a graph state.
         if validate:
-            stabh = (cliffh.stab_x).astype(bool)
+            stabh = (cliffh.stab_x).astype(bool, copy=False)
             if compute_rank(stabh) != num_qubits:
                 raise QiskitError("The state is not a graph state.")
 
@@ -269,7 +269,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     """
 
     num_qubits = cliff.num_qubits
-    rank = compute_rank((cliff.stab_x).astype(bool))
+    rank = compute_rank(np.asarray(cliff.stab_x, dtype=bool))
     cliff_cpy = cliff.copy()
     if rank < num_qubits:
         raise QiskitError("The stabilizer state is not a graph state.")

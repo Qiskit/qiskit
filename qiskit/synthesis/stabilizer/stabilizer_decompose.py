@@ -143,7 +143,7 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     phase.extend(phase_stab)
     phase = np.array(phase, dtype=int)
 
-    A = cliff.symplectic_matrix.astype(bool)
+    A = cliff.symplectic_matrix.astype(bool, copy=False)
     Ainv = calc_inverse_matrix(A)
 
     # By carefully writing how X, Y, Z gates affect each qubit, all we need to compute

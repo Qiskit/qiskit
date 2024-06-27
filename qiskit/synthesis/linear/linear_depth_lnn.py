@@ -222,8 +222,8 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
     # According to [1] the synthesis is done on the inverse matrix
     # so the matrix mat is inverted at this step
-    mat_inv = mat.copy().astype(bool)
-    mat_cpy = calc_inverse_matrix(mat_inv).astype(bool)
+    mat_inv = mat.astype(bool, copy=True)
+    mat_cpy = calc_inverse_matrix(mat_inv)
 
     n = len(mat_cpy)
 
