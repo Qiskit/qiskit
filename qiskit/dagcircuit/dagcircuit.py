@@ -1355,7 +1355,7 @@ class DAGCircuit:
         self._increment_op(op.name)
 
         for nd in node_block:
-            self._decrement_op(nd.op_name)
+            self._decrement_op(nd.name)
 
         return new_node
 
@@ -1566,7 +1566,7 @@ class DAGCircuit:
         node_map = self._multi_graph.substitute_node_with_subgraph(
             node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
         )
-        self._decrement_op(node.op_name)
+        self._decrement_op(node.name)
 
         variable_mapper = _classical_resource_map.VariableMapper(
             self.cregs.values(), wire_map, add_register=self.add_creg
@@ -1597,7 +1597,7 @@ class DAGCircuit:
             new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs, dag=self)
             new_node._node_id = new_node_index
             self._multi_graph[new_node_index] = new_node
-            self._increment_op(new_node.op_name)
+            self._increment_op(new_node.name)
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
@@ -1670,16 +1670,16 @@ class DAGCircuit:
         if inplace:
             if op.name != node.op.name:
                 self._increment_op(op.name)
-                self._decrement_op(node.op_name)
+                self._decrement_op(node.name)
             node.op = op
             return node
 
         new_node = copy.copy(node)
         new_node.op = op
         self._multi_graph[node._node_id] = new_node
-        if op.name != node.op_name:
+        if op.name != node.name:
             self._increment_op(op.name)
-            self._decrement_op(node.op_name)
+            self._decrement_op(node.name)
         return new_node
 
     def separable_circuits(
@@ -1960,7 +1960,7 @@ class DAGCircuit:
         self._multi_graph.remove_node_retain_edges(
             node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
-        self._decrement_op(node.op_name)
+        self._decrement_op(node.name)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""

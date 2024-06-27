@@ -259,8 +259,8 @@ impl DAGOpNode {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> PyObject {
-        self.instruction.operation.name().to_object(py)
+    fn get_name(&self) -> &str {
+        self.instruction.operation.name()
     }
 
     /// Sets the Instruction name corresponding to the op for this node
@@ -271,11 +271,6 @@ impl DAGOpNode {
         let res = convert_py_to_operation_type(py, op)?;
         self.instruction.operation = res.operation;
         Ok(())
-    }
-
-    #[getter]
-    fn op_name(&self) -> &str {
-        self.instruction.operation.name()
     }
 
     /// Returns a representation of the DAGOpNode
