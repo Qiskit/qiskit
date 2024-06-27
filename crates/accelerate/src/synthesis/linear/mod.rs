@@ -20,15 +20,15 @@ mod utils;
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
 /// Gauss elimination of a matrix mat with m rows and n columns.
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-/// Returns the matrix mat, and the permutation perm that was done on the rows during the process.
-/// perm[0 : rank] represents the indices of linearly independent rows in the original matrix.
+/// Modifies the matrix mat in-place, and returns the permutation perm that was done
+/// on the rows during the process. perm[0 : rank] represents the indices of linearly
+/// independent rows in the original matrix.
 /// Args:
 ///     mat: a boolean matrix with n rows and m columns
 ///     ncols: the number of columns for the gaussian elimination,
-///            if ncols=None, then the elimination is done over all the colums
+///            if ncols=None, then the elimination is done over all the columns
 ///     full_elim: whether to do a full elimination, or partial (upper triangular form)
 /// Returns:
-///     mat: the matrix after the gaussian elimination
 ///     perm: the permutation perm that was done on the rows during the process
 fn gauss_elimination_with_perm(
     py: Python,
@@ -45,14 +45,12 @@ fn gauss_elimination_with_perm(
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
 /// Gauss elimination of a matrix mat with m rows and n columns.
 /// If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-/// Returns the updated matrix mat.
+/// This function modifies the input matrix in-place.
 /// Args:
 ///     mat: a boolean matrix with n rows and m columns
 ///     ncols: the number of columns for the gaussian elimination,
-///            if ncols=None, then the elimination is done over all the colums
+///            if ncols=None, then the elimination is done over all the columns
 ///     full_elim: whether to do a full elimination, or partial (upper triangular form)
-/// Returns:
-///     mat: the matrix after the gaussian elimination
 fn gauss_elimination(
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
