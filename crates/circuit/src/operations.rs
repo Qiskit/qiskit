@@ -276,7 +276,7 @@ static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     1, 1, 1, 2, 2, 2, 3, 1, 1, 1, // 0-9
     2, 2, 1, 0, 1, 1, 1, 1, 1, 1, // 10-19
     1, 1, 1, 2, 2, 2, 1, 1, 1, 34, // 20-29
-    34, 34, 34, 2, 2, 2, 2, 2, 3, 2, // 30-39
+    34, 34, 1, 2, 2, 2, 2, 2, 3, 2, // 30-39
     2, 2, 34, 34, 34, 2, 34, 34, 34, 34, // 40-49
     34, 34, 34, // 50-52
 ];
@@ -286,7 +286,7 @@ static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, // 0-9
     0, 0, 0, 1, 0, 0, 1, 3, 0, 0, // 10-19
     0, 0, 0, 0, 2, 2, 1, 2, 3, 34, // 20-29
-    34, 34, 34, 0, 1, 0, 0, 0, 0, 3, // 30-39
+    34, 34, 2, 0, 1, 0, 0, 0, 0, 3, // 30-39
     1, 3, 34, 34, 34, 0, 34, 34, 34, 34, // 40-49
     34, 34, 34, // 50-52
 ];
@@ -551,7 +551,12 @@ impl Operation for StandardGate {
                 _ => None,
             },
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
-            Self::RGate => todo!(),
+            Self::RGate => match params {
+                [Param::Float(theta), Param::Float(phi)] => {
+                    Some(aview2(&gate_matrix::r_gate(*theta, *phi)).to_owned())
+                }
+                _ => None,
+            },
             Self::CHGate => todo!(),
             Self::CPhaseGate => todo!(),
             Self::CSGate => todo!(),
@@ -994,7 +999,21 @@ impl Operation for StandardGate {
                 )
             }),
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
-            Self::RGate => todo!(),
+            Self::RGate => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta_expr = clone_param(&params[0], py);
+                let phi_expr1 = add_param(&params[1], -PI2, py);
+                let phi_expr2 = multiply_param(&phi_expr1, -1.0, py);
+                let defparams = smallvec![theta_expr, phi_expr1, phi_expr2];
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(Self::UGate, defparams, smallvec![Qubit(0)])],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::CHGate => todo!(),
             Self::CPhaseGate => todo!(),
             Self::CSGate => todo!(),
@@ -1034,6 +1053,16 @@ impl Operation for StandardGate {
 
 const FLOAT_ZERO: Param = Param::Float(0.0);
 
+// Return explictly requested copy of `param`, handling
+// each variant separately.
+fn clone_param(param: &Param, py: Python) -> Param {
+    match param {
+        Param::Float(theta) => Param::Float(*theta),
+        Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone_ref(py)),
+        Param::Obj(_) => unreachable!(),
+    }
+}
+
 fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta * mult),
@@ -1041,7 +1070,20 @@ fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
             theta
                 .clone_ref(py)
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
-                .expect("Parameter expression for global phase failed"),
+                .expect("Multiplication of Parameter expression by float failed."),
+        ),
+        Param::Obj(_) => unreachable!(),
+    }
+}
+
+fn add_param(param: &Param, summand: f64, py: Python) -> Param {
+    match param {
+        Param::Float(theta) => Param::Float(*theta + summand),
+        Param::ParameterExpression(theta) => Param::ParameterExpression(
+            theta
+                .clone_ref(py)
+                .call_method1(py, intern!(py, "__add__"), (summand,))
+                .expect("Sum of Parameter expression and float failed."),
         ),
         Param::Obj(_) => unreachable!(),
     }
