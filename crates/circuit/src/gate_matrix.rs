@@ -226,6 +226,13 @@ pub static TDG_GATE: [[Complex64; 2]; 2] = [
     [c64(0., 0.), c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2)],
 ];
 
+pub static DCX_GATE: [[Complex64; 4]; 4] = [
+    [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
+    [c64(0., 0.), c64(1., 0.), c64(0., 0.), c64(0., 0.)],
+    [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
+];
+
 #[inline]
 pub fn global_phase_gate(theta: f64) -> [[Complex64; 1]; 1] {
     [[c64(0., theta).exp()]]

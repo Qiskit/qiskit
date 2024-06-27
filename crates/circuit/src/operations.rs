@@ -523,7 +523,10 @@ impl Operation for StandardGate {
             Self::CSwapGate => todo!(),
             Self::CUGate | Self::CU1Gate | Self::CU3Gate => todo!(),
             Self::C3XGate | Self::C3SXGate | Self::C4XGate => todo!(),
-            Self::DCXGate => todo!(),
+            Self::DCXGate => match params {
+                [] => Some(aview2(&gate_matrix::DCX_GATE).to_owned()),
+                _ => None,
+            },
             Self::CCZGate => todo!(),
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
@@ -965,7 +968,21 @@ impl Operation for StandardGate {
             Self::CU1Gate => todo!(),
             Self::CU3Gate => todo!(),
             Self::C3XGate | Self::C3SXGate | Self::C4XGate => todo!(),
-            Self::DCXGate => todo!(),
+            Self::DCXGate => Python::with_gil(|py| -> Option<CircuitData> {
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        2,
+                        [
+                            (Self::CXGate, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (Self::CXGate, smallvec![], smallvec![Qubit(1), Qubit(0)]),
+                        ],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
+
             Self::CCZGate => todo!(),
             Self::RCCXGate | Self::RC3XGate => todo!(),
             Self::RXXGate | Self::RYYGate | Self::RZZGate => todo!(),
