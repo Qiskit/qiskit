@@ -23,7 +23,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2};
 
-use crate::two_qubit_decompose::ONE_QUBIT_IDENTITY;
+use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 
 /// Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 /// basis_state=1 respectively
@@ -212,7 +212,6 @@ fn construct_basis_states(
         } else if i == target_label {
             e2 += 1;
         } else {
-            assert!(j <= 1);
             e1 += state_free[j] as usize;
             e2 += state_free[j] as usize;
             j += 1

@@ -102,11 +102,11 @@ def _generate_commutation_dict(considered_gates: List[Gate] = None) -> dict:
                     commutation_relation = cc.commute(
                         op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=4
                     )
+
+                    gate_pair_commutation[relative_placement] = commutation_relation
                 else:
                     pass
                     # TODO
-
-                gate_pair_commutation[relative_placement] = commutation_relation
 
             commutations[gate0.name, gate1.name] = gate_pair_commutation
     return commutations
@@ -143,12 +143,14 @@ def _dump_commuting_dict_as_python(
         dir_str = "standard_gates_commutations = {\n"
         for k, v in commutations.items():
             if not isinstance(v, dict):
+                # pylint: disable-next=consider-using-f-string
                 dir_str += '    ("{}", "{}"): {},\n'.format(*k, v)
             else:
+                # pylint: disable-next=consider-using-f-string
                 dir_str += '    ("{}", "{}"): {{\n'.format(*k)
 
                 for entry_key, entry_val in v.items():
-                    dir_str += "        {}: {},\n".format(entry_key, entry_val)
+                    dir_str += f"        {entry_key}: {entry_val},\n"
 
                 dir_str += "    },\n"
         dir_str += "}\n"

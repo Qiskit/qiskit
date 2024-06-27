@@ -21,6 +21,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
@@ -67,6 +68,8 @@ class UGate(Gate):
 
         U(\theta, 0, 0) = RY(\theta)
     """
+
+    _standard_gate = StandardGate.UGate
 
     def __init__(
         self,
@@ -180,7 +183,7 @@ class _CUGateParams(list):
         # Magic numbers: CUGate has 4 parameters, UGate has 3, with the last of CUGate's missing.
         if isinstance(key, slice):
             # We don't need to worry about the case of the slice being used to insert extra / remove
-            # elements because that would be "undefined behaviour" in a gate already, so we're
+            # elements because that would be "undefined behavior" in a gate already, so we're
             # within our rights to do anything at all.
             for i, base_key in enumerate(range(*key.indices(4))):
                 if base_key < 0:

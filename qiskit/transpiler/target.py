@@ -411,7 +411,7 @@ class Target(Mapping):
         if properties is None:
             properties = {None: None}
         if instruction_name in self._gate_map:
-            raise AttributeError("Instruction %s is already in the target" % instruction_name)
+            raise AttributeError(f"Instruction {instruction_name} is already in the target")
         self._gate_name_map[instruction_name] = instruction
         if is_class:
             qargs_val = {None: None}
@@ -426,7 +426,9 @@ class Target(Mapping):
                         f"of qubits in the properties dictionary: {qarg}"
                     )
                 if qarg is not None:
-                    self.num_qubits = max(self.num_qubits, max(qarg) + 1)
+                    self.num_qubits = max(
+                        self.num_qubits if self.num_qubits is not None else 0, max(qarg) + 1
+                    )
                 qargs_val[qarg] = properties[qarg]
                 self._qarg_gate_map[qarg].add(instruction_name)
         self._gate_map[instruction_name] = qargs_val
@@ -890,7 +892,7 @@ class Target(Mapping):
             return False
         if qargs not in self._gate_map[operation_name]:
             return False
-        return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
+        return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
     def get_calibration(
         self,
@@ -987,7 +989,8 @@ class Target(Mapping):
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
-        self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
+        if self.num_qubits is not None:
+            self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
         for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
@@ -1059,7 +1062,7 @@ class Target(Mapping):
             for qargs, properties in self._gate_map[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(
-                        "Specified two_q_gate: %s is not a 2 qubit instruction" % two_q_gate
+                        f"Specified two_q_gate: {two_q_gate} is not a 2 qubit instruction"
                     )
                 coupling_graph.add_edge(*qargs, {two_q_gate: properties})
             cmap = CouplingMap()

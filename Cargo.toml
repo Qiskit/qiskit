@@ -16,6 +16,11 @@ license = "Apache-2.0"
 [workspace.dependencies]
 indexmap.version = "2.2.6"
 hashbrown.version = "0.14.0"
+num-complex = "0.4"
+ndarray = "^0.15.6"
+numpy = "0.21.0"
+smallvec = "1.13"
+
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python
 # distributions).  We only activate that feature when building the C extension module; we still need

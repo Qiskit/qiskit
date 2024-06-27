@@ -241,7 +241,7 @@ class TestSabreSwap(QiskitTestCase):
         self.assertIsInstance(second_measure.operation, Measure)
         # Assert that the first measure is on the same qubit that the HGate was applied to, and the
         # second measurement is on a different qubit (though we don't care which exactly - that
-        # depends a little on the randomisation of the pass).
+        # depends a little on the randomization of the pass).
         self.assertEqual(last_h.qubits, first_measure.qubits)
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
@@ -1329,9 +1329,9 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
         super().setUpClass()
         cls.backend = Fake27QPulseV1()
         cls.backend.configuration().coupling_map = MUMBAI_CMAP
+        cls.backend.configuration().basis_gates += ["for_loop", "while_loop", "if_else"]
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
-        cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
 
     def assert_valid_circuit(self, transpiled):
         """Assert circuit complies with constraints of backend."""

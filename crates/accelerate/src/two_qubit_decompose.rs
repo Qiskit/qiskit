@@ -51,6 +51,7 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
+use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
 use qiskit_circuit::SliceOrInt;
 
 const PI2: f64 = PI / 2.0;
@@ -59,11 +60,6 @@ const PI32: f64 = 3.0 * PI2;
 const TWO_PI: f64 = 2.0 * PI;
 
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
-
-pub static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-];
 
 static B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
     [
@@ -297,7 +293,7 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0),
     ];
-    // The originial Python had `np.argmax`, which returns the lowest index in case two or more
+    // The original Python had `np.argmax`, which returns the lowest index in case two or more
     // values have a common maximum value.
     // `max_by` and `min_by` return the highest and lowest indices respectively, in case of ties.
     // So to reproduce `np.argmax`, we use `min_by` and switch the order of the
@@ -342,54 +338,6 @@ fn rz_matrix(theta: f64) -> Array2<Complex64> {
     ]
 }
 
-static HGATE: [[Complex64; 2]; 2] = [
-    [
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-    ],
-    [
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-        Complex64::new(-FRAC_1_SQRT_2, 0.),
-    ],
-];
-
-static CXGATE: [[Complex64; 4]; 4] = [
-    [
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-    ],
-];
-
-static SXGATE: [[Complex64; 2]; 2] = [
-    [Complex64::new(0.5, 0.5), Complex64::new(0.5, -0.5)],
-    [Complex64::new(0.5, -0.5), Complex64::new(0.5, 0.5)],
-];
-
-static XGATE: [[Complex64; 2]; 2] = [
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-];
-
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
     let identity = aview2(&ONE_QUBIT_IDENTITY);
     let phase = Complex64::new(0., global_phase).exp();
@@ -402,10 +350,10 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             // sequence. If we get a different gate this is getting called
             // by something else and is invalid.
             let gate_matrix = match inst.0.as_ref() {
-                "sx" => aview2(&SXGATE).to_owned(),
+                "sx" => aview2(&SX_GATE).to_owned(),
                 "rz" => rz_matrix(inst.1[0]),
-                "cx" => aview2(&CXGATE).to_owned(),
-                "x" => aview2(&XGATE).to_owned(),
+                "cx" => aview2(&CX_GATE).to_owned(),
+                "x" => aview2(&X_GATE).to_owned(),
                 _ => unreachable!("Undefined gate"),
             };
             (gate_matrix, &inst.2)
@@ -639,7 +587,7 @@ impl TwoQubitWeylDecomposition {
         // M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         // P ∈ SO(4), D is diagonal with unit-magnitude elements.
         //
-        // We can't use raw `eig` directly because it isn't guaranteed to give us real or othogonal
+        // We can't use raw `eig` directly because it isn't guaranteed to give us real or orthogonal
         // eigenvectors. Instead, since `M2` is complex-symmetric,
         //   M2 = A + iB
         // for real-symmetric `A` and `B`, and as
@@ -1481,7 +1429,7 @@ impl TwoQubitBasisDecomposer {
         } else {
             euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0]).dot(&euler_matrix_q0);
         }
-        euler_matrix_q0 = aview2(&HGATE).dot(&euler_matrix_q0);
+        euler_matrix_q0 = aview2(&H_GATE).dot(&euler_matrix_q0);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
 
         let rx_0 = rx_matrix(euler_q1[0][0]);
@@ -1489,7 +1437,7 @@ impl TwoQubitBasisDecomposer {
         let rx_1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]);
         let mut euler_matrix_q1 = rz.dot(&rx_0);
         euler_matrix_q1 = rx_1.dot(&euler_matrix_q1);
-        euler_matrix_q1 = aview2(&HGATE).dot(&euler_matrix_q1);
+        euler_matrix_q1 = aview2(&H_GATE).dot(&euler_matrix_q1);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
 
         gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
@@ -1550,12 +1498,12 @@ impl TwoQubitBasisDecomposer {
             return None;
         }
         gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
-        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&HGATE));
+        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&H_GATE));
         euler_matrix = rx_matrix(euler_q0[3][1]).dot(&euler_matrix);
         euler_matrix = rz_matrix(euler_q0[3][2]).dot(&euler_matrix);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 0);
 
-        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]).dot(&aview2(&HGATE));
+        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]).dot(&aview2(&H_GATE));
         euler_matrix = rz_matrix(euler_q1[3][1]).dot(&euler_matrix);
         euler_matrix = rx_matrix(euler_q1[3][2]).dot(&euler_matrix);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 1);
