@@ -19,7 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumRegister, QuantumCircuit, QiskitError, transpile
+from qiskit import QuantumRegister, QuantumCircuit, QiskitError
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
@@ -802,6 +802,7 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the v-chain mcx with dirty ancilla
         is less than upper bound."""
+        from qiskit import transpile
 
         mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
         qc = QuantumCircuit(mcx_vchain.num_qubits)
