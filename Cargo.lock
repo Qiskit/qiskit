@@ -1189,6 +1189,7 @@ dependencies = [
  "rayon",
  "rustworkx-core",
  "smallvec",
+ "thiserror",
 ]
 
 [[package]]
@@ -1201,6 +1202,7 @@ dependencies = [
  "numpy",
  "pyo3",
  "smallvec",
+ "thiserror",
 ]
 
 [[package]]
