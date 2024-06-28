@@ -29,6 +29,7 @@ from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QasmQobj, PulseQobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,13 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The function assemble is being deprecated "
+    "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+    "means that the provider is using a backend based on the deprecated BackendV1 class.",
+)
 def assemble(
     experiments: Union[
         QuantumCircuit,

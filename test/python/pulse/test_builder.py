@@ -30,7 +30,8 @@ class TestBuilder(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.configuration = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.inst_map = self.defaults.instruction_schedule_map
@@ -689,7 +690,8 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend = Fake127QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
         num_qubits = backend.configuration().num_qubits
         with pulse.build(backend) as schedule:
             regs = pulse.measure_all()

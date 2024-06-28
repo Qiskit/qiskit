@@ -26,7 +26,8 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         self.config = backend.configuration()
 
     def test_simple_config(self):
@@ -60,7 +61,8 @@ class TestBackendConfiguration(QiskitTestCase):
             {k: var * 1e-9 for k, var in ref_vars.items()},
         )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
-        backend_3q = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend_3q = FakeOpenPulse3Q()
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
 
     def test_get_channels(self):
@@ -80,7 +82,8 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test to get all qubits operated on a given channel."""
         self.assertEqual(self.config.get_channel_qubits(channel=DriveChannel(0)), [0])
         self.assertEqual(self.config.get_channel_qubits(channel=ControlChannel(0)), [0, 1])
-        backend_3q = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend_3q = FakeOpenPulse3Q()
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1])
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0])
         with self.assertRaises(BackendConfigurationError):
@@ -107,7 +110,8 @@ class TestBackendConfiguration(QiskitTestCase):
                 ],
             )
         )
-        backend_3q = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend_3q = FakeOpenPulse3Q()
         self.assertTrue(
             self._test_lists_equal(
                 actual=backend_3q.configuration().get_qubit_channels(1),
@@ -178,7 +182,8 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_u_channel_lo_scale(self):
         """Ensure that u_channel_lo scale is a complex number"""
-        valencia_conf = Fake27QPulseV1().configuration()
+        with self.assertWarns(DeprecationWarning):
+            valencia_conf = Fake27QPulseV1().configuration()
         self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))
 
     def test_processor_type(self):
