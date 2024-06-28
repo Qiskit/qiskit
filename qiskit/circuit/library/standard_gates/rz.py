@@ -216,6 +216,8 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
+    _standard_gate = StandardGate.CRZGate
+
     def __init__(
         self,
         theta: ParameterValueType,
