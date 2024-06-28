@@ -53,6 +53,43 @@ pub fn rz_gate(theta: f64) -> GateArray1Q {
     [[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
 }
 
+#[inline]
+pub fn crx_gate(theta: f64) -> GateArray2Q {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let isin = c64(0., half_theta.sin());
+    [
+        [C_ONE, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, cos, C_ZERO, -isin],
+        [C_ZERO, C_ZERO, C_ONE, C_ZERO],
+        [C_ZERO, -isin, C_ZERO, cos],
+    ]
+}
+
+#[inline]
+pub fn cry_gate(theta: f64) -> GateArray2Q {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let sin = c64(half_theta.sin(), 0.);
+    [
+        [C_ONE, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, cos, C_ZERO, -sin],
+        [C_ZERO, C_ZERO, C_ONE, C_ZERO],
+        [C_ZERO, sin, C_ZERO, cos],
+    ]
+}
+
+#[inline]
+pub fn crz_gate(theta: f64) -> GateArray2Q {
+    let i_half_theta = c64(0., theta / 2.);
+    [
+        [C_ONE, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, (-i_half_theta).exp(), C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, C_ONE, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, i_half_theta.exp()],
+    ]
+}
+
 pub static H_GATE: GateArray1Q = [
     [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
     [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
