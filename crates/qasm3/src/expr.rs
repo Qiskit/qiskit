@@ -71,7 +71,7 @@ fn eval_const_int(_py: Python, _ast_symbols: &SymbolTable, expr: &asg::TExpr) ->
                 match expr.expression() {
                     asg::Expr::Literal(asg::Literal::Int(lit)) => Ok(*lit.value() as isize),
                     expr => Err(QASM3ImporterError::new_err(format!(
-                        "unhandled expression type for constant-integer evaluatation: {:?}",
+                        "unhandled expression type for constant-integer evaluation: {:?}",
                         expr
                     ))),
                 }

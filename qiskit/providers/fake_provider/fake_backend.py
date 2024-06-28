@@ -143,8 +143,8 @@ class FakeBackend(BackendV1):
                     pulse_job = False
         if pulse_job is None:
             raise QiskitError(
-                "Invalid input object %s, must be either a "
-                "QuantumCircuit, Schedule, or a list of either" % circuits
+                f"Invalid input object {circuits}, must be either a "
+                "QuantumCircuit, Schedule, or a list of either"
             )
         if pulse_job:
             raise QiskitError("Pulse simulation is currently not supported for fake backends.")

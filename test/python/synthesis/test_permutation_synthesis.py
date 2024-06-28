@@ -27,7 +27,6 @@ from qiskit.synthesis.permutation import (
 )
 from qiskit.synthesis.permutation.permutation_utils import (
     _inverse_pattern,
-    _get_ordered_swap,
     _validate_permutation,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -47,19 +46,6 @@ class TestPermutationSynthesis(QiskitTestCase):
             for ii, jj in enumerate(pattern):
                 self.assertTrue(inverse[jj] == ii)
 
-    @data(4, 5, 10, 15, 20)
-    def test_get_ordered_swap(self, width):
-        """Test _get_ordered_swap function produces correct swap list."""
-        np.random.seed(1)
-        for _ in range(5):
-            pattern = np.random.permutation(width)
-            swap_list = _get_ordered_swap(pattern)
-            output = list(range(width))
-            for i, j in swap_list:
-                output[i], output[j] = output[j], output[i]
-            self.assertTrue(np.array_equal(pattern, output))
-            self.assertLess(len(swap_list), width)
-
     @data(10, 20)
     def test_invalid_permutations(self, width):
         """Check that _validate_permutation raises exceptions when the
@@ -78,17 +64,13 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern_out_of_range[0] = width
             with self.assertRaises(ValueError) as exc:
                 _validate_permutation(pattern_out_of_range)
-                self.assertIn(
-                    "input has length {0} and contains {0}".format(width), str(exc.exception)
-                )
+                self.assertIn(f"input has length {width} and contains {width}", str(exc.exception))
 
             pattern_duplicate = np.copy(pattern)
             pattern_duplicate[-1] = pattern[0]
             with self.assertRaises(ValueError) as exc:
                 _validate_permutation(pattern_duplicate)
-                self.assertIn(
-                    "input contains {} more than once".format(pattern[0]), str(exc.exception)
-                )
+                self.assertIn(f"input contains {pattern[0]} more than once", str(exc.exception))
 
     @data(4, 5, 10, 15, 20)
     def test_synth_permutation_basic(self, width):

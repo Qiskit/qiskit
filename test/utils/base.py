@@ -81,10 +81,10 @@ class BaseQiskitTestCase(BaseTestCase):
         self.addTypeEqualityFunc(QuantumCircuit, self.assertQuantumCircuitEqual)
         if self.__setup_called:
             raise ValueError(
-                "In File: %s\n"
+                f"In File: {(sys.modules[self.__class__.__module__].__file__,)}\n"
                 "TestCase.setUp was already called. Do not explicitly call "
                 "setUp from your tests. In your own setUp, use super to call "
-                "the base setUp." % (sys.modules[self.__class__.__module__].__file__,)
+                "the base setUp."
             )
         self.__setup_called = True
 
@@ -92,10 +92,10 @@ class BaseQiskitTestCase(BaseTestCase):
         super().tearDown()
         if self.__teardown_called:
             raise ValueError(
-                "In File: %s\n"
+                f"In File: {(sys.modules[self.__class__.__module__].__file__,)}\n"
                 "TestCase.tearDown was already called. Do not explicitly call "
                 "tearDown from your tests. In your own tearDown, use super to "
-                "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
+                "call the base tearDown."
             )
         self.__teardown_called = True
 
@@ -215,6 +215,15 @@ class QiskitTestCase(BaseQiskitTestCase):
             module=r"seaborn(\..*)?",
         )
 
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message="Treating CircuitInstruction as an iterable is deprecated",
+            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+        )
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
@@ -305,10 +314,10 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
     if places is not None:
         if delta is not None:
             raise TypeError("specify delta or places not both")
-        msg_suffix = " within %s places" % places
+        msg_suffix = f" within {places} places"
     else:
         delta = delta or 1e-8
-        msg_suffix = " within %s delta" % delta
+        msg_suffix = f" within {delta} delta"
 
     # Compare all keys in both dicts, populating error_msg.
     error_msg = ""

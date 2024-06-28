@@ -203,7 +203,7 @@ class BaseEstimatorV2(ABC):
 
     @staticmethod
     def _make_data_bin(_: EstimatorPub) -> type[DataBin]:
-        # this method is present for backwards compat. new primitive implementatinos
+        # this method is present for backwards compat. new primitive implementations
         # should avoid it.
         return DataBin
 
