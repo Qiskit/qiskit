@@ -98,7 +98,7 @@ class TestPulseGateValidation(QiskitTestCase):
         pm.run(circuit)
 
     def test_no_calibration(self):
-        """No error raises if no calibration is addedd."""
+        """No error raises if no calibration is added."""
 
         circuit = QuantumCircuit(1)
         circuit.x(0)

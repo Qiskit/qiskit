@@ -12,7 +12,7 @@
 
 """Two-pulse single-qubit gate."""
 import cmath
-import copy
+import copy as _copy
 import math
 from cmath import exp
 from typing import Optional, Union
@@ -21,6 +21,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
@@ -67,6 +68,8 @@ class UGate(Gate):
 
         U(\theta, 0, 0) = RY(\theta)
     """
+
+    _standard_gate = StandardGate.UGate
 
     def __init__(
         self,
@@ -136,8 +139,10 @@ class UGate(Gate):
             )
         return gate
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -146,7 +151,7 @@ class UGate(Gate):
                 [cos, -exp(1j * lam) * sin],
                 [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
-            dtype=dtype,
+            dtype=dtype or complex,
         )
 
     def __eq__(self, other):
@@ -178,7 +183,7 @@ class _CUGateParams(list):
         # Magic numbers: CUGate has 4 parameters, UGate has 3, with the last of CUGate's missing.
         if isinstance(key, slice):
             # We don't need to worry about the case of the slice being used to insert extra / remove
-            # elements because that would be "undefined behaviour" in a gate already, so we're
+            # elements because that would be "undefined behavior" in a gate already, so we're
             # within our rights to do anything at all.
             for i, base_key in enumerate(range(*key.indices(4))):
                 if base_key < 0:
@@ -337,8 +342,10 @@ class CUGate(ControlledGate):
             ctrl_state=self.ctrl_state,
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam, gamma = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -372,5 +379,5 @@ class CUGate(ControlledGate):
         # assuming that `params` will be a view onto the base gate's `_params`.
         memo = memo if memo is not None else {}
         out = super().__deepcopy__(memo)
-        out._params = copy.deepcopy(out._params, memo)
+        out._params = _copy.deepcopy(out._params, memo)
         return out

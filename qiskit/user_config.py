@@ -31,6 +31,7 @@ class UserConfig:
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
     circuit_reverse_bits = True
+    circuit_idle_wires = False
     transpile_optimization_level = 1
     parallel = False
     num_processes = 4
@@ -62,9 +63,9 @@ class UserConfig:
             if circuit_drawer:
                 if circuit_drawer not in ["text", "mpl", "latex", "latex_source", "auto"]:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid circuit drawer backend. Must be "
+                        f"{circuit_drawer} is not a valid circuit drawer backend. Must be "
                         "either 'text', 'mpl', 'latex', 'latex_source', or "
-                        "'auto'." % circuit_drawer
+                        "'auto'."
                     )
                 self.settings["circuit_drawer"] = circuit_drawer
 
@@ -95,8 +96,8 @@ class UserConfig:
             if circuit_mpl_style:
                 if not isinstance(circuit_mpl_style, str):
                     warn(
-                        "%s is not a valid mpl circuit style. Must be "
-                        "a text string. Will not load style." % circuit_mpl_style,
+                        f"{circuit_mpl_style} is not a valid mpl circuit style. Must be "
+                        "a text string. Will not load style.",
                         UserWarning,
                         2,
                     )
@@ -111,8 +112,8 @@ class UserConfig:
                 for path in cpath_list:
                     if not os.path.exists(os.path.expanduser(path)):
                         warn(
-                            "%s is not a valid circuit mpl style path."
-                            " Correct the path in ~/.qiskit/settings.conf." % path,
+                            f"{path} is not a valid circuit mpl style path."
+                            " Correct the path in ~/.qiskit/settings.conf.",
                             UserWarning,
                             2,
                         )
@@ -129,6 +130,18 @@ class UserConfig:
                 )
             if circuit_reverse_bits is not None:
                 self.settings["circuit_reverse_bits"] = circuit_reverse_bits
+
+            # Parse circuit_idle_wires
+            try:
+                circuit_idle_wires = self.config_parser.getboolean(
+                    "default", "circuit_idle_wires", fallback=None
+                )
+            except ValueError as err:
+                raise exceptions.QiskitUserConfigError(
+                    f"Value assigned to circuit_idle_wires is not valid. {str(err)}"
+                )
+            if circuit_idle_wires is not None:
+                self.settings["circuit_idle_wires"] = circuit_idle_wires
 
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
@@ -191,6 +204,7 @@ def set_config(key, value, section=None, file_path=None):
         "circuit_mpl_style",
         "circuit_mpl_style_path",
         "circuit_reverse_bits",
+        "circuit_idle_wires",
         "transpile_optimization_level",
         "parallel",
         "num_processes",

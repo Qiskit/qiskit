@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2023
+// (C) Copyright IBM 2024
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,15 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod circuit_data;
-pub mod circuit_instruction;
-pub mod intern_context;
+mod permutation;
 
 use pyo3::prelude::*;
+use pyo3::wrap_pymodule;
 
 #[pymodule]
-pub fn quantum_circuit(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<circuit_data::CircuitData>()?;
-    m.add_class::<circuit_instruction::CircuitInstruction>()?;
+pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pymodule!(permutation::permutation))?;
     Ok(())
 }

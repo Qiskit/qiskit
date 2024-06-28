@@ -24,24 +24,10 @@ References:
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-
-
-def _append_cx_stage1(qc, n):
-    """A single layer of CX gates."""
-    for i in range(n // 2):
-        qc.cx(2 * i, 2 * i + 1)
-    for i in range((n + 1) // 2 - 1):
-        qc.cx(2 * i + 2, 2 * i + 1)
-    return qc
-
-
-def _append_cx_stage2(qc, n):
-    """A single layer of CX gates."""
-    for i in range(n // 2):
-        qc.cx(2 * i + 1, 2 * i)
-    for i in range((n + 1) // 2 - 1):
-        qc.cx(2 * i + 1, 2 * i + 2)
-    return qc
+from qiskit.synthesis.permutation.permutation_reverse_lnn import (
+    _append_cx_stage1,
+    _append_cx_stage2,
+)
 
 
 def _odd_pattern1(n):
@@ -133,7 +119,7 @@ def _create_patterns(n):
 
 
 def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
-    r"""Synthesis of a CZ circuit for linear nearest neighbour (LNN) connectivity,
+    r"""Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
     based on Maslov and Roetteler.
 
     Note that this method *reverts* the order of qubits in the circuit,

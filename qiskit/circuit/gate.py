@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
-from .annotated_operation import AnnotatedOperation, ControlModifier
+from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 from .instruction import Instruction
 
 
@@ -62,23 +62,36 @@ class Gate(Instruction):
             return self.__array__(dtype=complex)
         raise CircuitError(f"to_matrix not defined for this {type(self)}")
 
-    def power(self, exponent: float):
-        """Creates a unitary gate as `gate^exponent`.
+    def power(self, exponent: float, annotated: bool = False):
+        """Raise this gate to the power of ``exponent``.
+
+        Implemented either as a unitary gate (ref. :class:`~.library.UnitaryGate`)
+        or as an annotated operation (ref. :class:`.AnnotatedOperation`). In the case of several standard
+        gates, such as :class:`.RXGate`, when the power of a gate can be expressed in terms of another
+        standard gate that is returned directly.
 
         Args:
-            exponent (float): Gate^exponent
+            exponent (float): the power to raise the gate to
+            annotated (bool): indicates whether the power gate can be implemented
+                as an annotated operation. In the case of several standard
+                gates, such as :class:`.RXGate`, this argument is ignored when
+                the power of a gate can be expressed in terms of another
+                standard gate.
 
         Returns:
-            .library.UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+            An operation implementing ``gate^exponent``
 
         Raises:
-            CircuitError: If Gate is not unitary
+            CircuitError: If gate is not unitary
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators import Operator
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-        return UnitaryGate(Operator(self).power(exponent), label=f"{self.name}^{exponent}")
+        if not annotated:
+            return UnitaryGate(Operator(self).power(exponent), label=f"{self.name}^{exponent}")
+        else:
+            return AnnotatedOperation(self, PowerModifier(exponent))
 
     def __pow__(self, exponent: float) -> "Gate":
         return self.power(exponent)
@@ -164,7 +177,7 @@ class Gate(Instruction):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
-            raise CircuitError("Not sure how to combine these qubit arguments:\n %s\n" % qargs)
+            raise CircuitError(f"Not sure how to combine these qubit arguments:\n {qargs}\n")
 
     def broadcast_arguments(self, qargs: list, cargs: list) -> Iterable[tuple[list, list]]:
         """Validation and handling of the arguments and its relationship.
@@ -223,7 +236,7 @@ class Gate(Instruction):
         elif len(qargs) >= 3:
             return Gate._broadcast_3_or_more_args(qargs)
         else:
-            raise CircuitError("This gate cannot handle %i arguments" % len(qargs))
+            raise CircuitError(f"This gate cannot handle {len(qargs)} arguments")
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""

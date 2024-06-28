@@ -20,6 +20,7 @@ import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _S_ARRAY = numpy.array([[1, 0], [0, 1j]])
@@ -56,6 +57,8 @@ class SGate(SingletonGate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
+
+    _standard_gate = StandardGate.SGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
@@ -94,8 +97,7 @@ class SGate(SingletonGate):
         """
         return SdgGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import PhaseGate
 
         return PhaseGate(0.5 * numpy.pi * exponent)
@@ -135,6 +137,8 @@ class SdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.SdgGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
         super().__init__("sdg", 1, [], label=label, duration=duration, unit=unit)
@@ -172,8 +176,7 @@ class SdgGate(SingletonGate):
         """
         return SGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import PhaseGate
 
         return PhaseGate(-0.5 * numpy.pi * exponent)
@@ -259,8 +262,7 @@ class CSGate(SingletonControlledGate):
         """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
         return CPhaseGate(0.5 * numpy.pi * exponent)
@@ -345,8 +347,7 @@ class CSdgGate(SingletonControlledGate):
         """
         return CSGate(ctrl_state=self.ctrl_state)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
         return CPhaseGate(-0.5 * numpy.pi * exponent)

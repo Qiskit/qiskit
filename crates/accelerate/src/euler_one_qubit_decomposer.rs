@@ -19,6 +19,7 @@ use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::ops::Deref;
+use std::str::FromStr;
 
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
@@ -30,7 +31,8 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
-use crate::utils::SliceOrInt;
+use qiskit_circuit::util::c64;
+use qiskit_circuit::SliceOrInt;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -604,27 +606,31 @@ impl EulerBasis {
     }
 
     #[new]
-    pub fn from_str(input: &str) -> PyResult<Self> {
-        let res = match input {
-            "U321" => EulerBasis::U321,
-            "U3" => EulerBasis::U3,
-            "U" => EulerBasis::U,
-            "PSX" => EulerBasis::PSX,
-            "ZSX" => EulerBasis::ZSX,
-            "ZSXX" => EulerBasis::ZSXX,
-            "U1X" => EulerBasis::U1X,
-            "RR" => EulerBasis::RR,
-            "ZYZ" => EulerBasis::ZYZ,
-            "ZXZ" => EulerBasis::ZXZ,
-            "XYX" => EulerBasis::XYX,
-            "XZX" => EulerBasis::XZX,
-            basis => {
-                return Err(PyValueError::new_err(format!(
-                    "Invalid target basis '{basis}'"
-                )));
-            }
-        };
-        Ok(res)
+    pub fn __new__(input: &str) -> PyResult<Self> {
+        Self::from_str(input)
+            .map_err(|_| PyValueError::new_err(format!("Invalid target basis '{input}'")))
+    }
+}
+
+impl FromStr for EulerBasis {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "U321" => Ok(EulerBasis::U321),
+            "U3" => Ok(EulerBasis::U3),
+            "U" => Ok(EulerBasis::U),
+            "PSX" => Ok(EulerBasis::PSX),
+            "ZSX" => Ok(EulerBasis::ZSX),
+            "ZSXX" => Ok(EulerBasis::ZSXX),
+            "U1X" => Ok(EulerBasis::U1X),
+            "RR" => Ok(EulerBasis::RR),
+            "ZYZ" => Ok(EulerBasis::ZYZ),
+            "ZXZ" => Ok(EulerBasis::ZXZ),
+            "XYX" => Ok(EulerBasis::XYX),
+            "XZX" => Ok(EulerBasis::XZX),
+            _ => Err(()),
+        }
     }
 }
 
@@ -714,7 +720,7 @@ pub fn unitary_to_gate_sequence(
 ) -> PyResult<Option<OneQubitGateSequence>> {
     let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
     for basis in target_basis_list {
-        let basis_enum = EulerBasis::from_str(basis.deref())?;
+        let basis_enum = EulerBasis::__new__(basis.deref())?;
         target_basis_vec.push(basis_enum)
     }
     let unitary_mat = unitary.as_array();
@@ -850,16 +856,16 @@ pub fn params_xyx(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 
 fn params_xzx_inner(umat: ArrayView2<Complex64>) -> [f64; 4] {
     let det = det_one_qubit(umat);
-    let phase = (Complex64::new(0., -1.) * det.ln()).re / 2.;
+    let phase = det.ln().im / 2.;
     let sqrt_det = det.sqrt();
     let mat_zyz = arr2(&[
         [
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
-            Complex64::new((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
+            c64((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
         ],
         [
-            Complex64::new(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
+            c64(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
         ],
     ]);
     let [theta, phi, lam, phase_zxz] = params_zxz_inner(mat_zyz.view());
