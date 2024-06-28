@@ -19,6 +19,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U1Gate(Gate):
@@ -91,6 +92,8 @@ class U1Gate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
+
+    _standard_gate = StandardGate.U1Gate
 
     def __init__(
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
