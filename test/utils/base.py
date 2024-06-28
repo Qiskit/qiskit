@@ -214,8 +214,7 @@ class QiskitTestCase(BaseQiskitTestCase):
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
-            message="__warningregistry__",
-            module=r"numpy(\.\w+)*",
+            message=r".*numpy\.(\w+\.)*__warningregistry__",
         )
 
         # We only use pandas transitively through seaborn, so it's their responsibility to mark if
