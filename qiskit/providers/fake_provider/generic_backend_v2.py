@@ -253,27 +253,36 @@ class GenericBackendV2(BackendV2):
         # Note that the calibration pulses are different for
         # 1q gates vs 2q gates vs measurement instructions.
         if inst == "measure":
-            sequence = [
-                PulseQobjInstruction(
-                    name="acquire",
-                    duration=1792,
-                    t0=0,
-                    qubits=qargs,
-                    memory_slot=qargs,
-                )
-            ] + [PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0) for i in qargs]
-            return sequence
-        if num_qubits == 1:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=DeprecationWarning)
+                # TODO move away from deprecated PulseQobjInstruction
+                sequence = [
+                    PulseQobjInstruction(
+                        name="acquire",
+                        duration=1792,
+                        t0=0,
+                        qubits=qargs,
+                        memory_slot=qargs,
+                    )
+                ] + [
+                    PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0)
+                    for i in qargs
+                ]
+                return sequence
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            # TODO: move away from deprecated PulseQobjInstruction
+            if num_qubits == 1:
+                return [
+                    PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
+                    PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
+                ]
             return [
-                PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
-                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
+                PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
             ]
-        return [
-            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
-            PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
-            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
-            PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
-        ]
 
     def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate pulse calibration defaults as specified with `self._calibrate_instructions`.
