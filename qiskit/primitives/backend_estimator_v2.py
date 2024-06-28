@@ -72,7 +72,7 @@ class _PreprocessedData:
 
 
 class BackendEstimatorV2(BaseEstimatorV2):
-    """Evaluates expectation values for provided quantum circuit and observable combinations
+    r"""Evaluates expectation values for provided quantum circuit and observable combinations
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
@@ -265,7 +265,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             for pauli, coeff in bc_obs[index].items():
                 expval, variance = expval_map[param_index, pauli]
                 evs[index] += expval * coeff
-                variances[index] += coeff * variance**0.5
+                variances[index] += np.abs(coeff) * variance**0.5
         stds = variances / np.sqrt(shots)
         data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
         return PubResult(data_bin, metadata={"target_precision": pub.precision})
