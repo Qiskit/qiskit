@@ -24,7 +24,7 @@ use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
 use hashbrown::{HashMap, HashSet};
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyString};
 use pyo3::{prelude::*, types::IntoPyDict};
 
 use rustworkx_core::petgraph::{
@@ -78,17 +78,11 @@ impl Key {
         slf.to_string()
     }
 
-    fn __getstate__(slf: PyRef<Self>) -> (String, u32) {
-        (slf.name.clone(), slf.num_qubits)
-    }
-
-    fn __getnewargs__(slf: PyRef<Self>) -> (String, u32) {
-        Key::__getstate__(slf)
-    }
-
-    fn __setstate__(mut slf: PyRefMut<Self>, state: (String, u32)) {
-        slf.name = state.0;
-        slf.num_qubits = state.1;
+    fn __getnewargs__(slf: PyRef<Self>) -> (Bound<PyString>, u32) {
+        (
+            PyString::new_bound(slf.py(), slf.name.as_str()),
+            slf.num_qubits,
+        )
     }
 }
 
@@ -127,17 +121,8 @@ impl Equivalence {
         self.eq(&other)
     }
 
-    fn __getstate__(&self, py: Python) -> (PyObject, PyObject) {
-        (self.params.to_object(py), self.circuit.object.clone_ref(py))
-    }
-
     fn __getnewargs__(&self, py: Python) -> (PyObject, PyObject) {
-        self.__getstate__(py)
-    }
-
-    fn __setstate__(mut slf: PyRefMut<Self>, state: (SmallVec<[Param; 3]>, CircuitRep)) {
-        slf.params = state.0;
-        slf.circuit = state.1;
+        (self.params.to_object(py), self.circuit.object.clone_ref(py))
     }
 }
 
@@ -177,17 +162,8 @@ impl NodeData {
         self.eq(&other)
     }
 
-    fn __getstate__(&self) -> (Key, Vec<Equivalence>) {
-        (self.key.clone(), self.equivs.clone())
-    }
-
     fn __getnewargs__(&self) -> (Key, Vec<Equivalence>) {
-        self.__getstate__()
-    }
-
-    fn __setstate__(mut slf: PyRefMut<Self>, state: (Key, Vec<Equivalence>)) {
-        slf.key = state.0;
-        slf.equivs = state.1;
+        (self.key.clone(), self.equivs.clone())
     }
 }
 
@@ -236,15 +212,6 @@ impl EdgeData {
         self.eq(&other)
     }
 
-    fn __getstate__(slf: PyRef<Self>) -> (usize, usize, Equivalence, Key) {
-        (
-            slf.index,
-            slf.num_gates,
-            slf.rule.clone(),
-            slf.source.clone(),
-        )
-    }
-
     fn __getnewargs__(slf: PyRef<Self>) -> (usize, usize, Equivalence, Key) {
         (
             slf.index,
@@ -252,13 +219,6 @@ impl EdgeData {
             slf.rule.clone(),
             slf.source.clone(),
         )
-    }
-
-    fn __setstate__(mut slf: PyRefMut<Self>, state: (usize, usize, Equivalence, Key)) {
-        slf.index = state.0;
-        slf.num_gates = state.1;
-        slf.rule = state.2;
-        slf.source = state.3;
     }
 }
 
