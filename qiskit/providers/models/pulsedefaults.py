@@ -12,6 +12,7 @@
 
 
 """Model and schema for pulse defaults."""
+import warnings
 from typing import Any, Dict, List
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, PulseQobjDef
@@ -282,10 +283,12 @@ class PulseDefaults:
         in_data = {}
         for key, value in data.items():
             if key in schema:
-                if isinstance(value, list):
-                    in_data[key] = list(map(schema[key].from_dict, value))
-                else:
-                    in_data[key] = schema[key].from_dict(value)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=DeprecationWarning)
+                    if isinstance(value, list):
+                        in_data[key] = list(map(schema[key].from_dict, value))
+                    else:
+                        in_data[key] = schema[key].from_dict(value)
             else:
                 in_data[key] = value
 

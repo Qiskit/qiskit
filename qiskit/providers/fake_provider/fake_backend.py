@@ -120,6 +120,9 @@ class FakeBackend(BackendV1):
 
     @classmethod
     def _default_options(cls):
+        # with warnings.catch_warnings():
+        # Remove this
+        # warnings.simplefilter("ignore", category=DeprecationWarning)
         if _optionals.HAS_AER:
             from qiskit_aer import QasmSimulator
 
