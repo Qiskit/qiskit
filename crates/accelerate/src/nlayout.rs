@@ -107,8 +107,8 @@ impl NLayout {
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            virt_to_phys: vec![PhysicalQubit(std::u32::MAX); virtual_qubits],
-            phys_to_virt: vec![VirtualQubit(std::u32::MAX); physical_qubits],
+            virt_to_phys: vec![PhysicalQubit(u32::MAX); virtual_qubits],
+            phys_to_virt: vec![VirtualQubit(u32::MAX); physical_qubits],
         };
         for (virt, phys) in qubit_indices {
             res.virt_to_phys[virt.index()] = phys;
@@ -184,7 +184,7 @@ impl NLayout {
 
     #[staticmethod]
     pub fn from_virtual_to_physical(virt_to_phys: Vec<PhysicalQubit>) -> PyResult<Self> {
-        let mut phys_to_virt = vec![VirtualQubit(std::u32::MAX); virt_to_phys.len()];
+        let mut phys_to_virt = vec![VirtualQubit(u32::MAX); virt_to_phys.len()];
         for (virt, phys) in virt_to_phys.iter().enumerate() {
             phys_to_virt[phys.index()] = VirtualQubit(virt.try_into()?);
         }

@@ -199,6 +199,8 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CRXGate
+
     def __init__(
         self,
         theta: ParameterValueType,
