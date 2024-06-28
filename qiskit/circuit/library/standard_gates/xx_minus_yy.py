@@ -27,6 +27,7 @@ from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class XXMinusYYGate(Gate):
@@ -90,6 +91,8 @@ class XXMinusYYGate(Gate):
                 -i\sin\left(\rotationangle\right)e^{-i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.XXMinusYYGate
 
     def __init__(
         self,
@@ -169,8 +172,10 @@ class XXMinusYYGate(Gate):
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Gate matrix."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, beta = self.params
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -184,8 +189,7 @@ class XXMinusYYGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, beta = self.params
         return XXMinusYYGate(exponent * theta, beta)
 

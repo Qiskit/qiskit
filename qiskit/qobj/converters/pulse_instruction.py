@@ -89,7 +89,7 @@ class InstructionToQobjConverter:
     The transfer layer format must be the text representation that coforms to
     the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
     Extention to the OpenPulse can be achieved by subclassing this this with
-    extra methods corresponding to each augumented instruction. For example,
+    extra methods corresponding to each augmented instruction. For example,
 
     .. code-block:: python
 
@@ -234,7 +234,7 @@ class InstructionToQobjConverter:
             "name": "setf",
             "t0": time_offset + instruction.start_time,
             "ch": instruction.channel.name,
-            "frequency": instruction.frequency / 1e9,
+            "frequency": instruction.frequency / 10**9,
         }
         return self._qobj_model(**command_dict)
 
@@ -257,7 +257,7 @@ class InstructionToQobjConverter:
             "name": "shiftf",
             "t0": time_offset + instruction.start_time,
             "ch": instruction.channel.name,
-            "frequency": instruction.frequency / 1e9,
+            "frequency": instruction.frequency / 10**9,
         }
         return self._qobj_model(**command_dict)
 
@@ -503,7 +503,7 @@ class QobjToInstructionConverter:
     The transfer layer format must be the text representation that coforms to
     the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
     Extention to the OpenPulse can be achieved by subclassing this this with
-    extra methods corresponding to each augumented instruction. For example,
+    extra methods corresponding to each augmented instruction. For example,
 
     .. code-block:: python
 
@@ -621,7 +621,7 @@ class QobjToInstructionConverter:
             elif prefix == channels.ControlChannel.prefix:
                 return channels.ControlChannel(index)
 
-        raise QiskitError("Channel %s is not valid" % channel)
+        raise QiskitError(f"Channel {channel} is not valid")
 
     @staticmethod
     def disassemble_value(value_expr: Union[float, str]) -> Union[float, ParameterExpression]:
@@ -746,7 +746,7 @@ class QobjToInstructionConverter:
         .. note::
 
             We assume frequency value is expressed in string with "GHz".
-            Operand value is thus scaled by a factor of 1e9.
+            Operand value is thus scaled by a factor of 10^9.
 
         Args:
             instruction: SetFrequency qobj instruction
@@ -755,7 +755,7 @@ class QobjToInstructionConverter:
             Qiskit Pulse set frequency instructions
         """
         channel = self.get_channel(instruction.ch)
-        frequency = self.disassemble_value(instruction.frequency) * 1e9
+        frequency = self.disassemble_value(instruction.frequency) * 10**9
 
         yield instructions.SetFrequency(frequency, channel)
 
@@ -768,7 +768,7 @@ class QobjToInstructionConverter:
         .. note::
 
             We assume frequency value is expressed in string with "GHz".
-            Operand value is thus scaled by a factor of 1e9.
+            Operand value is thus scaled by a factor of 10^9.
 
         Args:
             instruction: ShiftFrequency qobj instruction
@@ -777,7 +777,7 @@ class QobjToInstructionConverter:
             Qiskit Pulse shift frequency schedule instructions
         """
         channel = self.get_channel(instruction.ch)
-        frequency = self.disassemble_value(instruction.frequency) * 1e9
+        frequency = self.disassemble_value(instruction.frequency) * 10**9
 
         yield instructions.ShiftFrequency(frequency, channel)
 
@@ -827,9 +827,7 @@ class QobjToInstructionConverter:
             pulse_name = instruction.label
         except AttributeError:
             sorted_params = sorted(instruction.parameters.items(), key=lambda x: x[0])
-            base_str = "{pulse}_{params}".format(
-                pulse=instruction.pulse_shape, params=str(sorted_params)
-            )
+            base_str = f"{instruction.pulse_shape}_{str(sorted_params)}"
             short_pulse_id = hashlib.md5(base_str.encode("utf-8")).hexdigest()[:4]
             pulse_name = f"{instruction.pulse_shape}_{short_pulse_id}"
         params = dict(instruction.parameters)

@@ -11,21 +11,10 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::PySlice;
 
 use faer_ext::IntoFaerComplex;
 use num_complex::Complex;
 use numpy::{IntoPyArray, PyReadonlyArray2};
-
-/// A private enumeration type used to extract arguments to pymethod
-/// that may be either an index or a slice
-#[derive(FromPyObject)]
-pub enum SliceOrInt<'a> {
-    // The order here defines the order the variants are tried in the FromPyObject` derivation.
-    // `Int` is _much_ more common, so that should be first.
-    Int(isize),
-    Slice(Bound<'a, PySlice>),
-}
 
 /// Return indices that sort partially ordered data.
 /// If `data` contains two elements that are incomparable,

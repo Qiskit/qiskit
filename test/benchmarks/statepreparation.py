@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023
+# (C) Copyright IBM 2024
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,26 +14,23 @@
 # pylint: disable=attribute-defined-outside-init
 # pylint: disable=unused-argument
 
+import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit.library.generalized_gates import Isometry
+from qiskit.circuit.library.data_preparation import StatePreparation
 
 
-class IsometryTranspileBench:
-    params = ([0, 1, 2, 3], [3, 4, 5, 6])
-    param_names = ["number of input qubits", "number of output qubits"]
+class StatePreparationTranspileBench:
+    params = [4, 5, 6, 7, 8]
+    param_names = ["number of qubits in state"]
 
-    def setup(self, m, n):
+    def setup(self, n):
         q = QuantumRegister(n)
         qc = QuantumCircuit(q)
-        if not hasattr(qc, "iso"):
-            raise NotImplementedError
-        iso = random_unitary(2**n, seed=0).data[:, 0 : 2**m]
-        if len(iso.shape) == 1:
-            iso = iso.reshape((len(iso), 1))
-        iso_gate = Isometry(iso, 0, 0)
-        qc.append(iso_gate, q)
+        state = np.random.rand(2**n) + np.random.rand(2**n) * 1j
+        state = state / np.linalg.norm(state)
+        state_gate = StatePreparation(state)
+        qc.append(state_gate, q)
 
         self.circuit = qc
 

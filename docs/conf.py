@@ -30,9 +30,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.1"
+version = "1.2"
 # The full version, including alpha/beta/rc tags
-release = "1.1.0"
+release = "1.2.0"
 
 language = "en"
 
@@ -114,9 +114,9 @@ autoclass_content = "both"
 autosummary_generate = True
 autosummary_generate_overwrite = False
 
-# The pulse library contains some names that differ only in capitalisation, during the changeover
+# The pulse library contains some names that differ only in capitalization, during the changeover
 # surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
-# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# capitalization, this causes problems when the documentation is built on an OS/filesystem that is
 # enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
 # from happening.
 autosummary_filename_map = {
@@ -178,7 +178,7 @@ def linkcode_resolve(domain, info):
     if "qiskit" not in module_name:
         return None
 
-    try: 
+    try:
         module = importlib.import_module(module_name)
     except ModuleNotFoundError:
         return None

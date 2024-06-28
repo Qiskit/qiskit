@@ -14,40 +14,40 @@
 
 """Tests for Pauli operator class."""
 
+import itertools as it
 import re
 import unittest
-import itertools as it
 from functools import lru_cache
+from test import QiskitTestCase, combine
+
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Qubit
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (
+    CXGate,
+    CYGate,
+    CZGate,
+    ECRGate,
+    EfficientSU2,
+    HGate,
     IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
     XGate,
     YGate,
     ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CZGate,
-    CYGate,
-    SwapGate,
-    EfficientSU2,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.compiler.transpiler import transpile
-from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import BackendEstimator
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.quantum_info.operators import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.operators import Pauli, Operator, SparsePauliOp
 from qiskit.utils import optionals
-
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-
 
 LABEL_REGEX = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
 PHASE_MAP = {"": 0, "-i": 1, "-": 2, "i": 3}
@@ -410,7 +410,11 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
-    @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()), pauli_group_labels(2, False)))
+    @data(
+        *it.product(
+            (CXGate(), CYGate(), CZGate(), SwapGate(), ECRGate()), pauli_group_labels(2, False)
+        )
+    )
     @unpack
     def test_evolve_clifford2(self, gate, label):
         """Test evolve method for 2-qubit Clifford gates."""
@@ -439,6 +443,7 @@ class TestPauli(QiskitTestCase):
                 CYGate(),
                 CZGate(),
                 SwapGate(),
+                ECRGate(),
             ),
             [int, np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
         )
@@ -467,6 +472,13 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
+
+    @data("s", "h")
+    def test_evolve_with_misleading_name(self, frame):
+        """Test evolve by circuit contents, not by name (fixed bug)."""
+        circ = QuantumCircuit(2, name="cx")
+        p = Pauli("IX")
+        self.assertEqual(p, p.evolve(circ, frame=frame))
 
     def test_barrier_delay_sim(self):
         """Test barrier and delay instructions can be simulated"""
@@ -592,6 +604,25 @@ class TestPauli(QiskitTestCase):
         op = Pauli("IZ")
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=None, num_qubits=1)
+
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
+    @combine(phase=["", "-i", "-", "i"], layout=[None, []])
+    def test_apply_layout_zero_qubit(self, phase, layout):
+        """Test apply_layout with a zero-qubit operator"""
+        op = Pauli(phase)
+        res = op.apply_layout(layout=layout, num_qubits=5)
+        self.assertEqual(Pauli(phase + "IIIII"), res)
 
 
 if __name__ == "__main__":
