@@ -211,6 +211,7 @@ class QiskitTestCase(BaseQiskitTestCase):
         # macOS ARM, we see some (we think harmless) warnings come out of `numpy.linalg._linalg` (a
         # now-private module) during transpilation, which means that subsequent `assertWarns` calls
         # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
+        # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
