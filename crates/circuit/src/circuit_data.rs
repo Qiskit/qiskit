@@ -18,7 +18,7 @@ use crate::circuit_instruction::{
     convert_py_to_operation_type, CircuitInstruction, ExtraInstructionAttributes, OperationInput,
     PackedInstruction,
 };
-use crate::imports::{BUILTIN_LIST, QUBIT};
+use crate::imports::{BUILTIN_LIST, DEEPCOPY, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
 use crate::operations::{Operation, OperationType, Param, StandardGate};
 use crate::parameter_table::{ParamEntry, ParamTable, GLOBAL_PHASE_INDEX};
@@ -487,20 +487,17 @@ impl CircuitData {
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
-            let deepcopy = py
-                .import_bound(intern!(py, "copy"))?
-                .getattr(intern!(py, "deepcopy"))?;
             for inst in &mut res.data {
                 match &mut inst.op {
                     OperationType::Standard(_) => {}
                     OperationType::Gate(ref mut op) => {
-                        op.gate = deepcopy.call1((&op.gate,))?.unbind();
+                        op.gate = DEEPCOPY.get_bound(py).call1((&op.gate,))?.unbind();
                     }
                     OperationType::Instruction(ref mut op) => {
-                        op.instruction = deepcopy.call1((&op.instruction,))?.unbind();
+                        op.instruction = DEEPCOPY.get_bound(py).call1((&op.instruction,))?.unbind();
                     }
                     OperationType::Operation(ref mut op) => {
-                        op.operation = deepcopy.call1((&op.operation,))?.unbind();
+                        op.operation = DEEPCOPY.get_bound(py).call1((&op.operation,))?.unbind();
                     }
                 };
                 #[cfg(feature = "cache_pygates")]
