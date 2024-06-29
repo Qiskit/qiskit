@@ -472,16 +472,6 @@ class BitArray(ShapedMixin):
             before applying post-selection. This is done because :class:`~BitArray` cannot handle
             ragged numbers of shots across axes.
 
-        .. note::
-
-            The convention used by this method is that the index ``0`` corresponds to
-            the least-significant bit in the :attr:`~array`, or equivalently
-            the right-most bitstring entry as returned by
-            :meth:`~get_counts` or :meth:`~get_bitstrings`, etc.
-
-            If this bit array was produced by a sampler, then an index ``i`` corresponds to the
-            :class:`~.ClassicalRegister` location ``creg[i]``.
-
         Args:
             indices: A list of the indices of the cbits on which to postselect.
                 This matches the indexing used by BitArray.slice_bits().
