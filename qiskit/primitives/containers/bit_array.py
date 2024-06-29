@@ -468,28 +468,29 @@ class BitArray(ShapedMixin):
         """Post-select this bit array based on sliced equality with a given bitstring.
 
         .. note::
-            If this bit array contains any shape axes, it is first flattened into a long list of shots before 
-            applying post-selection. This is done because :class:`~BitArray` cannot handle ragged
-            numbers of shots across axes.
+            If this bit array contains any shape axes, it is first flattened into a long list of shots
+            before applying post-selection. This is done because :class:`~BitArray` cannot handle
+            ragged numbers of shots across axes.
 
-        .. note:: 
-    
-            The convention used by this method is that the index ``0`` corresponds to 
-            the least-significant bit in the :attr:`~array`, or equivalently 
-            the right-most bitstring entry as returned by 
-            :meth:`~get_counts` or :meth:`~get_bitstrings`, etc. 
+        .. note::
 
-            If this bit array was produced by a sampler, then an index ``i`` corresponds to the 
-            :class:`~.ClassicalRegister` location ``creg[i]``. 
+            The convention used by this method is that the index ``0`` corresponds to
+            the least-significant bit in the :attr:`~array`, or equivalently
+            the right-most bitstring entry as returned by
+            :meth:`~get_counts` or :meth:`~get_bitstrings`, etc.
+
+            If this bit array was produced by a sampler, then an index ``i`` corresponds to the
+            :class:`~.ClassicalRegister` location ``creg[i]``.
 
         Args:
             indices: A list of the indices of the cbits on which to postselect.
                 This matches the indexing used by BitArray.slice_bits().
-                If this bit array was produced by a sampler, then an index ``i`` corresponds to the 
-                :class:`~.ClassicalRegister` location ``creg[i]``. 
+                If this bit array was produced by a sampler, then an index ``i`` corresponds to the
+                :class:`~.ClassicalRegister` location ``creg[i]``.
 
-            selection: A list of bools of length matching ``indices``, with `indices[i]` corresponding to `selection[i]`. 
-                Shots will be discarded unless all cbits specified by `indices` have the values given by `selection`.
+            selection: A list of bools of length matching ``indices``, with `indices[i]` corresponding
+              to `selection[i]`. Shots will be discarded unless all cbits specified by `indices` have
+              the values given by `selection`.
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
@@ -499,9 +500,9 @@ class BitArray(ShapedMixin):
             ValueError: If the lengths of ``selection`` and ``indices`` do not match.
         """
 
-        selection = BitArray.from_bool_array([selection], order='little')
+        selection = BitArray.from_bool_array([selection], order="little")
 
-        flattened = self.reshape((), self.size*self.num_shots)
+        flattened = self.reshape((), self.size * self.num_shots)
 
         return flattened[(flattened.slice_bits(indices).array == selection.array).all(axis=-1)]
 
