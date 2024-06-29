@@ -33,12 +33,9 @@ use qiskit_circuit::operations::Param;
 #[pyo3(signature = (clifford))]
 fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
     let tableau = clifford.as_array();
-    let mut greedy_synthesis = GreedyCliffordSynthesis::new(tableau.view()).map_err(|_| {
-        QiskitError::new_err("Clifford greedy synthesis did not initialize successfully.")
-    })?;
-    let (num_qubits, clifford_gates) = greedy_synthesis
-        .run()
-        .map_err(|_| QiskitError::new_err("Clifford greedy synthesis failed."))?;
+    let mut greedy_synthesis =
+        GreedyCliffordSynthesis::new(tableau.view()).map_err(QiskitError::new_err)?;
+    let (num_qubits, clifford_gates) = greedy_synthesis.run().map_err(QiskitError::new_err)?;
 
     CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
