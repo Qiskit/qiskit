@@ -19,6 +19,7 @@ use pyo3::wrap_pymodule;
 
 #[pymodule]
 pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pymodule!(linear::linear))?;
     m.add_wrapped(wrap_pymodule!(permutation::permutation))?;
     m.add_wrapped(wrap_pymodule!(clifford::clifford))?;
     Ok(())

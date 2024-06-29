@@ -20,7 +20,7 @@ Circuit synthesis for the Clifford class.
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Clifford
 
-from qiskit._accelerate.clifford import synth_clifford_greedy as synth_clifford_greedy_inner
+from qiskit._accelerate.synthesis.clifford import synth_clifford_greedy as synth_clifford_greedy_inner
 
 
 def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
