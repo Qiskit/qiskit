@@ -274,6 +274,8 @@ class StarPreRouting(TransformationPass):
         else:
             self.property_set["virtual_permutation_layout"] = new_layout
 
+        self.property_set["stars_prerouted"] = True
+
         return new_dag
 
     def determine_star_blocks_processing(

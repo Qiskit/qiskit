@@ -938,10 +938,56 @@ class TestFinalLayouts(QiskitTestCase):
             19: ancilla[14],
         }
 
+        star_pre_routing_lvl3 = {
+            6: qr[0],
+            11: qr[1],
+            5: qr[4],
+            1: qr[2],
+            2: qr[3],
+            0: ancilla[0],
+            3: ancilla[1],
+            4: ancilla[2],
+            7: ancilla[3],
+            8: ancilla[4],
+            9: ancilla[5],
+            10: ancilla[6],
+            12: ancilla[7],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
+        }
+
+        star_pre_routing_lvl2 = {
+            0: qr[1],
+            1: qr[0],
+            2: qr[2],
+            3: ancilla[0],
+            4: ancilla[1],
+            5: qr[4],
+            6: qr[3],
+            7: ancilla[2],
+            8: ancilla[3],
+            9: ancilla[4],
+            10: ancilla[5],
+            11: ancilla[6],
+            12: ancilla[7],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
+        }
+
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout
-        expected_layout_level3 = sabre_layout
+        expected_layout_level2 = star_pre_routing_lvl2
+        expected_layout_level3 = star_pre_routing_lvl3
 
         expected_layouts = [
             expected_layout_level0,
@@ -951,6 +997,7 @@ class TestFinalLayouts(QiskitTestCase):
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+
         self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
@@ -991,6 +1038,7 @@ class TestFinalLayouts(QiskitTestCase):
             18: Qubit(QuantumRegister(20, "q"), 18),
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
+
         trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(trans_qc._layout.initial_layout._p2v, expected)
 
