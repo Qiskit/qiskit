@@ -18,7 +18,8 @@ use crate::synthesis::linear::utils::calc_inverse_matrix_inner;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 
-/// Symplectic matrices.
+/// Symplectic matrix.
+/// Currently this class is internal to the greedy synthesis algorithm.
 struct SymplecticMatrix {
     /// Number of qubits.
     num_qubits: usize,
@@ -26,7 +27,10 @@ struct SymplecticMatrix {
     smat: Array2<bool>,
 }
 
-/// Cliffords.
+/// Clifford.
+/// Currently this class is internal to the greedy synthesis algorithm
+/// and has a very different functionality from Qiskit's python-based
+/// Clifford class.
 struct Clifford {
     /// Number of qubits.
     num_qubits: usize,
@@ -191,7 +195,10 @@ impl Clifford {
     /// Creates a Clifford from a given sequence of Clifford gates.
     /// In essence, starts from the identity tableau and modifies it
     /// based on the gates in the sequence.
-    fn from_gate_sequence(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Clifford {
+    fn from_gate_sequence(
+        gate_seq: &CliffordGatesVec,
+        num_qubits: usize,
+    ) -> Result<Clifford, String> {
         // create the identity
         let mut clifford = Clifford {
             num_qubits,
@@ -200,18 +207,28 @@ impl Clifford {
 
         gate_seq
             .iter()
-            .for_each(|(gate, _params, qubits)| match *gate {
-                StandardGate::SGate => clifford.append_s(qubits[0].0 as usize),
-                StandardGate::HGate => clifford.append_h(qubits[0].0 as usize),
+            .try_for_each(|(gate, _params, qubits)| match *gate {
+                StandardGate::SGate => {
+                    clifford.append_s(qubits[0].0 as usize);
+                    Ok(())
+                }
+                StandardGate::HGate => {
+                    clifford.append_h(qubits[0].0 as usize);
+                    Ok(())
+                }
                 StandardGate::CXGate => {
-                    clifford.append_cx(qubits[0].0 as usize, qubits[1].0 as usize)
+                    clifford.append_cx(qubits[0].0 as usize, qubits[1].0 as usize);
+                    Ok(())
                 }
                 StandardGate::SwapGate => {
-                    clifford.append_swap(qubits[0].0 as usize, qubits[1].0 as usize)
+                    clifford.append_swap(qubits[0].0 as usize, qubits[1].0 as usize);
+                    Ok(())
                 }
-                _ => panic!("We should never get here!"),
-            });
-        clifford
+                _ => {
+                    Err(format!("Unsupported gate {:?}", gate))
+                }
+            })?;
+        Ok(clifford)
     }
 }
 
@@ -612,7 +629,6 @@ impl GreedyCliffordSynthesis<'_> {
         let mut clifford_gates = CliffordGatesVec::new();
 
         while !self.unprocessed_qubits.is_empty() {
-            // todo: handle panic! in unwrap
             let costs: Vec<(usize, usize)> = self
                 .unprocessed_qubits
                 .iter()
@@ -641,7 +657,7 @@ fn adjust_final_pauli_gates(
     num_qubits: usize,
 ) -> Result<(), String> {
     // simulate the clifford circuit that we have constructed
-    let simulated_clifford = Clifford::from_gate_sequence(gate_seq, num_qubits);
+    let simulated_clifford = Clifford::from_gate_sequence(gate_seq, num_qubits)?;
 
     // compute the phase difference
     let target_phase = target_tableau.column(2 * num_qubits);
