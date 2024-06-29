@@ -74,7 +74,7 @@ class RXXGate(Gate):
     """
 
     _standard_gate = StandardGate.RXXGate
-    
+
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):

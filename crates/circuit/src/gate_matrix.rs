@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use num_complex::Complex64;
-use numpy::npyffi::npy_half;
 use std::f64::consts::FRAC_1_SQRT_2;
 
 // num-complex exposes an equivalent function but it's not a const function

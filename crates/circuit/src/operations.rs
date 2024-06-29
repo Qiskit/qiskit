@@ -1013,9 +1013,9 @@ impl Operation for StandardGate {
                             (Self::HGate, smallvec![], q1.clone()),
                             (Self::CXGate, smallvec![], q0_q1.clone()),
                             (Self::RZGate, smallvec![theta.clone()], q1.clone()),
-                            (Self::CXGate, smallvec![], q0_q1.clone()),
-                            (Self::HGate, smallvec![], q1.clone()),
-                            (Self::HGate, smallvec![], q0.clone()),
+                            (Self::CXGate, smallvec![], q0_q1),
+                            (Self::HGate, smallvec![], q1),
+                            (Self::HGate, smallvec![], q0),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1036,9 +1036,9 @@ impl Operation for StandardGate {
                             (Self::RXGate, smallvec![Param::Float(PI2)], q1.clone()),
                             (Self::CXGate, smallvec![], q0_q1.clone()),
                             (Self::RZGate, smallvec![theta.clone()], q1.clone()),
-                            (Self::CXGate, smallvec![], q0_q1.clone()),
-                            (Self::RXGate, smallvec![Param::Float(-PI2)], q0.clone()),
-                            (Self::RXGate, smallvec![Param::Float(-PI2)], q1.clone()),
+                            (Self::CXGate, smallvec![], q0_q1),
+                            (Self::RXGate, smallvec![Param::Float(-PI2)], q0),
+                            (Self::RXGate, smallvec![Param::Float(-PI2)], q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1055,8 +1055,8 @@ impl Operation for StandardGate {
                         2,
                         [
                             (Self::CXGate, smallvec![], q0_q1.clone()),
-                            (Self::RZGate, smallvec![theta.clone()], q1.clone()),
-                            (Self::CXGate, smallvec![], q0_q1.clone()),
+                            (Self::RZGate, smallvec![theta.clone()], q1),
+                            (Self::CXGate, smallvec![], q0_q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1075,8 +1075,8 @@ impl Operation for StandardGate {
                             (Self::HGate, smallvec![], q1.clone()),
                             (Self::CXGate, smallvec![], q0_q1.clone()),
                             (Self::RZGate, smallvec![theta.clone()], q1.clone()),
-                            (Self::CXGate, smallvec![], q0_q1.clone()),
-                            (Self::HGate, smallvec![], q1.clone()),
+                            (Self::CXGate, smallvec![], q0_q1),
+                            (Self::HGate, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
