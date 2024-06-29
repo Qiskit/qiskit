@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use num_complex::Complex64;
+use numpy::npyffi::npy_half;
 use std::f64::consts::FRAC_1_SQRT_2;
 
 // num-complex exposes an equivalent function but it's not a const function
@@ -329,5 +330,65 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
             c64(0., 0.),
         ],
         [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
+    ]
+}
+
+#[inline]
+pub fn rxx_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let ccos = c64(cost, 0.);
+    let csinm = c64(0., -sint);
+    let c0 = c64(0., 0.);
+
+    [
+        [ccos, c0, c0, csinm],
+        [c0, ccos, csinm, c0],
+        [c0, csinm, ccos, c0],
+        [csinm, c0, c0, ccos],
+    ]
+}
+
+#[inline]
+pub fn ryy_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let ccos = c64(cost, 0.);
+    let csin = c64(0., sint);
+    let c0 = c64(0., 0.);
+
+    [
+        [ccos, c0, c0, csin],
+        [c0, ccos, -csin, c0],
+        [c0, -csin, ccos, c0],
+        [csin, c0, c0, ccos],
+    ]
+}
+
+#[inline]
+pub fn rzz_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let c0 = c64(0., 0.);
+    let exp_it2 = c64(cost, sint);
+    let exp_mit2 = c64(cost, -sint);
+
+    [
+        [exp_mit2, c0, c0, c0],
+        [c0, exp_it2, c0, c0],
+        [c0, c0, exp_it2, c0],
+        [c0, c0, c0, exp_mit2],
+    ]
+}
+
+#[inline]
+pub fn rzx_gate(theta: f64) -> [[Complex64; 4]; 4] {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let ccos = c64(cost, 0.);
+    let csin = c64(0., sint);
+    let c0 = c64(0., 0.);
+
+    [
+        [ccos, c0, -csin, c0],
+        [c0, ccos, c0, csin],
+        [-csin, c0, ccos, c0],
+        [c0, csin, c0, ccos],
     ]
 }
