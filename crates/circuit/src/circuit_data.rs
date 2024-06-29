@@ -10,10 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "cache_pygates")]
+use std::cell::RefCell;
+
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{
-    convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction,
-    ExtraInstructionAttributes, OperationInput, PackedInstruction,
+    convert_py_to_operation_type, CircuitInstruction, ExtraInstructionAttributes, OperationInput,
+    PackedInstruction,
 };
 use crate::imports::{BUILTIN_LIST, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
@@ -489,66 +492,40 @@ impl CircuitData {
                 .getattr(intern!(py, "deepcopy"))?;
             for inst in &mut res.data {
                 match &mut inst.op {
-                    OperationType::Standard(_) => {
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
-                    }
+                    OperationType::Standard(_) => {}
                     OperationType::Gate(ref mut op) => {
                         op.gate = deepcopy.call1((&op.gate,))?.unbind();
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
                     }
                     OperationType::Instruction(ref mut op) => {
                         op.instruction = deepcopy.call1((&op.instruction,))?.unbind();
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
                     }
                     OperationType::Operation(ref mut op) => {
                         op.operation = deepcopy.call1((&op.operation,))?.unbind();
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
                     }
                 };
+                #[cfg(feature = "cache_pygates")]
+                {
+                    *inst.py_op.borrow_mut() = None;
+                }
             }
         } else if copy_instructions {
             for inst in &mut res.data {
                 match &mut inst.op {
-                    OperationType::Standard(_) => {
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
-                    }
+                    OperationType::Standard(_) => {}
                     OperationType::Gate(ref mut op) => {
                         op.gate = op.gate.call_method0(py, intern!(py, "copy"))?;
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
                     }
                     OperationType::Instruction(ref mut op) => {
                         op.instruction = op.instruction.call_method0(py, intern!(py, "copy"))?;
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
                     }
                     OperationType::Operation(ref mut op) => {
                         op.operation = op.operation.call_method0(py, intern!(py, "copy"))?;
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            inst.py_op = None;
-                        }
                     }
                 };
+                #[cfg(feature = "cache_pygates")]
+                {
+                    *inst.py_op.borrow_mut() = None;
+                }
             }
         }
         Ok(res)
@@ -589,87 +566,10 @@ impl CircuitData {
     /// Args:
     ///     func (Callable[[:class:`~.Operation`], None]):
     ///         The callable to invoke.
-    #[cfg(not(feature = "cache_pygates"))]
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
-            let label;
-            let duration;
-            let unit;
-            let condition;
-            match &inst.extra_attrs {
-                Some(extra_attrs) => {
-                    label = &extra_attrs.label;
-                    duration = &extra_attrs.duration;
-                    unit = &extra_attrs.unit;
-                    condition = &extra_attrs.condition;
-                }
-                None => {
-                    label = &None;
-                    duration = &None;
-                    unit = &None;
-                    condition = &None;
-                }
-            }
-
-            let op = operation_type_and_data_to_py(
-                py,
-                &inst.op,
-                &inst.params,
-                label,
-                duration,
-                unit,
-                condition,
-            )?;
-            func.call1((op,))?;
-        }
-        Ok(())
-    }
-
-    /// Invokes callable ``func`` with each instruction's operation.
-    ///
-    /// Args:
-    ///     func (Callable[[:class:`~.Operation`], None]):
-    ///         The callable to invoke.
-    #[cfg(feature = "cache_pygates")]
-    #[pyo3(signature = (func))]
-    pub fn foreach_op(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
-        for inst in self.data.iter_mut() {
-            let op = match &inst.py_op {
-                Some(op) => op.clone_ref(py),
-                None => {
-                    let label;
-                    let duration;
-                    let unit;
-                    let condition;
-                    match &inst.extra_attrs {
-                        Some(extra_attrs) => {
-                            label = &extra_attrs.label;
-                            duration = &extra_attrs.duration;
-                            unit = &extra_attrs.unit;
-                            condition = &extra_attrs.condition;
-                        }
-                        None => {
-                            label = &None;
-                            duration = &None;
-                            unit = &None;
-                            condition = &None;
-                        }
-                    }
-                    let new_op = operation_type_and_data_to_py(
-                        py,
-                        &inst.op,
-                        &inst.params,
-                        label,
-                        duration,
-                        unit,
-                        condition,
-                    )?;
-                    inst.py_op = Some(new_op.clone_ref(py));
-                    new_op
-                }
-            };
-            func.call1((op,))?;
+            func.call1((inst.unpack_py_op(py)?,))?;
         }
         Ok(())
     }
@@ -680,88 +580,10 @@ impl CircuitData {
     /// Args:
     ///     func (Callable[[int, :class:`~.Operation`], None]):
     ///         The callable to invoke.
-    #[cfg(not(feature = "cache_pygates"))]
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
-            let label;
-            let duration;
-            let unit;
-            let condition;
-            match &inst.extra_attrs {
-                Some(extra_attrs) => {
-                    label = &extra_attrs.label;
-                    duration = &extra_attrs.duration;
-                    unit = &extra_attrs.unit;
-                    condition = &extra_attrs.condition;
-                }
-                None => {
-                    label = &None;
-                    duration = &None;
-                    unit = &None;
-                    condition = &None;
-                }
-            }
-
-            let op = operation_type_and_data_to_py(
-                py,
-                &inst.op,
-                &inst.params,
-                label,
-                duration,
-                unit,
-                condition,
-            )?;
-            func.call1((index, op))?;
-        }
-        Ok(())
-    }
-
-    /// Invokes callable ``func`` with the positional index and operation
-    /// of each instruction.
-    ///
-    /// Args:
-    ///     func (Callable[[int, :class:`~.Operation`], None]):
-    ///         The callable to invoke.
-    #[cfg(feature = "cache_pygates")]
-    #[pyo3(signature = (func))]
-    pub fn foreach_op_indexed(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
-        for (index, inst) in self.data.iter_mut().enumerate() {
-            let op = match &inst.py_op {
-                Some(op) => op.clone_ref(py),
-                None => {
-                    let label;
-                    let duration;
-                    let unit;
-                    let condition;
-                    match &inst.extra_attrs {
-                        Some(extra_attrs) => {
-                            label = &extra_attrs.label;
-                            duration = &extra_attrs.duration;
-                            unit = &extra_attrs.unit;
-                            condition = &extra_attrs.condition;
-                        }
-                        None => {
-                            label = &None;
-                            duration = &None;
-                            unit = &None;
-                            condition = &None;
-                        }
-                    }
-                    let new_op = operation_type_and_data_to_py(
-                        py,
-                        &inst.op,
-                        &inst.params,
-                        label,
-                        duration,
-                        unit,
-                        condition,
-                    )?;
-                    inst.py_op = Some(new_op.clone_ref(py));
-                    new_op
-                }
-            };
-            func.call1((index, op))?;
+            func.call1((index, inst.unpack_py_op(py)?))?;
         }
         Ok(())
     }
@@ -779,145 +601,23 @@ impl CircuitData {
     ///     func (Callable[[:class:`~.Operation`], :class:`~.Operation`]):
     ///         A callable used to map original operation to their
     ///         replacements.
-    #[cfg(not(feature = "cache_pygates"))]
     #[pyo3(signature = (func))]
     pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            let old_op = match &inst.op {
-                OperationType::Standard(op) => {
-                    let label;
-                    let duration;
-                    let unit;
-                    let condition;
-                    match &inst.extra_attrs {
-                        Some(extra_attrs) => {
-                            label = &extra_attrs.label;
-                            duration = &extra_attrs.duration;
-                            unit = &extra_attrs.unit;
-                            condition = &extra_attrs.condition;
-                        }
-                        None => {
-                            label = &None;
-                            duration = &None;
-                            unit = &None;
-                            condition = &None;
-                        }
+            let py_op = {
+                if let OperationType::Standard(op) = inst.op {
+                    match inst.extra_attrs.as_deref() {
+                        None
+                        | Some(ExtraInstructionAttributes {
+                            condition: None, ..
+                        }) => op.into_py(py),
+                        _ => inst.unpack_py_op(py)?,
                     }
-                    if condition.is_some() {
-                        operation_type_and_data_to_py(
-                            py,
-                            &inst.op,
-                            &inst.params,
-                            label,
-                            duration,
-                            unit,
-                            condition,
-                        )?
-                    } else {
-                        op.into_py(py)
-                    }
+                } else {
+                    inst.unpack_py_op(py)?
                 }
-                OperationType::Gate(op) => op.gate.clone_ref(py),
-                OperationType::Instruction(op) => op.instruction.clone_ref(py),
-                OperationType::Operation(op) => op.operation.clone_ref(py),
             };
-            let result: OperationInput = func.call1((old_op,))?.extract()?;
-            match result {
-                OperationInput::Standard(op) => {
-                    inst.op = OperationType::Standard(op);
-                }
-                OperationInput::Gate(op) => {
-                    inst.op = OperationType::Gate(op);
-                }
-                OperationInput::Instruction(op) => {
-                    inst.op = OperationType::Instruction(op);
-                }
-                OperationInput::Operation(op) => {
-                    inst.op = OperationType::Operation(op);
-                }
-                OperationInput::Object(new_op) => {
-                    let new_inst_details = convert_py_to_operation_type(py, new_op)?;
-                    inst.op = new_inst_details.operation;
-                    inst.params = new_inst_details.params;
-                    if new_inst_details.label.is_some()
-                        || new_inst_details.duration.is_some()
-                        || new_inst_details.unit.is_some()
-                        || new_inst_details.condition.is_some()
-                    {
-                        inst.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
-                            label: new_inst_details.label,
-                            duration: new_inst_details.duration,
-                            unit: new_inst_details.unit,
-                            condition: new_inst_details.condition,
-                        }))
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /// Invokes callable ``func`` with each instruction's operation,
-    /// replacing the operation with the result.
-    ///
-    /// .. note::
-    ///
-    ///     This is only to be used by map_vars() in quantumcircuit.py it
-    ///     assumes that a full Python instruction will only be returned from
-    ///     standard gates iff a condition is set.
-    ///
-    /// Args:
-    ///     func (Callable[[:class:`~.Operation`], :class:`~.Operation`]):
-    ///         A callable used to map original operation to their
-    ///         replacements.
-    #[cfg(feature = "cache_pygates")]
-    #[pyo3(signature = (func))]
-    pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
-        for inst in self.data.iter_mut() {
-            let old_op = match &inst.py_op {
-                Some(op) => op.clone_ref(py),
-                None => match &inst.op {
-                    OperationType::Standard(op) => {
-                        let label;
-                        let duration;
-                        let unit;
-                        let condition;
-                        match &inst.extra_attrs {
-                            Some(extra_attrs) => {
-                                label = &extra_attrs.label;
-                                duration = &extra_attrs.duration;
-                                unit = &extra_attrs.unit;
-                                condition = &extra_attrs.condition;
-                            }
-                            None => {
-                                label = &None;
-                                duration = &None;
-                                unit = &None;
-                                condition = &None;
-                            }
-                        }
-                        if condition.is_some() {
-                            let new_op = operation_type_and_data_to_py(
-                                py,
-                                &inst.op,
-                                &inst.params,
-                                label,
-                                duration,
-                                unit,
-                                condition,
-                            )?;
-                            inst.py_op = Some(new_op.clone_ref(py));
-                            new_op
-                        } else {
-                            op.into_py(py)
-                        }
-                    }
-                    OperationType::Gate(op) => op.gate.clone_ref(py),
-                    OperationType::Instruction(op) => op.instruction.clone_ref(py),
-                    OperationType::Operation(op) => op.operation.clone_ref(py),
-                },
-            };
-            let result: OperationInput = func.call1((old_op,))?.extract()?;
+            let result: OperationInput = func.call1((py_op,))?.extract()?;
             match result {
                 OperationInput::Standard(op) => {
                     inst.op = OperationType::Standard(op);
@@ -947,7 +647,10 @@ impl CircuitData {
                             condition: new_inst_details.condition,
                         }))
                     }
-                    inst.py_op = Some(new_op);
+                    #[cfg(feature = "cache_pygates")]
+                    {
+                        *inst.py_op.borrow_mut() = Some(new_op);
+                    }
                 }
             }
         }
@@ -1537,7 +1240,7 @@ impl CircuitData {
             params: inst.params.clone(),
             extra_attrs: inst.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op.clone(),
+            py_op: RefCell::new(inst.py_op.clone()),
         })
     }
 
@@ -1557,7 +1260,7 @@ impl CircuitData {
             params: inst.params.clone(),
             extra_attrs: inst.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op.clone(),
+            py_op: RefCell::new(inst.py_op.clone()),
         })
     }
 }

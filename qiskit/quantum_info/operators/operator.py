@@ -128,12 +128,9 @@ class Operator(LinearOp):
     def __repr__(self):
         prefix = "Operator("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(self.data, separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(self.data, separator=', ', prefix=prefix)},\n"
+            f"{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other):
@@ -763,10 +760,8 @@ class Operator(LinearOp):
                 raise QiskitError(f"Cannot apply Operation: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    'Operation "{}" '
-                    "definition is {} but expected QuantumCircuit.".format(
-                        obj.name, type(obj.definition)
-                    )
+                    f'Operation "{obj.name}" '
+                    f"definition is {type(obj.definition)} but expected QuantumCircuit."
                 )
             if obj.definition.global_phase:
                 dimension = 2**obj.num_qubits

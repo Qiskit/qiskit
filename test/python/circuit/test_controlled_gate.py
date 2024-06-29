@@ -764,9 +764,9 @@ class TestControlledGate(QiskitTestCase):
 
     @data(1, 2, 3, 4)
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
-        """Test creating an mcx gate calls MCXGrayCode and yeilds explicit definition."""
+        """Test an MCXGrayCode yields explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.mcx(list(range(num_ctrl_qubits)), [num_ctrl_qubits])
+        qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         self.assertEqual(type(qc[0].operation), explicit[num_ctrl_qubits])
 
@@ -1262,7 +1262,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(cu.base_gate.params, [0.4, 0.3, 0.2])
 
     def test_assign_nested_controlled_cu(self):
-        """Test assignment of an arbitrary controlled parametrised gate that appears through the
+        """Test assignment of an arbitrary controlled parametrized gate that appears through the
         `Gate.control()` method on an already-controlled gate."""
         theta = Parameter("t")
         qc_c = QuantumCircuit(2)

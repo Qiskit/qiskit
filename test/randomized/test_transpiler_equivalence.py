@@ -258,9 +258,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         last_gate = self.qc.data[-1]
 
         # Conditional instructions are not supported
-        assume(isinstance(last_gate[0], Gate))
+        assume(isinstance(last_gate.operation, Gate))
 
-        last_gate[0].c_if(creg, val)
+        last_gate.operation.c_if(creg, val)
 
     # Properties to check
 
@@ -269,7 +269,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         """After each circuit operation, it should be possible to build QASM."""
         qasm2.dumps(self.qc)
 
-    @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
+    @precondition(lambda self: any(isinstance(d.operation, Measure) for d in self.qc.data))
     @rule(kwargs=transpiler_conf())
     def equivalent_transpile(self, kwargs):
         """Simulate, transpile and simulate the present circuit. Verify that the
@@ -306,10 +306,9 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
-        assert (
-            count_differences == ""
-        ), "Counts not equivalent: {}\nFailing QASM Input:\n{}\n\nFailing QASM Output:\n{}".format(
-            count_differences, qasm2.dumps(self.qc), qasm2.dumps(xpiled_qc)
+        assert count_differences == "", (
+            f"Counts not equivalent: {count_differences}\nFailing QASM Input:\n"
+            f"{qasm2.dumps(self.qc)}\n\nFailing QASM Output:\n{qasm2.dumps(xpiled_qc)}"
         )
 
 

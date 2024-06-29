@@ -10,8 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "cache_pygates")]
+use std::cell::RefCell;
+
 use pyo3::basic::CompareOp;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyDeprecationWarning, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyList, PyTuple, PyType};
 use pyo3::{intern, IntoPy, PyObject, PyResult};
@@ -19,7 +22,7 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::imports::{
     get_std_gate_class, populate_std_gate_map, GATE, INSTRUCTION, OPERATION,
-    SINGLETON_CONTROLLED_GATE, SINGLETON_GATE,
+    SINGLETON_CONTROLLED_GATE, SINGLETON_GATE, WARNINGS_WARN,
 };
 use crate::interner::Index;
 use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
@@ -47,8 +50,61 @@ pub(crate) struct PackedInstruction {
     pub clbits_id: Index,
     pub params: SmallVec<[Param; 3]>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
+
     #[cfg(feature = "cache_pygates")]
-    pub py_op: Option<PyObject>,
+    /// This is hidden in a `RefCell` because, while that has additional memory-usage implications
+    /// while we're still building with the feature enabled, we intend to remove the feature in the
+    /// future, and hiding the cache within a `RefCell` lets us keep the cache transparently in our
+    /// interfaces, without needing various functions to unnecessarily take `&mut` references.
+    pub py_op: RefCell<Option<PyObject>>,
+}
+
+impl PackedInstruction {
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
+    /// instruction.  This may construct the reference if the `PackedInstruction` is a standard
+    /// gate with no already stored operation.
+    ///
+    /// A standard-gate operation object returned by this function is disconnected from the
+    /// containing circuit; updates to its label, duration, unit and condition will not be
+    /// propagated back.
+    pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(cached_op) = self.py_op.borrow().as_ref() {
+                return Ok(cached_op.clone_ref(py));
+            }
+        }
+        let (label, duration, unit, condition) = match self.extra_attrs.as_deref() {
+            Some(ExtraInstructionAttributes {
+                label,
+                duration,
+                unit,
+                condition,
+            }) => (
+                label.as_deref(),
+                duration.as_ref(),
+                unit.as_deref(),
+                condition.as_ref(),
+            ),
+            None => (None, None, None, None),
+        };
+        let out = operation_type_and_data_to_py(
+            py,
+            &self.op,
+            &self.params,
+            label,
+            duration,
+            unit,
+            condition,
+        )?;
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Ok(mut cell) = self.py_op.try_borrow_mut() {
+                cell.get_or_insert_with(|| out.clone_ref(py));
+            }
+        }
+        Ok(out)
+    }
 }
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -486,7 +542,11 @@ impl CircuitInstruction {
 
         Ok(PyTuple::new_bound(
             py,
-            [op, self.qubits.to_object(py), self.clbits.to_object(py)],
+            [
+                op,
+                self.qubits.bind(py).to_list().into(),
+                self.clbits.bind(py).to_list().into(),
+            ],
         ))
     }
 
@@ -502,32 +562,41 @@ impl CircuitInstruction {
         };
         Ok(PyTuple::new_bound(
             py,
-            [op, self.qubits.to_object(py), self.clbits.to_object(py)],
+            [
+                op,
+                self.qubits.bind(py).to_list().into(),
+                self.clbits.bind(py).to_list().into(),
+            ],
         ))
     }
 
     #[cfg(not(feature = "cache_pygates"))]
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
     }
 
     #[cfg(feature = "cache_pygates")]
     pub fn __getitem__(&mut self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
     }
 
     #[cfg(not(feature = "cache_pygates"))]
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
     }
 
     #[cfg(feature = "cache_pygates")]
     pub fn __iter__(&mut self, py: Python<'_>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
     }
 
-    pub fn __len__(&self) -> usize {
-        3
+    pub fn __len__(&self, py: Python) -> PyResult<usize> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
+        Ok(3)
     }
 
     pub fn __richcmp__(
@@ -666,20 +735,20 @@ pub(crate) fn operation_type_to_py(
     let (label, duration, unit, condition) = match &circuit_inst.extra_attrs {
         None => (None, None, None, None),
         Some(extra_attrs) => (
-            extra_attrs.label.clone(),
-            extra_attrs.duration.clone(),
-            extra_attrs.unit.clone(),
-            extra_attrs.condition.clone(),
+            extra_attrs.label.as_deref(),
+            extra_attrs.duration.as_ref(),
+            extra_attrs.unit.as_deref(),
+            extra_attrs.condition.as_ref(),
         ),
     };
     operation_type_and_data_to_py(
         py,
         &circuit_inst.operation,
         &circuit_inst.params,
-        &label,
-        &duration,
-        &unit,
-        &condition,
+        label,
+        duration,
+        unit,
+        condition,
     )
 }
 
@@ -692,10 +761,10 @@ pub(crate) fn operation_type_and_data_to_py(
     py: Python,
     operation: &OperationType,
     params: &[Param],
-    label: &Option<String>,
-    duration: &Option<PyObject>,
-    unit: &Option<String>,
-    condition: &Option<PyObject>,
+    label: Option<&str>,
+    duration: Option<&PyObject>,
+    unit: Option<&str>,
+    condition: Option<&PyObject>,
 ) -> PyResult<PyObject> {
     match &operation {
         OperationType::Standard(op) => {
@@ -756,10 +825,7 @@ pub(crate) fn convert_py_to_operation_type(
     };
     let op_type: Bound<PyType> = raw_op_type.into_bound(py);
     let mut standard: Option<StandardGate> = match op_type.getattr(attr) {
-        Ok(stdgate) => match stdgate.extract().ok() {
-            Some(gate) => gate,
-            None => None,
-        },
+        Ok(stdgate) => stdgate.extract().ok().unwrap_or_default(),
         Err(_) => None,
     };
     // If the input instruction is a standard gate and a singleton instance
@@ -874,4 +940,30 @@ pub(crate) fn convert_py_to_operation_type(
         });
     }
     Err(PyValueError::new_err(format!("Invalid input: {}", py_op)))
+}
+
+/// Issue a Python `DeprecationWarning` about using the legacy tuple-like interface to
+/// `CircuitInstruction`.
+///
+/// Beware the `stacklevel` here doesn't work quite the same way as it does in Python as Rust-space
+/// calls are completely transparent to Python.
+#[inline]
+fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
+    WARNINGS_WARN
+        .get_bound(py)
+        .call1((
+            intern!(
+                py,
+                concat!(
+                    "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
+                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
+                    " Instead, use the `operation`, `qubits` and `clbits` named attributes."
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
+            // beacuse all our internal call structure is now Rust-space and invisible to Python.
+            1,
+        ))
+        .map(|_| ())
 }

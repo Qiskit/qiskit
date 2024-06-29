@@ -150,7 +150,7 @@ class TestCliffordGates(QiskitTestCase):
             "sx",
             "sxdg",
         ):
-            with self.subTest(msg="append gate %s" % gate_name):
+            with self.subTest(msg=f"append gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
                 value_table = cliff.tableau[:, :-1]
@@ -170,7 +170,7 @@ class TestCliffordGates(QiskitTestCase):
         """Tests identity relations for 1-qubit gates"""
 
         for gate_name in ("x", "y", "z", "h"):
-            with self.subTest(msg="identity for gate %s" % gate_name):
+            with self.subTest(msg=f"identity for gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -181,7 +181,7 @@ class TestCliffordGates(QiskitTestCase):
         inv_gates = ["sdg", "sinv", "w"]
 
         for gate_name, inv_gate in zip(gates, inv_gates):
-            with self.subTest(msg="identity for gate %s" % gate_name):
+            with self.subTest(msg=f"identity for gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -203,7 +203,7 @@ class TestCliffordGates(QiskitTestCase):
         ]
 
         for rel in rels:
-            with self.subTest(msg="relation %s" % rel):
+            with self.subTest(msg=f"relation {rel}"):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -227,7 +227,7 @@ class TestCliffordGates(QiskitTestCase):
         ]
 
         for rel in rels:
-            with self.subTest(msg="relation %s" % rel):
+            with self.subTest(msg=f"relation {rel}"):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -424,9 +424,9 @@ class TestCliffordGates(QiskitTestCase):
         """Test initialization from linear function."""
         rng = np.random.default_rng(1234)
         samples = 50
-
-        for _ in range(samples):
-            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+        seeds = rng.integers(100000, size=samples, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
             lin = LinearFunction(mat)
             cliff = Clifford(lin)
             self.assertTrue(Operator(cliff).equiv(Operator(lin)))

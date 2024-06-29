@@ -358,7 +358,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
     def test_dual_ghz_with_intermediate_barriers(self):
-        """Test dual ghz circuit with intermediate barriers local to each componennt."""
+        """Test dual ghz circuit with intermediate barriers local to each component."""
         qc = QuantumCircuit(8, name="double dhz")
         qc.h(0)
         qc.cz(0, 1)
