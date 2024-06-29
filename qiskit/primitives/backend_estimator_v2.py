@@ -161,11 +161,11 @@ class BackendEstimatorV2(BaseEstimatorV2):
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
         pub_dict = defaultdict(list)
         # consolidate pubs with the same number of shots
+        coeff_sq_sum = 0
         for i, pub in enumerate(pubs):
-            data = self._preprocess_pub(pub)
-            bc_obs = data.observables
-            coeff_sq_sum = sum(coeff**2 for coeff in bc_obs[0].values())
-            shots = int(math.ceil(coeff_sq_sum/pub.precision**2))
+            for obs in pub.observables.ravel():
+                coeff_sq_sum = max(coeff_sq_sum, sum(coeff**2 for coeff in obs.values()))
+            shots = int(math.ceil(coeff_sq_sum / pub.precision**2))
             pub_dict[shots].append(i)
 
         results = [None] * len(pubs)
