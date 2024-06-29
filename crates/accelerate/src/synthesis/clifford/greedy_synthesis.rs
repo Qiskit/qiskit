@@ -224,9 +224,7 @@ impl Clifford {
                     clifford.append_swap(qubits[0].0 as usize, qubits[1].0 as usize);
                     Ok(())
                 }
-                _ => {
-                    Err(format!("Unsupported gate {:?}", gate))
-                }
+                _ => Err(format!("Unsupported gate {:?}", gate)),
             })?;
         Ok(clifford)
     }
