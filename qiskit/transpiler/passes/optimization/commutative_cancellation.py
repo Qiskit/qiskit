@@ -24,7 +24,7 @@ from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
 
 _CUTOFF_PRECISION = 1e-5
@@ -138,14 +138,14 @@ class CommutativeCancellation(TransformationPass):
                 total_phase = 0.0
                 for current_node in run:
                     if (
-                        getattr(current_node.op, "condition", None) is not None
+                        current_node.condition is not None
                         or len(current_node.qargs) != 1
                         or current_node.qargs[0] != run_qarg
                     ):
                         raise RuntimeError("internal error")
 
                     if current_node.name in ["p", "u1", "rz", "rx"]:
-                        current_angle = float(current_node.op.params[0])
+                        current_angle = float(current_node.params[0])
                     elif current_node.name in ["z", "x"]:
                         current_angle = np.pi
                     elif current_node.name == "t":
@@ -159,8 +159,8 @@ class CommutativeCancellation(TransformationPass):
 
                     # Compose gates
                     total_angle = current_angle + total_angle
-                    if current_node.op.definition:
-                        total_phase += current_node.op.definition.global_phase
+                    if current_node.definition:
+                        total_phase += current_node.definition.global_phase
 
                 # Replace the data of the first node in the run
                 if cancel_set_key[0] == "z_rotation":
@@ -200,7 +200,9 @@ class CommutativeCancellation(TransformationPass):
         """
 
         pass_manager = PassManager([CommutationAnalysis(), self])
-        for node in dag.op_nodes(ControlFlowOp):
+        for node in dag.op_nodes():
+            if node.name not in CONTROL_FLOW_OP_NAMES:
+                continue
             mapped_blocks = []
             for block in node.op.blocks:
                 new_circ = pass_manager.run(block)

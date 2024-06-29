@@ -14,10 +14,12 @@ use crate::circuit_instruction::{
     convert_py_to_operation_type, operation_type_to_py, CircuitInstruction,
     ExtraInstructionAttributes,
 };
+use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::Operation;
 use numpy::IntoPyArray;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyList, PySequence, PyString, PyTuple};
 use pyo3::{intern, IntoPy, PyObject, PyResult};
 use smallvec::smallvec;
 
@@ -185,6 +187,16 @@ impl DAGOpNode {
     }
 
     #[getter]
+    fn num_qubits(&self) -> u32 {
+        self.instruction.operation.num_qubits()
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        self.instruction.operation.num_clbits()
+    }
+
+    #[getter]
     fn get_qargs(&self, py: Python) -> Py<PyTuple> {
         self.instruction.qubits.clone_ref(py)
     }
@@ -215,10 +227,49 @@ impl DAGOpNode {
         self.instruction.params.to_object(py)
     }
 
+    pub fn is_parameterized(&self) -> bool {
+        self.instruction.is_parameterized()
+    }
+
     #[getter]
     fn matrix(&self, py: Python) -> Option<PyObject> {
         let matrix = self.instruction.operation.matrix(&self.instruction.params);
         matrix.map(|mat| mat.into_pyarray_bound(py).into())
+    }
+
+    fn to_matrix(&self, py: Python) -> Option<PyObject> {
+        self.matrix(py)
+    }
+
+    fn __array__(
+        &self,
+        py: Python,
+        dtype: Option<PyObject>,
+        copy: Option<bool>,
+    ) -> PyResult<PyObject> {
+        if copy == Some(false) {
+            return Err(PyValueError::new_err(
+                "A copy is needed to return an array from this object.",
+            ));
+        }
+        let res =
+            match self.to_matrix(py) {
+                Some(res) => res,
+                None => return Err(PyTypeError::new_err(
+                    "ParameterExpression with unbound parameters cannot be represented as an array",
+                )),
+            };
+        Ok(match dtype {
+            Some(dtype) => {
+                let numpy_mod = py.import_bound("numpy")?;
+                let args = (res,);
+                let kwargs = [("dtype", dtype)].into_py_dict_bound(py);
+                numpy_mod
+                    .call_method("asarray", args, Some(&kwargs))?
+                    .into()
+            }
+            None => res,
+        })
     }
 
     #[getter]
@@ -279,6 +330,21 @@ impl DAGOpNode {
                 self.instruction.extra_attrs = None;
             }
         }
+    }
+
+    #[getter]
+    fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
+        let definition = self
+            .instruction
+            .operation
+            .definition(&self.instruction.params);
+        definition
+            .map(|data| {
+                QUANTUM_CIRCUIT
+                    .get_bound(py)
+                    .call_method1(intern!(py, "_from_circuit_data"), (data,))
+            })
+            .transpose()
     }
 
     /// Sets the Instruction name corresponding to the op for this node
