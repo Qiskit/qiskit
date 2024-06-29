@@ -10,28 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::PyReadonlyArray2;
-use pyo3::prelude::*;
-use std::error::Error;
-use std::fmt;
-
 use indexmap::IndexSet;
 use ndarray::{azip, s, Array1, Array2, ArrayView2};
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::circuit_data::CircuitData;
+use crate::synthesis::linear::utils::calc_inverse_matrix_inner;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 
-use crate::linear_matrix::calc_inverse_matrix_inner;
-use crate::QiskitError;
-
-/// Internal error handling for synthesis algorithms.
-#[derive(Debug)]
-pub struct SynthesisError;
-
 /// Symplectic matrices.
-pub struct SymplecticMatrix {
+struct SymplecticMatrix {
     /// Number of qubits.
     num_qubits: usize,
     /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits).
@@ -39,7 +27,7 @@ pub struct SymplecticMatrix {
 }
 
 /// Cliffords.
-pub struct Clifford {
+struct Clifford {
     /// Number of qubits.
     num_qubits: usize,
     /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits + 1).
@@ -50,16 +38,10 @@ pub struct Clifford {
 /// Represents the return type of Clifford synthesis algorithms.
 type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
-impl Error for SynthesisError {}
-impl fmt::Display for SynthesisError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Synthesis fails.")
-    }
-}
-
 impl SymplecticMatrix {
     /// Modifies the matrix in-place by appending S-gate
-    pub fn append_s(&mut self, qubit: usize) {
+    #[allow(dead_code)]
+    fn append_s(&mut self, qubit: usize) {
         let (x, mut z) = self
             .smat
             .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
@@ -67,7 +49,7 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by prepending S-gate
-    pub fn prepend_s(&mut self, qubit: usize) {
+    fn prepend_s(&mut self, qubit: usize) {
         let (x, mut z) = self
             .smat
             .multi_slice_mut((s![self.num_qubits + qubit, ..], s![qubit, ..]));
@@ -75,7 +57,8 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by appending H-gate
-    pub fn append_h(&mut self, qubit: usize) {
+    #[allow(dead_code)]
+    fn append_h(&mut self, qubit: usize) {
         let (mut x, mut z) = self
             .smat
             .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
@@ -83,7 +66,7 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by prepending H-gate
-    pub fn prepend_h(&mut self, qubit: usize) {
+    fn prepend_h(&mut self, qubit: usize) {
         let (mut x, mut z) = self
             .smat
             .multi_slice_mut((s![qubit, ..], s![self.num_qubits + qubit, ..]));
@@ -91,7 +74,8 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by appending SWAP-gate
-    pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
+    #[allow(dead_code)]
+    fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
         let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
@@ -103,7 +87,7 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by prepending SWAP-gate
-    pub fn prepend_swap(&mut self, qubit0: usize, qubit1: usize) {
+    fn prepend_swap(&mut self, qubit0: usize, qubit1: usize) {
         let (mut x0, mut z0, mut x1, mut z1) = self.smat.multi_slice_mut((
             s![qubit0, ..],
             s![self.num_qubits + qubit0, ..],
@@ -115,7 +99,8 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by appending CX-gate
-    pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
+    #[allow(dead_code)]
+    fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
         let (x0, mut z0, mut x1, z1) = self.smat.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
@@ -127,7 +112,7 @@ impl SymplecticMatrix {
     }
 
     /// Modifies the matrix in-place by prepending CX-gate
-    pub fn prepend_cx(&mut self, qubit0: usize, qubit1: usize) {
+    fn prepend_cx(&mut self, qubit0: usize, qubit1: usize) {
         let (x0, mut z0, mut x1, z1) = self.smat.multi_slice_mut((
             s![qubit1, ..],
             s![self.num_qubits + qubit1, ..],
@@ -141,7 +126,7 @@ impl SymplecticMatrix {
 
 impl Clifford {
     /// Modifies the tableau in-place by appending S-gate
-    pub fn append_s(&mut self, qubit: usize) {
+    fn append_s(&mut self, qubit: usize) {
         let (x, mut z, mut p) = self.tableau.multi_slice_mut((
             s![.., qubit],
             s![.., self.num_qubits + qubit],
@@ -153,7 +138,8 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending Sdg-gate
-    pub fn append_sdg(&mut self, qubit: usize) {
+    #[allow(dead_code)]
+    fn append_sdg(&mut self, qubit: usize) {
         let (x, mut z, mut p) = self.tableau.multi_slice_mut((
             s![.., qubit],
             s![.., self.num_qubits + qubit],
@@ -165,7 +151,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending H-gate
-    pub fn append_h(&mut self, qubit: usize) {
+    fn append_h(&mut self, qubit: usize) {
         let (mut x, mut z, mut p) = self.tableau.multi_slice_mut((
             s![.., qubit],
             s![.., self.num_qubits + qubit],
@@ -177,7 +163,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending SWAP-gate
-    pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
+    fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
         let (mut x0, mut z0, mut x1, mut z1) = self.tableau.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
@@ -189,7 +175,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending CX-gate
-    pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
+    fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
         let (x0, mut z0, mut x1, z1, mut p) = self.tableau.multi_slice_mut((
             s![.., qubit0],
             s![.., self.num_qubits + qubit0],
@@ -205,7 +191,7 @@ impl Clifford {
     /// Creates a Clifford from a given sequence of Clifford gates.
     /// In essence, starts from the identity tableau and modifies it
     /// based on the gates in the sequence.
-    pub fn from_gate_sequence(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Clifford {
+    fn from_gate_sequence(gate_seq: &CliffordGatesVec, num_qubits: usize) -> Clifford {
         // create the identity
         let mut clifford = Clifford {
             num_qubits,
@@ -296,7 +282,7 @@ static PAULI_INDEX_TO_1Q_GATE: [SingleQubitGate; 16] = [
     SingleQubitGate::GateS,   // 'YY'
 ];
 
-struct GreedyCliffordSynthesis<'a> {
+pub struct GreedyCliffordSynthesis<'a> {
     /// The Clifford tableau to be synthesized.
     tableau: ArrayView2<'a, bool>,
 
@@ -311,10 +297,10 @@ struct GreedyCliffordSynthesis<'a> {
 }
 
 impl GreedyCliffordSynthesis<'_> {
-    fn new(tableau: ArrayView2<bool>) -> Result<GreedyCliffordSynthesis<'_>, SynthesisError> {
+    pub(crate) fn new(tableau: ArrayView2<bool>) -> Result<GreedyCliffordSynthesis<'_>, String> {
         let tableau_shape = tableau.shape();
         if (tableau_shape[0] % 2 == 1) || (tableau_shape[1] != tableau_shape[0] + 1) {
-            return Err(SynthesisError);
+            return Err("The shape of the Clifford tableau is invalid".to_string());
         }
 
         let num_qubits = tableau_shape[0] / 2;
@@ -338,7 +324,7 @@ impl GreedyCliffordSynthesis<'_> {
 
     /// Computes the CX cost of decoupling the symplectic matrix on the
     /// given qubit.
-    fn compute_cost(&self, qubit: usize) -> Result<usize, SynthesisError> {
+    fn compute_cost(&self, qubit: usize) -> Result<usize, String> {
         let mut a_num = 0;
         let mut b_num = 0;
         let mut c_num = 0;
@@ -376,7 +362,7 @@ impl GreedyCliffordSynthesis<'_> {
         }
 
         if a_num % 2 == 0 {
-            return Err(SynthesisError);
+            return Err("Symplectic Gaussian elimination failed.".to_string());
         }
 
         let mut cnot_cost: usize =
@@ -397,7 +383,7 @@ impl GreedyCliffordSynthesis<'_> {
         &mut self,
         gate_seq: &mut CliffordGatesVec,
         min_qubit: usize,
-    ) -> Result<(), SynthesisError> {
+    ) -> Result<(), String> {
         let mut a_qubits = IndexSet::new();
         let mut b_qubits = IndexSet::new();
         let mut c_qubits = IndexSet::new();
@@ -500,7 +486,7 @@ impl GreedyCliffordSynthesis<'_> {
         }
 
         if a_qubits.len() % 2 != 1 {
-            return Err(SynthesisError);
+            return Err("Symplectic Gaussian elimination failed.".to_string());
         }
 
         if !a_qubits.contains(&min_qubit) {
@@ -622,7 +608,7 @@ impl GreedyCliffordSynthesis<'_> {
     }
 
     /// The main synthesis function.
-    fn run(&mut self) -> Result<(usize, CliffordGatesVec), SynthesisError> {
+    pub(crate) fn run(&mut self) -> Result<(usize, CliffordGatesVec), String> {
         let mut clifford_gates = CliffordGatesVec::new();
 
         while !self.unprocessed_qubits.is_empty() {
@@ -640,7 +626,7 @@ impl GreedyCliffordSynthesis<'_> {
             self.unprocessed_qubits.swap_remove(&min_cost_qubit);
         }
 
-        adjust_final_pauli_gates(&mut clifford_gates, self.tableau, self.num_qubits);
+        adjust_final_pauli_gates(&mut clifford_gates, self.tableau, self.num_qubits)?;
 
         Ok((self.num_qubits, clifford_gates))
     }
@@ -653,7 +639,7 @@ fn adjust_final_pauli_gates(
     gate_seq: &mut CliffordGatesVec,
     target_tableau: ArrayView2<bool>,
     num_qubits: usize,
-) {
+) -> Result<(), String> {
     // simulate the clifford circuit that we have constructed
     let simulated_clifford = Clifford::from_gate_sequence(gate_seq, num_qubits);
 
@@ -669,7 +655,7 @@ fn adjust_final_pauli_gates(
 
     // compute inverse of the symplectic matrix
     let smat = target_tableau.slice(s![.., ..2 * num_qubits]);
-    let smat_inv = calc_inverse_matrix_inner(smat);
+    let smat_inv = calc_inverse_matrix_inner(smat, false)?;
 
     // compute smat_inv * delta_phase
     let arr1 = smat_inv.map(|v| *v as usize);
@@ -702,34 +688,6 @@ fn adjust_final_pauli_gates(
             ));
         }
     }
-}
 
-/// Create a circuit that synthesizes a given Clifford operator represented as a tableau.
-///
-/// This is an implementation of the "greedy Clifford compiler" presented in
-/// Appendix A of the paper "Clifford Circuit Optimization with Templates and Symbolic
-/// Pauli Gates" by Bravyi, Shaydulin, Hu, and Maslov (2021), `<https://arxiv.org/abs/2105.02291>`__.
-///
-/// This method typically yields better CX cost compared to the Aaronson-Gottesman method.
-///
-/// Note that this function only implements the greedy Clifford compiler and not the
-/// templates and symbolic Pauli gates optimizations that are also described in the paper.
-#[pyfunction]
-#[pyo3(signature = (clifford))]
-fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
-    let tableau = clifford.as_array();
-    let mut greedy_synthesis = GreedyCliffordSynthesis::new(tableau.view()).map_err(|_| {
-        QiskitError::new_err("Clifford greedy synthesis did not initialize successfully.")
-    })?;
-    let (num_qubits, clifford_gates) = greedy_synthesis
-        .run()
-        .map_err(|_| QiskitError::new_err("Clifford greedy synthesis failed."))?;
-
-    CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
-}
-
-#[pymodule]
-pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
     Ok(())
 }
