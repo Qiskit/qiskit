@@ -42,7 +42,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 )
 from qiskit.quantum_info import Operator
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.circuit import ControlFlowOp, Gate, Parameter
+from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
