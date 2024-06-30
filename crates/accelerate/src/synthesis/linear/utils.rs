@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{concatenate, s, Array2, ArrayView2, ArrayViewMut2, Axis};
+use ndarray::{Zip, azip, concatenate, s, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 
@@ -197,4 +197,17 @@ pub fn check_invertible_binary_matrix_inner(mat: ArrayView2<bool>) -> bool {
     }
     let rank = compute_rank_inner(mat);
     rank == mat.nrows()
+}
+
+/// Mutate matrix ``mat`` in-place by swapping the contents of rows ``i`` and ``j``.
+pub fn swap_rows_inner(mut mat: ArrayViewMut2<bool>, i: usize, j: usize) {
+    let (mut x, mut y) = mat.multi_slice_mut((s![i, ..], s![j, ..]));
+    azip!((x in &mut x, y in &mut y) (*x, *y) = (*y, *x));
+}
+
+/// Mutate matrix ``mat`` in-place by replacing the contents of row ``i`` by ``row``.
+pub fn replace_row_inner(mut mat: ArrayViewMut2<bool>, i: usize, row: ArrayView1<bool>) {
+    let mut x = mat.slice_mut(s![i, ..]);
+    let y = row.slice(s![..]);
+    Zip::from(&mut x).and(&y).for_each(|x, &y| {*x = y});
 }

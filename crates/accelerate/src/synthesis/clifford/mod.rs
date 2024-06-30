@@ -11,10 +11,11 @@
 // that they have been altered from the originals.
 
 mod greedy_synthesis;
+mod random_clifford;
 
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
 use crate::QiskitError;
-use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::Param;
@@ -40,8 +41,26 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
     CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
+#[pyfunction]
+#[pyo3(signature = (num_qubits, seed=None))]
+/// Generate a random Clifford tableau.
+///  Args:
+///     num_qubits: the number of qubits.
+///     seed: a random seed.
+///  Returns:
+///     ndarray: Clifford tableau.
+fn random_clifford_tableau(
+    py: Python,
+    num_qubits: usize,
+    seed: Option<u64>,
+) -> PyResult< (Py<PyArray2<bool>>, Py<PyArray1<bool>>) > {
+    let (mat, phases) = random_clifford::random_clifford_tableau_inner(num_qubits, seed);
+    Ok((mat.into_pyarray_bound(py).unbind(), phases.into_pyarray_bound(py).unbind()))
+}
+
 #[pymodule]
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(random_clifford_tableau, m)?)?;
     m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
     Ok(())
 }
