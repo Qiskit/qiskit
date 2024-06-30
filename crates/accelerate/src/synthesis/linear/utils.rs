@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Zip, azip, concatenate, s, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis};
+use ndarray::{azip, concatenate, s, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 
@@ -209,5 +209,5 @@ pub fn swap_rows_inner(mut mat: ArrayViewMut2<bool>, i: usize, j: usize) {
 pub fn replace_row_inner(mut mat: ArrayViewMut2<bool>, i: usize, row: ArrayView1<bool>) {
     let mut x = mat.slice_mut(s![i, ..]);
     let y = row.slice(s![..]);
-    Zip::from(&mut x).and(&y).for_each(|x, &y| {*x = y});
+    Zip::from(&mut x).and(&y).for_each(|x, &y| *x = y);
 }

@@ -10,12 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::utils::{binary_matmul_inner, calc_inverse_matrix_inner, replace_row_inner, swap_rows_inner};
-use ndarray::{concatenate, Array1, Array2, ArrayView2, ArrayViewMut2, Axis, s};
+use crate::synthesis::linear::utils::{
+    binary_matmul_inner, calc_inverse_matrix_inner, replace_row_inner, swap_rows_inner,
+};
+use ndarray::{concatenate, s, Array1, Array2, ArrayView2, ArrayViewMut2, Axis};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 
-/// Sample from the quantum Mallows distribution
+/// Sample from the quantum Mallows distribution.
 fn sample_qmallows(n: usize, rng: &mut Pcg64Mcg) -> (Array1<bool>, Array1<usize>) {
     // Hadamard layer
     let mut had = Array1::from_shape_fn(n, |_| false);
@@ -32,15 +34,11 @@ fn sample_qmallows(n: usize, rng: &mut Pcg64Mcg) -> (Array1<bool>, Array1<usize>
         let k = if index < m { index } else { 2 * m - index - 1 };
         perm[i] = inds[k];
         inds.remove(k);
-
-        println!("i = {:?}, m = {:?}, eps = {:?}, r = {:?}, index = {:?}, had[i] = {:?}, k = {:?}, perm[i] = {:?}, inds = {:?}",
-                 i, m, eps, r, index, had[i], k, perm[i], inds);
     }
-
     (had, perm)
 }
 
-/// Add symmetric random ints to off diagonals
+/// Add symmetric random boolean value to off diagonal entries.
 fn fill_tril(mut mat: ArrayViewMut2<bool>, rng: &mut Pcg64Mcg, symmetric: bool) {
     // todo: implement & benchmark optimizations for low-rank matrices
     let n = mat.shape()[0];
@@ -54,15 +52,24 @@ fn fill_tril(mut mat: ArrayViewMut2<bool>, rng: &mut Pcg64Mcg, symmetric: bool) 
     }
 }
 
-// Invert a lower-triangular matrix with unit diagonal.
+/// Invert a lower-triangular matrix with unit diagonal.
 fn inverse_tril(mat: ArrayView2<bool>) -> Array2<bool> {
     // todo: implement & benchmark optimizations for low rank.
-    let mat_inv = calc_inverse_matrix_inner(mat, false).unwrap();
-    mat_inv
+    calc_inverse_matrix_inner(mat, false).unwrap()
 }
 
-/// Returns pair!
-pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> (Array2<bool>, Array1<bool>) {
+/// Generate a random Clifford tableau.
+///
+/// The Clifford is sampled using the method of the paper "Hadamard-free circuits
+/// expose the structure of the Clifford group" by S. Bravyi and D. Maslov (2020),
+/// `https://arxiv.org/abs/2003.09412`__.
+///
+/// The function returns a tuple consisting of a random symplectic matrix and
+/// random phases.
+pub fn random_clifford_tableau_inner(
+    num_qubits: usize,
+    seed: Option<u64>,
+) -> (Array2<bool>, Array1<bool>) {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
@@ -88,12 +95,7 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> (A
     let mut delta2: Array2<bool> = Array2::from_shape_fn((num_qubits, num_qubits), |(i, j)| i == j);
     fill_tril(delta2.view_mut(), &mut rng, false);
 
-    println!("HERE:");
-    println!("gamma1 :\n {:?}", gamma1);
-    println!("gamma2 :\n {:?}", gamma2);
-    println!("delta1 :\n {:?}", delta1);
-    println!("delta2 :\n {:?}", delta2);
-
+    // Compute stabilizer table
     let zero = Array2::from_elem((num_qubits, num_qubits), false);
     let prod1 = binary_matmul_inner(gamma1.view(), delta1.view()).unwrap();
     let prod2 = binary_matmul_inner(gamma2.view(), delta2.view()).unwrap();
@@ -113,11 +115,6 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> (A
     )
     .unwrap();
 
-    println!("delta1 :\n {:?}", delta1);
-    println!("prod1 :\n {:?}", prod1);
-    println!("inv1 :\n {:?}", inv1);
-    println!("table1: {:?}", table1);
-
     let table2 = concatenate(
         Axis(0),
         &[
@@ -131,22 +128,21 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> (A
     )
     .unwrap();
 
-    println!("delta2 :\n {:?}", delta2);
-    println!("prod2 :\n {:?}", prod2);
-    println!("inv2 :\n {:?}", inv2);
-    println!("table2: {:?}", table2);
-
     // Compute the full stabilizer tableau
 
     // The code below is identical to the Python implementation, but is based on the original
     // code in the paper.
 
-    let mut table = Array2::from_elem((2*num_qubits, 2*num_qubits), false);
+    let mut table = Array2::from_elem((2 * num_qubits, 2 * num_qubits), false);
 
     // Apply qubit permutation
     for i in 0..num_qubits {
         replace_row_inner(table.view_mut(), i, table2.slice(s![i, ..]));
-        replace_row_inner(table.view_mut(), perm[i] + num_qubits, table2.slice(s![perm[i]+num_qubits, ..]));
+        replace_row_inner(
+            table.view_mut(),
+            perm[i] + num_qubits,
+            table2.slice(s![perm[i] + num_qubits, ..]),
+        );
     }
 
     // Apply layer of Hadamards
@@ -156,11 +152,12 @@ pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> (A
         }
     }
 
+    // Apply table
     let random_symplectic_mat = binary_matmul_inner(table1.view(), table.view()).unwrap();
 
     // Generate random phases
     let random_phases: Array1<bool> = Array1::from_shape_fn(2 * num_qubits, |_| rng.gen());
 
-    (random_symplectic_mat, random_phases)
 
+    (random_symplectic_mat, random_phases)
 }

@@ -44,18 +44,27 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
 #[pyfunction]
 #[pyo3(signature = (num_qubits, seed=None))]
 /// Generate a random Clifford tableau.
-///  Args:
+///
+/// The Clifford is sampled using the method of the paper "Hadamard-free circuits
+/// expose the structure of the Clifford group" by S. Bravyi and D. Maslov (2020),
+/// `https://arxiv.org/abs/2003.09412`__.
+///
+/// Args:
 ///     num_qubits: the number of qubits.
-///     seed: a random seed.
-///  Returns:
-///     ndarray: Clifford tableau.
+///     seed: an optional random seed.
+/// Returns:
+///     result: a tuple consisting of a random symplectic matrix and random phases.
+#[allow(clippy::type_complexity)]
 fn random_clifford_tableau(
     py: Python,
     num_qubits: usize,
     seed: Option<u64>,
-) -> PyResult< (Py<PyArray2<bool>>, Py<PyArray1<bool>>) > {
+) -> PyResult<(Py<PyArray2<bool>>, Py<PyArray1<bool>>)> {
     let (mat, phases) = random_clifford::random_clifford_tableau_inner(num_qubits, seed);
-    Ok((mat.into_pyarray_bound(py).unbind(), phases.into_pyarray_bound(py).unbind()))
+    Ok((
+        mat.into_pyarray_bound(py).unbind(),
+        phases.into_pyarray_bound(py).unbind(),
+    ))
 }
 
 #[pymodule]
