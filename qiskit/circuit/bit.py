@@ -36,6 +36,7 @@ class Bit:
             # To sidestep the overridden Bit.__hash__ and use the default hash
             # algorithm (only new-style Bits), call default object hash method.
             self._hash = object.__hash__(self)
+            self._repr = f"{self.__class__.__name__}(no register assigned)"
         else:
             try:
                 index = int(index)
@@ -59,9 +60,6 @@ class Bit:
 
     def __repr__(self):
         """Return the official string representing the bit."""
-        if (self._register, self._index) == (None, None):
-            # Similar to __hash__, use default repr method for new-style Bits.
-            return object.__repr__(self)
         return self._repr
 
     def __hash__(self):
