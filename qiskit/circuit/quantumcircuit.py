@@ -4649,9 +4649,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.r import RGate
-
-        return self.append(RGate(theta, phi), [qubit], [], copy=False)
+        return self._append_standard_gate(StandardGate.RGate, [theta, phi], qargs=[qubit])
 
     def rv(
         self,
@@ -4776,6 +4774,12 @@ class QuantumCircuit:
         """
         from .library.standard_gates.rx import CRXGate
 
+        # if the control state is |1> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["1", 1]:
+            return self._append_standard_gate(
+                StandardGate.CRXGate, [theta], [control_qubit, target_qubit], None, label=label
+            )
+
         return self.append(
             CRXGate(theta, label=label, ctrl_state=ctrl_state),
             [control_qubit, target_qubit],
@@ -4845,6 +4849,12 @@ class QuantumCircuit:
         """
         from .library.standard_gates.ry import CRYGate
 
+        # if the control state is |1> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["1", 1]:
+            return self._append_standard_gate(
+                StandardGate.CRYGate, [theta], [control_qubit, target_qubit], None, label=label
+            )
+
         return self.append(
             CRYGate(theta, label=label, ctrl_state=ctrl_state),
             [control_qubit, target_qubit],
@@ -4910,6 +4920,12 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         from .library.standard_gates.rz import CRZGate
+
+        # if the control state is |1> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["1", 1]:
+            return self._append_standard_gate(
+                StandardGate.CRZGate, [theta], [control_qubit, target_qubit], None, label=label
+            )
 
         return self.append(
             CRZGate(theta, label=label, ctrl_state=ctrl_state),
@@ -5404,12 +5420,12 @@ class QuantumCircuit:
             ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
             AttributeError: if no ancilla qubits are passed, but some are needed.
         """
-        from .library.standard_gates.x import MCXGrayCode, MCXRecursive, MCXVChain
+        from .library.standard_gates.x import MCXGate, MCXRecursive, MCXVChain
 
         num_ctrl_qubits = len(control_qubits)
 
         available_implementations = {
-            "noancilla": MCXGrayCode(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "noancilla": MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state),
             "recursion": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
             "v-chain": MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state),
             "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state),
