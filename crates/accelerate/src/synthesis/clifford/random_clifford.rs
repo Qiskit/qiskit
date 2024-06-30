@@ -64,12 +64,8 @@ fn inverse_tril(mat: ArrayView2<bool>) -> Array2<bool> {
 /// expose the structure of the Clifford group" by S. Bravyi and D. Maslov (2020),
 /// `https://arxiv.org/abs/2003.09412`__.
 ///
-/// The function returns a tuple consisting of a random symplectic matrix and
-/// random phases.
-pub fn random_clifford_tableau_inner(
-    num_qubits: usize,
-    seed: Option<u64>,
-) -> (Array2<bool>, Array1<bool>) {
+/// The function returns a random clifford tableau.
+pub fn random_clifford_tableau_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
@@ -156,8 +152,12 @@ pub fn random_clifford_tableau_inner(
     let random_symplectic_mat = binary_matmul_inner(table1.view(), table.view()).unwrap();
 
     // Generate random phases
-    let random_phases: Array1<bool> = Array1::from_shape_fn(2 * num_qubits, |_| rng.gen());
+    let random_phases: Array2<bool> = Array2::from_shape_fn((2 * num_qubits, 1), |_| rng.gen());
 
-
-    (random_symplectic_mat, random_phases)
+    let random_tableau: Array2<bool> = concatenate(
+        Axis(1),
+        &[random_symplectic_mat.view(), random_phases.view()],
+    )
+    .unwrap();
+    random_tableau
 }

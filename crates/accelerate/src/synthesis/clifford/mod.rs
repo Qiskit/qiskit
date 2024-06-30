@@ -15,7 +15,7 @@ mod random_clifford;
 
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
 use crate::QiskitError;
-use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::Param;
@@ -53,18 +53,14 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
 ///     num_qubits: the number of qubits.
 ///     seed: an optional random seed.
 /// Returns:
-///     result: a tuple consisting of a random symplectic matrix and random phases.
-#[allow(clippy::type_complexity)]
+///     result: a random clifford tableau.
 fn random_clifford_tableau(
     py: Python,
     num_qubits: usize,
     seed: Option<u64>,
-) -> PyResult<(Py<PyArray2<bool>>, Py<PyArray1<bool>>)> {
-    let (mat, phases) = random_clifford::random_clifford_tableau_inner(num_qubits, seed);
-    Ok((
-        mat.into_pyarray_bound(py).unbind(),
-        phases.into_pyarray_bound(py).unbind(),
-    ))
+) -> PyResult<Py<PyArray2<bool>>> {
+    let tableau = random_clifford::random_clifford_tableau_inner(num_qubits, seed);
+    Ok(tableau.into_pyarray_bound(py).unbind())
 }
 
 #[pymodule]
