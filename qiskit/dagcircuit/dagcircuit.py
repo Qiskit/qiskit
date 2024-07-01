@@ -55,6 +55,7 @@ from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
 from qiskit._accelerate.euler_one_qubit_decomposer import collect_1q_runs_filter
+from qiskit._accelerate.circuit import StandardGate, PyGate
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -1348,9 +1349,9 @@ class DAGCircuit:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            if (condition := getattr(nd.op, "condition", None)) is not None:
+            if (condition := getattr(nd, "condition", None)) is not None:
                 block_cargs.update(condition_resources(condition).clbits)
-            elif isinstance(nd.op, SwitchCaseOp):
+            elif nd.name in CONTROL_FLOW_OP_NAMES and isinstance(nd.op, SwitchCaseOp):
                 if isinstance(nd.op.target, Clbit):
                     block_cargs.add(nd.op.target)
                 elif isinstance(nd.op.target, ClassicalRegister):
@@ -2165,10 +2166,10 @@ class DAGCircuit:
         def filter_fn(node):
             if isinstance(node, DAGOpNode):
                 return (
-                    isinstance(node.op, Gate)
+                    isinstance(node._raw_op, (StandardGate, PyGate))
                     and len(node.qargs) <= 2
-                    and not getattr(node.op, "condition", None)
-                    and not node.op.is_parameterized()
+                    and not getattr(node, "condition", None)
+                    and not node.is_parameterized()
                 )
             else:
                 return None
