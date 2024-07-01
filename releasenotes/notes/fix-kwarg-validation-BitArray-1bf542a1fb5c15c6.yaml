@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The `kwarg` order in the function `BitArray.from_bool_array()` should be 'little' or 'big'. Added checks to raise error if invalid value is entered.
