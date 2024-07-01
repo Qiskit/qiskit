@@ -116,7 +116,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             gate_text = gate_text.replace("-", "\\mbox{-}")
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    # Only captitalize internally-created gate or instruction names
+    # Only capitalize internally-created gate or instruction names
     elif (
         (gate_text == op.name and op_type not in (Gate, Instruction))
         or (gate_text == base_name and base_type not in (Gate, Instruction))

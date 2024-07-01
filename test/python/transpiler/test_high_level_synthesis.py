@@ -534,22 +534,22 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 1})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 22)
-            self.assertEqual(qct.depth(), 20)
+            self.assertEqual(qct.size(), 30)
+            self.assertEqual(qct.depth(), 27)
 
         with self.subTest("section_size_2"):
             hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 2})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 23)
-            self.assertEqual(qct.depth(), 19)
+            self.assertEqual(qct.size(), 27)
+            self.assertEqual(qct.depth(), 23)
 
         with self.subTest("section_size_3"):
             hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 3})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 23)
-            self.assertEqual(qct.depth(), 17)
+            self.assertEqual(qct.size(), 29)
+            self.assertEqual(qct.depth(), 23)
 
     def test_invert_and_transpose(self):
         """Test that the plugin takes the use_inverted and use_transposed arguments into account."""
@@ -623,7 +623,7 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
 
         # The seed is chosen so that we get different best circuits depending on whether we
         # want to minimize size or depth.
-        mat = random_invertible_binary_matrix(7, seed=37)
+        mat = random_invertible_binary_matrix(7, seed=38)
         qc = QuantumCircuit(7)
         qc.append(LinearFunction(mat), [0, 1, 2, 3, 4, 5, 6])
 
@@ -641,8 +641,8 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             )
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 20)
-            self.assertEqual(qct.depth(), 15)
+            self.assertEqual(qct.size(), 23)
+            self.assertEqual(qct.depth(), 19)
 
         with self.subTest("depth_fn"):
             # We want to minimize the "depth" (aka the number of layers) in the circuit
@@ -658,8 +658,8 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             )
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 23)
-            self.assertEqual(qct.depth(), 12)
+            self.assertEqual(qct.size(), 24)
+            self.assertEqual(qct.depth(), 13)
 
 
 class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
@@ -2045,7 +2045,7 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         self.assertEqual(pass_(qc), expected)
 
     def test_leave_store_alone_basis(self):
-        """Don't attempt to synthesise `Store` instructions with basis gates."""
+        """Don't attempt to synthesize `Store` instructions with basis gates."""
 
         pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u", "cx"])
 
@@ -2068,7 +2068,7 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         self.assertEqual(pass_(qc), expected)
 
     def test_leave_store_alone_with_target(self):
-        """Don't attempt to synthesise `Store` instructions with a `Target`."""
+        """Don't attempt to synthesize `Store` instructions with a `Target`."""
 
         # Note no store.
         target = Target()

@@ -20,10 +20,7 @@ use numpy::ndarray::{aview2, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use smallvec::SmallVec;
 
-static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-];
+use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 
 /// Return the matrix Operator resulting from a block of Instructions.
 #[pyfunction]

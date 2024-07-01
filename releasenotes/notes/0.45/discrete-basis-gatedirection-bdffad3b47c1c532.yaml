@@ -4,5 +4,5 @@ fixes:
     The :class:`.GateDirection` transpiler pass will now use discrete-basis translations rather than
     relying on a continuous :class:`.RYGate`, which should help make some discrete-basis-set targets
     slightly more reliable.  In general, :func:`.transpile` only has partial support for basis sets
-    that do not contain a continuously-parametrised operation, and so it may not always succeed in
+    that do not contain a continuously-parametrized operation, and so it may not always succeed in
     these situations, and will almost certainly not produce optimal results.

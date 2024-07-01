@@ -28,15 +28,15 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     check_invertible_binary_matrix,
-    _col_op,
-    _row_op,
+    col_op,
+    row_op,
 )
 
 
 def _row_op_update_instructions(cx_instructions, mat, a, b):
     # Add a cx gate to the instructions and update the matrix mat
     cx_instructions.append((a, b))
-    _row_op(mat, a, b)
+    row_op(mat, a, b)
 
 
 def _get_lower_triangular(n, mat, mat_inv):
@@ -62,7 +62,7 @@ def _get_lower_triangular(n, mat, mat_inv):
                     first_j = j
                 else:
                     # cx_instructions_cols (L instructions) are not needed
-                    _col_op(mat, j, first_j)
+                    col_op(mat, j, first_j)
         # Use row operations directed upwards to zero out all "1"s above the remaining "1" in row i
         for k in reversed(range(0, i)):
             if mat[k, first_j]:
@@ -70,8 +70,8 @@ def _get_lower_triangular(n, mat, mat_inv):
 
     # Apply only U instructions to get the permuted L
     for inst in cx_instructions_rows:
-        _row_op(mat_t, inst[0], inst[1])
-        _col_op(mat_inv_t, inst[0], inst[1])
+        row_op(mat_t, inst[0], inst[1])
+        col_op(mat_inv_t, inst[0], inst[1])
     return mat_t, mat_inv_t
 
 
@@ -210,7 +210,7 @@ def _north_west_to_identity(n, mat):
 def _optimize_cx_circ_depth_5n_line(mat):
     # Optimize CX circuit in depth bounded by 5n for LNN connectivity.
     # The algorithm [1] has two steps:
-    # a) transform the originl matrix to a north-west matrix (m2nw),
+    # a) transform the original matrix to a north-west matrix (m2nw),
     # b) transform the north-west matrix to identity (nw2id).
     #
     # A square n-by-n matrix A is called north-west if A[i][j]=0 for all i+j>=n
@@ -222,7 +222,7 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
     # According to [1] the synthesis is done on the inverse matrix
     # so the matrix mat is inverted at this step
-    mat_inv = mat.copy()
+    mat_inv = mat.astype(bool, copy=True)
     mat_cpy = calc_inverse_matrix(mat_inv)
 
     n = len(mat_cpy)

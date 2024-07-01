@@ -466,7 +466,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
                 score,
             )
             self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
-        # we can stop the search if we have found all gates in the original ciruit.
+        # we can stop the search if we have found all gates in the original circuit.
         if not self._source_gates_remain:
             # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
             # up with gates in the target basis. Note though that `basis_transforms` may include
@@ -548,7 +548,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     if not source_basis:
         return []
 
-    # This is only neccessary since gates in target basis are currently reported by
+    # This is only necessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
     target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
 
