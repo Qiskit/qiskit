@@ -793,7 +793,6 @@ pub fn operation_type_and_data_to_py(
 
 /// A container struct that contains the output from the Python object to
 /// conversion to construct a CircuitInstruction object
-
 #[derive(Debug, Clone)]
 pub struct OperationTypeConstruct {
     pub operation: OperationType,
