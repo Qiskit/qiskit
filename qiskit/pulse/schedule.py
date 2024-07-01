@@ -1300,7 +1300,7 @@ class ScheduleBlock:
     ):
         """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
         *failing* at least one of the provided filters.
-        This method is the complement of :py:meth:`~Schedule.filter`, so that::
+        This method is the complement of :py:meth:`~ScheduleBlock.filter`, so that::
 
             self.filter(args) + self.exclude(args) == self in terms of instructions included.
 
