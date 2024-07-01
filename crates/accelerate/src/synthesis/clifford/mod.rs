@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod greedy_synthesis;
+mod utils;
 
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
 use crate::QiskitError;
