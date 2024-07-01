@@ -86,7 +86,7 @@ class BackendV1(Backend, ABC):
 
         ..
             This next bit is necessary just because autosummary generally won't summarise private
-            methods; changing that behaviour would have annoying knock-on effects through all the
+            methods; changing that behavior would have annoying knock-on effects through all the
             rest of the documentation, so instead we just hard-code the automethod directive.
         """
         self._configuration = configuration

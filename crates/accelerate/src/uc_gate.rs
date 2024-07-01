@@ -21,14 +21,14 @@ use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyReadonlyArray2};
 
 use crate::euler_one_qubit_decomposer::det_one_qubit;
+use qiskit_circuit::util::{c64, C_ZERO, IM};
 
-const PI2: f64 = PI / 2.;
 const EPS: f64 = 1e-10;
 
 // These constants are the non-zero elements of an RZ gate's unitary with an
 // angle of pi / 2
-const RZ_PI2_11: Complex64 = Complex64::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2);
-const RZ_PI2_00: Complex64 = Complex64::new(FRAC_1_SQRT_2, FRAC_1_SQRT_2);
+const RZ_PI2_11: Complex64 = c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2);
+const RZ_PI2_00: Complex64 = c64(FRAC_1_SQRT_2, FRAC_1_SQRT_2);
 
 /// This method implements the decomposition given in equation (3) in
 /// https://arxiv.org/pdf/quant-ph/0410066.pdf.
@@ -48,10 +48,10 @@ fn demultiplex_single_uc(
     let x11 = x[[0, 0]] / det_x.sqrt();
     let phi = det_x.arg();
 
-    let r1 = (Complex64::new(0., 1.) / 2. * (PI2 - phi / 2. - x11.arg())).exp();
-    let r2 = (Complex64::new(0., 1.) / 2. * (PI2 - phi / 2. + x11.arg() + PI)).exp();
+    let r1 = (IM / 2. * (PI / 2. - phi / 2. - x11.arg())).exp();
+    let r2 = (IM / 2. * (PI / 2. - phi / 2. + x11.arg() + PI)).exp();
 
-    let r = array![[r1, Complex64::new(0., 0.)], [Complex64::new(0., 0.), r2],];
+    let r = array![[r1, C_ZERO], [C_ZERO, r2],];
 
     let decomp = r
         .dot(&x)
@@ -67,7 +67,7 @@ fn demultiplex_single_uc(
     // If d is not equal to diag(i,-i), then we put it into this "standard" form
     // (see eq. (13) in https://arxiv.org/pdf/quant-ph/0410066.pdf) by interchanging
     // the eigenvalues and eigenvectors
-    if (diag[0] + Complex64::new(0., 1.)).abs() < EPS {
+    if (diag[0] + IM).abs() < EPS {
         diag = diag.slice(s![..;-1]).to_owned();
         u = u.slice(s![.., ..;-1]).to_owned();
     }
