@@ -18,23 +18,13 @@ pub mod gate_matrix;
 pub mod imports;
 pub mod operations;
 pub mod parameter_table;
+pub mod slice;
 pub mod util;
 
 mod bit_data;
 mod interner;
 
-use pyo3::types::PySlice;
 use pyo3::{prelude::*, wrap_pymodule};
-
-/// A private enumeration type used to extract arguments to pymethod
-/// that may be either an index or a slice
-#[derive(FromPyObject)]
-pub enum SliceOrInt<'a> {
-    // The order here defines the order the variants are tried in the FromPyObject` derivation.
-    // `Int` is _much_ more common, so that should be first.
-    Int(isize),
-    Slice(Bound<'a, PySlice>),
-}
 
 pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]

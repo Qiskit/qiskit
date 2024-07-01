@@ -795,9 +795,9 @@ dependencies = [
 
 [[package]]
 name = "num-bigint"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c165a9ab64cf766f73521c0dd2cfdff64f488b8f0b3e621face3462d3db536d7"
+checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
  "num-traits",
@@ -996,9 +996,9 @@ dependencies = [
 
 [[package]]
 name = "petgraph"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
+checksum = "b4c5cc86750666a3ed20bdaf5ca2a0344f9c67674cae0515bec2da16fbaa47db"
 dependencies = [
  "fixedbitset",
  "indexmap 2.2.6",
@@ -1024,6 +1024,17 @@ checksum = "a0bda9164fe05bc9225752d54aae413343c36f684380005398a6a8fde95fe785"
 dependencies = [
  "autocfg",
  "indexmap 1.9.3",
+]
+
+[[package]]
+name = "priority-queue"
+version = "2.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70c501afe3a2e25c9bd219aa56ec1e04cdb3fcdd763055be268778c13fa82c1f"
+dependencies = [
+ "autocfg",
+ "equivalent",
+ "indexmap 2.2.6",
 ]
 
 [[package]]
@@ -1187,8 +1198,9 @@ dependencies = [
  "rand_distr",
  "rand_pcg",
  "rayon",
- "rustworkx-core",
+ "rustworkx-core 0.15.0",
  "smallvec",
+ "thiserror",
 ]
 
 [[package]]
@@ -1201,8 +1213,9 @@ dependencies = [
  "num-complex",
  "numpy",
  "pyo3",
- "rustworkx-core",
+ "rustworkx-core 0.14.2",
  "smallvec",
+ "thiserror",
 ]
 
 [[package]]
@@ -1411,7 +1424,27 @@ dependencies = [
  "indexmap 2.2.6",
  "num-traits",
  "petgraph",
- "priority-queue",
+ "priority-queue 1.4.0",
+ "rand",
+ "rand_pcg",
+ "rayon",
+ "rayon-cond",
+]
+
+[[package]]
+name = "rustworkx-core"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2b9aa5926b35dd3029530aef27eac0926b544c78f8e8f1aad4d37854b132fe9"
+dependencies = [
+ "ahash 0.8.11",
+ "fixedbitset",
+ "hashbrown 0.14.5",
+ "indexmap 2.2.6",
+ "ndarray",
+ "num-traits",
+ "petgraph",
+ "priority-queue 2.0.3",
  "rand",
  "rand_pcg",
  "rayon",

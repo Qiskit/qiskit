@@ -7,10 +7,6 @@ scipy<1.11; python_version<'3.12'
 # See https://github.com/Qiskit/qiskit/issues/12655 for current details.
 scipy==1.13.1; python_version=='3.12'
 
-# Rustworkx 0.15.0 contains a bug that breaks graphviz-related tests.
-# See https://github.com/Qiskit/rustworkx/pull/1229 for the fix.
-rustworkx==0.14.2
-
 # z3-solver from 4.12.3 onwards upped the minimum macOS API version for its
 # wheels to 11.7. The Azure VM images contain pre-built CPythons, of which at
 # least CPython 3.8 was compiled for an older macOS, so does not match a

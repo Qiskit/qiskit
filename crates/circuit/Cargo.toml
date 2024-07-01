@@ -16,6 +16,7 @@ num-complex.workspace = true
 ndarray.workspace = true
 numpy.workspace = true
 rustworkx-core = "0.14.2"
+thiserror.workspace = true
 
 [dependencies.pyo3]
 workspace = true
