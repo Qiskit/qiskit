@@ -266,6 +266,8 @@ class CSXGate(SingletonControlledGate):
 
     """
 
+    _standard_gate = StandardGate.CSXGate
+
     def __init__(
         self,
         label: Optional[str] = None,
