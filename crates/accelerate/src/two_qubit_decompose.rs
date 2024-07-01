@@ -52,6 +52,7 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
 
@@ -1045,7 +1046,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c2r.gates {
-            gate_sequence.push((gate.0, gate.1, smallvec![0]))
+            gate_sequence.push((gate.0.name().to_string(), gate.1, smallvec![0]))
         }
         global_phase += c2r.global_phase;
         let c2l = unitary_to_gate_sequence_inner(
@@ -1058,7 +1059,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c2l.gates {
-            gate_sequence.push((gate.0, gate.1, smallvec![1]))
+            gate_sequence.push((gate.0.name().to_string(), gate.1, smallvec![1]))
         }
         global_phase += c2l.global_phase;
         self.weyl_gate(
@@ -1077,7 +1078,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c1r.gates {
-            gate_sequence.push((gate.0, gate.1, smallvec![0]))
+            gate_sequence.push((gate.0.name().to_string(), gate.1, smallvec![0]))
         }
         global_phase += c2r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
@@ -1090,7 +1091,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c1l.gates {
-            gate_sequence.push((gate.0, gate.1, smallvec![1]))
+            gate_sequence.push((gate.0.name().to_string(), gate.1, smallvec![1]))
         }
         Ok(TwoQubitGateSequence {
             gates: gate_sequence,
@@ -1459,7 +1460,7 @@ impl TwoQubitBasisDecomposer {
         if let Some(sequence) = sequence {
             *global_phase += sequence.global_phase;
             for gate in sequence.gates {
-                gates.push((gate.0, gate.1, smallvec![qubit]));
+                gates.push((gate.0.name().to_string(), gate.1, smallvec![qubit]));
             }
         }
     }
@@ -1847,13 +1848,13 @@ impl TwoQubitBasisDecomposer {
         for i in 0..best_nbasis as usize {
             if let Some(euler_decomp) = &euler_decompositions[2 * i] {
                 for gate in &euler_decomp.gates {
-                    gates.push((gate.0.clone(), gate.1.clone(), smallvec![0]));
+                    gates.push((gate.0.name().to_string(), gate.1.clone(), smallvec![0]));
                 }
                 global_phase += euler_decomp.global_phase
             }
             if let Some(euler_decomp) = &euler_decompositions[2 * i + 1] {
                 for gate in &euler_decomp.gates {
-                    gates.push((gate.0.clone(), gate.1.clone(), smallvec![1]));
+                    gates.push((gate.0.name().to_string(), gate.1.clone(), smallvec![1]));
                 }
                 global_phase += euler_decomp.global_phase
             }
@@ -1861,13 +1862,13 @@ impl TwoQubitBasisDecomposer {
         }
         if let Some(euler_decomp) = &euler_decompositions[2 * best_nbasis as usize] {
             for gate in &euler_decomp.gates {
-                gates.push((gate.0.clone(), gate.1.clone(), smallvec![0]));
+                gates.push((gate.0.name().to_string(), gate.1.clone(), smallvec![0]));
             }
             global_phase += euler_decomp.global_phase
         }
         if let Some(euler_decomp) = &euler_decompositions[2 * best_nbasis as usize + 1] {
             for gate in &euler_decomp.gates {
-                gates.push((gate.0.clone(), gate.1.clone(), smallvec![1]));
+                gates.push((gate.0.name().to_string(), gate.1.clone(), smallvec![1]));
             }
             global_phase += euler_decomp.global_phase
         }

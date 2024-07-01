@@ -161,29 +161,19 @@ class OneQubitEulerDecomposer:
         if len(gates) > 0 and isinstance(gates[0], tuple):
             lookup_gate = True
 
-        if self.use_dag:
-            from qiskit.dagcircuit import dagcircuit
+        from qiskit.dagcircuit import dagcircuit
 
-            dag = dagcircuit.DAGCircuit()
-            dag.global_phase = global_phase
-            dag.add_qubits(qr)
-            for gate_entry in gates:
-                if lookup_gate:
-                    gate = NAME_MAP[gate_entry[0]](*gate_entry[1])
-                else:
-                    gate = gate_entry
+        dag = dagcircuit.DAGCircuit()
+        dag.global_phase = global_phase
+        dag.add_qubits(qr)
+        for gate_entry in gates:
+            if lookup_gate:
+                gate = NAME_MAP[gate_entry[0].name](*gate_entry[1])
+            else:
+                gate = gate_entry.name
 
-                dag.apply_operation_back(gate, (qr[0],), check=False)
-            return dag
-        else:
-            circuit = QuantumCircuit(qr, global_phase=global_phase)
-            for gate_entry in gates:
-                if lookup_gate:
-                    gate = NAME_MAP[gate_entry[0]](*gate_entry[1])
-                else:
-                    gate = gate_entry
-                circuit._append(gate, [qr[0]], [])
-            return circuit
+            dag.apply_operation_back(gate, (qr[0],), check=False)
+        return dag
 
     def __call__(
         self,
@@ -225,11 +215,17 @@ class OneQubitEulerDecomposer:
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
     def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
-        circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
-            unitary, [self.basis], 0, None, simplify, atol
+        if self.use_dag:
+            circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
+                unitary, [self.basis], 0, None, simplify, atol
+            )
+            circuit = self.build_circuit(circuit_sequence, circuit_sequence.global_phase)
+            return circuit
+        return QuantumCircuit._from_circuit_data(
+            euler_one_qubit_decomposer.unitary_to_circuit(
+                unitary, [self.basis], 0, None, simplify, atol
+            )
         )
-        circuit = self.build_circuit(circuit_sequence, circuit_sequence.global_phase)
-        return circuit
 
     @property
     def basis(self):
