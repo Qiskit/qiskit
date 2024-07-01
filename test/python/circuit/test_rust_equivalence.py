@@ -121,7 +121,6 @@ class TestRustGateEquivalence(QiskitTestCase):
                                     [py_def.find_bit(x).index for x in py_inst.qubits],
                                     [rs_def.find_bit(x).index for x in rs_inst.qubits],
                                 )
-
                         # Rust uses cp but python still uses cu1 in some cases
                         elif rs_inst.operation.name == "cp":
                             self.assertEqual(py_inst.operation.name, "cu1")

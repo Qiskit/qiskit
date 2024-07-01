@@ -1604,6 +1604,7 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
+            Self::C4XGate => todo!(),
             Self::DCXGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
@@ -1619,7 +1620,6 @@ impl Operation for StandardGate {
                 )
             }),
             Self::RCCXGate | Self::RC3XGate => todo!(),
-            Self::C4XGate => todo!(),
             Self::RXXGate => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];

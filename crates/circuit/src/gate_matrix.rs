@@ -328,18 +328,18 @@ pub fn cu_gate(theta: f64, phi: f64, lam: f64, gamma: f64) -> GateArray2Q {
     let cos_theta = (theta / 2.).cos();
     let sin_theta = (theta / 2.).sin();
     [
-        [c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(0., 0.)],
+        [C_ONE, C_ZERO, C_ZERO, C_ZERO],
         [
-            c64(0., 0.),
+            C_ZERO,
             c64(0., gamma).exp() * cos_theta,
-            c64(0., 0.),
+            C_ZERO,
             c64(0., gamma + phi).exp() * (-1.) * sin_theta,
         ],
-        [c64(0., 0.), c64(0., 0.), c64(1., 0.), c64(0., 0.)],
+        [C_ZERO, C_ZERO, C_ONE, C_ZERO],
         [
-            c64(0., 0.),
+            C_ZERO,
             c64(0., gamma + lam).exp() * sin_theta,
-            c64(0., 0.),
+            C_ZERO,
             c64(0., gamma + phi + lam).exp() * cos_theta,
         ],
     ]
@@ -378,6 +378,7 @@ pub fn xx_minus_yy_gate(theta: f64, beta: f64) -> GateArray2Q {
         ],
     ]
 }
+
 #[inline]
 pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> GateArray2Q {
     let cos = (theta / 2.).cos();

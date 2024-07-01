@@ -24,6 +24,7 @@ from qiskit.synthesis.linear import (
     random_invertible_binary_matrix,
     check_invertible_binary_matrix,
     calc_inverse_matrix,
+    binary_matmul,
 )
 from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -107,8 +108,9 @@ class TestLinearSynth(QiskitTestCase):
         """Test the functions for generating a random invertible matrix and inverting it."""
         mat = random_invertible_binary_matrix(n, seed=1234)
         out = check_invertible_binary_matrix(mat)
+        mat = mat.astype(bool)
         mat_inv = calc_inverse_matrix(mat, verify=True)
-        mat_out = np.dot(mat, mat_inv) % 2
+        mat_out = binary_matmul(mat, mat_inv)
         self.assertTrue(np.array_equal(mat_out, np.eye(n)))
         self.assertTrue(out)
 
@@ -117,8 +119,9 @@ class TestLinearSynth(QiskitTestCase):
         """Test that synth_cnot_depth_line_kms produces the correct synthesis."""
         rng = np.random.default_rng(1234)
         num_trials = 10
-        for _ in range(num_trials):
-            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+        seeds = rng.integers(100000, size=num_trials, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
             mat = np.array(mat, dtype=bool)
             qc = synth_cnot_depth_line_kms(mat)
             mat1 = LinearFunction(qc).linear

@@ -181,7 +181,7 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // C3XGate = 42
     ["qiskit.circuit.library.standard_gates.x", "C3XGate"],
     // C3SXGate = 43
-    ["qiskit.circuit.library.standard_gates.sx", "C3SXGate"],
+    ["qiskit.circuit.library.standard_gates.x", "C3SXGate"],
     // C4XGate = 44
     ["qiskit.circuit.library.standard_gates.x", "C4XGate"],
     // DCXGate = 45
