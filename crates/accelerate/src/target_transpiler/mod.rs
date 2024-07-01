@@ -29,7 +29,7 @@ use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
-    types::PyDict,
+    types::{PyDict, PyList},
 };
 
 use qiskit_circuit::circuit_instruction::{
@@ -488,9 +488,9 @@ impl Target {
     ///     operation (str): The operation name to get qargs for
     /// Returns:
     ///     set: The set of qargs the gate instance applies to.
-    #[pyo3(text_signature = "(operation, /,)")]
-    fn qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Qargs>>> {
-        match self.qargs_for_op_name(&operation) {
+    #[pyo3(name = "qargs_for_operation_name", text_signature = "(operation, /,)")]
+    fn py_qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Qargs>>> {
+        match self.qargs_for_operation_name(&operation) {
             Ok(option_set) => match option_set {
                 Some(set) => Ok(Some(set.into_iter().cloned().collect())),
                 None => Ok(None),
@@ -508,9 +508,9 @@ impl Target {
     ///     qiskit.circuit.Instruction: The Instruction instance corresponding to the
     ///     name. This also can also be the class for globally defined variable with
     ///     operations.
-    #[pyo3(text_signature = "(instruction, /)")]
-    fn operation_from_name(&self, instruction: String) -> PyResult<TargetOperation> {
-        match self.get_operation_from_name(&instruction) {
+    #[pyo3(name = "operation_from_name", text_signature = "(instruction, /)")]
+    fn py_operation_from_name(&self, instruction: String) -> PyResult<TargetOperation> {
+        match self.operation_from_name(&instruction) {
             Ok(instruction) => Ok(instruction.to_owned()),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
@@ -530,11 +530,11 @@ impl Target {
     ///
     /// Raises:
     ///     KeyError: If qargs is not in target
-    #[pyo3(text_signature = "(/, qargs=None)")]
-    fn operations_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<Vec<TargetOperation>> {
+    #[pyo3(name = "operations_for_qargs", text_signature = "(/, qargs=None)")]
+    fn py_operations_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<Vec<TargetOperation>> {
         // Move to rust native once Gates are in rust
         Ok(self
-            .operation_names_for_qargs(qargs)?
+            .py_operation_names_for_qargs(qargs)?
             .into_iter()
             .map(|x| self._gate_name_map[x].to_owned())
             .collect())
@@ -552,12 +552,12 @@ impl Target {
     ///
     /// Raises:
     ///     KeyError: If ``qargs`` is not in target
-    #[pyo3(text_signature = "(/, qargs=None)")]
-    pub fn operation_names_for_qargs(
+    #[pyo3(name = "operation_names_for_qargs", text_signature = "(/, qargs=None)")]
+    pub fn py_operation_names_for_qargs(
         &self,
         qargs: Option<Qargs>,
     ) -> PyResult<HashSet<&String, RandomState>> {
-        match self.op_names_for_qargs(&qargs) {
+        match self.operation_names_for_qargs(&qargs) {
             Ok(set) => Ok(set),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
@@ -620,9 +620,10 @@ impl Target {
     /// Returns:
     ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
     #[pyo3(
+        name = "instruction_supported",
         text_signature = "(/, operation_name=None, qargs=None, operation_class=None, parameters=None)"
     )]
-    pub fn instruction_supported(
+    pub fn py_instruction_supported(
         &self,
         operation_name: Option<String>,
         qargs: Option<Qargs>,
@@ -692,7 +693,7 @@ impl Target {
             }
             false
         } else if let Some(operation_name) = operation_name {
-            self.is_instruction_supported(&operation_name, &qargs, &parameters)
+            self.instruction_supported(&operation_name, &qargs, &parameters)
         } else {
             false
         }
@@ -732,11 +733,7 @@ impl Target {
     /// Returns:
     ///     InstructionProperties: The instruction properties for the specified instruction tuple
     #[pyo3(text_signature = "(/, index: int)")]
-    pub fn instruction_properties(
-        &self,
-        _py: Python<'_>,
-        index: usize,
-    ) -> PyResult<Option<InstructionProperties>> {
+    pub fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
         let mut index_counter = 0;
         for (_operation, props_map) in self.gate_map.iter() {
             let gate_map_oper = props_map.values();
@@ -771,7 +768,7 @@ impl Target {
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
     #[pyo3(signature = (/, strict_direction=false,), text_signature = "(/, strict_direction=False)")]
-    pub fn get_non_global_operation_names(
+    fn get_non_global_operation_names(
         &mut self,
         py: Python<'_>,
         strict_direction: bool,
@@ -795,35 +792,33 @@ impl Target {
     /// ``(class, None)`` where class is the actual operation class that
     /// is globally defined.
     #[getter]
-    pub fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, Option<Qargs>)>> {
-        // Get list of instructions.
-        let mut instruction_list: Vec<(PyObject, Option<Qargs>)> = vec![];
-        // Add all operations and dehash qargs.
-        for (op, props_map) in self.gate_map.iter() {
-            for qarg in props_map.keys() {
-                let instruction_pair = (self._gate_name_map[op].to_object(py), qarg.clone());
-                instruction_list.push(instruction_pair);
-            }
+    #[pyo3(name = "instructions")]
+    pub fn py_instructions(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        let list = PyList::empty_bound(py);
+        for inst in self.instructions() {
+            list.append(inst)?;
         }
-        // Return results.
-        Ok(instruction_list)
+        Ok(list.unbind())
     }
     /// Get the operation names in the target.
     #[getter]
-    pub fn operation_names(&self) -> Vec<String> {
-        self.gate_map.keys().cloned().collect()
+    #[pyo3(name = "operation_names")]
+    fn py_operation_names(&self, py: Python<'_>) -> Py<PyList> {
+        PyList::new_bound(py, self.gate_map.keys()).unbind()
     }
 
     /// Get the operation objects in the target.
     #[getter]
-    pub fn operations(&self) -> Vec<TargetOperation> {
-        return self._gate_name_map.values().cloned().collect();
+    #[pyo3(name = "operations")]
+    fn py_operations(&self, py: Python<'_>) -> Py<PyList> {
+        PyList::new_bound(py, self._gate_name_map.values()).unbind()
     }
 
     /// Returns a sorted list of physical qubits.
     #[getter]
-    pub fn physical_qubits(&self) -> Vec<usize> {
-        Vec::from_iter(0..self.num_qubits.unwrap_or_default())
+    #[pyo3(name = "physical_qubits")]
+    fn py_physical_qubits(&self, py: Python<'_>) -> Py<PyList> {
+        PyList::new_bound(py, 0..self.num_qubits.unwrap_or_default()).unbind()
     }
 
     // Magic methods:
@@ -940,6 +935,30 @@ impl Target {
 
 // Rust native methods
 impl Target {
+    /// Returns an iterator over all the instructions present in the `Target`
+    /// as pair of `&TargetOperation` and `Option<&Qargs>`.
+    pub fn instructions(&self) -> impl Iterator<Item = (&TargetOperation, Option<&Qargs>)> {
+        self.gate_map.iter().flat_map(move |(op, props_map)| {
+            props_map
+                .keys()
+                .map(move |qargs| (&self._gate_name_map[op], qargs.as_ref()))
+        })
+    }
+    /// Returns an iterator over the operation names in the target.
+    pub fn operation_names(&self) -> impl Iterator<Item = &String> {
+        self.gate_map.keys()
+    }
+
+    /// Get the operation objects in the target.
+    pub fn operations(&self) -> impl Iterator<Item = &TargetOperation> {
+        return self._gate_name_map.values();
+    }
+
+    /// Get an iterator over the indices of all physical qubits of the target
+    pub fn physical_qubits(&self) -> impl Iterator<Item = usize> {
+        0..self.num_qubits.unwrap_or_default()
+    }
+
     /// Generate non global operations if missing
     fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &[String] {
         let mut search_set: HashSet<Qargs, RandomState> = HashSet::default();
@@ -1016,7 +1035,7 @@ impl Target {
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
-    pub fn op_names_for_qargs(
+    pub fn operation_names_for_qargs(
         &self,
         qargs: &Option<Qargs>,
     ) -> Result<HashSet<&String, RandomState>, TargetKeyError> {
@@ -1064,7 +1083,7 @@ impl Target {
         &self,
         qargs: &Option<Qargs>,
     ) -> Result<Vec<&NormalOperation>, TargetKeyError> {
-        match self.op_names_for_qargs(qargs) {
+        match self.operation_names_for_qargs(qargs) {
             Ok(operations) => Ok(operations
                 .into_iter()
                 .filter_map(|oper| match &self._gate_name_map[oper] {
@@ -1077,7 +1096,7 @@ impl Target {
     }
 
     /// Gets all the qargs used by the specified operation name. Rust native equivalent of ``BaseTarget.qargs_for_operation_name()``
-    pub fn qargs_for_op_name(
+    pub fn qargs_for_operation_name(
         &self,
         operation: &String,
     ) -> Result<Option<Vec<&Qargs>>, TargetKeyError> {
@@ -1095,7 +1114,7 @@ impl Target {
     }
 
     /// Gets the instruction object based on the operation name
-    pub fn get_operation_from_name(
+    pub fn operation_from_name(
         &self,
         instruction: &String,
     ) -> Result<&TargetOperation, TargetKeyError> {
@@ -1124,7 +1143,7 @@ impl Target {
         Some(qargs)
     }
 
-    pub fn is_instruction_supported(
+    pub fn instruction_supported(
         &self,
         operation_name: &String,
         qargs: &Option<Qargs>,
