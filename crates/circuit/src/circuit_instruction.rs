@@ -14,7 +14,7 @@
 use std::cell::RefCell;
 
 use pyo3::basic::CompareOp;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyDeprecationWarning, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyList, PyTuple, PyType};
 use pyo3::{intern, IntoPy, PyObject, PyResult};
@@ -22,7 +22,7 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::imports::{
     get_std_gate_class, populate_std_gate_map, GATE, INSTRUCTION, OPERATION,
-    SINGLETON_CONTROLLED_GATE, SINGLETON_GATE,
+    SINGLETON_CONTROLLED_GATE, SINGLETON_GATE, WARNINGS_WARN,
 };
 use crate::interner::Index;
 use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
@@ -572,26 +572,31 @@ impl CircuitInstruction {
 
     #[cfg(not(feature = "cache_pygates"))]
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
     }
 
     #[cfg(feature = "cache_pygates")]
     pub fn __getitem__(&mut self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
     }
 
     #[cfg(not(feature = "cache_pygates"))]
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
     }
 
     #[cfg(feature = "cache_pygates")]
     pub fn __iter__(&mut self, py: Python<'_>) -> PyResult<PyObject> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
         Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
     }
 
-    pub fn __len__(&self) -> usize {
-        3
+    pub fn __len__(&self, py: Python) -> PyResult<usize> {
+        warn_on_legacy_circuit_instruction_iteration(py)?;
+        Ok(3)
     }
 
     pub fn __richcmp__(
@@ -820,10 +825,7 @@ pub(crate) fn convert_py_to_operation_type(
     };
     let op_type: Bound<PyType> = raw_op_type.into_bound(py);
     let mut standard: Option<StandardGate> = match op_type.getattr(attr) {
-        Ok(stdgate) => match stdgate.extract().ok() {
-            Some(gate) => gate,
-            None => None,
-        },
+        Ok(stdgate) => stdgate.extract().ok().unwrap_or_default(),
         Err(_) => None,
     };
     // If the input instruction is a standard gate and a singleton instance
@@ -938,4 +940,30 @@ pub(crate) fn convert_py_to_operation_type(
         });
     }
     Err(PyValueError::new_err(format!("Invalid input: {}", py_op)))
+}
+
+/// Issue a Python `DeprecationWarning` about using the legacy tuple-like interface to
+/// `CircuitInstruction`.
+///
+/// Beware the `stacklevel` here doesn't work quite the same way as it does in Python as Rust-space
+/// calls are completely transparent to Python.
+#[inline]
+fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
+    WARNINGS_WARN
+        .get_bound(py)
+        .call1((
+            intern!(
+                py,
+                concat!(
+                    "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
+                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
+                    " Instead, use the `operation`, `qubits` and `clbits` named attributes."
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
+            // beacuse all our internal call structure is now Rust-space and invisible to Python.
+            1,
+        ))
+        .map(|_| ())
 }
