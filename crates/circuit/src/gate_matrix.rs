@@ -384,3 +384,59 @@ pub fn cp_gate(lam: f64) -> GateArray2Q {
         [C_ZERO, C_ZERO, C_ZERO, c64(0., lam).exp()],
     ]
 }
+
+#[inline]
+pub fn rxx_gate(theta: f64) -> GateArray2Q {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let ccos = c64(cost, 0.);
+    let csinm = c64(0., -sint);
+
+    [
+        [ccos, C_ZERO, C_ZERO, csinm],
+        [C_ZERO, ccos, csinm, C_ZERO],
+        [C_ZERO, csinm, ccos, C_ZERO],
+        [csinm, C_ZERO, C_ZERO, ccos],
+    ]
+}
+
+#[inline]
+pub fn ryy_gate(theta: f64) -> GateArray2Q {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let ccos = c64(cost, 0.);
+    let csin = c64(0., sint);
+
+    [
+        [ccos, C_ZERO, C_ZERO, csin],
+        [C_ZERO, ccos, -csin, C_ZERO],
+        [C_ZERO, -csin, ccos, C_ZERO],
+        [csin, C_ZERO, C_ZERO, ccos],
+    ]
+}
+
+#[inline]
+pub fn rzz_gate(theta: f64) -> GateArray2Q {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let exp_it2 = c64(cost, sint);
+    let exp_mit2 = c64(cost, -sint);
+
+    [
+        [exp_mit2, C_ZERO, C_ZERO, C_ZERO],
+        [C_ZERO, exp_it2, C_ZERO, C_ZERO],
+        [C_ZERO, C_ZERO, exp_it2, C_ZERO],
+        [C_ZERO, C_ZERO, C_ZERO, exp_mit2],
+    ]
+}
+
+#[inline]
+pub fn rzx_gate(theta: f64) -> GateArray2Q {
+    let (sint, cost) = (theta / 2.0).sin_cos();
+    let ccos = c64(cost, 0.);
+    let csin = c64(0., sint);
+
+    [
+        [ccos, C_ZERO, -csin, C_ZERO],
+        [C_ZERO, ccos, C_ZERO, csin],
+        [-csin, C_ZERO, ccos, C_ZERO],
+        [C_ZERO, csin, C_ZERO, ccos],
+    ]
+}

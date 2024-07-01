@@ -4814,9 +4814,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.rxx import RXXGate
-
-        return self.append(RXXGate(theta), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(StandardGate.RXXGate, [theta], [qubit1, qubit2])
 
     def ry(
         self, theta: ParameterValueType, qubit: QubitSpecifier, label: str | None = None
@@ -4889,9 +4887,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.ryy import RYYGate
-
-        return self.append(RYYGate(theta), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(StandardGate.RYYGate, [theta], [qubit1, qubit2])
 
     def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RZGate`.
@@ -4961,9 +4957,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.rzx import RZXGate
-
-        return self.append(RZXGate(theta), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(StandardGate.RZXGate, [theta], [qubit1, qubit2])
 
     def rzz(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
@@ -4980,9 +4974,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.rzz import RZZGate
-
-        return self.append(RZZGate(theta), [qubit1, qubit2], [], copy=False)
+        return self._append_standard_gate(StandardGate.RZZGate, [theta], [qubit1, qubit2])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.
