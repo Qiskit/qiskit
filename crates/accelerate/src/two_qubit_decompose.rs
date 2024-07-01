@@ -21,10 +21,6 @@
 use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
-use pyo3::exceptions::{PyIndexError, PyValueError};
-use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
-use pyo3::Python;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use std::ops::Deref;
@@ -37,7 +33,11 @@ use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, ToPyArray};
+
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use pyo3::types::PyList;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
@@ -53,8 +53,8 @@ use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
 use qiskit_circuit::operations::Operation;
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
-use qiskit_circuit::SliceOrInt;
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -1132,46 +1132,15 @@ impl TwoQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: SliceOrInt) -> PyResult<PyObject> {
-        match idx {
-            SliceOrInt::Slice(slc) => {
-                let len = self.gates.len().try_into().unwrap();
-                let indices = slc.indices(len)?;
-                let mut out_vec: TwoQubitSequenceVec = Vec::new();
-                // Start and stop will always be positive the slice api converts
-                // negatives to the index for example:
-                // list(range(5))[-1:-3:-1]
-                // will return start=4, stop=2, and step=-
-                let mut pos: isize = indices.start;
-                let mut cond = if indices.step < 0 {
-                    pos > indices.stop
-                } else {
-                    pos < indices.stop
-                };
-                while cond {
-                    if pos < len as isize {
-                        out_vec.push(self.gates[pos as usize].clone());
-                    }
-                    pos += indices.step;
-                    if indices.step < 0 {
-                        cond = pos > indices.stop;
-                    } else {
-                        cond = pos < indices.stop;
-                    }
-                }
-                Ok(out_vec.into_py(py))
-            }
-            SliceOrInt::Int(idx) => {
-                let len = self.gates.len() as isize;
-                if idx >= len || idx < -len {
-                    Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
-                } else if idx < 0 {
-                    let len = self.gates.len();
-                    Ok(self.gates[len - idx.unsigned_abs()].to_object(py))
-                } else {
-                    Ok(self.gates[idx as usize].to_object(py))
-                }
-            }
+    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
+        match idx.with_len(self.gates.len())? {
+            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
+            indices => Ok(PyList::new_bound(
+                py,
+                indices.iter().map(|pos| self.gates[pos].to_object(py)),
+            )
+            .into_any()
+            .unbind()),
         }
     }
 }
