@@ -15,6 +15,8 @@
 import unittest
 
 import itertools
+import warnings
+
 import ddt
 import numpy.random
 
@@ -278,10 +280,12 @@ class TestSabreSwap(QiskitTestCase):
 
         from qiskit_aer import Aer
 
-        with self.assertWarns(DeprecationWarning):
-            sim = Aer.get_backend("aer_simulator")
-        in_results = sim.run(qc, shots=4096).result().get_counts()
-        out_results = sim.run(routed, shots=4096).result().get_counts()
+        sim = Aer.get_backend("aer_simulator")
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            in_results = sim.run(qc, shots=4096).result().get_counts()
+            out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
 
     def test_classical_condition(self):
