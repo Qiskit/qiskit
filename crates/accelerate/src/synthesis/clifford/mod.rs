@@ -12,6 +12,7 @@
 
 mod greedy_synthesis;
 mod utils;
+mod bm_synthesis;
 
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
 use crate::QiskitError;
