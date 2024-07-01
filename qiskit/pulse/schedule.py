@@ -553,17 +553,10 @@ class Schedule:
                     self._timeslots[channel].insert(index, interval)
                 except PulseError as ex:
                     raise PulseError(
-                        "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
-                        "time {time} because its instruction on channel {ch} scheduled from time "
-                        "{t0} to {tf} overlaps with an existing instruction."
-                        "".format(
-                            new=schedule.name or "",
-                            old=self.name or "",
-                            time=time,
-                            ch=channel,
-                            t0=interval[0],
-                            tf=interval[1],
-                        )
+                        f"Schedule(name='{schedule.name or ''}') cannot be inserted into "
+                        f"Schedule(name='{self.name or ''}') at "
+                        f"time {time} because its instruction on channel {channel} scheduled from time "
+                        f"{interval[0]} to {interval[1]} overlaps with an existing instruction."
                     ) from ex
 
         _check_nonnegative_timeslot(self._timeslots)
@@ -598,10 +591,8 @@ class Schedule:
                         continue
 
                 raise PulseError(
-                    "Cannot find interval ({t0}, {tf}) to remove from "
-                    "channel {ch} in Schedule(name='{name}').".format(
-                        ch=channel, t0=interval[0], tf=interval[1], name=schedule.name
-                    )
+                    f"Cannot find interval ({interval[0]}, {interval[1]}) to remove from "
+                    f"channel {channel} in Schedule(name='{schedule.name}')."
                 )
 
             if not channel_timeslots:
@@ -715,16 +706,17 @@ class Schedule:
     def assign_parameters(
         self,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
         ],
         inplace: bool = True,
     ) -> "Schedule":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from parameters (parameter vectors) to either
-            numeric values (list of numeric values)
-            or another Parameter expression (list of Parameter expressions).
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1416,15 +1408,16 @@ class ScheduleBlock:
     def assign_parameters(
         self,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
         ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from parameters (parameter vectors) to either numeric values
-            (list of numeric values)
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
             or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
@@ -1613,8 +1606,9 @@ class ScheduleBlock:
         blocks = ", ".join([repr(instr) for instr in self.blocks[:50]])
         if len(self.blocks) > 25:
             blocks += ", ..."
-        return '{}({}, name="{}", transform={})'.format(
-            self.__class__.__name__, blocks, name, repr(self.alignment_context)
+        return (
+            f'{self.__class__.__name__}({blocks}, name="{name}",'
+            f" transform={repr(self.alignment_context)})"
         )
 
     def __add__(self, other: "BlockComponent") -> "ScheduleBlock":

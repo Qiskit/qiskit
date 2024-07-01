@@ -14,6 +14,7 @@
 Decompose a single-qubit unitary via Euler angles.
 """
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 
 from qiskit._accelerate import euler_one_qubit_decomposer
@@ -36,6 +37,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.operator import Operator
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
 DEFAULT_ATOL = 1e-12
 
@@ -150,7 +154,7 @@ class OneQubitEulerDecomposer:
         self.basis = basis  # sets: self._basis, self._params, self._circuit
         self.use_dag = use_dag
 
-    def build_circuit(self, gates, global_phase):
+    def build_circuit(self, gates, global_phase) -> QuantumCircuit | DAGCircuit:
         """Return the circuit or dag object from a list of gates."""
         qr = [Qubit()]
         lookup_gate = False
@@ -186,7 +190,7 @@ class OneQubitEulerDecomposer:
         unitary: Operator | Gate | np.ndarray,
         simplify: bool = True,
         atol: float = DEFAULT_ATOL,
-    ) -> QuantumCircuit:
+    ) -> QuantumCircuit | DAGCircuit:
         """Decompose single qubit gate into a circuit.
 
         Args:

@@ -135,6 +135,18 @@ Note that in order to run `python setup.py ...` commands you need have build
 dependency packages installed in your environment, which are listed in the
 `pyproject.toml` file under the `[build-system]` section.
 
+### Compile time options
+
+When building qiskit from source there are options available to control how
+Qiskit is built. Right now the only option is if you set the environment
+variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
+Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+This makes a tradeoff between runtime performance for Python access and memory
+overhead. Caching gates will result in better runtime for users of Python at
+the cost of increased memory consumption. If you're working with any custom
+transpiler passes written in python or are otherwise using a workflow that
+repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+attribute of `DAGOpNode` enabling caching is recommended.
 
 ## Issues and pull requests
 
@@ -183,8 +195,8 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
-3. If it makes sense for your change that you have added new tests that
-   cover the changes.
+3. If you are of the opinion that the modifications you made warrant additional tests,
+   feel free to include them
 4. Ensure that if your change has an end user facing impact (new feature,
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.
@@ -520,7 +532,7 @@ we used in our CI systems more closely.
 
 ### Snapshot Testing for Visualizations
 
-If you are working on code that makes changes to any matplotlib visualisations
+If you are working on code that makes changes to any matplotlib visualizations
 you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
@@ -531,7 +543,7 @@ the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
 
    <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
-4. Fix any broken tests. Working on code for one aspect of the visualisations
+4. Fix any broken tests. Working on code for one aspect of the visualizations
 can sometimes result in minor changes elsewhere to spacing etc. In these cases
 you just need to update the reference images as follows:
     - download the mismatched images (link at top of Jupyter Notebook output)

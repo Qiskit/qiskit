@@ -131,7 +131,6 @@ Exceptions
 .. autoexception:: JobTimeoutError
 .. autoexception:: BackendConfigurationError
 
-=====================
 Writing a New Backend
 =====================
 
@@ -164,7 +163,7 @@ For a simple example of a provider, see the
 `qiskit-aqt-provider <https://github.com/Qiskit-Partners/qiskit-aqt-provider>`__
 
 Provider
-========
+--------
 
 A provider class serves a single purpose: to get backend objects that enable
 executing circuits on a device or simulator. The expectation is that any
@@ -195,7 +194,7 @@ authentication (if required) are present in the class and that the backends
 method matches the required interface. The rest is up to the specific provider on how to implement.
 
 Backend
-=======
+-------
 
 The backend classes are the core to the provider. These classes are what
 provide the interface between Qiskit and the hardware or simulator that will
@@ -276,8 +275,8 @@ example would be something like::
             return MyJob(self. job_handle, job_json, circuit)
 
 
-Transpiler Interface
---------------------
+Backend's Transpiler Interface
+------------------------------
 
 The key piece of the :class:`~qiskit.providers.Backend` object is how it describes itself to the
 compiler. This is handled with the :class:`~qiskit.transpiler.Target` class which defines
@@ -453,8 +452,45 @@ This way if these two compilation steps are **required** for running or providin
 efficient output on ``Mybackend`` the transpiler will be able to perform these
 custom steps without any manual user input.
 
-Run Method
-----------
+.. _providers-guide-real-time-variables:
+
+Real-time variables
+^^^^^^^^^^^^^^^^^^^
+
+The transpiler will automatically handle real-time typed classical variables (see
+:mod:`qiskit.circuit.classical`) and treat the :class:`.Store` instruction as a built-in
+"directive", similar to :class:`.Barrier`.  No special handling from backends is necessary to permit
+this.
+
+If your backend is *unable* to handle classical variables and storage, we recommend that you comment
+on this in your documentation, and insert a check into your :meth:`~.BackendV2.run` method (see
+:ref:`providers-guide-backend-run`) to eagerly reject circuits containing them.  You can examine
+:attr:`.QuantumCircuit.num_vars` for the presence of variables at the top level.  If you accept
+:ref:`control-flow operations <circuit-control-flow-repr>`, you might need to recursively search the
+internal :attr:`~.ControlFlowOp.blocks` of each for scope-local variables with
+:attr:`.QuantumCircuit.num_declared_vars`.
+
+For example, a function to check for the presence of any manual storage locations, or manual stores
+to memory::
+
+    from qiskit.circuit import Store, ControlFlowOp, QuantumCircuit
+
+    def has_realtime_logic(circuit: QuantumCircuit) -> bool:
+        if circuit.num_vars:
+            return True
+        for instruction in circuit.data:
+            if isinstance(instruction.operation, Store):
+                return True
+            elif isinstance(instruction.operation, ControlFlowOp):
+                for block in instruction.operation.blocks:
+                    if has_realtime_logic(block):
+                        return True
+        return False
+
+.. _providers-guide-backend-run:
+
+Backend.run Method
+------------------
 
 Of key importance is the :meth:`~qiskit.providers.BackendV2.run` method, which
 is used to actually submit circuits to a device or simulator. The run method
@@ -484,8 +520,8 @@ An example run method would be something like::
         job_handle = submit_to_backend(job_jsonb)
         return MyJob(self. job_handle, job_json, circuit)
 
-Options
--------
+Backend Options
+---------------
 
 There are often several options for a backend that control how a circuit is run.
 The typical example of this is something like the number of ``shots`` which is
@@ -515,7 +551,7 @@ for a full list of validation options.
 
 
 Job
-===
+---
 
 The output from the :obj:`~qiskit.providers.BackendV2.run` method is a :class:`~qiskit.providers.JobV1`
 object. Each provider is expected to implement a custom job subclass that
@@ -612,7 +648,7 @@ and for a sync job::
             return JobStatus.DONE
 
 Primitives
-==========
+----------
 
 While not directly part of the provider interface, the :mod:`qiskit.primitives`
 module is tightly coupled with providers. Specifically the primitive
@@ -640,12 +676,8 @@ implementations. Also the built-in implementations: :class:`~.Sampler`,
 :class:`~.Estimator`, :class:`~.BackendSampler`, and :class:`~.BackendEstimator`
 can serve as references/models on how to implement these as well.
 
-======================================
-Migrating between Backend API Versions
-======================================
-
-BackendV1 -> BackendV2
-======================
+Migrating from BackendV1 to BackendV2
+=====================================
 
 The :obj:`~BackendV2` class re-defined user access for most properties of a
 backend to make them work with native Qiskit data structures and have flatter
