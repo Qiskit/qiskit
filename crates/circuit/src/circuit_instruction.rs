@@ -728,10 +728,7 @@ impl CircuitInstruction {
 
 /// Take a reference to a `CircuitInstruction` and convert the operation
 /// inside that to a python side object.
-pub(crate) fn operation_type_to_py(
-    py: Python,
-    circuit_inst: &CircuitInstruction,
-) -> PyResult<PyObject> {
+pub fn operation_type_to_py(py: Python, circuit_inst: &CircuitInstruction) -> PyResult<PyObject> {
     let (label, duration, unit, condition) = match &circuit_inst.extra_attrs {
         None => (None, None, None, None),
         Some(extra_attrs) => (
@@ -757,7 +754,7 @@ pub(crate) fn operation_type_to_py(
 /// a Python side full-fat Qiskit operation as a PyObject. This is typically
 /// used by accessor functions that need to return an operation to Qiskit, such
 /// as accesing `CircuitInstruction.operation`.
-pub(crate) fn operation_type_and_data_to_py(
+pub fn operation_type_and_data_to_py(
     py: Python,
     operation: &OperationType,
     params: &[Param],
@@ -796,8 +793,8 @@ pub(crate) fn operation_type_and_data_to_py(
 
 /// A container struct that contains the output from the Python object to
 /// conversion to construct a CircuitInstruction object
-#[derive(Debug)]
-pub(crate) struct OperationTypeConstruct {
+#[derive(Debug, Clone)]
+pub struct OperationTypeConstruct {
     pub operation: OperationType,
     pub params: SmallVec<[Param; 3]>,
     pub label: Option<String>,
@@ -809,7 +806,7 @@ pub(crate) struct OperationTypeConstruct {
 /// Convert an inbound Python object for a Qiskit operation and build a rust
 /// representation of that operation. This will map it to appropriate variant
 /// of operation type based on class
-pub(crate) fn convert_py_to_operation_type(
+pub fn convert_py_to_operation_type(
     py: Python,
     py_op: PyObject,
 ) -> PyResult<OperationTypeConstruct> {
