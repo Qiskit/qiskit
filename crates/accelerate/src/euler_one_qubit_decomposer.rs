@@ -677,7 +677,7 @@ fn compare_error_fn(
             let fidelity_product: f64 = circuit
                 .gates
                 .iter()
-                .map(|x| 1. - err_map.get(x.0.name()).unwrap_or(&0.))
+                .map(|gate| 1. - err_map.get(gate.0.name()).unwrap_or(&0.))
                 .product();
             (1. - fidelity_product, circuit.gates.len())
         }
@@ -695,7 +695,7 @@ fn compute_error(
             let num_gates = gates.len();
             let gate_fidelities: f64 = gates
                 .iter()
-                .map(|x| 1. - err_map.error_map[qubit].get(x.0.name()).unwrap_or(&0.))
+                .map(|gate| 1. - err_map.error_map[qubit].get(gate.0.name()).unwrap_or(&0.))
                 .product();
             (1. - gate_fidelities, num_gates)
         }
@@ -717,7 +717,7 @@ fn compute_error_str(
             let num_gates = gates.len();
             let gate_fidelities: f64 = gates
                 .iter()
-                .map(|x| compute_error_term(x.0.as_str(), err_map, qubit))
+                .map(|gate| compute_error_term(gate.0.as_str(), err_map, qubit))
                 .product();
             (1. - gate_fidelities, num_gates)
         }
