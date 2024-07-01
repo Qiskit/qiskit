@@ -1,6 +1,7 @@
 ---
 features_quantum_info:
   - |
+<<<<<<< HEAD
     Added a new :meth:`.Pauli.apply_layout` that is equivalent to the
     :meth:`.SparsePauliOp.apply_layout`. This method is
     used to apply a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
@@ -10,12 +11,25 @@ features_quantum_info:
 
     .. code-block:: python
 
+=======
+    Added a new :meth:`~.Pauli.apply_layout`  method that is equivalent to
+    :meth:`~.SparsePauliOp.apply_layout`. This method is used to apply
+    a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
+    observable that was built for an input circuit. This enables working with
+    :class:`~.BaseEstimator` / :class:`~.BaseEstimatorV2` implementations and 
+    local transpilation when the input is of type :class:`~.Pauli`. For example::
+    
+>>>>>>> 05d5b9830 (Fix bad Sphinx syntax in several release notes and in API documentaiton (#12604))
       from qiskit.circuit.library import RealAmplitudes
       from qiskit.primitives import BackendEstimatorV2
       from qiskit.providers.fake_provider import GenericBackendV2
       from qiskit.quantum_info import Pauli
       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 05d5b9830 (Fix bad Sphinx syntax in several release notes and in API documentaiton (#12604))
       psi = RealAmplitudes(num_qubits=2, reps=2)
       H1 = Pauli("XI")
       backend = GenericBackendV2(num_qubits=7)
@@ -25,9 +39,18 @@ features_quantum_info:
       transpiled_psi = pm.run(psi)
       permuted_op = H1.apply_layout(transpiled_psi.layout)
       res = estimator.run([(transpiled_psi, permuted_op, thetas)]).result()
+<<<<<<< HEAD
 
     where an input circuit is transpiled locally before it's passed to
     :meth:`~.BaseEstimator.run`. Transpilation expands the original
     circuit from 2 to 7 qubits (the size of ``backend``) and permutes its layout,
     which is then applied to ``H1`` using :meth:`~.Pauli.apply_layout`
     to reflect the transformations performed by ``pm.run()``.
+=======
+    
+    where an input circuit is transpiled locally before it's passed to
+    :class:`~.BaseEstimator.run`. Transpilation expands the original
+    circuit from 2 to 7 qubits (the size of ``backend``) and permutes its layout,
+    which is then applied to ``H1`` using :meth:`~.Pauli.apply_layout`
+    to reflect the transformations performed by ``pm.run()``.
+>>>>>>> 05d5b9830 (Fix bad Sphinx syntax in several release notes and in API documentaiton (#12604))
