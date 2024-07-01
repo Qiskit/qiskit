@@ -822,10 +822,7 @@ impl CircuitInstruction {
 
 /// Take a reference to a `CircuitInstruction` and convert the operation
 /// inside that to a python side object.
-pub(crate) fn operation_type_to_py(
-    py: Python,
-    circuit_inst: &CircuitInstruction,
-) -> PyResult<PyObject> {
+pub fn operation_type_to_py(py: Python, circuit_inst: &CircuitInstruction) -> PyResult<PyObject> {
     let (label, duration, unit, condition) = match &circuit_inst.extra_attrs {
         None => (None, None, None, None),
         Some(extra_attrs) => (

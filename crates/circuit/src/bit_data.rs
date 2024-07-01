@@ -70,7 +70,7 @@ impl PartialEq for BitAsKey {
 impl Eq for BitAsKey {}
 
 #[derive(Clone, Debug)]
-pub(crate) struct BitData<T> {
+pub struct BitData<T> {
     /// The public field name (i.e. `qubits` or `clbits`).
     description: String,
     /// Registered Python bits.
@@ -81,7 +81,7 @@ pub(crate) struct BitData<T> {
     cached: Py<PyList>,
 }
 
-pub(crate) struct BitNotFoundError<'py>(pub(crate) Bound<'py, PyAny>);
+pub struct BitNotFoundError<'py>(pub(crate) Bound<'py, PyAny>);
 
 impl<'py> From<BitNotFoundError<'py>> for PyErr {
     fn from(error: BitNotFoundError) -> Self {
@@ -109,6 +109,10 @@ where
     /// Gets the number of bits.
     pub fn len(&self) -> usize {
         self.bits.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bits.is_empty()
     }
 
     /// Gets a reference to the underlying vector of Python bits.

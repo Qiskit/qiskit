@@ -54,6 +54,7 @@ from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
+from qiskit._accelerate.circuit import StandardGate, PyGate
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -2169,10 +2170,10 @@ class DAGCircuit:
         def filter_fn(node):
             if isinstance(node, DAGOpNode):
                 return (
-                    isinstance(node.op, Gate)
+                    isinstance(node._raw_op, (StandardGate, PyGate))
                     and len(node.qargs) <= 2
-                    and not getattr(node.op, "condition", None)
-                    and not node.op.is_parameterized()
+                    and not getattr(node, "condition", None)
+                    and not node.is_parameterized()
                 )
             else:
                 return None
