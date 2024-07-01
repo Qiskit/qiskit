@@ -157,13 +157,16 @@ def _assemble_circuit(
                         ]
 
             conditional_reg_idx = memory_slots + max_conditional_idx
-            conversion_bfunc = QasmQobjInstruction(
-                name="bfunc",
-                mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
-                relation="==",
-                val="0x%X" % val,  # pylint: disable=consider-using-f-string
-                register=conditional_reg_idx,
-            )
+            with warnings.catch_warnings():
+                # TODO remove this catch once Aer stops using _assemble
+                warnings.simplefilter("ignore", category=DeprecationWarning)
+                conversion_bfunc = QasmQobjInstruction(
+                    name="bfunc",
+                    mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
+                    relation="==",
+                    val="0x%X" % val,  # pylint: disable=consider-using-f-string
+                    register=conditional_reg_idx,
+                )
             instructions.append(conversion_bfunc)
             instruction.conditional = conditional_reg_idx
             max_conditional_idx += 1
