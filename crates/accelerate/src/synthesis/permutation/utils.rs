@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use ndarray::{Array1, ArrayView1};
-use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::vec::Vec;
@@ -64,19 +63,19 @@ pub fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
 /// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
 /// if the input  permutation consists of several disjoint cycles, then each cycle
 /// is essentially treated independently.
-pub fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
+pub fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(usize, usize)> {
     let mut permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
     let mut index_map = invert(pattern);
 
     let n = permutation.len();
-    let mut swaps: Vec<(i64, i64)> = Vec::with_capacity(n);
+    let mut swaps: Vec<(usize, usize)> = Vec::with_capacity(n);
     for ii in 0..n {
         let val = permutation[ii];
         if val == ii {
             continue;
         }
         let jj = index_map[ii];
-        swaps.push((ii as i64, jj as i64));
+        swaps.push((ii, jj));
         (permutation[ii], permutation[jj]) = (permutation[jj], permutation[ii]);
         index_map[val] = jj;
         index_map[ii] = ii;
@@ -86,6 +85,10 @@ pub fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
     swaps
 }
 
+/// Explore cycles in a permutation pattern. This is probably best explained in an
+/// example: let a pattern be [1, 2, 3, 0, 4, 6, 5], then it contains the two
+/// cycles [1, 2, 3, 0] and [6, 5]. The index [4] does not perform a permutation and does
+/// therefore not create a cycle.
 pub fn pattern_to_cycles(pattern: &ArrayView1<i64>, invert_order: &bool) -> Vec<Vec<usize>> {
     // vector keeping track of which elements in the permutation pattern have been visited
     let mut explored: Vec<bool> = vec![false; pattern.len()];
@@ -119,7 +122,10 @@ pub fn pattern_to_cycles(pattern: &ArrayView1<i64>, invert_order: &bool) -> Vec<
     cycles
 }
 
-/// Given a disjoint cycle decomposition, decomposes every cycle into a SWAP
+/// Given a disjoint cycle decomposition of a permutation pattern (see the function
+/// ``pattern_to_cycles``), decomposes every cycle into a series of SWAPs to implement it.
+/// In combination with ``pattern_to_cycle``, this function allows to implement a
+/// full permutation pattern by applying SWAP gates on the returned index-pairs.
 pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
     let mut swaps: Vec<(usize, usize)> = Vec::new();
 
@@ -142,46 +148,4 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
     }
 
     swaps
-}
-
-/// Sorts the input permutation by iterating through the permutation list
-/// and putting each element to its correct position via a SWAP (if it's not
-/// at the correct position already). If ``n`` is the length of the input
-/// permutation, this requires at most ``n`` SWAPs.
-///
-/// More precisely, if the input permutation is a cycle of length ``m``,
-/// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
-/// if the input  permutation consists of several disjoint cycles, then each cycle
-/// is essentially treated independently.
-#[pyfunction]
-#[pyo3(signature = (permutation_in))]
-fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<PyObject> {
-    let view = permutation_in.as_array();
-    Ok(get_ordered_swap(&view).to_object(py))
-}
-
-/// Decompose a SWAP pattern into a series of SWAP gate indices to implement them.
-/// For example, let the pattern be [1, 2, 3, 4, 0, 6, 5], which contains the two cycles
-/// [1, 2, 3, 4, 0] and [6, 5]. These can then be implemented with the SWAPs
-/// [(0, 3), (1, 2), (0, 4), (1, 3)], respectively [(6, 5)].
-/// If ``invert`` is True, reverse the indices before computing the SWAPs.
-#[pyfunction]
-#[pyo3(signature = (pattern, invert_order=true))]
-fn _pattern_to_swaps(
-    py: Python,
-    pattern: PyArrayLike1<i64>,
-    invert_order: bool,
-) -> PyResult<PyObject> {
-    let view = pattern.as_array();
-    let cycles = pattern_to_cycles(&view, &invert_order);
-    let swaps = decompose_cycles(&cycles);
-    let swaps_i64: Vec<(i64, i64)> = swaps.iter().map(|&x| (x.0 as i64, x.1 as i64)).collect();
-    Ok(swaps_i64.to_object(py))
-}
-
-#[pymodule]
-pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
-    m.add_function(wrap_pyfunction!(_pattern_to_swaps, m)?)?;
-    Ok(())
 }

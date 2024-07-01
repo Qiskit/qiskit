@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit._accelerate.permutation import _synth_permutation_acg
-from qiskit._accelerate.synthesis.permutation import _synth_permutation_basic
+from qiskit._accelerate.synthesis.permutation import (
+    _synth_permutation_basic,
+    _synth_permutation_acg,
+)
 
 
 def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:

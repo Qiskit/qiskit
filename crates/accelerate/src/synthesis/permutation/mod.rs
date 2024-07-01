@@ -59,10 +59,33 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
     )
 }
 
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+    let view = pattern.as_array();
+    let num_qubits = view.len();
+    let cycles = utils::pattern_to_cycles(&view, &true);
+    let swaps = utils::decompose_cycles(&cycles);
+
+    CircuitData::from_standard_gates(
+        py,
+        num_qubits as u32,
+        swaps.iter().map(|(i, j)| {
+            (
+                StandardGate::SwapGate,
+                smallvec![],
+                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            )
+        }),
+        Param::Float(0.0),
+    )
+}
+
 #[pymodule]
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
+    m.add_function(wrap_pyfunction!(_synth_permutation_acg, m)?)?;
     Ok(())
 }
