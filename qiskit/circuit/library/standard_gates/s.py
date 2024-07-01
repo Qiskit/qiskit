@@ -215,6 +215,8 @@ class CSGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CSGate
+
     def __init__(
         self,
         label: Optional[str] = None,
@@ -300,6 +302,8 @@ class CSdgGate(SingletonControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CSdgGate
 
     def __init__(
         self,
