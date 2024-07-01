@@ -71,6 +71,7 @@ pub static SINGLETON_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonGate");
 pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
+pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 
 pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
 
