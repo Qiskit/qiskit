@@ -186,6 +186,28 @@ impl Clifford {
         azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
     }
 
+    /// Modifies the tableau in-place by appending V-gate.
+    /// This is equivalent to two V gates.
+    pub fn append_v(&mut self, qubit: usize) {
+        let (mut x, mut z) = self.tableau.multi_slice_mut((
+            s![.., qubit],
+            s![.., self.num_qubits + qubit],
+        ));
+
+        azip!((x in &mut x, &z in &mut z)  (*x, *z) = (*z, *x & *z));
+    }
+
+    /// Modifies the tableau in-place by appending W-gate.
+    /// This is equivalent to an Sdg gate followed by an H gate.
+    pub fn append_v(&mut self, qubit: usize) {
+        let (mut x, mut z) = self.tableau.multi_slice_mut((
+            s![.., qubit],
+            s![.., self.num_qubits + qubit],
+        ));
+
+        azip!((x in &mut x, &z in &mut z)  (*x, *z) = (*x & *z, *x));
+    }
+
     /// Creates a Clifford from a given sequence of Clifford gates.
     /// In essence, starts from the identity tableau and modifies it
     /// based on the gates in the sequence.
