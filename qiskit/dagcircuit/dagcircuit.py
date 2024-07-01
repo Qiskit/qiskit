@@ -54,6 +54,7 @@ from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
+from qiskit._accelerate.circuit import StandardGate, PyGate
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -716,6 +717,27 @@ class DAGCircuit:
             raise ValueError(f"unknown vars_mode: '{vars_mode}'")
 
         return target_dag
+
+    def _apply_op_node_back(self, node: DAGOpNode):
+        additional = ()
+        if _may_have_additional_wires(node):
+            # This is the slow path; most of the time, this won't happen.
+            additional = set(_additional_wires(node)).difference(node.cargs)
+
+        node._node_id = self._multi_graph.add_node(node)
+        self._increment_op(node)
+
+        # Add new in-edges from predecessors of the output nodes to the
+        # operation node while deleting the old in-edges of the output nodes
+        # and adding new edges from the operation node to each output node
+        self._multi_graph.insert_node_on_in_edges_multiple(
+            node._node_id,
+            [
+                self.output_map[bit]._node_id
+                for bits in (node.qargs, node.cargs, additional)
+                for bit in bits
+            ],
+        )
 
     def apply_operation_back(
         self,
@@ -2155,10 +2177,10 @@ class DAGCircuit:
         def filter_fn(node):
             if isinstance(node, DAGOpNode):
                 return (
-                    isinstance(node.op, Gate)
+                    isinstance(node._raw_op, (StandardGate, PyGate))
                     and len(node.qargs) <= 2
-                    and not getattr(node.op, "condition", None)
-                    and not node.op.is_parameterized()
+                    and not getattr(node, "condition", None)
+                    and not node.is_parameterized()
                 )
             else:
                 return None

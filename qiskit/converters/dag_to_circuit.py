@@ -14,6 +14,7 @@
 import copy
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
+from qiskit._accelerate.circuit import StandardGate
 
 
 def dag_to_circuit(dag, copy_operations=True):
@@ -71,10 +72,24 @@ def dag_to_circuit(dag, copy_operations=True):
     circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
-        op = node.op
-        if copy_operations:
-            op = copy.deepcopy(op)
-        circuit._append(CircuitInstruction(op, node.qargs, node.cargs))
+        if not isinstance(node._raw_op, StandardGate):
+            op = node.op
+            if copy_operations:
+                op = copy.deepcopy(op)
+            circuit._append(CircuitInstruction(op, node.qargs, node.cargs))
+        else:
+            circuit._append(
+                CircuitInstruction(
+                    node._raw_op,
+                    node.qargs,
+                    node.cargs,
+                    params=node.params,
+                    label=node.label,
+                    duration=node.duration,
+                    unit=node.unit,
+                    condition=node.condition,
+                )
+            )
 
     circuit.duration = dag.duration
     circuit.unit = dag.unit
