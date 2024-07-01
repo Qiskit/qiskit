@@ -1342,6 +1342,13 @@ class DAGCircuit:
         block_cargs.sort(key=wire_pos_map.get)
         new_node = DAGOpNode(op, block_qargs, block_cargs, dag=self)
 
+        # check the op to insert matches the number of qubits we put it on
+        if op.num_qubits != len(block_qargs):
+            raise DAGCircuitError(
+                f"Number of qubits in the replacement operation ({op.num_qubits}) is not equal to "
+                f"the number of qubits in the block ({len(block_qargs)})!"
+            )
+
         try:
             new_node._node_id = self._multi_graph.contract_nodes(
                 block_ids, new_node, check_cycle=cycle_check
