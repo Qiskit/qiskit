@@ -825,10 +825,7 @@ pub(crate) fn convert_py_to_operation_type(
     };
     let op_type: Bound<PyType> = raw_op_type.into_bound(py);
     let mut standard: Option<StandardGate> = match op_type.getattr(attr) {
-        Ok(stdgate) => match stdgate.extract().ok() {
-            Some(gate) => gate,
-            None => None,
-        },
+        Ok(stdgate) => stdgate.extract().ok().unwrap_or_default(),
         Err(_) => None,
     };
     // If the input instruction is a standard gate and a singleton instance,

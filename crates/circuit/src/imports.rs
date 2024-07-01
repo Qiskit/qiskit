@@ -153,13 +153,13 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // U3Gate = 28
     ["qiskit.circuit.library.standard_gates.u3", "U3Gate"],
     // CRXGate = 29
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rx", "CRXGate"],
     // CRYGate = 30
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.ry", "CRYGate"],
     // CRZGate = 31
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rz", "CRZGate"],
     // RGate 32
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.r", "RGate"],
     // CHGate = 33
     ["qiskit.circuit.library.standard_gates.h", "CHGate"],
     // CPhaseGate = 34
@@ -185,7 +185,7 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // C4XGate = 44
     ["qiskit.circuit.library.standard_gates.x", "C4XGate"],
     // DCXGate = 45
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.dcx", "DCXGate"],
     // CCZGate = 46
     ["qiskit.circuit.library.standard_gates.z", "CCZGate"],
     // RCCXGate = 47
@@ -193,13 +193,13 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // RC3XGate = 48
     ["placeholder", "placeholder"],
     // RXXGate = 49
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rxx", "RXXGate"],
     // RYYGate = 50
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.ryy", "RYYGate"],
     // RZZGate = 51
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rzz", "RZZGate"],
     // RZXGate = 52
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rzx", "RZXGate"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the
