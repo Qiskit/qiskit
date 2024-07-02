@@ -249,14 +249,14 @@ class UniformSuperpositionGate(Gate):
 
     This gate is used to create the uniform superposition state
     :math:`\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  |j\rangle` when it acts on an input
-    state :math:`|0...0\rangle`. Note, that `M` is not required to be 
-    a power of 2, in which case the uniform superposition could be 
+    state :math:`|0...0\rangle`. Note, that `M` is not required to be
+    a power of 2, in which case the uniform superposition could be
     prepared by a single layer of Hadamard gates.
 
     .. note::
 
         This class uses the Shukla-Vedula algorithm [1], which only needs
-        :math:`O(\log_2 (M))` qubits and :math:`O(\log_2 (M))` gates, 
+        :math:`O(\log_2 (M))` qubits and :math:`O(\log_2 (M))` gates,
         to prepare the superposition.
 
     **References:**
@@ -280,7 +280,7 @@ class UniformSuperpositionGate(Gate):
                 states have zero amplitudes. Here M need not be an integer power of 2.
 
             num_qubits (int):
-                A positive integer representing the number of qubits used.  If num_qubits is None 
+                A positive integer representing the number of qubits used.  If num_qubits is None
                 or is not specified, then num_qubits is set to ceil(log2(num_superpos_states)).
 
         Raises:
@@ -299,7 +299,7 @@ class UniformSuperpositionGate(Gate):
         super().__init__("USup", num_qubits, [num_superpos_states])
 
     def _define(self):
-        
+
         qc = QuantumCircuit(self._num_qubits)
 
         num_superpos_states = self.params[0]
@@ -323,14 +323,14 @@ class UniformSuperpositionGate(Gate):
         if l_value[0] > 0:  # if num_superpos_states is even
             qc.h(range(l_value[0]))
         qc.ry(theta, l_value[1])
-        qc.ch(l_value[1], range(l_value[0],l_value[1]), ctrl_state="0")
+        qc.ch(l_value[1], range(l_value[0], l_value[1]), ctrl_state="0")
 
         for m in range(1, len(l_value) - 1):
             theta = -2 * np.arccos(
                 np.sqrt(2 ** l_value[m] / (num_superpos_states - m_current_value))
             )
             qc.cry(theta, l_value[m], l_value[m + 1], ctrl_state="0")
-            qc.ch(l_value[m + 1], range(l_value[m],l_value[m + 1]), ctrl_state="0")
+            qc.ch(l_value[m + 1], range(l_value[m], l_value[m + 1]), ctrl_state="0")
             m_current_value = m_current_value + 2 ** l_value[m]
 
         self.definition = qc
