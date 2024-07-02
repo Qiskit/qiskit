@@ -389,7 +389,7 @@ def generate_preset_pass_manager(
 
     if backend is not None:
         pm_options["_skip_target"] = _skip_target
-        pm_config = PassManagerConfig.from_backend(backend, **pm_options)
+        pm_config = PassManagerConfig.from_backend(backend, _skip_target=_skip_target, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
     if optimization_level == 0:
