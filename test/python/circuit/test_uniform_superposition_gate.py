@@ -22,7 +22,6 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator, Statevector
-from qiskit.compiler import transpile
 
 from qiskit.circuit.library.data_preparation import (
     UniformSuperpositionGate,
