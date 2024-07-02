@@ -474,7 +474,7 @@ class BitArray(ShapedMixin):
 
         Args:
             indices: A list of the indices of the cbits on which to postselect.
-                This matches the indexing used by BitArray.slice_bits().
+                This matches the indexing used by :meth:`~slice_bits`.
                 If this bit array was produced by a sampler, then an index ``i`` corresponds to the
                 :class:`~.ClassicalRegister` location ``creg[i]``.
 
