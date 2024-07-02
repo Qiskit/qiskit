@@ -207,7 +207,10 @@ class BitArray(ShapedMixin):
         if order == "little":
             # np.unpackbits assumes "big"
             array = array[..., ::-1]
-
+        elif order != "big":
+            raise ValueError(
+                f"unknown value for order: '{order}'. Valid values are 'big' and 'little'."
+            )
         num_bits = array.shape[-1]
         if remainder := (-num_bits) % 8:
             # unpackbits pads with zeros on the wrong side with respect to what we want, so

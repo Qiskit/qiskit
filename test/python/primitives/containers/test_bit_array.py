@@ -207,6 +207,16 @@ class BitArrayTestCase(QiskitTestCase):
         )
         self.assertEqual(bit_array, BitArray(u_8([[7, 3, 1]]), 21))
 
+        with self.assertRaisesRegex(ValueError, "unknown value for order"):
+            BitArray.from_bool_array(
+            [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="litle"
+        )
+
+        with self.assertRaisesRegex(ValueError, "unknown value for order"):
+            BitArray.from_bool_array(
+            [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="bg"
+        )
+
     @ddt.data("counts", "int", "hex", "bit")
     def test_from_counts(self, counts_type):
         """Test the from_counts static constructor."""
