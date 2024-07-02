@@ -13,6 +13,8 @@
 """Module providing definitions of common Qobj classes."""
 from types import SimpleNamespace
 
+from qiskit.utils import deprecate_func
+
 
 class QobjDictField(SimpleNamespace):
     """A class used to represent a dictionary field in Qobj
@@ -21,6 +23,13 @@ class QobjDictField(SimpleNamespace):
     previously constructed using marshmallow.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including QobjDictField's subclasses, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(self, **kwargs):
         """Instantiate a new Qobj dict field object.
 

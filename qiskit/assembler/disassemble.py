@@ -23,6 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.utils import deprecate_func
 
 # A ``CircuitModule`` is a representation of a circuit execution on the backend.
 # It is currently a list of quantum circuits to execute, a run Qobj dictionary
@@ -37,6 +38,13 @@ CircuitModule = NewType(
 PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
 
 
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The function disassemble is being deprecated "
+    "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+    "means that they are using a backend based on the deprecated BackendV1 class.",
+)
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
 

@@ -30,6 +30,7 @@ from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.utils import MeasLevel
+from qiskit.utils import deprecate_func
 
 
 class ParametricPulseShapes(Enum):
@@ -107,6 +108,14 @@ class InstructionToQobjConverter:
     where ``NewInstruction`` must be a class name of Qiskit Pulse instruction.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The full Qobj module is being deprecated, including InstructionToQobjConverter "
+        "class, "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def __init__(
         self,
         qobj_model: PulseQobjInstruction,

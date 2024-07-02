@@ -36,7 +36,8 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.circuits = [qc]
 
     def test_qobj_identifiers(self):
-        qobj = assemble(self.circuits)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
         self.assertIn(self.cr_name, (x[0] for x in exp.header.clbit_labels))

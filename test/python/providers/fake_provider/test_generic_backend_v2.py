@@ -13,6 +13,7 @@
 """ Test of GenericBackendV2 backend"""
 
 import math
+import warnings
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -116,7 +117,11 @@ class TestGenericBackendV2(QiskitTestCase):
 
         backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"])
         tqc = transpile(qc, backend=backend, optimization_level=3, seed_transpiler=42)
-        result = backend.run(tqc, seed_simulator=42, shots=1000).result()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using Provider ABC
+            # https://github.com/Qiskit/qiskit-aer/pull/2184
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            result = backend.run(tqc, seed_simulator=42, shots=1000).result()
         counts = result.get_counts()
 
         self.assertTrue(math.isclose(counts["00000"], 500, rel_tol=0.1))

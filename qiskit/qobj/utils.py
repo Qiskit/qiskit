@@ -14,7 +14,16 @@
 
 from enum import Enum, IntEnum
 
+from qiskit.utils import deprecate_func
 
+
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The full Qobj module is being deprecated, including QobjType class, "
+    "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+    "means that they are using a backend based on the deprecated BackendV1 class.",
+)
 class QobjType(str, Enum):
     """Qobj.type allowed values."""
 
