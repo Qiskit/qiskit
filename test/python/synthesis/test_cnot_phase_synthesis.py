@@ -15,10 +15,11 @@
 import unittest
 import ddt
 
+from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators import Operator
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh
+from qiskit.synthesis.linear import synth_cnot_count_full_pmh, random_invertible_binary_matrix
 from qiskit.synthesis.linear_phase import synth_cnot_phase_aam
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -268,6 +269,26 @@ class TestPatelMarkovHayes(QiskitTestCase):
 
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_patel, unitary_compare)
+
+    def test_invalid_state_type(self):
+        """Test invalid state type"""
+        with self.assertRaises(QiskitError):
+            synth_cnot_count_full_pmh("invalid_state", 2)
+
+    def test_invalid_section_size(self):
+        """Test invalid section_size"""
+        state = [[1, 0], [0, 1]]
+        with self.assertRaises(QiskitError):
+            synth_cnot_count_full_pmh(state, 3)
+
+    @ddt.data(1, 2, 5, 10, 20)
+    def test_defaulting_section_size(self, num_qubits):
+        """Test defaulting section_size doesn't throw exception"""
+        try:
+            state = random_invertible_binary_matrix(num_qubits, seed=1234)
+            synth_cnot_count_full_pmh(state, num_qubits)
+        except Exception:
+            self.fail("synth_cnot_count_full_pmh() raised an exception unexpectedly!")
 
 
 if __name__ == "__main__":

@@ -22,9 +22,11 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 
+MULTIPLIER_CONSTANT = 2.64
+
 
 def synth_cnot_count_full_pmh(
-    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = None
 ) -> QuantumCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
@@ -43,7 +45,9 @@ def synth_cnot_count_full_pmh(
         QuantumCircuit: a CX-only circuit implementing the linear transformation.
 
     Raises:
-        QiskitError: when variable ``state`` isn't of type ``numpy.ndarray``
+        QiskitError:
+         - when variable ``state`` isn't of type ``numpy.ndarray``
+         - when ``section_size`` is greater than the number of qubits
 
     References:
         1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
@@ -55,6 +59,18 @@ def synth_cnot_count_full_pmh(
         raise QiskitError(
             f"state should be of type list or numpy.ndarray, but was of the type {type(state)}"
         )
+
+    num_qubits = len(state)
+    if section_size is None:
+        default_section_size = MULTIPLIER_CONSTANT * np.log(num_qubits)
+        default_section_size = 1 if default_section_size == 0 else default_section_size
+        section_size = int(default_section_size)
+    if not section_size <= num_qubits:
+        raise QiskitError(
+            "section_size should be less than or equal to the number of qubits ({0}), "
+            "but was {1}".format(num_qubits, section_size)
+        )
+
     state = np.array(state)
     # Synthesize lower triangular part
     [state, circuit_l] = _lwr_cnot_synth(state, section_size)
