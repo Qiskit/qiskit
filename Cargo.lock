@@ -1392,9 +1392,9 @@ checksum = "80af6f9131f277a45a3fba6ce8e2258037bb0477a67e610d3c1fe046ab31de47"
 
 [[package]]
 name = "rustworkx-core"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2b9aa5926b35dd3029530aef27eac0926b544c78f8e8f1aad4d37854b132fe9"
+checksum = "ef8108bdaf5b590d2ea261c6ca9b1795cbf253d0733b2e209b7990c95ed23843"
 dependencies = [
  "ahash 0.8.11",
  "fixedbitset",
