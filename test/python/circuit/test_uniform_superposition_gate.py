@@ -29,7 +29,6 @@ from qiskit.circuit.library.data_preparation import (
 )
 
 
-
 @ddt
 class TestUniformSuperposition(QiskitTestCase):
     """Test initialization with UniformSuperpositionGate class"""
@@ -94,6 +93,7 @@ class TestUniformSuperposition(QiskitTestCase):
         gate = UniformSuperpositionGate(num_superpos_states)
         actual_sv = Statevector(gate)
         np.testing.assert_allclose(desired_sv, actual_sv)
+
 
 if __name__ == "__main__":
     unittest.main()
