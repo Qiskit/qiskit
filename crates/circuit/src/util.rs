@@ -39,6 +39,7 @@ pub type GateArray0Q = [[Complex64; 1]; 1];
 pub type GateArray1Q = [[Complex64; 2]; 2];
 pub type GateArray2Q = [[Complex64; 4]; 4];
 pub type GateArray3Q = [[Complex64; 8]; 8];
+pub type GateArray4Q = [[Complex64; 16]; 16];
 
 // Use prefix `C_` to distinguish from real, for example
 pub const C_ZERO: Complex64 = c64(0., 0.);

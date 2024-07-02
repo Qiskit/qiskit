@@ -262,6 +262,8 @@ class CUGate(ControlledGate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CUGate
+
     def __init__(
         self,
         theta: ParameterValueType,
