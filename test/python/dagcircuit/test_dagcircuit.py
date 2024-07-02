@@ -2903,6 +2903,22 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
         self.assertIsInstance(new_node.op, XGate)
 
+    def test_invalid_replacement_size(self):
+        """Test inserting an operation on a wrong number of qubits raises."""
+
+        # two X gates, normal circuit
+        qc = QuantumCircuit(2)
+        qc.x(range(2))
+
+        # mutilate the DAG
+        dag = circuit_to_dag(qc)
+        to_replace = list(dag.op_nodes())
+        new_node = XGate()
+        idx_map = {node.qargs[0]: i for i, node in enumerate(to_replace)}
+
+        with self.assertRaises(DAGCircuitError):
+            dag.replace_block_with_op(to_replace, new_node, idx_map)
+
     def test_replace_control_flow_block(self):
         """Test that we can replace a block of control-flow nodes with a single one."""
         body = QuantumCircuit(1)
@@ -3473,6 +3489,103 @@ class TestDagCausalCone(QiskitTestCase):
         # Expected:
         expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
 
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_more_barriers(self):
+        """Test causal cone for circuit with barriers. This example shows
+        why barriers may need to be examined multiple times."""
+
+        # q0_0: ──■────────░────────────────────────
+        #       ┌─┴─┐      ░
+        # q0_1: ┤ X ├──────░───■────────────────────
+        #       ├───┤      ░ ┌─┴─┐┌───┐┌───┐┌───┐
+        # q0_2: ┤ H ├──────░─┤ X ├┤ H ├┤ H ├┤ H ├─X─
+        #       ├───┤┌───┐ ░ └───┘└───┘└───┘└───┘ │
+        # q0_3: ┤ H ├┤ X ├─░──────────────────────X─
+        #       ├───┤└─┬─┘ ░
+        # q0_4: ┤ X ├──■───░────────────────────────
+        #       └─┬─┘      ░
+        # q0_5: ──■────────░────────────────────────
+
+        qreg = QuantumRegister(6)
+        qc = QuantumCircuit(qreg)
+        qc.cx(0, 1)
+        qc.h(2)
+        qc.cx(5, 4)
+        qc.h(3)
+        qc.cx(4, 3)
+        qc.barrier()
+        qc.cx(1, 2)
+
+        qc.h(2)
+        qc.h(2)
+        qc.h(2)
+        qc.swap(2, 3)
+
+        dag = circuit_to_dag(qc)
+
+        result = dag.quantum_causal_cone(qreg[2])
+        expected = {qreg[0], qreg[1], qreg[2], qreg[3], qreg[4], qreg[5]}
+
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_measure(self):
+        """Test causal cone with measures."""
+
+        #         ┌───┐ ░ ┌─┐
+        #    q_0: ┤ H ├─░─┤M├────────────
+        #         ├───┤ ░ └╥┘┌─┐
+        #    q_1: ┤ H ├─░──╫─┤M├─────────
+        #         ├───┤ ░  ║ └╥┘┌─┐
+        #    q_2: ┤ H ├─░──╫──╫─┤M├──────
+        #         ├───┤ ░  ║  ║ └╥┘┌─┐
+        #    q_3: ┤ H ├─░──╫──╫──╫─┤M├───
+        #         ├───┤ ░  ║  ║  ║ └╥┘┌─┐
+        #    q_4: ┤ H ├─░──╫──╫──╫──╫─┤M├
+        #         └───┘ ░  ║  ║  ║  ║ └╥┘
+        #    c: 5/═════════╬══╬══╬══╬══╬═
+        #                  ║  ║  ║  ║  ║
+        # meas: 5/═════════╩══╩══╩══╩══╩═
+        #                  0  1  2  3  4
+
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        circuit = QuantumCircuit(qreg, creg)
+        for i in range(5):
+            circuit.h(i)
+        circuit.measure_all()
+
+        dag = circuit_to_dag(circuit)
+
+        result = dag.quantum_causal_cone(dag.qubits[1])
+        expected = {qreg[1]}
+        self.assertEqual(result, expected)
+
+    def test_reconvergent_paths(self):
+        """Test circuit with reconvergent paths."""
+
+        # q0_0: ──■─────────■─────────■─────────■─────────■─────────■───────
+        #       ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     ┌─┴─┐
+        # q0_1: ┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──
+        #       └───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+        # q0_2: ──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├
+        #       ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘
+        # q0_3: ┤ X ├─────┤ X ├─────┤ X ├─────┤ X ├─────┤ X ├─────┤ X ├─────
+        #       └───┘     └───┘     └───┘     └───┘     └───┘     └───┘
+        # q0_4: ────────────────────────────────────────────────────────────
+
+        qreg = QuantumRegister(5)
+        circuit = QuantumCircuit(qreg)
+
+        for _ in range(6):
+            circuit.cx(0, 1)
+            circuit.cx(2, 3)
+            circuit.cx(1, 2)
+
+        dag = circuit_to_dag(circuit)
+
+        result = dag.quantum_causal_cone(dag.qubits[1])
+        expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
         self.assertEqual(result, expected)
 
 
