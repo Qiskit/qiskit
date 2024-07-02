@@ -5406,8 +5406,8 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        # if the control state is |1> use the fast Rust version of the gate
-        if ctrl_state is None or ctrl_state in ["1", 1]:
+        # if the control state is |11> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["11", 3]:
             return self._append_standard_gate(
                 StandardGate.CCXGate, [], qargs=[control_qubit1, control_qubit2, target_qubit]
             )
@@ -5632,8 +5632,8 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        # if the control state is |1> use the fast Rust version of the gate
-        if ctrl_state is None or ctrl_state in ["1", 1]:
+        # if the control state is |11> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["11", 3]:
             return self._append_standard_gate(
                 StandardGate.CCZGate,
                 [],

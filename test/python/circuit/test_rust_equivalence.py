@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.standard_gates import C3XGate, U1Gate, ZGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.quantum_info import Operator
 
 SKIP_LIST = {"rx", "ry", "ecr"}
 CUSTOM_NAME_MAPPING = {"c3x": C3XGate()}
@@ -194,11 +195,12 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test that controlled gates with a non-default ctrl_state
         are not using the standard rust representation."""
 
+        # tests for CZ, CU1 and CCZ (gates with rust representation)
         z_gate, z_term = ZGate(), -1
         u1_gate, u1_term = U1Gate(0.1), 0.99500417 + 0.09983342j
 
         for gate, term in zip([z_gate, u1_gate], [z_term, u1_term]):
-            with self.subTest(name=gate.name):
+            with self.subTest(name="2q gate," + gate.name):
                 default_op = np.diag([1, 1, 1, term])
                 non_default_op = np.diag([1, 1, term, 1])
                 state_out_map = {
@@ -212,3 +214,22 @@ class TestRustGateEquivalence(QiskitTestCase):
                     circuit = QuantumCircuit(2)
                     circuit.append(gate.control(1, ctrl_state=state), [0, 1])
                     np.testing.assert_almost_equal(circuit.data[0].operation.to_matrix(), op)
+
+        with self.subTest(name="3q gate"):
+            default_op = np.diag([1, 1, 1, 1, 1, 1, 1, z_term])
+            non_default_op_0 = np.diag([1, 1, 1, 1, z_term, 1, 1, 1])
+            non_default_op_1 = np.diag([1, 1, 1, 1, 1, z_term, 1, 1])
+            non_default_op_2 = np.diag([1, 1, 1, 1, 1, 1, z_term, 1])
+            state_out_map = {
+                3: default_op,
+                "11": default_op,
+                None: default_op,
+                0: non_default_op_0,
+                1: non_default_op_1,
+                "01": non_default_op_1,
+                "10": non_default_op_2,
+            }
+            for state, op in state_out_map.items():
+                circuit = QuantumCircuit(3)
+                circuit.append(z_gate.control(2, ctrl_state=state), [0, 1, 2])
+                np.testing.assert_almost_equal(Operator(circuit.data[0].operation).to_matrix(), op)

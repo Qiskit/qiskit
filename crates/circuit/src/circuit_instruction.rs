@@ -892,12 +892,15 @@ pub fn convert_py_to_operation_type(
     // this check.
     if standard.is_some() {
         let mutable: bool = py_op.getattr(py, intern!(py, "mutable"))?.extract(py)?;
-        // The default ctrl_states are 1, "1" and None. These are the only cases where controlled
-        // gates can be standard.
+        // The default ctrl_states are the all 1 state and None.
+        // These are the only cases where controlled gates can be standard.
         let is_default_ctrl_state: bool = match py_op.getattr(py, intern!(py, "ctrl_state")) {
             Ok(c_state) => match c_state.extract::<Option<i32>>(py) {
                 Ok(c_state_int) => match c_state_int {
-                    Some(c_int) => c_int == 1,
+                    Some(c_int) => {
+                        let qubits = py_op.getattr(py, intern!(py, "num_qubits"))?.extract(py)?;
+                        c_int == (2_i32.pow(qubits) - 1) as i32
+                    }
                     None => true,
                 },
                 Err(_) => false,
