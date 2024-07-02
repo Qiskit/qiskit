@@ -558,15 +558,6 @@ class Target(BaseTarget):
                         continue
                     self.update_instruction_properties(inst_name, qargs, prop)
 
-    @property
-    def qargs(self):
-        """The set of qargs in the target."""
-        qargs = super().qargs
-        if qargs is None:
-            return None
-        qargs = {None if qarg is None else tuple(qarg) for qarg in qargs}
-        return qargs
-
     def qargs_for_operation_name(self, operation):
         """Get the qargs for a given operation name
 

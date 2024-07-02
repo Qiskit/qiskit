@@ -29,7 +29,7 @@ use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
-    types::{PyDict, PyList},
+    types::{PyDict, PyList, PySet, PyTuple},
 };
 
 use qiskit_circuit::circuit_instruction::{
@@ -779,9 +779,20 @@ impl Target {
 
     /// The set of qargs in the target.
     #[getter]
-    fn qargs(&self) -> Option<Vec<Option<Qargs>>> {
-        self.get_qargs()
-            .map(|qargs| qargs.into_iter().cloned().collect())
+    #[pyo3(name = "qargs")]
+    fn py_qargs(&self, py: Python) -> PyResult<PyObject> {
+        if let Some(qargs) = self.qargs() {
+            let qargs = qargs
+                .cloned()
+                .map(|qargs| qargs.map(|q| PyTuple::new_bound(py, q)));
+            let set = PySet::empty_bound(py)?;
+            for qargs in qargs {
+                set.add(qargs)?;
+            }
+            Ok(set.into_any().unbind())
+        } else {
+            Ok(py.None())
+        }
     }
 
     /// Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
@@ -794,8 +805,9 @@ impl Target {
     #[pyo3(name = "instructions")]
     pub fn py_instructions(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
         let list = PyList::empty_bound(py);
-        for inst in self.instructions() {
-            list.append(inst)?;
+        for (inst, qargs) in self.instructions() {
+            let qargs = qargs.map(|q| PyTuple::new_bound(py, q).unbind());
+            list.append((inst, qargs))?;
         }
         Ok(list.unbind())
     }
@@ -1128,15 +1140,12 @@ impl Target {
     }
 
     /// Rust-native method to get all the qargs of a specific Target object
-    pub fn get_qargs(&self) -> Option<IndexSet<&Option<Qargs>>> {
-        let qargs: IndexSet<&Option<Qargs>> = self.qarg_gate_map.keys().collect();
+    pub fn qargs(&self) -> Option<impl Iterator<Item = &Option<Qargs>>> {
+        let mut qargs = self.qarg_gate_map.keys().peekable();
         // TODO: Modify logic to account for the case of {None}
-        let next_entry = qargs.iter().next();
-        if qargs.len() == 1
-            && (qargs.first().unwrap().is_none()
-                || next_entry.is_none()
-                || next_entry.unwrap().is_none())
-        {
+        let next_entry = qargs.peek();
+        let is_none = next_entry.is_none() || next_entry.unwrap().is_none();
+        if qargs.len() == 1 && is_none {
             return None;
         }
         Some(qargs)
