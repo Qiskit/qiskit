@@ -24,7 +24,7 @@ from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.quantum_info import Operator
 
 SKIP_LIST = {"rx", "ry", "ecr"}
-CUSTOM_NAME_MAPPING = {"c3x": C3XGate()}
+CUSTOM_NAME_MAPPING = {"mcx": C3XGate()}
 MATRIX_SKIP_LIST = {"c3sx"}
 
 
