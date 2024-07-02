@@ -1,0 +1,4 @@
+---
+features_primitives:
+  - |
+    Added a new method :meth:`.BitArray.postselect` that returns all shots containing specified bit values.
