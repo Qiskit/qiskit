@@ -120,8 +120,10 @@ pub fn pattern_to_cycles(pattern: &ArrayView1<usize>) -> Vec<Vec<usize>> {
 /// Periodic (or Python-like) access to a vector.
 /// Util used below in ``decompose_cycles``.
 #[inline]
-fn pget(vec: &Vec<usize>, index: isize) -> Result<usize, PySequenceIndexError> {
-    let SequenceIndex::Int(wrapped) = PySequenceIndex::Int(index).with_len(vec.len())? else {unreachable!()};
+fn pget(vec: &[usize], index: isize) -> Result<usize, PySequenceIndexError> {
+    let SequenceIndex::Int(wrapped) = PySequenceIndex::Int(index).with_len(vec.len())? else {
+        unreachable!()
+    };
     Ok(vec[wrapped])
 }
 
