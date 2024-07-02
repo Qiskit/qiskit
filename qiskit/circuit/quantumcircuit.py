@@ -5297,20 +5297,22 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        if ctrl_state is not None:
-            from .library.standard_gates.u import CUGate
-
-            return self.append(
-                CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
-                [control_qubit, target_qubit],
-                [],
-                copy=False,
+        # if the control state is |1> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["1", 1]:
+            return self._append_standard_gate(
+                StandardGate.CUGate,
+                [theta, phi, lam, gamma],
+                qargs=[control_qubit, target_qubit],
+                label=label,
             )
-        return self._append_standard_gate(
-            StandardGate.CUGate,
-            [theta, phi, lam, gamma],
-            qargs=[control_qubit, target_qubit],
-            label=label,
+
+        from .library.standard_gates.u import CUGate
+
+        return self.append(
+            CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
+            [control_qubit, target_qubit],
+            [],
+            copy=False,
         )
 
     def x(self, qubit: QubitSpecifier, label: str | None = None) -> InstructionSet:
@@ -5630,20 +5632,22 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        if ctrl_state is not None:
-            from .library.standard_gates.z import CCZGate
-
-            return self.append(
-                CCZGate(label=label, ctrl_state=ctrl_state),
-                [control_qubit1, control_qubit2, target_qubit],
+        # if the control state is |1> use the fast Rust version of the gate
+        if ctrl_state is None or ctrl_state in ["1", 1]:
+            return self._append_standard_gate(
+                StandardGate.CCZGate,
                 [],
-                copy=False,
+                qargs=[control_qubit1, control_qubit2, target_qubit],
+                label=label,
             )
-        return self._append_standard_gate(
-            StandardGate.CCZGate,
+
+        from .library.standard_gates.z import CCZGate
+
+        return self.append(
+            CCZGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit1, control_qubit2, target_qubit],
             [],
-            qargs=[control_qubit1, control_qubit2, target_qubit],
-            label=label,
+            copy=False,
         )
 
     def pauli(
