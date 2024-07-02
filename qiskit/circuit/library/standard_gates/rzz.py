@@ -72,7 +72,7 @@ class RZZGate(Gate):
 
         .. math::
 
-            R_{ZZ}(\theta = \pi) = - Z \otimes Z
+            R_{ZZ}(\theta = \pi) = - i Z \otimes Z
 
         .. math::
 
