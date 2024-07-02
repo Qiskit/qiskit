@@ -163,8 +163,15 @@ impl NodeData {
         self.eq(&other)
     }
 
-    fn __getnewargs__(&self) -> (Key, Vec<Equivalence>) {
-        (self.key.clone(), self.equivs.clone())
+    fn __getnewargs__(&self, py: Python) -> (Key, Py<PyList>) {
+        (
+            self.key.clone(),
+            PyList::new_bound(
+                py,
+                self.equivs.iter().map(|equiv| equiv.clone().into_py(py)),
+            )
+            .unbind(),
+        )
     }
 }
 
@@ -457,17 +464,22 @@ impl EquivalenceLibrary {
     ///         ordering of the StandardEquivalenceLibrary will not generally be
     ///         consistent across Qiskit versions.
     #[pyo3(text_signature = "(gate, /,)")]
-    pub fn get_entry(&self, gate: GateOper) -> Vec<CircuitRep> {
+    pub fn get_entry(&self, py: Python, gate: GateOper) -> PyResult<Py<PyList>> {
         let key = Key {
             name: gate.operation.name().to_string(),
             num_qubits: gate.operation.num_qubits(),
         };
         let query_params = gate.params;
 
-        self._get_equivalences(&key)
+        let bound_equivalencies = self
+            ._get_equivalences(&key)
             .into_iter()
-            .filter_map(|equivalence| rebind_equiv(equivalence, &query_params))
-            .collect()
+            .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok());
+        let return_list = PyList::empty_bound(py);
+        for equiv in bound_equivalencies {
+            return_list.append(equiv)?;
+        }
+        Ok(return_list.unbind())
     }
 
     #[getter]
@@ -493,7 +505,7 @@ impl EquivalenceLibrary {
         }
     }
 
-    #[pyo3(name = "keys", text_signature = "()")]
+    #[pyo3(name = "keys")]
     pub fn py_keys(slf: PyRef<Self>) -> PyResult<Bound<PySet>> {
         let py_set = PySet::empty_bound(slf.py())?;
         for key in slf.keys() {
@@ -514,20 +526,23 @@ impl EquivalenceLibrary {
             key_to_usize_node.set_item((&key.name, key.num_qubits), val.index())?;
         }
         ret.set_item("key_to_node_index", key_to_usize_node)?;
-        let graph_nodes: Vec<NodeData> = slf._graph.node_weights().cloned().collect();
-        ret.set_item("graph_nodes", graph_nodes.into_py(slf.py()))?;
-        let graph_edges: Vec<(usize, usize, EdgeData)> = slf
-            ._graph
-            .edge_references()
-            .map(|edge| {
-                (
-                    edge.source().index(),
-                    edge.target().index(),
-                    edge.weight().clone(),
-                )
-            })
-            .collect_vec();
-        ret.set_item("graph_edges", graph_edges.into_py(slf.py()))?;
+        let graph_nodes: Bound<PyList> = PyList::empty_bound(slf.py());
+        for weight in slf._graph.node_weights() {
+            graph_nodes.append(weight.clone().into_py(slf.py()))?;
+        }
+        ret.set_item("graph_nodes", graph_nodes.unbind())?;
+        let edges = slf._graph.edge_references().map(|edge| {
+            (
+                edge.source().index(),
+                edge.target().index(),
+                edge.weight().clone().into_py(slf.py()),
+            )
+        });
+        let graph_edges = PyList::empty_bound(slf.py());
+        for edge in edges {
+            graph_edges.add(edge)?;
+        }
+        ret.set_item("graph_edges", graph_edges.unbind())?;
         Ok(ret)
     }
 
@@ -727,28 +742,27 @@ fn raise_if_shape_mismatch(gate: &GateOper, circuit: &CircuitRep) -> Result<(), 
     Ok(())
 }
 
-fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> Option<CircuitRep> {
-    Python::with_gil(|py| -> PyResult<CircuitRep> {
-        let (equiv_params, equiv_circuit) = (equiv.params, equiv.circuit);
-        let param_map: Vec<(Param, Param)> = equiv_params
-            .into_iter()
-            .zip(query_params.iter().cloned())
-            .filter_map(|(param_x, param_y)| match param_x {
-                Param::ParameterExpression(_) => Some((param_x, param_y)),
-                _ => None,
-            })
-            .collect();
-        let dict = param_map.as_slice().into_py_dict_bound(py);
-        let kwargs = [("inplace", false), ("flat_input", true)].into_py_dict_bound(py);
-        let new_equiv = equiv_circuit.object.call_method_bound(
-            py,
-            "assign_parameters",
-            (dict,),
-            Some(&kwargs),
-        )?;
-        new_equiv.extract::<CircuitRep>(py)
-    })
-    .ok()
+fn rebind_equiv(py: Python, equiv: Equivalence, query_params: &[Param]) -> PyResult<PyObject> {
+    let (equiv_params, equiv_circuit) = (equiv.params, equiv.circuit);
+    let param_iter = equiv_params
+        .into_iter()
+        .zip(query_params.iter().cloned())
+        .filter_map(|(param_x, param_y)| match param_x {
+            Param::ParameterExpression(_) => Some((param_x, param_y)),
+            _ => None,
+        });
+    let param_map = PyDict::new_bound(py);
+    for (param_key, param_val) in param_iter {
+        param_map.set_item(param_key, param_val)?;
+    }
+    let kwargs = [("inplace", false), ("flat_input", true)].into_py_dict_bound(py);
+    let new_equiv = equiv_circuit.object.call_method_bound(
+        py,
+        "assign_parameters",
+        (param_map,),
+        Some(&kwargs),
+    )?;
+    Ok(new_equiv)
 }
 
 // Errors
