@@ -5,7 +5,7 @@ features:
     the creation of a uniform superposition state using 
     the Shukla-Vedula algorithm. This feature facilitates the 
     creation of quantum circuits that produce a uniform superposition 
-    state :math:`$\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}`, where 
+    state :math:`\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  |j\rangle`, where 
     :math:`M` is a positive integer representing the number of 
     computational basis states with an amplitude of 
     :math:`\frac{1}{\sqrt{M}}`. This implementation supports the 
@@ -15,7 +15,9 @@ features:
 
     .. code-block:: python
 
-       from qiskit import UniformSuperpositionGate, QuantumCircuit
+       from qiskit import QuantumCircuit 
+       from qiskit.circuit.library.data_preparation import UniformSuperpositionGate
+
        M = 5
        num_qubits = 3
        usp_gate = UniformSuperpositionGate(M, num_qubits)
