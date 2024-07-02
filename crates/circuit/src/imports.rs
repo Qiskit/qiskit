@@ -71,6 +71,7 @@ pub static SINGLETON_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonGate");
 pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
+pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 
 pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
 
@@ -191,13 +192,13 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // RC3XGate = 48
     ["placeholder", "placeholder"],
     // RXXGate = 49
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rxx", "RXXGate"],
     // RYYGate = 50
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.ryy", "RYYGate"],
     // RZZGate = 51
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rzz", "RZZGate"],
     // RZXGate = 52
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.rzx", "RZXGate"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the
