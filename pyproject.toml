@@ -88,6 +88,9 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation"
 "permutation.basic" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation"
 "permutation.acg" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation"
+"qft.full" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QftSynthesisFull"
+"qft.line" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QftSynthesisLine"
+"qft.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QftSynthesisFull"
 "permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:TokenSwapperSynthesisPermutation"
 
 [project.entry-points."qiskit.transpiler.init"]
