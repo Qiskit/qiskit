@@ -464,7 +464,7 @@ class BitArray(ShapedMixin):
         arr = arr[..., indices, :]
         return BitArray(arr, self.num_bits)
 
-    def postselect(self, indices: Iterable[int], selection: Iterable[bool]) -> BitArray:
+    def postselect(self, indices: Sequence[int], selection: Sequence[bool]) -> BitArray:
         """Post-select this bit array based on sliced equality with a given bitstring.
 
         .. note::
@@ -491,7 +491,7 @@ class BitArray(ShapedMixin):
         """
 
         if len(selection) != len(indices):
-            raise ValueError("Lenghts of indices and selection do not match.")
+            raise ValueError("Lengths of indices and selection do not match.")
 
         selection = BitArray.from_bool_array([selection], order="little")
 
