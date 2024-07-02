@@ -12,10 +12,15 @@
 
 
 """Test random circuit generation utility."""
+from collections import defaultdict
+import rustworkx as rx
 import numpy as np
+import ddt
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
+from qiskit.circuit.random.utils import random_circuit_from_graph
 from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -160,3 +165,281 @@ class TestCircuitRandom(QiskitTestCase):
         # Testing that there are no 1-qubit gate and 2-qubit in the generated random circuit
         self.assertEqual(gate_type_counter[1], 0.0)
         self.assertEqual(gate_type_counter[2], 0.0)
+
+
+def incomplete_graph(n_nodes):
+    # pylint: disable=missing-function-docstring
+    pydi_graph = rx.generators.directed_complete_graph(n_nodes)
+    pydi_graph.remove_edge(1, 3)
+    return pydi_graph
+
+
+def digraph_with_no_edges(n_nodes):
+    # pylint: disable=missing-function-docstring
+    graph = rx.PyDiGraph()
+    graph.add_nodes_from(range(n_nodes))
+    return graph
+
+
+test_cases = (
+    (rx.generators.directed_cycle_graph(5), 1550),
+    (rx.generators.directed_mesh_graph(4), 87978),
+    # The (almost) fully connected graph.
+    (incomplete_graph(4), 154),
+    (rx.generators.directed_heavy_hex_graph(3), 458),
+    # Sparse connected graph
+    (rx.generators.directed_path_graph(10), 458),
+    # A graph with no edges, should yeild a circuit with no edges,
+    # this means there would be no 2Q gates on that circuit.
+    (digraph_with_no_edges(10), 0),
+)
+
+
+@ddt.ddt
+class TestRandomCircuitFromGraph(QiskitTestCase):
+    """Testing random_circuit_from_graph from
+    qiskit.circuit.random.utils.py"""
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_simple_random(self, graph, seed):
+        """Test creating a simple random circuit."""
+
+        n_nodes = graph.num_nodes()
+        inter_graph = (graph, None, None, None)
+        circ = random_circuit_from_graph(
+            interaction_graph=inter_graph, min_2q_gate_per_edge=1, seed=seed
+        )
+
+        self.assertIsInstance(circ, QuantumCircuit)
+        self.assertEqual(circ.width(), n_nodes)
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_min_times_qubit_pair_usage(self, graph, seed):
+        """the `min_2q_gate_per_edge` parameter specifies how often each qubit-pair must at
+        least be used in a two-qubit gate before the circuit is returned"""
+
+        inter_graph = (graph, None, None, None)
+        freq = 1
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph, min_2q_gate_per_edge=freq, seed=seed
+        )
+        dag = circuit_to_dag(qc)
+        count_register = defaultdict(int)
+
+        for wire in dag.wires:
+            for node in dag.nodes_on_wire(wire, only_ops=True):
+                if node.op.name == "measure" or node.op.num_qubits < 2:
+                    continue
+                key = node.sort_key
+                control, target = key.split(",")
+                count_register[(control, target)] += 1
+
+        for occurence in count_register.values():
+            self.assertLessEqual(freq, occurence)
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_random_measure(self, graph, seed):
+        """Test random circuit with final measurement."""
+
+        inter_graph = (graph, None, None, None)
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph, min_2q_gate_per_edge=1, measure=True, seed=seed
+        )
+        self.assertIn("measure", qc.count_ops())
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_random_circuit_conditional_reset(self, graph, seed):
+        """Test generating random circuits with conditional and reset."""
+        # Presence of 'reset' in the circuit is probabilistic, at seed 0 reset exists in circuit.
+
+        inter_graph = (graph, None, None, None)
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph,
+            min_2q_gate_per_edge=2,
+            conditional=True,
+            reset=True,
+            seed=seed,  # Do not change the seed or the args.486
+            insert_1q_oper=True,
+            prob_conditional=0.21,
+        )
+        self.assertIn("reset", qc.count_ops())
+
+        # Now, checking for conditionals
+
+        conditions = []
+        for instr in qc:
+            cond = getattr(instr.operation, "condition", None)
+            if not cond is None:
+                conditions.append(cond)
+
+        # See if conditionals are present.
+        self.assertNotEqual(conditions, [])
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_random_mid_circuit_measure_conditional(self, graph, seed):
+        """Test random circuit with mid-circuit measurements for conditionals."""
+
+        inter_graph = (graph, None, None, None)
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph,
+            min_2q_gate_per_edge=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            insert_1q_oper=True,
+            seed=seed,
+            prob_conditional=0.21,
+        )
+        dag = circuit_to_dag(qc)
+
+        # Before a condition, there needs to be measurement of atleast one of the qubits.
+        measure_at = None
+        condition_at = None
+        for qubit_idx, wire in enumerate(dag.wires):
+            if condition_at is not None and measure_at is not None:
+                break
+            for layer_num, dag_op_node in enumerate(dag.nodes_on_wire(wire, only_ops=True)):
+                if condition_at is None and getattr(dag_op_node.op, "condition", None) is not None:
+                    condition_at = {"qubit_idx": qubit_idx + 1, "layer_no": layer_num + 1}
+                elif measure_at is None and dag_op_node.op.name == "measure":
+                    measure_at = {"qubit_idx": qubit_idx + 1, "layer_no": layer_num + 1}
+
+        self.assertGreater(condition_at["layer_no"], measure_at["layer_no"])
+
+    @ddt.data(*test_cases)
+    @ddt.unpack
+    def test_2q_gates_applied_to_edges_from_interaction_graph(self, graph, seed):
+        """Test 2Q gates are applied to the qubit-pairs given by the interaction graph supplied"""
+
+        inter_graph = (graph, None, None, None)
+        qc = random_circuit_from_graph(
+            interaction_graph=inter_graph,
+            min_2q_gate_per_edge=1,
+            measure=True,
+            conditional=True,
+            reset=True,
+            insert_1q_oper=True,
+            seed=seed,
+            prob_conditional=0.21,
+        )
+        dag = circuit_to_dag(qc)
+
+        cp_mp = set()
+        pydi_graph, _, _, _ = inter_graph
+        edge_list = set(pydi_graph.edge_list())
+
+        for wire in dag.wires:
+            for dag_op_node in dag.nodes_on_wire(wire, only_ops=True):
+                if dag_op_node.op.num_qubits == 2:
+                    control, target = dag_op_node.qargs
+                    control_idx = control._index
+                    target_idx = target._index
+                    cp_mp.update({(control_idx, target_idx)})
+
+        # make sure every qubit-pair from the circuit actually present in the edge_list
+        for cp in cp_mp:
+            self.assertTrue(cp in edge_list)
+
+    def test_reset_with_no_insert_1q_oper_raise_error(self):
+        """Test if the functon raises CircuitError if `reset` is enabled,
+        but, `insert_1q_oper` is disabled."""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(10))
+        inter_graph = (pydi_graph, None, None, None)
+        with self.assertRaisesRegex(CircuitError, ".but no 1 qubit operation is allowed."):
+            _ = random_circuit_from_graph(
+                interaction_graph=inter_graph,
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=False,  # this should fail because of this.
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_edges_weight_with_some_None_raises(self):
+        """Test if the function raises ValueError, if some of the edge
+        weights are None, but not all."""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(5))
+        cp_mp = [(0, 1, None), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
+
+        pydi_graph.add_edges_from(cp_mp)
+        with self.assertRaisesRegex(ValueError, ".getting seleted contains."):
+            _ = random_circuit_from_graph(
+                interaction_graph=(pydi_graph, None, None, None),
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_max_operands_not_between_1_2_raises(self):
+        """Test if the function raises CircuitError when max_operands is not 1 or 2"""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(10))
+        inter_graph = (pydi_graph, None, None, None)
+        with self.assertRaisesRegex(CircuitError, ".function is intended to only work on."):
+            _ = random_circuit_from_graph(
+                interaction_graph=inter_graph,
+                min_2q_gate_per_edge=2,
+                max_operands=3,  # This would fail
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_zero_edge_weight_raises(self):
+        """Test if any of the edge weights happends to be zero this raises a ValueError"""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(5))
+        cp_mp = [(0, 1, 0), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
+
+        pydi_graph.add_edges_from(cp_mp)
+        with self.assertRaisesRegex(ValueError, ".or, is zero."):
+            _ = random_circuit_from_graph(
+                interaction_graph=(pydi_graph, None, None, None),
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
+
+    def test_negative_edge_weight_raises(self):
+        """Test if negative edge weights raises ValueError"""
+
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(5))
+        cp_mp = [(0, 1, -10), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
+
+        pydi_graph.add_edges_from(cp_mp)
+        with self.assertRaisesRegex(ValueError, ".probability."):
+            _ = random_circuit_from_graph(
+                interaction_graph=(pydi_graph, None, None, None),
+                min_2q_gate_per_edge=2,
+                measure=True,
+                conditional=True,
+                reset=True,
+                insert_1q_oper=True,
+                seed=0,
+                prob_conditional=0.11,
+            )
