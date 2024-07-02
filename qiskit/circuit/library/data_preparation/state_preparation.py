@@ -287,7 +287,7 @@ class UniformSuperpositionGate(Gate):
             ValueError: num_qubits must be an integer greater than or equal to log2(num_superpos_states).
 
         """
-        if not num_superpos_states > 1:
+        if num_superpos_states <= 1:
             raise ValueError("num_superpos_states must be a positive integer greater than 1.")
         if num_qubits is None:
             num_qubits = int(math.ceil(math.log2(num_superpos_states)))
