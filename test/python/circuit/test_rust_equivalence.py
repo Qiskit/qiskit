@@ -159,7 +159,7 @@ class TestRustGateEquivalence(QiskitTestCase):
             if standard_gate is None:
                 # gate is not in rust yet
                 continue
-            elif gate_class.name == "mcx":
+            if gate_class.name == "mcx":
                 # ambiguos gate name
                 continue
 
