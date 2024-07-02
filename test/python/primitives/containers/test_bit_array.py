@@ -761,4 +761,3 @@ class BitArrayTestCase(QiskitTestCase):
                 with self.subTest(dataname + "_" + name):
                     with self.assertRaises(error) as raised:
                         bit_array.postselect(indices, selection)
-                    print(name, type(raised.exception))
