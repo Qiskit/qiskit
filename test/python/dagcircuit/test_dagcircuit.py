@@ -2905,6 +2905,22 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
         self.assertIsInstance(new_node.op, XGate)
 
+    def test_invalid_replacement_size(self):
+        """Test inserting an operation on a wrong number of qubits raises."""
+
+        # two X gates, normal circuit
+        qc = QuantumCircuit(2)
+        qc.x(range(2))
+
+        # mutilate the DAG
+        dag = circuit_to_dag(qc)
+        to_replace = list(dag.op_nodes())
+        new_node = XGate()
+        idx_map = {node.qargs[0]: i for i, node in enumerate(to_replace)}
+
+        with self.assertRaises(DAGCircuitError):
+            dag.replace_block_with_op(to_replace, new_node, idx_map)
+
     def test_replace_control_flow_block(self):
         """Test that we can replace a block of control-flow nodes with a single one."""
         body = QuantumCircuit(1)
