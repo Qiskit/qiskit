@@ -994,7 +994,7 @@ pub fn optimize_1q_gates_decomposition(
                     node.instruction
                         .operation
                         .matrix(&node.instruction.params)
-                        .unwrap()
+                        .expect("No matrix defined for operation")
                 })
                 .fold(
                     [
