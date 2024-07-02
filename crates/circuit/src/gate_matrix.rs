@@ -174,6 +174,96 @@ pub static DCX_GATE: GateArray2Q = [
     [C_ZERO, C_ZERO, C_ONE, C_ZERO],
 ];
 
+pub static RCCX_GATE: GateArray3Q = [
+    [
+        C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, M_IM],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_M_ONE, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO,
+    ],
+    [C_ZERO, C_ZERO, C_ZERO, IM, C_ZERO, C_ZERO, C_ZERO, C_ZERO],
+];
+
+pub static RC3X_GATE: GateArray4Q = [
+    [
+        C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, IM, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ONE,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        M_IM, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ONE, C_ZERO, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ONE, C_ZERO, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ONE, C_ZERO,
+    ],
+    [
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_M_ONE, C_ZERO, C_ZERO, C_ZERO,
+        C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
+    ],
+];
+
 #[inline]
 pub fn global_phase_gate(theta: f64) -> GateArray0Q {
     [[c64(0., theta).exp()]]

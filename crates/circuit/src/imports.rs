@@ -189,9 +189,9 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     // CCZGate = 46
     ["qiskit.circuit.library.standard_gates.z", "CCZGate"],
     // RCCXGate = 47
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.x", "RCCXGate"],
     // RC3XGate = 48
-    ["placeholder", "placeholder"],
+    ["qiskit.circuit.library.standard_gates.x", "RC3XGate"],
     // RXXGate = 49
     ["qiskit.circuit.library.standard_gates.rxx", "RXXGate"],
     // RYYGate = 50

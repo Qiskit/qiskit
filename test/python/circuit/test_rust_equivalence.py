@@ -23,7 +23,7 @@ from qiskit.circuit.library.standard_gates import C3XGate, U1Gate, ZGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
 SKIP_LIST = {"rx", "ry", "ecr"}
-CUSTOM_MAPPING = {"x", "rz"}
+CUSTOM_NAME_MAPPING = {"c3x": C3XGate()}
 MATRIX_SKIP_LIST = {"c3sx"}
 
 
@@ -33,8 +33,7 @@ class TestRustGateEquivalence(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.standard_gates = get_standard_gate_name_mapping()
-        # Add c3x gate with explicit name instead of "mcx"
-        self.standard_gates.update({"c3x": C3XGate()})
+        self.standard_gates.update(CUSTOM_NAME_MAPPING)
         # Pre-warm gate mapping cache, this is needed so rust -> py conversion is done
         qc = QuantumCircuit(5)
         for gate in self.standard_gates.values():
