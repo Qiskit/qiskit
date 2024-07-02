@@ -717,6 +717,27 @@ class DAGCircuit:
 
         return target_dag
 
+    def _apply_op_node_back(self, node: DAGOpNode):
+        additional = ()
+        if _may_have_additional_wires(node):
+            # This is the slow path; most of the time, this won't happen.
+            additional = set(_additional_wires(node)).difference(node.cargs)
+
+        node._node_id = self._multi_graph.add_node(node)
+        self._increment_op(node)
+
+        # Add new in-edges from predecessors of the output nodes to the
+        # operation node while deleting the old in-edges of the output nodes
+        # and adding new edges from the operation node to each output node
+        self._multi_graph.insert_node_on_in_edges_multiple(
+            node._node_id,
+            [
+                self.output_map[bit]._node_id
+                for bits in (node.qargs, node.cargs, additional)
+                for bit in bits
+            ],
+        )
+
     def apply_operation_back(
         self,
         op: Operation,
@@ -1341,6 +1362,13 @@ class DAGCircuit:
         block_cargs = [bit for bit in block_cargs if bit in wire_pos_map]
         block_cargs.sort(key=wire_pos_map.get)
         new_node = DAGOpNode(op, block_qargs, block_cargs, dag=self)
+
+        # check the op to insert matches the number of qubits we put it on
+        if op.num_qubits != len(block_qargs):
+            raise DAGCircuitError(
+                f"Number of qubits in the replacement operation ({op.num_qubits}) is not equal to "
+                f"the number of qubits in the block ({len(block_qargs)})!"
+            )
 
         try:
             new_node._node_id = self._multi_graph.contract_nodes(
@@ -2264,36 +2292,44 @@ class DAGCircuit:
         output_node = self.output_map.get(qubit, None)
         if not output_node:
             raise DAGCircuitError(f"Qubit {qubit} is not part of this circuit.")
-        # Add the qubit to the causal cone.
-        qubits_to_check = {qubit}
-        # Add predecessors of output node to the queue.
-        queue = deque(self.predecessors(output_node))
 
-        # While queue isn't empty
+        qubits_in_cone = {qubit}
+        queue = deque(self.quantum_predecessors(output_node))
+
+        # The processed_non_directive_nodes stores the set of processed non-directive nodes.
+        # This is an optimization to avoid considering the same non-directive node multiple
+        # times when reached from different paths.
+        # The directive nodes (such as barriers or measures) are trickier since when processing
+        # them we only add their predecessors that intersect qubits_in_cone. Hence, directive
+        # nodes have to be considered multiple times.
+        processed_non_directive_nodes = set()
+
         while queue:
-            # Pop first element.
             node_to_check = queue.popleft()
-            # Check whether element is input or output node.
+
             if isinstance(node_to_check, DAGOpNode):
-                # Keep all the qubits in the operation inside a set.
-                qubit_set = set(node_to_check.qargs)
-                # Check if there are any qubits in common and that the operation is not a barrier.
-                if (
-                    len(qubit_set.intersection(qubits_to_check)) > 0
-                    and node_to_check.op.name != "barrier"
-                    and not getattr(node_to_check.op, "_directive")
-                ):
-                    # If so, add all the qubits to the causal cone.
-                    qubits_to_check = qubits_to_check.union(qubit_set)
-            # For each predecessor of the current node, filter input/output nodes,
-            # also make sure it has at least one qubit in common. Then append.
-            for node in self.quantum_predecessors(node_to_check):
-                if (
-                    isinstance(node, DAGOpNode)
-                    and len(qubits_to_check.intersection(set(node.qargs))) > 0
-                ):
-                    queue.append(node)
-        return qubits_to_check
+                # If the operation is not a directive (in particular not a barrier nor a measure),
+                # we do not do anything if it was already processed. Otherwise, we add its qubits
+                # to qubits_in_cone, and append its predecessors to queue.
+                if not getattr(node_to_check.op, "_directive"):
+                    if node_to_check in processed_non_directive_nodes:
+                        continue
+                    qubits_in_cone = qubits_in_cone.union(set(node_to_check.qargs))
+                    processed_non_directive_nodes.add(node_to_check)
+                    for pred in self.quantum_predecessors(node_to_check):
+                        if isinstance(pred, DAGOpNode):
+                            queue.append(pred)
+                else:
+                    # Directives (such as barriers and measures) may be defined over all the qubits,
+                    # yet not all of these qubits should be considered in the causal cone. So we
+                    # only add those predecessors that have qubits in common with qubits_in_cone.
+                    for pred in self.quantum_predecessors(node_to_check):
+                        if isinstance(pred, DAGOpNode) and not qubits_in_cone.isdisjoint(
+                            set(pred.qargs)
+                        ):
+                            queue.append(pred)
+
+        return qubits_in_cone
 
     def properties(self):
         """Return a dictionary of circuit properties."""
