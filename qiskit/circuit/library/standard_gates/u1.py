@@ -208,6 +208,8 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
+    _standard_gate = StandardGate.CU1Gate
+
     def __init__(
         self,
         theta: ParameterValueType,
