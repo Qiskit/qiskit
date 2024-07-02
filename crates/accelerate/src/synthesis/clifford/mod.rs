@@ -10,10 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod bm_synthesis;
 mod greedy_synthesis;
 mod utils;
-mod bm_synthesis;
 
+use crate::synthesis::clifford::bm_synthesis::synth_clifford_bm_inner;
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
 use crate::QiskitError;
 use numpy::PyReadonlyArray2;
@@ -42,8 +43,18 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
     CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
+#[pyfunction]
+#[pyo3(signature = (clifford))]
+fn synth_clifford_bm(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+    let tableau = clifford.as_array();
+    let (num_qubits, clifford_gates) =
+        synth_clifford_bm_inner(tableau).map_err(QiskitError::new_err)?;
+    CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
+}
+
 #[pymodule]
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
+    m.add_function(wrap_pyfunction!(synth_clifford_bm, m)?)?;
     Ok(())
 }
