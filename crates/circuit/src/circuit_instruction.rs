@@ -894,11 +894,15 @@ pub fn convert_py_to_operation_type(
         let mutable: bool = py_op.getattr(py, intern!(py, "mutable"))?.extract(py)?;
         // The default ctrl_states are the all 1 state and None.
         // These are the only cases where controlled gates can be standard.
-        let is_default_ctrl_state: bool = match py_op.getattr(py, intern!(py, "ctrl_state")) {
+        let is_default_ctrl_state = || match py_op.getattr(py, intern!(py, "ctrl_state")) {
             Ok(c_state) => match c_state.extract::<Option<i32>>(py) {
                 Ok(c_state_int) => match c_state_int {
                     Some(c_int) => {
-                        let qubits = py_op.getattr(py, intern!(py, "num_qubits"))?.extract(py)?;
+                        let qubits = py_op
+                            .getattr(py, intern!(py, "num_qubits"))
+                            .unwrap()
+                            .extract(py)
+                            .unwrap();
                         c_int == (2_i32.pow(qubits) - 1) as i32
                     }
                     None => true,
@@ -911,11 +915,12 @@ pub fn convert_py_to_operation_type(
         if (mutable
             && (py_op_bound.is_instance(SINGLETON_GATE.get_bound(py))?
                 || py_op_bound.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?))
-            || (py_op_bound.is_instance(CONTROLLED_GATE.get_bound(py))? && !is_default_ctrl_state)
+            || (py_op_bound.is_instance(CONTROLLED_GATE.get_bound(py))? && !is_default_ctrl_state())
         {
             standard = None;
         }
     }
+
     if let Some(op) = standard {
         let base_class = op_type.to_object(py);
         populate_std_gate_map(py, op, base_class);

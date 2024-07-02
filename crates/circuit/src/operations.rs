@@ -1136,17 +1136,17 @@ impl Operation for StandardGate {
                 )
             }),
             Self::CUGate => Python::with_gil(|py| -> Option<CircuitData> {
-                let param_second_p = sum_params(
+                let param_second_p = radd_param(
                     multiply_param(&params[2], 0.5, py),
                     multiply_param(&params[1], 0.5, py),
                     py,
                 );
-                let param_third_p = sum_params(
+                let param_third_p = radd_param(
                     multiply_param(&params[2], 0.5, py),
                     multiply_param(&params[1], -0.5, py),
                     py,
                 );
-                let param_first_u = sum_params(
+                let param_first_u = radd_param(
                     multiply_param(&params[1], -0.5, py),
                     multiply_param(&params[2], -0.5, py),
                     py,
@@ -1280,17 +1280,17 @@ impl Operation for StandardGate {
                 )
             }),
             Self::CU3Gate => Python::with_gil(|py| -> Option<CircuitData> {
-                let param_first_u1 = sum_params(
+                let param_first_u1 = radd_param(
                     multiply_param(&params[2], 0.5, py),
                     multiply_param(&params[1], 0.5, py),
                     py,
                 );
-                let param_second_u1 = sum_params(
+                let param_second_u1 = radd_param(
                     multiply_param(&params[2], 0.5, py),
                     multiply_param(&params[1], -0.5, py),
                     py,
                 );
-                let param_first_u3 = sum_params(
+                let param_first_u3 = radd_param(
                     multiply_param(&params[1], -0.5, py),
                     multiply_param(&params[2], -0.5, py),
                     py,
@@ -1875,7 +1875,7 @@ fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     }
 }
 
-fn sum_params(param1: Param, param2: Param, py: Python) -> Param {
+fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
     match [param1, param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
