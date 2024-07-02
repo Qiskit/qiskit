@@ -6,7 +6,7 @@ features_quantum_info:
     a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
     observable that was built for an input circuit. This enables working with
     :class:`~.BaseEstimator` / :class:`~.BaseEstimatorV2` implementations and 
-    local transpilation when the input is of type :class:`~.Pauli`. For example::
+    local transpilation when the input is of type :class:`~.Pauli`. For example:
 
     .. code-block:: python
 
@@ -27,7 +27,7 @@ features_quantum_info:
       res = estimator.run([(transpiled_psi, permuted_op, thetas)]).result()
 
     where an input circuit is transpiled locally before it's passed to
-    :class:`~.BaseEstimator.run`. Transpilation expands the original
+    :meth:`~.BaseEstimator.run`. Transpilation expands the original
     circuit from 2 to 7 qubits (the size of ``backend``) and permutes its layout,
     which is then applied to ``H1`` using :meth:`~.Pauli.apply_layout`
     to reflect the transformations performed by ``pm.run()``.
