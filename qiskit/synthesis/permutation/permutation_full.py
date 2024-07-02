@@ -16,11 +16,9 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit._accelerate.synthesis.permutation import _synth_permutation_basic
-from .permutation_utils import (
-    _inverse_pattern,
-    _pattern_to_cycles,
-    _decompose_cycles,
+from qiskit._accelerate.synthesis.permutation import (
+    _synth_permutation_basic,
+    _synth_permutation_acg,
 )
 
 
@@ -77,16 +75,4 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
            *Routing Permutations on Graphs Via Matchings.*,
            `(Full paper) <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
     """
-
-    num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
-
-    # invert pattern (Qiskit notation is opposite)
-    cur_pattern = _inverse_pattern(pattern)
-    cycles = _pattern_to_cycles(cur_pattern)
-    swaps = _decompose_cycles(cycles)
-
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
-
-    return qc
+    return QuantumCircuit._from_circuit_data(_synth_permutation_acg(pattern))
