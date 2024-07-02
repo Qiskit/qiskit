@@ -490,6 +490,9 @@ class BitArray(ShapedMixin):
             ValueError: If the lengths of ``selection`` and ``indices`` do not match.
         """
 
+        if len(selection) != len(indices):
+            raise ValueError("Lenghts of indices and selection do not match.")
+
         selection = BitArray.from_bool_array([selection], order="little")
 
         flattened = self.reshape((), self.size * self.num_shots)
