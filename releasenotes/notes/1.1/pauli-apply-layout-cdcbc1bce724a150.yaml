@@ -1,11 +1,11 @@
 ---
 features_quantum_info:
   - |
-    Added a new :meth:`.Pauli.apply_layout` that is equivalent to the
-    :meth:`.SparsePauliOp.apply_layout`. This method is
-    used to apply a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
+    Added a new :meth:`~.Pauli.apply_layout`  method that is equivalent to
+    :meth:`~.SparsePauliOp.apply_layout`. This method is used to apply
+    a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
     observable that was built for an input circuit. This enables working with
-    :class:`~.BaseEstimator` / :class:`~.BaseEstimatorV2` implementations and
+    :class:`~.BaseEstimator` / :class:`~.BaseEstimatorV2` implementations and 
     local transpilation when the input is of type :class:`~.Pauli`. For example:
 
     .. code-block:: python
