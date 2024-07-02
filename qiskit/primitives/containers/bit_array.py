@@ -478,9 +478,9 @@ class BitArray(ShapedMixin):
                 If this bit array was produced by a sampler, then an index ``i`` corresponds to the
                 :class:`~.ClassicalRegister` location ``creg[i]``.
 
-            selection: A list of bools of length matching ``indices``, with `indices[i]` corresponding
-              to `selection[i]`. Shots will be discarded unless all cbits specified by `indices` have
-              the values given by `selection`.
+            selection: A list of bools of length matching ``indices``, with ``indices[i]`` corresponding
+              to ``selection[i]``. Shots will be discarded unless all cbits specified by ``indices`` have
+              the values given by ``selection``.
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
