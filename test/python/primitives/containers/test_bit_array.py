@@ -697,212 +697,53 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.expectation_values("X" * ba.num_bits)
 
     def test_postselection(self):
-        """Test the postselection method. (Commented code was used to generate test data)."""
-        # import random
-        # import numpy as np
-        # from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-        # from qiskit_aer import AerSimulator
-        # from qiskit_ibm_runtime import SamplerV2
-        # from qiskit.primitives.containers.bit_array import BitArray
-        # from qiskit.circuit.library import IGate, XGate
-        # from qiskit_aer.noise import QuantumError
-        # error = QuantumError(noise_ops=[(IGate(), 0.5),(XGate(),0.5)])
-        # num_shots = 97
-        # num_cregs = 3
-        # bits_per_creg = 17
-        # depth = 19 # < num_bits/2
+        """Test the postselection method."""
 
-        # seed = 0
-        # num_bits = num_cregs * bits_per_creg
-        # cregs = [ClassicalRegister(bits_per_creg) for _ in range(num_cregs)]
-        # qc = QuantumCircuit(QuantumRegister(1), *cregs)
-        # bitpairs = []
-        # shuffled_bits = np.arange(num_bits)
-        # np.random.seed(seed)
-        # np.random.shuffle(shuffled_bits)
-        # for i in range(depth):
-        #     qc.append(error,[0])
-        #     bit1 = shuffled_bits[2*i]
-        #     bit2 = shuffled_bits[2*i+1]
-        #     qc.measure(0,bit1)
-        #     qc.measure(0,bit2)
-        #     bitpairs.append([bit1,bit2])
-        # bitpairs = np.array(bitpairs)
+        bool_array = np.array([
+        [
+        [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        ],
+        [
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+            [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ],
+        ]
+        ], dtype=bool)
 
-        # print(qc.draw(fold=-1))
+        bit_array = BitArray.from_bool_array(bool_array, order='little')
+        # indices[i] <-> creg[i] <-> bool_array[..., i]
 
-        # backend = AerSimulator(seed_simulator=seed)
-        # sampler = SamplerV2(mode=backend)
+        num_bits = bool_array.shape[-1]
+        bool_array = bool_array.reshape(-1, num_bits)
 
-        # result = sampler.run([qc], shots=num_shots).result()
-        # data = result[0].data
-        # barry = BitArray.concatenate_bits(list(data.values()))
+        test_cases = [
+            ("basic", [0,1], [0,0]),
+            ("multibyte", [0,9], [0,1]),
+            ("repeated", [5,5,5], [0,0,0]),
+            ("contradict", [5,5,5], [0,0,1]),
+            ("unsorted", [5,0,9,3], [1, 0, 1, 0])
+        ]
 
-        num_bits = 51
-        barry = BitArray(
-            np.array(
-                [
-                    [0, 66, 98, 212, 66, 84, 20],
-                    [5, 14, 46, 10, 23, 161, 160],
-                    [1, 0, 32, 240, 6, 8, 4],
-                    [1, 79, 2, 36, 69, 204, 18],
-                    [4, 79, 34, 230, 83, 204, 50],
-                    [0, 8, 68, 240, 65, 28, 132],
-                    [1, 4, 104, 56, 6, 185, 4],
-                    [0, 103, 7, 38, 0, 233, 178],
-                    [4, 109, 97, 6, 83, 245, 50],
-                    [1, 102, 35, 36, 70, 204, 16],
-                    [1, 101, 101, 36, 6, 249, 146],
-                    [4, 73, 40, 26, 83, 101, 38],
-                    [1, 72, 0, 214, 69, 68, 52],
-                    [1, 41, 77, 252, 69, 61, 150],
-                    [0, 36, 109, 60, 66, 156, 148],
-                    [4, 78, 66, 52, 81, 220, 20],
-                    [4, 6, 106, 26, 82, 148, 36],
-                    [1, 32, 65, 38, 68, 28, 48],
-                    [0, 34, 11, 216, 64, 4, 4],
-                    [5, 66, 106, 232, 22, 121, 0],
-                    [1, 98, 79, 248, 4, 121, 132],
-                    [1, 41, 69, 210, 69, 20, 166],
-                    [1, 103, 35, 242, 70, 204, 38],
-                    [0, 73, 64, 16, 1, 80, 6],
-                    [1, 65, 8, 236, 4, 105, 18],
-                    [0, 72, 36, 228, 3, 72, 144],
-                    [5, 71, 102, 34, 86, 253, 162],
-                    [5, 41, 101, 50, 23, 57, 166],
-                    [1, 38, 39, 214, 70, 132, 180],
-                    [1, 71, 70, 32, 68, 220, 130],
-                    [5, 5, 72, 26, 84, 181, 38],
-                    [4, 69, 32, 198, 18, 225, 50],
-                    [5, 44, 37, 38, 23, 169, 176],
-                    [5, 108, 105, 24, 23, 241, 4],
-                    [0, 108, 1, 36, 1, 200, 16],
-                    [4, 14, 74, 248, 17, 185, 4],
-                    [1, 77, 32, 54, 7, 200, 54],
-                    [5, 102, 79, 46, 84, 220, 176],
-                    [0, 70, 106, 62, 2, 216, 52],
-                    [1, 15, 74, 24, 69, 181, 6],
-                    [4, 74, 102, 2, 83, 117, 160],
-                    [5, 12, 32, 36, 23, 136, 16],
-                    [1, 109, 109, 56, 7, 249, 134],
-                    [4, 72, 100, 4, 19, 113, 144],
-                    [1, 13, 12, 56, 69, 173, 134],
-                    [1, 45, 37, 38, 7, 136, 178],
-                    [5, 11, 98, 244, 87, 28, 22],
-                    [5, 76, 100, 48, 87, 220, 132],
-                    [5, 70, 46, 10, 86, 196, 160],
-                    [1, 67, 74, 216, 68, 117, 6],
-                    [1, 109, 37, 214, 7, 225, 182],
-                    [5, 14, 78, 58, 21, 185, 164],
-                    [5, 45, 97, 210, 87, 181, 38],
-                    [4, 38, 111, 24, 82, 181, 132],
-                    [0, 76, 4, 224, 65, 204, 128],
-                    [5, 104, 97, 194, 23, 80, 32],
-                    [5, 8, 68, 2, 21, 16, 160],
-                    [0, 40, 45, 62, 3, 8, 180],
-                    [4, 65, 0, 20, 16, 97, 22],
-                    [4, 42, 43, 222, 83, 4, 52],
-                    [1, 8, 0, 212, 69, 4, 20],
-                    [0, 73, 36, 50, 67, 109, 166],
-                    [4, 40, 41, 220, 19, 0, 20],
-                    [0, 110, 103, 196, 67, 245, 144],
-                    [0, 99, 71, 4, 64, 117, 146],
-                    [1, 79, 34, 34, 7, 200, 34],
-                    [1, 72, 32, 2, 71, 101, 32],
-                    [1, 106, 111, 42, 7, 121, 160],
-                    [1, 70, 102, 20, 6, 208, 148],
-                    [0, 32, 33, 228, 66, 45, 16],
-                    [5, 68, 4, 208, 84, 229, 132],
-                    [0, 102, 71, 194, 64, 245, 160],
-                    [4, 0, 76, 234, 80, 28, 160],
-                    [0, 111, 43, 232, 67, 237, 2],
-                    [1, 41, 105, 234, 7, 57, 34],
-                    [0, 46, 99, 50, 3, 185, 36],
-                    [1, 110, 79, 58, 5, 249, 164],
-                    [1, 104, 97, 2, 7, 113, 32],
-                    [5, 69, 108, 62, 86, 253, 182],
-                    [0, 44, 97, 194, 3, 144, 32],
-                    [1, 69, 100, 212, 70, 212, 150],
-                    [5, 79, 14, 238, 85, 204, 178],
-                    [1, 8, 100, 6, 71, 20, 176],
-                    [1, 74, 98, 198, 71, 117, 48],
-                    [4, 77, 68, 242, 17, 216, 166],
-                    [0, 76, 76, 58, 65, 253, 164],
-                    [4, 35, 107, 248, 82, 61, 6],
-                    [1, 98, 43, 46, 70, 109, 48],
-                    [0, 98, 107, 44, 2, 88, 16],
-                    [0, 7, 6, 54, 0, 169, 182],
-                    [4, 8, 100, 52, 19, 24, 148],
-                    [1, 106, 99, 34, 71, 125, 32],
-                    [5, 32, 101, 22, 86, 20, 180],
-                    [5, 5, 40, 10, 86, 132, 34],
-                    [0, 10, 2, 192, 65, 37, 0],
-                    [5, 12, 76, 56, 85, 189, 132],
-                    [5, 1, 32, 214, 22, 0, 54],
-                ],
-                dtype="uint8",
-            ),
-            num_bits=num_bits,
-        )
-
-        bitpairs = np.array(
-            [
-                [16, 43],
-                [27, 35],
-                [17, 37],
-                [10, 22],
-                [31, 30],
-                [12, 38],
-                [20, 50],
-                [33, 41],
-                [14, 46],
-                [29, 11],
-                [8, 13],
-                [26, 4],
-                [2, 28],
-                [34, 7],
-                [45, 32],
-                [40, 1],
-                [18, 48],
-                [42, 15],
-                [25, 5],
-            ],
-            dtype=int,
-        )
-
-        np.random.seed(0)
-
-        iden = Pauli("I" * num_bits)
-
-        expectations_ps0 = []
-        expectations_ps1 = []
-        for _ in range(50):
-            np.random.shuffle(bitpairs)
-            num_bitpairs = np.random.randint(1, 10)
-            bitpair_subset = bitpairs[:num_bitpairs]
-            print(f"{num_bitpairs = }")
-
-            obs = iden.copy()
-            obs[bitpair_subset[:, 1]] = "Z"
-
-            selection = np.random.randint(0, 2, size=num_bitpairs, dtype=bool)
-
-            barry_ps0 = barry.postselect(indices=bitpair_subset[:, 0], selection=selection)
-            if barry_ps0.num_shots > 0:
-                expt = barry_ps0.expectation_values(obs)
-                thy = (-1) ** np.sum(selection)
-                expectations_ps0.append([thy, expt])
-
-            barry_ps1 = barry.postselect(
-                indices=bitpair_subset[:, 0], selection=np.logical_not(selection)
-            )
-            if barry_ps1.num_shots > 0:
-                expt = barry_ps1.expectation_values(obs)
-                thy = (-1) ** np.sum(np.logical_not(selection))
-                expectations_ps1.append([thy, expt])
-
-        expectations_ps0 = np.array(expectations_ps0, dtype=float)
-        expectations_ps1 = np.array(expectations_ps1, dtype=float)
-
-        np.testing.assert_allclose(expectations_ps0[:, 0], expectations_ps0[:, 1])
-        np.testing.assert_allclose(expectations_ps1[:, 0], expectations_ps1[:, 1])
+        for (name, indices, selection) in test_cases:
+            with self.subTest(name):
+                answer = bool_array[np.all(bool_array[:,indices] == selection, axis=-1)]
+                postselected_bools = np.unpackbits(
+                    bit_array.postselect(indices, selection).array[:, ::-1],
+                    count=num_bits,
+                    axis=-1,
+                    bitorder='little').astype(bool)
+                self.assertTrue((postselected_bools==answer).all())
+        
+        error_cases = [
+            ("negative", [-1, 0, 6], [1, 1]),
+            ("out_of_range", [0, 6, 14], [1, 1]),
+        ]
+        for (name, indices, selection) in error_cases:
+            with self.subTest(name):
+                with self.assertRaises(ValueError):
+                    bit_array.postselect(indices, selection)
+        
