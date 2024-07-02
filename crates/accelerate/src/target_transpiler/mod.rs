@@ -488,7 +488,7 @@ impl Target {
     ///     operation (str): The operation name to get qargs for
     /// Returns:
     ///     set: The set of qargs the gate instance applies to.
-    #[pyo3(name = "qargs_for_operation_name", text_signature = "(operation, /,)")]
+    #[pyo3(name = "qargs_for_operation_name")]
     fn py_qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Qargs>>> {
         match self.qargs_for_operation_name(&operation) {
             Ok(option_set) => match option_set {
@@ -508,7 +508,7 @@ impl Target {
     ///     qiskit.circuit.Instruction: The Instruction instance corresponding to the
     ///     name. This also can also be the class for globally defined variable with
     ///     operations.
-    #[pyo3(name = "operation_from_name", text_signature = "(instruction, /)")]
+    #[pyo3(name = "operation_from_name")]
     fn py_operation_from_name(&self, instruction: String) -> PyResult<TargetOperation> {
         match self.operation_from_name(&instruction) {
             Ok(instruction) => Ok(instruction.to_owned()),
@@ -530,7 +530,7 @@ impl Target {
     ///
     /// Raises:
     ///     KeyError: If qargs is not in target
-    #[pyo3(name = "operations_for_qargs", text_signature = "(/, qargs=None)")]
+    #[pyo3(name = "operations_for_qargs", signature=(qargs=None, /))]
     fn py_operations_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<Vec<TargetOperation>> {
         // Move to rust native once Gates are in rust
         Ok(self
@@ -552,7 +552,7 @@ impl Target {
     ///
     /// Raises:
     ///     KeyError: If ``qargs`` is not in target
-    #[pyo3(name = "operation_names_for_qargs", text_signature = "(/, qargs=None)")]
+    #[pyo3(name = "operation_names_for_qargs", signature=(qargs=None, /))]
     pub fn py_operation_names_for_qargs(
         &self,
         qargs: Option<Qargs>,
@@ -621,7 +621,7 @@ impl Target {
     ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
     #[pyo3(
         name = "instruction_supported",
-        text_signature = "(/, operation_name=None, qargs=None, operation_class=None, parameters=None)"
+        signature = (operation_name=None, qargs=None, operation_class=None, parameters=None)
     )]
     pub fn py_instruction_supported(
         &self,
@@ -732,7 +732,6 @@ impl Target {
     ///         :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
     /// Returns:
     ///     InstructionProperties: The instruction properties for the specified instruction tuple
-    #[pyo3(text_signature = "(/, index: int)")]
     pub fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
         let mut index_counter = 0;
         for (_operation, props_map) in self.gate_map.iter() {
@@ -767,7 +766,7 @@ impl Target {
     ///
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
-    #[pyo3(signature = (/, strict_direction=false,), text_signature = "(/, strict_direction=False)")]
+    #[pyo3(signature = (/, strict_direction=false,))]
     fn get_non_global_operation_names(
         &mut self,
         py: Python<'_>,
