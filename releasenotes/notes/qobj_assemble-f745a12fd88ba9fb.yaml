@@ -1,4 +1,0 @@
----
-deprecations_providers:
-  - |
-    With the deprecation of BackendV1, the Qobj structure is not necessary and it is deprecated. Hence, the related tools such as the function assemble are also deprecated.
