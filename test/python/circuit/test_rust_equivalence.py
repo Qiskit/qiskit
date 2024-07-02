@@ -22,7 +22,6 @@ from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.standard_gates import C3XGate, U1Gate, ZGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
-SKIP_LIST = {"rx", "ry", "ecr"}
 CUSTOM_NAME_MAPPING = {"c3x": C3XGate()}
 MATRIX_SKIP_LIST = {"c3sx"}
 
@@ -61,9 +60,6 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test definitions are the same in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
-            if name in SKIP_LIST:
-                # gate does not have a rust definition yet
-                continue
             if standard_gate is None:
                 # gate is not in rust yet
                 continue
