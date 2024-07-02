@@ -912,9 +912,9 @@ pub fn convert_py_to_operation_type(
             Err(_) => false,
         };
 
-        if mutable
+        if (mutable
             && (py_op_bound.is_instance(SINGLETON_GATE.get_bound(py))?
-                || py_op_bound.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?)
+                || py_op_bound.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?))
             || (py_op_bound.is_instance(CONTROLLED_GATE.get_bound(py))? && !is_default_ctrl_state())
         {
             standard = None;
