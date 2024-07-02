@@ -798,6 +798,67 @@ class TestControlledGate(QiskitTestCase):
                     statevector = corrected
                 np.testing.assert_array_almost_equal(statevector.real, reference)
 
+    @data(5, 10, 15)
+    def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
+        """Test if cx count of the v-chain mcx with dirty ancilla
+        is less than upper bound."""
+        from qiskit import transpile
+
+        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+        qc = QuantumCircuit(mcx_vchain.num_qubits)
+
+        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
+
+        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = tr_mcx_vchain.count_ops()["cx"]
+
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
+
+    def test_mcxvchain_dirty_ancilla_action_only(self):
+        """Test the v-chain mcx with dirty auxiliary qubits
+        with gate cancelling with mirrored circuit."""
+
+        num_ctrl_qubits = 5
+
+        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+        gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
+
+        num_qubits = gate.num_qubits
+        ref_circuit = QuantumCircuit(num_qubits)
+        circuit = QuantumCircuit(num_qubits)
+
+        ref_circuit.append(gate, list(range(num_qubits)), [])
+        ref_circuit.h(num_ctrl_qubits)
+        ref_circuit.append(gate, list(range(num_qubits)), [])
+
+        circuit.append(gate_with_cancelling, list(range(num_qubits)), [])
+        circuit.h(num_ctrl_qubits)
+        circuit.append(gate_with_cancelling.inverse(), list(range(num_qubits)), [])
+
+        self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
+
+    def test_mcxvchain_dirty_ancilla_relative_phase(self):
+        """Test the v-chain mcx with dirty auxiliary qubits
+        with only relative phase Toffoli gates."""
+        num_ctrl_qubits = 5
+
+        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+        gate_relative_phase = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, relative_phase=True)
+
+        num_qubits = gate.num_qubits + 1
+        ref_circuit = QuantumCircuit(num_qubits)
+        circuit = QuantumCircuit(num_qubits)
+
+        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
+        ref_circuit.h(num_qubits - 1)
+        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
+
+        circuit.append(gate_relative_phase, list(range(num_qubits - 1)), [])
+        circuit.h(num_qubits - 1)
+        circuit.append(gate_relative_phase.inverse(), list(range(num_qubits - 1)), [])
+
+        self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
+
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
         """Test inverting the controlled X gate."""
