@@ -699,11 +699,13 @@ class BitArrayTestCase(QiskitTestCase):
     def test_postselection(self):
         """Test the postselection method."""
 
-        flat_data = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-        ])
+        flat_data = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            ]
+        )
 
         shaped_data = np.array(
             [
@@ -723,7 +725,7 @@ class BitArrayTestCase(QiskitTestCase):
             dtype=bool,
         )
 
-        for dataname, bool_array in zip(['flat','shaped'], [flat_data, shaped_data]):
+        for dataname, bool_array in zip(["flat", "shaped"], [flat_data, shaped_data]):
 
             bit_array = BitArray.from_bool_array(bool_array, order="little")
             # indices[i] <-> creg[i] <-> bool_array[..., i]
@@ -740,7 +742,7 @@ class BitArrayTestCase(QiskitTestCase):
             ]
 
             for name, indices, selection in test_cases:
-                with self.subTest(dataname+'_'+name):
+                with self.subTest(dataname + "_" + name):
                     answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
                     postselected_bools = np.unpackbits(
                         bit_array.postselect(indices, selection).array[:, ::-1],
@@ -756,7 +758,7 @@ class BitArrayTestCase(QiskitTestCase):
                 ("mismatch", [0, 1, 2], [0, 0], ValueError),
             ]
             for name, indices, selection, error in error_cases:
-                with self.subTest(dataname+'_'+name):
+                with self.subTest(dataname + "_" + name):
                     with self.assertRaises(error) as raised:
                         bit_array.postselect(indices, selection)
                     print(name, type(raised.exception))
