@@ -18,7 +18,6 @@ use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
-use std::ops::Deref;
 use std::str::FromStr;
 
 use pyo3::exceptions::PyValueError;
@@ -762,15 +761,13 @@ pub fn unitary_to_gate_sequence(
     simplify: bool,
     atol: Option<f64>,
 ) -> PyResult<Option<OneQubitGateSequence>> {
-    let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
-    for basis in target_basis_list {
-        let basis_enum = EulerBasis::__new__(basis.deref())?;
-        target_basis_vec.push(basis_enum)
-    }
-    let unitary_mat = unitary.as_array();
+    let target_basis_vec: PyResult<Vec<EulerBasis>> = target_basis_list
+        .iter()
+        .map(|basis| EulerBasis::__new__(basis))
+        .collect();
     Ok(unitary_to_gate_sequence_inner(
-        unitary_mat,
-        &target_basis_vec,
+        unitary.as_array(),
+        &target_basis_vec?,
         qubit,
         error_map,
         simplify,
@@ -811,15 +808,13 @@ pub fn unitary_to_circuit(
     simplify: bool,
     atol: Option<f64>,
 ) -> PyResult<Option<CircuitData>> {
-    let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
-    for basis in target_basis_list {
-        let basis_enum = EulerBasis::__new__(basis.deref())?;
-        target_basis_vec.push(basis_enum)
-    }
-    let unitary_mat = unitary.as_array();
+    let target_basis_vec: PyResult<Vec<EulerBasis>> = target_basis_list
+        .iter()
+        .map(|basis| EulerBasis::__new__(basis))
+        .collect();
     let circuit_sequence = unitary_to_gate_sequence_inner(
-        unitary_mat,
-        &target_basis_vec,
+        unitary.as_array(),
+        &target_basis_vec?,
         qubit,
         error_map,
         simplify,
@@ -1016,12 +1011,10 @@ pub fn optimize_1q_gates_decomposition(
             } else {
                 (error, raw_run.len())
             };
-            let target_basis_list = &bases[index];
-            let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
-            for basis in target_basis_list {
-                let basis_enum = EulerBasis::__new__(basis.deref()).unwrap();
-                target_basis_vec.push(basis_enum)
-            }
+            let target_basis_vec: Vec<EulerBasis> = bases[index]
+                .iter()
+                .map(|basis| EulerBasis::__new__(basis).unwrap())
+                .collect();
             unitary_to_gate_sequence_inner(
                 aview2(operator),
                 &target_basis_vec,
