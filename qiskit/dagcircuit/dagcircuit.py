@@ -725,7 +725,7 @@ class DAGCircuit:
             additional = set(_additional_wires(node)).difference(node.cargs)
 
         node._node_id = self._multi_graph.add_node(node)
-        self._increment_op(node)
+        self._increment_op(node.name)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
