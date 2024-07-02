@@ -317,7 +317,7 @@ class UniformSuperpositionGate(Gate):
         l_value = [index for (index, item) in enumerate(n_value) if item == 1]  # Locations of '1's
 
         qc.x(l_value[1:k])
-        m_current_value = 2 ** (l_value[0])
+        m_current_value = 2 ** l_value[0]
         theta = -2 * np.arccos(np.sqrt(m_current_value / num_superpos_states))
 
         if l_value[0] > 0:  # if num_superpos_states is even
