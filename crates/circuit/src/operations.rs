@@ -13,7 +13,7 @@
 use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
+use crate::imports::{DEEPCOPY, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, Qubit};
 
 use ndarray::{aview2, Array2};
@@ -33,6 +33,17 @@ pub enum OperationType {
     Instruction(PyInstruction),
     Gate(PyGate),
     Operation(PyOperation),
+}
+
+impl IntoPy<PyObject> for OperationType {
+    fn into_py(self, py: Python) -> PyObject {
+        match self {
+            Self::Standard(gate) => gate.into_py(py),
+            Self::Instruction(inst) => inst.into_py(py),
+            Self::Gate(gate) => gate.into_py(py),
+            Self::Operation(op) => op.into_py(py),
+        }
+    }
 }
 
 impl Operation for OperationType {
@@ -1424,6 +1435,16 @@ impl PyInstruction {
             instruction,
         }
     }
+
+    fn __deepcopy__(&self, py: Python, _memo: PyObject) -> PyResult<Self> {
+        Ok(PyInstruction {
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+            instruction: DEEPCOPY.get_bound(py).call1((&self.instruction,))?.unbind(),
+        })
+    }
 }
 
 impl Operation for PyInstruction {
@@ -1502,6 +1523,16 @@ impl PyGate {
             op_name,
             gate,
         }
+    }
+
+    fn __deepcopy__(&self, py: Python, _memo: PyObject) -> PyResult<Self> {
+        Ok(PyGate {
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+            gate: DEEPCOPY.get_bound(py).call1((&self.gate,))?.unbind(),
+        })
     }
 }
 
@@ -1594,6 +1625,16 @@ impl PyOperation {
             op_name,
             operation,
         }
+    }
+
+    fn __deepcopy__(&self, py: Python, _memo: PyObject) -> PyResult<Self> {
+        Ok(PyOperation {
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+            operation: DEEPCOPY.get_bound(py).call1((&self.operation,))?.unbind(),
+        })
     }
 }
 

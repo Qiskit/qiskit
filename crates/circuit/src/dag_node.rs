@@ -15,9 +15,11 @@ use crate::circuit_instruction::{
     ExtraInstructionAttributes,
 };
 use crate::operations::Operation;
+use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
-use pyo3::{intern, PyObject, PyResult, ToPyObject};
+use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
+use smallvec::smallvec;
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
@@ -70,12 +72,19 @@ pub struct DAGOpNode {
 
 #[pymethods]
 impl DAGOpNode {
+    #[allow(clippy::too_many_arguments)]
     #[new]
+    #[pyo3(signature = (op, qargs=None, cargs=None, params=smallvec![], label=None, duration=None, unit=None, condition=None, dag=None))]
     fn new(
         py: Python,
-        op: PyObject,
+        op: crate::circuit_instruction::OperationInput,
         qargs: Option<&Bound<PySequence>>,
         cargs: Option<&Bound<PySequence>>,
+        params: smallvec::SmallVec<[crate::operations::Param; 3]>,
+        label: Option<String>,
+        duration: Option<PyObject>,
+        unit: Option<String>,
+        condition: Option<PyObject>,
         dag: Option<&Bound<PyAny>>,
     ) -> PyResult<(Self, DAGNode)> {
         let qargs =
@@ -110,34 +119,16 @@ impl DAGOpNode {
             }
             None => qargs.str()?.into_any(),
         };
-        let res = convert_py_to_operation_type(py, op.clone_ref(py))?;
 
-        let extra_attrs = if res.label.is_some()
-            || res.duration.is_some()
-            || res.unit.is_some()
-            || res.condition.is_some()
-        {
-            Some(Box::new(ExtraInstructionAttributes {
-                label: res.label,
-                duration: res.duration,
-                unit: res.unit,
-                condition: res.condition,
-            }))
-        } else {
-            None
-        };
+        let mut instruction = CircuitInstruction::py_new(
+            py, op, None, None, params, label, duration, unit, condition,
+        )?;
+        instruction.qubits = qargs.into();
+        instruction.clbits = cargs.into();
 
         Ok((
             DAGOpNode {
-                instruction: CircuitInstruction {
-                    operation: res.operation,
-                    qubits: qargs.unbind(),
-                    clbits: cargs.unbind(),
-                    params: res.params,
-                    extra_attrs,
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: Some(op),
-                },
+                instruction,
                 sort_key: sort_key.unbind(),
             },
             DAGNode { _node_id: -1 },
@@ -263,6 +254,77 @@ impl DAGOpNode {
         self.instruction.operation.name()
     }
 
+    #[getter]
+    fn get_params(&self, py: Python) -> PyObject {
+        self.instruction.params.to_object(py)
+    }
+
+    #[getter]
+    fn matrix(&self, py: Python) -> Option<PyObject> {
+        let matrix = self.instruction.operation.matrix(&self.instruction.params);
+        matrix.map(|mat| mat.into_pyarray_bound(py).into())
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.instruction
+            .extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.label.as_deref())
+    }
+
+    #[getter]
+    fn condition(&self, py: Python) -> Option<PyObject> {
+        self.instruction
+            .extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.condition.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    #[getter]
+    fn duration(&self, py: Python) -> Option<PyObject> {
+        self.instruction
+            .extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.duration.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    #[getter]
+    fn unit(&self) -> Option<&str> {
+        self.instruction
+            .extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.unit.as_deref())
+    }
+
+    #[setter]
+    fn set_label(&mut self, val: Option<String>) {
+        match self.instruction.extra_attrs.as_mut() {
+            Some(attrs) => attrs.label = val,
+            None => {
+                if val.is_some() {
+                    self.instruction.extra_attrs = Some(Box::new(
+                        crate::circuit_instruction::ExtraInstructionAttributes {
+                            label: val,
+                            duration: None,
+                            unit: None,
+                            condition: None,
+                        },
+                    ))
+                }
+            }
+        };
+        if let Some(attrs) = &self.instruction.extra_attrs {
+            if attrs.label.is_none()
+                && attrs.duration.is_none()
+                && attrs.unit.is_none()
+                && attrs.condition.is_none()
+            {
+                self.instruction.extra_attrs = None;
+            }
+        }
+    }
+
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
     fn set_name(&mut self, py: Python, new_name: PyObject) -> PyResult<()> {
@@ -271,6 +333,11 @@ impl DAGOpNode {
         let res = convert_py_to_operation_type(py, op)?;
         self.instruction.operation = res.operation;
         Ok(())
+    }
+
+    #[getter]
+    fn _raw_op(&self, py: Python) -> PyObject {
+        self.instruction.operation.clone().into_py(py)
     }
 
     /// Returns a representation of the DAGOpNode
