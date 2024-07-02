@@ -62,9 +62,10 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
-    let view = pattern.as_array();
+    let inverted = utils::invert(&pattern.as_array());
+    let view = inverted.view();
     let num_qubits = view.len();
-    let cycles = utils::pattern_to_cycles(&view, &true);
+    let cycles = utils::pattern_to_cycles(&view);
     let swaps = utils::decompose_cycles(&cycles);
 
     CircuitData::from_standard_gates(
