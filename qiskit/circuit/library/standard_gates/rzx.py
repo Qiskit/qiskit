@@ -16,6 +16,7 @@ from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZXGate(Gate):
@@ -116,6 +117,8 @@ class RZXGate(Gate):
                                         0  & i & 0  & 1
                                     \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RZXGate
 
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
