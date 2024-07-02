@@ -1056,14 +1056,10 @@ pub fn collect_1q_runs_filter(py: Python, node: PyObject) -> bool {
                     .operation
                     .matrix(&node.instruction.params)
                     .is_some()
-                && (node.instruction.extra_attrs.is_none()
-                    || node
-                        .instruction
-                        .extra_attrs
-                        .as_ref()
-                        .unwrap()
-                        .condition
-                        .is_none())
+                && match &node.instruction.extra_attrs {
+                    None => true,
+                    Some(attrs) => attrs.condition.is_none(),
+                }
         }
         Err(_) => false,
     }
