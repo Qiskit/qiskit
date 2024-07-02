@@ -76,10 +76,12 @@ class TestRustGateEquivalence(QiskitTestCase):
                     self.assertIsNone(rs_def)
                 else:
                     rs_def = QuantumCircuit._from_circuit_data(rs_def)
-
                     for rs_inst, py_inst in zip(rs_def._data, py_def._data):
-                        # Rust uses U but python still uses U3 and u2
-                        if rs_inst.operation.name == "u":
+                        # In the following cases, Rust uses U but python still uses U3 and U2
+                        if (
+                            name in {"x", "y", "h", "r", "p", "u2", "u3", "cu", "crx"}
+                            and rs_inst.operation.name == "u"
+                        ):
                             if py_inst.operation.name == "u3":
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
                             elif py_inst.operation.name == "u2":
@@ -96,14 +98,11 @@ class TestRustGateEquivalence(QiskitTestCase):
                                 [py_def.find_bit(x).index for x in py_inst.qubits],
                                 [rs_def.find_bit(x).index for x in rs_inst.qubits],
                             )
-                        # Rust uses P but python still uses u1/u3 in some cases
-                        elif rs_inst.operation.name == "p" and not name in [
-                            "cp",
-                            "cs",
-                            "csdg",
-                            "cu",
-                            "c3x",
-                        ]:
+                        # In the following cases, Rust uses P but python still uses U1 and U3
+                        elif (
+                            name in {"z", "s", "sdg", "t", "tdg", "rz", "u1", "crx"}
+                            and rs_inst.operation.name == "p"
+                        ):
                             if py_inst.operation.name == "u1":
                                 self.assertEqual(py_inst.operation.name, "u1")
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
@@ -120,8 +119,8 @@ class TestRustGateEquivalence(QiskitTestCase):
                                     [py_def.find_bit(x).index for x in py_inst.qubits],
                                     [rs_def.find_bit(x).index for x in rs_inst.qubits],
                                 )
-                        # Rust uses cp but python still uses cu1 in some cases
-                        elif rs_inst.operation.name == "cp":
+                        # In the following cases, Rust uses CP but python still uses CU1
+                        elif name in {"csx"} and rs_inst.operation.name == "cp":
                             self.assertEqual(py_inst.operation.name, "cu1")
                             self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
                             self.assertEqual(
@@ -157,8 +156,11 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test that the gate name properties match in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
-            if standard_gate is None or gate_class.name == "mcx":
+            if standard_gate is None:
                 # gate is not in rust yet
+                continue
+            elif gate_class.name == "mcx":
+                # ambiguos gate name
                 continue
 
             with self.subTest(name=name):
