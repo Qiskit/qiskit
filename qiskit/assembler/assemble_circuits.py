@@ -326,14 +326,14 @@ def _assemble_circuits(
 
     # configure LO freqs per circuit
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # warnings.simplefilter("ignore", category=DeprecationWarning)
         lo_converter = converters.LoConfigConverter(
             QasmQobjExperimentConfig, **run_config.to_dict()
         )
     experiments = _configure_experiment_los(experiments, lo_converter, run_config)
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # warnings.simplefilter("ignore", category=DeprecationWarning)
         qobj_config = QasmQobjConfig()
     if run_config:
         qobj_config_dict = run_config.to_dict()
