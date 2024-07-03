@@ -185,6 +185,8 @@ class CHGate(SingletonControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CHGate
+
     def __init__(
         self,
         label: Optional[str] = None,

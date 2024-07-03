@@ -12,6 +12,7 @@
 
 mod greedy_synthesis;
 mod random_clifford;
+mod utils;
 
 use crate::synthesis::clifford::greedy_synthesis::GreedyCliffordSynthesis;
 use crate::QiskitError;
@@ -65,7 +66,7 @@ fn random_clifford_tableau(
 
 #[pymodule]
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(random_clifford_tableau, m)?)?;
     m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
+    m.add_function(wrap_pyfunction!(random_clifford_tableau, m)?)?;
     Ok(())
 }
