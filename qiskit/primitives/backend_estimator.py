@@ -70,7 +70,7 @@ def _run_circuits(
         raise RuntimeError("Backend version not supported")
     with warnings.catch_warnings():
         # TODO remove this catch once Aer stops using QobjDictField
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         if max_circuits:
             jobs = [
                 backend.run(circuits[pos : pos + max_circuits], **run_options)

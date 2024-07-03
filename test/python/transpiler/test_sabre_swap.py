@@ -277,7 +277,7 @@ class TestSabreSwap(QiskitTestCase):
         # swaps route the qubits correctly.
         with warnings.catch_warnings():
             # TODO remove Aer stops using Provider Qiskit class
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             if not optionals.HAS_AER:
                 return
 
@@ -286,7 +286,7 @@ class TestSabreSwap(QiskitTestCase):
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using QobjDictField and Provider ABC
             # https://github.com/Qiskit/qiskit-aer/pull/2184
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             sim = Aer.get_backend("aer_simulator")
             in_results = sim.run(qc, shots=4096).result().get_counts()
             out_results = sim.run(routed, shots=4096).result().get_counts()

@@ -254,8 +254,8 @@ class GenericBackendV2(BackendV2):
         # 1q gates vs 2q gates vs measurement instructions.
         if inst == "measure":
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=DeprecationWarning)
-                # TODO move away from deprecated PulseQobjInstruction
+                # The class PulseQobjInstruction is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                 sequence = [
                     PulseQobjInstruction(
                         name="acquire",
@@ -268,10 +268,10 @@ class GenericBackendV2(BackendV2):
                     PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0)
                     for i in qargs
                 ]
-                return sequence
+            return sequence
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            # TODO: move away from deprecated PulseQobjInstruction
+            # The class PulseQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             if num_qubits == 1:
                 return [
                     PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),

@@ -2641,7 +2641,7 @@ class TestTranspileParallel(QiskitTestCase):
         )
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using QobjDictField
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
         counts = result.get_counts()
         for count in counts:

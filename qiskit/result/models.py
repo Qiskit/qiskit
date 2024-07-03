@@ -225,7 +225,8 @@ class ExperimentResult:
         data_obj = ExperimentResultData.from_dict(in_data.pop("data"))
         if "header" in in_data:
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=DeprecationWarning)
+                # The class QobjExperimentHeader is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                 in_data["header"] = QobjExperimentHeader.from_dict(in_data.pop("header"))
         shots = in_data.pop("shots")
         success = in_data.pop("success")

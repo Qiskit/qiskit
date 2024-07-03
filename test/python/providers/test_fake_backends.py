@@ -107,7 +107,7 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using QobjDictField
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             if not optionals.HAS_AER and backend.num_qubits > 20:
                 self.skipTest(f"Unable to run fake_backend {backend.name} without qiskit-aer")
             job = backend.run(
@@ -132,15 +132,15 @@ class TestFakeBackends(QiskitTestCase):
             self.skipTest(
                 f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
-        job = backend.run(
-            transpile(
-                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
-            ),
-            seed_simulator=42,
-        )
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using QobjDictField
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            job = backend.run(
+                transpile(
+                    self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+                ),
+                seed_simulator=42,
+            )
             result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
@@ -236,7 +236,7 @@ class TestFakeBackends(QiskitTestCase):
         job = backend_v2.run(res)
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using QobjDictField
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]

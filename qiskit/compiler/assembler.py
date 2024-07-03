@@ -228,7 +228,8 @@ def _assemble(
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # The Qobj is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
             backend,
             qobj_id,

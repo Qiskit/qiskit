@@ -262,7 +262,7 @@ class TestStarPreRouting(QiskitTestCase):
         result = pm.run(qc)
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using qiskit.qobj.common.QobjDictField`
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             counts_before = AerSimulator().run(qc).result().get_counts()
             counts_after = AerSimulator().run(result).result().get_counts()
         self.assertEqual(counts_before, counts_after)
@@ -305,7 +305,7 @@ class TestStarPreRouting(QiskitTestCase):
         result = pm.run(qc)
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using qiskit.qobj.common.QobjDictField`
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             counts_before = AerSimulator().run(qc).result().get_counts()
             counts_after = AerSimulator().run(result).result().get_counts()
         self.assertEqual(counts_before, counts_after)

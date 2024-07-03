@@ -272,7 +272,7 @@ class PulseDefaults:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
         schema = {
-            "pulse_library": PulseLibraryItem,
+            "pulse_library": PulseLibraryItem,  # The class PulseLibraryItem` is deprecated
             "cmd_def": Command,
             "meas_kernel": MeasurementKernel,
             "discriminator": Discriminator,
@@ -284,7 +284,8 @@ class PulseDefaults:
         for key, value in data.items():
             if key in schema:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", category=DeprecationWarning)
+                    # The class PulseLibraryItem` is deprecated
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     if isinstance(value, list):
                         in_data[key] = list(map(schema[key].from_dict, value))
                     else:

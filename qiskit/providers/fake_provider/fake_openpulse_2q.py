@@ -128,7 +128,8 @@ class FakeOpenPulse2Q(FakeBackend):
         )
 
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            # The class PulseQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             self._defaults = PulseDefaults.from_dict(
                 {
                     "qubit_freq_est": [4.9, 5.0],

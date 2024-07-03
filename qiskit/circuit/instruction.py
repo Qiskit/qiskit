@@ -372,7 +372,8 @@ class Instruction(Operation):
 
     def _assemble(self):
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            # The class QasmQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:

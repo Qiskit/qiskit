@@ -48,7 +48,7 @@ class FakeBackendsTest(QiskitTestCase):
         trans_qc = transpile(qc, backend)
         with warnings.catch_warnings():
             # TODO remove this catch once Aer stops using QobjDictField
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
@@ -62,8 +62,9 @@ class FakeBackendsTest(QiskitTestCase):
         qc.x(0)
         qc.measure_all()
         with warnings.catch_warnings():
-            # TODO remove this catch once Aer stops using QobjDictField
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            res = backend.run(qc, shots=1000).result().get_counts()
+            with warnings.catch_warnings():
+                # TODO remove this catch once Aer stops using QobjDictField
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})

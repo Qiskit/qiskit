@@ -90,7 +90,8 @@ def _assemble_circuit(
     if metadata is None:
         metadata = {}
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # The class QobjExperimentHeader is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         header = QobjExperimentHeader(
             qubit_labels=qubit_labels,
             n_qubits=num_qubits,
@@ -105,7 +106,8 @@ def _assemble_circuit(
 
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # The class QasmQobjExperimentConfig is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
     calibrations, pulse_library = _assemble_pulse_gates(circuit, run_config)
     if calibrations:
@@ -158,8 +160,8 @@ def _assemble_circuit(
 
             conditional_reg_idx = memory_slots + max_conditional_idx
             with warnings.catch_warnings():
-                # TODO remove this catch once Aer stops using _assemble
-                warnings.simplefilter("ignore", category=DeprecationWarning)
+                # The class QasmQobjInstruction is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                 conversion_bfunc = QasmQobjInstruction(
                     name="bfunc",
                     mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
@@ -176,7 +178,8 @@ def _assemble_circuit(
 
         instructions.append(instruction)
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # The class QasmQobjExperiment is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         return (
             QasmQobjExperiment(instructions=instructions, header=header, config=config),
             pulse_library,
@@ -365,7 +368,8 @@ def _assemble_circuits(
                 qobj_config_dict["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
 
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
+            # The class QasmQobjConfig is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             qobj_config = QasmQobjConfig(**qobj_config_dict)
 
     qubit_sizes = []
@@ -390,7 +394,8 @@ def _assemble_circuits(
     if calibrations and calibrations.gates:
         qobj_config.calibrations = calibrations
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
+        # The class QasmQobj is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
         return QasmQobj(
             qobj_id=qobj_id, config=qobj_config, experiments=experiments, header=qobj_header
         )
