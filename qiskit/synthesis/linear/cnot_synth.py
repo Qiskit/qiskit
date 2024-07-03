@@ -55,8 +55,15 @@ def synth_cnot_count_full_pmh(
            Quantum Information & Computation 8.3 (2008): 282-294.
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
+    normalized = np.asarray(state).astype(bool)
+    if section_size is not None and normalized.shape[1] < section_size:
+        raise ValueError(
+            f"The section_size ({section_size}) is cannot be larger than the number of columns "
+            f"({normalized.shape[1]})."
+        )
+
     # call Rust implementation with normalized input
-    circuit_data = fast_pmh(np.asarray(state).astype(bool), section_size)
+    circuit_data = fast_pmh(normalized, section_size)
 
     # construct circuit from the data
     return QuantumCircuit._from_circuit_data(circuit_data)

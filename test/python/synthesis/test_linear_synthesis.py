@@ -27,6 +27,7 @@ from qiskit.synthesis.linear import (
     binary_matmul,
 )
 from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
+from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -138,6 +139,29 @@ class TestLinearSynth(QiskitTestCase):
                 q1 = qc.find_bit(inst.qubits[1]).index
                 dist = abs(q0 - q1)
                 self.assertEqual(dist, 1)
+
+    def test_pmh_section_sizes(self):
+        """Test the PMH algorithm for different section sizes.
+
+        Regression test of Qiskit/qiskit#12166.
+        """
+        n = 5
+        qc = QuantumCircuit(n)
+        for i in range(n - 1):
+            qc.cx(i, i + 1)
+        expected = Operator(qc)
+
+        mat = LinearFunction(qc).linear
+        for section_size in range(1, n + 1):
+            synthesized = synth_cnot_count_full_pmh(mat, section_size=section_size)
+            with self.subTest(section_size=section_size):
+                self.assertEqual(expected, Operator(synthesized))
+
+    def test_pmh_invalid_section_size(self):
+        """Test that a section size larger than the number of qubits raises an error."""
+        mat = [[True, False], [True, False]]
+        with self.assertRaises(ValueError):
+            _ = synth_cnot_count_full_pmh(mat, section_size=3)
 
 
 if __name__ == "__main__":
