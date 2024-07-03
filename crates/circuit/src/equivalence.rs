@@ -132,7 +132,10 @@ impl Display for Equivalence {
         write!(
             f,
             "Equivalence(params=[{}], circuit={})",
-            self.params.iter().format(", "),
+            self.params
+                .iter()
+                .map(|param| format!("{:?}", param))
+                .format(", "),
             self.circuit
         )
     }
@@ -540,7 +543,7 @@ impl EquivalenceLibrary {
         });
         let graph_edges = PyList::empty_bound(slf.py());
         for edge in edges {
-            graph_edges.add(edge)?;
+            graph_edges.append(edge)?;
         }
         ret.set_item("graph_edges", graph_edges.unbind())?;
         Ok(ret)
