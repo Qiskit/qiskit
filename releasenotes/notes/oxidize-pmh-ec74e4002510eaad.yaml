@@ -1,0 +1,6 @@
+---
+features_synthesis:
+  - |
+    Port :func:`.synth_cnot_full_pmh`, used to synthesize a linear function
+    into a CX network, to Rust. This produces approximately 44x speedup,
+    as measured on 100 qubit circuits.
