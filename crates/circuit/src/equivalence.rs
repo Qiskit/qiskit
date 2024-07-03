@@ -405,29 +405,29 @@ impl EquivalenceLibrary {
     ///     gate (Gate): A Gate instance.
     ///     equivalent_circuit (QuantumCircuit): A circuit equivalently
     ///         implementing the given Gate.
-    #[pyo3(text_signature = "(gate, equivalent_circuit, /,")]
-    fn add_equivalence(&mut self, gate: GateOper, equivalent_circuit: CircuitRep) -> PyResult<()> {
-        match self.add_equiv(gate, equivalent_circuit) {
+    #[pyo3(name = "add_equivalence")]
+    fn py_add_equivalence(
+        &mut self,
+        gate: GateOper,
+        equivalent_circuit: CircuitRep,
+    ) -> PyResult<()> {
+        match self._add_equiv_native(gate, equivalent_circuit) {
             Ok(_) => Ok(()),
             Err(e) => Err(CircuitError::new_err(e.message)),
         }
     }
 
     /// Check if a library contains any decompositions for gate.
-
-    ///     Args:
-    ///         gate (Gate): A Gate instance.
-
-    ///     Returns:
-    ///         Bool: True if gate has a known decomposition in the library.
-    ///             False otherwise.
-    #[pyo3(text_signature = "(gate, /,)")]
-    pub fn has_entry(&self, gate: GateOper) -> bool {
-        let key = Key {
-            name: gate.operation.name().to_string(),
-            num_qubits: gate.operation.num_qubits(),
-        };
-        self.key_to_node_index.contains_key(&key)
+    ///
+    /// Args:
+    ///     gate (Gate): A Gate instance.
+    ///
+    /// Returns:
+    ///     Bool: True if gate has a known decomposition in the library.
+    ///         False otherwise.
+    #[pyo3(name = "has_entry")]
+    pub fn py_has_entry(&self, gate: GateOper) -> bool {
+        self.has_entry(&gate.operation)
     }
 
     /// Set the equivalence record for a Gate. Future queries for the Gate
@@ -441,9 +441,9 @@ impl EquivalenceLibrary {
     ///     gate (Gate): A Gate instance.
     ///     entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
     ///         equivalently implementing the given Gate.
-    #[pyo3(text_signature = "(gate, entry, /,)")]
-    fn set_entry(&mut self, gate: GateOper, entry: Vec<CircuitRep>) -> PyResult<()> {
-        match self.set_entry_native(gate, entry) {
+    #[pyo3(name = "set_entry")]
+    fn py_set_entry(&mut self, gate: GateOper, entry: Vec<CircuitRep>) -> PyResult<()> {
+        match self._set_entry_native(gate, entry) {
             Ok(_) => Ok(()),
             Err(e) => Err(CircuitError::new_err(e.message)),
         }
@@ -581,6 +581,24 @@ impl EquivalenceLibrary {
 
 // Rust native methods
 impl EquivalenceLibrary {
+    /// Rust native equivalent to `EquivalenceLibrary.has_entry()`
+    ///
+    /// Check if a library contains any decompositions for gate.
+    ///
+    /// # Arguments:
+    /// * `operation` OperationType: A Gate instance.
+    ///
+    /// # Returns:
+    /// `bool`: `true` if gate has a known decomposition in the library.
+    ///         `false` otherwise.
+    pub fn has_entry(&self, operation: &OperationType) -> bool {
+        let key = Key {
+            name: operation.name().to_string(),
+            num_qubits: operation.num_qubits(),
+        };
+        self.key_to_node_index.contains_key(&key)
+    }
+
     pub fn keys(&self) -> impl Iterator<Item = &Key> {
         self.key_to_node_index.keys()
     }
@@ -609,11 +627,24 @@ impl EquivalenceLibrary {
     /// `Gate.params`) can be marked equivalent to parameterized circuits,
     /// provided the parameters match.
     ///
-    /// Args:
-    ///     gate (Gate): A Gate instance.
-    ///     equivalent_circuit (QuantumCircuit): A circuit equivalently
-    ///         implementing the given Gate.
-    pub fn add_equiv(
+    /// # Arguments:
+    /// * `operation`: A Gate instance.
+    /// * `params`: A list of the gate's parameters.
+    /// * `equivalent_circuit`: A circuit equivalently implementing the given Gate.
+    pub fn add_equivalence(
+        &mut self,
+        operation: &OperationType,
+        params: &[Param],
+        equivalent_circuit: CircuitRep,
+    ) -> Result<(), EquivalenceError> {
+        let gate = GateOper {
+            operation: operation.clone(),
+            params: params.to_vec().into(),
+        };
+        self._add_equiv_native(gate, equivalent_circuit)
+    }
+
+    fn _add_equiv_native(
         &mut self,
         gate: GateOper,
         mut equivalent_circuit: CircuitRep,
@@ -667,11 +698,24 @@ impl EquivalenceLibrary {
     /// `Gate.params`) can be marked equivalent to parameterized circuits,
     /// provided the parameters match.
     ///
-    /// Args:
-    ///     gate (Gate): A Gate instance.
-    ///     entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
-    ///         equivalently implementing the given Gate.
-    pub fn set_entry_native(
+    /// # Arguments:
+    /// * `operation`: A Gate instance.
+    /// * `params`: A list of the gate's parameters.
+    /// * `entry` : A list of QuantumCircuits, each equivalently implementing the given Gate.
+    pub fn set_entry(
+        &mut self,
+        operation: &OperationType,
+        params: &[Param],
+        entry: Vec<CircuitRep>,
+    ) -> Result<(), EquivalenceError> {
+        let gate = GateOper {
+            operation: operation.clone(),
+            params: params.to_vec().into(),
+        };
+        self._set_entry_native(gate, entry)
+    }
+
+    fn _set_entry_native(
         &mut self,
         gate: GateOper,
         mut entry: Vec<CircuitRep>,
@@ -700,7 +744,7 @@ impl EquivalenceLibrary {
             self._graph.remove_edge(edge);
         }
         for equiv in entry {
-            self.add_equiv(gate.clone(), equiv.clone())?
+            self._add_equiv_native(gate.clone(), equiv.clone())?
         }
         self.graph = None;
         Ok(())
