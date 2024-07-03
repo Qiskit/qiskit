@@ -464,7 +464,12 @@ class BitArray(ShapedMixin):
         arr = arr[..., indices, :]
         return BitArray(arr, self.num_bits)
 
-    def postselect(self, indices: Sequence[int], selection: Sequence[bool]) -> BitArray:
+    def postselect(
+        self,
+        indices: Sequence[int] | int,
+        selection: Sequence[bool] | bool,
+        may_have_contradiction: bool = True,
+    ) -> BitArray:
         """Post-select this bit array based on sliced equality with a given bitstring.
 
         .. note::
@@ -474,13 +479,20 @@ class BitArray(ShapedMixin):
 
         Args:
             indices: A list of the indices of the cbits on which to postselect.
-                This matches the indexing used by :meth:`~slice_bits`.
                 If this bit array was produced by a sampler, then an index ``i`` corresponds to the
-                :class:`~.ClassicalRegister` location ``creg[i]``.
+                :class:`~.ClassicalRegister` location ``creg[i]`` (as in :meth:`~slice_bits`).
+                Negative indices are allowed.
 
             selection: A list of bools of length matching ``indices``, with ``indices[i]`` corresponding
               to ``selection[i]``. Shots will be discarded unless all cbits specified by ``indices`` have
               the values given by ``selection``.
+
+            may_have_contradiction: If the args ``indices`` and ``selection`` are known not to contain
+            contradictions, one can set this to False for a moderate speed-up, depending on the problem
+            size. Here "contradiction" means requiring that a single bit has two different values, e.g.
+            ``indices = [5, 5]`` and ``selection = [0, 1]``. If a contradiction is present, then setting
+            to ``False`` may silently produce incorrect results. (If a contradiction is present, the
+            correct result is to return an empty BitArray).
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
@@ -489,15 +501,62 @@ class BitArray(ShapedMixin):
             ValueError: If ``max(indices)`` is greater than :attr:`num_bits``.
             ValueError: If the lengths of ``selection`` and ``indices`` do not match.
         """
+        if isinstance(indices, int):
+            indices = (indices,)
+        if isinstance(selection, bool):
+            selection = (selection,)
+        selection = np.asarray(selection, dtype=bool)
 
-        if len(selection) != len(indices):
+        num_indices = len(indices)
+
+        if len(selection) != num_indices:
             raise ValueError("Lengths of indices and selection do not match.")
 
-        selection = BitArray.from_bool_array([selection], order="little")
+        num_bytes = self._array.shape[-1]
+        indices = np.asarray(indices)
+
+        if num_indices > 0 and np.max(indices) >= self.num_bits:
+            raise ValueError(
+                f"index {int(np.max(indices))} is out of bounds for the number of bits {self.num_bits}."
+            )
 
         flattened = self.reshape((), self.size * self.num_shots)
 
-        return flattened[(flattened.slice_bits(indices).array == selection.array).all(axis=-1)]
+        # If no conditions, keep all data, but flatten as promised:
+        if num_indices == 0:
+            return flattened
+
+        # Allow for negative bit indices:
+        is_negative = indices < 0
+        indices[is_negative] = np.mod(indices[is_negative], self.num_bits, dtype=int)
+
+        # Check for contradictory conditions:
+        if may_have_contradiction:
+            if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:
+                return BitArray(np.empty((0, num_bytes), dtype="uint8"), num_bits=self.num_bits)
+
+        # Recall that creg[0] is the LSb:
+        byte_significance, bit_significance = np.divmod(indices, 8)
+        # least-significant byte is at last position:
+        byte_idx = (num_bytes - 1) - byte_significance
+        # least-significant bit is at position 0:
+        bit_offset = bit_significance.astype("uint8")
+
+        # Get bitpacked representation of `indices` (bitmask):
+        bitmask = np.zeros(num_bytes, dtype="uint8")
+        np.bitwise_or.at(bitmask, byte_idx, np.uint8(1) << bit_offset)
+
+        # Get bitpacked representation of `selection` (desired bitstring):
+        selection_bytes = np.zeros(num_bytes, dtype="uint8")
+        ## This will produce incorrect result if we did not check for contradictions, but there is one:
+        np.bitwise_or.at(
+            selection_bytes, byte_idx, np.asarray(selection, dtype="uint8") << bit_offset
+        )
+
+        return BitArray(
+            flattened._array[((flattened._array & bitmask) == selection_bytes).all(axis=-1)],
+            num_bits=self.num_bits,
+        )
 
     def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
         """Compute the expectation values of the provided observables, broadcasted against

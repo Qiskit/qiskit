@@ -704,7 +704,8 @@ class BitArrayTestCase(QiskitTestCase):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
                 [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            ]
+            ],
+            dtype=bool,
         )
 
         shaped_data = np.array(
@@ -734,28 +735,43 @@ class BitArrayTestCase(QiskitTestCase):
             bool_array = bool_array.reshape(-1, num_bits)
 
             test_cases = [
-                ("basic", [0, 1], [0, 0]),
-                ("multibyte", [0, 9], [0, 1]),
-                ("repeated", [5, 5, 5], [0, 0, 0]),
-                ("contradict", [5, 5, 5], [0, 0, 1]),
-                ("unsorted", [5, 0, 9, 3], [1, 0, 1, 0]),
+                ("basic", [0, 1], [False, False]),
+                ("multibyte", [0, 9], [False, True]),
+                ("repeated", [5, 5, 5], [False, False, False]),
+                ("contradict", [5, 5, 5], [True, False, False]),
+                ("unsorted", [5, 0, 9, 3], [True, False, True, False]),
+                ("negative", [-5, 1, -2, -5], [True, False, True, True]),
+                ("trivial", [], []),
+                ("bareindex", 6, False),
             ]
 
             for name, indices, selection in test_cases:
-                with self.subTest(dataname + "_" + name):
-                    answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
-                    postselected_bools = np.unpackbits(
-                        bit_array.postselect(indices, selection).array[:, ::-1],
-                        count=num_bits,
-                        axis=-1,
-                        bitorder="little",
-                    ).astype(bool)
-                    self.assertTrue((postselected_bools == answer).all())
+                for check_for_contradiction in (True, False):
+                    with self.subTest("_".join([dataname, name, str(check_for_contradiction)])):
+                        print(dataname + "_" + name)
+                        postselected_bools = np.unpackbits(
+                            bit_array.postselect(indices, selection, check_for_contradiction).array[
+                                :, ::-1
+                            ],
+                            count=num_bits,
+                            axis=-1,
+                            bitorder="little",
+                        ).astype(bool)
+                        if isinstance(indices, int):
+                            indices = (indices,)
+                        if isinstance(selection, bool):
+                            selection = (selection,)
+                        answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
+                        if name == "contradict":
+                            if check_for_contradiction:
+                                np.testing.assert_equal(postselected_bools, answer)
+                        else:
+                            self.assertTrue(len(answer) > 0)  # avoiding trivial test case
+                            np.testing.assert_equal(postselected_bools, answer)
 
             error_cases = [
-                ("negative", [-1, 0, 6], [1, 1, 1], ValueError),
-                ("out_of_range", [0, 6, 14], [1, 1, 0], ValueError),
-                ("mismatch", [0, 1, 2], [0, 0], ValueError),
+                ("out_of_range", [0, 6, 14], [True, True, False], ValueError),
+                ("mismatch", [0, 1, 2], [False, False], ValueError),
             ]
             for name, indices, selection, error in error_cases:
                 with self.subTest(dataname + "_" + name):
