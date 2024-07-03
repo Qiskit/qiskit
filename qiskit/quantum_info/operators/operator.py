@@ -112,7 +112,6 @@ class Operator(LinearOp):
             # a complex numpy matrix.
             self._data = np.asarray(data.to_matrix(), dtype=complex)
         else:
-            print(data)
             raise QiskitError("Invalid input data format for Operator")
 
         super().__init__(
