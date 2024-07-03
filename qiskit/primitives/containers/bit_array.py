@@ -488,11 +488,11 @@ class BitArray(ShapedMixin):
               the values given by ``selection``.
 
             may_have_contradiction: If the args ``indices`` and ``selection`` are known not to contain
-            contradictions, one can set this to False for a moderate speed-up, depending on the problem
-            size. Here "contradiction" means requiring that a single bit has two different values, e.g.
-            ``indices = [5, 5]`` and ``selection = [0, 1]``. If a contradiction is present, then setting
-            to ``False`` may silently produce incorrect results. (If a contradiction is present, the
-            correct result is to return an empty BitArray).
+              contradictions, one can set this to False for a moderate speed-up, depending on the problem
+              size. Here "contradiction" means requiring that a single bit has two different values, e.g.
+              ``indices=[5,5]`` and ``selection=[0,1]``. If a contradiction is present, then setting
+              to ``False`` may silently produce incorrect results. (If a contradiction is present, the
+              correct result is to return an empty BitArray).
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
