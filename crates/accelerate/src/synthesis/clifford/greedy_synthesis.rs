@@ -19,11 +19,16 @@ use crate::synthesis::clifford::utils::{adjust_final_pauli_gates, SymplecticMatr
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
 
+/// Converts a pair of Paulis pauli_x and pauli_z acting on a specific qubit
+/// to the corresponding index in [PauliPairsClass] or [SingleQubitGate] classes.
+/// The input is given as a 4-tuple: (pauli_x stabilizer, pauli_x destabilizer,
+/// pauli_z stabilizer, pauli_z destabilizer), and the output is an unsigned
+/// integer from 0 to 15.
 fn pauli_pair_to_index(xs: bool, xd: bool, zs: bool, zd: bool) -> usize {
     ((xs as usize) << 3) | ((xd as usize) << 2) | ((zs as usize) << 1) | (zd as usize)
 }
 
-/// The five classes of Pauli operators as described in the paper.
+/// The five classes of Pauli 2-qubit operators as described in the paper.
 #[derive(Clone, Copy)]
 enum PauliPairsClass {
     ClassA,
@@ -33,7 +38,7 @@ enum PauliPairsClass {
     ClassE,
 }
 
-/// The 16 pairs of Pauli 2-qubit operators are divided into 5 equivalence classes
+/// The 16 Pauli 2-qubit operators are divided into 5 equivalence classes
 /// under the action of single-qubit Cliffords.
 static PAULI_INDEX_TO_CLASS: [PauliPairsClass; 16] = [
     PauliPairsClass::ClassE, // 'II'
