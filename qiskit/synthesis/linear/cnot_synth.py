@@ -47,49 +47,40 @@ def synth_cnot_count_full_pmh(
     Raises:
         QiskitError: when variable ``state`` isn't of type ``numpy.ndarray``
 
-    We used concept called virtual padding to generate marices filled by Zeros
-    when the algorithm fail to handle a section_size more than the number of qubits.
-
     References:
         1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
            *Optimal synthesis of linear reversible circuits*,
            Quantum Information & Computation 8.3 (2008): 282-294.
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
+
     if not isinstance(state, (list, np.ndarray)):
         raise QiskitError(
-            "state should be of type list or numpy.ndarray, "
-            "but was of the type {}".format(type(state))
+            f"state should be of type list or numpy.ndarray, but was of the type {type(state)}"
         )
     state = np.array(state)
     num_qubits = state.shape[0]
-
-    # Virtual Padding
+    
+    # Raise an error if section_size is larger than the number of qubits
     if section_size > num_qubits:
-        padding_size = section_size - (num_qubits % section_size)
-        state = np.hstack((state, np.zeros((num_qubits, padding_size), dtype=bool)))
-
+        raise QiskitError(f"section_size ({section_size}) cannot be larger than the number of qubits ({num_qubits})")
+    
     # Synthesize lower triangular part
-    [state, circuit_l] = _lwr_cnot_synth(state, section_size, num_qubits)
+    [state, circuit_l] = _lwr_cnot_synth(state, section_size)
     state = np.transpose(state)
-
     # Synthesize upper triangular part
-    [state, circuit_u] = _lwr_cnot_synth(state, section_size, num_qubits)
+    [state, circuit_u] = _lwr_cnot_synth(state, section_size)
     circuit_l.reverse()
     for i in circuit_u:
         i.reverse()
-
-    # Convert the list into a circuit of C-NOT gates (removing virtual padding)
-    circ = QuantumCircuit(num_qubits)  # Circuit size is the original num_qubits
+    # Convert the list into a circuit of C-NOT gates
+    circ = QuantumCircuit(state.shape[0])
     for i in circuit_u + circuit_l:
-        # Only add gates if both control and target are within the original matrix
-        if i[0] < num_qubits and i[1] < num_qubits:
-            circ.cx(i[0], i[1])
-
+        circ.cx(i[0], i[1])
     return circ
 
-def _lwr_cnot_synth(state, section_size, num_qubits):
 
+def _lwr_cnot_synth(state, section_size):
     """
     This function is a helper function of the algorithm for optimal synthesis
     of linear reversible circuits (the Patel–Markov–Hayes algorithm). It works
@@ -121,20 +112,16 @@ def _lwr_cnot_synth(state, section_size, num_qubits):
         numpy.matrix: n by n matrix, describing the state of the output circuit
         list: a k by 2 list of C-NOT operations that need to be applied
     """
-
-    """Also used virtual padding."""
-
     circuit = []
+    num_qubits = state.shape[0]
     cutoff = 1
 
-    # Iterate over column sections (including padded sections)
-    for sec in range(1, int(np.ceil(state.shape[1] / section_size)) + 1):
+    # Iterate over column sections
+    for sec in range(1, int(np.floor(num_qubits / section_size) + 1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
         for row in range((sec - 1) * section_size, num_qubits):
-            sub_row_patt = copy.deepcopy(
-                state[row, (sec - 1) * section_size : sec * section_size]
-            )
+            sub_row_patt = copy.deepcopy(state[row, (sec - 1) * section_size : sec * section_size])
             if np.sum(sub_row_patt) == 0:
                 continue
             if str(sub_row_patt) not in patt:
@@ -142,10 +129,8 @@ def _lwr_cnot_synth(state, section_size, num_qubits):
             else:
                 state[row, :] ^= state[patt[str(sub_row_patt)], :]
                 circuit.append([patt[str(sub_row_patt)], row])
-
         # Use gaussian elimination for remaining entries in column section
-        # Modified loop range
-        for col in range((sec - 1) * section_size, min(sec * section_size, num_qubits)):
+        for col in range((sec - 1) * section_size, sec * section_size):
             # Check if 1 on diagonal
             diag_one = 1
             if state[col, col] == 0:
@@ -163,5 +148,4 @@ def _lwr_cnot_synth(state, section_size, num_qubits):
                 if sum(state[col, :] & state[row, :]) > cutoff:
                     state[col, :] ^= state[row, :]
                     circuit.append([row, col])
-
     return [state, circuit]
