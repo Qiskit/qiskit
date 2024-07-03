@@ -126,8 +126,42 @@ pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
     trans_matrix
 }
 
+#[pyfunction]
+pub fn collect_2q_blocks_filter(node: &Bound<PyAny>) -> Option<bool> {
+    match node.downcast::<DAGOpNode>() {
+        Ok(bound_node) => {
+            let node = bound_node.borrow();
+            match &node.instruction.operation {
+                OperationType::Standard(gate) => Some(
+                    gate.num_qubits() <= 2
+                        && node
+                            .instruction
+                            .extra_attrs
+                            .as_ref()
+                            .and_then(|attrs| attrs.condition.as_ref())
+                            .is_none()
+                        && !node.is_parameterized(),
+                ),
+                OperationType::Gate(gate) => Some(
+                    gate.num_qubits() <= 2
+                        && node
+                            .instruction
+                            .extra_attrs
+                            .as_ref()
+                            .and_then(|attrs| attrs.condition.as_ref())
+                            .is_none()
+                        && !node.is_parameterized(),
+                ),
+                _ => Some(false),
+            }
+        }
+        Err(_) => None,
+    }
+}
+
 #[pymodule]
 pub fn convert_2q_block_matrix(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(blocks_to_matrix))?;
+    m.add_wrapped(wrap_pyfunction!(collect_2q_blocks_filter))?;
     Ok(())
 }

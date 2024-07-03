@@ -55,7 +55,7 @@ from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
 from qiskit._accelerate.euler_one_qubit_decomposer import collect_1q_runs_filter
-from qiskit._accelerate.circuit import StandardGate, PyGate
+from qiskit._accelerate.convert_2q_block_matrix import collect_2q_blocks_filter
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -2159,28 +2159,13 @@ class DAGCircuit:
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 
-        to_qid = {}
-        for i, qubit in enumerate(self.qubits):
-            to_qid[qubit] = i
-
-        def filter_fn(node):
-            if isinstance(node, DAGOpNode):
-                return (
-                    isinstance(node._raw_op, (StandardGate, PyGate))
-                    and len(node.qargs) <= 2
-                    and not getattr(node, "condition", None)
-                    and not node.is_parameterized()
-                )
-            else:
-                return None
-
         def color_fn(edge):
             if isinstance(edge, Qubit):
-                return to_qid[edge]
+                return self.find_bit(edge).index
             else:
                 return None
 
-        return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
+        return rx.collect_bicolor_runs(self._multi_graph, collect_2q_blocks_filter, color_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
