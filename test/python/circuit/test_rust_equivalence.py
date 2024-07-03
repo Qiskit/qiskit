@@ -12,6 +12,7 @@
 
 """Rust gate definition tests"""
 
+from functools import partial
 from math import pi
 
 from test import QiskitTestCase
@@ -19,7 +20,7 @@ from test import QiskitTestCase
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
-from qiskit.circuit.library.standard_gates import C3XGate, U1Gate, ZGate
+from qiskit.circuit.library.standard_gates import C3XGate, CU1Gate, CZGate, CCZGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.quantum_info import Operator
 
@@ -194,13 +195,13 @@ class TestRustGateEquivalence(QiskitTestCase):
     def test_non_default_controls(self):
         """Test that controlled gates with a non-default ctrl_state
         are not using the standard rust representation."""
+        # CZ and CU1 are diagonal matrices with one non-1 term
+        # in the diagonal (see op_terms)
+        gate_classes = [CZGate, partial(CU1Gate, 0.1)]
+        op_terms = [-1, 0.99500417 + 0.09983342j]
 
-        # tests for CZ, CU1 and CCZ (gates with rust representation)
-        z_gate, z_term = ZGate(), -1
-        u1_gate, u1_term = U1Gate(0.1), 0.99500417 + 0.09983342j
-
-        for gate, term in zip([z_gate, u1_gate], [z_term, u1_term]):
-            with self.subTest(name="2q gate," + gate.name):
+        for gate_cls, term in zip(gate_classes, op_terms):
+            with self.subTest(name="2q gates"):
                 default_op = np.diag([1, 1, 1, term])
                 non_default_op = np.diag([1, 1, term, 1])
                 state_out_map = {
@@ -212,14 +213,16 @@ class TestRustGateEquivalence(QiskitTestCase):
                 }
                 for state, op in state_out_map.items():
                     circuit = QuantumCircuit(2)
-                    circuit.append(gate.control(1, ctrl_state=state), [0, 1])
+                    gate = gate_cls(ctrl_state=state)
+                    circuit.append(gate, [0, 1])
+                    self.assertIsNotNone(getattr(gate, "_standard_gate", None))
                     np.testing.assert_almost_equal(circuit.data[0].operation.to_matrix(), op)
 
         with self.subTest(name="3q gate"):
-            default_op = np.diag([1, 1, 1, 1, 1, 1, 1, z_term])
-            non_default_op_0 = np.diag([1, 1, 1, 1, z_term, 1, 1, 1])
-            non_default_op_1 = np.diag([1, 1, 1, 1, 1, z_term, 1, 1])
-            non_default_op_2 = np.diag([1, 1, 1, 1, 1, 1, z_term, 1])
+            default_op = np.diag([1, 1, 1, 1, 1, 1, 1, -1])
+            non_default_op_0 = np.diag([1, 1, 1, 1, -1, 1, 1, 1])
+            non_default_op_1 = np.diag([1, 1, 1, 1, 1, -1, 1, 1])
+            non_default_op_2 = np.diag([1, 1, 1, 1, 1, 1, -1, 1])
             state_out_map = {
                 3: default_op,
                 "11": default_op,
@@ -231,5 +234,7 @@ class TestRustGateEquivalence(QiskitTestCase):
             }
             for state, op in state_out_map.items():
                 circuit = QuantumCircuit(3)
-                circuit.append(z_gate.control(2, ctrl_state=state), [0, 1, 2])
+                gate = CCZGate(ctrl_state=state)
+                circuit.append(gate, [0, 1, 2])
+                self.assertIsNotNone(getattr(gate, "_standard_gate", None))
                 np.testing.assert_almost_equal(Operator(circuit.data[0].operation).to_matrix(), op)
