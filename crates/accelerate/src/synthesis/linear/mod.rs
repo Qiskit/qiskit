@@ -14,7 +14,7 @@ use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
 
-mod utils;
+pub mod utils;
 
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
