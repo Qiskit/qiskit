@@ -20,7 +20,7 @@ use numpy::IntoPyArray;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySequence, PyString, PyTuple};
-use pyo3::{intern, IntoPy, PyObject, PyResult};
+use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
 use smallvec::smallvec;
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
@@ -137,6 +137,50 @@ impl DAGOpNode {
         ))
     }
 
+    #[staticmethod]
+    fn from_instruction(
+        py: Python,
+        instruction: CircuitInstruction,
+        dag: Option<&Bound<PyAny>>,
+    ) -> PyResult<PyObject> {
+        let qargs = instruction.qubits.clone_ref(py).into_bound(py);
+        let cargs = instruction.clbits.clone_ref(py).into_bound(py);
+
+        let sort_key = match dag {
+            Some(dag) => {
+                let cache = dag
+                    .getattr(intern!(py, "_key_cache"))?
+                    .downcast_into_exact::<PyDict>()?;
+                let cache_key = PyTuple::new_bound(py, [&qargs, &cargs]);
+                match cache.get_item(&cache_key)? {
+                    Some(key) => key,
+                    None => {
+                        let indices: PyResult<Vec<_>> = qargs
+                            .iter()
+                            .chain(cargs.iter())
+                            .map(|bit| {
+                                dag.call_method1(intern!(py, "find_bit"), (bit,))?
+                                    .getattr(intern!(py, "index"))
+                            })
+                            .collect();
+                        let index_strs: Vec<_> =
+                            indices?.into_iter().map(|i| format!("{:04}", i)).collect();
+                        let key = PyString::new_bound(py, index_strs.join(",").as_str());
+                        cache.set_item(&cache_key, &key)?;
+                        key.into_any()
+                    }
+                }
+            }
+            None => qargs.str()?.into_any(),
+        };
+        let base = PyClassInitializer::from(DAGNode { _node_id: -1 });
+        let sub = base.add_subclass(DAGOpNode {
+            instruction,
+            sort_key: sort_key.unbind(),
+        });
+        Ok(Py::new(py, sub)?.to_object(py))
+    }
+
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         let state = (slf.as_ref()._node_id, &slf.sort_key);
         Ok((
@@ -218,8 +262,8 @@ impl DAGOpNode {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> PyObject {
-        self.instruction.operation.name().to_object(py)
+    fn get_name(&self) -> &str {
+        self.instruction.operation.name()
     }
 
     #[getter]
