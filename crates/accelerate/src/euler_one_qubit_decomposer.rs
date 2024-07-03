@@ -1045,10 +1045,11 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
 }
 
 #[pyfunction]
-pub fn collect_1q_runs_filter(py: Python, node: PyObject) -> bool {
-    let op_node = node.extract::<PyRef<DAGOpNode>>(py);
+pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
+    let op_node = node.downcast::<DAGOpNode>();
     match op_node {
-        Ok(node) => {
+        Ok(bound_node) => {
+            let node = bound_node.borrow();
             node.instruction.operation.num_qubits() == 1
                 && node.instruction.operation.num_clbits() == 0
                 && node
