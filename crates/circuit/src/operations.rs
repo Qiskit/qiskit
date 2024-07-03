@@ -242,6 +242,12 @@ pub enum StandardGate {
     RZXGate = 52,
 }
 
+impl ToPyObject for StandardGate {
+    fn to_object(&self, py: Python) -> PyObject {
+        self.into_py(py)
+    }
+}
+
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     1, 1, 1, 2, 2, 2, 3, 1, 1, 1, // 0-9
     2, 2, 1, 0, 1, 1, 1, 1, 1, 1, // 10-19
