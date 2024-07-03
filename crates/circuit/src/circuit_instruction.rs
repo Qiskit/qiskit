@@ -13,6 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::cell::RefCell;
 
+use numpy::IntoPyArray;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyValueError};
 use pyo3::prelude::*;
@@ -25,7 +26,9 @@ use crate::imports::{
     SINGLETON_CONTROLLED_GATE, SINGLETON_GATE, WARNINGS_WARN,
 };
 use crate::interner::Index;
-use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
+use crate::operations::{
+    Operation, OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+};
 
 /// These are extra mutable attributes for a circuit instruction's state. In general we don't
 /// typically deal with this in rust space and the majority of the time they're not used in Python
@@ -405,6 +408,62 @@ impl CircuitInstruction {
                 op
             }
         })
+    }
+
+    #[getter]
+    fn _raw_op(&self, py: Python) -> PyObject {
+        self.operation.clone().into_py(py)
+    }
+
+    /// Returns the Instruction name corresponding to the op for this node
+    #[getter]
+    fn get_name(&self, py: Python) -> PyObject {
+        self.operation.name().to_object(py)
+    }
+
+    #[getter]
+    fn get_params(&self, py: Python) -> PyObject {
+        self.params.to_object(py)
+    }
+
+    #[getter]
+    fn matrix(&self, py: Python) -> Option<PyObject> {
+        let matrix = self.operation.matrix(&self.params);
+        matrix.map(|mat| mat.into_pyarray_bound(py).into())
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.label.as_deref())
+    }
+
+    #[getter]
+    fn condition(&self, py: Python) -> Option<PyObject> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.condition.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    #[getter]
+    fn duration(&self, py: Python) -> Option<PyObject> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.duration.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    #[getter]
+    fn unit(&self) -> Option<&str> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.unit.as_deref())
+    }
+
+    pub fn is_parameterized(&self) -> bool {
+        self.params
+            .iter()
+            .any(|x| matches!(x, Param::ParameterExpression(_)))
     }
 
     /// Creates a shallow copy with the given fields replaced.
