@@ -13,6 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::cell::RefCell;
 
+use numpy::IntoPyArray;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyValueError};
 use pyo3::prelude::*;
@@ -25,7 +26,9 @@ use crate::imports::{
     SINGLETON_CONTROLLED_GATE, SINGLETON_GATE, WARNINGS_WARN,
 };
 use crate::interner::Index;
-use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
+use crate::operations::{
+    Operation, OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+};
 
 /// These are extra mutable attributes for a circuit instruction's state. In general we don't
 /// typically deal with this in rust space and the majority of the time they're not used in Python
@@ -407,6 +410,62 @@ impl CircuitInstruction {
         })
     }
 
+    #[getter]
+    fn _raw_op(&self, py: Python) -> PyObject {
+        self.operation.clone().into_py(py)
+    }
+
+    /// Returns the Instruction name corresponding to the op for this node
+    #[getter]
+    fn get_name(&self, py: Python) -> PyObject {
+        self.operation.name().to_object(py)
+    }
+
+    #[getter]
+    fn get_params(&self, py: Python) -> PyObject {
+        self.params.to_object(py)
+    }
+
+    #[getter]
+    fn matrix(&self, py: Python) -> Option<PyObject> {
+        let matrix = self.operation.matrix(&self.params);
+        matrix.map(|mat| mat.into_pyarray_bound(py).into())
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.label.as_deref())
+    }
+
+    #[getter]
+    fn condition(&self, py: Python) -> Option<PyObject> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.condition.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    #[getter]
+    fn duration(&self, py: Python) -> Option<PyObject> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.duration.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    #[getter]
+    fn unit(&self) -> Option<&str> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|attrs| attrs.unit.as_deref())
+    }
+
+    pub fn is_parameterized(&self) -> bool {
+        self.params
+            .iter()
+            .any(|x| matches!(x, Param::ParameterExpression(_)))
+    }
+
     /// Creates a shallow copy with the given fields replaced.
     ///
     /// Returns:
@@ -728,10 +787,7 @@ impl CircuitInstruction {
 
 /// Take a reference to a `CircuitInstruction` and convert the operation
 /// inside that to a python side object.
-pub(crate) fn operation_type_to_py(
-    py: Python,
-    circuit_inst: &CircuitInstruction,
-) -> PyResult<PyObject> {
+pub fn operation_type_to_py(py: Python, circuit_inst: &CircuitInstruction) -> PyResult<PyObject> {
     let (label, duration, unit, condition) = match &circuit_inst.extra_attrs {
         None => (None, None, None, None),
         Some(extra_attrs) => (
@@ -757,7 +813,7 @@ pub(crate) fn operation_type_to_py(
 /// a Python side full-fat Qiskit operation as a PyObject. This is typically
 /// used by accessor functions that need to return an operation to Qiskit, such
 /// as accesing `CircuitInstruction.operation`.
-pub(crate) fn operation_type_and_data_to_py(
+pub fn operation_type_and_data_to_py(
     py: Python,
     operation: &OperationType,
     params: &[Param],
@@ -796,8 +852,8 @@ pub(crate) fn operation_type_and_data_to_py(
 
 /// A container struct that contains the output from the Python object to
 /// conversion to construct a CircuitInstruction object
-#[derive(Debug)]
-pub(crate) struct OperationTypeConstruct {
+#[derive(Debug, Clone)]
+pub struct OperationTypeConstruct {
     pub operation: OperationType,
     pub params: SmallVec<[Param; 3]>,
     pub label: Option<String>,
@@ -809,7 +865,7 @@ pub(crate) struct OperationTypeConstruct {
 /// Convert an inbound Python object for a Qiskit operation and build a rust
 /// representation of that operation. This will map it to appropriate variant
 /// of operation type based on class
-pub(crate) fn convert_py_to_operation_type(
+pub fn convert_py_to_operation_type(
     py: Python,
     py_op: PyObject,
 ) -> PyResult<OperationTypeConstruct> {
@@ -825,10 +881,7 @@ pub(crate) fn convert_py_to_operation_type(
     };
     let op_type: Bound<PyType> = raw_op_type.into_bound(py);
     let mut standard: Option<StandardGate> = match op_type.getattr(attr) {
-        Ok(stdgate) => match stdgate.extract().ok() {
-            Some(gate) => gate,
-            None => None,
-        },
+        Ok(stdgate) => stdgate.extract().ok().unwrap_or_default(),
         Err(_) => None,
     };
     // If the input instruction is a standard gate and a singleton instance
