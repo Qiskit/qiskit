@@ -5,6 +5,6 @@ deprecations_providers:
     OpenQASM instead.
 deprecations_transpiler:
   - |
-    The function `assemble` is now deprecated as the Oobj structure is not needed any more. The function was used,
+    The function `assemble` is now deprecated as the Qobj structure is not needed any more. The function was used,
     among other things, to create a Qobj. It was also used for binding parameter and that functionality is now
-    fully covered by :meth:`.assign_parameters`.
+    fully covered by :meth:`~.QuantumCircuit.assign_parameters`.
