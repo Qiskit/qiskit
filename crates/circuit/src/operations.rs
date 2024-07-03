@@ -309,9 +309,9 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "cu",           // 39
     "cu1",          // 40
     "cu3",          // 41
-    "mcx",          // 42 ("mcx")
+    "mcx",          // 42 ("c3x")
     "c3sx",         // 43
-    "c4x",          // 44 ("mcx")
+    "mcx",          // 44 ("c4x")
     "dcx",          // 45
     "ccz",          // 46
     "rccx",         // 47
