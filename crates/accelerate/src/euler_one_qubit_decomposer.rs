@@ -18,7 +18,6 @@ use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
-use std::ops::Deref;
 use std::str::FromStr;
 
 use pyo3::exceptions::PyValueError;
@@ -31,8 +30,12 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::dag_node::DAGOpNode;
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
+use qiskit_circuit::Qubit;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -68,12 +71,12 @@ impl OneQubitGateErrorMap {
 
 #[pyclass(sequence)]
 pub struct OneQubitGateSequence {
-    pub gates: Vec<(String, SmallVec<[f64; 3]>)>,
+    pub gates: Vec<(StandardGate, SmallVec<[f64; 3]>)>,
     #[pyo3(get)]
     pub global_phase: f64,
 }
 
-type OneQubitGateSequenceState = (Vec<(String, SmallVec<[f64; 3]>)>, f64);
+type OneQubitGateSequenceState = (Vec<(StandardGate, SmallVec<[f64; 3]>)>, f64);
 
 #[pymethods]
 impl OneQubitGateSequence {
@@ -115,15 +118,15 @@ fn circuit_kak(
     phi: f64,
     lam: f64,
     phase: f64,
-    k_gate: &str,
-    a_gate: &str,
+    k_gate: StandardGate,
+    a_gate: StandardGate,
     simplify: bool,
     atol: Option<f64>,
 ) -> OneQubitGateSequence {
     let mut lam = lam;
     let mut theta = theta;
     let mut phi = phi;
-    let mut circuit: Vec<(String, SmallVec<[f64; 3]>)> = Vec::with_capacity(3);
+    let mut circuit: Vec<(StandardGate, SmallVec<[f64; 3]>)> = Vec::with_capacity(3);
     let mut atol = match atol {
         Some(atol) => atol,
         None => ANGLE_ZERO_EPSILON,
@@ -139,7 +142,7 @@ fn circuit_kak(
         // slippage coming from _mod_2pi injecting multiples of 2pi.
         lam = mod_2pi(lam, atol);
         if lam.abs() > atol {
-            circuit.push((String::from(k_gate), smallvec![lam]));
+            circuit.push((k_gate, smallvec![lam]));
             global_phase += lam / 2.;
         }
         return OneQubitGateSequence {
@@ -160,13 +163,13 @@ fn circuit_kak(
     lam = mod_2pi(lam, atol);
     if lam.abs() > atol {
         global_phase += lam / 2.;
-        circuit.push((String::from(k_gate), smallvec![lam]));
+        circuit.push((k_gate, smallvec![lam]));
     }
-    circuit.push((String::from(a_gate), smallvec![theta]));
+    circuit.push((a_gate, smallvec![theta]));
     phi = mod_2pi(phi, atol);
     if phi.abs() > atol {
         global_phase += phi / 2.;
-        circuit.push((String::from(k_gate), smallvec![phi]));
+        circuit.push((k_gate, smallvec![phi]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -190,7 +193,7 @@ fn circuit_u3(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((String::from("u3"), smallvec![theta, phi, lam]));
+        circuit.push((StandardGate::U3Gate, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -217,16 +220,16 @@ fn circuit_u321(
     if theta.abs() < atol {
         let tot = mod_2pi(phi + lam, atol);
         if tot.abs() > atol {
-            circuit.push((String::from("u1"), smallvec![tot]));
+            circuit.push((StandardGate::U1Gate, smallvec![tot]));
         }
     } else if (theta - PI / 2.).abs() < atol {
         circuit.push((
-            String::from("u2"),
+            StandardGate::U2Gate,
             smallvec![mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     } else {
         circuit.push((
-            String::from("u3"),
+            StandardGate::U3Gate,
             smallvec![theta, mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     }
@@ -255,7 +258,7 @@ fn circuit_u(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((String::from("u"), smallvec![theta, phi, lam]));
+        circuit.push((StandardGate::UGate, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -358,7 +361,7 @@ fn circuit_rr(
         // This can be expressed as a single R gate
         if theta.abs() > atol {
             circuit.push((
-                String::from("r"),
+                StandardGate::RGate,
                 smallvec![theta, mod_2pi(PI / 2. + phi, atol)],
             ));
         }
@@ -366,12 +369,12 @@ fn circuit_rr(
         // General case: use two R gates
         if (theta - PI).abs() > atol {
             circuit.push((
-                String::from("r"),
+                StandardGate::RGate,
                 smallvec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
             ));
         }
         circuit.push((
-            String::from("r"),
+            StandardGate::RGate,
             smallvec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
         ));
     }
@@ -393,10 +396,46 @@ pub fn generate_circuit(
     atol: Option<f64>,
 ) -> PyResult<OneQubitGateSequence> {
     let res = match target_basis {
-        EulerBasis::ZYZ => circuit_kak(theta, phi, lam, phase, "rz", "ry", simplify, atol),
-        EulerBasis::ZXZ => circuit_kak(theta, phi, lam, phase, "rz", "rx", simplify, atol),
-        EulerBasis::XZX => circuit_kak(theta, phi, lam, phase, "rx", "rz", simplify, atol),
-        EulerBasis::XYX => circuit_kak(theta, phi, lam, phase, "rx", "ry", simplify, atol),
+        EulerBasis::ZYZ => circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            StandardGate::RZGate,
+            StandardGate::RYGate,
+            simplify,
+            atol,
+        ),
+        EulerBasis::ZXZ => circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            StandardGate::RZGate,
+            StandardGate::RXGate,
+            simplify,
+            atol,
+        ),
+        EulerBasis::XZX => circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            StandardGate::RXGate,
+            StandardGate::RZGate,
+            simplify,
+            atol,
+        ),
+        EulerBasis::XYX => circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            StandardGate::RXGate,
+            StandardGate::RYGate,
+            simplify,
+            atol,
+        ),
         EulerBasis::U3 => circuit_u3(theta, phi, lam, phase, simplify, atol),
         EulerBasis::U321 => circuit_u321(theta, phi, lam, phase, simplify, atol),
         EulerBasis::U => circuit_u(theta, phi, lam, phase, simplify, atol),
@@ -411,11 +450,13 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("p"), smallvec![phi]));
+                    circuit
+                        .gates
+                        .push((StandardGate::PhaseGate, smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("sx"), SmallVec::new()));
+                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
             };
 
             circuit_psx_gen(
@@ -441,12 +482,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("rz"), smallvec![phi]));
+                    circuit.gates.push((StandardGate::RZGate, smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("sx"), SmallVec::new()));
+                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -471,12 +512,14 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("u1"), smallvec![phi]));
+                    circuit.gates.push((StandardGate::U1Gate, smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
                 circuit.global_phase += PI / 4.;
-                circuit.gates.push((String::from("rx"), smallvec![PI / 2.]));
+                circuit
+                    .gates
+                    .push((StandardGate::RXGate, smallvec![PI / 2.]));
             };
             circuit_psx_gen(
                 theta,
@@ -501,15 +544,15 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("rz"), smallvec![phi]));
+                    circuit.gates.push((StandardGate::RZGate, smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("sx"), SmallVec::new()));
+                circuit.gates.push((StandardGate::SXGate, SmallVec::new()));
             };
             let fnxpi = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("x"), SmallVec::new()));
+                circuit.gates.push((StandardGate::XGate, SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -633,7 +676,7 @@ fn compare_error_fn(
             let fidelity_product: f64 = circuit
                 .gates
                 .iter()
-                .map(|x| 1. - err_map.get(&x.0).unwrap_or(&0.))
+                .map(|gate| 1. - err_map.get(gate.0.name()).unwrap_or(&0.))
                 .product();
             (1. - fidelity_product, circuit.gates.len())
         }
@@ -642,6 +685,28 @@ fn compare_error_fn(
 }
 
 fn compute_error(
+    gates: &[(StandardGate, SmallVec<[f64; 3]>)],
+    error_map: Option<&OneQubitGateErrorMap>,
+    qubit: usize,
+) -> (f64, usize) {
+    match error_map {
+        Some(err_map) => {
+            let num_gates = gates.len();
+            let gate_fidelities: f64 = gates
+                .iter()
+                .map(|gate| 1. - err_map.error_map[qubit].get(gate.0.name()).unwrap_or(&0.))
+                .product();
+            (1. - gate_fidelities, num_gates)
+        }
+        None => (gates.len() as f64, gates.len()),
+    }
+}
+
+fn compute_error_term(gate: &str, error_map: &OneQubitGateErrorMap, qubit: usize) -> f64 {
+    1. - error_map.error_map[qubit].get(gate).unwrap_or(&0.)
+}
+
+fn compute_error_str(
     gates: &[(String, SmallVec<[f64; 3]>)],
     error_map: Option<&OneQubitGateErrorMap>,
     qubit: usize,
@@ -651,7 +716,7 @@ fn compute_error(
             let num_gates = gates.len();
             let gate_fidelities: f64 = gates
                 .iter()
-                .map(|x| 1. - err_map.error_map[qubit].get(&x.0).unwrap_or(&0.))
+                .map(|gate| compute_error_term(gate.0.as_str(), err_map, qubit))
                 .product();
             (1. - gate_fidelities, num_gates)
         }
@@ -670,11 +735,20 @@ pub fn compute_error_one_qubit_sequence(
 
 #[pyfunction]
 pub fn compute_error_list(
-    circuit: Vec<(String, SmallVec<[f64; 3]>)>,
+    circuit: Vec<PyRef<DAGOpNode>>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
 ) -> (f64, usize) {
-    compute_error(&circuit, error_map, qubit)
+    let circuit_list: Vec<(String, SmallVec<[f64; 3]>)> = circuit
+        .iter()
+        .map(|node| {
+            (
+                node.instruction.operation.name().to_string(),
+                smallvec![], // Params not needed in this path
+            )
+        })
+        .collect();
+    compute_error_str(&circuit_list, error_map, qubit)
 }
 
 #[pyfunction]
@@ -687,15 +761,13 @@ pub fn unitary_to_gate_sequence(
     simplify: bool,
     atol: Option<f64>,
 ) -> PyResult<Option<OneQubitGateSequence>> {
-    let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
-    for basis in target_basis_list {
-        let basis_enum = EulerBasis::__new__(basis.deref())?;
-        target_basis_vec.push(basis_enum)
-    }
-    let unitary_mat = unitary.as_array();
+    let target_basis_vec: PyResult<Vec<EulerBasis>> = target_basis_list
+        .iter()
+        .map(|basis| EulerBasis::__new__(basis))
+        .collect();
     Ok(unitary_to_gate_sequence_inner(
-        unitary_mat,
-        &target_basis_vec,
+        unitary.as_array(),
+        &target_basis_vec?,
         qubit,
         error_map,
         simplify,
@@ -723,6 +795,46 @@ pub fn unitary_to_gate_sequence_inner(
             let error_b = compare_error_fn(b, &error_map, qubit);
             error_a.partial_cmp(&error_b).unwrap_or(Ordering::Equal)
         })
+}
+
+#[pyfunction]
+#[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
+pub fn unitary_to_circuit(
+    py: Python,
+    unitary: PyReadonlyArray2<Complex64>,
+    target_basis_list: Vec<PyBackedStr>,
+    qubit: usize,
+    error_map: Option<&OneQubitGateErrorMap>,
+    simplify: bool,
+    atol: Option<f64>,
+) -> PyResult<Option<CircuitData>> {
+    let target_basis_vec: PyResult<Vec<EulerBasis>> = target_basis_list
+        .iter()
+        .map(|basis| EulerBasis::__new__(basis))
+        .collect();
+    let circuit_sequence = unitary_to_gate_sequence_inner(
+        unitary.as_array(),
+        &target_basis_vec?,
+        qubit,
+        error_map,
+        simplify,
+        atol,
+    );
+    Ok(circuit_sequence.map(|seq| {
+        CircuitData::from_standard_gates(
+            py,
+            1,
+            seq.gates.into_iter().map(|(gate, params)| {
+                (
+                    gate,
+                    params.into_iter().map(Param::Float).collect(),
+                    smallvec![Qubit(0)],
+                )
+            }),
+            Param::Float(seq.global_phase),
+        )
+        .expect("Unexpected Qiskit python bug")
+    }))
 }
 
 #[inline]
@@ -853,6 +965,106 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     params_zxz_inner(mat)
 }
 
+type OptimizeDecompositionReturn = Option<((f64, usize), (f64, usize), OneQubitGateSequence)>;
+
+#[pyfunction]
+pub fn optimize_1q_gates_decomposition(
+    runs: Vec<Vec<PyRef<DAGOpNode>>>,
+    qubits: Vec<usize>,
+    bases: Vec<Vec<PyBackedStr>>,
+    simplify: bool,
+    error_map: Option<&OneQubitGateErrorMap>,
+    atol: Option<f64>,
+) -> Vec<OptimizeDecompositionReturn> {
+    runs.iter()
+        .enumerate()
+        .map(|(index, raw_run)| -> OptimizeDecompositionReturn {
+            let mut error = match error_map {
+                Some(_) => 1.,
+                None => raw_run.len() as f64,
+            };
+            let qubit = qubits[index];
+            let operator = &raw_run
+                .iter()
+                .map(|node| {
+                    if let Some(err_map) = error_map {
+                        error *=
+                            compute_error_term(node.instruction.operation.name(), err_map, qubit)
+                    }
+                    node.instruction
+                        .operation
+                        .matrix(&node.instruction.params)
+                        .expect("No matrix defined for operation")
+                })
+                .fold(
+                    [
+                        [Complex64::new(1., 0.), Complex64::new(0., 0.)],
+                        [Complex64::new(0., 0.), Complex64::new(1., 0.)],
+                    ],
+                    |mut operator, node| {
+                        matmul_1q(&mut operator, node);
+                        operator
+                    },
+                );
+            let old_error = if error_map.is_some() {
+                (1. - error, raw_run.len())
+            } else {
+                (error, raw_run.len())
+            };
+            let target_basis_vec: Vec<EulerBasis> = bases[index]
+                .iter()
+                .map(|basis| EulerBasis::__new__(basis).unwrap())
+                .collect();
+            unitary_to_gate_sequence_inner(
+                aview2(operator),
+                &target_basis_vec,
+                qubit,
+                error_map,
+                simplify,
+                atol,
+            )
+            .map(|out_seq| {
+                let new_error = compute_error_one_qubit_sequence(&out_seq, qubit, error_map);
+                (old_error, new_error, out_seq)
+            })
+        })
+        .collect()
+}
+
+fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
+    *operator = [
+        [
+            other[[0, 0]] * operator[0][0] + other[[0, 1]] * operator[1][0],
+            other[[0, 0]] * operator[0][1] + other[[0, 1]] * operator[1][1],
+        ],
+        [
+            other[[1, 0]] * operator[0][0] + other[[1, 1]] * operator[1][0],
+            other[[1, 0]] * operator[0][1] + other[[1, 1]] * operator[1][1],
+        ],
+    ];
+}
+
+#[pyfunction]
+pub fn collect_1q_runs_filter(py: Python, node: PyObject) -> bool {
+    let op_node = node.extract::<PyRef<DAGOpNode>>(py);
+    match op_node {
+        Ok(node) => {
+            node.instruction.operation.num_qubits() == 1
+                && node.instruction.operation.num_clbits() == 0
+                && node
+                    .instruction
+                    .operation
+                    .matrix(&node.instruction.params)
+                    .is_some()
+                && match &node.instruction.extra_attrs {
+                    None => true,
+                    Some(attrs) => attrs.condition.is_none(),
+                }
+        }
+        Err(_) => false,
+    }
+}
+
 #[pymodule]
 pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
@@ -863,8 +1075,11 @@ pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_u1x))?;
     m.add_wrapped(wrap_pyfunction!(generate_circuit))?;
     m.add_wrapped(wrap_pyfunction!(unitary_to_gate_sequence))?;
+    m.add_wrapped(wrap_pyfunction!(unitary_to_circuit))?;
     m.add_wrapped(wrap_pyfunction!(compute_error_one_qubit_sequence))?;
     m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
+    m.add_wrapped(wrap_pyfunction!(optimize_1q_gates_decomposition))?;
+    m.add_wrapped(wrap_pyfunction!(collect_1q_runs_filter))?;
     m.add_class::<OneQubitGateSequence>()?;
     m.add_class::<OneQubitGateErrorMap>()?;
     m.add_class::<EulerBasis>()?;
