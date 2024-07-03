@@ -273,9 +273,15 @@ def is_commutation_skipped(op, qargs, max_num_qubits):
     if getattr(op, "is_parameterized", False) and op.is_parameterized():
         return True
 
+    from qiskit.dagcircuit.dagnode import DAGOpNode
+
     # we can proceed if op has defined: to_operator, to_matrix and __array__, or if its definition can be
     # recursively resolved by operations that have a matrix. We check this by constructing an Operator.
-    if (hasattr(op, "to_matrix") and hasattr(op, "__array__")) or hasattr(op, "to_operator"):
+    if (
+        isinstance(op, DAGOpNode)
+        or (hasattr(op, "to_matrix") and hasattr(op, "__array__"))
+        or hasattr(op, "to_operator")
+    ):
         return False
 
     return False
@@ -426,6 +432,15 @@ def _commute_matmul(
 
     first_qarg = tuple(qarg[q] for q in first_qargs)
     second_qarg = tuple(qarg[q] for q in second_qargs)
+
+    from qiskit.dagcircuit.dagnode import DAGOpNode
+
+    # If we have a DAGOpNode here we've received a StandardGate definition from
+    # rust and we can manually pull the matrix to use for the Operators
+    if isinstance(first_ops, DAGOpNode):
+        first_ops = first_ops.matrix
+    if isinstance(second_op, DAGOpNode):
+        second_op = second_op.matrix
 
     # try to generate an Operator out of op, if this succeeds we can determine commutativity, otherwise
     # return false

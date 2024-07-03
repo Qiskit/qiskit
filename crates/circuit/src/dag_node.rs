@@ -17,9 +17,8 @@ use crate::circuit_instruction::{
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::Operation;
 use numpy::IntoPyArray;
-use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyList, PySequence, PyString, PyTuple};
+use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
 use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
 use smallvec::smallvec;
 
@@ -279,41 +278,6 @@ impl DAGOpNode {
     fn matrix(&self, py: Python) -> Option<PyObject> {
         let matrix = self.instruction.operation.matrix(&self.instruction.params);
         matrix.map(|mat| mat.into_pyarray_bound(py).into())
-    }
-
-    fn to_matrix(&self, py: Python) -> Option<PyObject> {
-        self.matrix(py)
-    }
-
-    fn __array__(
-        &self,
-        py: Python,
-        dtype: Option<PyObject>,
-        copy: Option<bool>,
-    ) -> PyResult<PyObject> {
-        if copy == Some(false) {
-            return Err(PyValueError::new_err(
-                "A copy is needed to return an array from this object.",
-            ));
-        }
-        let res =
-            match self.to_matrix(py) {
-                Some(res) => res,
-                None => return Err(PyTypeError::new_err(
-                    "ParameterExpression with unbound parameters cannot be represented as an array",
-                )),
-            };
-        Ok(match dtype {
-            Some(dtype) => {
-                let numpy_mod = py.import_bound("numpy")?;
-                let args = (res,);
-                let kwargs = [("dtype", dtype)].into_py_dict_bound(py);
-                numpy_mod
-                    .call_method("asarray", args, Some(&kwargs))?
-                    .into()
-            }
-            None => res,
-        })
     }
 
     #[getter]
