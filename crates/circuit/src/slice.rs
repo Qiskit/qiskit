@@ -80,6 +80,15 @@ impl<'py> PySequenceIndex<'py> {
             }
         }
     }
+
+    /// Given an integer (which may be negative) get a valid unsigned index for a sequence.
+    pub fn convert_idx(index: isize, length: usize) -> Result<usize, PySequenceIndexError> {
+        let wrapped_index = match PySequenceIndex::Int(index).with_len(length)? {
+            SequenceIndex::Int(result) => result,
+            _ => unreachable!(), // we will always match on Int(..)
+        };
+        Ok(wrapped_index)
+    }
 }
 
 /// Error type for problems encountered when calling methods on `PySequenceIndex`.
@@ -165,8 +174,8 @@ impl SequenceIndex {
         }
     }
 
-    // Get an iterator over the contained indices that is guaranteed to iterate from the highest
-    // index to the lowest.
+    /// Get an iterator over the contained indices that is guaranteed to iterate from the highest
+    /// index to the lowest.
     pub fn descending(&self) -> Descending {
         Descending(self.iter())
     }
@@ -290,6 +299,7 @@ mod sealed {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::array::IntoIter;
 
     /// Get a set of test parametrisations for iterator methods.  The second argument is the
     /// expected values from a normal forward iteration.
@@ -370,6 +380,39 @@ mod test {
                 "descending {:?}\nActual  : {:?}\nExpected: {:?}",
                 index, actual, expected,
             );
+        }
+    }
+
+    /// Test SequenceIndex::from_int correctly handles positive and negative indices
+    #[test]
+    fn convert_py_idx() {
+        let cases: IntoIter<(isize, usize, usize), 3> = [
+            (2, 5, 2), // (index, sequence length, expected result)
+            (-2, 5, 3),
+            (0, 2, 0),
+        ]
+        .into_iter();
+
+        for (py_index, length, expected) in cases {
+            let index = PySequenceIndex::convert_idx(py_index, length).unwrap();
+            assert_eq!(index, expected, "Expected {} but got {}", expected, index);
+        }
+    }
+
+    /// Test that out-of-range errors are returned as expected.
+    #[test]
+    fn bad_convert_py_idx() {
+        let cases: IntoIter<(isize, usize), 2> = [
+            (5, 5), // (index, sequence length)
+            (-6, 5),
+        ]
+        .into_iter();
+
+        for (py_index, length) in cases {
+            assert!(matches!(
+                PySequenceIndex::convert_idx(py_index, length).unwrap_err(),
+                PySequenceIndexError::OutOfRange,
+            ));
         }
     }
 }
