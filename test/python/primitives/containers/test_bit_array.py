@@ -748,7 +748,6 @@ class BitArrayTestCase(QiskitTestCase):
             for name, indices, selection in test_cases:
                 for check_for_contradiction in (True, False):
                     with self.subTest("_".join([dataname, name, str(check_for_contradiction)])):
-                        print(dataname + "_" + name)
                         postselected_bools = np.unpackbits(
                             bit_array.postselect(indices, selection, check_for_contradiction).array[
                                 :, ::-1
