@@ -16,6 +16,7 @@
 import numpy as np
 from ddt import ddt
 from qiskit.circuit.random import random_clifford_circuit
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -99,8 +100,7 @@ class TestCliffordSynthesis(QiskitTestCase):
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
+            target = random_clifford(num_qubits, rng)
             synth_circ = synth_clifford_greedy(target)
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
