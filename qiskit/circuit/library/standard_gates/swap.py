@@ -216,6 +216,8 @@ class CSwapGate(SingletonControlledGate):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
 
+    _standard_gate = StandardGate.CSwapGate
+
     def __init__(
         self,
         label: Optional[str] = None,
