@@ -17,7 +17,8 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
 use smallvec::smallvec;
 
-/// Return the number of CX gates required for Clifford decomposition.
+/// Return the number of CX-gates required for Clifford decomposition,
+/// for either a 2-qubit or a 3-qubit Clifford.
 fn cx_cost(clifford: &Clifford) -> usize {
     if clifford.num_qubits == 2 {
         cx_cost2(clifford)
@@ -26,7 +27,8 @@ fn cx_cost(clifford: &Clifford) -> usize {
     }
 }
 
-/// Return CX cost of a 2-qubit clifford.
+/// Return the number of CX gates required for Clifford decomposition
+/// for a 2-qubit Clifford.
 fn cx_cost2(clifford: &Clifford) -> usize {
     let r00 = rank2(
         clifford.tableau[[0, 0]],
@@ -47,7 +49,7 @@ fn cx_cost2(clifford: &Clifford) -> usize {
     }
 }
 
-/// Return rank of 2x2 boolean matrix.
+/// Return the rank of a 2x2 boolean matrix.
 fn rank2(a: bool, b: bool, c: bool, d: bool) -> usize {
     if (a & d) ^ (b & c) {
         2
@@ -58,7 +60,8 @@ fn rank2(a: bool, b: bool, c: bool, d: bool) -> usize {
     }
 }
 
-/// Return CX cost of a 3-qubit clifford.
+/// Return the number of CX gates required for Clifford decomposition
+/// for a 3-qubit Clifford.
 fn cx_cost3(clifford: &Clifford) -> usize {
     // create information transfer matrices r1, r2
     let mut r1 = arr2(&[[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
@@ -73,7 +76,6 @@ fn cx_cost3(clifford: &Clifford) -> usize {
         let mut mask = arr1(&[false, false, false, false, false, false]);
         mask[q2] = true;
         mask[q2 + 3] = true;
-        // todo: get rid of to_owned
         let xs = clifford.tableau.slice(s![q1, 0..6]).to_owned();
         let zs = clifford.tableau.slice(s![q1 + 3, 0..6]).to_owned();
         let ys = xs.clone() ^ zs.clone();
@@ -100,56 +102,56 @@ fn cx_cost3(clifford: &Clifford) -> usize {
     let nz2 = r2.iter().filter(|v| **v != 0).count();
 
     if diag1 == [2, 2, 2] {
-        return 0;
-    }
-    if diag1 == [1, 1, 2] {
-        return 1;
-    }
-    if (diag1 == [0, 1, 1])
+        0
+    } else if diag1 == [1, 1, 2] {
+        1
+    } else if (diag1 == [0, 1, 1])
         || (diag1 == [1, 1, 1] && nz2 < 9)
         || (diag1 == [0, 0, 2] && diag2 == [1, 1, 2])
     {
-        return 2;
-    }
-    if (diag1 == [1, 1, 1] && nz2 == 9)
+        2
+    } else if (diag1 == [1, 1, 1] && nz2 == 9)
         || (diag1 == [0, 0, 1]
             && (nz1 == 1 || diag2 == [2, 2, 2] || (diag2 == [1, 1, 2] && nz2 < 9)))
         || (diag1 == [0, 0, 2] && diag2 == [0, 0, 2])
         || (diag2 == [1, 2, 2] && nz1 == 0)
     {
-        return 3;
-    }
-
-    if diag2 == [0, 0, 1]
+        3
+    } else if diag2 == [0, 0, 1]
         || (diag1 == [0, 0, 0]
             && ((diag2 == [1, 1, 1] && nz2 == 9 && nz1 == 3)
                 || (diag2 == [0, 1, 1] && nz2 == 8 && nz1 == 2)))
     {
-        return 5;
+        5
+    } else if nz1 == 3 && nz2 == 3 {
+        6
+    } else {
+        4
     }
-
-    if nz1 == 3 && nz2 == 3 {
-        return 6;
-    }
-
-    4
 }
 
-/// Two-qubit cost reduction step.
-/// Modifies in-place clifford, gates and cost.
-/// Returns
+/// Cost-reduction step. Given a Clifford over 2 or 3 qubits, finds a 2-qubit block
+/// (consisting of a single CX-gate, and two single-qubit I/V/W-gates applied to its
+/// control and target qubits) that reduces the two-qubit CX-cost of the Clifford
+/// (by definition, such a block must always exist).
+/// Returns the modified Clifford, the new cost (equal to the original cost - 1),
+/// and appends the corresponding gates to the ``gates`` vector. Slightly different
+/// from the Python implementation, the gates are already inverted (in practice this
+/// means applying an SGate instead of an SdgGate and vice versa), and at the end
+/// of the algorithm the vector of computed gates only needs to be reversed (but not
+/// also inverted).
 fn reduce_cost(
     cliff: &Clifford,
     cost: usize,
     gates: &mut CliffordGatesVec,
 ) -> Result<(Clifford, usize), String> {
+    // All choices for a 2-qubit block
     for qubit0 in 0..cliff.num_qubits {
         for qubit1 in qubit0 + 1..cliff.num_qubits {
             for (n0, n1) in iproduct!(0..3, 0..3) {
                 let mut reduced_cliff = cliff.clone();
-                // Apply a 2-qubit block
-                // todo: this code is obtained by direct porting
-                // todo: see if it can be simplified
+
+                // Apply the 2-qubit block and compute the new cost
                 if n0 == 1 {
                     reduced_cliff.append_v(qubit0);
                 } else if n0 == 2 {
@@ -164,21 +166,54 @@ fn reduce_cost(
 
                 let new_cost = cx_cost(&reduced_cliff);
 
+                // If the cost is reduced, we are done.
+                // We append the gates from this decomposition.
                 if new_cost == cost - 1 {
-                    // Add gates in the decomposition.
                     if n0 == 1 {
-                        gates.push((StandardGate::SGate, smallvec![], smallvec![Qubit(qubit0 as u32)]));
-                        gates.push((StandardGate::HGate, smallvec![], smallvec![Qubit(qubit0 as u32)]));
+                        gates.push((
+                            StandardGate::SGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit0 as u32)],
+                        ));
+                        gates.push((
+                            StandardGate::HGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit0 as u32)],
+                        ));
                     } else if n0 == 2 {
-                        gates.push((StandardGate::HGate, smallvec![], smallvec![Qubit(qubit0 as u32)]));
-                        gates.push((StandardGate::SdgGate, smallvec![], smallvec![Qubit(qubit0 as u32)]));
+                        gates.push((
+                            StandardGate::HGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit0 as u32)],
+                        ));
+                        gates.push((
+                            StandardGate::SdgGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit0 as u32)],
+                        ));
                     }
                     if n1 == 1 {
-                        gates.push((StandardGate::SGate, smallvec![], smallvec![Qubit(qubit1 as u32)]));
-                        gates.push((StandardGate::HGate, smallvec![], smallvec![Qubit(qubit1 as u32)]));
+                        gates.push((
+                            StandardGate::SGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit1 as u32)],
+                        ));
+                        gates.push((
+                            StandardGate::HGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit1 as u32)],
+                        ));
                     } else if n1 == 2 {
-                        gates.push((StandardGate::HGate, smallvec![], smallvec![Qubit(qubit1 as u32)]));
-                        gates.push((StandardGate::SdgGate, smallvec![], smallvec![Qubit(qubit1 as u32)]));
+                        gates.push((
+                            StandardGate::HGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit1 as u32)],
+                        ));
+                        gates.push((
+                            StandardGate::SdgGate,
+                            smallvec![],
+                            smallvec![Qubit(qubit1 as u32)],
+                        ));
                     }
                     gates.push((
                         StandardGate::CXGate,
@@ -192,13 +227,14 @@ fn reduce_cost(
         }
     }
 
-    // If we didn't reduce cost.
+    // If all the cost computations are correct, we should never get here.
     Err("Failed to reduce Clifford CX_cost.".to_string())
 }
 
-/// Decompose a single-qubit clifford.
-/// todo: EXPLAIN ARGS
-fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_qubit: u32) {
+/// Decomposes a single-qubit clifford and appends the corresponding gates to the
+/// ``gates`` vector. The ``output_qubit`` specifies for which qubit (in a possibly
+/// larger circuit) the decomposition corresponds.
+fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_qubit: usize) {
     let destab_phase = cliff.tableau[[0, 2]];
     let stab_phase = cliff.tableau[[1, 2]];
 
@@ -206,19 +242,19 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
         gates.push((
             StandardGate::ZGate,
             smallvec![],
-            smallvec![Qubit(output_qubit)],
+            smallvec![Qubit(output_qubit as u32)],
         ));
     } else if !destab_phase && stab_phase {
         gates.push((
             StandardGate::XGate,
             smallvec![],
-            smallvec![Qubit(output_qubit)],
+            smallvec![Qubit(output_qubit as u32)],
         ));
     } else if destab_phase && stab_phase {
         gates.push((
             StandardGate::YGate,
             smallvec![],
-            smallvec![Qubit(output_qubit)],
+            smallvec![Qubit(output_qubit as u32)],
         ));
     }
 
@@ -232,7 +268,7 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
             gates.push((
                 StandardGate::SGate,
                 smallvec![],
-                smallvec![Qubit(output_qubit)],
+                smallvec![Qubit(output_qubit as u32)],
             ));
         }
     } else if !stab_z && stab_x {
@@ -240,36 +276,40 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
             gates.push((
                 StandardGate::SdgGate,
                 smallvec![],
-                smallvec![Qubit(output_qubit)],
+                smallvec![Qubit(output_qubit as u32)],
             ));
         }
         gates.push((
             StandardGate::HGate,
             smallvec![],
-            smallvec![Qubit(output_qubit)],
+            smallvec![Qubit(output_qubit as u32)],
         ));
     } else {
         if !destab_z {
             gates.push((
                 StandardGate::SGate,
                 smallvec![],
-                smallvec![Qubit(output_qubit)],
+                smallvec![Qubit(output_qubit as u32)],
             ));
         }
         gates.push((
             StandardGate::HGate,
             smallvec![],
-            smallvec![Qubit(output_qubit)],
+            smallvec![Qubit(output_qubit as u32)],
         ));
         gates.push((
             StandardGate::SGate,
             smallvec![],
-            smallvec![Qubit(output_qubit)],
+            smallvec![Qubit(output_qubit as u32)],
         ));
     }
 }
 
-/// EXPLAIN!
+/// Optimal CX-cost decomposition of a Clifford object (represented by ``tableau``)
+/// for Cliffords up to 3 qubits.
+///
+/// This implementation follows the paper "Hadamard-free circuits expose the structure
+/// of the Clifford group" by S. Bravyi, D. Maslov (2020), `<https://arxiv.org/abs/2003.09412>`__.
 pub fn synth_clifford_bm_inner(
     tableau: ArrayView2<bool>,
 ) -> Result<(usize, CliffordGatesVec), String> {
@@ -295,10 +335,11 @@ pub fn synth_clifford_bm_inner(
     // After reducing Clifford, we will need to reverse the order of gates.
     let mut reversed_gates = CliffordGatesVec::new();
 
-    // CNOT cost of Clifford.
+    // Original CNOT cost of the Clifford.
     let mut cost = cx_cost(&clifford);
 
-    // Find composition of circuits with CX and (H.S)^a gates to reduce CNOT count,
+    // Iteratively reduce cost by appending 2-qubit blocks consisting of a CX-gate
+    // and I/V/W-gates on its control and target qubits.
     while cost > 0 {
         let (reduced_clifford, reduced_cost) = reduce_cost(&clifford, cost, &mut reversed_gates)?;
         clifford = reduced_clifford;
@@ -307,7 +348,7 @@ pub fn synth_clifford_bm_inner(
 
     let mut all_gates = CliffordGatesVec::new();
 
-    // Decompose the remaining product of 1-qubit cliffords.
+    // Decompose the remaining cost-0 Clifford into a product of 1-qubit Cliffords.
     for qubit in 0..num_qubits {
         let arr = arr2(&[
             [
@@ -327,7 +368,7 @@ pub fn synth_clifford_bm_inner(
             tableau: arr,
         };
 
-        decompose_clifford_1q(&clifford1q, &mut all_gates, qubit as u32);
+        decompose_clifford_1q(&clifford1q, &mut all_gates, qubit);
     }
 
     all_gates.extend(reversed_gates.into_iter().rev());

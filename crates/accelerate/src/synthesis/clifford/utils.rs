@@ -190,10 +190,9 @@ impl Clifford {
     /// Modifies the tableau in-place by appending W-gate.
     /// This is equivalent to an Sdg gate followed by an H gate.
     pub fn append_v(&mut self, qubit: usize) {
-        let (mut x, mut z) = self.tableau.multi_slice_mut((
-            s![.., qubit],
-            s![.., self.num_qubits + qubit],
-        ));
+        let (mut x, mut z) = self
+            .tableau
+            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
 
         azip!((x in &mut x, z in &mut z) (*x, *z) = (*x ^ *z, *x));
     }

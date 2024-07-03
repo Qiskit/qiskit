@@ -43,6 +43,11 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
     CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
+/// Create a circuit that optimally synthesizes a given Clifford operator represented as
+/// a tableau for Cliffords up to 3 qubits.
+///
+/// This implementation follows the paper "Hadamard-free circuits expose the structure
+/// of the Clifford group" by S. Bravyi, D. Maslov (2020), `<https://arxiv.org/abs/2003.09412>`__.
 #[pyfunction]
 #[pyo3(signature = (clifford))]
 fn synth_clifford_bm(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
