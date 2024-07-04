@@ -14,7 +14,7 @@
 
 """Base TestCases for the unit tests.
 
-Implementors of unit tests for Terra are encouraged to subclass
+Implementors of unit tests for Qiskit should subclass
 ``QiskitTestCase`` in order to take advantage of utility functions (for example,
 the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
@@ -65,117 +65,8 @@ else:
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
-class BaseQiskitTestCase(BaseTestCase):
-    """Additions for test cases for all Qiskit-family packages.
-
-    The additions here are intended for all packages, not just Terra.  Terra-specific logic should
-    be in the Terra-specific classes."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__setup_called = False
-        self.__teardown_called = False
-
-    def setUp(self):
-        super().setUp()
-        self.addTypeEqualityFunc(QuantumCircuit, self.assertQuantumCircuitEqual)
-        if self.__setup_called:
-            raise ValueError(
-                f"In File: {(sys.modules[self.__class__.__module__].__file__,)}\n"
-                "TestCase.setUp was already called. Do not explicitly call "
-                "setUp from your tests. In your own setUp, use super to call "
-                "the base setUp."
-            )
-        self.__setup_called = True
-
-    def tearDown(self):
-        super().tearDown()
-        if self.__teardown_called:
-            raise ValueError(
-                f"In File: {(sys.modules[self.__class__.__module__].__file__,)}\n"
-                "TestCase.tearDown was already called. Do not explicitly call "
-                "tearDown from your tests. In your own tearDown, use super to "
-                "call the base tearDown."
-            )
-        self.__teardown_called = True
-
-    def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
-        """Extra assertion method to give a better error message when two circuits are unequal."""
-        if qc1 == qc2:
-            return
-        if msg is None:
-            msg = "The two circuits are not equal."
-        msg += f"""
-Left circuit:
-{qc1}
-
-Right circuit:
-{qc2}"""
-        raise self.failureException(msg)
-
-    def assertDictAlmostEqual(
-        self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
-    ):
-        """Assert two dictionaries with numeric values are almost equal.
-
-        Fail if the two dictionaries are unequal as determined by
-        comparing that the difference between values with the same key are
-        not greater than delta (default 1e-8), or that difference rounded
-        to the given number of decimal places is not zero. If a key in one
-        dictionary is not in the other the default_value keyword argument
-        will be used for the missing value (default 0). If the two objects
-        compare equal then they will automatically compare almost equal.
-
-        Args:
-            dict1 (dict): a dictionary.
-            dict2 (dict): a dictionary.
-            delta (number): threshold for comparison (defaults to 1e-8).
-            msg (str): return a custom message on failure.
-            places (int): number of decimal places for comparison.
-            default_value (number): default value for missing keys.
-
-        Raises:
-            TypeError: if the arguments are not valid (both `delta` and
-                `places` are specified).
-            AssertionError: if the dictionaries are not almost equal.
-        """
-
-        error_msg = dicts_almost_equal(dict1, dict2, delta, places, default_value)
-
-        if error_msg:
-            msg = self._formatMessage(msg, error_msg)
-            raise self.failureException(msg)
-
-    def enable_parallel_processing(self):
-        """
-        Enables parallel processing, for the duration of a test, on platforms
-        that support it. This is done by temporarily overriding the value of
-        the QISKIT_PARALLEL environment variable with the platform specific default.
-        """
-        parallel_default = str(get_platform_parallel_default()).upper()
-
-        def set_parallel_env(name, value):
-            os.environ[name] = value
-
-        self.addCleanup(
-            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
-            os.getenv("QISKIT_PARALLEL", parallel_default),
-        )
-
-        os.environ["QISKIT_PARALLEL"] = parallel_default
-
-
-class QiskitTestCase(BaseQiskitTestCase):
-    """Terra-specific extra functionality for test cases."""
-
-    def tearDown(self):
-        super().tearDown()
-        # Reset the default providers, as in practice they acts as a singleton
-        # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basic_provider import BasicProvider
-
-        with self.assertWarns(DeprecationWarning):
-            BasicProvider()._backends = BasicProvider()._verify_backends()
+class QiskitTestCase(BaseTestCase):
+    """Additions for test cases for Qiskit."""
 
     @classmethod
     def setUpClass(cls):
@@ -266,11 +157,111 @@ class QiskitTestCase(BaseQiskitTestCase):
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__setup_called = False
+        self.__teardown_called = False
+
+    def setUp(self):
+        super().setUp()
+        self.addTypeEqualityFunc(QuantumCircuit, self.assertQuantumCircuitEqual)
+        if self.__setup_called:
+            raise ValueError(
+                f"In File: {(sys.modules[self.__class__.__module__].__file__,)}\n"
+                "TestCase.setUp was already called. Do not explicitly call "
+                "setUp from your tests. In your own setUp, use super to call "
+                "the base setUp."
+            )
+        self.__setup_called = True
+
+    def tearDown(self):
+        super().tearDown()
+        if self.__teardown_called:
+            raise ValueError(
+                f"In File: {(sys.modules[self.__class__.__module__].__file__,)}\n"
+                "TestCase.tearDown was already called. Do not explicitly call "
+                "tearDown from your tests. In your own tearDown, use super to "
+                "call the base tearDown."
+            )
+        self.__teardown_called = True
+
+        # Reset the default providers, as in practice they acts as a singleton
+        # due to importing the instances from the top-level qiskit namespace.
+        from qiskit.providers.basic_provider import BasicProvider
+
+        with self.assertWarns(DeprecationWarning):
+            BasicProvider()._backends = BasicProvider()._verify_backends()
+
+    def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
+        """Extra assertion method to give a better error message when two circuits are unequal."""
+        if qc1 == qc2:
+            return
+        if msg is None:
+            msg = "The two circuits are not equal."
+        msg += f"""
+Left circuit:
+{qc1}
+
+Right circuit:
+{qc2}"""
+        raise self.failureException(msg)
+
+    def assertDictAlmostEqual(
+        self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
+    ):
+        """Assert two dictionaries with numeric values are almost equal.
+
+        Fail if the two dictionaries are unequal as determined by
+        comparing that the difference between values with the same key are
+        not greater than delta (default 1e-8), or that difference rounded
+        to the given number of decimal places is not zero. If a key in one
+        dictionary is not in the other the default_value keyword argument
+        will be used for the missing value (default 0). If the two objects
+        compare equal then they will automatically compare almost equal.
+
+        Args:
+            dict1 (dict): a dictionary.
+            dict2 (dict): a dictionary.
+            delta (number): threshold for comparison (defaults to 1e-8).
+            msg (str): return a custom message on failure.
+            places (int): number of decimal places for comparison.
+            default_value (number): default value for missing keys.
+
+        Raises:
+            TypeError: if the arguments are not valid (both `delta` and
+                `places` are specified).
+            AssertionError: if the dictionaries are not almost equal.
+        """
+
+        error_msg = dicts_almost_equal(dict1, dict2, delta, places, default_value)
+
+        if error_msg:
+            msg = self._formatMessage(msg, error_msg)
+            raise self.failureException(msg)
+
+    def enable_parallel_processing(self):
+        """
+        Enables parallel processing, for the duration of a test, on platforms
+        that support it. This is done by temporarily overriding the value of
+        the QISKIT_PARALLEL environment variable with the platform specific default.
+        """
+        parallel_default = str(get_platform_parallel_default()).upper()
+
+        def set_parallel_env(name, value):
+            os.environ[name] = value
+
+        self.addCleanup(
+            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
+            os.getenv("QISKIT_PARALLEL", parallel_default),
+        )
+
+        os.environ["QISKIT_PARALLEL"] = parallel_default
+
 
 class FullQiskitTestCase(QiskitTestCase):
-    """Terra-specific further additions for test cases, if ``testtools`` is available.
+    """Qiskit further additions for test cases, if ``testtools`` is available.
 
-    It is not normally safe to derive from this class by name; on import, Terra checks if the
+    It is not normally safe to derive from this class by name; on import, Qiskit checks if the
     necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
