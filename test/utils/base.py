@@ -268,9 +268,9 @@ class QiskitTestCase(BaseQiskitTestCase):
 
 
 class FullQiskitTestCase(QiskitTestCase):
-    """Qiskit-specific further additions for test cases, if ``testtools`` is available.
+    """Terra-specific further additions for test cases, if ``testtools`` is available.
 
-    It is not normally safe to derive from this class by name; on import, Qiskit checks if the
+    It is not normally safe to derive from this class by name; on import, Terra checks if the
     necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
