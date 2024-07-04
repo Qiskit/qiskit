@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
 from typing import Any
 from functools import partial
@@ -21,6 +22,7 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.utils.deprecation import deprecate_arg
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -31,6 +33,20 @@ class ProductFormula(EvolutionSynthesis):
     :obj:`.LieTrotter` and :obj:`.SuzukiTrotter` inherit from this class.
     """
 
+    @deprecate_arg(
+        name="atomic_evolution",
+        since="1.2",
+        predicate=lambda callable: callable is not None
+        and len(inspect.signature(callable).parameters) == 2,
+        deprecation_description=(
+            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
+            "'atomic_evolution' argument"
+        ),
+        additional_msg=(
+            "Instead you should update your 'atomic_evolution' function to be of the following "
+            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
+        ),
+    )
     def __init__(
         self,
         order: int,
@@ -66,9 +82,18 @@ class ProductFormula(EvolutionSynthesis):
 
         # if atomic evolution is not provided, set a default
         if atomic_evolution is None:
-            atomic_evolution = partial(_default_atomic_evolution, cx_structure=cx_structure)
+            self.atomic_evolution = partial(_default_atomic_evolution, cx_structure=cx_structure)
 
-        self.atomic_evolution = atomic_evolution
+        elif len(inspect.signature(atomic_evolution).parameters) == 2:
+
+            def wrap_atomic_evolution(output, operator, time):
+                definition = atomic_evolution(operator, time)
+                output.compose(definition, wrap=True, inplace=True)
+
+            self.atomic_evolution = wrap_atomic_evolution
+
+        else:
+            self.atomic_evolution = atomic_evolution
 
     @property
     def settings(self) -> dict[str, Any]:

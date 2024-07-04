@@ -20,6 +20,7 @@ from ddt import ddt, data, unpack
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
+from qiskit.synthesis.evolution.product_formula import cnot_chain, diagonalizing_clifford
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -326,6 +327,38 @@ class TestEvolutionGate(QiskitTestCase):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
+
+    def test_atomic_evolution(self):
+        """Test a custom atomic_evolution."""
+
+        def atomic_evolution(pauli, time):
+            cliff = diagonalizing_clifford(pauli)
+            chain = cnot_chain(pauli)
+
+            target = None
+            for i, pauli_i in enumerate(reversed(pauli.to_label())):
+                if pauli_i != "I":
+                    target = i
+                    break
+
+            definition = QuantumCircuit(pauli.num_qubits)
+            definition.compose(cliff, inplace=True)
+            definition.compose(chain, inplace=True)
+            definition.rz(2 * time, target)
+            definition.compose(chain.inverse(), inplace=True)
+            definition.compose(cliff.inverse(), inplace=True)
+
+            return definition
+
+        op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
+        time = 0.123
+        reps = 4
+        with self.assertWarns(DeprecationWarning):
+            evo_gate = PauliEvolutionGate(
+                op, time, synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution)
+            )
+        decomposed = evo_gate.definition.decompose()
+        self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
 
 if __name__ == "__main__":
