@@ -41,6 +41,7 @@ class QDrift(ProductFormula):
         cx_structure: str = "chain",
         atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
         seed: int | None = None,
+        wrap: bool = False,
     ) -> None:
         r"""
         Args:
@@ -48,13 +49,16 @@ class QDrift(ProductFormula):
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``, where all
-                qubits are connected to one.
+                qubits are connected to one. This only takes effect when
+                ``atomic_evolution is None``.
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
             seed: An optional seed for reproducibility of the random sampling process.
+            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
+                effect when ``atomic_evolution is None``.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
+        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)
 

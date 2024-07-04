@@ -56,6 +56,7 @@ class LieTrotter(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
+        wrap: bool = False,
     ) -> None:
         """
         Args:
@@ -63,12 +64,15 @@ class LieTrotter(ProductFormula):
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
-                where all qubits are connected to one.
+                where all qubits are connected to one. This only takes effect when
+                ``atomic_evolution is None``.
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
+            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
+                effect when ``atomic_evolution is None``.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
+        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
     def synthesize(self, evolution):
         # get operators and time to evolve
@@ -82,9 +86,6 @@ class LieTrotter(ProductFormula):
             pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
         else:
             pauli_list = [(op, 1) for op in operators]
-
-        # if we only evolve a single Pauli we don't need to additionally wrap it
-        wrap = not (len(pauli_list) == 1 and self.reps == 1)
 
         for i, (op, coeff) in enumerate(pauli_list):
             self.atomic_evolution(evolution_circuit, op, coeff * time / self.reps)
@@ -112,4 +113,5 @@ class LieTrotter(ProductFormula):
             "reps": self.reps,
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
+            "wrap": self._wrap,
         }
