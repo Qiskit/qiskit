@@ -19,6 +19,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U3Gate(Gate):
@@ -79,6 +80,8 @@ class U3Gate(Gate):
 
         U3(\theta, 0, 0) = RY(\theta)
     """
+
+    _standard_gate = StandardGate.U3Gate
 
     def __init__(
         self,
@@ -344,7 +347,7 @@ def _generate_gray_code(num_bits):
     result = [0]
     for i in range(num_bits):
         result += [x + 2**i for x in reversed(result)]
-    return [format(x, "0%sb" % num_bits) for x in result]
+    return [format(x, f"0{num_bits}b") for x in result]
 
 
 def _gray_code_chain(q, num_ctrl_qubits, gate):

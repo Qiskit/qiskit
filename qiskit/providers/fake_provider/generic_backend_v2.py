@@ -375,6 +375,11 @@ class GenericBackendV2(BackendV2):
                     f"in the standard qiskit circuit library."
                 )
             gate = self._supported_gates[name]
+            if self.num_qubits < gate.num_qubits:
+                raise QiskitError(
+                    f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
+                    f"which is the size of the backend."
+                )
             noise_params = self._get_noise_defaults(name, gate.num_qubits)
             self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
 
@@ -496,8 +501,8 @@ class GenericBackendV2(BackendV2):
                     pulse_job = False
         if pulse_job is None:  # submitted job is invalid
             raise QiskitError(
-                "Invalid input object %s, must be either a "
-                "QuantumCircuit, Schedule, or a list of either" % circuits
+                f"Invalid input object {circuits}, must be either a "
+                "QuantumCircuit, Schedule, or a list of either"
             )
         if pulse_job:  # pulse job
             raise QiskitError("Pulse simulation is currently not supported for V2 backends.")

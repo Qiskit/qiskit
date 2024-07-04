@@ -32,17 +32,17 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _possible_decomposers
 from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
-    GATE_NAME_MAP,
 )
 from qiskit.quantum_info import Operator
-from qiskit.circuit import ControlFlowOp, Gate, Parameter
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -50,6 +50,17 @@ from qiskit.circuit.library.standard_gates import (
     RXXGate,
     RZXGate,
     ECRGate,
+    RXGate,
+    SXGate,
+    XGate,
+    RZGate,
+    UGate,
+    PhaseGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    RYGate,
+    RGate,
 )
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
@@ -58,6 +69,22 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.providers.models import BackendProperties
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.exceptions import QiskitError
+
+
+GATE_NAME_MAP = {
+    "cx": CXGate._standard_gate,
+    "rx": RXGate._standard_gate,
+    "sx": SXGate._standard_gate,
+    "x": XGate._standard_gate,
+    "rz": RZGate._standard_gate,
+    "u": UGate._standard_gate,
+    "p": PhaseGate._standard_gate,
+    "u1": U1Gate._standard_gate,
+    "u2": U2Gate._standard_gate,
+    "u3": U3Gate._standard_gate,
+    "ry": RYGate._standard_gate,
+    "r": RGate._standard_gate,
+}
 
 
 KAK_GATE_NAMES = {
@@ -414,7 +441,7 @@ class UnitarySynthesis(TransformationPass):
         if self.method == "default":
             # If the method is the default, we only need to evaluate one set of keyword arguments.
             # To simplify later logic, and avoid cases where static analysis might complain that we
-            # haven't initialised the "default" handler, we rebind the names so they point to the
+            # haven't initialized the "default" handler, we rebind the names so they point to the
             # same object as the chosen method.
             default_method = plugin_method
             default_kwargs = plugin_kwargs
@@ -479,7 +506,9 @@ class UnitarySynthesis(TransformationPass):
         self, dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
     ):
         """Inner loop for the optimizer, after all DAG-independent set-up has been completed."""
-        for node in dag.op_nodes(ControlFlowOp):
+        for node in dag.op_nodes():
+            if node.name not in CONTROL_FLOW_OP_NAMES:
+                continue
             node.op = node.op.replace_blocks(
                 [
                     dag_to_circuit(
@@ -502,9 +531,9 @@ class UnitarySynthesis(TransformationPass):
 
         out_dag = dag.copy_empty_like()
         for node in dag.topological_op_nodes():
-            if node.op.name == "unitary" and len(node.qargs) >= self._min_qubits:
+            if node.name == "unitary" and len(node.qargs) >= self._min_qubits:
                 synth_dag = None
-                unitary = node.op.to_matrix()
+                unitary = node.matrix
                 n_qubits = len(node.qargs)
                 if (
                     plugin_method.max_qubits is not None and n_qubits > plugin_method.max_qubits
@@ -519,35 +548,41 @@ class UnitarySynthesis(TransformationPass):
                     )
                 synth_dag = method.run(unitary, **kwargs)
                 if synth_dag is None:
-                    out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+                    out_dag._apply_op_node_back(node)
                     continue
                 if isinstance(synth_dag, DAGCircuit):
                     qubit_map = dict(zip(synth_dag.qubits, node.qargs))
                     for node in synth_dag.topological_op_nodes():
-                        out_dag.apply_operation_back(
-                            node.op, (qubit_map[x] for x in node.qargs), check=False
-                        )
+                        node.qargs = tuple(qubit_map[x] for x in node.qargs)
+                        out_dag._apply_op_node_back(node)
                     out_dag.global_phase += synth_dag.global_phase
                 else:
                     node_list, global_phase, gate = synth_dag
                     qubits = node.qargs
+                    user_gate_node = DAGOpNode(gate)
                     for (
                         op_name,
                         params,
                         qargs,
                     ) in node_list:
                         if op_name == "USER_GATE":
-                            op = gate
+                            node = DAGOpNode(
+                                user_gate_node._raw_op,
+                                params=user_gate_node.params,
+                                qargs=tuple(qubits[x] for x in qargs),
+                                dag=out_dag,
+                            )
                         else:
-                            op = GATE_NAME_MAP[op_name](*params)
-                        out_dag.apply_operation_back(
-                            op,
-                            (qubits[x] for x in qargs),
-                            check=False,
-                        )
+                            node = DAGOpNode(
+                                GATE_NAME_MAP[op_name],
+                                params=params,
+                                qargs=tuple(qubits[x] for x in qargs),
+                                dag=out_dag,
+                            )
+                        out_dag._apply_op_node_back(node)
                     out_dag.global_phase += global_phase
             else:
-                out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+                out_dag._apply_op_node_back(node)
         return out_dag
 
 
@@ -1008,5 +1043,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         flip_bits = out_dag.qubits[::-1]
         for node in synth_circ.topological_op_nodes():
             qubits = tuple(flip_bits[synth_circ.find_bit(x).index] for x in node.qargs)
-            out_dag.apply_operation_back(node.op, qubits, check=False)
+            node = DAGOpNode(node._raw_op, qargs=qubits, params=node.params)
+            out_dag._apply_op_node_back(node)
         return out_dag
