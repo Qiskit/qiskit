@@ -233,7 +233,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
 
     def test_assemble_unroll_parametervector(self):
-        """Verfiy that assemble unrolls parametervectors ref #5467"""
+        """Verify that assemble unrolls parametervectors ref #5467"""
         pv1 = ParameterVector("pv1", 3)
         pv2 = ParameterVector("pv2", 3)
         qc = QuantumCircuit(2, 2)
@@ -528,6 +528,24 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(lib), 2)
         self.assertTrue(all(len(item.samples) == 50 for item in lib))
 
+    def test_custom_pulse_gates_single_circ(self):
+        """Test that we can add calibrations to circuits of pulses which are not in
+        qiskit.qobj.converters.pulse_instruction.ParametricPulseShapes"""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Triangle(50, 0.1, 0.2), pulse.DriveChannel(0))
+
+        circ.add_calibration("h", [0], custom_h_schedule)
+
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        lib = qobj.config.pulse_library
+        self.assertEqual(len(lib), 1)
+        np.testing.assert_almost_equal(
+            lib[0].samples, pulse.library.Triangle(50, 0.1, 0.2).get_waveform().samples
+        )
+
     def test_pulse_gates_with_parameteric_pulses(self):
         """Test that pulse gates are assembled efficiently for backends that enable
         parametric pulses.
@@ -591,7 +609,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertFalse(hasattr(qobj.experiments[1].config, "calibrations"))
 
     def test_assemble_adds_circuit_metadata_to_experiment_header(self):
-        """Verify that any circuit metadata is added to the exeriment header."""
+        """Verify that any circuit metadata is added to the experiment header."""
         circ = QuantumCircuit(2, metadata={"experiment_type": "gst", "execution_number": "1234"})
         qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
         self.assertEqual(
@@ -925,7 +943,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
 
     def test_assemble_adds_schedule_metadata_to_experiment_header(self):
-        """Verify that any circuit metadata is added to the exeriment header."""
+        """Verify that any circuit metadata is added to the experiment header."""
         self.schedule.metadata = {"experiment_type": "gst", "execution_number": "1234"}
         qobj = assemble(
             self.schedule,

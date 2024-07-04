@@ -19,6 +19,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _X_ARRAY = [[0, 1], [1, 0]]
 
@@ -70,6 +71,8 @@ class XGate(SingletonGate):
         |1\rangle \rightarrow |0\rangle
     """
 
+    _standard_gate = StandardGate.XGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
         super().__init__("x", 1, [], label=label, duration=duration, unit=unit)
@@ -104,10 +107,10 @@ class XGate(SingletonGate):
         One control returns a CX gate. Two controls returns a CCX gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -131,7 +134,17 @@ class XGate(SingletonGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted X gate (itself)."""
+        r"""Return inverted X gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            XGate: inverse gate (self-inverse).
+        """
         return XGate()  # self-inverse
 
     def __eq__(self, other):
@@ -202,6 +215,8 @@ class CXGate(SingletonControlledGate):
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
+    _standard_gate = StandardGate.CXGate
+
     def __init__(
         self,
         label: Optional[str] = None,
@@ -237,10 +252,10 @@ class CXGate(SingletonControlledGate):
         """Return a controlled-X gate with more control lines.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -266,7 +281,17 @@ class CXGate(SingletonControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Return inverted CX gate (itself)."""
+        """Return inverted CX gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CXGate: inverse gate (self-inverse).
+        """
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __eq__(self, other):
@@ -341,6 +366,8 @@ class CCXGate(SingletonControlledGate):
                 \end{pmatrix}
 
     """
+
+    _standard_gate = StandardGate.CCXGate
 
     def __init__(
         self,
@@ -421,10 +448,10 @@ class CCXGate(SingletonControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -450,7 +477,17 @@ class CCXGate(SingletonControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Return an inverted CCX gate (also a CCX)."""
+        """Return an inverted CCX gate (also a CCX).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CCXGate: inverse gate (self-inverse).
+        """
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __eq__(self, other):
@@ -553,9 +590,9 @@ class C3SXGate(SingletonControlledGate):
         """Create a new 3-qubit controlled sqrt-X gate.
 
         Args:
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
         """
         from .sx import SXGate
 
@@ -752,10 +789,10 @@ class C3XGate(SingletonControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -781,7 +818,17 @@ class C3XGate(SingletonControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The C4X is its own inverse."""
+        """Invert this gate. The C3X is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            C3XGate: inverse gate (self-inverse).
+        """
         return C3XGate(ctrl_state=self.ctrl_state)
 
     def __eq__(self, other):
@@ -925,7 +972,7 @@ class C4XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3sqrtx a,b,c,d
@@ -986,10 +1033,10 @@ class C4XGate(SingletonControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -1015,7 +1062,17 @@ class C4XGate(SingletonControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The C4X is its own inverse."""
+        """Invert this gate. The C4X is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            C4XGate: inverse gate (self-inverse).
+        """
         return C4XGate(ctrl_state=self.ctrl_state)
 
     def __eq__(self, other):
@@ -1045,7 +1102,7 @@ class MCXGate(ControlledGate):
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
-        # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
+        # the C3XGate and C4XGate are handled in the gate definition.
         explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
@@ -1087,7 +1144,17 @@ class MCXGate(ControlledGate):
         )
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The MCX is its own inverse."""
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXGate: inverse gate (self-inverse).
+        """
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     @staticmethod
@@ -1106,14 +1173,25 @@ class MCXGate(ControlledGate):
         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
-        """The standard definition used the Gray code implementation."""
+        """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
-        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
-        self.definition = qc
+        if self.num_qubits == 4:
+            qc._append(C3XGate(), q[:], [])
+            self.definition = qc
+        elif self.num_qubits == 5:
+            qc._append(C4XGate(), q[:], [])
+            self.definition = qc
+        else:
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            qc.h(q_target)
+            qc.mcp(numpy.pi, q_controls, q_target)
+            qc.h(q_target)
+            self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
@@ -1130,10 +1208,10 @@ class MCXGate(ControlledGate):
         """Return a multi-controlled-X gate with more control lines.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -1201,7 +1279,17 @@ class MCXGrayCode(MCXGate):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The MCX is its own inverse."""
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXGrayCode: inverse gate (self-inverse).
+        """
         return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
@@ -1253,7 +1341,17 @@ class MCXRecursive(MCXGate):
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The MCX is its own inverse."""
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXRecursive: inverse gate (self-inverse).
+        """
         return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
@@ -1349,7 +1447,17 @@ class MCXVChain(MCXGate):
         self._dirty_ancillas = dirty_ancillas
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The MCX is its own inverse."""
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXVChain: inverse gate (self-inverse).
+        """
         return MCXVChain(
             num_ctrl_qubits=self.num_ctrl_qubits,
             dirty_ancillas=self._dirty_ancillas,

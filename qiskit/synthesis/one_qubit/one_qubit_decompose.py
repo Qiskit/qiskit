@@ -14,6 +14,7 @@
 Decompose a single-qubit unitary via Euler angles.
 """
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 
 from qiskit._accelerate import euler_one_qubit_decomposer
@@ -36,6 +37,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.operator import Operator
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
 DEFAULT_ATOL = 1e-12
 
@@ -76,8 +80,8 @@ class OneQubitEulerDecomposer:
     parameters :math:`(\theta, \phi, \lambda)`, and a phase parameter
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
-    shown in the following table. Note that for the non-Euler bases (U3, U1X,
-    RR), the ZYZ Euler parameters are used.
+    shown in the following table. Note that for the non-Euler bases (:math:`U3`,
+    :math:`U1X`, :math:`RR`), the :math:`ZYZ` Euler parameters are used.
 
     .. list-table:: Supported circuit bases
         :widths: auto
@@ -128,17 +132,19 @@ class OneQubitEulerDecomposer:
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
+
+    .. automethod:: __call__
     """
 
     def __init__(self, basis: str = "U3", use_dag: bool = False):
         """Initialize decomposer
 
-        Supported bases are: 'U', 'PSX', 'ZSXX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ',
-        'XYX', 'XZX'.
+        Supported bases are: ``'U'``, ``'PSX'``, ``'ZSXX'``, ``'ZSX'``, ``'U321'``, ``'U3'``,
+        ``'U1X'``, ``'RR'``, ``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'XZX'``.
 
         Args:
-            basis (str): the decomposition basis [Default: 'U3']
-            use_dag (bool): If true the output from calls to the decomposer
+            basis: the decomposition basis [Default: ``'U3'``]
+            use_dag: If true the output from calls to the decomposer
                 will be a :class:`~qiskit.dagcircuit.DAGCircuit` object instead of
                 :class:`~qiskit.circuit.QuantumCircuit`.
 
@@ -148,50 +154,41 @@ class OneQubitEulerDecomposer:
         self.basis = basis  # sets: self._basis, self._params, self._circuit
         self.use_dag = use_dag
 
-    def build_circuit(self, gates, global_phase):
+    def build_circuit(self, gates, global_phase) -> QuantumCircuit | DAGCircuit:
         """Return the circuit or dag object from a list of gates."""
         qr = [Qubit()]
         lookup_gate = False
         if len(gates) > 0 and isinstance(gates[0], tuple):
             lookup_gate = True
 
-        if self.use_dag:
-            from qiskit.dagcircuit import dagcircuit
+        from qiskit.dagcircuit import dagcircuit
 
-            dag = dagcircuit.DAGCircuit()
-            dag.global_phase = global_phase
-            dag.add_qubits(qr)
-            for gate_entry in gates:
-                if lookup_gate:
-                    gate = NAME_MAP[gate_entry[0]](*gate_entry[1])
-                else:
-                    gate = gate_entry
+        dag = dagcircuit.DAGCircuit()
+        dag.global_phase = global_phase
+        dag.add_qubits(qr)
+        for gate_entry in gates:
+            if lookup_gate:
+                gate = NAME_MAP[gate_entry[0].name](*gate_entry[1])
+            else:
+                gate = gate_entry.name
 
-                dag.apply_operation_back(gate, (qr[0],), check=False)
-            return dag
-        else:
-            circuit = QuantumCircuit(qr, global_phase=global_phase)
-            for gate_entry in gates:
-                if lookup_gate:
-                    gate = NAME_MAP[gate_entry[0]](*gate_entry[1])
-                else:
-                    gate = gate_entry
-                circuit._append(gate, [qr[0]], [])
-            return circuit
+            dag.apply_operation_back(gate, (qr[0],), check=False)
+        return dag
 
     def __call__(
         self,
         unitary: Operator | Gate | np.ndarray,
         simplify: bool = True,
         atol: float = DEFAULT_ATOL,
-    ) -> QuantumCircuit:
+    ) -> QuantumCircuit | DAGCircuit:
         """Decompose single qubit gate into a circuit.
 
         Args:
-            unitary (Operator or Gate or array): 1-qubit unitary matrix
-            simplify (bool): reduce gate count in decomposition [Default: True].
-            atol (float): absolute tolerance for checking angles when simplifying
+            unitary: 1-qubit unitary matrix
+            simplify: reduce gate count in decomposition [Default: True].
+            atol: absolute tolerance for checking angles when simplifying
                          returned circuit [Default: 1e-12].
+
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -218,11 +215,17 @@ class OneQubitEulerDecomposer:
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
     def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
-        circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
-            unitary, [self.basis], 0, None, simplify, atol
+        if self.use_dag:
+            circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
+                unitary, [self.basis], 0, None, simplify, atol
+            )
+            circuit = self.build_circuit(circuit_sequence, circuit_sequence.global_phase)
+            return circuit
+        return QuantumCircuit._from_circuit_data(
+            euler_one_qubit_decomposer.unitary_to_circuit(
+                unitary, [self.basis], 0, None, simplify, atol
+            )
         )
-        circuit = self.build_circuit(circuit_sequence, circuit_sequence.global_phase)
-        return circuit
 
     @property
     def basis(self):
@@ -255,10 +258,10 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles for input array.
 
         Args:
-            unitary (np.ndarray): 2x2 unitary matrix.
+            unitary: :math:`2\\times2` unitary matrix.
 
         Returns:
-            tuple: (theta, phi, lambda).
+            tuple: ``(theta, phi, lambda)``.
         """
         unitary = np.asarray(unitary, dtype=complex)
         theta, phi, lam, _ = self._params(unitary)
@@ -268,10 +271,10 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles and phase for input array.
 
         Args:
-            unitary (np.ndarray): 2x2 unitary matrix.
+            unitary: :math:`2\\times2`
 
         Returns:
-            tuple: (theta, phi, lambda, phase).
+            tuple: ``(theta, phi, lambda, phase)``.
         """
         unitary = np.asarray(unitary, dtype=complex)
         return self._params(unitary)

@@ -44,38 +44,11 @@ class IfElseOp(ControlFlowOp):
     provided condition (``condition``) evaluates to true, and
     optionally evaluates another program (``false_body``) otherwise.
 
-    Parameters:
-        condition: A condition to be evaluated at circuit runtime which,
-            if true, will trigger the evaluation of ``true_body``. Can be
-            specified as either a tuple of a ``ClassicalRegister`` to be
-            tested for equality with a given ``int``, or as a tuple of a
-            ``Clbit`` to be compared to either a ``bool`` or an ``int``.
-        true_body: A program to be executed if ``condition`` evaluates
-            to true.
-        false_body: A optional program to be executed if ``condition``
-            evaluates to false.
-        label: An optional label for identifying the instruction.
-
     If provided, ``false_body`` must be of the same ``num_qubits`` and
     ``num_clbits`` as ``true_body``.
 
     The classical bits used in ``condition`` must be a subset of those attached
     to the circuit on which this ``IfElseOp`` will be appended.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌───────────┐
-        q_0: ┤0          ├
-             │           │
-        q_1: ┤1          ├
-             │  if_else  │
-        q_2: ┤2          ├
-             │           │
-        c_0: ╡0          ╞
-             └───────────┘
-
     """
 
     def __init__(
@@ -85,6 +58,19 @@ class IfElseOp(ControlFlowOp):
         false_body: QuantumCircuit | None = None,
         label: str | None = None,
     ):
+        """
+        Args:
+            condition: A condition to be evaluated in real time during circuit execution which,
+                if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            true_body: A program to be executed if ``condition`` evaluates
+                to true.
+            false_body: A optional program to be executed if ``condition``
+                evaluates to false.
+            label: An optional label for identifying the instruction.
+        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
@@ -213,7 +199,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         super().__init__(
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
         )
-        # Set the condition after super().__init__() has initialised it to None.
+        # Set the condition after super().__init__() has initialized it to None.
         self.condition = validate_condition(condition)
 
     def with_false_block(self, false_block: ControlFlowBuilderBlock) -> "IfElsePlaceholder":
@@ -250,7 +236,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
     def _calculate_placeholder_resources(self) -> InstructionResources:
         """Get the placeholder resources (see :meth:`.placeholder_resources`).
 
-        This is a separate function because we use the resources during the initialisation to
+        This is a separate function because we use the resources during the initialization to
         determine how we should set our ``num_qubits`` and ``num_clbits``, so we implement the
         public version as a cache access for efficiency.
         """

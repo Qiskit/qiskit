@@ -12,16 +12,17 @@
 
 """Synthesis algorithm for Permutation gates for full-connectivity."""
 
+from __future__ import annotations
+
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from .permutation_utils import (
-    _get_ordered_swap,
-    _inverse_pattern,
-    _pattern_to_cycles,
-    _decompose_cycles,
+from qiskit._accelerate.synthesis.permutation import (
+    _synth_permutation_basic,
+    _synth_permutation_acg,
 )
 
 
-def synth_permutation_basic(pattern):
+def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using sorting.
 
@@ -31,7 +32,7 @@ def synth_permutation_basic(pattern):
     is essentially treated independently.
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern, describing
+        pattern: Permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
             permutation. That is, ``pattern[k] = m`` when the permutation maps
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
@@ -39,33 +40,22 @@ def synth_permutation_basic(pattern):
             position ``1``, etc.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
     """
-    # This is the very original Qiskit algorithm for synthesizing permutations.
-
-    num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
-
-    swaps = _get_ordered_swap(pattern)
-
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
-
-    return qc
+    return QuantumCircuit._from_circuit_data(_synth_permutation_basic(pattern))
 
 
-def synth_permutation_acg(pattern):
+def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using the Alon, Chung, Graham method.
 
     This produces a quantum circuit of depth 2 (measured in the number of SWAPs).
 
-    This implementation is based on the Theorem 2 in the paper
-    "Routing Permutations on Graphs Via Matchings" (1993),
-    available at https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf.
+    This implementation is based on the Proposition 4.1 in reference [1] with
+    the detailed proof given in Theorem 2 in reference [2]
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern, describing
+        pattern: Permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
             permutation. That is, ``pattern[k] = m`` when the permutation maps
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
@@ -73,18 +63,16 @@ def synth_permutation_acg(pattern):
             position ``1``, etc.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
+
+    References:
+        1. N. Alon, F. R. K. Chung, and R. L. Graham.
+           *Routing Permutations on Graphs Via Matchings.*,
+           Proceedings of the Twenty-Fifth Annual ACM Symposium on Theory of Computing(1993).
+           Pages 583–591.
+           `(Extended abstract) 10.1145/167088.167239 <https://doi.org/10.1145/167088.167239>`_
+        2. N. Alon, F. R. K. Chung, and R. L. Graham.
+           *Routing Permutations on Graphs Via Matchings.*,
+           `(Full paper) <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
     """
-
-    num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
-
-    # invert pattern (Qiskit notation is opposite)
-    cur_pattern = _inverse_pattern(pattern)
-    cycles = _pattern_to_cycles(cur_pattern)
-    swaps = _decompose_cycles(cycles)
-
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
-
-    return qc
+    return QuantumCircuit._from_circuit_data(_synth_permutation_acg(pattern))

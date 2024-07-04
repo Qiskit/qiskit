@@ -13,7 +13,7 @@
 """Builder types for the basic control-flow constructs."""
 
 # This file is in circuit.controlflow rather than the root of circuit because the constructs here
-# are only intended to be localised to constructing the control flow instructions.  We anticipate
+# are only intended to be localized to constructing the control flow instructions.  We anticipate
 # having a far more complete builder of all circuits, with more classical control and creation, in
 # the future.
 
@@ -24,7 +24,8 @@ import itertools
 import typing
 from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
 
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
+from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
@@ -56,7 +57,9 @@ class CircuitScopeInterface(abc.ABC):
         """Indexable view onto the :class:`.CircuitInstruction`s backing this scope."""
 
     @abc.abstractmethod
-    def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
+    def append(
+        self, instruction: CircuitInstruction, *, _standard_gate=False
+    ) -> CircuitInstruction:
         """Low-level 'append' primitive; this may assume that the qubits, clbits and operation are
         all valid for the circuit.
 
@@ -103,6 +106,66 @@ class CircuitScopeInterface(abc.ABC):
                 or a :class:`.Clbit` that isn't actually in the circuit.
         """
 
+    @abc.abstractmethod
+    def add_uninitialized_var(self, var: expr.Var):
+        """Add an uninitialized variable to the circuit scope.
+
+        The general circuit context is responsible for ensuring the variable is initialized.  These
+        uninitialized variables are guaranteed to be standalone.
+
+        Args:
+            var: the variable to add, if valid.
+
+        Raises:
+            CircuitError: if the variable cannot be added, such as because it invalidly shadows or
+                redefines an existing name.
+        """
+
+    @abc.abstractmethod
+    def remove_var(self, var: expr.Var):
+        """Remove a variable from the locals of this scope.
+
+        This is only called in the case that an exception occurred while initializing the variable,
+        and is not exposed to users.
+
+        Args:
+            var: the variable to remove.  It can be assumed that this was already the subject of an
+                :meth:`add_uninitialized_var` call.
+        """
+
+    @abc.abstractmethod
+    def use_var(self, var: expr.Var):
+        """Called for every standalone classical real-time variable being used by some circuit
+        instruction.
+
+        The given variable is guaranteed to be a stand-alone variable; bit-like resource-wrapping
+        variables will have been filtered out and their resources given to
+        :meth:`resolve_classical_resource`.
+
+        Args:
+            var: the variable to validate.
+
+        Returns:
+            the same variable.
+
+        Raises:
+            CircuitError: if the variable is not valid for this scope.
+        """
+
+    @abc.abstractmethod
+    def get_var(self, name: str) -> Optional[expr.Var]:
+        """Get the variable (if any) in scope with the given name.
+
+        This should call up to the parent scope if in a control-flow builder scope, in case the
+        variable exists in an outer scope.
+
+        Args:
+            name: the name of the symbol to lookup.
+
+        Returns:
+            the variable if it is found, otherwise ``None``.
+        """
+
 
 class InstructionResources(typing.NamedTuple):
     """The quantum and classical resources used within a particular instruction.
@@ -143,7 +206,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     When appending a placeholder instruction into a circuit scope, you should create the
     placeholder, and then ask it what resources it should be considered as using from the start by
     calling :meth:`.InstructionPlaceholder.placeholder_instructions`.  This set will be a subset of
-    the final resources it asks for, but it is used for initialising resources that *must* be
+    the final resources it asks for, but it is used for initializing resources that *must* be
     supplied, such as the bits used in the conditions of placeholder ``if`` statements.
 
     .. warning::
@@ -271,6 +334,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         "_parent",
         "_built",
         "_forbidden_message",
+        "_vars_local",
+        "_vars_capture",
     )
 
     def __init__(
@@ -295,7 +360,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 which use a classical register as their condition.
             allow_jumps: Whether this builder scope should allow ``break`` and ``continue``
                 statements within it.  This is intended to help give sensible error messages when
-                dangerous behaviour is encountered, such as using ``break`` inside an ``if`` context
+                dangerous behavior is encountered, such as using ``break`` inside an ``if`` context
                 manager that is not within a ``for`` manager.  This can only be safe if the user is
                 going to place the resulting :obj:`.QuantumCircuit` inside a :obj:`.ForLoopOp` that
                 uses *exactly* the same set of resources.  We cannot verify this from within the
@@ -311,6 +376,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
         self.global_phase = 0.0
+        self._vars_local = {}
+        self._vars_capture = {}
         self._allow_jumps = allow_jumps
         self._parent = parent
         self._built = False
@@ -328,7 +395,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     def allow_jumps(self):
         """Whether this builder scope should allow ``break`` and ``continue`` statements within it.
 
-        This is intended to help give sensible error messages when dangerous behaviour is
+        This is intended to help give sensible error messages when dangerous behavior is
         encountered, such as using ``break`` inside an ``if`` context manager that is not within a
         ``for`` manager.  This can only be safe if the user is going to place the resulting
         :obj:`.QuantumCircuit` inside a :obj:`.ForLoopOp` that uses *exactly* the same set of
@@ -355,7 +422,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 " because it is not in a loop."
             )
 
-    def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
+    def append(
+        self, instruction: CircuitInstruction, *, _standard_gate: bool = False
+    ) -> CircuitInstruction:
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:
@@ -392,6 +461,49 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         else:
             self.add_register(resource)
         return resource
+
+    def add_uninitialized_var(self, var: expr.Var):
+        if self._built:
+            raise CircuitError("Cannot add resources after the scope has been built.")
+        # We can shadow a name if it was declared in an outer scope, but only if we haven't already
+        # captured it ourselves yet.
+        if (previous := self._vars_local.get(var.name)) is not None:
+            if previous == var:
+                raise CircuitError(f"'{var}' is already present in the scope")
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        if var.name in self._vars_capture:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        self._vars_local[var.name] = var
+
+    def remove_var(self, var: expr.Var):
+        if self._built:
+            raise RuntimeError("exception handler 'remove_var' called after scope built")
+        self._vars_local.pop(var.name)
+
+    def get_var(self, name: str):
+        if (out := self._vars_local.get(name)) is not None:
+            return out
+        return self._parent.get_var(name)
+
+    def use_var(self, var: expr.Var):
+        if (local := self._vars_local.get(var.name)) is not None:
+            if local == var:
+                return
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if self._vars_capture.get(var.name) == var:
+            return
+        if self._parent.get_var(var.name) != var:
+            raise CircuitError(f"cannot close over '{var}', which is not in scope")
+        self._parent.use_var(var)
+        self._vars_capture[var.name] = var
+
+    def iter_local_vars(self):
+        """Iterator over the variables currently declared in this scope."""
+        return self._vars_local.values()
+
+    def iter_captured_vars(self):
+        """Iterator over the variables currently captured in this scope."""
+        return self._vars_capture.values()
 
     def peek(self) -> CircuitInstruction:
         """Get the value of the most recent instruction tuple in this scope."""
@@ -493,7 +605,12 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             self._instructions.clbits,
             *self.registers,
             global_phase=self.global_phase,
+            captures=self._vars_capture.values(),
         )
+        for var in self._vars_local.values():
+            # The requisite `Store` instruction to initialise the variable will have been appended
+            # into the instructions.
+            out.add_uninitialized_var(var)
 
         # Maps placeholder index to the newly concrete instruction.
         placeholder_to_concrete = {}
@@ -566,6 +683,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out._instructions = self._instructions.copy()
         out.registers = self.registers.copy()
         out.global_phase = self.global_phase
+        out._vars_local = self._vars_local.copy()
+        out._vars_capture = self._vars_capture.copy()
         out._parent = self._parent
         out._allow_jumps = self._allow_jumps
         out._forbidden_message = self._forbidden_message

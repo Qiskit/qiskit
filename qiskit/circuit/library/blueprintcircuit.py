@@ -15,9 +15,9 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.parametertable import ParameterTable, ParameterView
+from qiskit.circuit.parametertable import ParameterView
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -68,7 +68,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
         self._data = CircuitData(self._data.qubits, self._data.clbits)
-        self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False
 
@@ -88,7 +87,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._ancillas = []
         self._qubit_indices = {}
         self._data = CircuitData(clbits=self._data.clbits)
-        self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False
 
@@ -122,15 +120,37 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().parameters
 
-    def _append(self, instruction, _qargs=None, _cargs=None):
+    def _append(self, instruction, _qargs=None, _cargs=None, *, _standard_gate=False):
         if not self._is_built:
             self._build()
-        return super()._append(instruction, _qargs, _cargs)
+        return super()._append(instruction, _qargs, _cargs, _standard_gate=_standard_gate)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
+    def compose(
+        self,
+        other,
+        qubits=None,
+        clbits=None,
+        front=False,
+        inplace=False,
+        wrap=False,
+        *,
+        copy=True,
+        var_remap=None,
+        inline_captures=False,
+    ):
         if not self._is_built:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace, wrap)
+        return super().compose(
+            other,
+            qubits,
+            clbits,
+            front,
+            inplace,
+            wrap,
+            copy=copy,
+            var_remap=var_remap,
+            inline_captures=False,
+        )
 
     def inverse(self, annotated: bool = False):
         if not self._is_built:
@@ -178,10 +198,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
 
-    def copy_empty_like(self, name=None):
+    def copy_empty_like(self, name=None, *, vars_mode="alike"):
         if not self._is_built:
             self._build()
-        cpy = super().copy_empty_like(name=name)
+        cpy = super().copy_empty_like(name=name, vars_mode=vars_mode)
         # The base `copy_empty_like` will typically trigger code that `BlueprintCircuit` treats as
         # an "invalidation", so we have to manually restore properties deleted by that that
         # `copy_empty_like` is supposed to propagate.

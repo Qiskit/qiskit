@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,6 +23,7 @@ from itertools import product
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
@@ -31,20 +32,20 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_bm(clifford):
-    """Optimal CX-cost decomposition of a Clifford operator on 2-qubits or 3-qubits
-    into a QuantumCircuit based on Bravyi-Maslov method.
+def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
+    """Optimal CX-cost decomposition of a :class:`.Clifford` operator on 2 qubits
+    or 3 qubits into a :class:`.QuantumCircuit` based on the Bravyi-Maslov method [1].
 
     Args:
-        clifford (Clifford): a clifford operator.
+        clifford: A Clifford operator.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+    Returns:
+        A circuit implementation of the Clifford.
 
     Raises:
-        QiskitError: if clifford is on more than 3 qubits.
+        QiskitError: if Clifford is on more than 3 qubits.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
@@ -75,11 +76,11 @@ def synth_clifford_bm(clifford):
         pos = [qubit, qubit + num_qubits]
         circ = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]])
         if len(circ) > 0:
-            ret_circ.append(circ, [qubit])
+            ret_circ.append(circ, [qubit], copy=False)
 
     # Add the inverse of the 2-qubit reductions circuit
     if len(inv_circuit) > 0:
-        ret_circ.append(inv_circuit.inverse(), range(num_qubits))
+        ret_circ.append(inv_circuit.inverse(), range(num_qubits), copy=False)
 
     return ret_circ.decompose()
 
@@ -191,7 +192,7 @@ def _cx_cost(clifford):
         return _cx_cost2(clifford)
     if clifford.num_qubits == 3:
         return _cx_cost3(clifford)
-    raise Exception("No Clifford CX cost function for num_qubits > 3.")
+    raise RuntimeError("No Clifford CX cost function for num_qubits > 3.")
 
 
 def _rank2(a, b, c, d):

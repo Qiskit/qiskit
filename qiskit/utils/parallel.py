@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -47,6 +47,8 @@
 Routines for running Python functions in parallel using process pools
 from the multiprocessing library.
 """
+
+from __future__ import annotations
 
 import os
 from concurrent.futures import ProcessPoolExecutor
@@ -101,6 +103,21 @@ def _task_wrapper(param):
     return task(value, *task_args, **task_kwargs)
 
 
+def should_run_in_parallel(num_processes: int | None = None) -> bool:
+    """Return whether the current parallelisation configuration suggests that we should run things
+    like :func:`parallel_map` in parallel (``True``) or degrade to serial (``False``).
+
+    Args:
+        num_processes: the number of processes requested for use (if given).
+    """
+    num_processes = CPU_COUNT if num_processes is None else num_processes
+    return (
+        num_processes > 1
+        and os.getenv("QISKIT_IN_PARALLEL", "FALSE") == "FALSE"
+        and CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
+    )
+
+
 def parallel_map(  # pylint: disable=dangerous-default-value
     task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT
 ):
@@ -110,29 +127,23 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
-    On Windows this function defaults to a serial implementation to avoid the
-    overhead from spawning processes in Windows.
+    This will parallelise the results if the number of ``values`` is greater than one, and the
+    current system configuration permits parallelization.
 
     Args:
         task (func): Function that is to be called for each value in ``values``.
-        values (array_like): List or array of values for which the ``task``
-                            function is to be evaluated.
+        values (array_like): List or array of values for which the ``task`` function is to be
+            evaluated.
         task_args (list): Optional additional arguments to the ``task`` function.
         task_kwargs (dict): Optional additional keyword argument to the ``task`` function.
         num_processes (int): Number of processes to spawn.
 
     Returns:
-        result: The result list contains the value of
-                ``task(value, *task_args, **task_kwargs)`` for
-                    each value in ``values``.
+        result: The result list contains the value of ``task(value, *task_args, **task_kwargs)`` for
+        each value in ``values``.
 
     Raises:
         QiskitError: If user interrupts via keyboard.
-
-    Events:
-        terra.parallel.start: The collection of parallel tasks are about to start.
-        terra.parallel.update: One of the parallel task has finished.
-        terra.parallel.finish: All the parallel tasks have finished.
 
     Examples:
 
@@ -152,12 +163,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
 
-    # Run in parallel if not Win and not in parallel already
-    if (
-        num_processes > 1
-        and os.getenv("QISKIT_IN_PARALLEL") == "FALSE"
-        and CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
-    ):
+    if should_run_in_parallel(num_processes):
         os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
         try:
             results = []
@@ -178,8 +184,6 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
         return results
 
-    # Cannot do parallel on Windows , if another parallel_map is running in parallel,
-    # or len(values) == 1.
     results = []
     for _, value in enumerate(values):
         result = task(value, *task_args, **task_kwargs)

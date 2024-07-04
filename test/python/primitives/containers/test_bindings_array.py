@@ -413,3 +413,23 @@ class BindingsArrayTestCase(QiskitTestCase):
         ba = BindingsArray({"a": np.ones((0, 1))}, shape=(0,))
         arr = ba.as_array()
         self.assertEqual(arr.shape, (0, 1))
+
+    def test_get_item(self):
+        """Test the __getitem__() method."""
+        ba = BindingsArray()
+        self.assertEqual(ba[:].shape, ())
+        self.assertEqual(ba[:].num_parameters, 0)
+
+        data = np.linspace(0, 1, 300).reshape((5, 6, 10))
+        params = tuple(f"a{idx:03d}" for idx in range(10))
+        ba = BindingsArray({params: data})
+        np.testing.assert_allclose(ba[...].as_array(params), data)
+        np.testing.assert_allclose(ba[0].as_array(params), data[0])
+        np.testing.assert_allclose(ba[6:2:-1, -1].as_array(params), data[6:2:-1, -1])
+
+        data = np.linspace(0, 1, 300).reshape((5, 6, 10))
+        params = tuple(f"a{idx:03d}" for idx in range(10))
+        ba = BindingsArray({params[:3]: data[..., :3], params[3:]: data[..., 3:]})
+        np.testing.assert_allclose(ba[...].as_array(params), data)
+        np.testing.assert_allclose(ba[0].as_array(params), data[0])
+        np.testing.assert_allclose(ba[6:2:-1, -1].as_array(params), data[6:2:-1, -1])

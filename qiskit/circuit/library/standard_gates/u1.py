@@ -19,6 +19,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U1Gate(Gate):
@@ -92,6 +93,8 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
+    _standard_gate = StandardGate.U1Gate
+
     def __init__(
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
     ):
@@ -121,10 +124,10 @@ class U1Gate(Gate):
         """Return a (multi-)controlled-U1 gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -147,11 +150,23 @@ class U1Gate(Gate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda)`)"""
+        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.U1Gate` with inverse parameter values.
+
+        Returns:
+            U1Gate: inverse gate.
+        """
         return U1Gate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
 
@@ -257,10 +272,10 @@ class CU1Gate(ControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -280,11 +295,24 @@ class CU1Gate(ControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda)`)"""
+        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CU1Gate` with inverse parameter
+                values.
+
+        Returns:
+            CU1Gate: inverse gate.
+        """
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
@@ -376,10 +404,10 @@ class MCU1Gate(ControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -406,5 +434,16 @@ class MCU1Gate(ControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
+        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.MCU1Gate` with inverse
+                parameter values.
+
+        Returns:
+            MCU1Gate: inverse gate.
+        """
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)

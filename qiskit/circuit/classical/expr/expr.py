@@ -31,6 +31,7 @@ __all__ = [
 import abc
 import enum
 import typing
+import uuid
 
 from .. import types
 
@@ -52,7 +53,7 @@ class Expr(abc.ABC):
     expressions, and it does not make sense to add more outside of Qiskit library code.
 
     All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
-    should not call the parent initialiser."""
+    should not call the parent initializer."""
 
     __slots__ = ("type",)
 
@@ -110,29 +111,49 @@ class Cast(Expr):
 class Var(Expr):
     """A classical variable.
 
+    These variables take two forms: a new-style variable that owns its storage location and has an
+    associated name; and an old-style variable that wraps a :class:`.Clbit` or
+    :class:`.ClassicalRegister` instance that is owned by some containing circuit.  In general,
+    construction of variables for use in programs should use :meth:`Var.new` or
+    :meth:`.QuantumCircuit.add_var`.
+
     Variables are immutable after construction, so they can be used as dictionary keys."""
 
-    __slots__ = ("var",)
+    __slots__ = ("var", "name")
 
-    var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister
+    var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister | uuid.UUID
     """A reference to the backing data storage of the :class:`Var` instance.  When lifting
     old-style :class:`.Clbit` or :class:`.ClassicalRegister` instances into a :class:`Var`,
-    this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`."""
+    this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`.  If the variable is a
+    new-style classical variable (one that owns its own storage separate to the old
+    :class:`.Clbit`/:class:`.ClassicalRegister` model), this field will be a :class:`~uuid.UUID`
+    to uniquely identify it."""
+    name: str | None
+    """The name of the variable.  This is required to exist if the backing :attr:`var` attribute
+    is a :class:`~uuid.UUID`, i.e. if it is a new-style variable, and must be ``None`` if it is
+    an old-style variable."""
 
     def __init__(
         self,
-        var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister,
+        var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister | uuid.UUID,
         type: types.Type,
+        *,
+        name: str | None = None,
     ):
         super().__setattr__("type", type)
         super().__setattr__("var", var)
+        super().__setattr__("name", name)
+
+    @classmethod
+    def new(cls, name: str, type: types.Type) -> typing.Self:
+        """Generate a new named variable that owns its own backing storage."""
+        return cls(uuid.uuid4(), type, name=name)
 
     @property
     def standalone(self) -> bool:
-        """Whether this :class:`Var` is a standalone variable that owns its storage location.
-        This is currently always ``False``, but will expand in the future to support memory-owning
-        storage locations."""
-        return False
+        """Whether this :class:`Var` is a standalone variable that owns its storage location.  If
+        false, this is a wrapper :class:`Var` around a pre-existing circuit object."""
+        return isinstance(self.var, uuid.UUID)
 
     def accept(self, visitor, /):
         return visitor.visit_var(self)
@@ -143,28 +164,36 @@ class Var(Expr):
         raise AttributeError(f"'Var' object has no attribute '{key}'")
 
     def __hash__(self):
-        return hash((self.type, self.var))
+        return hash((self.type, self.var, self.name))
 
     def __eq__(self, other):
-        return isinstance(other, Var) and self.type == other.type and self.var == other.var
+        return (
+            isinstance(other, Var)
+            and self.type == other.type
+            and self.var == other.var
+            and self.name == other.name
+        )
 
     def __repr__(self):
-        return f"Var({self.var}, {self.type})"
+        if self.name is None:
+            return f"Var({self.var}, {self.type})"
+        return f"Var({self.var}, {self.type}, name='{self.name}')"
 
     def __getstate__(self):
-        return (self.var, self.type)
+        return (self.var, self.type, self.name)
 
     def __setstate__(self, state):
-        var, type = state
+        var, type, name = state
         super().__setattr__("type", type)
         super().__setattr__("var", var)
+        super().__setattr__("name", name)
 
     def __copy__(self):
         # I am immutable...
         return self
 
     def __deepcopy__(self, memo):
-        # ... as are all my consituent parts.
+        # ... as are all my constituent parts.
         return self
 
 
@@ -212,7 +241,7 @@ class Unary(Expr):
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`.
         # The opcode integers should be considered a public interface; they are used by
-        # serialisation formats that may transfer data between different versions of Qiskit.
+        # serialization formats that may transfer data between different versions of Qiskit.
         BIT_NOT = 1
         """Bitwise negation. ``~operand``."""
         LOGIC_NOT = 2
@@ -271,11 +300,16 @@ class Binary(Expr):
         The binary mathematical relations :data:`EQUAL`, :data:`NOT_EQUAL`, :data:`LESS`,
         :data:`LESS_EQUAL`, :data:`GREATER` and :data:`GREATER_EQUAL` take unsigned integers
         (with an implicit cast to make them the same width), and return a Boolean.
+
+        The bitshift operations :data:`SHIFT_LEFT` and :data:`SHIFT_RIGHT` can take bit-like
+        container types (e.g. unsigned integers) as the left operand, and any integer type as the
+        right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
+        fill in the "exposed" spaces.
         """
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`
         # The opcode integers should be considered a public interface; they are used by
-        # serialisation formats that may transfer data between different versions of Qiskit.
+        # serialization formats that may transfer data between different versions of Qiskit.
         BIT_AND = 1
         """Bitwise "and". ``lhs & rhs``."""
         BIT_OR = 2
@@ -298,6 +332,10 @@ class Binary(Expr):
         """Numeric greater than. ``lhs > rhs``."""
         GREATER_EQUAL = 11
         """Numeric greater than or equal to. ``lhs >= rhs``."""
+        SHIFT_LEFT = 12
+        """Zero-padding bitshift to the left.  ``lhs << rhs``."""
+        SHIFT_RIGHT = 13
+        """Zero-padding bitshift to the right.  ``lhs >> rhs``."""
 
         def __str__(self):
             return f"Binary.{super().__str__()}"
@@ -325,3 +363,35 @@ class Binary(Expr):
 
     def __repr__(self):
         return f"Binary({self.op}, {self.left}, {self.right}, {self.type})"
+
+
+@typing.final
+class Index(Expr):
+    """An indexing expression.
+
+    Args:
+        target: The object being indexed.
+        index: The expression doing the indexing.
+        type: The resolved type of the result.
+    """
+
+    __slots__ = ("target", "index")
+
+    def __init__(self, target: Expr, index: Expr, type: types.Type):
+        self.target = target
+        self.index = index
+        self.type = type
+
+    def accept(self, visitor, /):
+        return visitor.visit_index(self)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Index)
+            and self.type == other.type
+            and self.target == other.target
+            and self.index == other.index
+        )
+
+    def __repr__(self):
+        return f"Index({self.target}, {self.index}, {self.type})"

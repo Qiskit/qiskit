@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add new keyword argument ``num_processes`` to :func:`~qiskit.compiler.transpiler`.
-    Allows for overriding user configurations file entry ``num_processes`` and
-    the environment variable ``QISKIT_NUM_PROCS`` on a per transpile basis.

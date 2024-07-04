@@ -30,6 +30,28 @@ plugin.
 See :mod:`qiskit.transpiler.preset_passmanagers.plugin` for details on how
 to write plugins for transpiler stages.
 
+Synthesis Plugin API
+====================
+
+Unitary Synthesis Plugin API
+----------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitarySynthesisPlugin
+   UnitarySynthesisPluginManager
+   unitary_synthesis_plugin_names
+
+High-Level Synthesis Plugin API
+-------------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HighLevelSynthesisPlugin
+   HighLevelSynthesisPluginManager
+   high_level_synthesis_plugin_names
 
 Writing Plugins
 ===============
@@ -285,7 +307,7 @@ argument::
 will return a list of all the installed Clifford synthesis plugins.
 
 Available Plugins
------------------
+=================
 
 High-level synthesis plugins that are directly available in Qiskit include plugins
 for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
@@ -314,28 +336,52 @@ the topology of the device. A good example of this is the permutation synthesis 
 with respect to arbitrary coupling maps.
 For more detail, please refer to description of each individual plugin.
 
-Plugin API
-==========
+Below are the synthesis plugin classes available in Qiskit. These classes should not be
+used directly, but instead should be used through the plugin interface documented
+above. The classes are listed here to ease finding the documentation for each of the
+included plugins and to ease the comparison between different synthesis methods for
+a given object.
+
 
 Unitary Synthesis Plugins
 -------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
+.. automodule:: qiskit.transpiler.passes.synthesis.aqc_plugin
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-   UnitarySynthesisPlugin
-   UnitarySynthesisPluginManager
-   unitary_synthesis_plugin_names
+.. automodule:: qiskit.transpiler.passes.synthesis.unitary_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-High-Level Synthesis Plugins
-----------------------------
+.. automodule:: qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-.. autosummary::
-   :toctree: ../stubs/
 
-   HighLevelSynthesisPlugin
-   HighLevelSynthesisPluginManager
-   high_level_synthesis_plugin_names
+High Level Synthesis
+--------------------
+
+For each high-level object we give a table that lists all of its plugins available
+directly in Qiskit. We include the name of the plugin, the class of the plugin,
+the targeted connectivity map and optionally additional information. Recall the plugins
+should be used via the previously described :class:`.HLSConfig`, for example::
+
+    HLSConfig(permutation=["kms"])
+
+creates a high-level synthesis configuration that uses the ``kms`` plugin
+for synthesizing :class:`.PermutationGate` objects -- i.e. those with
+``name = "permutation"``. In this case, the plugin name is "kms", the plugin class
+is :class:`~.KMSSynthesisPermutation`. This particular synthesis algorithm created
+a circuit adhering to the linear nearest-neighbor connectivity.
+
+.. automodule:: qiskit.transpiler.passes.synthesis.high_level_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 """
 
 import abc
@@ -652,13 +698,13 @@ class HighLevelSynthesisPluginManager:
         self.plugins_by_op = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
-            if op_name not in self.plugins_by_op.keys():
+            if op_name not in self.plugins_by_op:
                 self.plugins_by_op[op_name] = []
             self.plugins_by_op[op_name].append(method_name)
 
     def method_names(self, op_name):
         """Returns plugin methods for op_name."""
-        if op_name in self.plugins_by_op.keys():
+        if op_name in self.plugins_by_op:
             return self.plugins_by_op[op_name]
         else:
             return []

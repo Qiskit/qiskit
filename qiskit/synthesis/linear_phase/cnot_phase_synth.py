@@ -15,6 +15,7 @@ Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
 circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
 for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
+from __future__ import annotations
 
 import copy
 import numpy as np
@@ -23,22 +24,24 @@ from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 
-def synth_cnot_phase_aam(cnots, angles, section_size=2):
-    """This function is an implementation of the GraySynth algorithm of
+def synth_cnot_phase_aam(
+    cnots: list[list[int]], angles: list[str], section_size: int = 2
+) -> QuantumCircuit:
+    r"""This function is an implementation of the `GraySynth` algorithm of
     Amy, Azimadeh and Mosca.
 
     GraySynth is a heuristic algorithm from [1] for synthesizing small parity networks.
-    It is inspired by Gray codes. Given a set of binary strings S
-    (called "cnots" bellow), the algorithm synthesizes a parity network for S by
-    repeatedly choosing an index i to expand and then effectively recursing on
-    the co-factors S_0 and S_1, consisting of the strings y in S,
-    with y_i = 0 or 1 respectively. As a subset S is recursively expanded,
-    CNOT gates are applied so that a designated target bit contains the
-    (partial) parity ksi_y(x) where y_i = 1 if and only if y'_i = 1 for all
-    y' in S. If S is a singleton {y'}, then y = y', hence the target bit contains
-    the value ksi_y'(x) as desired.
+    It is inspired by Gray codes. Given a set of binary strings :math:`S`
+    (called ``cnots`` bellow), the algorithm synthesizes a parity network for :math:`S` by
+    repeatedly choosing an index :math:`i` to expand and then effectively recursing on
+    the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y \in S`,
+    with :math:`y_i = 0` or :math:`1` respectively. As a subset :math:`S` is recursively expanded,
+    ``cx`` gates are applied so that a designated target bit contains the
+    (partial) parity :math:`\chi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
+    :math:`y' \in S`. If :math:`S` contains a single element :math:`\{y'\}`, then :math:`y = y'`,
+    and the target bit contains the value :math:`\chi_{y'}(x)` as desired.
 
-    Notably, rather than uncomputing this sequence of CNOT gates when a subset S
+    Notably, rather than uncomputing this sequence of ``cx`` (CNOT) gates when a subset :math:`S`
     is finished being synthesized, the algorithm maintains the invariant
     that the remaining parities to be computed are expressed over the current state
     of bits. This allows the algorithm to avoid the 'backtracking' inherent in
@@ -47,7 +50,7 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
     The algorithm is described in detail in section 4 of [1].
 
     Args:
-        cnots (list[list]): a matrix whose columns are the parities to be synthesized
+        cnots: A matrix whose columns are the parities to be synthesized
             e.g.::
 
                 [[0, 1, 1, 1, 1, 1],
@@ -59,19 +62,19 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
 
                  x1^x2 + x0 + x0^x3 + x0^x1^x2 + x0^x1^x3 + x0^x1
 
-        angles (list): a list containing all the phase-shift gates which are
-            to be applied, in the same order as in "cnots". A number is
-            interpreted as the angle of p(angle), otherwise the elements
-            have to be 't', 'tdg', 's', 'sdg' or 'z'.
+        angles: A list containing all the phase-shift gates which are
+            to be applied, in the same order as in ``cnots``. A number is
+            interpreted as the angle of :math:`p(angle)`, otherwise the elements
+            have to be ``'t'``, ``'tdg'``, ``'s'``, ``'sdg'`` or ``'z'``.
 
-        section_size (int): the size of every section, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. section_size must be a factor of num_qubits.
+        section_size: The size of every section in the Patel–Markov–Hayes algorithm.
+            ``section_size`` must be a factor of the number of qubits.
 
     Returns:
-        QuantumCircuit: the decomposed quantum circuit.
+        The decomposed quantum circuit.
 
     Raises:
-        QiskitError: when dimensions of cnots and angles don't align.
+        QiskitError: when dimensions of ``cnots`` and ``angles`` don't align.
 
     References:
         1. Matthew Amy, Parsiad Azimzadeh, and Michele Mosca.
@@ -120,7 +123,7 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
 
     # Implementation of the pseudo-code (Algorithm 1) in the aforementioned paper
     sta.append([cnots, range_list, epsilon])
-    while sta != []:
+    while sta:
         [cnots, ilist, qubit] = sta.pop()
         if cnots == []:
             continue

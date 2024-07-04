@@ -15,6 +15,7 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
+import math
 from typing import Callable
 import scipy
 import numpy as np
@@ -52,19 +53,19 @@ def qs_decomposition(
         /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
           └───┘          └───┘     └───┘     └───┘     └───┘
 
-    The number of CX gates generated with the decomposition without optimizations is,
+    The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is:
 
     .. math::
 
         \frac{9}{16} 4^n - \frac{3}{2} 2^n
 
-    If opt_a1 = True, the default, the CX count is reduced by,
+    If ``opt_a1 = True``, the default, the CX count is reduced by:
 
     .. math::
 
         \frac{1}{3} 4^{n - 2} - 1.
 
-    If opt_a2 = True, the default, the CX count is reduced by,
+    If ``opt_a2 = True``, the default, the CX count is reduced by:
 
     .. math::
 
@@ -73,11 +74,12 @@ def qs_decomposition(
     Args:
         mat: unitary matrix to decompose
         opt_a1: whether to try optimization A.1 from Shende et al. [1].
-            This should eliminate 1 cx per call.
-            If True CZ gates are left in the output. If desired these can be further decomposed to CX.
+            This should eliminate 1 ``cx`` per call.
+            If ``True``, :class:`.CZGate`\s are left in the output.
+            If desired these can be further decomposed to :class:`.CXGate`\s.
         opt_a2: whether to try optimization A.2 from Shende et al. [1].
-            This decomposes two qubit unitaries into a diagonal gate and a two cx unitary and
-            reduces overall cx count by :math:`4^{n-2} - 1`.
+            This decomposes two qubit unitaries into a diagonal gate and
+            a two cx unitary and reduces overall cx count by :math:`4^{n-2} - 1`.
         decomposer_1q: optional 1Q decomposer. If None, uses
             :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
         decomposer_2q: optional 2Q decomposer. If None, uses
@@ -86,13 +88,13 @@ def qs_decomposition(
     Returns:
         QuantumCircuit: Decomposed quantum circuit.
 
-    Reference:
+    References:
         1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
            `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
-    nqubits = int(np.log2(dim))
+    nqubits = int(math.log2(dim))
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
     if dim == 2:
@@ -184,7 +186,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
         QuantumCircuit: decomposed circuit
     """
     dim = um0.shape[0] + um1.shape[0]  # these should be same dimension
-    nqubits = int(np.log2(dim))
+    nqubits = int(math.log2(dim))
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
         eigvals, vmat = scipy.linalg.eigh(um0um1)
@@ -267,7 +269,7 @@ def _apply_a2(circ):
     # rolling over diagonals
     ind2 = None  # lint
     for ind1, ind2 in zip(ind2q[0:-1:], ind2q[1::]):
-        # get neigboring 2q gates separated by controls
+        # get neighboring 2q gates separated by controls
         instr1 = ccirc.data[ind1]
         mat1 = Operator(instr1.operation).data
         instr2 = ccirc.data[ind2]

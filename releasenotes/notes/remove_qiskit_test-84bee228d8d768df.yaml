@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Remove ``qiskit.test``. This includes ``qiskit.test.QiskitTestCase`` (and ``BasicQiskitTestCase``)
-    which are now for interal unittesting use.

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import unittest
-from dataclasses import astuple
 
 import numpy as np
 from numpy.typing import NDArray
@@ -320,6 +319,12 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("zero shots, pub"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([SamplerPub(qc1, shots=0)]).result()
+        with self.subTest("missing []"):
+            with self.assertRaisesRegex(ValueError, "An invalid Sampler pub-like was given"):
+                _ = sampler.run(qc1).result()
+        with self.subTest("missing [] for pqc"):
+            with self.assertRaisesRegex(ValueError, "Note that if you want to run a single pub,"):
+                _ = sampler.run((qc2, [0, 1])).result()
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
@@ -567,7 +572,7 @@ class TestStatevectorSampler(QiskitTestCase):
                 result = sampler.run([qc], shots=self._shots).result()
                 self.assertEqual(len(result), 1)
                 data = result[0].data
-                self.assertEqual(len(astuple(data)), 3)
+                self.assertEqual(len(data), 3)
                 for creg in qc.cregs:
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
@@ -600,10 +605,10 @@ class TestStatevectorSampler(QiskitTestCase):
         result = sampler.run([qc2], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
-        self.assertEqual(len(astuple(data)), 3)
-        for creg_name in target:
+        self.assertEqual(len(data), 3)
+        for creg_name, creg in target.items():
             self.assertTrue(hasattr(data, creg_name))
-            self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
+            self._assert_allclose(getattr(data, creg_name), np.array(creg))
 
     def test_no_cregs(self):
         """Test that the sampler works when there are no classical register in the circuit."""
@@ -614,6 +619,22 @@ class TestStatevectorSampler(QiskitTestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0].data), 0)
+
+    def test_iter_pub(self):
+        """Test of an iterable of pubs"""
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = StatevectorSampler()
+        result = sampler.run(iter([qc, qc2]), shots=self._shots).result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[1], PubResult)
+        self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
+        self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
 
 
 if __name__ == "__main__":

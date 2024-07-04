@@ -21,7 +21,7 @@ from typing import Any
 
 import dill
 
-from qiskit.utils.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map, should_run_in_parallel
 from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
@@ -47,6 +47,8 @@ class BasePassManager(ABC):
         """
         self._tasks = []
         self.max_iteration = max_iteration
+        # This empty property set never gets used; it gets overridden at the completion of a
+        # workflow run.
         self.property_set = PropertySet()
 
         if tasks:
@@ -128,7 +130,7 @@ class BasePassManager(ABC):
                 return new_passmanager
             except PassManagerError as ex:
                 raise TypeError(
-                    "unsupported operand type + for %s and %s" % (self.__class__, other.__class__)
+                    f"unsupported operand type + for {self.__class__} and {other.__class__}"
                 ) from ex
 
     @abstractmethod
@@ -223,16 +225,16 @@ class BasePassManager(ABC):
             in_programs = [in_programs]
             is_list = False
 
-        if len(in_programs) == 1:
-            out_program = _run_workflow(
-                program=in_programs[0],
-                pass_manager=self,
-                callback=callback,
-                **kwargs,
-            )
-            if is_list:
-                return [out_program]
-            return out_program
+        # If we're not going to run in parallel, we want to avoid spending time `dill` serializing
+        # ourselves, since that can be quite expensive.
+        if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
+            out = [
+                _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
+                for program in in_programs
+            ]
+            if len(in_programs) == 1 and not is_list:
+                return out[0]
+            return out
 
         del callback
         del kwargs
@@ -240,7 +242,7 @@ class BasePassManager(ABC):
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
-        # Thus, we can resue the same manager without state collision, without building it per thread.
+        # Thus, we can reuse the same manager without state collision, without building it per thread.
         return parallel_map(
             _run_workflow_in_new_process,
             values=in_programs,
@@ -287,14 +289,22 @@ def _run_workflow(
         input_program=program,
         **kwargs,
     )
-    passmanager_ir, _ = flow_controller.execute(
+    passmanager_ir, final_state = flow_controller.execute(
         passmanager_ir=passmanager_ir,
         state=PassManagerState(
             workflow_status=initial_status,
-            property_set=pass_manager.property_set,
+            property_set=PropertySet(),
         ),
         callback=kwargs.get("callback", None),
     )
+    # The `property_set` has historically been returned as a mutable attribute on `PassManager`
+    # This makes us non-reentrant (though `PassManager` would be dependent on its internal tasks to
+    # be re-entrant if that was required), but is consistent with previous interfaces.  We're still
+    # safe to be called in a serial loop, again assuming internal tasks are re-runnable.  The
+    # conversion to the backend language is also allowed to use the property set, so it must be set
+    # before calling it.
+    pass_manager.property_set = final_state.property_set
+
     out_program = pass_manager._passmanager_backend(
         passmanager_ir=passmanager_ir,
         in_program=program,

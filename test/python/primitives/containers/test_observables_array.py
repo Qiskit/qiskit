@@ -34,7 +34,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
             self.assertEqual(obs, {label: 1})
 
     def test_coerce_observable_custom_basis(self):
-        """Test coerce_observable for custom allowed basis"""
+        """Test coerce_observable for custom al flowed basis"""
 
         class PauliArray(ObservablesArray):
             """Custom array allowing only Paulis, not projectors"""
@@ -112,7 +112,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         self.assertEqual(obs["Z"], 1)
 
     def test_coerce_observable_duplicate_sparse_pauli_op(self):
-        """Test coerce_observable for SparsePauliOp wiht duplicate paulis"""
+        """Test coerce_observable for SparsePauliOp with duplicate paulis"""
         op = qi.SparsePauliOp(["XX", "-XX", "XX", "-XX"], [2, 1, 3, 2])
         obs = ObservablesArray.coerce_observable(op)
         self.assertIsInstance(obs, dict)
@@ -126,6 +126,20 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = ObservablesArray.coerce_observable(mapping)
         target = {key.to_label(): val for key, val in mapping.items()}
         self.assertEqual(obs, target)
+
+    def test_coerce_0d(self):
+        """Test the coerce() method with 0-d input."""
+        obs = ObservablesArray.coerce("X")
+        self.assertEqual(obs.shape, ())
+        self.assertDictAlmostEqual(obs[()], {"X": 1})
+
+        obs = ObservablesArray.coerce({"I": 2})
+        self.assertEqual(obs.shape, ())
+        self.assertDictAlmostEqual(obs[()], {"I": 2})
+
+        obs = ObservablesArray.coerce(qi.SparsePauliOp(["X", "Y"], [1, 3]))
+        self.assertEqual(obs.shape, ())
+        self.assertDictAlmostEqual(obs[()], {"X": 1, "Y": 3})
 
     def test_format_invalid_mapping_qubits(self):
         """Test an error is raised when different qubits in mapping keys"""

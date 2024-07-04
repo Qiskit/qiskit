@@ -65,6 +65,8 @@ def _run_circuits(
         max_circuits = getattr(backend.configuration(), "max_experiments", None)
     elif isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
+    else:
+        raise RuntimeError("Backend version not supported")
     if max_circuits:
         jobs = [
             backend.run(circuits[pos : pos + max_circuits], **run_options)
@@ -198,7 +200,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 transpiled_circuit = common_circuit.copy()
                 final_index_layout = list(range(common_circuit.num_qubits))
             else:
-                transpiled_circuit = transpile(
+                transpiled_circuit = transpile(  # pylint:disable=unexpected-keyword-arg
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
                 if transpiled_circuit.layout is not None:
@@ -413,14 +415,12 @@ def _paulis2inds(paulis: PauliList) -> list[int]:
     # Treat Z, X, Y the same
     nonid = paulis.z | paulis.x
 
-    inds = [0] * paulis.size
     # bits are packed into uint8 in little endian
     # e.g., i-th bit corresponds to coefficient 2^i
     packed_vals = np.packbits(nonid, axis=1, bitorder="little")
-    for i, vals in enumerate(packed_vals):
-        for j, val in enumerate(vals):
-            inds[i] += val.item() * (1 << (8 * j))
-    return inds
+    power_uint8 = 1 << (8 * np.arange(packed_vals.shape[1], dtype=object))
+    inds = packed_vals @ power_uint8
+    return inds.tolist()
 
 
 def _parity(integer: int) -> int:

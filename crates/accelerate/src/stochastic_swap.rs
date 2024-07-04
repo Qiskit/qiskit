@@ -25,7 +25,6 @@ use rayon::prelude::*;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use rand::prelude::*;
 use rand_distr::{Distribution, Normal};
@@ -113,10 +112,10 @@ fn swap_trial(
     let mut new_cost: f64;
     let mut dist: f64;
 
-    let mut optimal_start = PhysicalQubit::new(std::u32::MAX);
-    let mut optimal_end = PhysicalQubit::new(std::u32::MAX);
-    let mut optimal_start_qubit = VirtualQubit::new(std::u32::MAX);
-    let mut optimal_end_qubit = VirtualQubit::new(std::u32::MAX);
+    let mut optimal_start = PhysicalQubit::new(u32::MAX);
+    let mut optimal_end = PhysicalQubit::new(u32::MAX);
+    let mut optimal_start_qubit = VirtualQubit::new(u32::MAX);
+    let mut optimal_end_qubit = VirtualQubit::new(u32::MAX);
 
     let mut scale = Array2::zeros((num_qubits, num_qubits));
 
@@ -255,7 +254,7 @@ pub fn swap_trials(
     let cdist_arr = cdist.as_array();
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
-    let num_gates: usize = int_gates.len() / 2;
+    let num_gates: usize = int_gates.len()? / 2;
     let mut best_possible: Option<(u64, f64, EdgeCollection, NLayout)> = None;
     let locked_best_possible: RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>> =
         RwLock::new(&mut best_possible);
@@ -271,7 +270,7 @@ pub fn swap_trials(
     // unless force threads is set.
     let run_in_parallel = getenv_use_multiple_threads();
 
-    let mut best_depth = std::usize::MAX;
+    let mut best_depth = usize::MAX;
     let mut best_edges: Option<EdgeCollection> = None;
     let mut best_layout: Option<NLayout> = None;
     if run_in_parallel {
@@ -337,7 +336,7 @@ pub fn swap_trials(
 }
 
 #[pymodule]
-pub fn stochastic_swap(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn stochastic_swap(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(swap_trials))?;
     m.add_class::<EdgeCollection>()?;
     Ok(())

@@ -63,7 +63,7 @@ class Unroll3qOrMore(TransformationPass):
 
             if self.target is not None:
                 # Treat target instructions as global since this pass can be run
-                # prior to layout and routing we don't have phsyical qubits from
+                # prior to layout and routing we don't have physical qubits from
                 # the circuit yet
                 if node.name in self.target:
                     continue
@@ -78,7 +78,7 @@ class Unroll3qOrMore(TransformationPass):
                     continue
                 raise QiskitError(
                     "Cannot unroll all 3q or more gates. "
-                    "No rule to expand instruction %s." % node.op.name
+                    f"No rule to expand instruction {node.op.name}."
                 )
             decomposition = circuit_to_dag(node.op.definition, copy_operations=False)
             decomposition = self.run(decomposition)  # recursively unroll

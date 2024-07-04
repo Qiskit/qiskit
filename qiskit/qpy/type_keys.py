@@ -16,6 +16,7 @@
 QPY Type keys for several namespace.
 """
 
+import uuid
 from abc import abstractmethod
 from enum import Enum, IntEnum
 
@@ -158,7 +159,7 @@ class Condition(IntEnum):
     """Type keys for the ``conditional_key`` field of the INSTRUCTION struct."""
 
     # This class is deliberately raw integers and not in terms of ASCII characters for backwards
-    # compatiblity in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
+    # compatibility in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
     # have the enumeration values 0 and 1.
 
     NONE = 0
@@ -275,7 +276,7 @@ class ScheduleInstruction(TypeKeyBase):
     REFERENCE = b"y"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
-    # Call instructon is not supported by QPY.
+    # Call instruction is not supported by QPY.
     # This instruction has been excluded from ScheduleBlock instructions with
     # qiskit-terra/#8005 and new instruction Reference will be added instead.
     # Call is only applied to Schedule which is not supported by QPY.
@@ -456,6 +457,7 @@ class Expression(TypeKeyBase):
     CAST = b"c"
     UNARY = b"u"
     BINARY = b"b"
+    INDEX = b"i"
 
     @classmethod
     def assign(cls, obj):
@@ -465,6 +467,22 @@ class Expression(TypeKeyBase):
         ):
             return key
         raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVarDeclaration(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR_DECLARATION`` QPY item."""
+
+    INPUT = b"I"
+    CAPTURE = b"C"
+    LOCAL = b"L"
+
+    @classmethod
+    def assign(cls, obj):
+        raise NotImplementedError
 
     @classmethod
     def retrieve(cls, type_key):
@@ -496,9 +514,12 @@ class ExprVar(TypeKeyBase):
 
     CLBIT = b"C"
     REGISTER = b"R"
+    UUID = b"U"
 
     @classmethod
     def assign(cls, obj):
+        if isinstance(obj, uuid.UUID):
+            return cls.UUID
         if isinstance(obj, Clbit):
             return cls.CLBIT
         if isinstance(obj, ClassicalRegister):
@@ -541,7 +562,7 @@ class SymExprEncoding(TypeKeyBase):
 
     @classmethod
     def assign(cls, obj):
-        if obj is True:
+        if obj:
             return cls.SYMENGINE
         else:
             return cls.SYMPY

@@ -19,6 +19,7 @@ from typing import Optional, Union
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _Y_ARRAY = [[0, -1j], [1j, 0]]
 
@@ -70,6 +71,8 @@ class YGate(SingletonGate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
+    _standard_gate = StandardGate.YGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Y gate."""
         super().__init__("y", 1, [], label=label, duration=duration, unit=unit)
@@ -101,10 +104,10 @@ class YGate(SingletonGate):
         One control returns a CY gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -123,7 +126,17 @@ class YGate(SingletonGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)"""
+        r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            YGate: inverse gate (self-inverse).
+        """
         return YGate()  # self-inverse
 
     def __eq__(self, other):
@@ -187,6 +200,8 @@ class CYGate(SingletonControlledGate):
 
     """
 
+    _standard_gate = StandardGate.CYGate
+
     def __init__(
         self,
         label: Optional[str] = None,
@@ -229,7 +244,17 @@ class CYGate(SingletonControlledGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverted CY gate (itself)."""
+        """Return inverted CY gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CYGate: inverse gate (self-inverse).
+        """
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __eq__(self, other):

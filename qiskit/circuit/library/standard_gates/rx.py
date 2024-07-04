@@ -21,6 +21,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RXGate(Gate):
@@ -49,6 +50,8 @@ class RXGate(Gate):
                 -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RXGate
 
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
@@ -82,10 +85,10 @@ class RXGate(Gate):
         """Return a (multi-)controlled-RX gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -108,17 +111,27 @@ class RXGate(Gate):
         r"""Return inverted RX gate.
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RXGate` with an inverted parameter value.
+
+        Returns:
+            RXGate: inverse gate.
         """
         return RXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RXGate(exponent * theta)
 
@@ -186,6 +199,8 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CRXGate
+
     def __init__(
         self,
         theta: ParameterValueType,
@@ -242,11 +257,23 @@ class CRXGate(ControlledGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse CRX gate (i.e. with the negative rotation angle)."""
+        """Return inverse CRX gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRXGate` with an inverted parameter value.
+
+        Returns:
+            CRXGate: inverse gate.
+        """
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)

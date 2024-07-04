@@ -29,7 +29,7 @@ _T_co = typing.TypeVar("_T_co", covariant=True)
 
 class ExprVisitor(typing.Generic[_T_co]):
     """Base class for visitors to the :class:`Expr` tree.  Subclasses should override whichever of
-    the ``visit_*`` methods that they are able to handle, and should be organised such that
+    the ``visit_*`` methods that they are able to handle, and should be organized such that
     non-existent methods will never be called."""
 
     # The method names are self-explanatory and docstrings would just be noise.
@@ -55,6 +55,9 @@ class ExprVisitor(typing.Generic[_T_co]):
     def visit_cast(self, node: expr.Cast, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
+    def visit_index(self, node: expr.Index, /) -> _T_co:  # pragma: no cover
+        return self.visit_generic(node)
+
 
 class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
     __slots__ = ()
@@ -74,6 +77,10 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
 
     def visit_cast(self, node, /):
         yield from node.operand.accept(self)
+
+    def visit_index(self, node, /):
+        yield from node.target.accept(self)
+        yield from node.index.accept(self)
 
 
 _VAR_WALKER = _VarWalkerImpl()
@@ -164,6 +171,16 @@ class _StructuralEquivalenceImpl(ExprVisitor[bool]):
         self.other = self.other.operand
         return node.operand.accept(self)
 
+    def visit_index(self, node, /):
+        if self.other.__class__ is not node.__class__ or self.other.type != node.type:
+            return False
+        other = self.other
+        self.other = other.target
+        if not node.target.accept(self):
+            return False
+        self.other = other.index
+        return node.index.accept(self)
+
 
 def structurally_equivalent(
     left: expr.Expr,
@@ -215,3 +232,69 @@ def structurally_equivalent(
             True
     """
     return left.accept(_StructuralEquivalenceImpl(right, left_var_key, right_var_key))
+
+
+class _IsLValueImpl(ExprVisitor[bool]):
+    __slots__ = ()
+
+    def visit_var(self, node, /):
+        return True
+
+    def visit_value(self, node, /):
+        return False
+
+    def visit_unary(self, node, /):
+        return False
+
+    def visit_binary(self, node, /):
+        return False
+
+    def visit_cast(self, node, /):
+        return False
+
+    def visit_index(self, node, /):
+        return node.target.accept(self)
+
+
+_IS_LVALUE = _IsLValueImpl()
+
+
+def is_lvalue(node: expr.Expr, /) -> bool:
+    """Return whether this expression can be used in l-value positions, that is, whether it has a
+    well-defined location in memory, such as one that might be writeable.
+
+    Being an l-value is a necessary but not sufficient for this location to be writeable; it is
+    permissible that a larger object containing this memory location may not allow writing from
+    the scope that attempts to write to it.  This would be an access property of the containing
+    program, however, and not an inherent property of the expression system.
+
+    Examples:
+        Literal values are never l-values; there's no memory location associated with (for example)
+        the constant ``1``::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.is_lvalue(expr.lift(2))
+            False
+
+        :class:`~.expr.Var` nodes are always l-values, because they always have some associated
+        memory location::
+
+            >>> from qiskit.circuit.classical import types
+            >>> from qiskit.circuit import Clbit
+            >>> expr.is_lvalue(expr.Var.new("a", types.Bool()))
+            True
+            >>> expr.is_lvalue(expr.lift(Clbit()))
+            True
+
+        Currently there are no unary or binary operations on variables that can produce an l-value
+        expression, but it is likely in the future that some sort of "indexing" operation will be
+        added, which could produce l-values::
+
+            >>> a = expr.Var.new("a", types.Uint(8))
+            >>> b = expr.Var.new("b", types.Uint(8))
+            >>> expr.is_lvalue(a) and expr.is_lvalue(b)
+            True
+            >>> expr.is_lvalue(expr.bit_and(a, b))
+            False
+    """
+    return node.accept(_IS_LVALUE)

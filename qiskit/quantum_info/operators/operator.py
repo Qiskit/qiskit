@@ -16,14 +16,14 @@ Matrix Operator class.
 
 from __future__ import annotations
 
-import copy
+import copy as _copy
 import re
 from numbers import Number
 from typing import TYPE_CHECKING
 
-import scipy.linalg
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
 from qiskit.circuit.operation import Operation
@@ -82,6 +82,9 @@ class Operator(LinearOp):
             a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
             the input operator is not an N-qubit operator, it will assign a
             single subsystem with dimension specified by the shape of the input.
+            Note that two operators initialized via this method are only considered equivalent if they
+            match up to their canonical qubit order (or: permutation). See :meth:`.Operator.from_circuit`
+            to specify a different qubit permutation.
         """
         op_shape = None
         if isinstance(data, (list, np.ndarray)):
@@ -118,20 +121,16 @@ class Operator(LinearOp):
             shape=self._data.shape,
         )
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     def __repr__(self):
         prefix = "Operator("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(self.data, separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(self.data, separator=', ', prefix=prefix)},\n"
+            f"{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other):
@@ -392,8 +391,7 @@ class Operator(LinearOp):
         Returns:
             Operator: An operator representing the input circuit
         """
-        dimension = 2**circuit.num_qubits
-        op = cls(np.eye(dimension))
+
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
@@ -404,27 +402,36 @@ class Operator(LinearOp):
                 initial_layout=layout,
                 input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
             )
+
+        initial_layout = layout.initial_layout if layout is not None else None
+
         if final_layout is None:
             if not ignore_set_layout and layout is not None:
                 final_layout = getattr(layout, "final_layout", None)
 
-        qargs = None
-        # If there was a layout specified (either from the circuit
-        # or via user input) use that to set qargs to permute qubits
-        # based on that layout
-        if layout is not None:
-            physical_to_virtual = layout.initial_layout.get_physical_bits()
-            qargs = [
-                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
-                for physical_bit in range(len(physical_to_virtual))
-            ]
-        # Convert circuit to an instruction
-        instruction = circuit.to_instruction()
-        op._append_instruction(instruction, qargs=qargs)
-        # If final layout is set permute output indices based on layout
-        if final_layout is not None:
-            perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
-            op = op.apply_permutation(perm_pattern, front=False)
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        op = Operator(circuit)
+
+        if initial_layout is not None:
+            input_qubits = [None] * len(layout.input_qubit_mapping)
+            for q, p in layout.input_qubit_mapping.items():
+                input_qubits[p] = q
+
+            initial_permutation = initial_layout.to_permutation(input_qubits)
+            initial_permutation_inverse = _inverse_pattern(initial_permutation)
+            op = op.apply_permutation(initial_permutation, True)
+
+            if final_layout is not None:
+                final_permutation = final_layout.to_permutation(circuit.qubits)
+                final_permutation_inverse = _inverse_pattern(final_permutation)
+                op = op.apply_permutation(final_permutation_inverse, False)
+            op = op.apply_permutation(initial_permutation_inverse, False)
+        elif final_layout is not None:
+            final_permutation = final_layout.to_permutation(circuit.qubits)
+            final_permutation_inverse = _inverse_pattern(final_permutation)
+            op = op.apply_permutation(final_permutation_inverse, False)
+
         return op
 
     def is_unitary(self, atol=None, rtol=None):
@@ -448,13 +455,13 @@ class Operator(LinearOp):
 
     def conjugate(self):
         # Make a shallow copy and update array
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(self._data)
         return ret
 
     def transpose(self):
         # Make a shallow copy and update array
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.transpose(self._data)
         ret._op_shape = self._op_shape.transpose()
         return ret
@@ -524,10 +531,12 @@ class Operator(LinearOp):
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         if isinstance(n, int):
             ret._data = np.linalg.matrix_power(self.data, n)
         else:
+            import scipy.linalg
+
             # Experimentally, for fractional powers this seems to be 3x faster than
             # calling scipy.linalg.fractional_matrix_power(self.data, n)
             decomposition, unitary = scipy.linalg.schur(self.data, output="complex")
@@ -549,7 +558,7 @@ class Operator(LinearOp):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a.data, b.data)
         return ret
@@ -584,7 +593,7 @@ class Operator(LinearOp):
         self._op_shape._validate_add(other._op_shape, qargs)
         other = ScalarOp._pad_with_identity(self, other, qargs)
 
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = self.data + other.data
         return ret
 
@@ -602,7 +611,7 @@ class Operator(LinearOp):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = other * self._data
         return ret
 
@@ -642,7 +651,7 @@ class Operator(LinearOp):
         Returns:
             Operator: the operator with reversed subsystem order.
         """
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
         axes = axes + tuple(len(axes) + i for i in axes)
         ret._data = np.reshape(
@@ -751,10 +760,8 @@ class Operator(LinearOp):
                 raise QiskitError(f"Cannot apply Operation: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    'Operation "{}" '
-                    "definition is {} but expected QuantumCircuit.".format(
-                        obj.name, type(obj.definition)
-                    )
+                    f'Operation "{obj.name}" '
+                    f"definition is {type(obj.definition)} but expected QuantumCircuit."
                 )
             if obj.definition.global_phase:
                 dimension = 2**obj.num_qubits

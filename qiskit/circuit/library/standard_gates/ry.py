@@ -20,6 +20,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RYGate(Gate):
@@ -48,6 +49,8 @@ class RYGate(Gate):
                 \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RYGate
 
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
@@ -81,10 +84,10 @@ class RYGate(Gate):
         """Return a (multi-)controlled-RY gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -104,20 +107,30 @@ class RYGate(Gate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted RY gate.
+        r"""Return inverse RY gate.
 
         :math:`RY(\lambda)^{\dagger} = RY(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RYGate` with an inverted parameter value.
+
+        Returns:
+            RYGate: inverse gate.
         """
         return RYGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RYGate(exponent * theta)
 
@@ -185,6 +198,8 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CRYGate
+
     def __init__(
         self,
         theta: ParameterValueType,
@@ -237,11 +252,23 @@ class CRYGate(ControlledGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse CRY gate (i.e. with the negative rotation angle)."""
+        """Return inverse CRY gate (i.e. with the negative rotation angle)
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRYGate` with an inverted parameter value.
+
+        Returns:
+            CRYGate: inverse gate.
+        ."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         sin = math.sin(half_theta)

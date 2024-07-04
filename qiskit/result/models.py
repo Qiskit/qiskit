@@ -66,8 +66,7 @@ class ExperimentResultData:
         string_list = []
         for field in self._data_attributes:
             string_list.append(f"{field}={getattr(self, field)}")
-        out = "ExperimentResultData(%s)" % ", ".join(string_list)
-        return out
+        return f"ExperimentResultData({', '.join(string_list)})"
 
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResultData
@@ -157,25 +156,23 @@ class ExperimentResult:
         self._metadata.update(kwargs)
 
     def __repr__(self):
-        out = "ExperimentResult(shots={}, success={}, meas_level={}, data={}".format(
-            self.shots,
-            self.success,
-            self.meas_level,
-            self.data,
+        out = (
+            f"ExperimentResult(shots={self.shots}, success={self.success},"
+            f" meas_level={self.meas_level}, data={self.data}"
         )
         if hasattr(self, "header"):
-            out += ", header=%s" % self.header
+            out += f", header={self.header}"
         if hasattr(self, "status"):
-            out += ", status=%s" % self.status
+            out += f", status={self.status}"
         if hasattr(self, "seed"):
-            out += ", seed=%s" % self.seed
+            out += f", seed={self.seed}"
         if hasattr(self, "meas_return"):
-            out += ", meas_return=%s" % self.meas_return
-        for key in self._metadata:
-            if isinstance(self._metadata[key], str):
-                value_str = "'%s'" % self._metadata[key]
+            out += f", meas_return={self.meas_return}"
+        for key, value in self._metadata.items():
+            if isinstance(value, str):
+                value_str = f"'{value}'"
             else:
-                value_str = repr(self._metadata[key])
+                value_str = repr(value)
             out += f", {key}={value_str}"
         out += ")"
         return out

@@ -1039,7 +1039,9 @@ def plot_coupling_map(
         graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
+        line_color_map = dict(zip(graph.edge_list(), line_color))
         graph = graph.to_undirected(multigraph=False)
+        line_color = [line_color_map[edge] for edge in graph.edge_list()]
 
     for node in graph.node_indices():
         graph[node] = node
@@ -1122,7 +1124,13 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
-        view (str): Layout view: either 'virtual' or 'physical'.
+        view (str): How to label qubits in the layout. Options:
+
+          - ``"virtual"``: Label each qubit with the index of the virtual qubit that
+            mapped to it.
+          - ``"physical"``: Label each qubit with the index of the physical qubit that it
+            corresponds to on the device.
+
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence must match the number of qubits on the backend. The sequence

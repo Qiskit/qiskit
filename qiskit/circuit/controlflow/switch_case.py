@@ -32,39 +32,25 @@ if TYPE_CHECKING:
 
 
 class _DefaultCaseType:
-    """The type of the default-case singleton.  This is used instead of just having
-    ``CASE_DEFAULT = object()`` so we can set the pretty-printing properties, which are class-level
-    only."""
+    # Note: Sphinx uses the docstring of this singleton class object as the documentation of the
+    # `CASE_DEFAULT` object.
+
+    """A special object that represents the "default" case of a switch statement.  If you use this
+    as a case target, it must be the last case, and will match anything that wasn't already matched.
+    When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as
+    the ``DEFAULT`` attribute of the bound case-builder object."""
 
     def __repr__(self):
         return "<default case>"
 
 
 CASE_DEFAULT = _DefaultCaseType()
-"""A special object that represents the "default" case of a switch statement.  If you use this
-as a case target, it must be the last case, and will match anything that wasn't already matched.
-When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as the
-``DEFAULT`` attribute of the bound case-builder object."""
 
 
 class SwitchCaseOp(ControlFlowOp):
     """A circuit operation that executes one particular circuit block based on matching a given
     ``target`` against an ordered list of ``values``.  The special value :data:`.CASE_DEFAULT` can
     be used to represent a default condition.
-
-    This is the low-level interface for creating a switch-case statement; in general, the circuit
-    method :meth:`.QuantumCircuit.switch` should be used as a context manager to access the
-    builder interface.  At the low level, you must ensure that all the circuit blocks contain equal
-    numbers of qubits and clbits, and that the order the virtual bits of the containing circuit
-    should be bound is the same for all blocks.  This will likely mean that each circuit block is
-    wider than its natural width, as each block must span the union of all the spaces covered by
-    *any* of the blocks.
-
-    Args:
-        target: the runtime value to switch on.
-        cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
-            block that should be executed if this is matched.  There is no fall-through between
-            blocks, and the order matters.
     """
 
     def __init__(
@@ -74,6 +60,13 @@ class SwitchCaseOp(ControlFlowOp):
         *,
         label: Optional[str] = None,
     ):
+        """
+        Args:
+            target: the real-time value to switch on.
+            cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
+                block that should be executed if this is matched.  There is no fall-through between
+                blocks, and the order matters.
+        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
@@ -101,7 +94,7 @@ class SwitchCaseOp(ControlFlowOp):
         it's easier for things like `assign_parameters`, which need to touch each circuit object
         exactly once, to function."""
         self._label_spec: List[Tuple[Union[int, Literal[CASE_DEFAULT]], ...]] = []
-        """List of the normalised jump value specifiers.  This is a list of tuples, where each tuple
+        """List of the normalized jump value specifiers.  This is a list of tuples, where each tuple
         contains the values, and the indexing is the same as the values of `_case_map` and
         `_params`."""
         self._params = []

@@ -31,29 +31,29 @@ def synth_circuit_from_stabilizers(
     invert: bool = False,
 ) -> QuantumCircuit:
     # pylint: disable=line-too-long
-    """Synthesis of a circuit that generates a state stabilized by the stabilziers
+    """Synthesis of a circuit that generates a state stabilized by the stabilizers
     using Gaussian elimination with Clifford gates.
-    If the stabilizers are underconstrained, and `allow_underconstrained` is `True`,
+    If the stabilizers are underconstrained, and ``allow_underconstrained`` is ``True``,
     the circuit will output one of the states stabilized by the stabilizers.
     Based on stim implementation.
 
     Args:
-        stabilizers (Collection[str]): list of stabilizer strings
-        allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+        stabilizers: List of stabilizer strings
+        allow_redundant: Allow redundant stabilizers (i.e., some stabilizers
             can be products of the others)
-        allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+        allow_underconstrained: Allow underconstrained set of stabilizers (i.e.,
             the stabilizers do not specify a unique state)
-        invert (bool): return inverse circuit
+        invert: Return inverse circuit
 
-    Return:
-        QuantumCircuit: a circuit that generates a state stabilized by `stabilizers`.
+    Returns:
+        A circuit that generates a state stabilized by ``stabilizers``.
 
     Raises:
         QiskitError: if the stabilizers are invalid, do not commute, or contradict each other,
-                     if the list is underconstrained and `allow_underconstrained` is `False`,
-                     or if the list is redundant and `allow_redundant` is `False`.
+                     if the list is underconstrained and ``allow_underconstrained`` is ``False``,
+                     or if the list is redundant and ``allow_redundant`` is ``False``.
 
-    Reference:
+    References:
         1. https://github.com/quantumlib/Stim/blob/c0dd0b1c8125b2096cd54b6f72884a459e47fe3e/src/stim/stabilizers/conversions.inl#L469
         2. https://quantumcomputing.stackexchange.com/questions/12721/how-to-calculate-destabilizer-group-of-toric-and-other-codes
 
@@ -68,8 +68,8 @@ def synth_circuit_from_stabilizers(
     circuit = QuantumCircuit(num_qubits)
 
     used = 0
-    for i in range(len(stabilizer_list)):
-        curr_stab = stabilizer_list[i].evolve(Clifford(circuit), frame="s")
+    for i, stabilizer in enumerate(stabilizer_list):
+        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
 
         # Find pivot.
         pivot = used
@@ -81,17 +81,17 @@ def synth_circuit_from_stabilizers(
         if pivot == num_qubits:
             if curr_stab.x.any():
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) anti-commutes with some of "
+                    f"Stabilizer {i} ({stabilizer}) anti-commutes with some of "
                     "the previous stabilizers."
                 )
             if curr_stab.phase == 2:
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) contradicts "
+                    f"Stabilizer {i} ({stabilizer}) contradicts "
                     "some of the previous stabilizers."
                 )
             if curr_stab.z.any() and not allow_redundant:
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) is a product of the others "
+                    f"Stabilizer {i} ({stabilizer}) is a product of the others "
                     "and allow_redundant is False. Add allow_redundant=True "
                     "to the function call if you want to allow redundant stabilizers."
                 )
@@ -133,7 +133,7 @@ def synth_circuit_from_stabilizers(
             circuit.swap(pivot, used)
 
         # fix sign
-        curr_stab = stabilizer_list[i].evolve(Clifford(circuit), frame="s")
+        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
         if curr_stab.phase == 2:
             circuit.x(used)
         used += 1

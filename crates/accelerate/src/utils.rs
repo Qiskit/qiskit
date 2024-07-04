@@ -1,7 +1,18 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2024
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use pyo3::prelude::*;
 
-use faer::prelude::*;
-use faer::IntoFaerComplex;
+use faer_ext::IntoFaerComplex;
 use num_complex::Complex;
 use numpy::{IntoPyArray, PyReadonlyArray2};
 
@@ -26,12 +37,12 @@ pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObj
         .into_iter()
         .map(|x| Complex::<f64>::new(x.re, x.im))
         .collect::<Vec<_>>()
-        .into_pyarray(py)
+        .into_pyarray_bound(py)
         .into()
 }
 
 #[pymodule]
-pub fn utils(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn utils(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
     Ok(())
 }

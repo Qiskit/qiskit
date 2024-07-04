@@ -34,7 +34,7 @@ from qiskit.providers.fake_provider import (
     FakeOpenPulse2Q,
     GenericBackendV2,
 )
-from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.backend_compat import BackendV2Converter, convert_to_target
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.models import GateConfig
@@ -105,7 +105,7 @@ class TestFakeBackends(QiskitTestCase):
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
-            self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.name)
+            self.skipTest(f"Unable to run fake_backend {backend.name} without qiskit-aer")
         job = backend.run(
             transpile(
                 self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
@@ -126,8 +126,7 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
-                "Unable to run fake_backend %s without qiskit-aer"
-                % backend.configuration().backend_name
+                f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
         job = backend.run(
             transpile(
@@ -202,7 +201,7 @@ class TestFakeBackends(QiskitTestCase):
                 self.assertGreater(i, 1e6)
                 self.assertGreater(i, 1e6)
         else:
-            self.skipTest("Backend %s does not have defaults" % backend)
+            self.skipTest(f"Backend {backend} does not have defaults")
 
     def test_delay_circuit(self):
         backend = Fake27QPulseV1()
@@ -709,3 +708,59 @@ class TestFakeBackends(QiskitTestCase):
         tqc = transpile(qc, v2_backend, seed_transpiler=433, optimization_level=opt_level)
         connections = [tuple(sorted(tqc.find_bit(q).index for q in x.qubits)) for x in tqc.data]
         self.assertNotIn((0, 1), connections)
+
+    def test_convert_to_target_control_flow(self):
+        backend = Fake27QPulseV1()
+        properties = backend.properties()
+        configuration = backend.configuration()
+        configuration.supported_instructions = [
+            "cx",
+            "id",
+            "delay",
+            "measure",
+            "reset",
+            "rz",
+            "sx",
+            "x",
+            "if_else",
+            "for_loop",
+            "switch_case",
+        ]
+        defaults = backend.defaults()
+        target = convert_to_target(configuration, properties, defaults)
+        self.assertTrue(target.instruction_supported("if_else", ()))
+        self.assertFalse(target.instruction_supported("while_loop", ()))
+        self.assertTrue(target.instruction_supported("for_loop", ()))
+        self.assertTrue(target.instruction_supported("switch_case", ()))
+
+    def test_convert_unrelated_supported_instructions(self):
+        backend = Fake27QPulseV1()
+        properties = backend.properties()
+        configuration = backend.configuration()
+        configuration.supported_instructions = [
+            "cx",
+            "id",
+            "delay",
+            "measure",
+            "reset",
+            "rz",
+            "sx",
+            "x",
+            "play",
+            "u2",
+            "u3",
+            "u1",
+            "shiftf",
+            "acquire",
+            "setf",
+            "if_else",
+            "for_loop",
+            "switch_case",
+        ]
+        defaults = backend.defaults()
+        target = convert_to_target(configuration, properties, defaults)
+        self.assertTrue(target.instruction_supported("if_else", ()))
+        self.assertFalse(target.instruction_supported("while_loop", ()))
+        self.assertTrue(target.instruction_supported("for_loop", ()))
+        self.assertTrue(target.instruction_supported("switch_case", ()))
+        self.assertFalse(target.instruction_supported("u3", (0,)))

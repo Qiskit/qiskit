@@ -17,7 +17,14 @@ import unittest
 import numpy as np
 
 from qiskit import ClassicalRegister
-from qiskit.circuit import QuantumRegister, Parameter, Qubit
+from qiskit.circuit import (
+    QuantumRegister,
+    Parameter,
+    Qubit,
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+)
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 
 from qiskit.circuit.library import (
@@ -31,6 +38,8 @@ from qiskit.circuit.library import (
     Barrier,
     Reset,
     LinearFunction,
+    SGate,
+    RXXGate,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -383,6 +392,40 @@ class TestCommutationChecker(QiskitTestCase):
         # These commute.
         res = scc.commute(lf3, [0, 1, 2], [], lf4, [0, 1, 2], [])
         self.assertTrue(res)
+
+    def test_equal_annotated_operations_commute(self):
+        """Check commutativity involving the same annotated operation."""
+        op1 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(1)])
+        op2 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(1)])
+        # the same, so true
+        self.assertTrue(scc.commute(op1, [0, 1], [], op2, [0, 1], []))
+
+    def test_annotated_operations_commute_with_unannotated(self):
+        """Check commutativity involving annotated operations and unannotated operations."""
+        op1 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(1)])
+        op2 = AnnotatedOperation(ZGate(), [InverseModifier()])
+        op3 = ZGate()
+        # all true
+        self.assertTrue(scc.commute(op1, [0, 1], [], op2, [1], []))
+        self.assertTrue(scc.commute(op1, [0, 1], [], op3, [1], []))
+        self.assertTrue(scc.commute(op2, [1], [], op3, [1], []))
+
+    def test_utf8_gate_names(self):
+        """Check compatibility of non-ascii quantum gate names."""
+        g0 = RXXGate(1.234).to_mutable()
+        g0.name = "すみません"
+
+        g1 = RXXGate(2.234).to_mutable()
+        g1.name = "ok_0"
+
+        self.assertTrue(scc.commute(g0, [0, 1], [], g1, [1, 0], []))
+
+    def test_annotated_operations_no_commute(self):
+        """Check non-commutativity involving annotated operations."""
+        op1 = AnnotatedOperation(XGate(), [InverseModifier(), ControlModifier(1)])
+        op2 = AnnotatedOperation(XGate(), [InverseModifier()])
+        # false
+        self.assertFalse(scc.commute(op1, [0, 1], [], op2, [0], []))
 
     def test_c7x_gate(self):
         """Test wide gate works correctly."""

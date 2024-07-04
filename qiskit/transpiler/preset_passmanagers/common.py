@@ -86,9 +86,12 @@ class _InvalidControlFlowForBackend:
     def __init__(self, basis_gates=(), target=None):
         if target is not None:
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
-        else:
-            basis_gates = set(basis_gates) if basis_gates is not None else set()
+        elif basis_gates is not None:
+            basis_gates = set(basis_gates)
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
+        else:
+            # Pass manager without basis gates or target; assume everything's valid.
+            self.unsupported = []
 
     def message(self, property_set):
         """Create an error message for the given property set."""
@@ -515,7 +518,7 @@ def generate_translation_passmanager(
             ),
         ]
     else:
-        raise TranspilerError("Invalid translation method %s." % method)
+        raise TranspilerError(f"Invalid translation method {method}.")
     return PassManager(unroll)
 
 
@@ -554,7 +557,7 @@ def generate_scheduling(
         try:
             scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
+            raise TranspilerError(f"Invalid scheduling method {scheduling_method}.") from ex
     elif instruction_durations:
         # No scheduling. But do unit conversion for delays.
         def _contains_delay(property_set):
@@ -581,6 +584,7 @@ def generate_scheduling(
             InstructionDurationCheck(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
+                target=target,
             )
         )
         scheduling.append(
@@ -588,6 +592,7 @@ def generate_scheduling(
                 ConstrainedReschedule(
                     acquire_alignment=timing_constraints.acquire_alignment,
                     pulse_alignment=timing_constraints.pulse_alignment,
+                    target=target,
                 ),
                 condition=_require_alignment,
             )
@@ -596,6 +601,7 @@ def generate_scheduling(
             ValidatePulseGates(
                 granularity=timing_constraints.granularity,
                 min_length=timing_constraints.min_length,
+                target=target,
             )
         )
     if scheduling_method:
@@ -621,15 +627,10 @@ def get_vf2_limits(
     """
     limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
-        if optimization_level == 1:
+        if optimization_level in {1, 2}:
             limits = VF2Limits(
                 int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
                 2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
-            )
-        elif optimization_level == 2:
-            limits = VF2Limits(
-                int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
-                25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(

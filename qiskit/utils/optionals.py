@@ -13,8 +13,8 @@
 """
 .. currentmodule:: qiskit.utils.optionals
 
-Qiskit has several features that are enabled only
-if certain *optional* dependencies are satisfied.  This module is a collection of objects that can
+Qiskit has several features that are enabled only if certain *optional* dependencies
+are satisfied. This module, :mod:`qiskit.utils.optionals`, has a collection of objects that can
 be used to test if certain functionality is available, and optionally raise
 :class:`.MissingOptionalLibraryError` if the functionality is not available.
 
@@ -29,7 +29,7 @@ Qiskit Components
     :widths: 25 75
 
     * - .. py:data:: HAS_AER
-      - `Qiskit Aer <https://qiskit.org/ecosystem/aer/>` provides high-performance simulators for
+      - `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>` provides high-performance simulators for
         the quantum circuits constructed within Qiskit.
 
     * - .. py:data:: HAS_IBMQ
@@ -52,7 +52,7 @@ External Python Libraries
     :widths: 25 75
 
     * - .. py:data:: HAS_CONSTRAINT
-      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
+      - `python-constraint <https://github.com/python-constraint/python-constraint>`__ is a
         constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
 
     * - .. py:data:: HAS_CPLEX
@@ -79,7 +79,7 @@ External Python Libraries
 
     * - .. py:data:: HAS_IPYTHON
       - If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
-        visualisations and line magics are made available.
+        visualizations and line magics are made available.
 
     * - .. py:data:: HAS_IPYWIDGETS
       - Monitoring widgets for jobs running on external backends can be provided if `ipywidgets
@@ -94,7 +94,7 @@ External Python Libraries
         interactivity features.
 
     * - .. py:data:: HAS_MATPLOTLIB
-      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.
+      - Qiskit provides several visualization tools in the :mod:`.visualization` module.
         Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
         be installed in order to use them.
 
@@ -103,7 +103,7 @@ External Python Libraries
         <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
         change-over period, it was sometimes convenient to convert things into the Python-only
         `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
-        `Qiskit Nature <https://qiskit.org/ecosystem/nature/>`__ still use NetworkX.
+        `Qiskit Nature <https://qiskit-community.github.io/qiskit-nature/>`__ still use NetworkX.
 
     * - .. py:data:: HAS_NLOPT
       - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
@@ -116,7 +116,7 @@ External Python Libraries
         :class:`.DAGCircuit` in certain modes.
 
     * - .. py:data:: HAS_PYDOT
-      - For some graph visualisations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
+      - For some graph visualizations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
         interface to GraphViz (see :data:`HAS_GRAPHVIZ`).
 
     * - .. py:data:: HAS_PYGMENTS
@@ -134,7 +134,7 @@ External Python Libraries
         <https://qiskit.github.io/qiskit-qasm3-import>`__.
 
     * - .. py:data:: HAS_SEABORN
-      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.  Some
+      - Qiskit provides several visualization tools in the :mod:`.visualization` module.  Some
         of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
         in order to use them.
 
@@ -179,16 +179,16 @@ External Command-Line Tools
     :widths: 25 75
 
     * - .. py:data:: HAS_GRAPHVIZ
-      - For some graph visualisations, Qiskit uses the `GraphViz <https://graphviz.org/>`__
-        visualisation tool via its ``pydot`` interface (see :data:`HAS_PYDOT`).
+      - For some graph visualizations, Qiskit uses the `GraphViz <https://graphviz.org/>`__
+        visualization tool via its ``pydot`` interface (see :data:`HAS_PYDOT`).
 
     * - .. py:data:: HAS_PDFLATEX
-      - Visualisation tools that use LaTeX in their output, such as the circuit drawers, require
+      - Visualization tools that use LaTeX in their output, such as the circuit drawers, require
         ``pdflatex`` to be available.  You will generally need to ensure that you have a working
         LaTeX installation available, and the ``qcircuit.tex`` package.
 
     * - .. py:data:: HAS_PDFTOCAIRO
-      - Visualisation tools that convert LaTeX-generated files into rasterised images use the
+      - Visualization tools that convert LaTeX-generated files into rasterized images use the
         ``pdftocairo`` tool.  This is part of the `Poppler suite of PDF tools
         <https://poppler.freedesktop.org/>`__.
 
@@ -307,8 +307,12 @@ HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(
     ("dot", "-V"),
-    name="graphviz",
-    install="'brew install graphviz' if on Mac, or by downloding it from their website",
+    name="Graphviz",
+    msg=(
+        "To install, follow the instructions at https://graphviz.org/download/."
+        " Qiskit needs the Graphviz binaries, which the 'graphviz' package on pip does not install."
+        " You must install the actual Graphviz software"
+    ),
 )
 HAS_PDFLATEX = _LazySubprocessTester(
     ("pdflatex", "-version"),
