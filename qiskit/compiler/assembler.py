@@ -227,26 +227,23 @@ def _assemble(
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
-    with warnings.catch_warnings():
-        # The Qobj is deprecated
-        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-        qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
-            backend,
-            qobj_id,
-            qobj_header,
-            shots,
-            memory,
-            seed_simulator,
-            init_qubits,
-            rep_delay,
-            qubit_lo_freq,
-            meas_lo_freq,
-            qubit_lo_range,
-            meas_lo_range,
-            schedule_los,
-            pulse_qobj=pulse_qobj,
-            **run_config,
-        )
+    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+        backend,
+        qobj_id,
+        qobj_header,
+        shots,
+        memory,
+        seed_simulator,
+        init_qubits,
+        rep_delay,
+        qubit_lo_freq,
+        meas_lo_freq,
+        qubit_lo_range,
+        meas_lo_range,
+        schedule_los,
+        pulse_qobj=pulse_qobj,
+        **run_config,
+    )
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -265,12 +262,16 @@ def _assemble(
         )
         end_time = time()
         _log_assembly_time(start_time, end_time)
-        return _assemble_circuits(
-            circuits=bound_experiments,
-            qobj_id=qobj_id,
-            qobj_header=qobj_header,
-            run_config=run_config,
-        )
+        with warnings.catch_warnings():
+            # The Qobj is deprecated
+            # warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return _assemble_circuits(
+                circuits=bound_experiments,
+                qobj_id=qobj_id,
+                qobj_header=qobj_header,
+                run_config=run_config,
+            )
 
     elif all(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments):
         run_config = _parse_pulse_args(
