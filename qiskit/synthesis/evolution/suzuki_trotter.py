@@ -100,32 +100,13 @@ class SuzukiTrotter(ProductFormula):
 
         # construct the evolution circuit
         single_rep = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
 
-        for op, coeff in ops_to_evolve:
-            # add barriers
-            if first_barrier:
-                if self.insert_barriers:
-                    single_rep.barrier()
-            else:
-                first_barrier = True
-
+        for i, (op, coeff) in enumerate(ops_to_evolve):
             self.atomic_evolution(single_rep, op, coeff)
+            if self.insert_barriers and i != len(ops_to_evolve) - 1:
+                single_rep.barrier()
 
-        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
-
-        for _ in range(self.reps):
-            # add barriers
-            if first_barrier:
-                if self.insert_barriers:
-                    single_rep.barrier()
-            else:
-                first_barrier = True
-
-            evolution_circuit.compose(single_rep, inplace=True)
-
-        return evolution_circuit
+        return single_rep.repeat(self.reps, insert_barriers=True).decompose()
 
     @staticmethod
     def _recurse(order, time, pauli_list):

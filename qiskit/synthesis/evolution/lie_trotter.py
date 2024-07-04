@@ -80,7 +80,7 @@ class LieTrotter(ProductFormula):
         time = evolution.time
 
         # construct the evolution circuit
-        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
+        single_rep = QuantumCircuit(operators[0].num_qubits)
 
         if not isinstance(operators, list):
             pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
@@ -88,11 +88,11 @@ class LieTrotter(ProductFormula):
             pauli_list = [(op, 1) for op in operators]
 
         for i, (op, coeff) in enumerate(pauli_list):
-            self.atomic_evolution(evolution_circuit, op, coeff * time / self.reps)
+            self.atomic_evolution(single_rep, op, coeff * time / self.reps)
             if self.insert_barriers and i != len(pauli_list) - 1:
-                evolution_circuit.barrier()
+                single_rep.barrier()
 
-        return evolution_circuit.repeat(self.reps, insert_barriers=True).decompose()
+        return single_rep.repeat(self.reps, insert_barriers=True).decompose()
 
     @property
     def settings(self) -> dict[str, Any]:
