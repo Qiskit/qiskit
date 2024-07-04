@@ -22,7 +22,6 @@ features_circuits:
     the selected qubit-pair.
     :code:`prob_conditional` A float value less than 1.0, this is used to control the occurence of conditionals 
     in the circuit.
-    :code:`rel_diff` A variable to control the size of circuit generated.
 
     This is an example where 'cp_map' is a list of edges for a "Directed Heavy Hex Graph" with some arbitrary weights.
 

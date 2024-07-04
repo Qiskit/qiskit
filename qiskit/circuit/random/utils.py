@@ -98,7 +98,6 @@ def random_circuit_from_graph(
     seed=None,
     insert_1q_oper=False,
     prob_conditional: float = 0.1,
-    rel_diff: float = 0.80,
 ):
     """Generate random circuit of arbitrary size and form which strictly respect the interaction
     graph passed as argument. Interaction Graph is a graph G=(V, E) where V are the qubits in the
@@ -164,7 +163,6 @@ def random_circuit_from_graph(
         insert_1q_oper (bool): Insert 1Q operations to the circuit. (optional, default: False)
         prob_conditional (float): Probability less than 1.0, this is used to control the
         occurence of conditionals in the circuit. (optional, default: 0.1)
-        rel_diff (float): A variable to control the size of circuit generated.
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -250,19 +248,6 @@ def random_circuit_from_graph(
         for prob in edges_probs:
             if prob < 0:
                 raise ValueError("The probability should be positive")
-
-    # If relative-difference post normalization of the edge weights cross a certain
-    # threshold, raises an error, and let the user decide how to chage the edge weights of
-    # the interaction graph. This step is to make sure the size of the circuit doesn't
-    # blow beyond a certain huge size/ or beyond a moderate size, let the user decide.
-    # argument: `rel_diff` is a float number between 0 and 0.99, which user can provide
-    # to tune the size of the output circuit.
-    if (np.max(edges_probs) - np.min(edges_probs)) > rel_diff:
-        raise CircuitError(
-            "The relative difference between the maximum/minimum probability"
-            " has crossed the `rel_diff` please tune the edges weights or"
-            " change the `rel_diff` argument to a higher threshold."
-        )
 
     edge_list = list(pydi_graph.edge_list())
 
