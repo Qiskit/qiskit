@@ -666,7 +666,7 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class QftSynthesisFull(HighLevelSynthesisPlugin):
+class QFTSynthesisFull(HighLevelSynthesisPlugin):
     """Synthesis plugin for QFT gates using all-to-all connectivity.
 
     This plugin name is :``qft.full`` which can be used as the key on
@@ -713,7 +713,7 @@ class QftSynthesisFull(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class QftSynthesisLine(HighLevelSynthesisPlugin):
+class QFTSynthesisLine(HighLevelSynthesisPlugin):
     """Synthesis plugin for QFT gates using linear connectivity.
 
     This plugin name is :``qft.line`` which can be used as the key on

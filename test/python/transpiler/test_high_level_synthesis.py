@@ -1845,7 +1845,7 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
 
 
 @ddt
-class TestQftSynthesisPlugins(QiskitTestCase):
+class TestQFTSynthesisPlugins(QiskitTestCase):
     """Tests related to plugins for QFTGate."""
 
     def test_supported_names(self):
@@ -1855,7 +1855,7 @@ class TestQftSynthesisPlugins(QiskitTestCase):
 
     @data("line", "full")
     def test_qft_plugins_qft(self, qft_plugin_name):
-        """Test QftSynthesisLine plugin for circuits with QFTGates."""
+        """Test QFTSynthesisLine plugin for circuits with QFTGates."""
         qc = QuantumCircuit(4)
         qc.append(QFTGate(3), [0, 1, 2])
         qc.cx(1, 3)
@@ -1869,7 +1869,7 @@ class TestQftSynthesisPlugins(QiskitTestCase):
 
     @data("line", "full")
     def test_qft_line_plugin_annotated_qft(self, qft_plugin_name):
-        """Test QftSynthesisLine plugin for circuits with annotated QFTGates."""
+        """Test QFTSynthesisLine plugin for circuits with annotated QFTGates."""
         qc = QuantumCircuit(4)
         qc.append(QFTGate(3).inverse(annotated=True).control(annotated=True), [0, 1, 2, 3])
         hls_config = HLSConfig(qft=[qft_plugin_name])
