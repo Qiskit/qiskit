@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional, Union, Any, Dict
+from collections.abc import Callable
+from typing import Any
 from functools import partial
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -36,9 +37,7 @@ class ProductFormula(EvolutionSynthesis):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
+        atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
     ) -> None:
         """
         Args:
@@ -68,7 +67,7 @@ class ProductFormula(EvolutionSynthesis):
         self.atomic_evolution = atomic_evolution
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:
@@ -92,9 +91,9 @@ class ProductFormula(EvolutionSynthesis):
 
 def evolve_pauli(
     pauli: Pauli,
-    time: Union[float, ParameterExpression] = 1.0,
+    time: float | ParameterExpression = 1.0,
     cx_structure: str = "chain",
-    label: Optional[str] = None,
+    label: str | None = None,
     output: QuantumCircuit | None = None,
 ) -> QuantumCircuit | None:
     r"""Construct a circuit implementing the time evolution of a single Pauli string.

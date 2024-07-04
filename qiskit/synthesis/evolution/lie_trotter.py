@@ -12,7 +12,10 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import Callable, Optional, Union, Dict, Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -52,9 +55,7 @@ class LieTrotter(ProductFormula):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
+        atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
     ) -> None:
         """
         Args:
@@ -95,7 +96,7 @@ class LieTrotter(ProductFormula):
         return evolution_circuit.repeat(self.reps).decompose()
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:

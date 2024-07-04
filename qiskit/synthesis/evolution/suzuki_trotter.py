@@ -12,7 +12,9 @@
 
 """The Suzuki-Trotter product formula."""
 
-from typing import Callable, Optional, Union
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import numpy as np
 
@@ -57,9 +59,7 @@ class SuzukiTrotter(ProductFormula):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
+        atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
     ) -> None:
         """
         Args:

@@ -12,8 +12,10 @@
 
 """QDrift Class"""
 
+from __future__ import annotations
+
 import math
-from typing import Union, Optional, Callable
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -37,10 +39,8 @@ class QDrift(ProductFormula):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
-        seed: Optional[int] = None,
+        atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
+        seed: int | None = None,
     ) -> None:
         r"""
         Args:
