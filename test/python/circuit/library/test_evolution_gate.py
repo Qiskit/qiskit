@@ -130,7 +130,7 @@ class TestEvolutionGate(QiskitTestCase):
             expected.ry(2 * p_4 * time, 0)
             expected.rx(p_4 * time, 0)
 
-        self.assertEqual(evo_gate.definition.decompose(), expected)
+        self.assertEqual(evo_gate.definition, expected)
 
     @data(
         (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),
@@ -179,7 +179,7 @@ class TestEvolutionGate(QiskitTestCase):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
         evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
-        decomposed = evo_gate.definition.decompose()
+        decomposed = evo_gate.definition
         self.assertEqual(decomposed.count_ops()["rz"], 4)
         self.assertEqual(decomposed.count_ops()["rzz"], 1)
         self.assertEqual(decomposed.count_ops()["rxx"], 1)

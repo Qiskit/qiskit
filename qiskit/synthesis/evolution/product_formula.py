@@ -37,7 +37,11 @@ class ProductFormula(EvolutionSynthesis):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
+        atomic_evolution: (
+            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
+            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
+            | None
+        ) = None,
     ) -> None:
         """
         Args:
@@ -90,12 +94,12 @@ class ProductFormula(EvolutionSynthesis):
 
 
 def evolve_pauli(
+    output: QuantumCircuit,
     pauli: Pauli,
     time: float | ParameterExpression = 1.0,
     cx_structure: str = "chain",
     label: str | None = None,
-    output: QuantumCircuit | None = None,
-) -> QuantumCircuit | None:
+) -> None:
     r"""Construct a circuit implementing the time evolution of a single Pauli string.
 
     For a Pauli string :math:`P = \{I, X, Y, Z\}^{\otimes n}` on :math:`n` qubits and an
@@ -108,65 +112,43 @@ def evolve_pauli(
     Since only a single Pauli string is evolved the circuit decomposition is exact.
 
     Args:
+        output: The circuit object to which to append the evolved Pauli.
         pauli: The Pauli to evolve.
         time: The evolution time.
         cx_structure: Determine the structure of CX gates, can be either ``"chain"`` for
             next-neighbor connections or ``"fountain"`` to connect directly to the top qubit.
         label: A label for the gate.
-        output: An optional existing circuit to which to append the evolved Pauli. When a circuit is
-            provided, ``None`` will be returned.
-
-    Returns:
-        A quantum circuit implementing the time evolution of the Pauli. If ``output is not None``
-        then ``None`` will be returned since the evolved Pauli will have been appended to the
-        ``output`` circuit.
     """
     num_non_identity = len([label for label in pauli.to_label() if label != "I"])
 
     # first check, if the Pauli is only the identity, in which case the evolution only
     # adds a global phase
     if num_non_identity == 0:
-        if output is None:
-            definition = QuantumCircuit(pauli.num_qubits, global_phase=-time)
-        else:
-            output.global_phase -= time
+        output.global_phase -= time
     # if we evolve on a single qubit, if yes use the corresponding qubit rotation
     elif num_non_identity == 1:
-        definition = _single_qubit_evolution(pauli, time, output)
+        _single_qubit_evolution(output, pauli, time)
     # same for two qubits, use Qiskit's native rotations
     elif num_non_identity == 2:
-        definition = _two_qubit_evolution(pauli, time, cx_structure, output)
+        _two_qubit_evolution(output, pauli, time, cx_structure)
     # otherwise do basis transformation and CX chains
     else:
-        definition = _multi_qubit_evolution(pauli, time, cx_structure, output)
-
-    if output is not None:
-        return None
-
-    definition.name = f"exp(it {pauli.to_label()})"
-
-    return definition
+        _multi_qubit_evolution(output, pauli, time, cx_structure)
 
 
-def _single_qubit_evolution(pauli, time, output):
-    if output is None:
-        dest = QuantumCircuit(pauli.num_qubits)
-    else:
-        dest = output
+def _single_qubit_evolution(output, pauli, time):
     # Note that all phases are removed from the pauli label and are only in the coefficients.
     # That's because the operators we evolved have all been translated to a SparsePauliOp.
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i == "X":
-            dest.rx(2 * time, i)
+            output.rx(2 * time, i)
         elif pauli_i == "Y":
-            dest.ry(2 * time, i)
+            output.ry(2 * time, i)
         elif pauli_i == "Z":
-            dest.rz(2 * time, i)
-
-    return dest if output is None else None
+            output.rz(2 * time, i)
 
 
-def _two_qubit_evolution(pauli, time, cx_structure, output):
+def _two_qubit_evolution(output, pauli, time, cx_structure):
     # Get the Paulis and the qubits they act on.
     # Note that all phases are removed from the pauli label and are only in the coefficients.
     # That's because the operators we evolved have all been translated to a SparsePauliOp.
@@ -174,29 +156,22 @@ def _two_qubit_evolution(pauli, time, cx_structure, output):
     qubits = np.where(labels_as_array != "I")[0]
     labels = np.array([labels_as_array[idx] for idx in qubits])
 
-    if output is None:
-        dest = QuantumCircuit(pauli.num_qubits)
-    else:
-        dest = output
-
     # go through all cases we have implemented in Qiskit
     if all(labels == "X"):  # RXX
-        dest.rxx(2 * time, qubits[0], qubits[1])
+        output.rxx(2 * time, qubits[0], qubits[1])
     elif all(labels == "Y"):  # RYY
-        dest.ryy(2 * time, qubits[0], qubits[1])
+        output.ryy(2 * time, qubits[0], qubits[1])
     elif all(labels == "Z"):  # RZZ
-        dest.rzz(2 * time, qubits[0], qubits[1])
+        output.rzz(2 * time, qubits[0], qubits[1])
     elif labels[0] == "Z" and labels[1] == "X":  # RZX
-        dest.rzx(2 * time, qubits[0], qubits[1])
+        output.rzx(2 * time, qubits[0], qubits[1])
     elif labels[0] == "X" and labels[1] == "Z":  # RXZ
-        dest.rzx(2 * time, qubits[1], qubits[0])
+        output.rzx(2 * time, qubits[1], qubits[0])
     else:  # all the others are not native in Qiskit, so use default the decomposition
-        dest = _multi_qubit_evolution(pauli, time, cx_structure, output)
-
-    return dest if output is None else None
+        _multi_qubit_evolution(output, pauli, time, cx_structure)
 
 
-def _multi_qubit_evolution(pauli, time, cx_structure, output):
+def _multi_qubit_evolution(output, pauli, time, cx_structure):
     # get diagonalizing clifford
     cliff = diagonalizing_clifford(pauli)
 
@@ -216,17 +191,11 @@ def _multi_qubit_evolution(pauli, time, cx_structure, output):
             break
 
     # build the evolution as: diagonalization, reduction, 1q evolution, followed by inverses
-    if output is None:
-        dest = QuantumCircuit(pauli.num_qubits)
-    else:
-        dest = output
-    dest.compose(cliff, inplace=True)
-    dest.compose(chain, inplace=True)
-    dest.rz(2 * time, target)
-    dest.compose(chain.inverse(), inplace=True)
-    dest.compose(cliff.inverse(), inplace=True)
-
-    return dest if output is None else None
+    output.compose(cliff, inplace=True)
+    output.compose(chain, inplace=True)
+    output.rz(2 * time, target)
+    output.compose(chain.inverse(), inplace=True)
+    output.compose(cliff.inverse(), inplace=True)
 
 
 def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
@@ -334,16 +303,12 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
     return chain
 
 
-def _default_atomic_evolution(operator, time, cx_structure):
+def _default_atomic_evolution(output, operator, time, cx_structure):
     if isinstance(operator, Pauli):
         # single Pauli operator: just exponentiate it
-        evolution_circuit = evolve_pauli(operator, time, cx_structure)
+        evolve_pauli(output, operator, time, cx_structure)
     else:
         # sum of Pauli operators: exponentiate each term (this assumes they commute)
         pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
-        name = f"exp(it {[pauli.to_label() for pauli, _ in pauli_list]})"
-        evolution_circuit = QuantumCircuit(operator.num_qubits, name=name)
         for pauli, coeff in pauli_list:
-            evolve_pauli(pauli, coeff * time, cx_structure, output=evolution_circuit)
-
-    return evolution_circuit
+            evolve_pauli(output, pauli, coeff * time, cx_structure)

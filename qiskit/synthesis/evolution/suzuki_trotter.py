@@ -107,7 +107,7 @@ class SuzukiTrotter(ProductFormula):
             else:
                 first_barrier = True
 
-            single_rep.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
+            self.atomic_evolution(single_rep, op, coeff)
 
         evolution_circuit = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
