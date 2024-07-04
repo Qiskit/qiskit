@@ -196,6 +196,7 @@ set the amount of qubits involved at instantiation time.
    UCRXGate
    UCRYGate
    UCRZGate
+   QftGate
 
 Boolean Logic Circuits
 ======================
@@ -514,6 +515,7 @@ from .generalized_gates import (
     UCRXGate,
     UCRYGate,
     UCRZGate,
+    QftGate,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate

@@ -460,6 +460,12 @@ impl CircuitInstruction {
             .and_then(|attrs| attrs.unit.as_deref())
     }
 
+    pub fn is_parameterized(&self) -> bool {
+        self.params
+            .iter()
+            .any(|x| matches!(x, Param::ParameterExpression(_)))
+    }
+
     /// Creates a shallow copy with the given fields replaced.
     ///
     /// Returns:

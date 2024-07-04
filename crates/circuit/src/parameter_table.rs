@@ -153,8 +153,8 @@ impl ParamTable {
         self.uuid_map.clear();
     }
 
-    pub fn pop(&mut self, key: u128, name: String) -> Option<ParamEntry> {
-        self.names.remove(&name);
+    pub fn pop(&mut self, key: u128, name: &str) -> Option<ParamEntry> {
+        self.names.remove(name);
         self.uuid_map.remove(&key);
         self.table.remove(&key)
     }

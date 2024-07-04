@@ -157,6 +157,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
+from qiskit.circuit.library import QftGate
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -175,6 +176,10 @@ from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
     synth_permutation_depth_lnn_kms,
+)
+from qiskit.synthesis.qft import (
+    synth_qft_full,
+    synth_qft_line,
 )
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
@@ -887,6 +892,90 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class QftSynthesisFull(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using all-to-all connectivity.
+
+    This plugin name is :``qft.full`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * do_swaps (bool): Whether to include Swap gates at the end of the synthesized
+        circuit. Some implementation of the ``QftGate`` include a layer of Swap gates
+        at the end of the synthesized circuit, which cna in principle be dropped if
+        the ``QftGate`` itself is the last gate in the circuit.
+    * approximation_degree (int): The degree of approximation (0 for no approximation).
+        It is impossible ti implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle is beneath a threshold. This is discussed
+        in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+        https://arxiv.org/abs/quant-ph/0403071.
+    * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
+    * inverse (bool): If True, the inverse Fourier transform is constructed.
+    * name (str): The name of the circuit.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QftGate."""
+        if not isinstance(high_level_object, QftGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.full` only applies to objects of type QftGate."
+            )
+
+        do_swaps = options.get("do_swaps", True)
+        approximation_degree = options.get("approximation_degree", 0)
+        insert_barriers = options.get("insert_barriers", False)
+        inverse = options.get("inverse", False)
+        name = options.get("name", None)
+
+        decomposition = synth_qft_full(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=do_swaps,
+            approximation_degree=approximation_degree,
+            insert_barriers=insert_barriers,
+            inverse=inverse,
+            name=name,
+        )
+        return decomposition
+
+
+class QftSynthesisLine(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using linear connectivity.
+
+    This plugin name is :``qft.line`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * do_swaps (bool): whether to include Swap gates at the end of the synthesized
+        circuit. Some implementation of the ``QftGate`` include a layer of Swap gates
+        at the end of the synthesized circuit, which cna in principle be dropped if
+        the ``QftGate`` itself is the last gate in the circuit.
+    * approximation_degree (int): the degree of approximation (0 for no approximation).
+        It is impossible ti implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle is beneath a threshold. This is discussed
+        in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+        https://arxiv.org/abs/quant-ph/0403071.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QftGate."""
+        if not isinstance(high_level_object, QftGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.line` only applies to objects of type QftGate."
+            )
+
+        do_swaps = options.get("do_swaps", True)
+        approximation_degree = options.get("approximation_degree", 0)
+
+        decomposition = synth_qft_line(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=do_swaps,
+            approximation_degree=approximation_degree,
+        )
+        return decomposition
+
+
 class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
     """The permutation synthesis plugin based on the token swapper algorithm.
 
@@ -917,7 +1006,6 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     For more details on the token swapper algorithm, see to the paper:
     `arXiv:1902.09102 <https://arxiv.org/abs/1902.09102>`__.
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
