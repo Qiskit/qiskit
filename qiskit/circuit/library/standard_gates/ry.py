@@ -198,6 +198,8 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CRYGate
+
     def __init__(
         self,
         theta: ParameterValueType,

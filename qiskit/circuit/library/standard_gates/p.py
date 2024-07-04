@@ -200,6 +200,8 @@ class CPhaseGate(ControlledGate):
         phase difference.
     """
 
+    _standard_gate = StandardGate.CPhaseGate
+
     def __init__(
         self,
         theta: ParameterValueType,
