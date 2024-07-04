@@ -92,7 +92,7 @@ class LieTrotter(ProductFormula):
             if self.insert_barriers and i != len(pauli_list) - 1:
                 evolution_circuit.barrier()
 
-        return evolution_circuit.repeat(self.reps).decompose()
+        return evolution_circuit.repeat(self.reps, insert_barriers=True).decompose()
 
     @property
     def settings(self) -> dict[str, Any]:

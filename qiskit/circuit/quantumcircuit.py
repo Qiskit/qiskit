@@ -1596,11 +1596,12 @@ class QuantumCircuit:
             )
         return inverse_circ
 
-    def repeat(self, reps: int) -> "QuantumCircuit":
+    def repeat(self, reps: int, *, insert_barriers: bool = False) -> "QuantumCircuit":
         """Repeat this circuit ``reps`` times.
 
         Args:
             reps (int): How often this circuit should be repeated.
+            insert_barriers (bool): Whether to include barriers between circuit repetitions.
 
         Returns:
             QuantumCircuit: A circuit containing ``reps`` repetitions of this circuit.
@@ -1616,8 +1617,10 @@ class QuantumCircuit:
                 inst: Instruction = self.to_gate()
             except QiskitError:
                 inst = self.to_instruction()
-            for _ in range(reps):
+            for i in range(reps):
                 repeated_circ._append(inst, self.qubits, self.clbits)
+                if insert_barriers and i != reps - 1:
+                    repeated_circ.barrier()
 
         return repeated_circ
 
