@@ -41,17 +41,10 @@ class QFTGate(Gate):
 
     def __array__(self, dtype=complex):
         """Return a numpy array for the QFTGate."""
-        num_qubits = self.num_qubits
-        mat = np.empty((2**num_qubits, 2**num_qubits), dtype=dtype)
-        for i in range(2**num_qubits):
-            i_index = int(bin(i)[2:].zfill(num_qubits), 2)
-            for j in range(i, 2**num_qubits):
-                entry = np.exp(2 * np.pi * 1j * i * j / 2**num_qubits) / 2 ** (num_qubits / 2)
-                j_index = int(bin(j)[2:].zfill(num_qubits), 2)
-                mat[i_index, j_index] = entry
-                if i != j:
-                    mat[j_index, i_index] = entry
-        return mat
+        n = self.num_qubits
+        nums = np.arange(2**n)
+        outer = np.outer(nums, nums)
+        return np.exp(2j * np.pi * outer * (0.5**n), dtype=dtype) * (0.5 ** (n / 2))
 
     def _basic_decomposition(self):
         """Provide a specific decomposition of the QFT gate into a quantum circuit.
