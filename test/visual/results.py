@@ -83,30 +83,30 @@ class Results:
     @staticmethod
     def passed_result_html(result, reference, diff, title):
         """Creates the html for passing tests"""
-        ret = '<details><summary style="background-color:lightgreen;"> %s </summary>' % title
+        ret = f'<details><summary style="background-color:lightgreen;"> {title} </summary>'
         ret += "<table>"
-        ret += '<tr><td><img src="%s"</td>' % result
-        ret += '<td><img src="%s"</td>' % reference
-        ret += '<td><img src="%s"</td>' % diff
+        ret += f'<tr><td><img src="{result}"</td>'
+        ret += f'<td><img src="{reference}"</td>'
+        ret += f'<td><img src="{diff}"</td>'
         ret += "</tr></table></details>"
         return ret
 
     @staticmethod
     def failed_result_html(result, reference, diff, title):
         """Creates the html for failing tests"""
-        ret = '<details open><summary style="background-color:lightcoral;"> %s </summary>' % title
+        ret = f'<details open><summary style="background-color:lightcoral;"> {title} </summary>'
         ret += "<table>"
-        ret += '<tr><td><img src="%s"</td>' % result
-        ret += '<td><img src="%s"</td>' % reference
-        ret += '<td><img src="%s"</td>' % diff
+        ret += f'<tr><td><img src="{result}"</td>'
+        ret += f'<td><img src="{reference}"</td>'
+        ret += f'<td><img src="{diff}"</td>'
         ret += "</tr></table></details>"
         return ret
 
     @staticmethod
     def no_reference_html(result, title):
         """Creates the html for missing-reference tests"""
-        ret = '<details><summary style="background-color:lightgrey;"> %s </summary>' % title
-        ret += '<table><tr><td><img src="%s"</td>' % result
+        ret = f'<details><summary style="background-color:lightgrey;"> {title} </summary>'
+        ret += f'<table><tr><td><img src="{result}"</td>'
         ret += "</tr></table></details>"
         return ret
 
@@ -119,11 +119,7 @@ class Results:
 
             if os.path.exists(os.path.join(SWD, fullpath_reference)):
                 ratio, diff_name = Results._similarity_ratio(fullpath_name, fullpath_reference)
-                title = "<tt><b>{}</b> | {} </tt> | ratio: {}".format(
-                    name,
-                    self.data[name]["testname"],
-                    ratio,
-                )
+                title = f"<tt><b>{name}</b> | {self.data[name]['testname']} </tt> | ratio: {ratio}"
                 if ratio == 1:
                     self.exact_match.append(fullpath_name)
                 else:
@@ -158,8 +154,9 @@ class Results:
                     )
             else:
                 title = (
-                    'Download <a download="%s" href="%s">this image</a> to <tt>%s</tt>'
-                    " and add/push to the repo</td>" % (name, fullpath_name, fullpath_reference)
+                    f'Download <a download="{name}" href="{fullpath_name}">this image</a>'
+                    f" to <tt>{fullpath_reference}</tt>"
+                    " and add/push to the repo</td>"
                 )
                 ret += Results.no_reference_html(fullpath_name, title)
         ret += "</div>"

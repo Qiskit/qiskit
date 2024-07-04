@@ -33,9 +33,10 @@ from qiskit.synthesis.linear import (
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr, synth_cx_cz_depth_line_my
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
-    _compute_rank,
-    _gauss_elimination,
-    _gauss_elimination_with_perm,
+    compute_rank,
+    gauss_elimination,
+    gauss_elimination_with_perm,
+    binary_matmul,
 )
 
 
@@ -137,32 +138,32 @@ def synth_clifford_layers(
         cz_func_reverse_qubits=cz_func_reverse_qubits,
     )
 
-    layeredCircuit.append(S2_circ, qubit_list)
+    layeredCircuit.append(S2_circ, qubit_list, copy=False)
 
     if cx_cz_synth_func is None:
-        layeredCircuit.append(CZ2_circ, qubit_list)
+        layeredCircuit.append(CZ2_circ, qubit_list, copy=False)
 
         CXinv = CX_circ.copy().inverse()
-        layeredCircuit.append(CXinv, qubit_list)
+        layeredCircuit.append(CXinv, qubit_list, copy=False)
 
     else:
         # note that CZ2_circ is None and built into the CX_circ when
         # cx_cz_synth_func is not None
-        layeredCircuit.append(CX_circ, qubit_list)
+        layeredCircuit.append(CX_circ, qubit_list, copy=False)
 
-    layeredCircuit.append(H2_circ, qubit_list)
-    layeredCircuit.append(S1_circ, qubit_list)
-    layeredCircuit.append(CZ1_circ, qubit_list)
+    layeredCircuit.append(H2_circ, qubit_list, copy=False)
+    layeredCircuit.append(S1_circ, qubit_list, copy=False)
+    layeredCircuit.append(CZ1_circ, qubit_list, copy=False)
 
     if cz_func_reverse_qubits:
         H1_circ = H1_circ.reverse_bits()
-    layeredCircuit.append(H1_circ, qubit_list)
+    layeredCircuit.append(H1_circ, qubit_list, copy=False)
 
     # Add Pauli layer to fix the Clifford phase signs
 
     clifford_target = Clifford(layeredCircuit)
     pauli_circ = _calc_pauli_diff(cliff, clifford_target)
-    layeredCircuit.append(pauli_circ, qubit_list)
+    layeredCircuit.append(pauli_circ, qubit_list, copy=False)
 
     return layeredCircuit
 
@@ -203,24 +204,25 @@ def _create_graph_state(cliff, validate=False):
     """
 
     num_qubits = cliff.num_qubits
-    rank = _compute_rank(cliff.stab_x)
+    rank = compute_rank(np.asarray(cliff.stab_x, dtype=bool))
     H1_circ = QuantumCircuit(num_qubits, name="H1")
     cliffh = cliff.copy()
 
     if rank < num_qubits:
         stab = cliff.stab[:, :-1]
-        stab = _gauss_elimination(stab, num_qubits)
+        stab = stab.astype(bool, copy=True)
+        gauss_elimination(stab, num_qubits)
 
         Cmat = stab[rank:num_qubits, num_qubits:]
         Cmat = np.transpose(Cmat)
-        Cmat, perm = _gauss_elimination_with_perm(Cmat)
+        perm = gauss_elimination_with_perm(Cmat)
         perm = perm[0 : num_qubits - rank]
 
         # validate that the output matrix has the same rank
         if validate:
-            if _compute_rank(Cmat) != num_qubits - rank:
+            if compute_rank(Cmat) != num_qubits - rank:
                 raise QiskitError("The matrix Cmat after Gauss elimination has wrong rank.")
-            if _compute_rank(stab[:, 0:num_qubits]) != rank:
+            if compute_rank(stab[:, 0:num_qubits]) != rank:
                 raise QiskitError("The matrix after Gauss elimination has wrong rank.")
             # validate that we have a num_qubits - rank zero rows
             for i in range(rank, num_qubits):
@@ -236,8 +238,8 @@ def _create_graph_state(cliff, validate=False):
 
         # validate that a layer of Hadamard gates and then appending cliff, provides a graph state.
         if validate:
-            stabh = cliffh.stab_x
-            if _compute_rank(stabh) != num_qubits:
+            stabh = (cliffh.stab_x).astype(bool, copy=False)
+            if compute_rank(stabh) != num_qubits:
                 raise QiskitError("The state is not a graph state.")
 
     return H1_circ, cliffh
@@ -267,7 +269,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     """
 
     num_qubits = cliff.num_qubits
-    rank = _compute_rank(cliff.stab_x)
+    rank = compute_rank(np.asarray(cliff.stab_x, dtype=bool))
     cliff_cpy = cliff.copy()
     if rank < num_qubits:
         raise QiskitError("The stabilizer state is not a graph state.")
@@ -278,7 +280,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     stabx = cliff.stab_x
     stabz = cliff.stab_z
     stabx_inv = calc_inverse_matrix(stabx, validate)
-    stabz_update = np.matmul(stabx_inv, stabz) % 2
+    stabz_update = binary_matmul(stabx_inv, stabz)
 
     # Assert that stabz_update is a symmetric matrix.
     if validate:
@@ -340,7 +342,7 @@ def _decompose_hadamard_free(
     if not (stabx == np.zeros((num_qubits, num_qubits))).all():
         raise QiskitError("The given Clifford is not Hadamard-free.")
 
-    destabz_update = np.matmul(calc_inverse_matrix(destabx), destabz) % 2
+    destabz_update = binary_matmul(calc_inverse_matrix(destabx), destabz)
     # Assert that destabz_update is a symmetric matrix.
     if validate:
         if (destabz_update != destabz_update.T).any():
@@ -412,7 +414,7 @@ def _calc_pauli_diff(cliff, cliff_target):
 
 
 def synth_clifford_depth_lnn(cliff):
-    """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbour connectivity.
+    """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbor connectivity.
 
     The depth of the synthesized n-qubit circuit is bounded by :math:`7n+2`, which is not optimal.
     It should be replaced by a better algorithm that provides depth bounded by :math:`7n-4` [3].

@@ -368,7 +368,7 @@ class HighLevelSynthesis(TransformationPass):
 
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
-            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
+            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -545,8 +545,8 @@ class HighLevelSynthesis(TransformationPass):
             if isinstance(plugin_specifier, str):
                 if plugin_specifier not in hls_plugin_manager.method_names(op.name):
                     raise TranspilerError(
-                        "Specified method: %s not found in available plugins for %s"
-                        % (plugin_specifier, op.name)
+                        f"Specified method: {plugin_specifier} not found in available "
+                        f"plugins for {op.name}"
                     )
                 plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
             else:
@@ -784,7 +784,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
 
-        mat = high_level_object.linear.astype(int)
+        mat = high_level_object.linear.astype(bool, copy=False)
 
         if use_transposed:
             mat = np.transpose(mat)
@@ -836,7 +836,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
 
-        mat = high_level_object.linear.astype(int)
+        mat = high_level_object.linear.astype(bool, copy=False)
 
         if use_transposed:
             mat = np.transpose(mat)

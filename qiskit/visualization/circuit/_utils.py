@@ -14,21 +14,25 @@
 
 import re
 from collections import OrderedDict
+from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit import (
+    ClassicalRegister,
     Clbit,
+    ControlFlowOp,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
+    QuantumCircuit,
+    Qubit,
 )
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -112,7 +116,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             gate_text = gate_text.replace("-", "\\mbox{-}")
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    # Only captitalize internally-created gate or instruction names
+    # Only capitalize internally-created gate or instruction names
     elif (
         (gate_text == op.name and op_type not in (Gate, Instruction))
         or (gate_text == base_name and base_type not in (Gate, Instruction))
@@ -370,6 +374,29 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
+def _get_valid_justify_arg(justify):
+    """Returns a valid `justify` argument, warning if necessary."""
+    if isinstance(justify, str):
+        justify = justify.lower()
+
+    if justify is None:
+        justify = "left"
+
+    if justify not in ("left", "right", "none"):
+        # This code should be changed to an error raise, once the deprecation is complete.
+        warn(
+            f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {justify}, to a "
+            "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of qiskit 1.2.0. Starting no "
+            "earlier than 3 months after the release date, invalid arguments will error.",
+            DeprecationWarning,
+            2,
+        )
+        justify = "left"
+
+    return justify
+
+
 def _get_layered_instructions(
     circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
 ):
@@ -384,9 +411,10 @@ def _get_layered_instructions(
         reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-            the circuit should be justified.
+            the circuit should be justified. If an invalid value is provided,
+            default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
-        wire_order (list): A list of ints that modifies the order of the bits
+        wire_order (list): A list of ints that modifies the order of the bits.
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -394,11 +422,7 @@ def _get_layered_instructions(
     Raises:
         VisualizationError: if both reverse_bits and wire_order are entered.
     """
-    if justify:
-        justify = justify.lower()
-
-    # default to left
-    justify = justify if justify in ("right", "none") else "left"
+    justify = _get_valid_justify_arg(justify)
 
     if wire_map is not None:
         qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]

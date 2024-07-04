@@ -371,7 +371,7 @@ class MatplotlibDrawer:
         # Once the scaling factor has been determined, the global phase, register names
         # and numbers, wires, and gates are drawn
         if self._global_phase:
-            plt_mod.text(xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl"))
+            plt_mod.text(xl, yt, f"Global Phase: {pi_check(self._global_phase, output='mpl')}")
         self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict, glob_data)
         self._draw_ops(
             self._nodes,
@@ -893,7 +893,7 @@ class MatplotlibDrawer:
             this_clbit_dict = {}
             for clbit in clbits_dict.values():
                 y = clbit["y"] - fold_num * (glob_data["n_lines"] + 1)
-                if y not in this_clbit_dict.keys():
+                if y not in this_clbit_dict:
                     this_clbit_dict[y] = {
                         "val": 1,
                         "wire_label": clbit["wire_label"],
@@ -1584,6 +1584,8 @@ class MatplotlibDrawer:
                 flow_text = " For"
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
+            else:
+                flow_text = node.op.name
 
             # Some spacers. op_spacer moves 'Switch' back a bit for alignment,
             # expr_spacer moves the expr over to line up with 'Switch' and

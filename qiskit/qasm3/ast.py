@@ -252,6 +252,8 @@ class Binary(Expression):
         GREATER_EQUAL = ">="
         EQUAL = "=="
         NOT_EQUAL = "!="
+        SHIFT_LEFT = "<<"
+        SHIFT_RIGHT = ">>"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -263,6 +265,12 @@ class Cast(Expression):
     def __init__(self, type: ClassicalType, operand: Expression):
         self.type = type
         self.operand = operand
+
+
+class Index(Expression):
+    def __init__(self, target: Expression, index: Expression):
+        self.target = target
+        self.index = index
 
 
 class IndexSet(ASTNode):
@@ -309,7 +317,7 @@ class Designator(ASTNode):
 
 
 class ClassicalDeclaration(Statement):
-    """Declaration of a classical type, optionally initialising it to a value."""
+    """Declaration of a classical type, optionally initializing it to a value."""
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_

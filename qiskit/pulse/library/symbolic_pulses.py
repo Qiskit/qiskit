@@ -570,11 +570,8 @@ class SymbolicPulse(Pulse):
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-        return "{}({}{})".format(
-            self._pulse_type,
-            param_repr,
-            f", name='{self.name}'" if self.name is not None else "",
-        )
+        name_repr = f", name='{self.name}'" if self.name is not None else ""
+        return f"{self._pulse_type}({param_repr}{name_repr})"
 
     __hash__ = None
 
@@ -677,8 +674,8 @@ class ScalableSymbolicPulse(SymbolicPulse):
             if not np.isclose(complex_amp1, complex_amp2):
                 return False
 
-        for key in self.parameters:
-            if key not in ["amp", "angle"] and self.parameters[key] != other.parameters[key]:
+        for key, value in self.parameters.items():
+            if key not in ["amp", "angle"] and value != other.parameters[key]:
                 return False
 
         return True

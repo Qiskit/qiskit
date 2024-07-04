@@ -25,7 +25,7 @@ features:
   - |
     Added the :class:`~qiskit.result.LocalReadoutMitigator` class for
     performing measurement readout error mitigation of local measurement
-    errors. Local measuerment errors are those that are described by a
+    errors. Local measurement errors are those that are described by a
     tensor-product of single-qubit measurement errors. 
     
     This class can be initialized with a list of :math:`N` single-qubit of
@@ -40,7 +40,7 @@ features:
     performing measurement readout error mitigation of correlated measurement
     errors. This class can be initialized with a single :math:`2^N \times 2^N`
     measurement error assignment matrix that descirbes the error probabilities.
-    Mitigation is implemented via inversion of assigment matrix which has
+    Mitigation is implemented via inversion of assignment matrix which has
     mitigation complexity of :math:`O(4^N)` of
     :class:`~qiskit.result.QuasiDistribution` and expectation values.
   - |

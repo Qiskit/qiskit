@@ -593,7 +593,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.clear()
 
         self.assertEqual(len(qc.data), 0)
-        self.assertEqual(len(qc._parameter_table), 0)
+        self.assertEqual(qc._data.num_params(), 0)
 
     def test_barrier(self):
         """Test multiple argument forms of barrier."""
@@ -928,7 +928,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.clbits, [])
 
     def test_remove_final_measurements_bit_locations(self):
-        """Test remove_final_measurements properly recalculates clbit indicies
+        """Test remove_final_measurements properly recalculates clbit indices
         and preserves order of remaining cregs and clbits.
         """
         c0 = ClassicalRegister(1)
@@ -999,6 +999,31 @@ class TestCircuitOperations(QiskitTestCase):
         expected.cx(0, 1)
         expected.s(1)
         expected.h(0)
+
+        self.assertEqual(qc.reverse_ops(), expected)
+
+    def test_reverse_with_standlone_vars(self):
+        """Test that instruction-reversing works in the presence of stand-alone variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Uint(8))
+
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        with qc.if_test(a):
+            # We don't really comment on what should happen within control-flow operations in this
+            # method - it's not really defined in a non-linear CFG.  This deliberately uses a body
+            # of length 1 (a single `Store`), so there's only one possibility.
+            qc.add_var(c, 12)
+
+        expected = qc.copy_empty_like()
+        with expected.if_test(a):
+            expected.add_var(c, 12)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.store(b, 12)
 
         self.assertEqual(qc.reverse_ops(), expected)
 

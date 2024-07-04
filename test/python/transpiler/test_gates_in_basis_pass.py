@@ -13,6 +13,7 @@
 """Test GatesInBasis pass."""
 
 from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, SwitchCaseOp, Clbit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import HGate, CXGate, UGate, XGate, ZGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
@@ -269,3 +270,44 @@ class TestGatesInBasisPass(QiskitTestCase):
         pass_ = GatesInBasis(target=complete)
         pass_(circuit)
         self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+    def test_store_is_treated_as_builtin_basis_gates(self):
+        """Test that `Store` is treated as an automatic built-in when given basis gates."""
+        pass_ = GatesInBasis(basis_gates=["h", "cx"])
+
+        a = expr.Var.new("a", types.Bool())
+        good = QuantumCircuit(2, inputs=[a])
+        good.store(a, False)
+        good.h(0)
+        good.cx(0, 1)
+        _ = pass_(good)
+        self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+        bad = QuantumCircuit(2, inputs=[a])
+        bad.store(a, False)
+        bad.x(0)
+        bad.cz(0, 1)
+        _ = pass_(bad)
+        self.assertFalse(pass_.property_set["all_gates_in_basis"])
+
+    def test_store_is_treated_as_builtin_target(self):
+        """Test that `Store` is treated as an automatic built-in when given a target."""
+        target = Target()
+        target.add_instruction(HGate(), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 0): None})
+        pass_ = GatesInBasis(target=target)
+
+        a = expr.Var.new("a", types.Bool())
+        good = QuantumCircuit(2, inputs=[a])
+        good.store(a, False)
+        good.h(0)
+        good.cx(0, 1)
+        _ = pass_(good)
+        self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+        bad = QuantumCircuit(2, inputs=[a])
+        bad.store(a, False)
+        bad.x(0)
+        bad.cz(0, 1)
+        _ = pass_(bad)
+        self.assertFalse(pass_.property_set["all_gates_in_basis"])

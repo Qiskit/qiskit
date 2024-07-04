@@ -19,6 +19,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _X_ARRAY = [[0, 1], [1, 0]]
 
@@ -69,6 +70,8 @@ class XGate(SingletonGate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
+
+    _standard_gate = StandardGate.XGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
@@ -211,6 +214,8 @@ class CXGate(SingletonControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
+
+    _standard_gate = StandardGate.CXGate
 
     def __init__(
         self,
@@ -361,6 +366,8 @@ class CCXGate(SingletonControlledGate):
                 \end{pmatrix}
 
     """
+
+    _standard_gate = StandardGate.CCXGate
 
     def __init__(
         self,
@@ -965,7 +972,7 @@ class C4XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3sqrtx a,b,c,d
