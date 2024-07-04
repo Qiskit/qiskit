@@ -259,7 +259,7 @@ Right circuit:
 
 
 class FullQiskitTestCase(QiskitTestCase):
-    """Qiskit further additions for test cases, if ``testtools`` is available.
+    """further additions for Qiskit test cases, if ``testtools`` is available.
 
     It is not normally safe to derive from this class by name; on import, Qiskit checks if the
     necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
