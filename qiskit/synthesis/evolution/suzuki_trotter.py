@@ -126,7 +126,7 @@ class SuzukiTrotter(ProductFormula):
             if self.insert_barriers and i != len(ops_to_evolve) - 1:
                 single_rep.barrier()
 
-        return single_rep.repeat(self.reps, insert_barriers=True).decompose()
+        return single_rep.repeat(self.reps, insert_barriers=self.insert_barriers).decompose()
 
     @staticmethod
     def _recurse(order, time, pauli_list):

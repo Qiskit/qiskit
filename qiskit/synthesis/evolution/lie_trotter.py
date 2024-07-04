@@ -112,7 +112,7 @@ class LieTrotter(ProductFormula):
             if self.insert_barriers and i != len(pauli_list) - 1:
                 single_rep.barrier()
 
-        return single_rep.repeat(self.reps, insert_barriers=True).decompose()
+        return single_rep.repeat(self.reps, insert_barriers=self.insert_barriers).decompose()
 
     @property
     def settings(self) -> dict[str, Any]:
