@@ -244,12 +244,8 @@ class QiskitTestCase(BaseQiskitTestCase):
         #  Ideally, use
         # `allow_DeprecationWarning_message` instead, because it can be much more specific.
         allow_DeprecationWarning_modules = [
-            "test.python.pulse.test_builder",
-            "test.python.pulse.test_block",
-            "qiskit.pulse.schedule",
-            "qiskit.pulse.instructions.instruction",
-            "qiskit.pulse.instructions.play",
-            "qiskit.quantum_info.operators.symplectic.pauli",
+            # Example - Because the deprecation of X #<issue/PR>. Can be removed once X is removed.
+            # "qiskit.quantum_info.operators.symplectic.pauli",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
