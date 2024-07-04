@@ -176,20 +176,24 @@ def _single_qubit_evolution(output, pauli, time, wrap):
     # Note that all phases are removed from the pauli label and are only in the coefficients.
     # That's because the operators we evolved have all been translated to a SparsePauliOp.
     qubits = []
+    label = ""
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         idx = 0 if wrap else i
         if pauli_i == "X":
             dest.rx(2 * time, idx)
             qubits.append(i)
+            label += "X"
         elif pauli_i == "Y":
             dest.ry(2 * time, idx)
             qubits.append(i)
+            label += "Y"
         elif pauli_i == "Z":
             dest.rz(2 * time, idx)
             qubits.append(i)
+            label += "Z"
 
     if wrap:
-        dest.name = f"exp(it {pauli.to_label()})"
+        dest.name = f"exp(it {label})"
         qubits = [output.qubits[q] for q in qubits]
         output.compose(dest, qubits=qubits, wrap=True, inplace=True)
 
@@ -221,7 +225,7 @@ def _two_qubit_evolution(output, pauli, time, cx_structure, wrap):
         return
 
     if wrap:
-        dest.name = f"exp(it {pauli.to_label()})"
+        dest.name = f"exp(it {''.join(labels)})"
         qubits = [output.qubits[q] for q in qubits]
         output.compose(dest, qubits=qubits, wrap=True, inplace=True)
 
