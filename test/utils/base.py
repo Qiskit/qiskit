@@ -66,7 +66,7 @@ else:
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
 class QiskitTestCase(BaseTestCase):
-    """Additions for test cases for Qiskit."""
+    """Additions for Qiskit test cases."""
 
     @classmethod
     def setUpClass(cls):
