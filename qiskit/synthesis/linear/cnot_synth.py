@@ -58,7 +58,7 @@ def synth_cnot_count_full_pmh(
     normalized = np.asarray(state).astype(bool)
     if section_size is not None and normalized.shape[1] < section_size:
         raise ValueError(
-            f"The section_size ({section_size}) is cannot be larger than the number of columns "
+            f"The section_size ({section_size}) cannot be larger than the number of columns "
             f"({normalized.shape[1]})."
         )
 

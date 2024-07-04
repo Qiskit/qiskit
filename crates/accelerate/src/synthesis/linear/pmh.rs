@@ -25,15 +25,15 @@ use pyo3::prelude::*;
 use super::utils::_add_row_or_col;
 
 /// This helper function allows transposed access to a matrix.
-fn _index(transpose: &bool, i: &usize, j: &usize) -> (usize, usize) {
-    if *transpose {
-        (*j, *i)
+fn _index(transpose: bool, i: usize, j: usize) -> (usize, usize) {
+    if transpose {
+        (j, i)
     } else {
-        (*i, *j)
+        (i, j)
     }
 }
 
-fn _ceil_fraction(numerator: &usize, denominator: &usize) -> usize {
+fn _ceil_fraction(numerator: usize, denominator: usize) -> usize {
     let mut fraction = numerator / denominator;
     if numerator % denominator > 0 {
         fraction += 1;
@@ -71,19 +71,19 @@ fn _ceil_fraction(numerator: &usize, denominator: &usize) -> usize {
 ///     A vector of CX locations (control, target) that need to be applied.
 fn lower_cnot_synth(
     mut matrix: ArrayViewMut2<bool>,
-    section_size: &usize,
-    transpose: &bool,
+    section_size: usize,
+    transpose: bool,
 ) -> Vec<(usize, usize)> {
     // The vector of CNOTs to be applied. Called ``circuit`` here for consistency with the paper.
     let mut circuit: Vec<(usize, usize)> = Vec::new();
     let cutoff = 1;
 
     // to apply to the transposed matrix, we can just set axis = 1
-    let row_axis = if *transpose { Axis(1) } else { Axis(0) };
+    let row_axis = if transpose { Axis(1) } else { Axis(0) };
 
     // get number of columns (same as rows) and the number of sections
     let n = matrix.raw_dim()[0];
-    let num_sections = _ceil_fraction(&n, section_size);
+    let num_sections = _ceil_fraction(n, section_size);
 
     // iterate over the columns
     for section in 1..num_sections + 1 {
@@ -105,7 +105,7 @@ fn lower_cnot_synth(
                     // store CX location
                     circuit.push((patterns[&pattern], row_idx));
                     // remove the row
-                    _add_row_or_col(matrix.view_mut(), transpose, patterns[&pattern], row_idx);
+                    _add_row_or_col(matrix.view_mut(), &transpose, patterns[&pattern], row_idx);
                 } else {
                     // if we have not seen this pattern yet, keep track of it
                     patterns.insert(pattern, row_idx);
@@ -118,13 +118,13 @@ fn lower_cnot_synth(
             let mut diag_el = matrix[[col_idx, col_idx]];
 
             for r in col_idx + 1..n {
-                if matrix[_index(transpose, &r, &col_idx)] {
+                if matrix[_index(transpose, r, col_idx)] {
                     if !diag_el {
-                        _add_row_or_col(matrix.view_mut(), transpose, r, col_idx);
+                        _add_row_or_col(matrix.view_mut(), &transpose, r, col_idx);
                         circuit.push((r, col_idx));
                         diag_el = true
                     }
-                    _add_row_or_col(matrix.view_mut(), transpose, col_idx, r);
+                    _add_row_or_col(matrix.view_mut(), &transpose, col_idx, r);
                     circuit.push((col_idx, r));
                 }
 
@@ -139,7 +139,7 @@ fn lower_cnot_synth(
                     .count()
                     > cutoff
                 {
-                    _add_row_or_col(matrix.view_mut(), transpose, r, col_idx);
+                    _add_row_or_col(matrix.view_mut(), &transpose, r, col_idx);
                     circuit.push((r, col_idx));
                 }
             }
@@ -175,8 +175,8 @@ pub fn synth_cnot_count_full_pmh(
 
     // compute the synthesis for the lower triangular part of the matrix, and then
     // apply it on the transposed part for the full synthesis
-    let lower_cnots = lower_cnot_synth(mat.view_mut(), &blocksize, &false);
-    let upper_cnots = lower_cnot_synth(mat.view_mut(), &blocksize, &true);
+    let lower_cnots = lower_cnot_synth(mat.view_mut(), blocksize, false);
+    let upper_cnots = lower_cnot_synth(mat.view_mut(), blocksize, true);
 
     // iterator over the gates
     let instructions = upper_cnots
