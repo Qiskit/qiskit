@@ -46,7 +46,7 @@ class _BasePrimitiveResult(ABC):
         warn(
             "The class ``BasePrimitiveResult`` is deprecated as of qiskit 1.2. "
             "It will be removed no earlier than 3 months after the release date. "
-            "Use PrimitiveResult class in `qiskit.primitives.containers` instead.",
+            "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers` instead.",
             DeprecationWarning,
         )
 

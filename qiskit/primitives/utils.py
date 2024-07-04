@@ -28,7 +28,10 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.utils.deprecation import deprecate_func
 
 
-@deprecate_func(since="1.2", additional_msg="There is no replacement for this.")
+@deprecate_func(
+    since="1.2",
+    additional_msg="There is no replacement for this. Please adjust your code accordingly and use the new utils.",
+)
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state by converting the input to a quantum circuit.
 
@@ -47,7 +50,10 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
-@deprecate_func(since="1.2", additional_msg="There is no replacement for this.")
+@deprecate_func(
+    since="1.2",
+    additional_msg="There is no replacement for this. Please adjust your code accordingly and use the new utils.",
+)
 def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
@@ -71,7 +77,10 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
         return SparsePauliOp(observable)
 
 
-@deprecate_func(since="1.2", additional_msg="There is no replacement for this.")
+@deprecate_func(
+    since="1.2",
+    additional_msg="There is no replacement for this. Please adjust your code accordingly and use the new utils.",
+)
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.
 
