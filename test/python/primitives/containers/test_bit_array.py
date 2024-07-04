@@ -209,13 +209,13 @@ class BitArrayTestCase(QiskitTestCase):
 
         with self.assertRaisesRegex(ValueError, "unknown value for order"):
             BitArray.from_bool_array(
-            [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="litle"
-        )
+                [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="litle"
+            )
 
         with self.assertRaisesRegex(ValueError, "unknown value for order"):
             BitArray.from_bool_array(
-            [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="bg"
-        )
+                [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="bg"
+            )
 
     @ddt.data("counts", "int", "hex", "bit")
     def test_from_counts(self, counts_type):
