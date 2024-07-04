@@ -14,11 +14,13 @@
 
 from __future__ import annotations
 
+import inspect
 import math
 from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.utils.deprecation import deprecate_arg
 
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
@@ -34,12 +36,30 @@ class QDrift(ProductFormula):
         `arXiv:quant-ph/1811.08017 <https://arxiv.org/abs/1811.08017>`_
     """
 
+    @deprecate_arg(
+        name="atomic_evolution",
+        since="1.2",
+        predicate=lambda callable: callable is not None
+        and len(inspect.signature(callable).parameters) == 2,
+        deprecation_description=(
+            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
+            "'atomic_evolution' argument"
+        ),
+        additional_msg=(
+            "Instead you should update your 'atomic_evolution' function to be of the following "
+            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
+        ),
+    )
     def __init__(
         self,
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Callable[[Pauli | SparsePauliOp, float], QuantumCircuit] | None = None,
+        atomic_evolution: (
+            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
+            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
+            | None
+        ) = None,
         seed: int | None = None,
         wrap: bool = False,
     ) -> None:
