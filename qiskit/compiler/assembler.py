@@ -227,23 +227,26 @@ def _assemble(
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
-    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
-        backend,
-        qobj_id,
-        qobj_header,
-        shots,
-        memory,
-        seed_simulator,
-        init_qubits,
-        rep_delay,
-        qubit_lo_freq,
-        meas_lo_freq,
-        qubit_lo_range,
-        meas_lo_range,
-        schedule_los,
-        pulse_qobj=pulse_qobj,
-        **run_config,
-    )
+    with warnings.catch_warnings():
+        # The Qobj is deprecated
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
+            backend,
+            qobj_id,
+            qobj_header,
+            shots,
+            memory,
+            seed_simulator,
+            init_qubits,
+            rep_delay,
+            qubit_lo_freq,
+            meas_lo_freq,
+            qubit_lo_range,
+            meas_lo_range,
+            schedule_los,
+            pulse_qobj=pulse_qobj,
+            **run_config,
+        )
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
