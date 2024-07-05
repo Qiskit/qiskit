@@ -389,8 +389,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
-    def test_precision_error(self, backend, abelian_grouping):
-        "Test for error"
+    def test_precision_and_stds(self, backend, abelian_grouping):
+        """Test that errors are within user-specified precision"""
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
