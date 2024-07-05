@@ -72,14 +72,7 @@ class CommutationAnalysis(AnalysisPass):
                         does_commute = (
                             isinstance(current_gate, DAGOpNode)
                             and isinstance(prev_gate, DAGOpNode)
-                            and self.comm_checker.commute(
-                                current_gate.op,
-                                current_gate.qargs,
-                                current_gate.cargs,
-                                prev_gate.op,
-                                prev_gate.qargs,
-                                prev_gate.cargs,
-                            )
+                            and self.comm_checker.commute_nodes(current_gate, prev_gate)
                         )
                         if not does_commute:
                             break
