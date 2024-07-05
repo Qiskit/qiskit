@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
 
 import numpy as np
 from qiskit.circuit.library import UnitaryGate
@@ -31,7 +32,6 @@ class Split2QUnitaries(TransformationPass):
                 or not (hasattr(node.op, "to_matrix") and hasattr(node.op, "__array__"))
                 or (hasattr(node.op, "is_parameterized") and node.op.is_parameterized())
             ):
-                # getattr(node.op, "_directive", False) or (hasattr(node.op, 'is_parameterized') and node.op.is_parameterized())):
                 continue
 
             # check if the node can be represented by single-qubit gates

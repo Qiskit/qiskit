@@ -13,15 +13,15 @@
 """
 Tests for the Split2QUnitaries transpiler pass.
 """
-from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.transpiler.passes.optimization import Split2QUnitaries
+from test import QiskitTestCase
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
-from test import QiskitTestCase
+from qiskit.transpiler.passes.optimization import Split2QUnitaries
 
 
 class TestSplit2QUnitaries(QiskitTestCase):
