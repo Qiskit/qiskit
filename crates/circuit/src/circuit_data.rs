@@ -18,15 +18,16 @@ use crate::circuit_instruction::{
     convert_py_to_operation_type, CircuitInstruction, ExtraInstructionAttributes, OperationInput,
     PackedInstruction,
 };
-use crate::imports::{BUILTIN_LIST, QUBIT};
+use crate::imports::{BUILTIN_LIST, DEEPCOPY, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
 use crate::operations::{Operation, OperationType, Param, StandardGate};
 use crate::parameter_table::{ParamEntry, ParamTable, GLOBAL_PHASE_INDEX};
-use crate::{Clbit, Qubit, SliceOrInt};
+use crate::slice::{PySequenceIndex, SequenceIndex};
+use crate::{Clbit, Qubit};
 
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PySet, PySlice, PyTuple, PyType};
+use pyo3::types::{PyList, PySet, PyTuple, PyType};
 use pyo3::{intern, PyTraverseError, PyVisit};
 
 use hashbrown::{HashMap, HashSet};
@@ -321,7 +322,7 @@ impl CircuitData {
     }
 
     pub fn append_inner(&mut self, py: Python, value: PyRef<CircuitInstruction>) -> PyResult<bool> {
-        let packed = self.pack(py, value)?;
+        let packed = self.pack(value)?;
         let new_index = self.data.len();
         self.data.push(packed);
         self.update_param_table(py, new_index, None)
@@ -487,20 +488,17 @@ impl CircuitData {
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
-            let deepcopy = py
-                .import_bound(intern!(py, "copy"))?
-                .getattr(intern!(py, "deepcopy"))?;
             for inst in &mut res.data {
                 match &mut inst.op {
                     OperationType::Standard(_) => {}
                     OperationType::Gate(ref mut op) => {
-                        op.gate = deepcopy.call1((&op.gate,))?.unbind();
+                        op.gate = DEEPCOPY.get_bound(py).call1((&op.gate,))?.unbind();
                     }
                     OperationType::Instruction(ref mut op) => {
-                        op.instruction = deepcopy.call1((&op.instruction,))?.unbind();
+                        op.instruction = DEEPCOPY.get_bound(py).call1((&op.instruction,))?.unbind();
                     }
                     OperationType::Operation(ref mut op) => {
-                        op.operation = deepcopy.call1((&op.operation,))?.unbind();
+                        op.operation = DEEPCOPY.get_bound(py).call1((&op.operation,))?.unbind();
                     }
                 };
                 #[cfg(feature = "cache_pygates")]
@@ -744,184 +742,130 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__(&self, py: Python, index: &Bound<PyAny>) -> PyResult<PyObject> {
-        // Internal helper function to get a specific
-        // instruction by index.
-        fn get_at(
-            self_: &CircuitData,
-            py: Python<'_>,
-            index: isize,
-        ) -> PyResult<Py<CircuitInstruction>> {
-            let index = self_.convert_py_index(index)?;
-            if let Some(inst) = self_.data.get(index) {
-                let qubits = self_.qargs_interner.intern(inst.qubits_id);
-                let clbits = self_.cargs_interner.intern(inst.clbits_id);
-                Py::new(
-                    py,
-                    CircuitInstruction::new(
-                        py,
-                        inst.op.clone(),
-                        self_.qubits.map_indices(qubits.value),
-                        self_.clbits.map_indices(clbits.value),
-                        inst.params.clone(),
-                        inst.extra_attrs.clone(),
-                    ),
-                )
-            } else {
-                Err(PyIndexError::new_err(format!(
-                    "No element at index {:?} in circuit data",
-                    index
-                )))
-            }
-        }
-
-        if index.is_exact_instance_of::<PySlice>() {
-            let slice = self.convert_py_slice(index.downcast_exact::<PySlice>()?)?;
-            let result = slice
-                .into_iter()
-                .map(|i| get_at(self, py, i))
-                .collect::<PyResult<Vec<_>>>()?;
-            Ok(result.into_py(py))
-        } else {
-            Ok(get_at(self, py, index.extract()?)?.into_py(py))
+    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
+        // Get a single item, assuming the index is validated as in bounds.
+        let get_single = |index: usize| {
+            let inst = &self.data[index];
+            let qubits = self.qargs_interner.intern(inst.qubits_id);
+            let clbits = self.cargs_interner.intern(inst.clbits_id);
+            CircuitInstruction::new(
+                py,
+                inst.op.clone(),
+                self.qubits.map_indices(qubits.value),
+                self.clbits.map_indices(clbits.value),
+                inst.params.clone(),
+                inst.extra_attrs.clone(),
+            )
+            .into_py(py)
+        };
+        match index.with_len(self.data.len())? {
+            SequenceIndex::Int(index) => Ok(get_single(index)),
+            indices => Ok(PyList::new_bound(py, indices.iter().map(get_single)).into_py(py)),
         }
     }
 
-    pub fn __delitem__(&mut self, py: Python, index: SliceOrInt) -> PyResult<()> {
-        match index {
-            SliceOrInt::Slice(slice) => {
-                let slice = {
-                    let mut s = self.convert_py_slice(&slice)?;
-                    if s.len() > 1 && s.first().unwrap() < s.last().unwrap() {
-                        // Reverse the order so we're sure to delete items
-                        // at the back first (avoids messing up indices).
-                        s.reverse()
-                    }
-                    s
-                };
-                for i in slice.into_iter() {
-                    self.__delitem__(py, SliceOrInt::Int(i))?;
+    pub fn __delitem__(&mut self, py: Python, index: PySequenceIndex) -> PyResult<()> {
+        self.delitem(py, index.with_len(self.data.len())?)
+    }
+
+    pub fn setitem_no_param_table_update(
+        &mut self,
+        index: usize,
+        value: PyRef<CircuitInstruction>,
+    ) -> PyResult<()> {
+        let mut packed = self.pack(value)?;
+        std::mem::swap(&mut packed, &mut self.data[index]);
+        Ok(())
+    }
+
+    pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
+        fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
+            let py = value.py();
+            let mut packed = slf.pack(value.downcast::<CircuitInstruction>()?.borrow())?;
+            slf.remove_from_parameter_table(py, index)?;
+            std::mem::swap(&mut packed, &mut slf.data[index]);
+            slf.update_param_table(py, index, None)?;
+            Ok(())
+        }
+
+        let py = value.py();
+        match index.with_len(self.data.len())? {
+            SequenceIndex::Int(index) => set_single(self, index, value),
+            indices @ SequenceIndex::PosRange {
+                start,
+                stop,
+                step: 1,
+            } => {
+                // `list` allows setting a slice with step +1 to an arbitrary length.
+                let values = value.iter()?.collect::<PyResult<Vec<_>>>()?;
+                for (index, value) in indices.iter().zip(values.iter()) {
+                    set_single(self, index, value)?;
                 }
-                self.reindex_parameter_table(py)?;
+                if indices.len() > values.len() {
+                    self.delitem(
+                        py,
+                        SequenceIndex::PosRange {
+                            start: start + values.len(),
+                            stop,
+                            step: 1,
+                        },
+                    )?
+                } else {
+                    for value in values[indices.len()..].iter().rev() {
+                        self.insert(stop as isize, value.downcast()?.borrow())?;
+                    }
+                }
                 Ok(())
             }
-            SliceOrInt::Int(index) => {
-                let index = self.convert_py_index(index)?;
-                if self.data.get(index).is_some() {
-                    if index == self.data.len() {
-                        // For individual removal from param table before
-                        // deletion
-                        self.remove_from_parameter_table(py, index)?;
-                        self.data.remove(index);
-                    } else {
-                        // For delete in the middle delete before reindexing
-                        self.data.remove(index);
-                        self.reindex_parameter_table(py)?;
+            indices => {
+                let values = value.iter()?.collect::<PyResult<Vec<_>>>()?;
+                if indices.len() == values.len() {
+                    for (index, value) in indices.iter().zip(values.iter()) {
+                        set_single(self, index, value)?;
                     }
                     Ok(())
                 } else {
-                    Err(PyIndexError::new_err(format!(
-                        "No element at index {:?} in circuit data",
-                        index
+                    Err(PyValueError::new_err(format!(
+                        "attempt to assign sequence of size {:?} to extended slice of size {:?}",
+                        values.len(),
+                        indices.len(),
                     )))
                 }
             }
         }
     }
 
-    pub fn setitem_no_param_table_update(
-        &mut self,
-        py: Python<'_>,
-        index: isize,
-        value: &Bound<PyAny>,
-    ) -> PyResult<()> {
-        let index = self.convert_py_index(index)?;
-        let value: PyRef<CircuitInstruction> = value.downcast()?.borrow();
-        let mut packed = self.pack(py, value)?;
-        std::mem::swap(&mut packed, &mut self.data[index]);
-        Ok(())
-    }
-
-    pub fn __setitem__(
-        &mut self,
-        py: Python<'_>,
-        index: SliceOrInt,
-        value: &Bound<PyAny>,
-    ) -> PyResult<()> {
-        match index {
-            SliceOrInt::Slice(slice) => {
-                let indices = slice.indices(self.data.len().try_into().unwrap())?;
-                let slice = self.convert_py_slice(&slice)?;
-                let values = value.iter()?.collect::<PyResult<Vec<Bound<PyAny>>>>()?;
-                if indices.step != 1 && slice.len() != values.len() {
-                    // A replacement of a different length when step isn't exactly '1'
-                    // would result in holes.
-                    return Err(PyValueError::new_err(format!(
-                        "attempt to assign sequence of size {:?} to extended slice of size {:?}",
-                        values.len(),
-                        slice.len(),
-                    )));
-                }
-
-                for (i, v) in slice.iter().zip(values.iter()) {
-                    self.__setitem__(py, SliceOrInt::Int(*i), v)?;
-                }
-
-                if slice.len() > values.len() {
-                    // Delete any extras.
-                    let slice = PySlice::new_bound(
-                        py,
-                        indices.start + values.len() as isize,
-                        indices.stop,
-                        1isize,
-                    );
-                    self.__delitem__(py, SliceOrInt::Slice(slice))?;
-                } else {
-                    // Insert any extra values.
-                    for v in values.iter().skip(slice.len()).rev() {
-                        let v: PyRef<CircuitInstruction> = v.extract()?;
-                        self.insert(py, indices.stop, v)?;
-                    }
-                }
-
-                Ok(())
+    pub fn insert(&mut self, mut index: isize, value: PyRef<CircuitInstruction>) -> PyResult<()> {
+        // `list.insert` has special-case extra clamping logic for its index argument.
+        let index = {
+            if index < 0 {
+                // This can't exceed `isize::MAX` because `self.data[0]` is larger than a byte.
+                index += self.data.len() as isize;
             }
-            SliceOrInt::Int(index) => {
-                let index = self.convert_py_index(index)?;
-                let value: PyRef<CircuitInstruction> = value.extract()?;
-                let mut packed = self.pack(py, value)?;
-                self.remove_from_parameter_table(py, index)?;
-                std::mem::swap(&mut packed, &mut self.data[index]);
-                self.update_param_table(py, index, None)?;
-                Ok(())
+            if index < 0 {
+                0
+            } else if index as usize > self.data.len() {
+                self.data.len()
+            } else {
+                index as usize
             }
-        }
-    }
-
-    pub fn insert(
-        &mut self,
-        py: Python<'_>,
-        index: isize,
-        value: PyRef<CircuitInstruction>,
-    ) -> PyResult<()> {
-        let index = self.convert_py_index_clamped(index);
-        let old_len = self.data.len();
-        let packed = self.pack(py, value)?;
+        };
+        let py = value.py();
+        let packed = self.pack(value)?;
         self.data.insert(index, packed);
-        if index == old_len {
-            self.update_param_table(py, old_len, None)?;
+        if index == self.data.len() - 1 {
+            self.update_param_table(py, index, None)?;
         } else {
             self.reindex_parameter_table(py)?;
         }
         Ok(())
     }
 
-    pub fn pop(&mut self, py: Python<'_>, index: Option<PyObject>) -> PyResult<PyObject> {
-        let index =
-            index.unwrap_or_else(|| std::cmp::max(0, self.data.len() as isize - 1).into_py(py));
-        let item = self.__getitem__(py, index.bind(py))?;
-
-        self.__delitem__(py, index.bind(py).extract()?)?;
+    pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<PyObject> {
+        let index = index.unwrap_or(PySequenceIndex::Int(-1));
+        let native_index = index.with_len(self.data.len())?;
+        let item = self.__getitem__(py, index)?;
+        self.delitem(py, native_index)?;
         Ok(item)
     }
 
@@ -931,7 +875,7 @@ impl CircuitData {
         value: &Bound<CircuitInstruction>,
         params: Option<Vec<(usize, Vec<PyObject>)>>,
     ) -> PyResult<bool> {
-        let packed = self.pack(py, value.try_borrow()?)?;
+        let packed = self.pack(value.try_borrow()?)?;
         let new_index = self.data.len();
         self.data.push(packed);
         self.update_param_table(py, new_index, params)
@@ -1104,13 +1048,7 @@ impl CircuitData {
         Ok(PySet::new_bound(py, self.param_table.uuid_map.values())?.unbind())
     }
 
-    pub fn pop_param(
-        &mut self,
-        py: Python,
-        uuid: u128,
-        name: String,
-        default: PyObject,
-    ) -> PyObject {
+    pub fn pop_param(&mut self, py: Python, uuid: u128, name: &str, default: PyObject) -> PyObject {
         match self.param_table.pop(uuid, name) {
             Some(res) => res.into_py(py),
             None => default.clone_ref(py),
@@ -1175,56 +1113,22 @@ impl CircuitData {
 }
 
 impl CircuitData {
-    /// Converts a Python slice to a `Vec` of indices into
-    /// the instruction listing, [CircuitData.data].
-    fn convert_py_slice(&self, slice: &Bound<PySlice>) -> PyResult<Vec<isize>> {
-        let indices = slice.indices(self.data.len().try_into().unwrap())?;
-        if indices.step > 0 {
-            Ok((indices.start..indices.stop)
-                .step_by(indices.step as usize)
-                .collect())
-        } else {
-            let mut out = Vec::with_capacity(indices.slicelength as usize);
-            let mut x = indices.start;
-            while x > indices.stop {
-                out.push(x);
-                x += indices.step;
-            }
-            Ok(out)
+    /// Native internal driver of `__delitem__` that uses a Rust-space version of the
+    /// `SequenceIndex`.  This assumes that the `SequenceIndex` contains only in-bounds indices, and
+    /// panics if not.
+    fn delitem(&mut self, py: Python, indices: SequenceIndex) -> PyResult<()> {
+        // We need to delete in reverse order so we don't invalidate higher indices with a deletion.
+        for index in indices.descending() {
+            self.data.remove(index);
         }
-    }
-
-    /// Converts a Python index to an index into the instruction listing,
-    /// or one past its end.
-    /// If the resulting index would be < 0, clamps to 0.
-    /// If the resulting index would be > len(data), clamps to len(data).
-    fn convert_py_index_clamped(&self, index: isize) -> usize {
-        let index = if index < 0 {
-            index + self.data.len() as isize
-        } else {
-            index
-        };
-        std::cmp::min(std::cmp::max(0, index), self.data.len() as isize) as usize
-    }
-
-    /// Converts a Python index to an index into the instruction listing.
-    fn convert_py_index(&self, index: isize) -> PyResult<usize> {
-        let index = if index < 0 {
-            index + self.data.len() as isize
-        } else {
-            index
-        };
-
-        if index < 0 || index >= self.data.len() as isize {
-            return Err(PyIndexError::new_err(format!(
-                "Index {:?} is out of bounds.",
-                index,
-            )));
+        if !indices.is_empty() {
+            self.reindex_parameter_table(py)?;
         }
-        Ok(index as usize)
+        Ok(())
     }
 
-    fn pack(&mut self, py: Python, inst: PyRef<CircuitInstruction>) -> PyResult<PackedInstruction> {
+    fn pack(&mut self, inst: PyRef<CircuitInstruction>) -> PyResult<PackedInstruction> {
+        let py = inst.py();
         let qubits = Interner::intern(
             &mut self.qargs_interner,
             InternerKey::Value(self.qubits.map_bits(inst.qubits.bind(py))?.collect()),

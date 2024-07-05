@@ -17,6 +17,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RXXGate(Gate):
@@ -71,6 +72,8 @@ class RXXGate(Gate):
                                         -i & 0  & 0  & 1
                                     \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RXXGate
 
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"

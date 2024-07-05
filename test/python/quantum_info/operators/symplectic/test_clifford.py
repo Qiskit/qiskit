@@ -424,9 +424,9 @@ class TestCliffordGates(QiskitTestCase):
         """Test initialization from linear function."""
         rng = np.random.default_rng(1234)
         samples = 50
-
-        for _ in range(samples):
-            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+        seeds = rng.integers(100000, size=samples, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
             lin = LinearFunction(mat)
             cliff = Clifford(lin)
             self.assertTrue(Operator(cliff).equiv(Operator(lin)))
