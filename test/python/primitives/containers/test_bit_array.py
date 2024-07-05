@@ -765,7 +765,7 @@ class BitArrayTestCase(QiskitTestCase):
                             if check_for_contradiction:
                                 np.testing.assert_equal(postselected_bools, answer)
                         else:
-                            self.assertTrue(len(answer) > 0)  # avoiding trivial test case
+                            self.assertGreater(len(answer), 0)  # avoiding trivial test case
                             np.testing.assert_equal(postselected_bools, answer)
 
             error_cases = [
