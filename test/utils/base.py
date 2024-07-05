@@ -204,6 +204,20 @@ class QiskitTestCase(BaseQiskitTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
 
+        # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
+        # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
+        # adds a field called `__warningregistry__` to any module that triggers a warning, and
+        # `unittest.TestCase.assertWarns` then queries said fields on all existing modules.  On
+        # macOS ARM, we see some (we think harmless) warnings come out of `numpy.linalg._linalg` (a
+        # now-private module) during transpilation, which means that subsequent `assertWarns` calls
+        # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
+        # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*numpy\.(\w+\.)*__warningregistry__",
+        )
+
         # We only use pandas transitively through seaborn, so it's their responsibility to mark if
         # their use of pandas would be a problem.
         warnings.filterwarnings(
@@ -213,6 +227,15 @@ class QiskitTestCase(BaseQiskitTestCase):
             # includes hard-break newlines all over the place.
             message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
             module=r"seaborn(\..*)?",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message="Treating CircuitInstruction as an iterable is deprecated",
+            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
         allow_DeprecationWarning_modules = [
@@ -263,6 +286,17 @@ class FullQiskitTestCase(QiskitTestCase):
             stderr = self.useFixture(fixtures.StringStream("stderr")).stream
             self.useFixture(fixtures.MonkeyPatch("sys.stderr", stderr))
             self.useFixture(fixtures.LoggerFixture(nuke_handlers=False, level=None))
+
+        # a dummy setting config to make sure it does not intervene
+        # with the test runner environment. See https://github.com/Qiskit/qiskit/pull/12463
+        self._mock_setting = unittest.mock.patch.dict(
+            os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"}
+        )
+        self._mock_setting.start()
+
+    def tearDown(self):
+        super().tearDown()
+        self._mock_setting.stop()
 
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
