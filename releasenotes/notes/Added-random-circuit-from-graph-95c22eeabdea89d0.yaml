@@ -1,13 +1,14 @@
 ---
 features_circuits:
   - |
-    The function :func:`~qiskit.circuit.random.utils.random_circuit_from_graph` adds a new feature of 
-    generating random circuits with interaction graph.
-    User can attach a float value indicating the probability of getting selected as a metadata to
-    the edge of the graph generated. If all the probabilities is passed as `None`, then the probability
-    of each qubit-pair of getting selected is set to 1/N. (where N is the number of edges in the 
-    interaction_graph passed in) 
-    If float values are present as probabilities but some are None, this will raise a ValueError.
+    The function :func:`~qiskit.circuit.random.utils.random_circuit_from_graph` generates a random circuit that 
+    induces the same interaction graph as the interaction graph specified by `interaction_graph`.
+
+    The probability of randomly drawing an edge from the interaction graph as a two-qubit gate can be set by the 
+    user in the weight attribute of an edge in the input interaction graph. If the user does not set the probability, 
+    each edge is drawn uniformly, i.e. each two-qubit gate represented by an edge in the interaction graph has the 
+    same probability of getting added to the random circuit. If only a subset of edge probabilities are set, 
+    `ValueError` will be set.
 
     Arguments accepted by the function are
     :code:`interaction_graph` Takes in the interaction graph, which is a graph G=(V, E) where V are the qubits 
@@ -22,6 +23,7 @@ features_circuits:
     the selected qubit-pair.
     :code:`prob_conditional` A float value less than 1.0, this is used to control the occurence of conditionals 
     in the circuit.
+    :code:`prob_reset` A float value less than 1.0, that is used to control the occurence of resets.
 
     This is an example where 'cp_map' is a list of edges for a "Directed Heavy Hex Graph" with some arbitrary weights.
 
@@ -54,7 +56,16 @@ features_circuits:
           (11, 17, 33)]
       pydi_graph.add_edges_from(cp_map)
       inter_graph = (pydi_graph, None, None, None)
-      qc = random_circuit_from_graph(inter_graph, min_2q_gate_per_edge =1, max_operands = 2, measure = True, conditional=True, reset = True, seed=0, insert_1q_oper = True, prob_conditional=0.21)
+      qc = random_circuit_from_graph(inter_graph, 
+                                    min_2q_gate_per_edge =1, 
+                                    max_operands = 2, 
+                                    measure = True, 
+                                    conditional=True, 
+                                    reset = True, 
+                                    seed=0, 
+                                    insert_1q_oper = True, 
+                                    prob_conditional=0.21,
+                                    prob_reset = 0.1)
       qc.draw(output='mpl', scale = 0.75)
 
 
