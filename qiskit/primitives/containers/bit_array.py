@@ -534,24 +534,24 @@ class BitArray(ShapedMixin):
         # Check for contradictory conditions:
         if may_have_contradiction:
             if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:
-                return BitArray(np.empty((0, num_bytes), dtype="uint8"), num_bits=self.num_bits)
+                return BitArray(np.empty((0, num_bytes), dtype=np.uint8), num_bits=self.num_bits)
 
         # Recall that creg[0] is the LSb:
         byte_significance, bit_significance = np.divmod(indices, 8)
         # least-significant byte is at last position:
         byte_idx = (num_bytes - 1) - byte_significance
         # least-significant bit is at position 0:
-        bit_offset = bit_significance.astype("uint8")
+        bit_offset = bit_significance.astype(np.uint8)
 
         # Get bitpacked representation of `indices` (bitmask):
-        bitmask = np.zeros(num_bytes, dtype="uint8")
+        bitmask = np.zeros(num_bytes, dtype=np.uint8)
         np.bitwise_or.at(bitmask, byte_idx, np.uint8(1) << bit_offset)
 
         # Get bitpacked representation of `selection` (desired bitstring):
-        selection_bytes = np.zeros(num_bytes, dtype="uint8")
+        selection_bytes = np.zeros(num_bytes, dtype=np.uint8)
         ## This will produce incorrect result if we did not check for contradictions, but there is one:
         np.bitwise_or.at(
-            selection_bytes, byte_idx, np.asarray(selection, dtype="uint8") << bit_offset
+            selection_bytes, byte_idx, np.asarray(selection, dtype=np.uint8) << bit_offset
         )
 
         return BitArray(
