@@ -89,9 +89,10 @@ class BackendEstimatorV2(BaseEstimatorV2):
     This class does not perform any measurement or gate mitigation, and, presently, is only
     compatible with Pauli-based observables. More formally, given an observable of the type
     :math:`O=\sum_{i=1}^Na_iP_i`, where :math:`a_i` is a complex number and :math:`P_i` is a
-    Pauli operator, the estimator calculates the expectation :math:`E(P_i)` of each :math:`P_i`
-    and finally calculates the expectation value of :math:`O` as
-    :math:`E(O)=\sum_{i=1}^Na_iE(P_i)`. The reported ``std`` is calculated as
+    Pauli operator, the estimator calculates the expectation :math:`\mathbb{E}(P_i)` of each
+    :math:`P_i` and finally calculates the expectation value of :math:`O` as
+    :math:`\mathbb{E}(O)=\sum_{i=1}^Na_i\mathbb{E}(P_i)`. The reported ``std`` is calculated
+    as
 
     .. math::
 
