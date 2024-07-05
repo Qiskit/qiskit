@@ -11,20 +11,23 @@ features_synthesis:
     useful when visualizing circuits.
 upgrade_synthesis:
   - |
-    The ``atomic_evolution`` argument to :class:`~ProductFormula` (and its
+    The ``atomic_evolution`` argument to :class:`.ProductFormula` (and its
     subclasses) has a new function signature. Rather than taking some Pauli
     operator and time coefficient and returning the evolution circuit, the new
     function takes in an existing circuit and should append the evolution of the
     provided Pauli and given time to this circuit. This new implementation
     benefits from significantly better performance.
   - |
-    :class:`~LieTrotter` and :class:`~SuzukiTrotter` no longer wrap the
+    :class:`.LieTrotter` and :class:`.SuzukiTrotter` no longer wrap the
     individually evolved Pauli terms into gate definitions. If you rely on a
     certain decomposition level of your circuit, you have to remove one level of
     :meth:`~.QuantumCircuit.decompose` or add the ``wrap=True`` keyword argument
     to your synthesis object.
 deprecations_synthesis:
   - |
-    In :class:`.ProductFormula` and subclasses, it is deprecated that ``atomic_evolution``
-    returns a new circuit implementing the evolution. Instead, the evolution must be done
-    in place, which allows for a performance benefit.
+    In :class:`.ProductFormula` and subclasses, it is deprecated that
+    ``atomic_evolution`` returns a new circuit implementing the evolution.
+    Instead, the evolution must be done in place, which allows for a performance
+    benefit. For more details refer to the documentation of the
+    ``atomic_evolution`` argument of the :class:`.ProductFormula` and its
+    subclasses.
