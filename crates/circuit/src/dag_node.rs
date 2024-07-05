@@ -14,6 +14,7 @@ use crate::circuit_instruction::{
     convert_py_to_operation_type, operation_type_to_py, CircuitInstruction,
     ExtraInstructionAttributes,
 };
+use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::Operation;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
@@ -229,6 +230,16 @@ impl DAGOpNode {
     }
 
     #[getter]
+    fn num_qubits(&self) -> u32 {
+        self.instruction.operation.num_qubits()
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        self.instruction.operation.num_clbits()
+    }
+
+    #[getter]
     fn get_qargs(&self, py: Python) -> Py<PyTuple> {
         self.instruction.qubits.clone_ref(py)
     }
@@ -257,6 +268,10 @@ impl DAGOpNode {
     #[getter]
     fn get_params(&self, py: Python) -> PyObject {
         self.instruction.params.to_object(py)
+    }
+
+    pub fn is_parameterized(&self) -> bool {
+        self.instruction.is_parameterized()
     }
 
     #[getter]
@@ -323,6 +338,21 @@ impl DAGOpNode {
                 self.instruction.extra_attrs = None;
             }
         }
+    }
+
+    #[getter]
+    fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
+        let definition = self
+            .instruction
+            .operation
+            .definition(&self.instruction.params);
+        definition
+            .map(|data| {
+                QUANTUM_CIRCUIT
+                    .get_bound(py)
+                    .call_method1(intern!(py, "_from_circuit_data"), (data,))
+            })
+            .transpose()
     }
 
     /// Sets the Instruction name corresponding to the op for this node
