@@ -6,7 +6,7 @@ features_circuits:
     barriers between circuit repetitions.
 features_synthesis:
   - |
-    Added the ``wrap`` keyword argument to the :class:`~ProductFormula` classes
+    Added the ``wrap`` keyword argument to the :class:`.ProductFormula` classes
     which (when enabled) wraps individual Pauli evolution terms. This can be
     useful when visualizing circuits.
 upgrade_synthesis:
@@ -25,5 +25,6 @@ upgrade_synthesis:
     to your synthesis object.
 deprecations_synthesis:
   - |
-    The ``atomic_evolution`` argument to :class:`~ProductFormula` (and its
-    subclasses) has deprecated its old function signature.
+    In :class:`.ProductFormula` and subclasses, it is deprecated that ``atomic_evolution``
+    returns a new circuit implementing the evolution. Instead, the evolution must be done
+    in place, which allows for a performance benefit.
