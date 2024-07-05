@@ -1,14 +1,27 @@
 ---
 deprecations_primitives:
   - |
-    BackendEstimator has been deprecated. Use BackendEstimatorV2 instead.
-    BackendSampler has been deprecated. Use BackendSamplerV2 instead.
-    Estimator has been deprecated. Use StatevectorEstimator instead.
-    Sampler has been deprecated. Use StatevectorSampler instead.
+    Primitives V1 is now deprecated and will be removed in no less than 3 months from the release date.
 
-    BaseEstimatorV1 has been deprecated. Use BaseEstimatorV2 instead.
-    BasePrimitive has been deprecated. Use BasePrimitiveV2 instead.
-    BasePrimitiveResult has been deprecated. Use PrimitiveResult class in `qiskit.primitives.containers` instead.
-    BaseSamplerV1 has been deprecated. Use BaseSamplerV2 instead.
+    The following Primitives V1 classes are deprecated:
 
-    Functions: init_circuit, init_observable and final_measurement_mapping has been deprecated. There is no replacement.
+    * :class:`.BaseEstimatorV1`, use :class:`.BaseEstimatorV2` instead,
+    * :class:`.BaseSamplerV1`, use :class:`.BaseSamplerV2` instead,
+    * :class:`.BasePrimitive`, use :class:`.BaseEstimatorV2` or :class:`.BaseSamplerV2` instead.
+    * :class:`.Estimator`, use :class:`.StatevectorEstimator` instead,
+    * :class:`.Sampler`, use :class:`.StatevectorSampler` instead,
+    * :class:`.BackendEstimator`, use :class:`.BackendEstimatorV2` instead,
+    * :class:`.BackendSampler`, use :class:`.BackendSamplerV2` instead,
+    * :class:`.BasePrimitiveResult`, use :class:`.PrimitiveResult` instead,
+    * :class:`.EstimatorResult`, use :class:`.PrimitiveResult` instead,
+    * :class:`.SamplerResult`, use :class:`.PrimitiveResult` instead.
+
+
+    In addition, the following utility functions are deprecated:
+
+    * :func:`.init_circuit`, use :meth:`.QuantumCircuit.initialize` instead,
+    * :func:`.init_observable`, use the constructor of :class:`.SparsePauliOp` instead,
+    * :func:`.final_measurement_mapping`, use ``mthree.utils.final_measurement_mapping`` instead.
+      See `Mthree Utility functions <https://qiskit-extensions.github.io/mthree/apidocs/utils.html>`__
+      for details.
+
