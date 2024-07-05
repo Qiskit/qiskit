@@ -72,7 +72,7 @@ class _PreprocessedData:
 
 
 class BackendEstimatorV2(BaseEstimatorV2):
-    r"""Evaluates expectation values for provided quantum circuit and observable combinations
+    r"""Evaluates expectation values for provided quantum circuit and observable combinations.
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
