@@ -287,17 +287,6 @@ class FullQiskitTestCase(QiskitTestCase):
             self.useFixture(fixtures.MonkeyPatch("sys.stderr", stderr))
             self.useFixture(fixtures.LoggerFixture(nuke_handlers=False, level=None))
 
-        # a dummy setting config to make sure it does not intervene
-        # with the test runner environment. See https://github.com/Qiskit/qiskit/pull/12463
-        self._mock_setting = unittest.mock.patch.dict(
-            os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"}
-        )
-        self._mock_setting.start()
-
-    def tearDown(self):
-        super().tearDown()
-        self._mock_setting.stop()
-
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
     """Test if two dictionaries with numeric values are almost equal.
