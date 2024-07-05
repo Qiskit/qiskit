@@ -488,9 +488,9 @@ class BitArray(ShapedMixin):
               to ``selection[i]``. Shots will be discarded unless all cbits specified by ``indices`` have
               the values given by ``selection``.
 
-            assume_unique: If True, ``indices`` is assumed to contain no repeated elements, which can give
-              a speed-up depending on the problem size. If True but ``indices`` does contain repeated
-              elements, incorrect results may be produced.
+            assume_unique: If True, ``indices`` is assumed to contain no repeated elements, which can
+              give a speed-up depending on the problem size. If True but ``indices`` does contain
+              repeated elements, incorrect results may be produced.
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
