@@ -7,10 +7,9 @@ from qiskit.transpiler.passes.utils import _block_to_matrix
 from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
 from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-class CheckSimplify2Q(AnalysisPass):
-    """Check if the `dag` contains two-qubit gates that can be decomposed into single-qubit gates.
 
-    """
+class CheckSimplify2Q(AnalysisPass):
+    """Check if the `dag` contains two-qubit gates that can be decomposed into single-qubit gates."""
 
     def _block_qargs_to_indices(self, dag, block_qargs):
         """Map each qubit in block_qargs to its wire position among the block's wires.
@@ -30,7 +29,7 @@ class CheckSimplify2Q(AnalysisPass):
         """Run the CheckSimplify2Q pass on `dag`."""
 
         blocks = self.property_set["block_list"] or []
-        self.property_set['removable_2q'] = 0
+        self.property_set["removable_2q"] = 0
         for block in blocks:
             block_qargs = set()
             block_cargs = set()
@@ -48,10 +47,14 @@ class CheckSimplify2Q(AnalysisPass):
             matrix = _block_to_matrix(block, block_index_map)
 
             if np.all(two_qubit_local_invariants(matrix) == [1, 0, 3]):
-                self.property_set['removable_2q'] += 1
+                self.property_set["removable_2q"] += 1
 
-        removable_2q = [node for node in dag.topological_op_nodes() if
-                        len(node.cargs) == 0 and len(node.qargs) == 2 and np.all(
-                            two_qubit_local_invariants(node.op) == [1, 0, 3])]
+        removable_2q = [
+            node
+            for node in dag.topological_op_nodes()
+            if len(node.cargs) == 0
+            and len(node.qargs) == 2
+            and np.all(two_qubit_local_invariants(node.op) == [1, 0, 3])
+        ]
         print("len_remov", len(removable_2q))
         return dag

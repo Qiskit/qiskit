@@ -38,7 +38,8 @@ from qiskit.transpiler.passes.optimization import (
     CommutativeCancellation,
     Collect2qBlocks,
     ConsolidateBlocks,
-    InverseCancellation, Split2QUnitaries,
+    InverseCancellation,
+    Split2QUnitaries,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -61,10 +62,21 @@ from qiskit.circuit.library.standard_gates import (
     HGate,
     CYGate,
     SXGate,
-    SXdgGate, get_standard_gate_name_mapping,
+    SXdgGate,
+    get_standard_gate_name_mapping,
 )
 
-_discrete_skipped_ops = {'while_loop', 'delay', 'reset', 'for_loop', 'switch_case', 'measure', 'if_else'}
+_discrete_skipped_ops = {
+    "while_loop",
+    "delay",
+    "reset",
+    "for_loop",
+    "switch_case",
+    "measure",
+    "if_else",
+}
+
+
 class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
@@ -182,11 +194,14 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # * target has been specified, and we have one non-discrete gate in the target's spec
             # * basis gates have been specified, and we have one non-discrete gate in that set
             if (target is None and bases is None) or (
-                target is not None and _is_one_op_non_discrete(target.operations) or (
-                bases is not None and _is_one_op_non_discrete(bases))):
+                target is not None
+                and _is_one_op_non_discrete(target.operations)
+                or (bases is not None and _is_one_op_non_discrete(bases))
+            ):
                 init.append(Collect2qBlocks())
-                init.append(ConsolidateBlocks(target=target, basis_gates=bases))
+                init.append(ConsolidateBlocks())
                 init.append(Split2QUnitaries())
+                pass
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init

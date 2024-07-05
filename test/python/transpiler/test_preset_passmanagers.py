@@ -14,6 +14,7 @@
 
 import unittest
 
+
 from test import combine
 from ddt import ddt, data
 
@@ -126,14 +127,14 @@ class TestPresetPassManager(QiskitTestCase):
         qc.measure(range(4), range(4))
         result = transpile(
             qc,
-            basis_gates=["u1", "u2", "u3", "cx"],
+            basis_gates=["h", "z", "cx"],
             layout_method="trivial",
             optimization_level=level,
         )
 
         dag = circuit_to_dag(result)
         op_nodes = [node.name for node in dag.topological_op_nodes()]
-        self.assertNotIn("u1", op_nodes)  # Check if the diagonal Z-Gates (u1) were removed
+        self.assertNotIn("z", op_nodes)  # Check if the diagonal Z-Gates (u1) were removed
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_basis_gates(self, level):
@@ -262,7 +263,7 @@ class TestPresetPassManager(QiskitTestCase):
             callback=counting_callback_func,
             translation_method="synthesis",
         )
-        self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
+        self.assertEqual(gates_in_basis_true_count + 2, collect_2q_blocks_count)
 
 
 @ddt
@@ -1454,6 +1455,16 @@ class TestIntegrationControlFlow(QiskitTestCase):
             def _define(self):
                 self._definition = QuantumCircuit(2)
                 self._definition.cx(0, 1)
+
+            def to_matrix(self) -> np.ndarray:
+                return np.asarray(
+                    [
+                        [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+                        [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j],
+                        [0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j],
+                        [0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+                    ]
+                )
 
         circuit = QuantumCircuit(6, 1)
         circuit.h(0)
