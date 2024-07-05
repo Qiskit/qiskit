@@ -905,7 +905,7 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
         include a layer of swap gates at the end of the synthesized circuit, which can in
         principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
     * approximation_degree (int): The degree of approximation (0 for no approximation).
-        It is impossible to implement the QFT approximately by ignoring
+        It is possible to implement the QFT approximately by ignoring
         controlled-phase rotations with the angle beneath a threshold. This is discussed
         in more detail in https://arxiv.org/abs/quant-ph/9601018 or
         https://arxiv.org/abs/quant-ph/0403071.
@@ -952,7 +952,7 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
         include a layer of swap gates at the end of the synthesized circuit, which can in
         principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
     * approximation_degree (int): the degree of approximation (0 for no approximation).
-        It is impossible to implement the QFT approximately by ignoring
+        It is possible to implement the QFT approximately by ignoring
         controlled-phase rotations with the angle beneath a threshold. This is discussed
         in more detail in https://arxiv.org/abs/quant-ph/9601018 or
         https://arxiv.org/abs/quant-ph/0403071.

@@ -36,7 +36,7 @@ def synth_qft_line(
     Args:
         num_qubits: The number of qubits on which the Quantum Fourier Transform acts.
         approximation_degree: The degree of approximation (0 for no approximation).
-            It is impossible to implement the QFT approximately by ignoring
+            It is possible to implement the QFT approximately by ignoring
             controlled-phase rotations with the angle beneath a threshold. This is discussed
             in more detail in https://arxiv.org/abs/quant-ph/9601018 or
             https://arxiv.org/abs/quant-ph/0403071.
