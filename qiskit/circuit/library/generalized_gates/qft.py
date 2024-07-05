@@ -46,20 +46,8 @@ class QFTGate(Gate):
         outer = np.outer(nums, nums)
         return np.exp(2j * np.pi * outer * (0.5**n), dtype=dtype) * (0.5 ** (n / 2))
 
-    def _basic_decomposition(self):
-        """Provide a specific decomposition of the QFT gate into a quantum circuit.
-
-        Returns:
-            QuantumCircuit: A circuit implementing the evolution.
-        """
+    def _define(self):
+        """Provide a specific decomposition of the QFTgate into a quantum circuit."""
         from qiskit.synthesis.qft import synth_qft_full
 
-        decomposition = synth_qft_full(num_qubits=self.num_qubits)
-        return decomposition
-
-    def _define(self):
-        """Populate self.definition with a specific decomposition of the gate.
-        This is used for constructing Operator from QFTGate, creating qasm
-        representations and more.
-        """
-        self.definition = self._basic_decomposition()
+        self.definition = synth_qft_full(num_qubits=self.num_qubits)
