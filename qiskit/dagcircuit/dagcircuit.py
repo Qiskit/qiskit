@@ -54,6 +54,7 @@ from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
+from qiskit._accelerate.euler_one_qubit_decomposer import collect_1q_runs_filter
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -642,17 +643,17 @@ class DAGCircuit:
             if wire not in amap:
                 raise DAGCircuitError(f"wire {wire} not found in {amap}")
 
-    def _increment_op(self, op):
-        if op.name in self._op_names:
-            self._op_names[op.name] += 1
+    def _increment_op(self, op_name):
+        if op_name in self._op_names:
+            self._op_names[op_name] += 1
         else:
-            self._op_names[op.name] = 1
+            self._op_names[op_name] = 1
 
-    def _decrement_op(self, op):
-        if self._op_names[op.name] == 1:
-            del self._op_names[op.name]
+    def _decrement_op(self, op_name):
+        if self._op_names[op_name] == 1:
+            del self._op_names[op_name]
         else:
-            self._op_names[op.name] -= 1
+            self._op_names[op_name] -= 1
 
     def copy_empty_like(self, *, vars_mode: _VarsMode = "alike"):
         """Return a copy of self with the same structure but empty.
@@ -724,7 +725,7 @@ class DAGCircuit:
             additional = set(_additional_wires(node)).difference(node.cargs)
 
         node._node_id = self._multi_graph.add_node(node)
-        self._increment_op(node)
+        self._increment_op(node.name)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -780,7 +781,7 @@ class DAGCircuit:
 
         node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
         node._node_id = self._multi_graph.add_node(node)
-        self._increment_op(op)
+        self._increment_op(op.name)
 
         # Add new in-edges from predecessors of the output nodes to the
         # operation node while deleting the old in-edges of the output nodes
@@ -832,7 +833,7 @@ class DAGCircuit:
 
         node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
         node._node_id = self._multi_graph.add_node(node)
-        self._increment_op(op)
+        self._increment_op(op.name)
 
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
@@ -1379,10 +1380,10 @@ class DAGCircuit:
                 "Replacing the specified node block would introduce a cycle"
             ) from ex
 
-        self._increment_op(op)
+        self._increment_op(op.name)
 
         for nd in node_block:
-            self._decrement_op(nd.op)
+            self._decrement_op(nd.name)
 
         return new_node
 
@@ -1593,7 +1594,7 @@ class DAGCircuit:
         node_map = self._multi_graph.substitute_node_with_subgraph(
             node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
         )
-        self._decrement_op(node.op)
+        self._decrement_op(node.name)
 
         variable_mapper = _classical_resource_map.VariableMapper(
             self.cregs.values(), wire_map, add_register=self.add_creg
@@ -1624,7 +1625,7 @@ class DAGCircuit:
             new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs, dag=self)
             new_node._node_id = new_node_index
             self._multi_graph[new_node_index] = new_node
-            self._increment_op(new_node.op)
+            self._increment_op(new_node.name)
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
@@ -1696,17 +1697,17 @@ class DAGCircuit:
 
         if inplace:
             if op.name != node.op.name:
-                self._increment_op(op)
-                self._decrement_op(node.op)
+                self._increment_op(op.name)
+                self._decrement_op(node.name)
             node.op = op
             return node
 
         new_node = copy.copy(node)
         new_node.op = op
         self._multi_graph[node._node_id] = new_node
-        if op.name != node.op.name:
-            self._increment_op(op)
-            self._decrement_op(node.op)
+        if op.name != node.name:
+            self._increment_op(op.name)
+            self._decrement_op(node.name)
         return new_node
 
     def separable_circuits(
@@ -1987,7 +1988,7 @@ class DAGCircuit:
         self._multi_graph.remove_node_retain_edges(
             node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
-        self._decrement_op(node.op)
+        self._decrement_op(node.name)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
@@ -2152,19 +2153,7 @@ class DAGCircuit:
 
     def collect_1q_runs(self) -> list[list[DAGOpNode]]:
         """Return a set of non-conditional runs of 1q "op" nodes."""
-
-        def filter_fn(node):
-            return (
-                isinstance(node, DAGOpNode)
-                and len(node.qargs) == 1
-                and len(node.cargs) == 0
-                and isinstance(node.op, Gate)
-                and hasattr(node.op, "__array__")
-                and getattr(node.op, "condition", None) is None
-                and not node.op.is_parameterized()
-            )
-
-        return rx.collect_runs(self._multi_graph, filter_fn)
+        return rx.collect_runs(self._multi_graph, collect_1q_runs_filter)
 
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
