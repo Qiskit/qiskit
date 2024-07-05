@@ -12,7 +12,9 @@
 
 """The Pauli expansion circuit module."""
 
-from typing import Optional, Callable, List, Union
+import itertools
+
+from typing import Optional, Callable, List, Union, Sequence
 from functools import reduce
 import numpy as np
 
@@ -156,6 +158,7 @@ class PauliFeatureMap(NLocal):
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ["Z", "ZZ"]
         self._alpha = alpha
+        self.entanglement = entanglement
 
     def _parameter_generator(
         self, rep: int, block: int, indices: List[int]
@@ -280,6 +283,77 @@ class PauliFeatureMap(NLocal):
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
+
+    # helper function to generate correct entangler map
+    def _selective_entangler_map(self, num_block_qubits, entanglement):
+        # if entanglement is not specified for a pauli then use 'full' entanglement
+        if all(num_block_qubits != len(ent_block) for ent_block in entanglement):
+            entanglement_map = list(
+                itertools.combinations(list(range(self.feature_dimension)), num_block_qubits)
+            )
+            return entanglement_map
+        # if any entanglement is specified then it will only be used for
+        # the correct size of block, like for entanglement=[(0,1), (1,2,3)]
+        # only [(0,1)] will be used by 2-qubit pauli (like 'ZZ') and [(1,2,3)]
+        # will be used by 3-qubit pauli (like 'ZZZ')
+        else:
+            entanglement_map = [ent for ent in entanglement if len(ent) == num_block_qubits]
+            return entanglement_map
+
+    def get_entangler_map(
+        self, rep_num: int, block_num: int, num_block_qubits: int
+    ) -> Sequence[Sequence[int]]:
+        i, j = rep_num, block_num
+        num_i = len(self.entanglement)
+        num_j = len(self.entanglement[i % num_i])
+
+        # entanglement is List[List[int]]
+        if all(isinstance(e2, (int, np.int32, np.int64)) for en in self.entanglement for e2 in en):
+            for ind, en in enumerate(self.entanglement):
+                if not any(len(en) == len(pauli) for pauli in self.paulis):
+                    raise ValueError(f"Invalid value of entanglement:{en}")
+                self.entanglement[ind] = tuple(map(int, en))
+            return self._selective_entangler_map(num_block_qubits, self.entanglement)
+
+        # entanglement is List[List[List[int]]]
+        elif all(
+            isinstance(e3, (int, np.int32, np.int64))
+            for en in self.entanglement
+            for e2 in en
+            for e3 in e2
+        ):
+            for en in self.entanglement:
+                for ind, e2 in enumerate(en):
+                    if not any(len(e2) == len(pauli) for pauli in self.paulis):
+                        raise ValueError(f"Invalid value of entanglement:{e2}")
+                    en[ind] = tuple(map(int, e2))
+
+            # choose the entanglement based on the reps
+            chosen_entanglement = self.entanglement[i % num_i]
+            return self._selective_entangler_map(num_block_qubits, chosen_entanglement)
+
+        # entanglement is List[List[List[List[int]]]]
+        elif all(
+            isinstance(e4, (int, np.int32, np.int64))
+            for en in self.entanglement
+            for e2 in en
+            for e3 in e2
+            for e4 in e3
+        ):
+            for en in self.entanglement:
+                for e2 in en:
+                    for ind, e3 in enumerate(e2):
+                        if not any(len(e3) == len(pauli) for pauli in self.paulis):
+                            raise ValueError(f"Invalid value of entanglement:{e3}")
+                        e2[ind] = tuple(map(int, e3))
+
+            chosen_entanglement = self.entanglement[i % num_i][j % num_j]
+            return self._selective_entangler_map(num_block_qubits, chosen_entanglement)
+
+        else:
+            # if the entanglement is not List[List[int]] or List[List[List[int]]]
+            # then we fall back on the original `get_entangler_map()` method from NLocal
+            return super().get_entangler_map(rep_num, block_num, num_block_qubits)
 
 
 def self_product(x: np.ndarray) -> float:
