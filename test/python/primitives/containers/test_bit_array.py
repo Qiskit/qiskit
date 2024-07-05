@@ -729,7 +729,7 @@ class BitArrayTestCase(QiskitTestCase):
         for dataname, bool_array in zip(["flat", "shaped"], [flat_data, shaped_data]):
 
             bit_array = BitArray.from_bool_array(bool_array, order="little")
-            # indices[i] <-> creg[i] <-> bool_array[..., i]
+            # indices value of i <-> creg[i] <-> bool_array[..., i]
 
             num_bits = bool_array.shape[-1]
             bool_array = bool_array.reshape(-1, num_bits)
