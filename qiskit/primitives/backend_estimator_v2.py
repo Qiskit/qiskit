@@ -117,11 +117,11 @@ class BackendEstimatorV2(BaseEstimatorV2):
     * ``seed_simulator``: The seed to use in the simulator. If None, a random seed will be used.
       Default: None.
 
-    **References:**
+    **Reference:**
 
     [1] O. Crawford, B. van Straaten, D. Wang, T. Parks, E. Campbell, St. Brierley,
-    Efficient quantum measurement of Pauli operators in the presence of finite sampling error,
-        `Quantum 5, 385 <https://doi.org/10.22331/q-2021-01-20-385>`_
+    Efficient quantum measurement of Pauli operators in the presence of finite sampling error.
+    `Quantum 5, 385 <https://doi.org/10.22331/q-2021-01-20-385>`_
     """
 
     def __init__(
