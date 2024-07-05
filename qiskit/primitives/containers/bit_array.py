@@ -469,7 +469,7 @@ class BitArray(ShapedMixin):
         indices: Sequence[int] | int,
         selection: Sequence[bool] | bool,
         *,
-        may_have_contradiction: bool = True,
+        assume_unique: bool = False,
     ) -> BitArray:
         """Post-select this bit array based on sliced equality with a given bitstring.
 
@@ -488,12 +488,9 @@ class BitArray(ShapedMixin):
               to ``selection[i]``. Shots will be discarded unless all cbits specified by ``indices`` have
               the values given by ``selection``.
 
-            may_have_contradiction: If the args ``indices`` and ``selection`` are known not to contain
-              contradictions, one can set this to False for a moderate speed-up, depending on the problem
-              size. Here "contradiction" means requiring that a single bit has two different values, e.g.
-              ``indices=[5,5]`` and ``selection=[0,1]``. If a contradiction is present, then setting
-              to ``False`` may silently produce incorrect results. (If a contradiction is present, the
-              correct result is to return an empty BitArray).
+            assume_unique: If True, ``indices`` is assumed to contain no repeated elements, which can give
+              a speed-up depending on the problem size. If True but ``indices`` does contain repeated
+              elements, incorrect results may be produced.
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
@@ -531,8 +528,8 @@ class BitArray(ShapedMixin):
         is_negative = indices < 0
         indices[is_negative] = np.mod(indices[is_negative], self.num_bits, dtype=int)
 
-        # Check for contradictory conditions:
-        if may_have_contradiction:
+        # Handle special-case of contradictory conditions:
+        if not assume_unique:
             if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:
                 return BitArray(np.empty((0, num_bytes), dtype=np.uint8), num_bits=self.num_bits)
 
@@ -549,7 +546,7 @@ class BitArray(ShapedMixin):
 
         # Get bitpacked representation of `selection` (desired bitstring):
         selection_bytes = np.zeros(num_bytes, dtype=np.uint8)
-        ## This will produce incorrect result if we did not check for contradictions, but there is one:
+        ## This can produce incorrect result if we did not check for contradictions, but there is one:
         np.bitwise_or.at(
             selection_bytes, byte_idx, np.asarray(selection, dtype=np.uint8) << bit_offset
         )

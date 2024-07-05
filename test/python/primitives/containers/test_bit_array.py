@@ -746,12 +746,12 @@ class BitArrayTestCase(QiskitTestCase):
             ]
 
             for name, indices, selection in test_cases:
-                for check_for_contradiction in (True, False):
-                    with self.subTest("_".join([dataname, name, str(check_for_contradiction)])):
+                for assume_unique in (False, True):
+                    with self.subTest("_".join([dataname, name, str(assume_unique)])):
                         postselected_bools = np.unpackbits(
-                            bit_array.postselect(indices, selection, check_for_contradiction).array[
-                                :, ::-1
-                            ],
+                            bit_array.postselect(
+                                indices, selection, assume_unique=assume_unique
+                            ).array[:, ::-1],
                             count=num_bits,
                             axis=-1,
                             bitorder="little",
@@ -762,7 +762,7 @@ class BitArrayTestCase(QiskitTestCase):
                             selection = (selection,)
                         answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
                         if name == "contradict":
-                            if check_for_contradiction:
+                            if not assume_unique:
                                 np.testing.assert_equal(postselected_bools, answer)
                         else:
                             self.assertGreater(len(answer), 0)  # avoiding trivial test case
