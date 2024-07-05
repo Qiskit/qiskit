@@ -8,22 +8,23 @@ features_circuits:
     user in the weight attribute of an edge in the input interaction graph. If the user does not set the probability, 
     each edge is drawn uniformly, i.e. each two-qubit gate represented by an edge in the interaction graph has the 
     same probability of getting added to the random circuit. If only a subset of edge probabilities are set, 
-    `ValueError` will be set.
+    `ValueError` will be raised.
 
     Arguments accepted by the function are
     :code:`interaction_graph` Takes in the interaction graph, which is a graph G=(V, E) where V are the qubits 
     in the circuit, and, E is the set of two-qubit gate interactions between two particular qubits in the circuit.
     :code:`min_2q_gate_per_edge` Minimum number of times every qubit-pair must be used.
     :code:`max_operands` Take the maximum number of operands a gate should have. (Possible values are 1 or 2)
-    :code:`measure` Should the circuit have measure instructions at the end. (True or False)
-    :code:`conditional` Should the circuit have conditional operations. (True or False)
-    :code:`reset` Should the cirucit have reset instruciton (True or False) (:code:`insert_1q_oper` should be true)
-    :code:`seed` Seed for the random number generator.
-    :code:`insert_1q_oper` Should the circuit have 1Q operations to the qubits which are left after applying a 2Q gate on 
-    the selected qubit-pair.
+    (default 2) (optional)
+    :code:`measure` Should the circuit have measure instructions at the end. (True or False) (default False) (optional)
+    :code:`conditional` Should the circuit have conditional operations. (True or False) (default False) (optional)
+    :code:`reset` Should the cirucit have reset instruciton (True or False) (default False) (optional)
+    :code:`seed` Seed for the random number generator. (optional)
+    :code:`insert_1q_oper` Should the circuit have 1Q operations. (True or False) (default True) (optional)
     :code:`prob_conditional` A float value less than 1.0, this is used to control the occurence of conditionals 
-    in the circuit.
-    :code:`prob_reset` A float value less than 1.0, that is used to control the occurence of resets.
+    in the circuit. (default 0.1) (optional)
+    :code:`prob_reset` A float value less than 1.0, that is used to control the occurence of resets. 
+    (default 0.1) (optional)
 
     This is an example where 'cp_map' is a list of edges for a "Directed Heavy Hex Graph" with some arbitrary weights.
 
@@ -55,16 +56,15 @@ features_circuits:
           (11, 15, 18),
           (11, 17, 33)]
       pydi_graph.add_edges_from(cp_map)
-      inter_graph = (pydi_graph, None, None, None)
-      qc = random_circuit_from_graph(inter_graph, 
-                                    min_2q_gate_per_edge =1, 
+      qc = random_circuit_from_graph(pydi_graph, 
+                                    min_2q_gate_per_edge = 1, 
                                     max_operands = 2, 
                                     measure = True, 
-                                    conditional=True, 
+                                    conditional = True, 
                                     reset = True, 
-                                    seed=0, 
+                                    seed = 0, 
                                     insert_1q_oper = True, 
-                                    prob_conditional=0.21,
+                                    prob_conditional = 0.21,
                                     prob_reset = 0.1)
       qc.draw(output='mpl', scale = 0.75)
 
