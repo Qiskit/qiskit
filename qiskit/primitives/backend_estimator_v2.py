@@ -95,7 +95,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     .. math::
 
-        \frac{\sum_{i=1}^{n}a_i\sqrt{\textrm{Var}\big(P_i\big)}}{\sqrt{N}}\:,
+        \frac{\sum_{i=1}^{n}|a_i|\sqrt{\textrm{Var}\big(P_i\big)}}{\sqrt{N}}\:,
 
     where :math:`\textrm{Var}(P_i)` is the variance of :math:`P_i`, :math:`N=O(\epsilon^{-2})` is
     the number of shots, and :math:`\epsilon` is the target precision.
