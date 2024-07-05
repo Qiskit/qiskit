@@ -21,9 +21,9 @@ use std::f64::consts::PI;
 use std::ops::Deref;
 use std::str::FromStr;
 
-use pyo3::exceptions::{PyIndexError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyString;
+use pyo3::types::{PyList, PyString};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
@@ -31,7 +31,8 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
-use qiskit_circuit::SliceOrInt;
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_circuit::util::c64;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -96,46 +97,15 @@ impl OneQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: SliceOrInt) -> PyResult<PyObject> {
-        match idx {
-            SliceOrInt::Slice(slc) => {
-                let len = self.gates.len().try_into().unwrap();
-                let indices = slc.indices(len)?;
-                let mut out_vec: Vec<(String, SmallVec<[f64; 3]>)> = Vec::new();
-                // Start and stop will always be positive the slice api converts
-                // negatives to the index for example:
-                // list(range(5))[-1:-3:-1]
-                // will return start=4, stop=2, and step=-1
-                let mut pos: isize = indices.start;
-                let mut cond = if indices.step < 0 {
-                    pos > indices.stop
-                } else {
-                    pos < indices.stop
-                };
-                while cond {
-                    if pos < len as isize {
-                        out_vec.push(self.gates[pos as usize].clone());
-                    }
-                    pos += indices.step;
-                    if indices.step < 0 {
-                        cond = pos > indices.stop;
-                    } else {
-                        cond = pos < indices.stop;
-                    }
-                }
-                Ok(out_vec.into_py(py))
-            }
-            SliceOrInt::Int(idx) => {
-                let len = self.gates.len() as isize;
-                if idx >= len || idx < -len {
-                    Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
-                } else if idx < 0 {
-                    let len = self.gates.len();
-                    Ok(self.gates[len - idx.unsigned_abs()].to_object(py))
-                } else {
-                    Ok(self.gates[idx as usize].to_object(py))
-                }
-            }
+    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
+        match idx.with_len(self.gates.len())? {
+            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
+            indices => Ok(PyList::new_bound(
+                py,
+                indices.iter().map(|pos| self.gates[pos].to_object(py)),
+            )
+            .into_any()
+            .unbind()),
         }
     }
 }
@@ -855,16 +825,16 @@ pub fn params_xyx(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 
 fn params_xzx_inner(umat: ArrayView2<Complex64>) -> [f64; 4] {
     let det = det_one_qubit(umat);
-    let phase = (Complex64::new(0., -1.) * det.ln()).re / 2.;
+    let phase = det.ln().im / 2.;
     let sqrt_det = det.sqrt();
     let mat_zyz = arr2(&[
         [
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
-            Complex64::new((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64((umat[[0, 0]] / sqrt_det).re, (umat[[1, 0]] / sqrt_det).im),
+            c64((umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
         ],
         [
-            Complex64::new(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
-            Complex64::new((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
+            c64(-(umat[[1, 0]] / sqrt_det).re, (umat[[0, 0]] / sqrt_det).im),
+            c64((umat[[0, 0]] / sqrt_det).re, -(umat[[1, 0]] / sqrt_det).im),
         ],
     ]);
     let [theta, phi, lam, phase_zxz] = params_zxz_inner(mat_zyz.view());

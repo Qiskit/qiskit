@@ -21,10 +21,6 @@
 use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
-use pyo3::exceptions::{PyIndexError, PyValueError};
-use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
-use pyo3::Python;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use std::ops::Deref;
@@ -37,7 +33,11 @@ use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, ToPyArray};
+
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use pyo3::types::PyList;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
@@ -52,67 +52,28 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
-use qiskit_circuit::SliceOrInt;
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
 
-const PI2: f64 = PI / 2.0;
-const PI4: f64 = PI / 4.0;
+const PI2: f64 = PI / 2.;
+const PI4: f64 = PI / 4.;
 const PI32: f64 = 3.0 * PI2;
 const TWO_PI: f64 = 2.0 * PI;
 
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
-static B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
-    [
-        Complex64::new(1.0, 0.),
-        Complex64::new(0., 1.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 1.),
-        Complex64::new(1.0, 0.0),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 1.),
-        Complex64::new(-1., 0.),
-    ],
-    [
-        Complex64::new(1., 0.),
-        Complex64::new(0., -1.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-    ],
+static B_NON_NORMALIZED: GateArray2Q = [
+    [C_ONE, IM, C_ZERO, C_ZERO],
+    [C_ZERO, C_ZERO, IM, C_ONE],
+    [C_ZERO, C_ZERO, IM, C_M_ONE],
+    [C_ONE, M_IM, C_ZERO, C_ZERO],
 ];
 
-static B_NON_NORMALIZED_DAGGER: [[Complex64; 4]; 4] = [
-    [
-        Complex64::new(0.5, 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0.5, 0.0),
-    ],
-    [
-        Complex64::new(0., -0.5),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.5),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., -0.5),
-        Complex64::new(0., -0.5),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0.5, 0.),
-        Complex64::new(-0.5, 0.),
-        Complex64::new(0., 0.),
-    ],
+static B_NON_NORMALIZED_DAGGER: GateArray2Q = [
+    [c64(0.5, 0.), C_ZERO, C_ZERO, c64(0.5, 0.)],
+    [c64(0., -0.5), C_ZERO, C_ZERO, c64(0., 0.5)],
+    [C_ZERO, c64(0., -0.5), c64(0., -0.5), C_ZERO],
+    [C_ZERO, c64(0.5, 0.), c64(-0.5, 0.), C_ZERO],
 ];
 
 enum MagicBasisTransform {
@@ -318,29 +279,26 @@ fn closest_partial_swap(a: f64, b: f64, c: f64) -> f64 {
 
 fn rx_matrix(theta: f64) -> Array2<Complex64> {
     let half_theta = theta / 2.;
-    let cos = Complex64::new(half_theta.cos(), 0.);
-    let isin = Complex64::new(0., -half_theta.sin());
+    let cos = c64(half_theta.cos(), 0.);
+    let isin = c64(0., -half_theta.sin());
     array![[cos, isin], [isin, cos]]
 }
 
 fn ry_matrix(theta: f64) -> Array2<Complex64> {
     let half_theta = theta / 2.;
-    let cos = Complex64::new(half_theta.cos(), 0.);
-    let sin = Complex64::new(half_theta.sin(), 0.);
+    let cos = c64(half_theta.cos(), 0.);
+    let sin = c64(half_theta.sin(), 0.);
     array![[cos, -sin], [sin, cos]]
 }
 
 fn rz_matrix(theta: f64) -> Array2<Complex64> {
-    let ilam2 = Complex64::new(0., 0.5 * theta);
-    array![
-        [(-ilam2).exp(), Complex64::new(0., 0.)],
-        [Complex64::new(0., 0.), ilam2.exp()]
-    ]
+    let ilam2 = c64(0., 0.5 * theta);
+    array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
 }
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
     let identity = aview2(&ONE_QUBIT_IDENTITY);
-    let phase = Complex64::new(0., global_phase).exp();
+    let phase = c64(0., global_phase).exp();
     let mut matrix = Array2::from_diag(&arr1(&[phase, phase, phase, phase]));
     sequence
         .iter()
@@ -375,7 +333,6 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
 }
 
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
-const C1_IM: Complex64 = Complex64::new(0.0, 1.0);
 
 #[derive(Clone, Debug, Copy)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
@@ -500,18 +457,9 @@ impl TwoQubitWeylDecomposition {
     }
 }
 
-static IPZ: [[Complex64; 2]; 2] = [
-    [C1_IM, Complex64::new(0., 0.)],
-    [Complex64::new(0., 0.), Complex64::new(0., -1.)],
-];
-static IPY: [[Complex64; 2]; 2] = [
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-    [Complex64::new(-1., 0.), Complex64::new(0., 0.)],
-];
-static IPX: [[Complex64; 2]; 2] = [
-    [Complex64::new(0., 0.), C1_IM],
-    [C1_IM, Complex64::new(0., 0.)],
-];
+static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
+static IPY: GateArray1Q = [[C_ZERO, C_ONE], [C_M_ONE, C_ZERO]];
+static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
 
 #[pymethods]
 impl TwoQubitWeylDecomposition {
@@ -671,7 +619,7 @@ impl TwoQubitWeylDecomposition {
         temp.diag_mut()
             .iter_mut()
             .enumerate()
-            .for_each(|(index, x)| *x = (C1_IM * d[index]).exp());
+            .for_each(|(index, x)| *x = (IM * d[index]).exp());
         let k1 = magic_basis_transform(u_p.dot(&p).dot(&temp).view(), MagicBasisTransform::Into);
         let k2 = magic_basis_transform(p.t(), MagicBasisTransform::Into);
 
@@ -737,7 +685,7 @@ impl TwoQubitWeylDecomposition {
         let is_close = |ap: f64, bp: f64, cp: f64| -> bool {
             let [da, db, dc] = [a - ap, b - bp, c - cp];
             let tr = 4.
-                * Complex64::new(
+                * c64(
                     da.cos() * db.cos() * dc.cos(),
                     da.sin() * db.sin() * dc.sin(),
                 );
@@ -1016,13 +964,13 @@ impl TwoQubitWeylDecomposition {
                 b - specialized.b,
                 -c - specialized.c,
             ];
-            4. * Complex64::new(
+            4. * c64(
                 da.cos() * db.cos() * dc.cos(),
                 da.sin() * db.sin() * dc.sin(),
             )
         } else {
             let [da, db, dc] = [a - specialized.a, b - specialized.b, c - specialized.c];
-            4. * Complex64::new(
+            4. * c64(
                 da.cos() * db.cos() * dc.cos(),
                 da.sin() * db.sin() * dc.sin(),
             )
@@ -1183,46 +1131,15 @@ impl TwoQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: SliceOrInt) -> PyResult<PyObject> {
-        match idx {
-            SliceOrInt::Slice(slc) => {
-                let len = self.gates.len().try_into().unwrap();
-                let indices = slc.indices(len)?;
-                let mut out_vec: TwoQubitSequenceVec = Vec::new();
-                // Start and stop will always be positive the slice api converts
-                // negatives to the index for example:
-                // list(range(5))[-1:-3:-1]
-                // will return start=4, stop=2, and step=-
-                let mut pos: isize = indices.start;
-                let mut cond = if indices.step < 0 {
-                    pos > indices.stop
-                } else {
-                    pos < indices.stop
-                };
-                while cond {
-                    if pos < len as isize {
-                        out_vec.push(self.gates[pos as usize].clone());
-                    }
-                    pos += indices.step;
-                    if indices.step < 0 {
-                        cond = pos > indices.stop;
-                    } else {
-                        cond = pos < indices.stop;
-                    }
-                }
-                Ok(out_vec.into_py(py))
-            }
-            SliceOrInt::Int(idx) => {
-                let len = self.gates.len() as isize;
-                if idx >= len || idx < -len {
-                    Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
-                } else if idx < 0 {
-                    let len = self.gates.len();
-                    Ok(self.gates[len - idx.unsigned_abs()].to_object(py))
-                } else {
-                    Ok(self.gates[idx as usize].to_object(py))
-                }
-            }
+    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
+        match idx.with_len(self.gates.len())? {
+            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
+            indices => Ok(PyList::new_bound(
+                py,
+                indices.iter().map(|pos| self.gates[pos].to_object(py)),
+            )
+            .into_any()
+            .unbind()),
         }
     }
 }
@@ -1597,20 +1514,14 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
-static K12R_ARR: [[Complex64; 2]; 2] = [
-    [
-        Complex64::new(0., FRAC_1_SQRT_2),
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-    ],
-    [
-        Complex64::new(-FRAC_1_SQRT_2, 0.),
-        Complex64::new(0., -FRAC_1_SQRT_2),
-    ],
+static K12R_ARR: GateArray1Q = [
+    [c64(0., FRAC_1_SQRT_2), c64(FRAC_1_SQRT_2, 0.)],
+    [c64(-FRAC_1_SQRT_2, 0.), c64(0., -FRAC_1_SQRT_2)],
 ];
 
-static K12L_ARR: [[Complex64; 2]; 2] = [
-    [Complex64::new(0.5, 0.5), Complex64::new(0.5, 0.5)],
-    [Complex64::new(-0.5, 0.5), Complex64::new(0.5, -0.5)],
+static K12L_ARR: GateArray1Q = [
+    [c64(0.5, 0.5), c64(0.5, 0.5)],
+    [c64(-0.5, 0.5), c64(0.5, -0.5)],
 ];
 
 fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Array2<Complex64>; 8]> {
@@ -1650,90 +1561,71 @@ impl TwoQubitBasisDecomposer {
         // Create some useful matrices U1, U2, U3 are equivalent to the basis,
         // expand as Ui = Ki1.Ubasis.Ki2
         let b = basis_decomposer.b;
-        let temp = Complex64::new(0.5, -0.5);
+        let temp = c64(0.5, -0.5);
         let k11l = array![
-            [
-                temp * (Complex64::new(0., -1.) * Complex64::new(0., -b).exp()),
-                temp * Complex64::new(0., -b).exp()
-            ],
-            [
-                temp * (Complex64::new(0., -1.) * Complex64::new(0., b).exp()),
-                temp * -(Complex64::new(0., b).exp())
-            ],
+            [temp * (M_IM * c64(0., -b).exp()), temp * c64(0., -b).exp()],
+            [temp * (M_IM * c64(0., b).exp()), temp * -(c64(0., b).exp())],
         ];
         let k11r = array![
             [
-                FRAC_1_SQRT_2 * (Complex64::new(0., 1.) * Complex64::new(0., -b).exp()),
-                FRAC_1_SQRT_2 * -Complex64::new(0., -b).exp()
+                FRAC_1_SQRT_2 * (IM * c64(0., -b).exp()),
+                FRAC_1_SQRT_2 * -c64(0., -b).exp()
             ],
             [
-                FRAC_1_SQRT_2 * Complex64::new(0., b).exp(),
-                FRAC_1_SQRT_2 * (Complex64::new(0., -1.) * Complex64::new(0., b).exp())
+                FRAC_1_SQRT_2 * c64(0., b).exp(),
+                FRAC_1_SQRT_2 * (M_IM * c64(0., b).exp())
             ],
         ];
         let k12l = aview2(&K12L_ARR);
         let k12r = aview2(&K12R_ARR);
         let k32l_k21l = array![
             [
-                FRAC_1_SQRT_2 * Complex64::new(1., (2. * b).cos()),
-                FRAC_1_SQRT_2 * (Complex64::new(0., 1.) * (2. * b).sin())
+                FRAC_1_SQRT_2 * c64(1., (2. * b).cos()),
+                FRAC_1_SQRT_2 * (IM * (2. * b).sin())
             ],
             [
-                FRAC_1_SQRT_2 * (Complex64::new(0., 1.) * (2. * b).sin()),
-                FRAC_1_SQRT_2 * Complex64::new(1., -(2. * b).cos())
+                FRAC_1_SQRT_2 * (IM * (2. * b).sin()),
+                FRAC_1_SQRT_2 * c64(1., -(2. * b).cos())
             ],
         ];
-        let temp = Complex64::new(0.5, 0.5);
+        let temp = c64(0.5, 0.5);
         let k21r = array![
             [
-                temp * (Complex64::new(0., -1.) * Complex64::new(0., -2. * b).exp()),
-                temp * Complex64::new(0., -2. * b).exp()
+                temp * (M_IM * c64(0., -2. * b).exp()),
+                temp * c64(0., -2. * b).exp()
             ],
             [
-                temp * (Complex64::new(0., 1.) * Complex64::new(0., 2. * b).exp()),
-                temp * Complex64::new(0., 2. * b).exp()
+                temp * (IM * c64(0., 2. * b).exp()),
+                temp * c64(0., 2. * b).exp()
             ],
         ];
-        const K22L_ARR: [[Complex64; 2]; 2] = [
-            [
-                Complex64::new(FRAC_1_SQRT_2, 0.),
-                Complex64::new(-FRAC_1_SQRT_2, 0.),
-            ],
-            [
-                Complex64::new(FRAC_1_SQRT_2, 0.),
-                Complex64::new(FRAC_1_SQRT_2, 0.),
-            ],
+        const K22L_ARR: GateArray1Q = [
+            [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
+            [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
         ];
         let k22l = aview2(&K22L_ARR);
-        let k22r_arr: [[Complex64; 2]; 2] = [
-            [Complex64::zero(), Complex64::new(1., 0.)],
-            [Complex64::new(-1., 0.), Complex64::zero()],
-        ];
+        let k22r_arr: GateArray1Q = [[Complex64::zero(), C_ONE], [C_M_ONE, Complex64::zero()]];
         let k22r = aview2(&k22r_arr);
         let k31l = array![
             [
-                FRAC_1_SQRT_2 * Complex64::new(0., -b).exp(),
-                FRAC_1_SQRT_2 * Complex64::new(0., -b).exp()
+                FRAC_1_SQRT_2 * c64(0., -b).exp(),
+                FRAC_1_SQRT_2 * c64(0., -b).exp()
             ],
             [
-                FRAC_1_SQRT_2 * -Complex64::new(0., b).exp(),
-                FRAC_1_SQRT_2 * Complex64::new(0., b).exp()
+                FRAC_1_SQRT_2 * -c64(0., b).exp(),
+                FRAC_1_SQRT_2 * c64(0., b).exp()
             ],
         ];
-        let temp = Complex64::new(0., 1.);
         let k31r = array![
-            [temp * Complex64::new(0., b).exp(), Complex64::zero()],
-            [Complex64::zero(), temp * -Complex64::new(0., -b).exp()],
+            [IM * c64(0., b).exp(), Complex64::zero()],
+            [Complex64::zero(), M_IM * c64(0., -b).exp()],
         ];
-        let temp = Complex64::new(0.5, 0.5);
+        let temp = c64(0.5, 0.5);
         let k32r = array![
+            [temp * c64(0., b).exp(), temp * -c64(0., -b).exp()],
             [
-                temp * Complex64::new(0., b).exp(),
-                temp * -Complex64::new(0., -b).exp()
-            ],
-            [
-                temp * (Complex64::new(0., -1.) * Complex64::new(0., b).exp()),
-                temp * (Complex64::new(0., -1.) * Complex64::new(0., -b).exp())
+                temp * (M_IM * c64(0., b).exp()),
+                temp * (M_IM * c64(0., -b).exp())
             ],
         ];
         let k1ld = transpose_conjugate(basis_decomposer.K1l.view());
@@ -1793,11 +1685,11 @@ impl TwoQubitBasisDecomposer {
 
     fn traces(&self, target: &TwoQubitWeylDecomposition) -> [Complex64; 4] {
         [
-            4. * Complex64::new(
+            4. * c64(
                 target.a.cos() * target.b.cos() * target.c.cos(),
                 target.a.sin() * target.b.sin() * target.c.sin(),
             ),
-            4. * Complex64::new(
+            4. * c64(
                 (PI4 - target.a).cos()
                     * (self.basis_decomposer.b - target.b).cos()
                     * target.c.cos(),
@@ -1805,8 +1697,8 @@ impl TwoQubitBasisDecomposer {
                     * (self.basis_decomposer.b - target.b).sin()
                     * target.c.sin(),
             ),
-            Complex64::new(4. * target.c.cos(), 0.),
-            Complex64::new(4., 0.),
+            c64(4. * target.c.cos(), 0.),
+            c64(4., 0.),
         ]
     }
 
