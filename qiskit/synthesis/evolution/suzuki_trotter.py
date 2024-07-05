@@ -104,7 +104,7 @@ class SuzukiTrotter(ProductFormula):
                 "Suzuki product formulae are symmetric and therefore only defined "
                 "for even orders."
             )
-        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
+        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
     def synthesize(self, evolution):
         # get operators and time to evolve
