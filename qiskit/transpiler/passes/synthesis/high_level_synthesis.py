@@ -900,7 +900,7 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
 
     The plugin supports the following additional options:
 
-    * do_swaps (bool): Whether to synthesize the "QFT" operation (default) or the
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (default) or the
         "QFT-with-reversal" operation (non-default). Some implementation of the ``QFTGate``
         include a layer of swap gates at the end of the synthesized circuit, which can in
         principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
@@ -922,7 +922,7 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
                 "The synthesis plugin 'qft.full` only applies to objects of type QFTGate."
             )
 
-        do_swaps = options.get("do_swaps", True)
+        reverse_qubits = options.get("reverse_qubits", True)
         approximation_degree = options.get("approximation_degree", 0)
         insert_barriers = options.get("insert_barriers", False)
         inverse = options.get("inverse", False)
@@ -930,7 +930,7 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
 
         decomposition = synth_qft_full(
             num_qubits=high_level_object.num_qubits,
-            do_swaps=do_swaps,
+            do_swaps=reverse_qubits,
             approximation_degree=approximation_degree,
             insert_barriers=insert_barriers,
             inverse=inverse,
@@ -947,7 +947,7 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
 
     The plugin supports the following additional options:
 
-    * do_swaps (bool): Whether to synthesize the "QFT" operation (default) or the
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (default) or the
         "QFT-with-reversal" operation (non-default). Some implementation of the ``QFTGate``
         include a layer of swap gates at the end of the synthesized circuit, which can in
         principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
@@ -965,12 +965,12 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
                 "The synthesis plugin 'qft.line` only applies to objects of type QFTGate."
             )
 
-        do_swaps = options.get("do_swaps", True)
+        reverse_qubits = options.get("reverse_qubits", True)
         approximation_degree = options.get("approximation_degree", 0)
 
         decomposition = synth_qft_line(
             num_qubits=high_level_object.num_qubits,
-            do_swaps=do_swaps,
+            do_swaps=reverse_qubits,
             approximation_degree=approximation_degree,
         )
         return decomposition
