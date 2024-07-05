@@ -468,6 +468,7 @@ class BitArray(ShapedMixin):
         self,
         indices: Sequence[int] | int,
         selection: Sequence[bool] | bool,
+        *,
         may_have_contradiction: bool = True,
     ) -> BitArray:
         """Post-select this bit array based on sliced equality with a given bitstring.
