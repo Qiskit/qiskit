@@ -900,13 +900,13 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
 
     The plugin supports the following additional options:
 
-    * do_swaps (bool): Whether to include Swap gates at the end of the synthesized
-        circuit. Some implementation of the ``QFTGate`` include a layer of Swap gates
-        at the end of the synthesized circuit, which cna in principle be dropped if
-        the ``QFTGate`` itself is the last gate in the circuit.
+    * do_swaps (bool): Whether to synthesize the "QFT" operation (default) or the
+        "QFT-with-reversal" operation (non-default). Some implementation of the ``QFTGate``
+        include a layer of swap gates at the end of the synthesized circuit, which can in
+        principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
     * approximation_degree (int): The degree of approximation (0 for no approximation).
-        It is impossible ti implement the QFT approximately by ignoring
-        controlled-phase rotations with the angle is beneath a threshold. This is discussed
+        It is impossible to implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle beneath a threshold. This is discussed
         in more detail in https://arxiv.org/abs/quant-ph/9601018 or
         https://arxiv.org/abs/quant-ph/0403071.
     * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
@@ -947,13 +947,13 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
 
     The plugin supports the following additional options:
 
-    * do_swaps (bool): whether to include Swap gates at the end of the synthesized
-        circuit. Some implementation of the ``QFTGate`` include a layer of Swap gates
-        at the end of the synthesized circuit, which cna in principle be dropped if
-        the ``QFTGate`` itself is the last gate in the circuit.
+    * do_swaps (bool): Whether to synthesize the "QFT" operation (default) or the
+        "QFT-with-reversal" operation (non-default). Some implementation of the ``QFTGate``
+        include a layer of swap gates at the end of the synthesized circuit, which can in
+        principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
     * approximation_degree (int): the degree of approximation (0 for no approximation).
-        It is impossible ti implement the QFT approximately by ignoring
-        controlled-phase rotations with the angle is beneath a threshold. This is discussed
+        It is impossible to implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle beneath a threshold. This is discussed
         in more detail in https://arxiv.org/abs/quant-ph/9601018 or
         https://arxiv.org/abs/quant-ph/0403071.
     """

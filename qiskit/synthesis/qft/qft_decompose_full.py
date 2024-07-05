@@ -42,6 +42,10 @@ def synth_qft_full(
         num_qubits: The number of qubits on which the Quantum Fourier Transform acts.
         do_swaps: Whether to synthesize the "QFT" or the "QFT-with-reversal" operation.
         approximation_degree: The degree of approximation (0 for no approximation).
+            It is impossible to implement the QFT approximately by ignoring
+            controlled-phase rotations with the angle beneath a threshold. This is discussed
+            in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+            https://arxiv.org/abs/quant-ph/0403071.
         insert_barriers: If ``True``, barriers are inserted for improved visualization.
         inverse: If ``True``, the inverse Quantum Fourier Transform is constructed.
         name: The name of the circuit.
