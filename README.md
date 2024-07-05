@@ -91,8 +91,12 @@ print(f" > Expectation values: {result.values}")
 Running this will give the outcome `4`. For fun, try to assign a value of +/- 1 to each single-qubit operator X and Y 
 and see if you can achieve this outcome. (Spoiler alert: this is not possible!)
 
-Using the Qiskit-provided `qiskit.primitives.Sampler` and `qiskit.primitives.Estimator` will not take you very far. The power of quantum computing cannot be simulated on classical computers and you need to use real quantum hardware to scale to larger quantum circuits. However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
-The tool that does this is the [transpiler](https://docs.quantum.ibm.com/api/qiskit/transpiler) and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling. However, it also includes a default compiler, which works very well in most examples. The following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map =[[0, 1], [1, 2]]`.
+Using the Qiskit-provided `qiskit.primitives.Sampler` and `qiskit.primitives.Estimator` will not take you very far.
+The power of quantum computing cannot be simulated on classical computers and you need to use real quantum hardware to scale to larger quantum circuits.
+However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
+The tool that does this is the [transpiler](https://docs.quantum.ibm.com/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
+However, it also includes a default compiler, which works very well in most examples.
+The following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map =[[0, 1], [1, 2]]`.
 
 ```python
 from qiskit import transpile
