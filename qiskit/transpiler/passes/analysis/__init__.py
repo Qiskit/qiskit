@@ -21,3 +21,4 @@ from .count_ops_longest_path import CountOpsLongestPath
 from .num_tensor_factors import NumTensorFactors
 from .num_qubits import NumQubits
 from .dag_longest_path import DAGLongestPath
+from .check_simplify_2q import CheckSimplify2Q

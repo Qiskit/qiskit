@@ -38,7 +38,7 @@ from qiskit.transpiler.passes.optimization import (
     CommutativeCancellation,
     Collect2qBlocks,
     ConsolidateBlocks,
-    InverseCancellation,
+    InverseCancellation, Split2QUnitaries,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -61,10 +61,10 @@ from qiskit.circuit.library.standard_gates import (
     HGate,
     CYGate,
     SXGate,
-    SXdgGate,
+    SXdgGate, get_standard_gate_name_mapping,
 )
 
-
+_discrete_skipped_ops = {'while_loop', 'delay', 'reset', 'for_loop', 'switch_case', 'measure', 'if_else'}
 class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
@@ -154,6 +154,39 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
+            # skip peephole optimization before routing if target basis gate set is discrete,
+            # i.e. only consists of Cliffords that an user might want to keep
+            # use rz, sx, x, cx as basis, rely on physical optimziation to fix everything later one
+            stdgates = get_standard_gate_name_mapping()
+
+            def _is_one_op_non_discrete(ops):
+                """Checks if one operation in `ops` is not discrete, i.e. is parameterizable
+                Args:
+                    ops (List(Operation)): list of operations to check
+                Returns
+                    True if at least one operation in `ops` is not discrete, False otherwise
+                """
+                for op in ops:
+                    if isinstance(op, str):
+                        op = stdgates.get(op, None)
+                    if op is None or op.name in _discrete_skipped_ops:
+                        continue
+                    if len(op.params) > 0:
+                        return True
+                return False
+
+            target = pass_manager_config.target
+            bases = pass_manager_config.basis_gates
+            # consolidate gates before routing if the user did not specify a discrete basis gate, i.e.
+            # * no target or basis gate set has been specified
+            # * target has been specified, and we have one non-discrete gate in the target's spec
+            # * basis gates have been specified, and we have one non-discrete gate in that set
+            if (target is None and bases is None) or (
+                target is not None and _is_one_op_non_discrete(target.operations) or (
+                bases is not None and _is_one_op_non_discrete(bases))):
+                init.append(Collect2qBlocks())
+                init.append(ConsolidateBlocks(target=target, basis_gates=bases))
+                init.append(Split2QUnitaries())
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
