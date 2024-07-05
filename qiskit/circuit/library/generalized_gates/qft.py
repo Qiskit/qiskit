@@ -47,7 +47,7 @@ class QFTGate(Gate):
         return np.exp(2j * np.pi * outer * (0.5**n), dtype=dtype) * (0.5 ** (n / 2))
 
     def _define(self):
-        """Provide a specific decomposition of the QFTgate into a quantum circuit."""
+        """Provide a specific decomposition of the QFTGate into a quantum circuit."""
         from qiskit.synthesis.qft import synth_qft_full
 
         self.definition = synth_qft_full(num_qubits=self.num_qubits)

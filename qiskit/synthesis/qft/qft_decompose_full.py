@@ -26,15 +26,29 @@ def synth_qft_full(
     inverse: bool = False,
     name: Optional[str] = None,
 ) -> QuantumCircuit:
-    """Construct a QFT circuit using all-to-all connectivity.
+    """Construct a circuit for the Quantum Fourier Transform using all-to-all connectivity.
+
+    .. note::
+
+        With the default value of ``do_swaps = True``, this synthesis algorithm creates a
+        circuit that faithfully implements the QFT operation. This circuit contains a sequence
+        of swap gates at the end, corresponding to reversing the order of its output qubits.
+        In some applications this reversal permutation can be avoided. Setting ``do_swaps = False``
+        creates a circuit without this reversal permutation, at the expense that this circuit
+        implements the "QFT-with-reversal" instead of QFT. Alternatively, the
+        :class:`~.ElidePermutations` transpiler pass is able to remove these swap gates.
 
     Args:
-        num_qubits: The number of qubits on which the QFT acts.
-        do_swaps: Whether to include the final swaps in the QFT.
+        num_qubits: The number of qubits on which the Quantum Fourier Transform acts.
+        do_swaps: Whether to synthesize the "QFT" or the "QFT-with-reversal" operation.
         approximation_degree: The degree of approximation (0 for no approximation).
-        insert_barriers: If True, barriers are inserted as visualization improvement.
-        inverse: If True, the inverse Fourier transform is constructed.
+        insert_barriers: If ``True``, barriers are inserted for improved visualization.
+        inverse: If ``True``, the inverse Quantum Fourier Transform is constructed.
         name: The name of the circuit.
+
+    Returns:
+        A circuit implementing the QFT operation.
+
     """
 
     circuit = QuantumCircuit(num_qubits, name=name)
