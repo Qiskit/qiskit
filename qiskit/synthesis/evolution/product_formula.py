@@ -74,6 +74,9 @@ class ProductFormula(EvolutionSynthesis):
                 three arguments: the circuit to append the evolution to, the Pauli operator to
                 evolve, and the evolution time. By default, a single Pauli evolution is decomposed
                 into a chain of ``CX`` gates and a single ``RZ`` gate.
+                **DEPRECATED:** The function takes only the Pauli operator and evolution time as
+                inputs and returns the circuit that will be appended to the overall circuit being
+                built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
         """
