@@ -27,14 +27,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.qobj import Qobj, QobjHeader
+from qiskit.qobj import QasmQobj, PulseQobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 logger = logging.getLogger(__name__)
 
 
 def _log_assembly_time(start_time, end_time):
-    log_msg = "Total Assembly Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    log_msg = f"Total Assembly Time - {((end_time - start_time) * 1000):.5f} (ms)"
     logger.info(log_msg)
 
 
@@ -74,7 +74,7 @@ def assemble(
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
     **run_config: Dict,
-) -> Qobj:
+) -> Union[QasmQobj, PulseQobj]:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,
@@ -113,8 +113,8 @@ def assemble(
             ``n_qubits.``
         schedule_los: Experiment level (ie circuit or schedule) LO frequency configurations for
             qubit drive and measurement channels. These values override the job level values from
-            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
-            and pulse jobs.
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for
+            OpenQASM 2 and pulse jobs.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.
 
@@ -257,7 +257,7 @@ def _parse_common_args(
             - If ``shots`` are not int type.
             - If any of qubit or meas lo's, or associated ranges do not have length equal to
             ``n_qubits``.
-            - If qubit or meas lo's do not fit into perscribed ranges.
+            - If qubit or meas lo's do not fit into prescribed ranges.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -311,8 +311,8 @@ def _parse_common_args(
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
-            "Number of shots specified: %s exceeds max_shots property of the "
-            "backend: %s." % (shots, max_shots)
+            f"Number of shots specified: {max_shots} exceeds max_shots property of the "
+            f"backend: {max_shots}."
         )
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
@@ -350,20 +350,20 @@ def _parse_common_args(
     ]
 
     # create run configuration and populate
-    run_config_dict = dict(
-        shots=shots,
-        memory=memory,
-        seed_simulator=seed_simulator,
-        init_qubits=init_qubits,
-        rep_delay=rep_delay,
-        qubit_lo_freq=qubit_lo_freq,
-        meas_lo_freq=meas_lo_freq,
-        qubit_lo_range=qubit_lo_range,
-        meas_lo_range=meas_lo_range,
-        schedule_los=schedule_los,
-        n_qubits=n_qubits,
+    run_config_dict = {
+        "shots": shots,
+        "memory": memory,
+        "seed_simulator": seed_simulator,
+        "init_qubits": init_qubits,
+        "rep_delay": rep_delay,
+        "qubit_lo_freq": qubit_lo_freq,
+        "meas_lo_freq": meas_lo_freq,
+        "qubit_lo_range": qubit_lo_range,
+        "meas_lo_range": meas_lo_range,
+        "schedule_los": schedule_los,
+        "n_qubits": n_qubits,
         **run_config,
-    )
+    }
 
     return qobj_id, qobj_header, run_config_dict
 
@@ -397,9 +397,8 @@ def _check_lo_freqs(
                 raise QiskitError(f"Each element of {lo_type} LO range must be a 2d list.")
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
-                    "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(
-                        i, lo_type, freq, freq_range[0], freq_range[1]
-                    )
+                    f"Qubit {i} {lo_type} LO frequency is {freq}. "
+                    f"The range is [{freq_range[0]}, {freq_range[1]}]."
                 )
 
 
@@ -429,9 +428,8 @@ def _parse_pulse_args(
 
         if meas_level not in getattr(backend_config, "meas_levels", [MeasLevel.CLASSIFIED]):
             raise QiskitError(
-                ("meas_level = {} not supported for backend {}, only {} is supported").format(
-                    meas_level, backend_config.backend_name, backend_config.meas_levels
-                )
+                f"meas_level = {meas_level} not supported for backend "
+                f"{backend_config.backend_name}, only {backend_config.meas_levels} is supported"
             )
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
@@ -452,15 +450,15 @@ def _parse_pulse_args(
         parametric_pulses = getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
-    run_config_dict = dict(
-        meas_level=meas_level,
-        meas_return=meas_return,
-        meas_map=meas_map,
-        memory_slot_size=memory_slot_size,
-        rep_time=rep_time,
-        parametric_pulses=parametric_pulses,
+    run_config_dict = {
+        "meas_level": meas_level,
+        "meas_return": meas_return,
+        "meas_map": meas_map,
+        "memory_slot_size": memory_slot_size,
+        "rep_time": rep_time,
+        "parametric_pulses": parametric_pulses,
         **run_config,
-    )
+    }
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
@@ -478,7 +476,7 @@ def _parse_circuit_args(
     """
     parameter_binds = parameter_binds or []
     # create run configuration and populate
-    run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
+    run_config_dict = {"parameter_binds": parameter_binds, **run_config}
     if parametric_pulses is None:
         if backend:
             run_config_dict["parametric_pulses"] = getattr(
@@ -522,14 +520,12 @@ def _parse_rep_delay(
         if rep_delay_range is not None and isinstance(rep_delay_range, list):
             if len(rep_delay_range) != 2:
                 raise QiskitError(
-                    "Backend rep_delay_range {} must be a list with two entries.".format(
-                        rep_delay_range
-                    )
+                    f"Backend rep_delay_range {rep_delay_range} must be a list with two entries."
                 )
             if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
                 raise QiskitError(
-                    "Supplied rep delay {} not in the supported "
-                    "backend range {}".format(rep_delay, rep_delay_range)
+                    f"Supplied rep delay {rep_delay} not in the supported "
+                    f"backend range {rep_delay_range}"
                 )
         rep_delay = rep_delay * 1e6  # convert sec to μs
 
@@ -587,7 +583,7 @@ def _expand_parameters(circuits, run_config):
             )
 
         circuits = [
-            circuit.bind_parameters(binds) for circuit in circuits for binds in parameter_binds
+            circuit.assign_parameters(binds) for circuit in circuits for binds in parameter_binds
         ]
 
         # All parameters have been expanded and bound, so remove from run_config

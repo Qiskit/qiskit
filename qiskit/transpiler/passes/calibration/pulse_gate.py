@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Instruction scheduel map reference pass."""
+"""Instruction schedule map reference pass."""
 
 from typing import List, Union
 
@@ -57,7 +57,7 @@ class PulseGates(CalibrationBuilder):
         Args:
             inst_map: Instruction schedule map that user may override.
             target: The :class:`~.Target` representing the target backend, if both
-                ``inst_map`` and this are specified then it updates instructions
+                ``inst_map`` and ``target`` are specified then it updates instructions
                 in the ``target`` with ``inst_map``.
         """
         super().__init__()

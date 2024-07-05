@@ -37,34 +37,34 @@ from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-θ = Parameter("θ")
-ϕ = Parameter("ϕ")
-λ = Parameter("λ")
+theta = Parameter("θ")
+phi = Parameter("ϕ")
+lambda_ = Parameter("λ")
 
 # a typical target where u1 is cheaper than u2 is cheaper than u3
 u1_props = {(0,): InstructionProperties(error=0)}
 u2_props = {(0,): InstructionProperties(error=1e-4)}
 u3_props = {(0,): InstructionProperties(error=2e-4)}
 target_u1_u2_u3 = Target()
-target_u1_u2_u3.add_instruction(U1Gate(θ), u1_props, name="u1")
-target_u1_u2_u3.add_instruction(U2Gate(θ, ϕ), u2_props, name="u2")
-target_u1_u2_u3.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name="u3")
+target_u1_u2_u3.add_instruction(U1Gate(theta), u1_props, name="u1")
+target_u1_u2_u3.add_instruction(U2Gate(theta, phi), u2_props, name="u2")
+target_u1_u2_u3.add_instruction(U3Gate(theta, phi, lambda_), u3_props, name="u3")
 
 # a typical target where continuous rz and rx are available; rz is cheaper
 rz_props = {(0,): InstructionProperties(duration=0, error=0)}
 rx_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.00025)}
 target_rz_rx = Target()
-target_rz_rx.add_instruction(RZGate(θ), rz_props, name="rz")
-target_rz_rx.add_instruction(RXGate(θ), rx_props, name="rx")
+target_rz_rx.add_instruction(RZGate(theta), rz_props, name="rz")
+target_rz_rx.add_instruction(RXGate(theta), rx_props, name="rx")
 
 # a typical target where continuous rz, and discrete sx are available; rz is cheaper
 rz_props = {(0,): InstructionProperties(duration=0, error=0)}
 sx_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.00025)}
 target_rz_sx = Target()
-target_rz_sx.add_instruction(RZGate(θ), rz_props, name="rz")
+target_rz_sx.add_instruction(RZGate(theta), rz_props, name="rz")
 target_rz_sx.add_instruction(SXGate(), sx_props, name="sx")
 
 # a target with overcomplete basis, rz is cheaper than ry is cheaper than u
@@ -72,9 +72,9 @@ rz_props = {(0,): InstructionProperties(duration=0.1e-8, error=0.0001)}
 ry_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.0002)}
 u_props = {(0,): InstructionProperties(duration=0.9e-8, error=0.0005)}
 target_rz_ry_u = Target()
-target_rz_ry_u.add_instruction(RZGate(θ), rz_props, name="rz")
-target_rz_ry_u.add_instruction(RYGate(θ), ry_props, name="ry")
-target_rz_ry_u.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
+target_rz_ry_u.add_instruction(RZGate(theta), rz_props, name="rz")
+target_rz_ry_u.add_instruction(RYGate(theta), ry_props, name="ry")
+target_rz_ry_u.add_instruction(UGate(theta, phi, lambda_), u_props, name="u")
 
 # a target with hadamard and phase, we don't yet have an explicit decomposer
 # but we can at least recognize circuits that are native for it
@@ -82,7 +82,7 @@ h_props = {(0,): InstructionProperties(duration=0.3e-8, error=0.0003)}
 p_props = {(0,): InstructionProperties(duration=0, error=0)}
 target_h_p = Target()
 target_h_p.add_instruction(HGate(), h_props, name="h")
-target_h_p.add_instruction(PhaseGate(θ), p_props, name="p")
+target_h_p.add_instruction(PhaseGate(theta), p_props, name="p")
 
 # a target with rz, ry, and u. Error are not specified so we should prefer
 # shorter decompositions.
@@ -90,9 +90,9 @@ rz_props = {(0,): None}
 ry_props = {(0,): None}
 u_props = {(0,): None}
 target_rz_ry_u_noerror = Target()
-target_rz_ry_u_noerror.add_instruction(RZGate(θ), rz_props, name="rz")
-target_rz_ry_u_noerror.add_instruction(RYGate(θ), ry_props, name="ry")
-target_rz_ry_u_noerror.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
+target_rz_ry_u_noerror.add_instruction(RZGate(theta), rz_props, name="rz")
+target_rz_ry_u_noerror.add_instruction(RYGate(theta), ry_props, name="ry")
+target_rz_ry_u_noerror.add_instruction(UGate(theta, phi, lambda_), u_props, name="u")
 
 
 @ddt.ddt
@@ -274,11 +274,11 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Parameters should be treated as opaque gates."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        theta = Parameter("theta")
+        theta_p = Parameter("theta")
 
         qc.p(0.3, qr)
         qc.p(0.4, qr)
-        qc.p(theta, qr)
+        qc.p(theta_p, qr)
         qc.p(0.1, qr)
         qc.p(0.2, qr)
 
@@ -287,8 +287,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14})).equiv(
-                Operator(result.bind_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta_p: 3.14})).equiv(
+                Operator(result.assign_parameters({theta_p: 3.14}))
             )
         )
 
@@ -308,14 +308,14 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Parameters should be treated as opaque gates."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        theta = Parameter("theta")
+        theta_p = Parameter("theta")
 
         qc.p(0.3, qr)
         qc.p(0.4, qr)
-        qc.p(theta, qr)
+        qc.p(theta_p, qr)
         qc.p(0.1, qr)
         qc.p(0.2, qr)
-        qc.p(theta, qr)
+        qc.p(theta_p, qr)
         qc.p(0.3, qr)
         qc.p(0.2, qr)
 
@@ -324,8 +324,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14})).equiv(
-                Operator(result.bind_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta_p: 3.14})).equiv(
+                Operator(result.assign_parameters({theta_p: 3.14}))
             )
         )
 
@@ -345,15 +345,15 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Expressions of Parameters should be treated as opaque gates."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        theta = Parameter("theta")
-        phi = Parameter("phi")
+        theta_p = Parameter("theta")
+        phi_p = Parameter("phi")
 
-        sum_ = theta + phi
-        product_ = theta * phi
+        sum_ = theta_p + phi_p
+        product_ = theta_p * phi_p
         qc.p(0.3, qr)
         qc.p(0.4, qr)
-        qc.p(theta, qr)
-        qc.p(phi, qr)
+        qc.p(theta_p, qr)
+        qc.p(phi_p, qr)
         qc.p(sum_, qr)
         qc.p(product_, qr)
         qc.p(0.3, qr)
@@ -364,8 +364,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14, phi: 10})).equiv(
-                Operator(result.bind_parameters({theta: 3.14, phi: 10}))
+            Operator(qc.assign_parameters({theta_p: 3.14, phi_p: 10})).equiv(
+                Operator(result.assign_parameters({theta_p: 3.14, phi_p: 10}))
             )
         )
 
@@ -744,6 +744,20 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(test)
         self.assertEqual(result, expected)
+
+    def test_prefer_no_substitution_if_all_ideal(self):
+        """Test that gates are not substituted if all our ideal gates in basis."""
+        target = Target(num_qubits=1)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(error=0)})
+        target.add_instruction(
+            UGate(Parameter("a"), Parameter("b"), Parameter("c")),
+            {(0,): InstructionProperties(error=0)},
+        )
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        opt_pass = Optimize1qGatesDecomposition(target)
+        res = opt_pass(qc)
+        self.assertEqual(res, qc)
 
 
 if __name__ == "__main__":

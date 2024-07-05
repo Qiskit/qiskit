@@ -16,7 +16,6 @@ import unittest
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
@@ -26,6 +25,7 @@ from qiskit.circuit.library import (
     DraperQFTAdder,
     VBERippleCarryAdder,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

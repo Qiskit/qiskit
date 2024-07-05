@@ -11,11 +11,13 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
+import warnings
+
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
-from qiskit.circuit import Delay, Gate
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit, DAGOutNode
+from qiskit.circuit import Delay, Gate, Measure, Reset
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
@@ -66,7 +68,7 @@ class BaseSchedulerTransform(TransformationPass):
         However, such optimization should be done by another pass,
         otherwise scheduling may break topological ordering of the original circuit.
 
-    Realistic control flow scheduling respecting for microarcitecture
+    Realistic control flow scheduling respecting for microarchitecture
 
         In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
         followed by resonator ring-down (depopulation). This microwave signal is recorded
@@ -268,6 +270,23 @@ class BaseSchedulerTransform(TransformationPass):
             duration = dag.calibrations[node.op.name][cal_key].duration
         else:
             duration = node.op.duration
+
+        if isinstance(node.op, Reset):
+            warnings.warn(
+                "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
+                "Actual behavior depends on the control system of your quantum backend. "
+                "Your backend may provide a plugin scheduler pass."
+            )
+        elif isinstance(node.op, Measure):
+            is_mid_circuit = not any(
+                isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
+            )
+            if is_mid_circuit:
+                warnings.warn(
+                    "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
+                    "Actual backend may apply custom scheduling. "
+                    "Your backend may provide a plugin scheduler pass."
+                )
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(

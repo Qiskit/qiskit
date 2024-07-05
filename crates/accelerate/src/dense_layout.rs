@@ -15,8 +15,8 @@ use ahash::RandomState;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 use ndarray::prelude::*;
+use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
 use rayon::prelude::*;
 
 use pyo3::prelude::*;
@@ -108,10 +108,35 @@ pub fn best_subset(
     use_error: bool,
     symmetric_coupling_map: bool,
     error_matrix: PyReadonlyArray2<f64>,
-) -> PyResult<(PyObject, PyObject, PyObject)> {
+) -> (PyObject, PyObject, PyObject) {
     let coupling_adj_mat = coupling_adjacency.as_array();
-    let coupling_shape = coupling_adj_mat.shape();
     let err = error_matrix.as_array();
+    let [rows, cols, best_map] = best_subset_inner(
+        num_qubits,
+        coupling_adj_mat,
+        num_meas,
+        num_cx,
+        use_error,
+        symmetric_coupling_map,
+        err,
+    );
+    (
+        rows.into_pyarray_bound(py).into(),
+        cols.into_pyarray_bound(py).into(),
+        best_map.into_pyarray_bound(py).into(),
+    )
+}
+
+pub fn best_subset_inner(
+    num_qubits: usize,
+    coupling_adj_mat: ArrayView2<f64>,
+    num_meas: usize,
+    num_cx: usize,
+    use_error: bool,
+    symmetric_coupling_map: bool,
+    err: ArrayView2<f64>,
+) -> [Vec<usize>; 3] {
+    let coupling_shape = coupling_adj_mat.shape();
     let avg_meas_err = err.diag().mean().unwrap();
 
     let map_fn = |k| -> SubsetResult {
@@ -172,7 +197,7 @@ pub fn best_subset(
         SubsetResult {
             count: 0,
             map: Vec::new(),
-            error: std::f64::INFINITY,
+            error: f64::INFINITY,
             subgraph: Vec::new(),
         }
     };
@@ -216,15 +241,11 @@ pub fn best_subset(
     let rows: Vec<usize> = new_cmap.iter().map(|edge| edge[0]).collect();
     let cols: Vec<usize> = new_cmap.iter().map(|edge| edge[1]).collect();
 
-    Ok((
-        rows.to_pyarray(py).into(),
-        cols.to_pyarray(py).into(),
-        best_map.to_pyarray(py).into(),
-    ))
+    [rows, cols, best_map]
 }
 
 #[pymodule]
-pub fn dense_layout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn dense_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(best_subset))?;
     Ok(())
 }

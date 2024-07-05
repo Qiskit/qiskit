@@ -12,7 +12,6 @@
 
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
-import os
 from enum import Enum
 import itertools
 import logging
@@ -38,7 +37,7 @@ class VF2LayoutStopReason(Enum):
 
 
 class VF2Layout(AnalysisPass):
-    """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
+    """A pass for choosing a Layout of a circuit onto a Coupling graph, as
     a subgraph isomorphism problem, solved by VF2++.
 
     If a solution is found that means there is a "perfect layout" and that no
@@ -53,7 +52,7 @@ class VF2Layout(AnalysisPass):
         * ``"nonexistent solution"``: If no perfect layout was found.
         * ``">2q gates in basis"``: If VF2Layout can't work with basis
 
-    By default this pass will construct a heuristic scoring map based on the
+    By default, this pass will construct a heuristic scoring map based on
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
@@ -105,15 +104,21 @@ class VF2Layout(AnalysisPass):
                 limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for ``properties`` and
-                ``coupling_map``.
+                ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
+                of ``target`` models an ideal backend without any constraints then the value of
+                ``coupling_map``
+                will be used.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
         super().__init__()
         self.target = target
-        if target is not None:
-            self.coupling_map = self.target.build_coupling_map()
+        if (
+            target is not None
+            and (target_coupling_map := self.target.build_coupling_map()) is not None
+        ):
+            self.coupling_map = target_coupling_map
         else:
             self.coupling_map = coupling_map
         self.properties = properties
@@ -139,12 +144,14 @@ class VF2Layout(AnalysisPass):
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
+        scoring_edge_list = vf2_utils.build_edge_list(im_graph)
+        scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
             self.coupling_map, self.seed, self.strict_direction
         )
         # Filter qubits without any supported operations. If they don't support any operations
         # They're not valid for layout selection
-        if self.target is not None:
+        if self.target is not None and self.target.qargs is not None:
             has_operations = set(itertools.chain.from_iterable(self.target.qargs))
             to_remove = set(range(len(cm_nodes))).difference(has_operations)
             if to_remove:
@@ -172,10 +179,6 @@ class VF2Layout(AnalysisPass):
         chosen_layout_score = None
         start_time = time.time()
         trials = 0
-        run_in_parallel = (
-            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
-            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
-        )
 
         def mapping_to_layout(layout_mapping):
             return Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
@@ -192,7 +195,7 @@ class VF2Layout(AnalysisPass):
             if len(cm_graph) == len(im_graph):
                 chosen_layout = mapping_to_layout(layout_mapping)
                 break
-            # If there is no error map avilable we can just skip the scoring stage as there
+            # If there is no error map available we can just skip the scoring stage as there
             # is nothing to score with, so any match is the best we can find.
             if self.avg_error_map is None:
                 chosen_layout = mapping_to_layout(layout_mapping)
@@ -204,7 +207,8 @@ class VF2Layout(AnalysisPass):
                 reverse_im_graph_node_map,
                 im_graph,
                 self.strict_direction,
-                run_in_parallel,
+                edge_list=scoring_edge_list,
+                bit_list=scoring_bit_list,
             )
             # If the layout score is 0 we can't do any better and we'll just
             # waste time finding additional mappings that will at best match

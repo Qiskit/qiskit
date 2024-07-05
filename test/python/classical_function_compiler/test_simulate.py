@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """Tests LogicNetwork.simulate method."""
+
 import unittest
 from ddt import ddt, data
-from qiskit.test import QiskitTestCase
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import utils
 
@@ -25,6 +26,7 @@ if HAS_TWEEDLEDUM:
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 @ddt
 class TestSimulate(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests LogicNetwork.simulate method"""
 
     @data(*utils.example_list())

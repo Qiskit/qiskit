@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,12 +17,13 @@ from typing import List
 
 import numpy as np
 import rustworkx as rx
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.transpiler.coupling import CouplingMap
 from .exceptions import VisualizationError
-from .utils import matplotlib_close_if_inline
 
 
 def _get_backend_interface_version(backend):
@@ -42,7 +43,7 @@ def plot_gate_map(
     qubit_color=None,
     qubit_labels=None,
     line_color=None,
-    font_color="w",
+    font_color="white",
     ax=None,
     filename=None,
     qubit_coordinates=None,
@@ -83,17 +84,14 @@ def plot_gate_map(
         .. plot::
            :include-source:
 
-           from qiskit import QuantumCircuit, execute
-           from qiskit.providers.fake_provider import FakeVigoV2
+           from qiskit.providers.fake_provider import GenericBackendV2
            from qiskit.visualization import plot_gate_map
 
-           backend = FakeVigoV2()
+           backend = GenericBackendV2(num_qubits=5)
 
            plot_gate_map(backend)
     """
     qubit_coordinates_map = {}
-
-    qubit_coordinates_map[1] = [[0, 0]]
 
     qubit_coordinates_map[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
@@ -912,8 +910,6 @@ def plot_gate_map(
 
     backend_version = _get_backend_interface_version(backend)
     if backend_version <= 1:
-        from qiskit.transpiler.coupling import CouplingMap
-
         if backend.configuration().simulator:
             raise QiskitError("Requires a device backend, not simulator.")
         config = backend.configuration()
@@ -927,31 +923,12 @@ def plot_gate_map(
     if qubit_coordinates is None and ("ibm" in name or "fake" in name):
         qubit_coordinates = qubit_coordinates_map.get(num_qubits, None)
 
-    if qubit_coordinates is None:
-        # Replace with planar_layout() when rustworkx offers it
-        qubit_coordinates_rx = rx.spring_layout(coupling_map.graph, seed=1234)
-        scaling_factor = 10 ** int(math.log10(num_qubits) + 1)
-        qubit_coordinates = [
-            (
-                int(scaling_factor * qubit_coordinates_rx[i][0]),
-                int(scaling_factor * qubit_coordinates_rx[i][1]),
+    if qubit_coordinates:
+        if len(qubit_coordinates) != num_qubits:
+            raise QiskitError(
+                f"The number of specified qubit coordinates {len(qubit_coordinates)} "
+                f"does not match the device number of qubits: {num_qubits}"
             )
-            for i in range(num_qubits)
-        ]
-
-    if any(x[0] < 0 or x[1] < 0 for x in qubit_coordinates):
-        min_entry = min(qubit_coordinates, key=lambda x: min(x[0], x[1]))
-        negative_offset = 0 - min(min_entry)
-        qubit_coordinates = [
-            (x[0] + negative_offset, x[1] + negative_offset) for x in qubit_coordinates
-        ]
-
-    if len(qubit_coordinates) != num_qubits:
-        raise QiskitError(
-            f"The number of specified qubit coordinates {len(qubit_coordinates)} "
-            f"does not match the device number of qubits: {num_qubits}"
-        )
-
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
@@ -972,6 +949,7 @@ def plot_gate_map(
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
+@_optionals.HAS_GRAPHVIZ.require_in_call
 def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
@@ -985,7 +963,7 @@ def plot_coupling_map(
     qubit_color=None,
     qubit_labels=None,
     line_color=None,
-    font_color="w",
+    font_color="white",
     ax=None,
     filename=None,
 ):
@@ -1014,7 +992,7 @@ def plot_coupling_map(
         Figure: A Matplotlib figure instance.
 
     Raises:
-        MissingOptionalLibraryError: if matplotlib not installed.
+        MissingOptionalLibraryError: If matplotlib or graphviz is not installed.
         QiskitError: If length of qubit labels does not match number of qubits.
 
     Example:
@@ -1030,20 +1008,14 @@ def plot_coupling_map(
             plot_coupling_map(num_qubits, qubit_coordinates, coupling_map)
     """
     import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
+    from .utils import matplotlib_close_if_inline
 
     input_axes = False
     if ax:
         input_axes = True
 
-    if font_size is None:
-        font_size = 12
-
     if qubit_size is None:
-        qubit_size = 24
-    if num_qubits > 20:
-        qubit_size = 28
-        font_size = 10
+        qubit_size = 30
 
     if qubit_labels is None:
         qubit_labels = list(range(num_qubits))
@@ -1051,128 +1023,98 @@ def plot_coupling_map(
         if len(qubit_labels) != num_qubits:
             raise QiskitError("Length of qubit labels does not equal number of qubits.")
 
-    if qubit_coordinates is not None:
-        grid_data = qubit_coordinates
-    else:
-        if not input_axes:
-            fig, ax = plt.subplots(figsize=(5, 5))
-            ax.axis("off")
-            if filename:
-                fig.savefig(filename)
-            return fig
-
-    x_max = max(d[1] for d in grid_data)
-    y_max = max(d[0] for d in grid_data)
-    max_dim = max(x_max, y_max)
-
-    if figsize is None:
-        if num_qubits == 1 or (x_max / max_dim > 0.33 and y_max / max_dim > 0.33):
-            figsize = (5, 5)
-        else:
-            figsize = (9, 3)
-
-    if ax is None:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.axis("off")
+    if not label_qubits:
+        qubit_labels = [""] * num_qubits
 
     # set coloring
     if qubit_color is None:
         qubit_color = ["#648fff"] * num_qubits
     if line_color is None:
-        line_color = ["#648fff"] * len(coupling_map) if coupling_map else []
+        line_color = ["#648fff"] * len(coupling_map)
 
-    # Add lines for couplings
-    if num_qubits != 1:
-        for ind, edge in enumerate(coupling_map):
-            is_symmetric = False
-            if edge[::-1] in coupling_map:
-                is_symmetric = True
-            y_start = grid_data[edge[0]][0]
-            x_start = grid_data[edge[0]][1]
-            y_end = grid_data[edge[1]][0]
-            x_end = grid_data[edge[1]][1]
+    if num_qubits == 1:
+        graph = rx.PyDiGraph()
+        graph.add_node(0)
+    else:
+        graph = CouplingMap(coupling_map).graph
 
-            if is_symmetric:
-                if y_start == y_end:
-                    x_end = (x_end - x_start) / 2 + x_start
+    if not plot_directed:
+        line_color_map = dict(zip(graph.edge_list(), line_color))
+        graph = graph.to_undirected(multigraph=False)
+        line_color = [line_color_map[edge] for edge in graph.edge_list()]
 
-                elif x_start == x_end:
-                    y_end = (y_end - y_start) / 2 + y_start
+    for node in graph.node_indices():
+        graph[node] = node
 
-                else:
-                    x_end = (x_end - x_start) / 2 + x_start
-                    y_end = (y_end - y_start) / 2 + y_start
-            ax.add_artist(
-                plt.Line2D(
-                    [x_start, x_end],
-                    [-y_start, -y_end],
-                    color=line_color[ind],
-                    linewidth=line_width,
-                    zorder=0,
-                )
-            )
-            if plot_directed:
-                dx = x_end - x_start
-                dy = y_end - y_start
-                if is_symmetric:
-                    x_arrow = x_start + dx * 0.95
-                    y_arrow = -y_start - dy * 0.95
-                    dx_arrow = dx * 0.01
-                    dy_arrow = -dy * 0.01
-                    head_width = 0.15
-                else:
-                    x_arrow = x_start + dx * 0.5
-                    y_arrow = -y_start - dy * 0.5
-                    dx_arrow = dx * 0.2
-                    dy_arrow = -dy * 0.2
-                    head_width = 0.2
-                ax.add_patch(
-                    mpatches.FancyArrow(
-                        x_arrow,
-                        y_arrow,
-                        dx_arrow,
-                        dy_arrow,
-                        head_width=head_width,
-                        length_includes_head=True,
-                        edgecolor=None,
-                        linewidth=0,
-                        facecolor=line_color[ind],
-                        zorder=1,
-                    )
-                )
+    for edge_index in graph.edge_indices():
+        graph.update_edge_by_index(edge_index, edge_index)
 
-    # Add circles for qubits
-    for var, idx in enumerate(grid_data):
-        _idx = [idx[1], -idx[0]]
-        ax.add_artist(
-            mpatches.Ellipse(
-                _idx,
-                qubit_size / 48,
-                qubit_size / 48,  # This is here so that the changes
-                color=qubit_color[var],
-                zorder=1,
-            )
-        )  # to how qubits are plotted does
-        if label_qubits:  # not affect qubit size kwarg.
-            ax.text(
-                *_idx,
-                s=qubit_labels[var],
-                horizontalalignment="center",
-                verticalalignment="center",
-                color=font_color,
-                size=font_size,
-                weight="bold",
-            )
-    ax.set_xlim([-1, x_max + 1])
-    ax.set_ylim([-(y_max + 1), 1])
-    ax.set_aspect("equal")
+    # pixel-to-inch conversion
+    px = 1.15 / plt.rcParams["figure.dpi"]
+
+    if qubit_coordinates:
+        qubit_coordinates = [coordinates[::-1] for coordinates in qubit_coordinates]
+
+    if font_size is None:
+        max_characters = max(1, max(len(str(x)) for x in qubit_labels))
+        font_size = max(int(20 / max_characters), 1)
+
+    def color_node(node):
+        if qubit_coordinates:
+            out_dict = {
+                "label": str(qubit_labels[node]),
+                "color": f'"{qubit_color[node]}"',
+                "fillcolor": f'"{qubit_color[node]}"',
+                "style": "filled",
+                "shape": "circle",
+                "pos": f'"{qubit_coordinates[node][0]},{qubit_coordinates[node][1]}"',
+                "pin": "True",
+            }
+        else:
+            out_dict = {
+                "label": str(qubit_labels[node]),
+                "color": f'"{qubit_color[node]}"',
+                "fillcolor": f'"{qubit_color[node]}"',
+                "style": "filled",
+                "shape": "circle",
+            }
+        out_dict["fontcolor"] = f'"{font_color}"'
+        out_dict["fontsize"] = str(font_size)
+        out_dict["height"] = str(qubit_size * px)
+        out_dict["fixedsize"] = "True"
+        out_dict["fontname"] = '"DejaVu Sans"'
+        return out_dict
+
+    def color_edge(edge):
+        out_dict = {
+            "color": f'"{line_color[edge]}"',
+            "fillcolor": f'"{line_color[edge]}"',
+            "penwidth": str(line_width),
+        }
+        return out_dict
+
+    plot = graphviz_draw(
+        graph,
+        method="neato",
+        node_attr_fn=color_node,
+        edge_attr_fn=color_edge,
+        filename=filename,
+    )
+
+    if filename:
+        return None
+
+    if not input_axes:
+        if figsize is None:
+            width, height = plot.size
+            figsize = (width * px, height * px)
+        fig, ax = plt.subplots(figsize=figsize)
+    ax.axis("off")
+    ax.imshow(plot)
 
     if not input_axes:
         matplotlib_close_if_inline(fig)
-        if filename:
-            fig.savefig(filename)
         return fig
-    return None
 
 
 def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
@@ -1182,7 +1124,13 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
-        view (str): Layout view: either 'virtual' or 'physical'.
+        view (str): How to label qubits in the layout. Options:
+
+          - ``"virtual"``: Label each qubit with the index of the virtual qubit that
+            mapped to it.
+          - ``"physical"``: Label each qubit with the index of the physical qubit that it
+            corresponds to on the device.
+
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence must match the number of qubits on the backend. The sequence
@@ -1200,13 +1148,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         .. plot::
            :include-source:
 
-            import numpy as np
             from qiskit import QuantumCircuit, transpile
-            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.providers.fake_provider import GenericBackendV2
             from qiskit.visualization import plot_circuit_layout
-            from qiskit.tools.monitor import job_monitor
-            from qiskit.providers.fake_provider import FakeVigoV2
-            import matplotlib.pyplot as plt
 
             ghz = QuantumCircuit(3, 3)
             ghz.h(0)
@@ -1214,7 +1158,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
                 ghz.cx(0,idx)
             ghz.measure(range(3), range(3))
 
-            backend = FakeVigoV2()
+            backend = GenericBackendV2(num_qubits=5)
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
     """
@@ -1232,7 +1176,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         cmap_len = cmap.graph.num_edges()
 
     qubits = []
-    qubit_labels = [None] * num_qubits
+    qubit_labels = [""] * num_qubits
 
     bit_locations = {
         bit: {"register": register, "index": index}
@@ -1248,27 +1192,27 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
             bit_register = bit_locations[key]["register"]
             if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(val)
-                qubit_labels[val] = bit_locations[key]["index"]
+                qubit_labels[val] = str(bit_locations[key]["index"])
 
     elif view == "physical":
         for key, val in circuit._layout.initial_layout.get_physical_bits().items():
             bit_register = bit_locations[val]["register"]
             if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(key)
-                qubit_labels[key] = key
+                qubit_labels[key] = str(key)
 
     else:
         raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
 
     qcolors = ["#648fff"] * num_qubits
     for k in qubits:
-        qcolors[k] = "k"
+        qcolors[k] = "black"
 
     lcolors = ["#648fff"] * cmap_len
 
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:
-            lcolors[idx] = "k"
+            lcolors[idx] = "black"
 
     fig = plot_gate_map(
         backend,
@@ -1282,7 +1226,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
-def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=None):
+def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates=None):
     """Plots the error map of a given backend.
 
     Args:
@@ -1300,23 +1244,23 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
 
     Raises:
         VisualizationError: The backend does not provide gate errors for the 'sx' gate.
-        MissingOptionalLibraryError: If seaborn is not installed
+        MissingOptionalLibraryError: If matplotlib or seaborn is not installed.
 
     Example:
         .. plot::
            :include-source:
 
-            from qiskit import QuantumCircuit, execute
             from qiskit.visualization import plot_error_map
-            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.providers.fake_provider import GenericBackendV2
 
-            backend = FakeVigoV2()
+            backend = GenericBackendV2(num_qubits=5)
             plot_error_map(backend)
     """
-    import seaborn as sns
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker
+    import seaborn as sns
+    from .utils import matplotlib_close_if_inline
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
@@ -1406,7 +1350,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     single_norm = matplotlib.colors.Normalize(
         vmin=min(single_gate_errors), vmax=max(single_gate_errors)
     )
-    q_colors = [color_map(single_norm(err)) for err in single_gate_errors]
+    q_colors = [matplotlib.colors.to_hex(color_map(single_norm(err))) for err in single_gate_errors]
 
     directed = False
     line_colors = []
@@ -1417,7 +1361,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         avg_cx_err = np.mean(cx_errors)
 
         cx_norm = matplotlib.colors.Normalize(vmin=min(cx_errors), vmax=max(cx_errors))
-        line_colors = [color_map(cx_norm(err)) for err in cx_errors]
+        line_colors = [matplotlib.colors.to_hex(color_map(cx_norm(err))) for err in cx_errors]
 
     read_err = 100 * np.asarray(read_err)
     avg_read_err = np.mean(read_err)
@@ -1450,6 +1394,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         ax=main_ax,
         qubit_coordinates=qubit_coordinates,
     )
+
     main_ax.axis("off")
     main_ax.set_aspect(1)
     if cmap:

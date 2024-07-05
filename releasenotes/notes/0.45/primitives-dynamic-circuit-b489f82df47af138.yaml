@@ -1,0 +1,3 @@
+---
+fixes:
+    Fix the bug :class:`.BackendEstimator` fails if circuits have classical registers.

@@ -363,7 +363,7 @@ class QuantumState:
 
         if string_labels:
             max_dim = max(dims)
-            char_kets = np.asarray(kets, dtype=np.unicode_)
+            char_kets = np.asarray(kets, dtype=np.str_)
             str_kets = char_kets[0]
             for row in char_kets[1:]:
                 if max_dim > 10:

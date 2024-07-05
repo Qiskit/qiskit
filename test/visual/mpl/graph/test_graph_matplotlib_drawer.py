@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,24 +14,24 @@
 
 import unittest
 import os
-from test.visual import VisualTestUtilities
 from contextlib import contextmanager
 from pathlib import Path
 
-from qiskit import BasicAer, execute
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
 from qiskit.visualization.state_visualization import state_drawer
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
-from qiskit.providers.fake_provider import (
-    FakeArmonk,
-    FakeBelem,
-    FakeCasablanca,
-    FakeRueschlikon,
-    FakeMumbai,
-    FakeManhattan,
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
+from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+    YORKTOWN_CMAP,
+    LAGOS_CMAP,
+    RUESCHLIKON_CMAP,
+    MUMBAI_CMAP,
+    MANHATTAN_CMAP,
 )
 
 if optionals.HAS_MATPLOTLIB:
@@ -100,10 +100,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.h(0)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+        # getting the state using quantum_info
+        state = Statevector(circuit)
 
         fname = "bloch_multivector.png"
         self.graph_state_drawer(state=state, output="bloch", filename=fname)
@@ -122,10 +120,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+        # getting the state using quantum_info
+        state = Statevector(circuit)
 
         fname = "hinton.png"
         self.graph_state_drawer(state=state, output="hinton", filename=fname)
@@ -144,10 +140,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+        # getting the state using quantum_info
+        state = Statevector(circuit)
 
         fname = "qsphere.png"
         self.graph_state_drawer(state=state, output="qsphere", filename=fname)
@@ -166,10 +160,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+        # getting the state using quantum_info
+        state = Statevector(circuit)
 
         fname = "state_city.png"
         self.graph_state_drawer(state=state, output="city", filename=fname)
@@ -188,10 +180,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+        # getting the state using quantum_info
+        state = Statevector(circuit)
 
         fname = "paulivec.png"
         self.graph_state_drawer(state=state, output="paulivec", filename=fname)
@@ -399,7 +389,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 1 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeArmonk()
+        backend = GenericBackendV2(num_qubits=1, basis_gates=["id", "rz", "sx", "x"])
 
         fname = "1_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -417,7 +407,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 5 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeBelem()
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
 
         fname = "5_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -435,7 +425,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 7 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeCasablanca()
+        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
 
         fname = "7_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -453,7 +443,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 16 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeRueschlikon()
+        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
 
         fname = "16_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -471,7 +461,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 27 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeMumbai()
+        backend = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
 
         fname = "27_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -489,7 +479,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """test for plot_gate_map using 65 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeManhattan()
+        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         fname = "65_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -507,7 +497,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test figsize parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeBelem()
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
 
         fname = "figsize.png"
         self.graph_plot_gate_map(backend=backend, figsize=(10, 10), filename=fname)
@@ -525,7 +515,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_size parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeBelem()
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
 
         fname = "qubit_size.png"
         self.graph_plot_gate_map(backend=backend, qubit_size=38, filename=fname)
@@ -543,7 +533,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeCasablanca()
+        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
 
         fname = "qubit_color.png"
         self.graph_plot_gate_map(backend=backend, qubit_color=["#ff0000"] * 7, filename=fname)
@@ -561,7 +551,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_labels parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeCasablanca()
+        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
 
         fname = "qubit_labels.png"
         self.graph_plot_gate_map(
@@ -581,7 +571,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test line_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeManhattan()
+        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         fname = "line_color.png"
         self.graph_plot_gate_map(backend=backend, line_color=["#00ff00"] * 144, filename=fname)
@@ -599,7 +589,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test font_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = FakeManhattan()
+        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         fname = "font_color.png"
         self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename=fname)
@@ -646,10 +636,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         circuit.sxdg(2)
 
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = execute(circuit, backend).result()
-        state = result.get_statevector(circuit)
+        # getting the state using quantum_info
+        state = Statevector(circuit)
 
         fname = "bloch_multivector_figsize_improvements.png"
         self.graph_state_drawer(

@@ -20,7 +20,6 @@ import functools
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import QuasiDistribution, ProbDistribution
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
@@ -57,20 +56,9 @@ def _is_deprecated_data_format(data) -> bool:
     return False
 
 
-@deprecate_arg(
-    "data",
-    deprecation_description=(
-        "Using plot_histogram() ``data`` argument with QuasiDistribution, ProbDistribution, or a "
-        "distribution dictionary"
-    ),
-    since="0.22.0",
-    additional_msg="Instead, use ``plot_distribution()``.",
-    predicate=_is_deprecated_data_format,
-    pending=True,
-)
 def plot_histogram(
     data,
-    figsize=(7, 5),
+    figsize=None,
     color=None,
     number_to_keep=None,
     sort="asc",
@@ -86,6 +74,7 @@ def plot_histogram(
     Args:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex ``{'001': 130}``)
+
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
@@ -307,7 +296,7 @@ def _plotting_core(
 
     # Set bar colors
     if color is None:
-        color = ["#648fff", "#dc267f", "#785ef0", "#ffb000", "#fe6100"]
+        color = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     elif isinstance(color, str):
         color = [color]
 
@@ -361,7 +350,7 @@ def _plotting_core(
                 label = None
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
-        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
+        ax.set_xticklabels(labels_dict.keys(), rotation=70, ha="right", rotation_mode="anchor")
         # attach some text labels
         if bar_labels:
             for rect in rects:
@@ -402,8 +391,6 @@ def _plotting_core(
         ax.invert_xaxis()
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(14)
     plt.grid(which="major", axis="y", zorder=0, linestyle="--")
     if title:
         plt.title(title)
@@ -415,7 +402,6 @@ def _plotting_core(
             ncol=1,
             borderaxespad=0,
             frameon=True,
-            fontsize=12,
         )
     if fig:
         matplotlib_close_if_inline(fig)

@@ -7,8 +7,9 @@ license.workspace = true
 
 [lib]
 name = "qiskit_qasm2"
-crate-type = ["cdylib"]
+doctest = false
 
 [dependencies]
-hashbrown = "0.14.0"
+hashbrown.workspace = true
 pyo3.workspace = true
+qiskit-circuit.workspace = true

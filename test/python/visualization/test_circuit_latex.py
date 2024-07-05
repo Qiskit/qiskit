@@ -20,9 +20,17 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife
-from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate, CPhaseGate
-from qiskit.extensions import HamiltonianGate
+from qiskit.providers.fake_provider import Fake5QV1
+from qiskit.circuit.library import (
+    XGate,
+    MCXGate,
+    RZZGate,
+    SwapGate,
+    DCXGate,
+    CPhaseGate,
+    HamiltonianGate,
+    Isometry,
+)
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
@@ -239,11 +247,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         # check for other barrier like commands
         circuit.h(q[1])
 
-        # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
-
-        circuit.snapshot("sn 1")
-
         # check the barriers plot properly when plot_barriers= True
         circuit_drawer(circuit, filename=filename1, output="latex_source", plot_barriers=True)
 
@@ -305,8 +308,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         matrix = np.zeros((4, 4))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
-        circuit = circuit.bind_parameters({theta: 1})
-        circuit.isometry(np.eye(4, 4), list(range(3, 5)), [])
+        circuit = circuit.assign_parameters({theta: 1})
+        circuit.append(Isometry(np.eye(4, 4), 0, 0), list(range(3, 5)))
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -481,7 +484,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=FakeTenerife(),
+            backend=Fake5QV1(),
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,

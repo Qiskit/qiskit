@@ -31,9 +31,9 @@ class Error(AnalysisPass):
                 will be used.  This can be either a raw string, or a callback function that accepts
                 the current ``property_set`` and returns the desired message.
             action (str): the action to perform. Default: 'raise'. The options are:
-              * 'raise': Raises a `TranspilerError` exception with msg
-              * 'warn': Raises a non-fatal warning with msg
-              * 'log': logs in `logging.getLogger(__name__)`
+              * ``'raise'``: Raises a ``TranspilerError`` exception with msg
+              * ``'warn'``: Raises a non-fatal warning with msg
+              * ``'log'``: logs in ``logging.getLogger(__name__)``
 
         Raises:
             TranspilerError: if action is not valid.
@@ -43,7 +43,7 @@ class Error(AnalysisPass):
         if action in ["raise", "warn", "log"]:
             self.action = action
         else:
-            raise TranspilerError("Unknown action: %s" % action)
+            raise TranspilerError(f"Unknown action: {action}")
 
     def run(self, _):
         """Run the Error pass on `dag`."""
@@ -66,4 +66,4 @@ class Error(AnalysisPass):
             logger = logging.getLogger(__name__)
             logger.info(msg)
         else:
-            raise TranspilerError("Unknown action: %s" % self.action)
+            raise TranspilerError(f"Unknown action: {self.action}")

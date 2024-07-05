@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module providing definitions of QASM Qobj classes."""
+"""Module providing definitions of OpenQASM 2 Qobj classes."""
 
 import copy
 import pprint
@@ -131,7 +131,7 @@ class QasmQobjInstruction:
         return out_dict
 
     def __repr__(self):
-        out = "QasmQobjInstruction(name='%s'" % self.name
+        out = f"QasmQobjInstruction(name='{self.name}'"
         for attr in [
             "params",
             "qubits",
@@ -155,7 +155,7 @@ class QasmQobjInstruction:
         return out
 
     def __str__(self):
-        out = "Instruction: %s\n" % self.name
+        out = f"Instruction: {self.name}\n"
         for attr in [
             "params",
             "qubits",
@@ -194,10 +194,10 @@ class QasmQobjInstruction:
 
 
 class QasmQobjExperiment:
-    """A QASM Qobj Experiment.
+    """An OpenQASM 2 Qobj Experiment.
 
-    Each instance of this class is used to represent a QASM experiment as
-    part of a larger QASM qobj.
+    Each instance of this class is used to represent an OpenQASM 2 experiment as
+    part of a larger OpenQASM 2 qobj.
     """
 
     def __init__(self, config=None, header=None, instructions=None):
@@ -215,21 +215,19 @@ class QasmQobjExperiment:
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
         instructions_repr = "[" + ", ".join(instructions_str) + "]"
-        out = "QasmQobjExperiment(config={}, header={}, instructions={})".format(
-            repr(self.config),
-            repr(self.header),
-            instructions_repr,
+        return (
+            f"QasmQobjExperiment(config={repr(self.config)}, header={repr(self.header)},"
+            f" instructions={instructions_repr})"
         )
-        return out
 
     def __str__(self):
-        out = "\nQASM Experiment:\n"
+        out = "\nOpenQASM2 Experiment:\n"
         config = pprint.pformat(self.config.to_dict())
         header = pprint.pformat(self.header.to_dict())
-        out += "Header:\n%s\n" % header
-        out += "Config:\n%s\n\n" % config
+        out += f"Header:\n{header}\n"
+        out += f"Config:\n{config}\n\n"
         for instruction in self.instructions:
-            out += "\t%s\n" % instruction
+            out += f"\t{instruction}\n"
         return out
 
     def to_dict(self):
@@ -276,7 +274,7 @@ class QasmQobjExperiment:
 
 
 class QasmQobjConfig(SimpleNamespace):
-    """A configuration for a QASM Qobj."""
+    """A configuration for an OpenQASM 2 Qobj."""
 
     def __init__(
         self,
@@ -361,7 +359,7 @@ class QasmQobjConfig(SimpleNamespace):
             self.__dict__.update(kwargs)
 
     def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj config.
+        """Return a dictionary format representation of the OpenQASM 2 Qobj config.
 
         Returns:
             dict: The dictionary form of the QasmQobjConfig.
@@ -404,13 +402,13 @@ class QasmQobjConfig(SimpleNamespace):
 
 
 class QasmQobjExperimentHeader(QobjDictField):
-    """A header for a single QASM experiment in the qobj."""
+    """A header for a single OpenQASM 2 experiment in the qobj."""
 
     pass
 
 
 class QasmQobjExperimentConfig(QobjDictField):
-    """Configuration for a single QASM experiment in the qobj."""
+    """Configuration for a single OpenQASM 2 experiment in the qobj."""
 
     def __init__(self, calibrations=None, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """
@@ -541,12 +539,12 @@ class GateCalibration:
 
 
 class QasmQobj:
-    """A QASM Qobj."""
+    """An OpenQASM 2 Qobj."""
 
     def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
-        """Instantiate a new QASM Qobj Object.
+        """Instantiate a new OpenQASM 2 Qobj Object.
 
-        Each QASM Qobj object is used to represent a single payload that will
+        Each OpenQASM 2 Qobj object is used to represent a single payload that will
         be passed to a Qiskit provider. It mirrors the Qobj the published
         `Qobj specification <https://arxiv.org/abs/1809.03452>`_ for OpenQASM
         experiments.
@@ -568,32 +566,29 @@ class QasmQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "QasmQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
-            self.qobj_id,
-            repr(self.config),
-            experiments_repr,
-            repr(self.header),
+        return (
+            f"QasmQobj(qobj_id='{self.qobj_id}', config={repr(self.config)},"
+            f" experiments={experiments_repr}, header={repr(self.header)})"
         )
-        return out
 
     def __str__(self):
-        out = "QASM Qobj: %s:\n" % self.qobj_id
+        out = f"QASM Qobj: {self.qobj_id}:\n"
         config = pprint.pformat(self.config.to_dict())
-        out += "Config: %s\n" % str(config)
+        out += f"Config: {str(config)}\n"
         header = pprint.pformat(self.header.to_dict())
-        out += "Header: %s\n" % str(header)
+        out += f"Header: {str(header)}\n"
         out += "Experiments:\n"
         for experiment in self.experiments:
-            out += "%s" % str(experiment)
+            out += str(experiment)
         return out
 
     def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj.
+        """Return a dictionary format representation of the OpenQASM 2 Qobj.
 
-        Note this dict is not in the json wire format expected by IBMQ and qobj
-        specification because complex numbers are still of type complex. Also
+        Note this dict is not in the json wire format expected by IBM and Qobj
+        specification because complex numbers are still of type complex. Also,
         this may contain native numpy arrays. When serializing this output
-        for use with IBMQ you can leverage a json encoder that converts these
+        for use with IBM systems, you can leverage a json encoder that converts these
         as expected. For example:
 
         .. code-block::

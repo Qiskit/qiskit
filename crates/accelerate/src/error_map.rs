@@ -13,6 +13,8 @@
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 
+use crate::nlayout::PhysicalQubit;
+
 use hashbrown::HashMap;
 
 /// A mapping that represents the avg error rate for a particular edge in
@@ -34,7 +36,7 @@ use hashbrown::HashMap;
 #[pyclass(mapping, module = "qiskit._accelerate.error_map")]
 #[derive(Clone, Debug)]
 pub struct ErrorMap {
-    pub error_map: HashMap<[usize; 2], f64>,
+    pub error_map: HashMap<[PhysicalQubit; 2], f64>,
 }
 
 #[pymethods]
@@ -60,26 +62,26 @@ impl ErrorMap {
     /// construct the error map iteratively with :meth:`.add_error` instead of
     /// constructing an intermediate dict and using this constructor.
     #[staticmethod]
-    fn from_dict(error_map: HashMap<[usize; 2], f64>) -> Self {
+    fn from_dict(error_map: HashMap<[PhysicalQubit; 2], f64>) -> Self {
         ErrorMap { error_map }
     }
 
-    fn add_error(&mut self, index: [usize; 2], error_rate: f64) {
+    fn add_error(&mut self, index: [PhysicalQubit; 2], error_rate: f64) {
         self.error_map.insert(index, error_rate);
     }
 
-    // The pickle protocol methods can't return `HashMap<[usize; 2], f64>` to Python, because by
-    // PyO3's natural conversion as of 0.17.3 it will attempt to construct a `dict[list[int],
-    // float]`, where `list[int]` is unhashable in Python.
+    // The pickle protocol methods can't return `HashMap<[T; 2], f64>` to Python, because by PyO3's
+    // natural conversion as of 0.17.3 it will attempt to construct a `dict[list[T], float]`, where
+    // `list[T]` is unhashable in Python.
 
-    fn __getstate__(&self) -> HashMap<(usize, usize), f64> {
+    fn __getstate__(&self) -> HashMap<(PhysicalQubit, PhysicalQubit), f64> {
         self.error_map
             .iter()
             .map(|([a, b], value)| ((*a, *b), *value))
             .collect()
     }
 
-    fn __setstate__(&mut self, state: HashMap<[usize; 2], f64>) {
+    fn __setstate__(&mut self, state: HashMap<[PhysicalQubit; 2], f64>) {
         self.error_map = state;
     }
 
@@ -87,18 +89,18 @@ impl ErrorMap {
         Ok(self.error_map.len())
     }
 
-    fn __getitem__(&self, key: [usize; 2]) -> PyResult<f64> {
+    fn __getitem__(&self, key: [PhysicalQubit; 2]) -> PyResult<f64> {
         match self.error_map.get(&key) {
             Some(data) => Ok(*data),
             None => Err(PyIndexError::new_err("No node found for index")),
         }
     }
 
-    fn __contains__(&self, key: [usize; 2]) -> PyResult<bool> {
+    fn __contains__(&self, key: [PhysicalQubit; 2]) -> PyResult<bool> {
         Ok(self.error_map.contains_key(&key))
     }
 
-    fn get(&self, py: Python, key: [usize; 2], default: Option<PyObject>) -> PyObject {
+    fn get(&self, py: Python, key: [PhysicalQubit; 2], default: Option<PyObject>) -> PyObject {
         match self.error_map.get(&key).copied() {
             Some(val) => val.to_object(py),
             None => match default {
@@ -110,7 +112,7 @@ impl ErrorMap {
 }
 
 #[pymodule]
-pub fn error_map(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn error_map(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<ErrorMap>()?;
     Ok(())
 }

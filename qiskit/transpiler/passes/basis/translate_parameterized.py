@@ -172,6 +172,6 @@ def _instruction_to_dag(op: Instruction) -> DAGCircuit:
     dag = DAGCircuit()
     dag.add_qubits([Qubit() for _ in range(op.num_qubits)])
     dag.add_qubits([Clbit() for _ in range(op.num_clbits)])
-    dag.apply_operation_back(op, dag.qubits, dag.clbits)
+    dag.apply_operation_back(op, dag.qubits, dag.clbits, check=False)
 
     return dag

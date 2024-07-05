@@ -1,5 +1,5 @@
 [package]
-name = "qiskit_accelerate"
+name = "qiskit-accelerate"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,31 +7,52 @@ license.workspace = true
 
 [lib]
 name = "qiskit_accelerate"
-crate-type = ["cdylib"]
+doctest = false
 
 [dependencies]
-rayon = "1.7"
-numpy = "0.19.0"
+rayon = "1.10"
+numpy.workspace = true
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-ahash = "0.8.3"
-num-complex = "0.4"
+ahash = "0.8.11"
+num-traits = "0.2"
+num-complex.workspace = true
 num-bigint = "0.4"
-rustworkx-core = "0.13"
+rustworkx-core = "0.15"
+faer = "0.19.1"
+itertools = "0.13.0"
+qiskit-circuit.workspace = true
+thiserror.workspace = true
+
+[dependencies.smallvec]
+workspace = true
+features = ["union"]
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
 
 [dependencies.ndarray]
-version = "^0.15.6"
-features = ["rayon"]
+workspace = true
+features = ["rayon", "approx-0_5"]
+
+[dependencies.approx]
+version = "0.5"
+features = ["num-complex"]
 
 [dependencies.hashbrown]
-version = "0.14.0"
+workspace = true
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "2.0.0"
+workspace = true
 features = ["rayon"]
+
+[dependencies.faer-ext]
+version = "0.2.0"
+features = ["ndarray"]
+
+[dependencies.pulp]
+version = "0.18.21"
+features = ["macro"]

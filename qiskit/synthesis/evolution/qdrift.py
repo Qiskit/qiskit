@@ -12,11 +12,11 @@
 
 """QDrift Class"""
 
+import math
 from typing import Union, Optional, Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils import algorithm_globals
 
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
@@ -40,20 +40,23 @@ class QDrift(ProductFormula):
         atomic_evolution: Optional[
             Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
         ] = None,
+        seed: Optional[int] = None,
     ) -> None:
         r"""
         Args:
             reps: The number of times to repeat the Trotterization circuit.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                "chain", where next neighbor connections are used, or "fountain", where all
+                ``"chain"``, where next neighbor connections are used, or ``"fountain"``, where all
                 qubits are connected to one.
             atomic_evolution: A function to construct the circuit for the evolution of single
-                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
+            seed: An optional seed for reproducibility of the random sampling process.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
+        self.rng = np.random.default_rng(seed)
 
     def synthesize(self, evolution):
         # get operators and time to evolve
@@ -71,17 +74,16 @@ class QDrift(ProductFormula):
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        num_gates = int(np.ceil(2 * (lambd**2) * (time**2) * self.reps))
+        num_gates = math.ceil(2 * (lambd**2) * (time**2) * self.reps)
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates
-        self.sampled_ops = algorithm_globals.random.choice(
+
+        self.sampled_ops = self.rng.choice(
             np.array(pauli_list, dtype=object),
             size=(num_gates,),
             p=weights / lambd,
         )
-        # Update the coefficients of sampled_ops
-        self.sampled_ops = [(op, evolution_time) for op, coeff in self.sampled_ops]
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
@@ -91,7 +93,7 @@ class QDrift(ProductFormula):
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
         evolution_circuit = PauliEvolutionGate(
-            sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
+            sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
             time=evolution_time,
             synthesis=lie_trotter,
         ).definition

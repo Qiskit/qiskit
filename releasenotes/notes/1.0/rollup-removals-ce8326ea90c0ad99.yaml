@@ -1,0 +1,47 @@
+---
+upgrade_transpiler:
+  - |
+    The ``target`` keyword alias when calling :class:`.TwoQubitBasisDecomposer` instances as
+    functions has been removed following its deprecation in Qiskit 0.40.0.  You should
+    pass the argument positionally as the first argument, or use the new name ``unitary``.
+  - |
+    The specialized transpiler pass :class:`.LinearFunctionsSynthesis` has been removed following
+    its deprecation in Qiskit 0.40.0. Since its deprecation it just has been a very thin wrapper around
+    :class:`.HighLevelSynthesis`, which you should use instead.
+  - |
+    The import path ``qiskit.transpiler.passes.scheduling.calibration_creators`` is removed.
+    The transpiler passes it housed, :class:`.RZXCalibrationBuilder` and :class:`.RZXCalibrationBuilderNoEcho`
+    can be imported directly from :mod:`qiskit.transpiler.passes`.
+  - |
+    The import path ``qiskit.transpiler.passes.scheduling.rzx_templates`` is removed.  You
+    should import :func:`.rzx_templates` from :mod:`qiskit.transpiler.passes` directly.
+upgrade_qasm:
+  - |
+    The ``qasm()`` methods of the classes :class:`.QuantumRegister` and :class:`.ClassicalRegister`
+    have been removed.  There is no replacement necessary; these were an internal detail of a
+    legacy implementation of the OpenQASM 2 exporter.  To export a program to OpenQASM 2, use
+    :func:`.qasm2.dump` or :func:`.qasm2.dumps`.
+upgrade_circuits:
+  - |
+    You can no longer set :attr:`.QuantumCircuit.metadata` to be ``None``, following deprecation
+    in Qiskit 0.43.0.  Its type is :class:`dict`, so to clear it, set it to ``{}``.
+  - |
+    The attribute ``.Register.name_format`` has been removed following its deprecation
+    in Qiskit 0.40.0.  There is no restriction on register names any more, and the
+    regular expression there was simply ``[a-z][a-zA-Z0-9_]*``.
+
+upgrade_quantum_info:
+  - |
+    The functions :func:`.process_fidelity`, :func:`.average_gate_fidelity`, :func:`.gate_error`
+    and :func:`.diamond_norm` will no longer attempt to coerce arbitrary inputs to their marked
+    expected types, following the deprecation in Qiskit 0.25.0.  Pass inputs of the marked
+    types to each argument directly.
+upgrade_qpy:
+  - |
+    The module path ``qiskit.circuit.qpy_serialization`` has been removed, following its
+    deprecation in Qiskit 0.40.0.  For QPY serialization, use :mod:`qiskit.qpy`,
+    which is the new location.
+upgrade_visualization:
+  - |
+    The ``link_interval_dt`` key of :class:`.QiskitTimelineStyle` has been removed.
+    You should use the new name ``link_interval_percent``.

@@ -204,7 +204,6 @@ Circuit Visualizations
    :toctree: ../stubs/
 
    circuit_drawer
-   ~qiskit.visualization.qcstyle.DefaultStyle
 
 DAG Visualizations
 ==================
@@ -221,17 +220,6 @@ Pass Manager Visualizations
    :toctree: ../stubs/
 
    pass_manager_drawer
-
-Pulse Visualizations
-====================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   pulse_drawer
-   ~qiskit.visualization.pulse.IQXStandard
-   ~qiskit.visualization.pulse.IQXSimple
-   ~qiskit.visualization.pulse.IQXDebugging
 
 Timeline Visualizations
 =======================
@@ -285,8 +273,6 @@ from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_c
 from .pass_manager_visualization import pass_manager_drawer
 from .pass_manager_visualization import staged_pass_manager_drawer
 
-from .pulse.interpolation import step_wise, linear, cubic_spline
-from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_v2 import draw as pulse_drawer
 
 from .timeline import draw as timeline_drawer

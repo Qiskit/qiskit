@@ -74,7 +74,10 @@ class ConvertConditionsToIfOps(TransformationPass):
                 if isinstance(target, ClassicalRegister):
                     replacement.add_creg(target)
                 replacement.apply_operation_back(
-                    IfElseOp((target, value), block_body), block_body.qubits, block_body.clbits
+                    IfElseOp((target, value), block_body),
+                    block_body.qubits,
+                    block_body.clbits,
+                    check=False,
                 )
                 wire_map = {bit: bit for bit in block_body.qubits + block_body.clbits}
                 dag.substitute_node_with_dag(node, replacement, wire_map, propagate_condition=False)

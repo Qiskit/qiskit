@@ -30,12 +30,12 @@ class ExcitationPreserving(TwoLocal):
 
     .. math::
 
-        \newcommand{\th}{\theta/2}
+        \newcommand{\rotationangle}{\theta/2}
 
         \begin{pmatrix}
         1 & 0 & 0 & 0 \\
-        0 & \cos\left(\th\right) & -i\sin\left(\th\right) & 0 \\
-        0 & -i\sin\left(\th\right) & \cos\left(\th\right) & 0 \\
+        0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+        0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
         0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
@@ -116,9 +116,6 @@ class ExcitationPreserving(TwoLocal):
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
-            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-                that are entangled with another qubit. If False, the single qubit gates are applied
-                to each qubit in the Ansatz. Defaults to False.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.

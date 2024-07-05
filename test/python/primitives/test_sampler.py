@@ -13,17 +13,14 @@
 """Tests for Sampler."""
 
 import unittest
-
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
-from qiskit.providers import JobStatus, JobV1
-from qiskit.test import QiskitTestCase
+from qiskit.providers import JobStatus
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSampler(QiskitTestCase):
@@ -92,10 +89,8 @@ class TestSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = Sampler()
         job = sampler.run(circuits=[bell])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists, self._target[1])
 
     def test_sample_run_multiple_circuits(self):
@@ -105,7 +100,6 @@ class TestSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = Sampler()
         result = sampler.run([bell, bell, bell]).result()
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
@@ -276,6 +270,9 @@ class TestSampler(QiskitTestCase):
         qc2.measure_all()
         qc3 = QuantumCircuit(1)
         qc4 = QuantumCircuit(1, 1)
+        qc5 = QuantumCircuit(1, 1)
+        with qc5.for_loop(range(5)):
+            qc5.h(0)
 
         sampler = Sampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -294,10 +291,11 @@ class TestSampler(QiskitTestCase):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc3], [[]])
         with self.subTest("no measurement"):
-            with self.assertRaises(QiskitError):
-                # The following raises QiskitError because this check is located in
-                # `Sampler._preprocess_circuit`
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc4], [[]])
+        with self.subTest("no measurement in control flow"):
+            with self.assertRaises(ValueError):
+                _ = sampler.run([qc5], [[]])
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
@@ -326,7 +324,8 @@ class TestSampler(QiskitTestCase):
         qc = RealAmplitudes(num_qubits=2, reps=2)
         qc.measure_all()
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        rng = np.random.default_rng(12)
+        params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         sampler = Sampler()

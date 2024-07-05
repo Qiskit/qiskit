@@ -44,10 +44,10 @@ class ProductFormula(EvolutionSynthesis):
             reps: The number of time steps.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                "chain", where next neighbor connections are used, or "fountain", where all
-                qubits are connected to one.
+                ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
+                where all qubits are connected to one.
             atomic_evolution: A function to construct the circuit for the evolution of single
-                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
         """
         super().__init__()
@@ -108,8 +108,8 @@ def evolve_pauli(
     Args:
         pauli: The Pauli to evolve.
         time: The evolution time.
-        cx_structure: Determine the structure of CX gates, can be either "chain" for
-            next-neighbor connections or "fountain" to connect directly to the top qubit.
+        cx_structure: Determine the structure of CX gates, can be either ``"chain"`` for
+            next-neighbor connections or ``"fountain"`` to connect directly to the top qubit.
         label: A label for the gate.
 
     Returns:

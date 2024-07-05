@@ -19,12 +19,13 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation, PermutationGate
 from qiskit.quantum_info import Operator
 from qiskit.qpy import dump, load
+from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPermutationLibrary(QiskitTestCase):
@@ -160,9 +161,9 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
             "gate permutation__2_4_3_0_1_ q0,q1,q2,q3,q4 { swap q2,q3; swap q1,q4; swap q0,q3; }\n"
             "qreg q0[5];\n"
             "permutation__2_4_3_0_1_ q0[0],q0[1],q0[2],q0[3],q0[4];\n"
-            "h q0[0];\n"
+            "h q0[0];"
         )
-        self.assertEqual(expected_qasm, circuit.qasm())
+        self.assertEqual(expected_qasm, dumps(circuit))
 
     def test_qpy(self):
         """Test qpy for circuits with permutations."""
@@ -170,7 +171,6 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.append(PermutationGate([1, 2, 0]), [2, 4, 5])
         circuit.h(4)
-        print(circuit)
 
         qpy_file = io.BytesIO()
         dump(circuit, qpy_file)

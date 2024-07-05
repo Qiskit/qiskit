@@ -12,17 +12,20 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 from __future__ import annotations
-from abc import ABC
-from collections.abc import Callable, Sequence
-from typing import Any
-import logging
-import dill
-from qiskit.tools.parallel import parallel_map
 
-from .base_pass import GenericPass
-from .passrunner import BasePassRunner
+import logging
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable
+from itertools import chain
+from typing import Any
+
+import dill
+
+from qiskit.utils.parallel import parallel_map, should_run_in_parallel
+from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
-from .flow_controllers import FlowController, PassSequence
+from .flow_controllers import FlowControllerLinear
+from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 
 logger = logging.getLogger(__name__)
 
@@ -30,79 +33,63 @@ logger = logging.getLogger(__name__)
 class BasePassManager(ABC):
     """Pass manager base class."""
 
-    PASS_RUNNER = BasePassRunner
-
     def __init__(
         self,
-        passes: PassSequence | None = None,
+        tasks: Task | list[Task] = (),
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
 
         Args:
-            passes: A pass set to be added to the pass manager schedule.
+            tasks: A pass set to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.append().
-        self._pass_sets: list[dict[str, Any]] = []
+        self._tasks = []
         self.max_iteration = max_iteration
+        # This empty property set never gets used; it gets overridden at the completion of a
+        # workflow run.
+        self.property_set = PropertySet()
 
-        if passes is not None:
-            self.append(passes)
+        if tasks:
+            self.append(tasks)
 
     def append(
         self,
-        passes: PassSequence,
-        **flow_controller_conditions: Callable,
+        tasks: Task | list[Task],
     ) -> None:
-        """Append a Pass Set to the schedule of passes.
+        """Append tasks to the schedule of passes.
 
         Args:
-            passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
-                    passes that are controlled by the same flow controller. If a single pass is
-                    provided, the pass set will only have that pass a single element.
-                    It is also possible to append a
-                    :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
-                    rest of the parameter will be ignored.
-            flow_controller_conditions: Dictionary of control flow plugins. Default:
+            tasks: A set of pass manager tasks to be added to schedule.
 
-                * do_while (callable property_set -> boolean): The passes repeat until the
-                  callable returns False.
-                  Default: `lambda x: False # i.e. passes run once`
-
-                * condition (callable property_set -> boolean): The passes run only if the
-                  callable returns True.
-                  Default: `lambda x: True # i.e. passes run`
+        Raises:
+            TypeError: When any element of tasks is not a subclass of passmanager Task.
         """
-        passes = self._normalize_passes(passes)
-        self._pass_sets.append({"passes": passes, "flow_controllers": flow_controller_conditions})
+        if isinstance(tasks, Task):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise TypeError("Added tasks are not all valid pass manager task types.")
+
+        self._tasks.append(tasks)
 
     def replace(
         self,
         index: int,
-        passes: PassSequence,
-        **flow_controller_conditions: Any,
+        tasks: Task | list[Task],
     ) -> None:
         """Replace a particular pass in the scheduler.
 
         Args:
-            index: Pass index to replace, based on the position in passes().
-            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
-                to be added to the pass manager schedule.
-            flow_controller_conditions: control flow plugins.
+            index: Task index to replace, based on the position in :meth:`tasks`
+            tasks: A set of pass manager tasks to be added to schedule.
 
         Raises:
-            PassManagerError: if a pass in passes is not a proper pass or index not found.
+            TypeError: When any element of tasks is not a subclass of passmanager Task.
+            PassManagerError: If the index is not found.
         """
-        passes = self._normalize_passes(passes)
-
         try:
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
+            self._tasks[index] = tasks
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -110,13 +97,13 @@ class BasePassManager(ABC):
         """Removes a particular pass in the scheduler.
 
         Args:
-            index: Pass index to replace, based on the position in passes().
+            index: Pass index to remove, based on the position in :meth:`passes`.
 
         Raises:
-            PassManagerError: if the index is not found.
+            PassManagerError: If the index is not found.
         """
         try:
-            del self._pass_sets[index]
+            del self._tasks[index]
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -124,71 +111,84 @@ class BasePassManager(ABC):
         self.replace(index, item)
 
     def __len__(self):
-        return len(self._pass_sets)
+        return len(self._tasks)
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
+        new_passmanager._tasks = self._tasks[index]
         return new_passmanager
 
     def __add__(self, other):
+        new_passmanager = self.__class__(max_iteration=self.max_iteration)
+        new_passmanager._tasks = self._tasks
         if isinstance(other, self.__class__):
-            new_passmanager = self.__class__(max_iteration=self.max_iteration)
-            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
+            new_passmanager._tasks += other._tasks
             return new_passmanager
         else:
             try:
-                new_passmanager = self.__class__(max_iteration=self.max_iteration)
-                new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
             except PassManagerError as ex:
                 raise TypeError(
-                    "unsupported operand type + for %s and %s" % (self.__class__, other.__class__)
+                    f"unsupported operand type + for {self.__class__} and {other.__class__}"
                 ) from ex
 
-    def _normalize_passes(
+    @abstractmethod
+    def _passmanager_frontend(
         self,
-        passes: PassSequence,
-    ) -> Sequence[GenericPass | FlowController] | FlowController:
-        if isinstance(passes, FlowController):
-            return passes
-        if isinstance(passes, GenericPass):
-            passes = [passes]
-        for pass_ in passes:
-            if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController.
-                # TODO: Internal renormalisation should be the responsibility of the
-                # `FlowController`, but the separation between `FlowController`,
-                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
-                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
-                pass_.passes = self._normalize_passes(pass_.passes)
-            elif not isinstance(pass_, GenericPass):
-                raise PassManagerError(
-                    "%s is not a pass or FlowController instance " % pass_.__class__
-                )
-        return passes
+        input_program: Any,
+        **kwargs,
+    ) -> PassManagerIR:
+        """Convert input program into pass manager IR.
+
+        Args:
+            in_program: Input program.
+
+        Returns:
+            Pass manager IR.
+        """
+        pass
+
+    @abstractmethod
+    def _passmanager_backend(
+        self,
+        passmanager_ir: PassManagerIR,
+        in_program: Any,
+        **kwargs,
+    ) -> Any:
+        """Convert pass manager IR into output program.
+
+        Args:
+            passmanager_ir: Pass manager IR after optimization.
+            in_program: The input program, this can be used if you need
+                any metadata about the original input for the output.
+                It should not be mutated.
+
+        Returns:
+            Output program.
+        """
+        pass
 
     def run(
         self,
-        in_programs: Any,
-        callback: Callable | None = None,
-        **metadata,
+        in_programs: Any | list[Any],
+        callback: Callable = None,
+        num_processes: int = None,
+        **kwargs,
     ) -> Any:
-        """Run all the passes on the specified ``circuits``.
+        """Run all the passes on the specified ``in_programs``.
 
         Args:
             in_programs: Input programs to transform via all the registered passes.
+                A single input object cannot be a Python builtin list object.
+                A list object is considered as multiple input objects to optimize.
             callback: A callback function that will be called after each pass execution. The
-                function will be called with 5 keyword arguments::
+                function will be called with 4 keyword arguments::
 
-                    pass_ (Pass): the pass being run
+                    task (GenericPass): the pass being run
                     passmanager_ir (Any): depending on pass manager subclass
-                    time (float): the time to execute the pass
                     property_set (PropertySet): the property set
+                    running_time (float): the time to execute the pass
                     count (int): the index for the pass execution
 
                 The exact arguments pass expose the internals of the pass
@@ -201,68 +201,133 @@ class BasePassManager(ABC):
                 take in kwargs dict and access the variables. For example::
 
                     def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
+                        task = kwargs['task']
+                        passmanager_ir = kwargs['passmanager_ir']
                         property_set = kwargs['property_set']
+                        running_time = kwargs['running_time']
                         count = kwargs['count']
                         ...
+            num_processes: The maximum number of parallel processes to launch if parallel
+                execution is enabled. This argument overrides ``num_processes`` in the user
+                configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
+                to ``None`` the system default or local user configuration will be used.
 
-            metadata: Metadata which might be attached to output program.
+            kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
         Returns:
             The transformed program(s).
         """
-        if not self._pass_sets and not metadata and callback is None:
+        if not self._tasks and not kwargs and callback is None:
             return in_programs
 
         is_list = True
-        if isinstance(in_programs, self.PASS_RUNNER.IN_PROGRAM_TYPE):
+        if not isinstance(in_programs, list):
             in_programs = [in_programs]
             is_list = False
 
-        if len(in_programs) == 1:
-            out_program = self._run_single_circuit(in_programs[0], callback, **metadata)
-            if is_list:
-                return [out_program]
-            return out_program
+        # If we're not going to run in parallel, we want to avoid spending time `dill` serializing
+        # ourselves, since that can be quite expensive.
+        if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
+            out = [
+                _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
+                for program in in_programs
+            ]
+            if len(in_programs) == 1 and not is_list:
+                return out[0]
+            return out
 
-        # TODO support for List(output_name) and List(callback)
-        del metadata
         del callback
+        del kwargs
 
-        return self._run_several_circuits(in_programs)
-
-    def _create_running_passmanager(self) -> BasePassRunner:
-        # Must be implemented by followup PR.
-        # BasePassRunner.append assumes normalized pass input, which is not pass_sets.
-        raise NotImplementedError
-
-    def _run_single_circuit(
-        self,
-        input_program: Any,
-        callback: Callable | None = None,
-        **metadata,
-    ) -> Any:
-        pass_runner = self._create_running_passmanager()
-        return pass_runner.run(input_program, callback=callback, **metadata)
-
-    def _run_several_circuits(
-        self,
-        input_programs: Sequence[Any],
-    ) -> Any:
-        # Pass runner may contain callable and we need to serialize through dill rather than pickle.
+        # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
-        # Thus, we can resue the same runner without state collision, without building it per thread.
+        # Thus, we can reuse the same manager without state collision, without building it per thread.
         return parallel_map(
-            self._in_parallel, input_programs, task_kwargs={"pm_dill": dill.dumps(self)}
+            _run_workflow_in_new_process,
+            values=in_programs,
+            task_kwargs={"pass_manager_bin": dill.dumps(self)},
+            num_processes=num_processes,
         )
 
-    @staticmethod
-    def _in_parallel(
-        in_program: Any,
-        pm_dill: bytes = None,
-    ) -> Any:
-        pass_runner = dill.loads(pm_dill)._create_running_passmanager()
-        return pass_runner.run(in_program)
+    def to_flow_controller(self) -> FlowControllerLinear:
+        """Linearize this manager into a single :class:`.FlowControllerLinear`,
+        so that it can be nested inside another pass manager.
+
+        Returns:
+            A linearized pass manager.
+        """
+        flatten_tasks = list(self._flatten_tasks(self._tasks))
+        return FlowControllerLinear(flatten_tasks)
+
+    def _flatten_tasks(self, elements: Iterable | Task) -> Iterable:
+        """A helper method to recursively flatten a nested task chain."""
+        if not isinstance(elements, Iterable):
+            return [elements]
+        return chain(*map(self._flatten_tasks, elements))
+
+
+def _run_workflow(
+    program: Any,
+    pass_manager: BasePassManager,
+    **kwargs,
+) -> Any:
+    """Run single program optimization with a pass manager.
+
+    Args:
+        program: Arbitrary program to optimize.
+        pass_manager: Pass manager with scheduled passes.
+        **kwargs: Keyword arguments for IR conversion.
+
+    Returns:
+        Optimized program.
+    """
+    flow_controller = pass_manager.to_flow_controller()
+    initial_status = WorkflowStatus()
+
+    passmanager_ir = pass_manager._passmanager_frontend(
+        input_program=program,
+        **kwargs,
+    )
+    passmanager_ir, final_state = flow_controller.execute(
+        passmanager_ir=passmanager_ir,
+        state=PassManagerState(
+            workflow_status=initial_status,
+            property_set=PropertySet(),
+        ),
+        callback=kwargs.get("callback", None),
+    )
+    # The `property_set` has historically been returned as a mutable attribute on `PassManager`
+    # This makes us non-reentrant (though `PassManager` would be dependent on its internal tasks to
+    # be re-entrant if that was required), but is consistent with previous interfaces.  We're still
+    # safe to be called in a serial loop, again assuming internal tasks are re-runnable.  The
+    # conversion to the backend language is also allowed to use the property set, so it must be set
+    # before calling it.
+    pass_manager.property_set = final_state.property_set
+
+    out_program = pass_manager._passmanager_backend(
+        passmanager_ir=passmanager_ir,
+        in_program=program,
+        **kwargs,
+    )
+
+    return out_program
+
+
+def _run_workflow_in_new_process(
+    program: Any,
+    pass_manager_bin: bytes,
+) -> Any:
+    """Run single program optimization in new process.
+
+    Args:
+        program: Arbitrary program to optimize.
+        pass_manager_bin: Binary of the pass manager with scheduled passes.
+
+    Returns:
+          Optimized program.
+    """
+    return _run_workflow(
+        program=program,
+        pass_manager=dill.loads(pass_manager_bin),
+    )

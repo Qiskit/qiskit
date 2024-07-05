@@ -21,11 +21,11 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import OptimizeCliffords, CollectCliffords
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator, random_clifford
 from qiskit.compiler.transpiler import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCliffordPasses(QiskitTestCase):
@@ -119,7 +119,7 @@ class TestCliffordPasses(QiskitTestCase):
         cliff2 = self.create_cliff2()
         cliff3 = self.create_cliff3()
 
-        # Create a circuit with two consective cliffords
+        # Create a circuit with two consecutive cliffords
         qc1 = QuantumCircuit(4)
         qc1.append(cliff1, [3, 1, 2])
         qc1.append(cliff2, [3, 1, 2])

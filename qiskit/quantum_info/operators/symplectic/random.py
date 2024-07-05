@@ -14,16 +14,14 @@ Random symplectic operator functions
 """
 
 from __future__ import annotations
+import math
+
 import numpy as np
 from numpy.random import default_rng
-
-from qiskit.utils.deprecation import deprecate_func
 
 from .clifford import Clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
-from .pauli_table import PauliTable
-from .stabilizer_table import StabilizerTable
 
 
 def random_pauli(
@@ -83,62 +81,9 @@ def random_pauli_list(
     z = rng.integers(2, size=(size, num_qubits)).astype(bool)
     x = rng.integers(2, size=(size, num_qubits)).astype(bool)
     if phase:
-        _phase = rng.integers(4, size=(size))
+        _phase = rng.integers(4, size=size)
         return PauliList.from_symplectic(z, x, _phase)
     return PauliList.from_symplectic(z, x)
-
-
-def random_pauli_table(
-    num_qubits: int, size: int = 1, seed: int | np.random.Generator | None = None
-):
-    """Return a random PauliTable.
-
-    Args:
-        num_qubits (int): the number of qubits.
-        size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or np.random.Generator): Optional. Set a fixed seed or
-                                           generator for RNG.
-
-    Returns:
-        PauliTable: a random PauliTable.
-    """
-    if seed is None:
-        rng = np.random.default_rng()
-    elif isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = default_rng(seed)
-
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
-    return PauliTable(table)
-
-
-@deprecate_func(
-    additional_msg="Instead, use the function ``random_pauli_list``.",
-    since="0.22.0",
-)
-def random_stabilizer_table(num_qubits, size=1, seed=None):
-    """DEPRECATED: Return a random StabilizerTable.
-
-    Args:
-        num_qubits (int): the number of qubits.
-        size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or np.random.Generator): Optional. Set a fixed seed or
-                                           generator for RNG.
-
-    Returns:
-        PauliTable: a random StabilizerTable.
-    """
-    if seed is None:
-        rng = np.random.default_rng()
-    elif isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = default_rng(seed)
-
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
-    phase = rng.integers(2, size=size).astype(bool)
-    return StabilizerTable(table, phase)
 
 
 def random_clifford(num_qubits: int, seed: int | np.random.Generator | None = None):
@@ -218,7 +163,7 @@ def _sample_qmallows(n, rng=None):
     if rng is None:
         rng = np.random.default_rng()
 
-    # Hadmard layer
+    # Hadamard layer
     had = np.zeros(n, dtype=bool)
 
     # Permutation layer
@@ -229,7 +174,7 @@ def _sample_qmallows(n, rng=None):
         m = n - i
         eps = 4 ** (-m)
         r = rng.uniform(0, 1)
-        index = -int(np.ceil(np.log2(r + (1 - r) * eps)))
+        index = -math.ceil(math.log2(r + (1 - r) * eps))
         had[i] = index < m
         if index < m:
             k = index

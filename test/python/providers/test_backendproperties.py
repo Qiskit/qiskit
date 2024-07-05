@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,25 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base TestCase for testing Providers."""
+"""TestCase for testing backend properties."""
 
 import copy
 
-from qiskit.providers.fake_provider import FakeProvider, FakeOurense
-from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import Fake5QV1
 from qiskit.providers.exceptions import BackendPropertyError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BackendpropertiesTestCase(QiskitTestCase):
     """Test usability methods of backend.properties()."""
 
-    backend = FakeOurense()
+    backend = Fake5QV1()
     backend_name = "fake_ourense"
 
     def setUp(self):
         super().setUp()
-        self.provider = FakeProvider()
-        self.backend = self.provider.get_backend("fake_ourense")
+        self.backend = Fake5QV1()
         self.properties = self.backend.properties()
         self.ref_gate = next(
             g for g in self.backend.configuration().basis_gates if g not in ["id", "rz"]

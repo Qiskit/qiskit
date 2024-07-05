@@ -44,7 +44,7 @@ class GMS(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import GMS
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GMS(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
                                           [0, 0, np.pi/2],

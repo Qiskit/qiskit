@@ -97,7 +97,7 @@ class PauliFeatureMap(NLocal):
         >>> from qiskit.circuit.library import EfficientSU2
         >>> prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
         >>> wavefunction = EfficientSU2(3)
-        >>> classifier = prep.compose(wavefunction
+        >>> classifier = prep.compose(wavefunction)
         >>> classifier.num_parameters
         27
         >>> classifier.count_ops()
@@ -160,7 +160,7 @@ class PauliFeatureMap(NLocal):
     def _parameter_generator(
         self, rep: int, block: int, indices: List[int]
     ) -> Optional[List[Parameter]]:
-        """If certain blocks should use certain parameters this method can be overriden."""
+        """If certain blocks should use certain parameters this method can be overridden."""
         params = [self.ordered_parameters[i] for i in indices]
         return params
 

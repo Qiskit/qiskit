@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,21 +13,20 @@
 """Backend abstract interface for providers."""
 
 from __future__ import annotations
-
+import logging
+import warnings
 from typing import List, Iterable, Any, Dict, Optional
-
-from qiskit.exceptions import QiskitError
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
-from qiskit.utils.units import apply_prefix
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-from qiskit.circuit.measure import Measure
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+
+logger = logging.getLogger(__name__)
 
 
 def convert_to_target(
@@ -35,163 +34,266 @@ def convert_to_target(
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
-    add_delay: bool = False,
-    filter_faulty: bool = False,
+    add_delay: bool = True,
+    filter_faulty: bool = True,
 ):
-    """Uses configuration, properties and pulse defaults
-    to construct and return Target class.
+    """Decode transpiler target from backend data set.
 
-    In order to convert with a ``defaults.instruction_schedule_map``,
-    which has a custom calibration for an operation,
-    the operation name must be in ``configuration.basis_gates`` and
-    ``custom_name_mapping`` must be supplied for the operation.
-    Otherwise, the operation will be dropped in the resulting ``Target`` object.
+    This function generates :class:`.Target`` instance from intermediate
+    legacy objects such as :class:`.BackendProperties` and :class:`.PulseDefaults`.
+    These objects are usually components of the legacy :class:`.BackendV1` model.
 
-    That suggests it is recommended to add custom calibrations **after** creating a target
-    with this function instead of adding them to ``defaults`` in advance. For example::
+    Args:
+        configuration: Backend configuration as ``BackendConfiguration``
+        properties: Backend property dictionary or ``BackendProperties``
+        defaults: Backend pulse defaults dictionary or ``PulseDefaults``
+        custom_name_mapping: A name mapping must be supplied for the operation
+            not included in Qiskit Standard Gate name mapping, otherwise the operation
+            will be dropped in the resulting ``Target`` object.
+        add_delay: If True, adds delay to the instruction set.
+        filter_faulty: If True, this filters the non-operational qubits.
 
-        target.add_instruction(custom_gate, {(0, 1): InstructionProperties(calibration=custom_sched)})
+    Returns:
+        A ``Target`` instance.
     """
+
+    # importing packages where they are needed, to avoid cyclic-import.
     # pylint: disable=cyclic-import
     from qiskit.transpiler.target import (
         Target,
         InstructionProperties,
     )
+    from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
+    from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+    from qiskit.circuit.parameter import Parameter
+    from qiskit.circuit.gate import Gate
 
-    # Standard gates library mapping, multicontrolled gates not included since they're
-    # variable width
-    name_mapping = get_standard_gate_name_mapping()
-    target = None
-    if custom_name_mapping is not None:
-        name_mapping.update(custom_name_mapping)
-    faulty_qubits = set()
-    # Parse from properties if it exsits
-    if properties is not None:
-        if filter_faulty:
-            faulty_qubits = set(properties.faulty_qubits())
-        qubit_properties = qubit_props_list_from_props(properties=properties)
-        target = Target(
-            num_qubits=configuration.n_qubits,
-            qubit_properties=qubit_properties,
-            concurrent_measurements=getattr(configuration, "meas_map", None),
-        )
-        # Parse instructions
-        gates: Dict[str, Any] = {}
-        for gate in properties.gates:
-            name = gate.gate
-            if name in name_mapping:
-                if name not in gates:
-                    gates[name] = {}
-            else:
-                raise QiskitError(
-                    f"Operation name {name} does not have a known mapping. Use "
-                    "custom_name_mapping to map this name to an Operation object"
-                )
+    required = ["measure", "delay"]
 
-            qubits = tuple(gate.qubits)
-            if filter_faulty:
-                if any(not properties.is_qubit_operational(qubit) for qubit in qubits):
-                    continue
-                if not properties.is_gate_operational(name, gate.qubits):
-                    continue
+    # Load Qiskit object representation
+    qiskit_inst_mapping = get_standard_gate_name_mapping()
+    if custom_name_mapping:
+        qiskit_inst_mapping.update(custom_name_mapping)
 
-            gate_props = {}
-            for param in gate.parameters:
-                if param.name == "gate_error":
-                    gate_props["error"] = param.value
-                if param.name == "gate_length":
-                    gate_props["duration"] = apply_prefix(param.value, param.unit)
-            gates[name][qubits] = InstructionProperties(**gate_props)
-        for gate, props in gates.items():
-            inst = name_mapping[gate]
-            target.add_instruction(inst, props)
-        # Create measurement instructions:
-        measure_props = {}
-        for qubit, _ in enumerate(properties.qubits):
-            if filter_faulty:
-                if not properties.is_qubit_operational(qubit):
-                    continue
-            try:
-                duration = properties.readout_length(qubit)
-            except BackendPropertyError:
-                duration = None
-            try:
-                error = properties.readout_error(qubit)
-            except BackendPropertyError:
-                error = None
-            measure_props[(qubit,)] = InstructionProperties(
-                duration=duration,
-                error=error,
-            )
-        target.add_instruction(Measure(), measure_props)
-    # Parse from configuration because properties doesn't exist
-    else:
-        target = Target(
-            num_qubits=configuration.n_qubits,
-            concurrent_measurements=getattr(configuration, "meas_map", None),
-        )
-        for gate in configuration.gates:
-            name = gate.name
-            gate_props = (
-                {tuple(x): None for x in gate.coupling_map}  # type: ignore[misc]
-                if hasattr(gate, "coupling_map")
-                else {None: None}
-            )
-            if name in name_mapping:
-                target.add_instruction(name_mapping[name], gate_props)
-            else:
-                raise QiskitError(
-                    f"Operation name {name} does not have a known mapping. "
-                    "Use custom_name_mapping to map this name to an Operation object"
-                )
-        target.add_instruction(Measure())
-    # parse global configuration properties
+    qiskit_control_flow_mapping = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
+
+    in_data = {"num_qubits": configuration.num_qubits}
+
+    # Parse global configuration properties
     if hasattr(configuration, "dt"):
-        target.dt = configuration.dt
+        in_data["dt"] = configuration.dt
     if hasattr(configuration, "timing_constraints"):
-        target.granularity = configuration.timing_constraints.get("granularity")
-        target.min_length = configuration.timing_constraints.get("min_length")
-        target.pulse_alignment = configuration.timing_constraints.get("pulse_alignment")
-        target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
-    # If a pulse defaults exists use that as the source of truth
-    if defaults is not None:
-        inst_map = defaults.instruction_schedule_map
-        for inst in inst_map.instructions:
-            for qarg in inst_map.qubits_with_instruction(inst):
-                try:
-                    qargs = tuple(qarg)
-                except TypeError:
-                    qargs = (qarg,)
-                # Do NOT call .get method. This parses Qpbj immediately.
-                # This operation is computationally expensive and should be bypassed.
-                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
-                if inst in target:
-                    if inst == "measure":
-                        for qubit in qargs:
-                            if filter_faulty and qubit in faulty_qubits:
-                                continue
-                            target[inst][(qubit,)].calibration = calibration_entry
-                    elif qargs in target[inst]:
-                        if filter_faulty and any(qubit in faulty_qubits for qubit in qargs):
-                            continue
-                        target[inst][qargs].calibration = calibration_entry
-    combined_global_ops = set()
-    if configuration.basis_gates:
-        combined_global_ops.update(configuration.basis_gates)
-    for op in combined_global_ops:
-        if op not in target:
-            if op in name_mapping:
-                target.add_instruction(name_mapping[op], name=op)
-            else:
-                raise QiskitError(
-                    f"Operation name '{op}' does not have a known mapping. Use "
-                    "custom_name_mapping to map this name to an Operation object"
+        in_data.update(configuration.timing_constraints)
+
+    # Create instruction property placeholder from backend configuration
+    basis_gates = set(getattr(configuration, "basis_gates", []))
+    supported_instructions = set(getattr(configuration, "supported_instructions", []))
+    gate_configs = {gate.name: gate for gate in configuration.gates}
+    all_instructions = set.union(
+        basis_gates, set(required), supported_instructions.intersection(CONTROL_FLOW_OP_NAMES)
+    )
+    inst_name_map = {}  # type: Dict[str, Instruction]
+
+    faulty_ops = set()
+    faulty_qubits = set()
+    unsupported_instructions = []
+
+    # Create name to Qiskit instruction object repr mapping
+    for name in all_instructions:
+        if name in qiskit_control_flow_mapping:
+            continue
+        if name in qiskit_inst_mapping:
+            inst_name_map[name] = qiskit_inst_mapping[name]
+        elif name in gate_configs:
+            # GateConfig model is a translator of QASM opcode.
+            # This doesn't have quantum definition, so Qiskit transpiler doesn't perform
+            # any optimization in quantum domain.
+            # Usually GateConfig counterpart should exist in Qiskit namespace so this is rarely called.
+            this_config = gate_configs[name]
+            params = list(map(Parameter, getattr(this_config, "parameters", [])))
+            coupling_map = getattr(this_config, "coupling_map", [])
+            inst_name_map[name] = Gate(
+                name=name,
+                num_qubits=len(coupling_map[0]) if coupling_map else 0,
+                params=params,
+            )
+        else:
+            warnings.warn(
+                f"No gate definition for {name} can be found and is being excluded "
+                "from the generated target. You can use `custom_name_mapping` to provide "
+                "a definition for this operation.",
+                RuntimeWarning,
+            )
+            unsupported_instructions.append(name)
+
+    for name in unsupported_instructions:
+        all_instructions.remove(name)
+
+    # Create inst properties placeholder
+    # Without any assignment, properties value is None,
+    # which defines a global instruction that can be applied to any qubit(s).
+    # The None value behaves differently from an empty dictionary.
+    # See API doc of Target.add_instruction for details.
+    prop_name_map = dict.fromkeys(all_instructions)
+    for name in all_instructions:
+        if name in gate_configs:
+            if coupling_map := getattr(gate_configs[name], "coupling_map", None):
+                # Respect operational qubits that gate configuration defines
+                # This ties instruction to particular qubits even without properties information.
+                # Note that each instruction is considered to be ideal unless
+                # its spec (e.g. error, duration) is bound by the properties object.
+                prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
+
+    # Populate instruction properties
+    if properties:
+
+        def _get_value(prop_dict, prop_name):
+            if ndval := prop_dict.get(prop_name, None):
+                return ndval[0]
+            return None
+
+        # is_qubit_operational is a bit of expensive operation so precache the value
+        faulty_qubits = {
+            q for q in range(configuration.num_qubits) if not properties.is_qubit_operational(q)
+        }
+
+        qubit_properties = []
+        for qi in range(0, configuration.num_qubits):
+            # TODO faulty qubit handling might be needed since
+            #  faulty qubit reporting qubit properties doesn't make sense.
+            try:
+                prop_dict = properties.qubit_property(qubit=qi)
+            except KeyError:
+                continue
+            qubit_properties.append(
+                QubitProperties(
+                    t1=prop_dict.get("T1", (None, None))[0],
+                    t2=prop_dict.get("T2", (None, None))[0],
+                    frequency=prop_dict.get("frequency", (None, None))[0],
                 )
-    if add_delay and "delay" not in target:
-        target.add_instruction(
-            name_mapping["delay"],
-            {(bit,): None for bit in range(target.num_qubits) if bit not in faulty_qubits},
-        )
+            )
+        in_data["qubit_properties"] = qubit_properties
+
+        for name in all_instructions:
+            try:
+                for qubits, params in properties.gate_property(name).items():
+                    if filter_faulty and (
+                        set.intersection(faulty_qubits, qubits)
+                        or not properties.is_gate_operational(name, qubits)
+                    ):
+                        try:
+                            # Qubits might be pre-defined by the gate config
+                            # However properties objects says the qubits is non-operational
+                            del prop_name_map[name][qubits]
+                        except KeyError:
+                            pass
+                        faulty_ops.add((name, qubits))
+                        continue
+                    if prop_name_map[name] is None:
+                        # This instruction is tied to particular qubits
+                        # i.e. gate config is not provided, and instruction has been globally defined.
+                        prop_name_map[name] = {}
+                    prop_name_map[name][qubits] = InstructionProperties(
+                        error=_get_value(params, "gate_error"),
+                        duration=_get_value(params, "gate_length"),
+                    )
+                if isinstance(prop_name_map[name], dict) and any(
+                    v is None for v in prop_name_map[name].values()
+                ):
+                    # Properties provides gate properties only for subset of qubits
+                    # Associated qubit set might be defined by the gate config here
+                    logger.info(
+                        "Gate properties of instruction %s are not provided for every qubits. "
+                        "This gate is ideal for some qubits and the rest is with finite error. "
+                        "Created backend target may confuse error-aware circuit optimization.",
+                        name,
+                    )
+            except BackendPropertyError:
+                # This gate doesn't report any property
+                continue
+
+        # Measure instruction property is stored in qubit property
+        prop_name_map["measure"] = {}
+
+        for qubit_idx in range(configuration.num_qubits):
+            if filter_faulty and (qubit_idx in faulty_qubits):
+                continue
+            qubit_prop = properties.qubit_property(qubit_idx)
+            prop_name_map["measure"][(qubit_idx,)] = InstructionProperties(
+                error=_get_value(qubit_prop, "readout_error"),
+                duration=_get_value(qubit_prop, "readout_length"),
+            )
+
+    for op in required:
+        # Map required ops to each operational qubit
+        if prop_name_map[op] is None:
+            prop_name_map[op] = {
+                (q,): None
+                for q in range(configuration.num_qubits)
+                if not filter_faulty or (q not in faulty_qubits)
+            }
+
+    if defaults:
+        inst_sched_map = defaults.instruction_schedule_map
+
+        for name in inst_sched_map.instructions:
+            for qubits in inst_sched_map.qubits_with_instruction(name):
+                if not isinstance(qubits, tuple):
+                    qubits = (qubits,)
+                if (
+                    name not in all_instructions
+                    or name not in prop_name_map
+                    or prop_name_map[name] is None
+                    or qubits not in prop_name_map[name]
+                ):
+                    logger.info(
+                        "Gate calibration for instruction %s on qubits %s is found "
+                        "in the PulseDefaults payload. However, this entry is not defined in "
+                        "the gate mapping of Target. This calibration is ignored.",
+                        name,
+                        qubits,
+                    )
+                    continue
+
+                if (name, qubits) in faulty_ops:
+                    continue
+
+                entry = inst_sched_map._get_calibration_entry(name, qubits)
+                try:
+                    prop_name_map[name][qubits].calibration = entry
+                except AttributeError:
+                    # if instruction properties are "None", add entry
+                    prop_name_map[name].update({qubits: InstructionProperties(None, None, entry)})
+                    logger.info(
+                        "The PulseDefaults payload received contains an instruction %s on "
+                        "qubits %s which is not present in the configuration or properties payload."
+                        "A new properties entry will be added to include the new calibration data.",
+                        name,
+                        qubits,
+                    )
+    # Add parsed properties to target
+    target = Target(**in_data)
+    for inst_name in all_instructions:
+        if inst_name == "delay" and not add_delay:
+            continue
+        if inst_name in qiskit_control_flow_mapping:
+            # Control flow operator doesn't have gate property.
+            target.add_instruction(
+                instruction=qiskit_control_flow_mapping[inst_name],
+                name=inst_name,
+            )
+        else:
+            target.add_instruction(
+                instruction=inst_name_map[inst_name],
+                properties=prop_name_map.get(inst_name, None),
+                name=inst_name,
+            )
+
     return target
 
 
@@ -254,8 +356,8 @@ class BackendV2Converter(BackendV2):
         self,
         backend: BackendV1,
         name_mapping: Optional[Dict[str, Any]] = None,
-        add_delay: bool = False,
-        filter_faulty: bool = False,
+        add_delay: bool = True,
+        filter_faulty: bool = True,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
@@ -280,15 +382,19 @@ class BackendV2Converter(BackendV2):
         super().__init__(
             provider=backend.provider,
             name=backend.name(),
-            description=self._config.description,
+            description=getattr(self._config, "description", None),
             online_date=getattr(self._config, "online_date", None),
             backend_version=self._config.backend_version,
         )
         self._options = self._backend._options
         self._properties = None
+        self._defaults = None
+
         if hasattr(self._backend, "properties"):
             self._properties = self._backend.properties()
-        self._defaults = None
+        if hasattr(self._backend, "defaults"):
+            self._defaults = self._backend.defaults()
+
         self._target = None
         self._name_mapping = name_mapping
         self._add_delay = add_delay
@@ -301,14 +407,10 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            if self._defaults is None and hasattr(self._backend, "defaults"):
-                self._defaults = self._backend.defaults()
-            if self._properties is None and hasattr(self._backend, "properties"):
-                self._properties = self._backend.properties()
             self._target = convert_to_target(
-                self._config,
-                self._properties,
-                self._defaults,
+                configuration=self._config,
+                properties=self._properties,
+                defaults=self._defaults,
                 custom_name_mapping=self._name_mapping,
                 add_delay=self._add_delay,
                 filter_faulty=self._filter_faulty,

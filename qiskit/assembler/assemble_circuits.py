@@ -34,7 +34,7 @@ from qiskit.qobj import (
     converters,
     QobjHeader,
 )
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 
 
 PulseLibrary = Dict[str, List[complex]]
@@ -105,7 +105,7 @@ def _assemble_circuit(
     if calibrations:
         config.calibrations = calibrations
 
-    # Convert conditionals from QASM-style (creg ?= int) to qobj-style
+    # Convert conditionals from OpenQASM-2-style (creg ?= int) to qobj-style
     # (register_bit ?= 1), by assuming device has unlimited register slots
     # (supported only for simulators). Map all measures to a register matching
     # their clbit_index, create a new register slot for every conditional gate
@@ -153,9 +153,9 @@ def _assemble_circuit(
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(
                 name="bfunc",
-                mask="0x%X" % mask,
+                mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
                 relation="==",
-                val="0x%X" % val,
+                val="0x%X" % val,  # pylint: disable=consider-using-f-string
                 register=conditional_reg_idx,
             )
             instructions.append(conversion_bfunc)
@@ -213,7 +213,7 @@ def _extract_common_calibrations(
     and delete them from their local experiments.
 
     Args:
-        experiments: The list of Qasm experiments that are being assembled into one qobj
+        experiments: The list of OpenQASM experiments that are being assembled into one qobj
 
     Returns:
         The input experiments with modified calibrations, and common calibrations, if there

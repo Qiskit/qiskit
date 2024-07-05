@@ -129,29 +129,19 @@ For example:
 Standard Directives
 ===================
 
-..
-    This summary table deliberately does not generate toctree entries; these directives are "owned"
-    by ``qiskit.circuit``.
-
 Directives are operations to the quantum stack that are meant to be interpreted by the backend or
 the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Barrier
+* :class:`qiskit.circuit.Barrier`
 
 Standard Operations
 ===================
 
 Operations are non-reversible changes in the quantum state of the circuit.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Measure
-   Reset
+* :class:`qiskit.circuit.Measure`
+* :class:`qiskit.circuit.Reset`
 
 Generalized Gates
 =================
@@ -181,6 +171,7 @@ set the amount of qubits involved at instantiation time.
    :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
+   DiagonalGate
    MCMT
    MCMTVChain
    Permutation
@@ -198,6 +189,13 @@ set the amount of qubits involved at instantiation time.
    RVGate
    PauliGate
    LinearFunction
+   Isometry
+   UnitaryGate
+   UCGate
+   UCPauliRotGate
+   UCRXGate
+   UCRYGate
+   UCRZGate
 
 Boolean Logic Circuits
 ======================
@@ -322,8 +320,9 @@ Particular Quantum Circuits
    PhaseEstimation
    GroverOperator
    PhaseOracle
-   EvolvedOperatorAnsatz
    PauliEvolutionGate
+   HamiltonianGate
+   UnitaryOverlap
 
 
 N-local circuits
@@ -342,6 +341,7 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    PauliTwoDesign
    RealAmplitudes
    EfficientSU2
+   EvolvedOperatorAnsatz
    ExcitationPreserving
    QAOAAnsatz
 
@@ -360,6 +360,7 @@ data in quantum states and are used as feature maps for classification.
    ZFeatureMap
    ZZFeatureMap
    StatePreparation
+   Initialize
 
 Template circuits
 =================
@@ -492,6 +493,7 @@ from ..reset import Reset
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
+    DiagonalGate,
     MCMT,
     MCMTVChain,
     Permutation,
@@ -505,8 +507,16 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
     LinearFunction,
+    Isometry,
+    UnitaryGate,
+    UCGate,
+    UCPauliRotGate,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
 )
 from .pauli_evolution import PauliEvolutionGate
+from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
     OR,
@@ -539,10 +549,17 @@ from .n_local import (
     PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
+    EvolvedOperatorAnsatz,
     ExcitationPreserving,
     QAOAAnsatz,
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap,
+    StatePreparation,
+    Initialize,
+)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
@@ -551,4 +568,4 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz
+from .overlap import UnitaryOverlap

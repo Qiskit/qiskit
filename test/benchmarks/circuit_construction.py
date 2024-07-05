@@ -45,14 +45,14 @@ class CircuitConstructionBench:
         build_circuit(width, gates)
 
     def time_circuit_extend(self, _, __):
-        self.empty_circuit.extend(self.sample_circuit)
+        self.empty_circuit.compose(self.sample_circuit, inplace=True)
 
     def time_circuit_copy(self, _, __):
         self.sample_circuit.copy()
 
 
 def build_parameterized_circuit(width, gates, param_count):
-    params = [Parameter("param-%s" % x) for x in range(param_count)]
+    params = [Parameter(f"param-{x}") for x in range(param_count)]
     param_iter = itertools.cycle(params)
 
     qr = QuantumRegister(width)
@@ -61,7 +61,7 @@ def build_parameterized_circuit(width, gates, param_count):
     while len(qc) < gates:
         for k in range(width):
             param = next(param_iter)
-            qc.u2(0, param, qr[k])
+            qc.r(0, param, qr[k])
         for k in range(width - 1):
             param = next(param_iter)
             qc.crx(param, qr[k], qr[k + 1])
@@ -93,4 +93,6 @@ class ParameterizedCircuitBindBench:
         self.circuit, self.params = build_parameterized_circuit(width, gates, params)
 
     def time_bind_params(self, _, __, ___):
-        self.circuit.bind_parameters({x: 3.14 for x in self.params})
+        # TODO: write more complete benchmarks of assign_parameters
+        #  that test more of the input formats / combinations
+        self.circuit.assign_parameters({x: 3.14 for x in self.params})

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Printers for QASM 3 AST nodes."""
+"""Printers for OpenQASM 3 AST nodes."""
 
 import collections
 import io
@@ -18,7 +18,6 @@ from typing import Sequence
 
 from . import ast
 from .experimental import ExperimentalFeatures
-from .exceptions import QASM3ExporterError
 
 # Precedence and associativity table for prefix, postfix and infix operators.  The rules are a
 # lookup table of two-tuples; the "binding power" of the operator to the left and to the right.
@@ -35,13 +34,16 @@ from .exceptions import QASM3ExporterError
 # indexing and casting are all higher priority than these, so we just ignore them.
 _BindingPower = collections.namedtuple("_BindingPower", ("left", "right"), defaults=(255, 255))
 _BINDING_POWER = {
-    # Power: (21, 22)
+    # Power: (24, 23)
     #
-    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=20),
-    ast.Unary.Op.BIT_NOT: _BindingPower(right=20),
+    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
+    ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (17, 18)
-    # Addition/subtraction: (15, 16)
+    # Multiplication/division/modulo: (19, 20)
+    # Addition/subtraction: (17, 18)
+    #
+    ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
+    ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
     #
     ast.Binary.Op.LESS: _BindingPower(13, 14),
     ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
@@ -60,7 +62,7 @@ _BINDING_POWER = {
 
 
 class BasicPrinter:
-    """A QASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
+    """An OpenQASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
     formatting is simple block indentation."""
 
     _CONSTANT_LOOKUP = {
@@ -134,7 +136,7 @@ class BasicPrinter:
         however, if you want to build up a file bit-by-bit manually.
 
         Args:
-            node (ASTNode): the node to convert to QASM 3 and write out to the stream.
+            node (ASTNode): the node to convert to OpenQASM 3 and write out to the stream.
 
         Raises:
             RuntimeError: if an AST node is encountered that the visitor is unable to parse.  This
@@ -205,8 +207,16 @@ class BasicPrinter:
     def _visit_FloatType(self, node: ast.FloatType) -> None:
         self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
 
+    def _visit_BoolType(self, _node: ast.BoolType) -> None:
+        self.stream.write("bool")
+
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
+        if node.size is not None:
+            self.stream.write(f"[{node.size}]")
+
+    def _visit_UintType(self, node: ast.UintType) -> None:
+        self.stream.write("uint")
         if node.size is not None:
             self.stream.write(f"[{node.size}]")
 
@@ -324,6 +334,17 @@ class BasicPrinter:
         self.stream.write("(")
         self.visit(node.operand)
         self.stream.write(")")
+
+    def _visit_Index(self, node: ast.Index):
+        if isinstance(node.target, (ast.Unary, ast.Binary)):
+            self.stream.write("(")
+            self.visit(node.target)
+            self.stream.write(")")
+        else:
+            self.visit(node.target)
+        self.stream.write("[")
+        self.visit(node.index)
+        self.stream.write("]")
 
     def _visit_ClassicalDeclaration(self, node: ast.ClassicalDeclaration) -> None:
         self._start_line()
@@ -504,13 +525,33 @@ class BasicPrinter:
         self._end_line()
 
     def _visit_SwitchStatement(self, node: ast.SwitchStatement) -> None:
-        if ExperimentalFeatures.SWITCH_CASE_V1 not in self._experimental:
-            raise QASM3ExporterError(
-                "'switch' statements are not stabilised in OpenQASM 3 yet."
-                " To enable experimental support, set the flag"
-                " 'ExperimentalFeatures.SWITCH_CASE_V1' in the 'experimental' keyword"
-                " argument of the printer."
-            )
+        self._start_line()
+        self.stream.write("switch (")
+        self.visit(node.target)
+        self.stream.write(") {")
+        self._end_line()
+        self._current_indent += 1
+        for labels, case in node.cases:
+            if not labels:
+                continue
+            self._start_line()
+            self.stream.write("case ")
+            self._visit_sequence(labels, separator=", ")
+            self.stream.write(" ")
+            self.visit(case)
+            self._end_line()
+        if node.default is not None:
+            self._start_line()
+            self.stream.write("default ")
+            self.visit(node.default)
+            self._end_line()
+        self._current_indent -= 1
+        self._start_line()
+        self.stream.write("}")
+        self._end_line()
+
+    def _visit_SwitchStatementPreview(self, node: ast.SwitchStatementPreview) -> None:
+        # This is the pre-release syntax, which had lots of extra `break` statements in it.
         self._start_line()
         self.stream.write("switch (")
         self.visit(node.target)

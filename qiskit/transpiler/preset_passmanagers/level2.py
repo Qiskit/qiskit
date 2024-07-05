@@ -80,9 +80,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
     ):
-        pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
+        pre_optimization = common.generate_pre_op_passmanager(
+            target, coupling_map, remove_reset_in_zero=False
+        )
     else:
-        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
+        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=False)
 
     optimization = plugin_manager.get_passmanager_stage(
         "optimization", optimization_method, pass_manager_config, optimization_level=2

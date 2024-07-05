@@ -16,7 +16,7 @@ from qiskit.dagcircuit.dagdependency import DAGDependency
 
 
 def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
-    """Build a ``DAGDependency`` object from a ``QuantumCircuit``.
+    """Build a ``DAGDependency`` object from a :class:`~.QuantumCircuit`.
 
     Args:
         circuit (QuantumCircuit): the input circuit.

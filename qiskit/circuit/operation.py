@@ -16,17 +16,22 @@ from abc import ABC, abstractmethod
 
 
 class Operation(ABC):
-    """Quantum Operation Interface Class.
-    For objects that can be added to a :class:`~qiskit.circuit.QuantumCircuit`.
-    These objects include :class:`~qiskit.circuit.Gate`, :class:`~qiskit.circuit.Reset`,
-    :class:`~qiskit.circuit.Barrier`, :class:`~qiskit.circuit.Measure`,
-    and operators such as :class:`~qiskit.quantum_info.Clifford`.
-    The main purpose is to add an :class:`~qiskit.circuit.Operation` to a
-    :class:`~qiskit.circuit.QuantumCircuit` without synthesizing it before the transpilation.
+    """Quantum operation interface.
+
+    The minimal interface that any object must fulfil in order to be added to a
+    :class:`.QuantumCircuit`.
+
+    Concrete instances of this interface include :class:`~qiskit.circuit.Gate`,
+    :class:`~qiskit.circuit.Reset`, :class:`~qiskit.circuit.Barrier`,
+    :class:`~qiskit.circuit.Measure`, and operators such as :class:`~qiskit.quantum_info.Clifford`.
+
+    The main purpose is to allow abstract mathematical objects to be added directly onto
+    abstract circuits, and for the exact syntheses of these to be determined later, during
+    compilation.
 
     Example:
 
-        Add a Clifford and a Toffoli gate to a QuantumCircuit.
+        Add a Clifford and a Toffoli gate to a :class:`QuantumCircuit`.
 
         .. plot::
            :include-source:

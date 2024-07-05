@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,12 +20,11 @@ from ddt import data, ddt, unpack
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
+from qiskit.primitives import Estimator, EstimatorResult
+from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
-from qiskit.providers import JobV1
-from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
-from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import Pauli, SparsePauliOp
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestEstimator(QiskitTestCase):
@@ -68,7 +67,6 @@ class TestEstimator(QiskitTestCase):
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [hamiltonian1], [theta1])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956])
@@ -77,7 +75,7 @@ class TestEstimator(QiskitTestCase):
         # Note that passing objects has an overhead
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
         result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
         np.testing.assert_allclose(result2.values, [2.97797666])
 
@@ -95,7 +93,7 @@ class TestEstimator(QiskitTestCase):
 
     def test_estiamtor_run_no_params(self):
         """test for estimator without parameters"""
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = Estimator()
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
@@ -226,8 +224,6 @@ class TestEstimator(QiskitTestCase):
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
         with self.assertRaises(ValueError):
-            est.run([qc2], [op], [[]]).result()
-        with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(ValueError):
             est.run([qc2], [op2], [[1, 2]]).result()
@@ -241,7 +237,8 @@ class TestEstimator(QiskitTestCase):
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        rng = np.random.default_rng(12)
+        params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         estimator = Estimator()
@@ -256,22 +253,6 @@ class TestEstimator(QiskitTestCase):
             result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
-
-    def test_run_with_operator(self):
-        """test for run with Operator as an observable"""
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
-        matrix = Operator(
-            [
-                [-1.06365335, 0.0, 0.0, 0.1809312],
-                [0.0, -1.83696799, 0.1809312, 0.0],
-                [0.0, 0.1809312, -0.24521829, 0.0],
-                [0.1809312, 0.0, 0.0, -1.06365335],
-            ]
-        )
-        est = Estimator()
-        result = est.run([circuit], [matrix]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_run_with_shots_option(self):
         """test with shots option."""
@@ -350,9 +331,7 @@ class TestObservableValidation(QiskitTestCase):
     @data(
         ("IXYZ", (SparsePauliOp("IXYZ"),)),
         (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliList("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
         (
             ["IXYZ", "ZYXI"],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
@@ -362,34 +341,26 @@ class TestObservableValidation(QiskitTestCase):
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
         (
-            [PauliList("IXYZ"), PauliList("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
-        ),
-        (
             [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
-        ),
-        (
-            [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
     )
     @unpack
-    def test_validate_observables(self, obsevables, expected):
-        """Test obsevables standardization."""
-        self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+    def test_validate_observables(self, observables, expected):
+        """Test observables standardization."""
+        self.assertEqual(validation._validate_observables(observables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):
         """Test qiskit error if invalid input."""
         with self.assertRaises(QiskitError):
-            BaseEstimator._validate_observables(observables)
+            validation._validate_observables(observables)
 
     @data((), [])
     def test_value_error(self, observables):
-        """Test value error if no obsevables are provided."""
+        """Test value error if no observables are provided."""
         with self.assertRaises(ValueError):
-            BaseEstimator._validate_observables(observables)
+            validation._validate_observables(observables)
 
 
 if __name__ == "__main__":

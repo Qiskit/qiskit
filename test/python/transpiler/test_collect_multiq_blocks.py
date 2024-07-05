@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CollectMultiQBlocks
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCollect2qBlocks(QiskitTestCase):
@@ -74,11 +74,11 @@ class TestCollect2qBlocks(QiskitTestCase):
         """
         qc = QuantumCircuit(2, 1)
         qc.cx(1, 0)
-        qc.i(0)
-        qc.i(1)
+        qc.id(0)
+        qc.id(1)
         qc.measure(0, 0)
-        qc.i(0)
-        qc.i(1)
+        qc.id(0)
+        qc.id(1)
         qc.cx(1, 0)
 
         dag = circuit_to_dag(qc)

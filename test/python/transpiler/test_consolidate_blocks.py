@@ -18,17 +18,16 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
-from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import Target
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestConsolidateBlocks(QiskitTestCase):
@@ -190,10 +189,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         #          └╥┘       └────┘
         # c_0:  0 ══╩══════════════
         qc = QuantumCircuit(2, 1)
-        qc.i(0)
+        qc.id(0)
         qc.measure(1, 0)
         qc.cx(1, 0)
-        qc.i(1)
+        qc.id(1)
 
         # can't just add all the nodes to one block as in other tests
         # as we are trying to test the block gets added in the correct place
@@ -246,9 +245,9 @@ class TestConsolidateBlocks(QiskitTestCase):
         """
         qc = QuantumCircuit(3)
         qc.cx(1, 2)
-        qc.i(1)
+        qc.id(1)
         qc.cx(0, 1)
-        qc.i(2)
+        qc.id(2)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -277,13 +276,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc = QuantumCircuit(4)
         qc.cx(0, 1)
         qc.cx(3, 2)
-        qc.i(1)
-        qc.i(2)
+        qc.id(1)
+        qc.id(2)
 
         qc.swap(1, 2)
 
-        qc.i(1)
-        qc.i(2)
+        qc.id(1)
+        qc.id(2)
         qc.cx(0, 1)
         qc.cx(3, 2)
 
@@ -310,7 +309,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.t(1)
         qc.sdg(1)
         qc.z(1)
-        qc.i(1)
+        qc.id(1)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -518,7 +517,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         # The first two 'if' blocks here represent exactly the same operation as each other on the
         # outer bits, because in the second, the bit-order of the block is reversed, but so is the
         # order of the bits in the outer circuit that they're bound to, which makes them the same.
-        # The second two 'if' blocks also represnt the same operation as each other, but the 'first
+        # The second two 'if' blocks also represent the same operation as each other, but the 'first
         # two' and 'second two' pairs represent qubit-flipped operations.
         qc.if_test((0, False), body.copy(), qc.qubits, qc.clbits)
         qc.if_test((0, False), body.reverse_bits(), reversed(qc.qubits), qc.clbits)

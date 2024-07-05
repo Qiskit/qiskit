@@ -31,9 +31,9 @@ class DenseLayout(AnalysisPass):
     of the circuit (Qubit).
 
     Note:
-        Even though a 'layout' is not strictly a property of the DAG,
+        Even though a ``'layout'`` is not strictly a property of the DAG,
         in the transpiler architecture it is best passed around between passes
-        by being set in `property_set`.
+        by being set in ``property_set``.
     """
 
     def __init__(self, coupling_map=None, backend_prop=None, target=None):

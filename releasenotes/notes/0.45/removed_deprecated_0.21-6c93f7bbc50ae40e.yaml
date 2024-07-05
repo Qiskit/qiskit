@@ -1,0 +1,25 @@
+---
+upgrade:
+  - |
+    The function :func:`~qiskit.execute_function.execute`
+    does not accept the arguments `qobj_id` and  `qobj_header` any more.
+    Their use was deprecated in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+  - |
+    The transpilation pass ``qiskit.transpiler.passes.CXDirection`` is removed. It use was deprecated
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the more generic :class:`~.GateDirection` pass.
+  - |
+    The transpilation pass ``qiskit.transpiler.passes.CheckCXDirection`` is removed. It use was deprecated
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the more generic :class:`~.CheckGateDirection` pass.
+  - |
+    The methods ``to_dict`` in the classes :class:`.pulse.transforms.AlignmentKind`,
+    `.pulse.transforms.AlignEquispaced`, and :class:`.pulse.transforms.AlignFunc` are removed.
+    They were deprecated
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+  - |
+    The argument ``circuits`` in the method :meth:`qiskit.qpy.interface.dump`
+    is removed as its usage was deprecated
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the argument ``programs``, which behaves identically.
+

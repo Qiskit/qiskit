@@ -123,11 +123,11 @@ docstring respectively.
 The user therefore has access to the correct sampled function docstring in its entirety, while
 still seeing the signature for the continuous pulse function and all of its arguments.
 """
-
+from __future__ import annotations
 import functools
-from typing import Callable
 import textwrap
 import pydoc
+from collections.abc import Callable
 
 import numpy as np
 
@@ -182,9 +182,9 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
     header, body = wrapped_docstring.split("\n", 1)
     body = textwrap.indent(body, "                    ")
     wrapped_docstring = header + body
-    updated_ds = """
-                Discretized continuous pulse function: `{continuous_name}` using
-                sampler: `{sampler_name}`.
+    updated_ds = f"""
+                Discretized continuous pulse function: `{discretized_pulse.__name__}` using
+                sampler: `{sampler_inst.__name__}`.
 
                  The first argument (time) of the continuous pulse function has been replaced with
                  a discretized `duration` of type (int).
@@ -198,12 +198,8 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
 
                  Sampled continuous function:
 
-                    {continuous_doc}
-                """.format(
-        continuous_name=discretized_pulse.__name__,
-        sampler_name=sampler_inst.__name__,
-        continuous_doc=wrapped_docstring,
-    )
+                    {wrapped_docstring}
+                """
 
     discretized_pulse.__doc__ = updated_ds
     return discretized_pulse
@@ -235,11 +231,11 @@ def sampler(sample_function: Callable) -> Callable:
         """Return a decorated sampler function."""
 
         @functools.wraps(continuous_pulse)
-        def call_sampler(duration: int, *args, **kwargs) -> Waveform:
+        def call_sampler(duration: int, *args, **kwargs) -> np.ndarray:
             """Replace the call to the continuous function with a call to the sampler applied
             to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
-            return np.asarray(sampled_pulse, dtype=np.complex_)
+            return np.asarray(sampled_pulse, dtype=np.complex128)
 
         # Update type annotations for wrapped continuous function to be discrete
         call_sampler = _update_annotations(call_sampler)

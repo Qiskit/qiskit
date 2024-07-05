@@ -27,6 +27,10 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
     other measurements or barriers.)
     """
 
+    def __init__(self, label=None):
+        super().__init__()
+        self.label = label
+
     def run(self, dag):
         """Run the BarrierBeforeFinalMeasurements pass on `dag`."""
         # Collect DAG nodes which are followed only by barriers or other measures.
@@ -63,7 +67,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # from an unmeasured qubit after a measure.
         final_qubits = dag.qubits
 
-        barrier_layer.apply_operation_back(Barrier(len(final_qubits)), list(final_qubits), [])
+        barrier_layer.apply_operation_back(
+            Barrier(len(final_qubits), label=self.label), final_qubits, (), check=False
+        )
 
         # Preserve order of final ops collected earlier from the original DAG.
         ordered_final_nodes = [
@@ -72,13 +78,18 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
-            barrier_layer.apply_operation_back(final_node.op, final_node.qargs, final_node.cargs)
+            barrier_layer.apply_operation_back(
+                final_node.op, final_node.qargs, final_node.cargs, check=False
+            )
 
         for final_op in final_ops:
             dag.remove_op_node(final_op)
 
         dag.compose(barrier_layer)
 
-        # Merge the new barrier into any other barriers
-        adjacent_pass = MergeAdjacentBarriers()
-        return adjacent_pass.run(dag)
+        if self.label is None:
+            # Merge the new barrier into any other barriers
+            adjacent_pass = MergeAdjacentBarriers()
+            return adjacent_pass.run(dag)
+        else:
+            return dag

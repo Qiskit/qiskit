@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,14 +14,16 @@
 
 import numpy as np
 
-from qiskit import circuit, pulse
-from qiskit.pulse import builder, macros
+from qiskit import pulse
+from qiskit.pulse import macros
 
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.providers.fake_provider import FakeMumbaiV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.pulse import instructions
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MUMBAI_CMAP
 
 
 class TestBuilderV2(QiskitTestCase):
@@ -29,7 +31,11 @@ class TestBuilderV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeMumbaiV2()
+        self.backend = GenericBackendV2(
+            num_qubits=27,
+            coupling_map=MUMBAI_CMAP,
+            calibrate_instructions=True,
+        )
 
     def assertScheduleEqual(self, program, target):
         """Assert an error when two pulse programs are not equal.
@@ -41,46 +47,6 @@ class TestBuilderV2(QiskitTestCase):
 
 class TestContextsV2(TestBuilderV2):
     """Test builder contexts."""
-
-    def test_transpiler_settings(self):
-        """Test the transpiler settings context.
-
-        Tests that two cx gates are optimized away with higher optimization level.
-        """
-        twice_cx_qc = circuit.QuantumCircuit(2)
-        twice_cx_qc.cx(0, 1)
-        twice_cx_qc.cx(0, 1)
-
-        with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(optimization_level=0):
-                builder.call(twice_cx_qc)
-        self.assertNotEqual(len(schedule.instructions), 0)
-
-        with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(optimization_level=3):
-                builder.call(twice_cx_qc)
-        self.assertEqual(len(schedule.instructions), 0)
-
-    def test_scheduler_settings(self):
-        """Test the circuit scheduler settings context."""
-        inst_map = pulse.InstructionScheduleMap()
-        d0 = pulse.DriveChannel(0)
-        test_x_sched = pulse.Schedule()
-        test_x_sched += instructions.Delay(10, d0)
-        inst_map.add("x", (0,), test_x_sched)
-
-        ref_sched = pulse.Schedule()
-        ref_sched += pulse.instructions.Call(test_x_sched)
-
-        x_qc = circuit.QuantumCircuit(2)
-        x_qc.x(0)
-
-        with pulse.build(backend=self.backend) as schedule:
-            with pulse.transpiler_settings(basis_gates=["x"]):
-                with pulse.circuit_scheduler_settings(inst_map=inst_map):
-                    builder.call(x_qc)
-
-        self.assertScheduleEqual(schedule, ref_sched)
 
     def test_phase_compensated_frequency_offset(self):
         """Test that the phase offset context properly compensates for phase
@@ -178,20 +144,6 @@ class TestUtilitiesV2(TestBuilderV2):
                 pulse.ControlChannel(1),
             },
         )
-
-    def test_active_transpiler_settings(self):
-        """Test setting settings of active builder's transpiler."""
-        with pulse.build(self.backend):
-            self.assertFalse(pulse.active_transpiler_settings())
-            with pulse.transpiler_settings(test_setting=1):
-                self.assertEqual(pulse.active_transpiler_settings()["test_setting"], 1)
-
-    def test_active_circuit_scheduler_settings(self):
-        """Test setting settings of active builder's circuit scheduler."""
-        with pulse.build(self.backend):
-            self.assertFalse(pulse.active_circuit_scheduler_settings())
-            with pulse.circuit_scheduler_settings(test_setting=1):
-                self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
 
     def test_num_qubits(self):
         """Test builder utility to get number of qubits with backendV2."""

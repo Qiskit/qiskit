@@ -95,21 +95,15 @@ def build_interaction_graph(dag, strict_direction=True):
     return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes
 
 
-def score_layout(
-    avg_error_map,
-    layout_mapping,
-    bit_map,
-    _reverse_bit_map,
-    im_graph,
-    strict_direction=False,
-    run_in_parallel=True,
-):
-    """Score a layout given an average error map."""
-    if layout_mapping:
-        size = max(max(layout_mapping), max(layout_mapping.values()))
-    else:
-        size = 0
-    nlayout = NLayout(layout_mapping, size + 1, size + 1)
+def build_edge_list(im_graph):
+    """Generate an edge list for scoring."""
+    return vf2_layout.EdgeList(
+        [((edge[0], edge[1]), sum(edge[2].values())) for edge in im_graph.edge_index_map().values()]
+    )
+
+
+def build_bit_list(im_graph, bit_map):
+    """Generate a bit list for scoring."""
     bit_list = np.zeros(len(im_graph), dtype=np.int32)
     for node_index in bit_map.values():
         try:
@@ -119,9 +113,30 @@ def score_layout(
         # can skip the hole
         except IndexError:
             pass
-    edge_list = {
-        (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
-    }
+    return bit_list
+
+
+def score_layout(
+    avg_error_map,
+    layout_mapping,
+    bit_map,
+    _reverse_bit_map,
+    im_graph,
+    strict_direction=False,
+    run_in_parallel=False,
+    edge_list=None,
+    bit_list=None,
+):
+    """Score a layout given an average error map."""
+    if layout_mapping:
+        size = max(max(layout_mapping), max(layout_mapping.values()))
+    else:
+        size = 0
+    nlayout = NLayout(layout_mapping, size + 1, size + 1)
+    if bit_list is None:
+        bit_list = build_bit_list(im_graph, bit_map)
+    if edge_list is None:
+        edge_list = build_edge_list(im_graph)
     return vf2_layout.score_layout(
         bit_list, edge_list, avg_error_map, nlayout, strict_direction, run_in_parallel
     )
@@ -130,7 +145,7 @@ def score_layout(
 def build_average_error_map(target, properties, coupling_map):
     """Build an average error map used for scoring layouts pre-basis translation."""
     num_qubits = 0
-    if target is not None:
+    if target is not None and target.qargs is not None:
         num_qubits = target.num_qubits
         avg_map = ErrorMap(len(target.qargs))
     elif coupling_map is not None:
@@ -142,7 +157,7 @@ def build_average_error_map(target, properties, coupling_map):
         # object
         avg_map = ErrorMap(0)
     built = False
-    if target is not None:
+    if target is not None and target.qargs is not None:
         for qargs in target.qargs:
             if qargs is None:
                 continue

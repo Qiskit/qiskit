@@ -11,8 +11,75 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+use pyo3::types::PyList;
 
 use hashbrown::HashMap;
+
+/// A newtype for the different categories of qubits used within layouts.  This is to enforce
+/// significantly more type safety when dealing with mixtures of physical and virtual qubits, as we
+/// typically are when dealing with layouts.  In Rust space, `NLayout` only works in terms of the
+/// correct newtype, meaning that it's not possible to accidentally pass the wrong type of qubit to
+/// a lookup.  We can't enforce the same rules on integers in Python space without runtime
+/// overhead, so we just allow conversion to and from any valid `PyLong`.
+macro_rules! qubit_newtype {
+    ($id: ident) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $id(u32);
+
+        impl $id {
+            #[inline]
+            pub fn new(val: u32) -> Self {
+                Self(val)
+            }
+            #[inline]
+            pub fn index(&self) -> usize {
+                self.0 as usize
+            }
+        }
+
+        impl pyo3::IntoPy<PyObject> for $id {
+            fn into_py(self, py: Python<'_>) -> PyObject {
+                self.0.into_py(py)
+            }
+        }
+        impl pyo3::ToPyObject for $id {
+            fn to_object(&self, py: Python<'_>) -> PyObject {
+                self.0.to_object(py)
+            }
+        }
+
+        impl pyo3::FromPyObject<'_> for $id {
+            fn extract(ob: &PyAny) -> PyResult<Self> {
+                Ok(Self(ob.extract()?))
+            }
+        }
+
+        unsafe impl numpy::Element for $id {
+            const IS_COPY: bool = true;
+
+            fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
+                u32::get_dtype_bound(py)
+            }
+        }
+    };
+}
+
+qubit_newtype!(PhysicalQubit);
+impl PhysicalQubit {
+    /// Get the virtual qubit that currently corresponds to this index of physical qubit in the
+    /// given layout.
+    pub fn to_virt(self, layout: &NLayout) -> VirtualQubit {
+        layout.phys_to_virt[self.index()]
+    }
+}
+qubit_newtype!(VirtualQubit);
+impl VirtualQubit {
+    /// Get the physical qubit that currently corresponds to this index of virtual qubit in the
+    /// given layout.
+    pub fn to_phys(self, layout: &NLayout) -> PhysicalQubit {
+        layout.virt_to_phys[self.index()]
+    }
+}
 
 /// An unsigned integer Vector based layout class
 ///
@@ -24,93 +91,83 @@ use hashbrown::HashMap;
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.stochastic_swap")]
+#[pyclass(module = "qiskit._accelerate.nlayout")]
 #[derive(Clone, Debug)]
 pub struct NLayout {
-    pub logic_to_phys: Vec<usize>,
-    pub phys_to_logic: Vec<usize>,
-}
-
-impl NLayout {
-    pub fn swap(&mut self, idx1: usize, idx2: usize) {
-        self.phys_to_logic.swap(idx1, idx2);
-        self.logic_to_phys[self.phys_to_logic[idx1]] = idx1;
-        self.logic_to_phys[self.phys_to_logic[idx2]] = idx2;
-    }
+    virt_to_phys: Vec<PhysicalQubit>,
+    phys_to_virt: Vec<VirtualQubit>,
 }
 
 #[pymethods]
 impl NLayout {
     #[new]
-    #[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
     fn new(
-        qubit_indices: HashMap<usize, usize>,
-        logical_qubits: usize,
+        qubit_indices: HashMap<VirtualQubit, PhysicalQubit>,
+        virtual_qubits: usize,
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            logic_to_phys: vec![std::usize::MAX; logical_qubits],
-            phys_to_logic: vec![std::usize::MAX; physical_qubits],
+            virt_to_phys: vec![PhysicalQubit(u32::MAX); virtual_qubits],
+            phys_to_virt: vec![VirtualQubit(u32::MAX); physical_qubits],
         };
-        for (key, value) in qubit_indices {
-            res.logic_to_phys[key] = value;
-            res.phys_to_logic[value] = key;
+        for (virt, phys) in qubit_indices {
+            res.virt_to_phys[virt.index()] = phys;
+            res.phys_to_virt[phys.index()] = virt;
         }
         res
     }
 
-    fn __getstate__(&self) -> [Vec<usize>; 2] {
-        [self.logic_to_phys.clone(), self.phys_to_logic.clone()]
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok((
+            py.get_type_bound::<Self>()
+                .getattr("from_virtual_to_physical")?,
+            (self.virt_to_phys.to_object(py),),
+        )
+            .into_py(py))
     }
 
-    fn __setstate__(&mut self, state: [Vec<usize>; 2]) {
-        self.logic_to_phys = state[0].clone();
-        self.phys_to_logic = state[1].clone();
-    }
-
-    /// Return the layout mapping
+    /// Return the layout mapping.
     ///
     /// .. note::
     ///
-    ///     this copies the data from Rust to Python and has linear
-    ///     overhead based on the number of qubits.
+    ///     This copies the data from Rust to Python and has linear overhead based on the number of
+    ///     qubits.
     ///
     /// Returns:
-    ///     list: A list of 2 element lists in the form:
-    ///     ``[[logical_qubit, physical_qubit], ...]``. Where the logical qubit
-    ///     is the index in the qubit index in the circuit.
+    ///     list: A list of 2 element lists in the form ``[(virtual_qubit, physical_qubit), ...]``,
+    ///     where the virtual qubit is the index in the qubit index in the circuit.
     ///
     #[pyo3(text_signature = "(self, /)")]
-    fn layout_mapping(&self) -> Vec<[usize; 2]> {
-        (0..self.logic_to_phys.len())
-            .map(|i| [i, self.logic_to_phys[i]])
-            .collect()
+    fn layout_mapping(&self, py: Python<'_>) -> Py<PyList> {
+        PyList::new_bound(py, self.iter_virtual()).into()
     }
 
-    /// Get physical bit from logical bit
-    #[pyo3(text_signature = "(self, logical_bit, /)")]
-    fn logical_to_physical(&self, logical_bit: usize) -> usize {
-        self.logic_to_phys[logical_bit]
+    /// Get physical bit from virtual bit
+    #[pyo3(text_signature = "(self, virtual, /)")]
+    pub fn virtual_to_physical(&self, r#virtual: VirtualQubit) -> PhysicalQubit {
+        self.virt_to_phys[r#virtual.index()]
     }
 
-    /// Get logical bit from physical bit
-    #[pyo3(text_signature = "(self, physical_bit, /)")]
-    pub fn physical_to_logical(&self, physical_bit: usize) -> usize {
-        self.phys_to_logic[physical_bit]
+    /// Get virtual bit from physical bit
+    #[pyo3(text_signature = "(self, physical, /)")]
+    pub fn physical_to_virtual(&self, physical: PhysicalQubit) -> VirtualQubit {
+        self.phys_to_virt[physical.index()]
     }
 
     /// Swap the specified virtual qubits
     #[pyo3(text_signature = "(self, bit_a, bit_b, /)")]
-    pub fn swap_logical(&mut self, bit_a: usize, bit_b: usize) {
-        self.logic_to_phys.swap(bit_a, bit_b);
-        self.phys_to_logic[self.logic_to_phys[bit_a]] = bit_a;
-        self.phys_to_logic[self.logic_to_phys[bit_b]] = bit_b;
+    pub fn swap_virtual(&mut self, bit_a: VirtualQubit, bit_b: VirtualQubit) {
+        self.virt_to_phys.swap(bit_a.index(), bit_b.index());
+        self.phys_to_virt[self.virt_to_phys[bit_a.index()].index()] = bit_a;
+        self.phys_to_virt[self.virt_to_phys[bit_b.index()].index()] = bit_b;
     }
 
     /// Swap the specified physical qubits
     #[pyo3(text_signature = "(self, bit_a, bit_b, /)")]
-    pub fn swap_physical(&mut self, bit_a: usize, bit_b: usize) {
-        self.swap(bit_a, bit_b)
+    pub fn swap_physical(&mut self, bit_a: PhysicalQubit, bit_b: PhysicalQubit) {
+        self.phys_to_virt.swap(bit_a.index(), bit_b.index());
+        self.virt_to_phys[self.phys_to_virt[bit_a.index()].index()] = bit_a;
+        self.virt_to_phys[self.phys_to_virt[bit_b.index()].index()] = bit_b;
     }
 
     pub fn copy(&self) -> NLayout {
@@ -118,28 +175,49 @@ impl NLayout {
     }
 
     #[staticmethod]
-    pub fn generate_trivial_layout(num_qubits: usize) -> Self {
+    pub fn generate_trivial_layout(num_qubits: u32) -> Self {
         NLayout {
-            logic_to_phys: (0..num_qubits).collect(),
-            phys_to_logic: (0..num_qubits).collect(),
+            virt_to_phys: (0..num_qubits).map(PhysicalQubit).collect(),
+            phys_to_virt: (0..num_qubits).map(VirtualQubit).collect(),
         }
     }
 
     #[staticmethod]
-    pub fn from_logical_to_physical(logic_to_phys: Vec<usize>) -> Self {
-        let mut phys_to_logic = vec![std::usize::MAX; logic_to_phys.len()];
-        for (logic, phys) in logic_to_phys.iter().enumerate() {
-            phys_to_logic[*phys] = logic;
+    pub fn from_virtual_to_physical(virt_to_phys: Vec<PhysicalQubit>) -> PyResult<Self> {
+        let mut phys_to_virt = vec![VirtualQubit(u32::MAX); virt_to_phys.len()];
+        for (virt, phys) in virt_to_phys.iter().enumerate() {
+            phys_to_virt[phys.index()] = VirtualQubit(virt.try_into()?);
         }
-        NLayout {
-            logic_to_phys,
-            phys_to_logic,
-        }
+        Ok(NLayout {
+            virt_to_phys,
+            phys_to_virt,
+        })
+    }
+}
+
+impl NLayout {
+    /// Iterator of `(VirtualQubit, PhysicalQubit)` pairs, in order of the `VirtualQubit` indices.
+    pub fn iter_virtual(
+        &'_ self,
+    ) -> impl ExactSizeIterator<Item = (VirtualQubit, PhysicalQubit)> + '_ {
+        self.virt_to_phys
+            .iter()
+            .enumerate()
+            .map(|(v, p)| (VirtualQubit::new(v as u32), *p))
+    }
+    /// Iterator of `(PhysicalQubit, VirtualQubit)` pairs, in order of the `PhysicalQubit` indices.
+    pub fn iter_physical(
+        &'_ self,
+    ) -> impl ExactSizeIterator<Item = (PhysicalQubit, VirtualQubit)> + '_ {
+        self.phys_to_virt
+            .iter()
+            .enumerate()
+            .map(|(p, v)| (PhysicalQubit::new(p as u32), *v))
     }
 }
 
 #[pymodule]
-pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())
 }

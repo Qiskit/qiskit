@@ -23,7 +23,6 @@ Base
 .. autosummary::
    :toctree: ../stubs/
 
-   Qobj
    QobjExperimentHeader
    QobjHeader
 
@@ -74,14 +73,3 @@ from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.qobj.qasm_qobj import QasmQobjExperiment
 from qiskit.qobj.qasm_qobj import QasmQobjConfig
 from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
-
-from qiskit.utils.deprecation import deprecate_func
-
-
-class Qobj(QasmQobj):
-    """A backwards compat alias for QasmQobj."""
-
-    @deprecate_func(additional_msg="Instead, use QasmQobj or PulseQobj", since="0.19.0")
-    def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
-        """Initialize a Qobj object."""
-        super().__init__(qobj_id=qobj_id, config=config, experiments=experiments, header=header)

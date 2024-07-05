@@ -17,14 +17,15 @@ import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
-from qiskit.extensions.unitary import UnitaryGate
-from qiskit.test import QiskitTestCase
+from qiskit.circuit.library import UnitaryGate, CXGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
+from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnitaryGate(QiskitTestCase):
@@ -79,7 +80,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc.x(qr[0])
         qc.append(UnitaryGate(matrix), [qr[0]])
         # test of qasm output
-        self.log.info(qc.qasm())
+        self.log.info(dumps(qc))
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
@@ -102,10 +103,10 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni2q = UnitaryGate(matrix)
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
-        passman.append(CXCancellation())
+        passman.append(InverseCancellation([CXGate()]))
         qc2 = passman.run(qc)
         # test of qasm output
-        self.log.info(qc2.qasm())
+        self.log.info(dumps(qc2))
         # test of text drawer
         self.log.info(qc2)
         dag = circuit_to_dag(qc)
@@ -177,7 +178,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
 
-            def default(self, obj):
+            def default(self, obj):  # pylint:disable=arguments-renamed
                 if isinstance(obj, numpy.ndarray):
                     return obj.tolist()
                 if isinstance(obj, complex):
@@ -221,9 +222,9 @@ class TestUnitaryCircuit(QiskitTestCase):
             "qreg q0[2];\ncreg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0];\n"
-            "unitary q0[1];\n"
+            "unitary q0[1];"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
+        self.assertEqual(expected_qasm, dumps(qc))
 
     def test_qasm_unitary_twice(self):
         """test that a custom unitary can be converted to qasm and that if
@@ -245,10 +246,10 @@ class TestUnitaryCircuit(QiskitTestCase):
             "qreg q0[2];\ncreg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0];\n"
-            "unitary q0[1];\n"
+            "unitary q0[1];"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
-        self.assertEqual(expected_qasm, qc.qasm())
+        self.assertEqual(expected_qasm, dumps(qc))
+        self.assertEqual(expected_qasm, dumps(qc))
 
     def test_qasm_2q_unitary(self):
         """test that a 2 qubit custom unitary can be converted to qasm"""
@@ -270,9 +271,9 @@ class TestUnitaryCircuit(QiskitTestCase):
             "creg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0],q0[1];\n"
-            "unitary q0[1],q0[0];\n"
+            "unitary q0[1],q0[0];"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
+        self.assertEqual(expected_qasm, dumps(qc))
 
     def test_qasm_unitary_noop(self):
         """Test that an identity unitary can be converted to OpenQASM 2"""
@@ -283,9 +284,9 @@ class TestUnitaryCircuit(QiskitTestCase):
             'include "qelib1.inc";\n'
             "gate unitary q0,q1,q2 {  }\n"
             "qreg q0[3];\n"
-            "unitary q0[0],q0[1],q0[2];\n"
+            "unitary q0[0],q0[1],q0[2];"
         )
-        self.assertEqual(expected_qasm, qc.qasm())
+        self.assertEqual(expected_qasm, dumps(qc))
 
     def test_unitary_decomposition(self):
         """Test decomposition for unitary gates over 2 qubits."""

@@ -17,3 +17,4 @@
 # pylint: disable=unused-import
 from .pulse_gate import PulseGates
 from .rzx_builder import RZXCalibrationBuilder, RZXCalibrationBuilderNoEcho
+from .rx_builder import RXCalibrationBuilder
