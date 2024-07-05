@@ -242,6 +242,12 @@ pub enum StandardGate {
     RZXGate = 52,
 }
 
+impl ToPyObject for StandardGate {
+    fn to_object(&self, py: Python) -> PyObject {
+        self.into_py(py)
+    }
+}
+
 // TODO: replace all 34s (placeholders) with actual number
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     1, 1, 1, 2, 2, 2, 3, 1, 1, 1, // 0-9
@@ -709,8 +715,38 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RXGate => todo!("Add when we have R"),
-            Self::RYGate => todo!("Add when we have R"),
+            Self::RXGate => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &params[0];
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::RGate,
+                            smallvec![theta.clone(), FLOAT_ZERO],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
+            Self::RYGate => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &params[0];
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::RGate,
+                            smallvec![theta.clone(), Param::Float(PI / 2.0)],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::RZGate => Python::with_gil(|py| -> Option<CircuitData> {
                 let theta = &params[0];
                 Some(
