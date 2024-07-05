@@ -746,27 +746,21 @@ class BitArrayTestCase(QiskitTestCase):
             ]
 
             for name, indices, selection in test_cases:
-                for assume_unique in (False, True):
-                    with self.subTest("_".join([dataname, name, str(assume_unique)])):
-                        postselected_bools = np.unpackbits(
-                            bit_array.postselect(
-                                indices, selection, assume_unique=assume_unique
-                            ).array[:, ::-1],
-                            count=num_bits,
-                            axis=-1,
-                            bitorder="little",
-                        ).astype(bool)
-                        if isinstance(indices, int):
-                            indices = (indices,)
-                        if isinstance(selection, bool):
-                            selection = (selection,)
-                        answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
-                        if name == "contradict":
-                            if not assume_unique:
-                                np.testing.assert_equal(postselected_bools, answer)
-                        else:
-                            self.assertGreater(len(answer), 0)  # avoiding trivial test case
-                            np.testing.assert_equal(postselected_bools, answer)
+                with self.subTest("_".join([dataname, name])):
+                    postselected_bools = np.unpackbits(
+                        bit_array.postselect(indices, selection).array[:, ::-1],
+                        count=num_bits,
+                        axis=-1,
+                        bitorder="little",
+                    ).astype(bool)
+                    if isinstance(indices, int):
+                        indices = (indices,)
+                    if isinstance(selection, bool):
+                        selection = (selection,)
+                    answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
+                    if name != "contradict":
+                        self.assertGreater(len(answer), 0)  # avoiding trivial test case
+                    np.testing.assert_equal(postselected_bools, answer)
 
             error_cases = [
                 ("out_of_range", [0, 6, 14], [True, True, False], ValueError),
