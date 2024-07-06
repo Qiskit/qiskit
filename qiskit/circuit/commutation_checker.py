@@ -67,11 +67,11 @@ class CommutationChecker:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
         cargs1 = op2.cargs
-        if not isinstance(op1._raw_op, StandardGate):
+        if not op1.is_standard_gate:
             op1 = op1.op
         qargs2 = op2.qargs
         cargs2 = op2.cargs
-        if not isinstance(op2._raw_op, StandardGate):
+        if not op2.is_standard_gate:
             op2 = op2.op
         return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 

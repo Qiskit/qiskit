@@ -102,9 +102,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.15.0"
+version = "1.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d6d68c57235a3a081186990eca2867354726650f42f7516ca50c28d6281fd15"
+checksum = "b236fc92302c97ed75b38da1f4917b5cdda4984745740f153a5d3059e48d725e"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -1187,6 +1187,7 @@ dependencies = [
 name = "qiskit-circuit"
 version = "1.2.0"
 dependencies = [
+ "bytemuck",
  "hashbrown 0.14.5",
  "ndarray",
  "num-complex",

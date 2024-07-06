@@ -37,7 +37,7 @@ from typing import (
 )
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
-from qiskit._accelerate.circuit import StandardGate, PyGate, PyInstruction, PyOperation
+from qiskit._accelerate.circuit import StandardGate
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -2031,7 +2031,7 @@ class QuantumCircuit:
 
             instructions = source._data.copy(copy_instructions=copy)
             instructions.replace_bits(qubits=new_qubits, clbits=new_clbits)
-            instructions.map_ops(map_vars)
+            instructions.map_nonstandard_ops(map_vars)
             dest._current_scope().extend(instructions)
 
         append_existing = None
@@ -2304,9 +2304,8 @@ class QuantumCircuit:
     def _append_standard_gate(
         self,
         op: StandardGate,
-        params: Sequence[ParameterValueType] | None = None,
-        qargs: Sequence[QubitSpecifier] | None = None,
-        cargs: Sequence[ClbitSpecifier] | None = None,
+        qargs: Sequence[QubitSpecifier] = (),
+        params: Sequence[ParameterValueType] = (),
         label: str | None = None,
     ) -> InstructionSet:
         """An internal method to bypass some checking when directly appending a standard gate."""
@@ -2316,16 +2315,14 @@ class QuantumCircuit:
             params = []
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
-        expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
-        if params is not None:
-            for param in params:
-                Gate.validate_parameter(op, param)
+        for param in params:
+            Gate.validate_parameter(op, param)
 
         instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
-        broadcast_iter = Gate.broadcast_arguments(op, expanded_qargs, expanded_cargs)
+        broadcast_iter = Gate.broadcast_arguments(op, expanded_qargs, [])
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
-            instruction = CircuitInstruction(op, qarg, carg, params=params, label=label)
+            instruction = CircuitInstruction.from_standard(op, qarg, params, label=label)
             circuit_scope.append(instruction, _standard_gate=True)
             instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
         return instructions
@@ -2427,38 +2424,10 @@ class QuantumCircuit:
             if isinstance(operation, Instruction)
             else Instruction.broadcast_arguments(operation, expanded_qargs, expanded_cargs)
         )
-        params = None
-        if isinstance(operation, Gate):
-            params = operation.params
-            operation = PyGate(
-                operation.name,
-                operation.num_qubits,
-                operation.num_clbits,
-                len(params),
-                operation,
-            )
-        elif isinstance(operation, Instruction):
-            params = operation.params
-            operation = PyInstruction(
-                operation.name,
-                operation.num_qubits,
-                operation.num_clbits,
-                len(params),
-                operation,
-            )
-        elif isinstance(operation, Operation):
-            params = getattr(operation, "params", ())
-            operation = PyOperation(
-                operation.name,
-                operation.num_qubits,
-                operation.num_clbits,
-                len(params),
-                operation,
-            )
-
+        base_instruction = CircuitInstruction(operation, (), ())
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
-            instruction = CircuitInstruction(operation, qarg, carg, params=params)
+            instruction = base_instruction.replace(qubits=qarg, clbits=carg)
             circuit_scope.append(instruction)
             instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
         return instructions
@@ -4492,7 +4461,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.HGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.HGate, [qubit], ())
 
     def ch(
         self,
@@ -4519,7 +4488,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CHGate, [], qargs=[control_qubit, target_qubit], label=label
+                StandardGate.CHGate, [control_qubit, target_qubit], (), label=label
             )
 
         from .library.standard_gates.h import CHGate
@@ -4542,7 +4511,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.IGate, None, qargs=[qubit])
+        return self._append_standard_gate(StandardGate.IGate, [qubit], ())
 
     def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MSGate`.
@@ -4573,7 +4542,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.PhaseGate, [theta], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.PhaseGate, [qubit], (theta,))
 
     def cp(
         self,
@@ -4602,7 +4571,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CPhaseGate, [theta], qargs=[control_qubit, target_qubit], label=label
+                StandardGate.CPhaseGate, [control_qubit, target_qubit], (theta,), label=label
             )
 
         from .library.standard_gates.p import CPhaseGate
@@ -4661,7 +4630,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RGate, [theta, phi], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.RGate, [qubit], [theta, phi])
 
     def rv(
         self,
@@ -4758,7 +4727,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RXGate, [theta], [qubit], None, label=label)
+        return self._append_standard_gate(StandardGate.RXGate, [qubit], [theta], label=label)
 
     def crx(
         self,
@@ -4787,7 +4756,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CRXGate, [theta], [control_qubit, target_qubit], None, label=label
+                StandardGate.CRXGate, [control_qubit, target_qubit], [theta], label=label
             )
 
         from .library.standard_gates.rx import CRXGate
@@ -4814,7 +4783,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RXXGate, [theta], [qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.RXXGate, [qubit1, qubit2], [theta])
 
     def ry(
         self, theta: ParameterValueType, qubit: QubitSpecifier, label: str | None = None
@@ -4831,7 +4800,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RYGate, [theta], [qubit], None, label=label)
+        return self._append_standard_gate(StandardGate.RYGate, [qubit], [theta], label=label)
 
     def cry(
         self,
@@ -4860,7 +4829,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CRYGate, [theta], [control_qubit, target_qubit], None, label=label
+                StandardGate.CRYGate, [control_qubit, target_qubit], [theta], label=label
             )
 
         from .library.standard_gates.ry import CRYGate
@@ -4887,7 +4856,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RYYGate, [theta], [qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.RYYGate, [qubit1, qubit2], [theta])
 
     def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RZGate`.
@@ -4901,7 +4870,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RZGate, [phi], [qubit], None)
+        return self._append_standard_gate(StandardGate.RZGate, [qubit], [phi])
 
     def crz(
         self,
@@ -4930,7 +4899,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CRZGate, [theta], [control_qubit, target_qubit], None, label=label
+                StandardGate.CRZGate, [control_qubit, target_qubit], [theta], label=label
             )
 
         from .library.standard_gates.rz import CRZGate
@@ -4957,7 +4926,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RZXGate, [theta], [qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.RZXGate, [qubit1, qubit2], [theta])
 
     def rzz(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
@@ -4974,7 +4943,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.RZZGate, [theta], [qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.RZZGate, [qubit1, qubit2], [theta])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.
@@ -4987,7 +4956,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.ECRGate, [], qargs=[qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.ECRGate, [qubit1, qubit2], ())
 
     def s(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SGate`.
@@ -5000,7 +4969,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.SGate, [qubit], ())
 
     def sdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SdgGate`.
@@ -5013,7 +4982,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SdgGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.SdgGate, [qubit], ())
 
     def cs(
         self,
@@ -5040,7 +5009,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CSGate, [], qargs=[control_qubit, target_qubit], label=label
+                StandardGate.CSGate, [control_qubit, target_qubit], (), label=label
             )
 
         from .library.standard_gates.s import CSGate
@@ -5077,7 +5046,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CSdgGate, [], qargs=[control_qubit, target_qubit], label=label
+                StandardGate.CSdgGate, [control_qubit, target_qubit], (), label=label
             )
 
         from .library.standard_gates.s import CSdgGate
@@ -5102,8 +5071,8 @@ class QuantumCircuit:
         """
         return self._append_standard_gate(
             StandardGate.SwapGate,
-            [],
-            qargs=[qubit1, qubit2],
+            [qubit1, qubit2],
+            (),
         )
 
     def iswap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
@@ -5117,7 +5086,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.ISwapGate, [], qargs=[qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.ISwapGate, [qubit1, qubit2], ())
 
     def cswap(
         self,
@@ -5147,8 +5116,8 @@ class QuantumCircuit:
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
                 StandardGate.CSwapGate,
-                [],
-                qargs=[control_qubit, target_qubit1, target_qubit2],
+                [control_qubit, target_qubit1, target_qubit2],
+                (),
                 label=label,
             )
 
@@ -5172,7 +5141,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SXGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.SXGate, [qubit], ())
 
     def sxdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SXdgGate`.
@@ -5185,7 +5154,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.SXdgGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.SXdgGate, [qubit], ())
 
     def csx(
         self,
@@ -5212,7 +5181,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CSXGate, [], qargs=[control_qubit, target_qubit], label=label
+                StandardGate.CSXGate, [control_qubit, target_qubit], (), label=label
             )
 
         from .library.standard_gates.sx import CSXGate
@@ -5235,7 +5204,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.TGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.TGate, [qubit], ())
 
     def tdg(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TdgGate`.
@@ -5248,7 +5217,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.TdgGate, [], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.TdgGate, [qubit], ())
 
     def u(
         self,
@@ -5270,7 +5239,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.UGate, [theta, phi, lam], qargs=[qubit])
+        return self._append_standard_gate(StandardGate.UGate, [qubit], [theta, phi, lam])
 
     def cu(
         self,
@@ -5323,7 +5292,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.XGate, None, qargs=[qubit], label=label)
+        return self._append_standard_gate(StandardGate.XGate, [qubit], (), label=label)
 
     def cx(
         self,
@@ -5351,9 +5320,8 @@ class QuantumCircuit:
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
                 StandardGate.CXGate,
-                [],
-                qargs=[control_qubit, target_qubit],
-                cargs=None,
+                [control_qubit, target_qubit],
+                (),
                 label=label,
             )
 
@@ -5378,7 +5346,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(op=StandardGate.DCXGate, qargs=[qubit1, qubit2])
+        return self._append_standard_gate(StandardGate.DCXGate, [qubit1, qubit2], ())
 
     def ccx(
         self,
@@ -5406,9 +5374,8 @@ class QuantumCircuit:
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
                 StandardGate.CCXGate,
-                [],
-                qargs=[control_qubit1, control_qubit2, target_qubit],
-                cargs=None,
+                [control_qubit1, control_qubit2, target_qubit],
+                (),
             )
 
         from .library.standard_gates.x import CCXGate
@@ -5515,7 +5482,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.YGate, None, qargs=[qubit])
+        return self._append_standard_gate(StandardGate.YGate, [qubit], ())
 
     def cy(
         self,
@@ -5543,9 +5510,8 @@ class QuantumCircuit:
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
                 StandardGate.CYGate,
-                [],
-                qargs=[control_qubit, target_qubit],
-                cargs=None,
+                [control_qubit, target_qubit],
+                (),
                 label=label,
             )
 
@@ -5569,7 +5535,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.ZGate, None, qargs=[qubit])
+        return self._append_standard_gate(StandardGate.ZGate, [qubit], ())
 
     def cz(
         self,
@@ -5596,7 +5562,7 @@ class QuantumCircuit:
         # if the control state is |1> use the fast Rust version of the gate
         if ctrl_state is None or ctrl_state in ["1", 1]:
             return self._append_standard_gate(
-                StandardGate.CZGate, [], qargs=[control_qubit, target_qubit], label=label
+                StandardGate.CZGate, [control_qubit, target_qubit], (), label=label
             )
 
         from .library.standard_gates.z import CZGate

@@ -143,9 +143,7 @@ class InstructionSet:
         for idx, instruction in enumerate(self._instructions):
             if isinstance(instruction, CircuitInstruction):
                 updated = instruction.operation.c_if(classical, val)
-                self._instructions[idx] = instruction.replace(
-                    operation=updated, condition=updated.condition
-                )
+                self._instructions[idx] = instruction.replace(operation=updated)
             else:
                 data, idx = instruction
                 instruction = data[idx]
