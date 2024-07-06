@@ -73,6 +73,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                     self.assertIsNone(rs_def)
                 else:
                     rs_def = QuantumCircuit._from_circuit_data(rs_def)
+
                     for rs_inst, py_inst in zip(rs_def._data, py_def._data):
                         # Rust uses U but python still uses U3 and u2
                         if rs_inst.operation.name == "u":
@@ -92,8 +93,8 @@ class TestRustGateEquivalence(QiskitTestCase):
                                 [py_def.find_bit(x).index for x in py_inst.qubits],
                                 [rs_def.find_bit(x).index for x in rs_inst.qubits],
                             )
-                        # Rust uses P but python still uses u1
-                        elif rs_inst.operation.name == "p":
+                        # Rust uses p but python still uses u1/u3 in some cases
+                        elif rs_inst.operation.name == "p" and not name in ["cp", "cs", "csdg"]:
                             if py_inst.operation.name == "u1":
                                 self.assertEqual(py_inst.operation.name, "u1")
                                 self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
@@ -110,7 +111,14 @@ class TestRustGateEquivalence(QiskitTestCase):
                                     [py_def.find_bit(x).index for x in py_inst.qubits],
                                     [rs_def.find_bit(x).index for x in rs_inst.qubits],
                                 )
-
+                        # Rust uses cp but python still uses cu1 in some cases
+                        elif rs_inst.operation.name == "cp":
+                            self.assertEqual(py_inst.operation.name, "cu1")
+                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
+                            self.assertEqual(
+                                [py_def.find_bit(x).index for x in py_inst.qubits],
+                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
+                            )
                         else:
                             self.assertEqual(py_inst.operation.name, rs_inst.operation.name)
                             self.assertEqual(rs_inst.operation.params, py_inst.operation.params)

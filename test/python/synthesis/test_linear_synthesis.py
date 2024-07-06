@@ -139,6 +139,42 @@ class TestLinearSynth(QiskitTestCase):
                 dist = abs(q0 - q1)
                 self.assertEqual(dist, 1)
 
+    @data(None, 2, 4, 5)
+    def test_synth_full_pmh(self, section_size):
+        """Test the PMH synthesis on pseudo-random matrices."""
+        num_qubits = 5
+        rng = np.random.default_rng(1234)
+        num_trials = 10
+        seeds = rng.integers(100000, size=num_trials, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
+            mat = np.array(mat, dtype=bool)
+
+            qc = synth_cnot_count_full_pmh(mat, section_size)
+            self.assertEqual(LinearFunction(qc), LinearFunction(mat))
+
+    @data(5, 11)
+    def test_pmh_section_sizes(self, num_qubits):
+        """Test the PMH algorithm for different section sizes.
+
+        Regression test of Qiskit/qiskit#12166.
+        """
+        qc = QuantumCircuit(num_qubits)
+        for i in range(num_qubits - 1):
+            qc.cx(i, i + 1)
+        lin = LinearFunction(qc)
+
+        for section_size in range(1, num_qubits + 1):
+            synthesized = synth_cnot_count_full_pmh(lin.linear, section_size=section_size)
+            with self.subTest(section_size=section_size):
+                self.assertEqual(lin, LinearFunction(synthesized))
+
+    def test_pmh_invalid_section_size(self):
+        """Test that a section size larger than the number of qubits raises an error."""
+        mat = [[True, False], [True, False]]
+        with self.assertRaises(ValueError):
+            _ = synth_cnot_count_full_pmh(mat, section_size=3)
+
 
 if __name__ == "__main__":
     unittest.main()
