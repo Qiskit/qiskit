@@ -68,6 +68,10 @@ class InstructionProperties(BaseInstructionProperties):
     custom attributes for those custom/additional properties by the backend.
     """
 
+    __slots__ = [
+        "_calibration",
+    ]
+
     def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
         duration=None,  # pylint: disable=keyword-arg-before-vararg
@@ -238,6 +242,13 @@ class Target(BaseTarget):
         would potentially be invalidated by removals.
     """
 
+    __slots__ = (
+        "_gate_map",
+        "_coupling_graph",
+        "_instruction_durations",
+        "_instruction_schedule_map",
+    )
+
     def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
         description: str | None = None,
@@ -294,15 +305,8 @@ class Target(BaseTarget):
                 defined and the value of ``num_qubits`` differs from the length of
                 ``qubit_properties``.
         """
-
-        # In case a number is passed as first argument, assume it means num_qubits.
         if description is not None:
-            if num_qubits is None and isinstance(description, int):
-                num_qubits = description
-                description = None
-            elif not isinstance(description, str):
-                description = str(description)
-
+            description = str(description)
         return super(Target, cls).__new__(  # pylint: disable=too-many-function-args
             cls,
             description,
@@ -509,7 +513,7 @@ class Target(BaseTarget):
                         continue
                 try:
                     # Update gate error if provided.
-                    setattr(props, "error", error_dict[inst_name][qargs])
+                    props.error = error_dict[inst_name][qargs]
                 except (KeyError, TypeError):
                     pass
                 out_props[qargs] = props

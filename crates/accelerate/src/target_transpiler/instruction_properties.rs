@@ -54,23 +54,19 @@ impl InstructionProperties {
         Ok(())
     }
 
-    fn __repr__(&self, _py: Python<'_>) -> PyResult<String> {
-        let mut output = "InstructionProperties(".to_owned();
-        if let Some(duration) = self.duration {
-            output.push_str("duration=");
-            output.push_str(duration.to_string().as_str());
-            output.push_str(", ");
-        } else {
-            output.push_str("duration=None, ");
-        }
-
-        if let Some(error) = self.error {
-            output.push_str("error=");
-            output.push_str(error.to_string().as_str());
-            output.push_str(", ");
-        } else {
-            output.push_str("error=None, ");
-        }
-        Ok(output)
+    fn __repr__(&self, _py: Python<'_>) -> String {
+        format!(
+            "InstructionProperties(duration={}, error={})",
+            if let Some(duration) = self.duration {
+                duration.to_string()
+            } else {
+                "None".to_string()
+            },
+            if let Some(error) = self.error {
+                error.to_string()
+            } else {
+                "None".to_string()
+            }
+        )
     }
 }
