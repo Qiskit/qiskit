@@ -511,20 +511,20 @@ impl CircuitData {
                 });
             }
         } else {
-            res.data.extend(self.data.iter().map(|inst| {
-                // Clippy 1.70 doesn't like feature-gating only the middle statement, because if
-                // `cache_pygates` is off, it looks like a let followed immediately by a return.
-                #[cfg(feature = "cache_pygates")]
-                {
+            // Clippy complains in some versions if you attempt to just feature-gate out the
+            // ref-cell setting line from the middle.
+            #[cfg(feature = "cache_pygates")]
+            {
+                res.data.extend(self.data.iter().map(|inst| {
                     let out = inst.clone();
                     *out.py_op.borrow_mut() = None;
                     out
-                }
-                #[cfg(not(feature = "cache_pygates"))]
-                {
-                    inst.clone()
-                }
-            }))
+                }));
+            }
+            #[cfg(not(feature = "cache_pygates"))]
+            {
+                res.data.extend(self.data.iter().cloned());
+            }
         }
         Ok(res)
     }
