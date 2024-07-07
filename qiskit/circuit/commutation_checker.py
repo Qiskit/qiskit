@@ -21,7 +21,6 @@ from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators import Operator
-from qiskit._accelerate.circuit import StandardGate
 
 _skipped_op_names = {"measure", "reset", "delay", "initialize"}
 _no_cache_op_names = {"annotated"}

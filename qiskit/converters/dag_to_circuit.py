@@ -11,10 +11,8 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit."""
-import copy
 
-from qiskit.circuit import QuantumCircuit, CircuitInstruction
-from qiskit._accelerate.circuit import StandardGate
+from qiskit.circuit import QuantumCircuit
 
 
 def dag_to_circuit(dag, copy_operations=True):

@@ -2319,8 +2319,7 @@ class QuantumCircuit:
             Gate.validate_parameter(op, param)
 
         instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
-        broadcast_iter = Gate.broadcast_arguments(op, expanded_qargs, [])
-        for qarg, carg in broadcast_iter:
+        for qarg, _ in Gate.broadcast_arguments(op, expanded_qargs, []):
             self._check_dups(qarg)
             instruction = CircuitInstruction.from_standard(op, qarg, params, label=label)
             circuit_scope.append(instruction, _standard_gate=True)
