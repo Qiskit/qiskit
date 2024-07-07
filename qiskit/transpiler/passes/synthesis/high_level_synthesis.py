@@ -367,7 +367,7 @@ class HighLevelSynthesis(TransformationPass):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
 
-    def run(self, dag: DAGCircuit, level=0) -> DAGCircuit:
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
 
         Args:
@@ -381,46 +381,73 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
 
-        prefix = " " * (level * 2)
+        # Notes:
+        # - In the new flow, we may synthesize an object defined over
+        #   k qubits using additional ancilla qubits. This requires us
+        #   rebuilding the circuit instead of replacing a node by a node
+        #   or a dag.
+        # - This function is run recursively, so there is no guarantee
+        #   that unused qubits are "clean". This can be solved. For now,
+        #   we only consider synthesis algorithms that work with dirty
+        #   ancilla qubits; they can use any qubit not used in the current
+        #   operation, which is fine because such synthesis algorithm
+        #   return the qubit to its previous state.
 
-        # print(f"{prefix}==HLS::RUN [START] {level = } ===")
+        new_dag = dag.copy_empty_like()
+
         # copy dag_op_nodes because we are modifying the DAG below
         dag_op_nodes = dag.op_nodes()
 
         for node in dag_op_nodes:
             if isinstance(node.op, ControlFlowOp):
                 node.op = control_flow.map_blocks(self.run, node.op)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
                 continue
 
             if getattr(node.op, "_directive", False):
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
                 continue
 
             if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
                 continue
 
             qubits = (
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
 
-            decomposition, modified = self._recursively_handle_op(node.op, level, qubits)
+            # Note: let us only use ancilla qubits when HighLevelSynthesis
+            # runs before routing (we can worry about the other case later).
+            # This is not supposed to be the most optimized code for now.
+            # We should probably also sort ancilla_qubits for deterministic
+            # behavior.
+            num_ancilla_qubits = dag.num_qubits() - len(node.qargs) if qubits is not None else None
+            ancilla_qubits = [] if num_ancilla_qubits == 0 else list(set(dag.qubits).difference(set(node.qargs)))
+
+            decomposition, modified = self._recursively_handle_op(node.op, qubits, num_ancilla_qubits)
 
             if not modified:
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
                 continue
 
-            if isinstance(decomposition, QuantumCircuit):
-                dag.substitute_node_with_dag(
-                    node, circuit_to_dag(decomposition, copy_operations=False)
-                )
-            elif isinstance(decomposition, DAGCircuit):
-                dag.substitute_node_with_dag(node, decomposition)
-            elif isinstance(decomposition, Operation):
-                dag.substitute_node(node, decomposition)
+            extra_qubits_used = decomposition.num_qubits() - len(node.qargs)
+            extended_qargs = node.qargs if not extra_qubits_used else list(node.qargs) + ancilla_qubits[0:extra_qubits_used]
 
-        # print(f"{prefix}==HLS::RUN [END] {level = } ===")
-        return dag
+            if isinstance(decomposition, QuantumCircuit):
+                decomposition = circuit_to_dag(decomposition, copy_operations=False)
+
+            if isinstance(decomposition, DAGCircuit):
+                for decomposition_node in decomposition.op_nodes():
+                    indices = [decomposition.find_bit(q).index for q in decomposition_node.qargs]
+                    new_dag.apply_operation_back(decomposition_node.op, [extended_qargs[i] for i in indices], node.cargs, check=True)
+                new_dag.global_phase += decomposition.global_phase
+            elif isinstance(decomposition, Operation):
+                new_dag.apply_operation_back(decomposition, extended_qargs, node.cargs)
+
+        return new_dag
 
     def _recursively_handle_op(
-        self, op: Operation, level, qubits: Optional[List] = None,
+        self, op: Operation, qubits: Optional[List] = None, num_ancilla_qubits: int = 0
     ) -> Tuple[Union[QuantumCircuit, DAGCircuit, Operation], bool]:
         """Recursively synthesizes a single operation.
 
@@ -446,27 +473,25 @@ class HighLevelSynthesis(TransformationPass):
         an annotated operation.
         """
 
-        prefix = " " * (level * 2)
-        # print(f"{prefix}HLS: {op.name = }")
         # Try to apply plugin mechanism
-        decomposition = self._synthesize_op_using_plugins(op, qubits)
+        decomposition = self._synthesize_op_using_plugins(op, qubits, num_ancilla_qubits)
         if decomposition is not None:
-            # print(f"{prefix} --> synthesized via plugins")
-
-            # IT IS NOW POSSIBLE THAT APPLYING HLS PLUGINS CREATES A CIRCUIT WITH MORE HighLevel objects
+            # Note: with the introduction of MCX synthesis algorithms,
+            # running an HLS plugin may create a circuit with some other
+            # high-level objects. This forces us to run the pass
+            # recursively, similar to the code that unwraps the
+            # definitions.
             dag = circuit_to_dag(decomposition, copy_operations=False)
-            dag = self.run(dag, level=level + 1)
+            dag = self.run(dag)
             return dag, True
 
         # Handle annotated operations
         decomposition = self._synthesize_annotated_op(op)
         if decomposition:
-            # print(f"{prefix} --> synthesized via annotated")
             return decomposition, True
 
         # Don't do anything else if processing only top-level
         if self._top_level_only:
-            # print(f"{prefix} --> synthesized via top-level-only")
             return op, False
 
         # For non-controlled-gates, check if it's already supported by the target
@@ -484,12 +509,10 @@ class HighLevelSynthesis(TransformationPass):
                 else op.name in self._device_insts
             )
             if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
-                # print(f"{prefix} --> synthesized via supported")
                 return op, False
 
         try:
             # extract definition
-            # print(f"{prefix}  .. attempting to extract definiton")
             definition = op.definition
         except TypeError as err:
             raise TranspilerError(
@@ -502,13 +525,19 @@ class HighLevelSynthesis(TransformationPass):
         if definition is None:
             raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op}.")
 
-        # print(f"{prefix} --> synthesized via definition")
         dag = circuit_to_dag(definition, copy_operations=False)
-        dag = self.run(dag, level=level+1)
+        dag = self.run(dag)
         return dag, True
 
+    # Note: now this function also receives the number of ancilla
+    # qubits it can use to synthesize a given operation. A synthesis
+    # method does not need to use these qubits, but it might.
+    # Recall that a synthesis method can return None if it cannot
+    # synthesize a given operation, for example when the number of
+    # required ancilla qubits exceeds the number of available
+    # ancilla qubits.
     def _synthesize_op_using_plugins(
-        self, op: Operation, qubits: List
+        self, op: Operation, qubits: List, num_ancilla_qubits: int = 0
     ) -> Union[QuantumCircuit, None]:
         """
         Attempts to synthesize op using plugin mechanism.
@@ -564,6 +593,14 @@ class HighLevelSynthesis(TransformationPass):
             else:
                 plugin_method = plugin_specifier
 
+            # Note: it is probably bad that we use the option
+            # name "num_ancilla_qubits" for internal handling.
+            # We should either make it into an explicit argument of
+            # the run function, or create a convention such as
+            # options names preceded by underscore are internal.
+            # In this case, we should rename this to "_num_ancilla_qubits".
+            plugin_args["num_ancilla_qubits"] = num_ancilla_qubits
+
             decomposition = plugin_method.run(
                 op,
                 coupling_map=self._coupling_map,
@@ -599,7 +636,7 @@ class HighLevelSynthesis(TransformationPass):
         if isinstance(op, AnnotatedOperation):
             # Recursively handle the base operation
             # This results in QuantumCircuit, DAGCircuit or Gate
-            synthesized_op, _ = self._recursively_handle_op(op.base_op, level, qubits=None)
+            synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None, num_ancilla_qubits=0)
 
             if isinstance(synthesized_op, AnnotatedOperation):
                 raise TranspilerError(
@@ -635,7 +672,7 @@ class HighLevelSynthesis(TransformationPass):
                         )
 
                     # Unrolling
-                    synthesized_op, _ = self._recursively_handle_op(synthesized_op, level)
+                    synthesized_op, _ = self._recursively_handle_op(synthesized_op, num_ancilla_qubits=0)
 
                 elif isinstance(modifier, PowerModifier):
                     # QuantumCircuit has power method, and Gate needs to be converted
@@ -654,7 +691,7 @@ class HighLevelSynthesis(TransformationPass):
                     synthesized_op = qc.to_gate()
 
                     # Unrolling
-                    synthesized_op, _ = self._recursively_handle_op(synthesized_op, level)
+                    synthesized_op, _ = self._recursively_handle_op(synthesized_op, num_ancilla_qubits=0)
 
                 else:
                     raise TranspilerError(f"Unknown modifier {modifier}.")
@@ -990,9 +1027,7 @@ class RecursiveSynthesisMCX(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
-        print(f"In RecursiveSynthesisMCX plugin::run {high_level_object = }")
         num_ancilla_qubits = options.get("num_ancilla_qubits", 0)
-        print(f"options: {num_ancilla_qubits = }")
 
         if high_level_object.num_qubits <= 5:
             # For MCX gates with up to 4 control qubits, we should not apply synth_mcx_recursive
@@ -1001,8 +1036,7 @@ class RecursiveSynthesisMCX(HighLevelSynthesisPlugin):
 
         # decomposition may be None, that's ok
         decomposition = synth_mcx_recursive(high_level_object.num_qubits-1, num_ancilla_qubits)
-        print(f"DECOMPOSITION:")
-        print(decomposition)
+        # print(f"RecursiveSynthesisMCX plugin: ok = {decomposition is not None}")
         return decomposition
 
 
@@ -1015,9 +1049,7 @@ class MCPhaseSynthesisMCX(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
-        print(f"In MCPhaseSynthesisMCX plugin::run {high_level_object = }")
         num_ancilla_qubits = options.get("num_ancilla_qubits", 0)
-        print(f"options: {num_ancilla_qubits = }")
 
         if high_level_object.num_qubits <= 5:
             # For MCX gates with up to 4 control qubits, we should not apply synth_mcx_recursive
@@ -1026,6 +1058,5 @@ class MCPhaseSynthesisMCX(HighLevelSynthesisPlugin):
 
         # decomposition may be None, that's ok
         decomposition = synth_mcx_using_mcphase(high_level_object.num_qubits-1)
-        print(f"DECOMPOSITION:")
-        print(decomposition)
+        print(f"MCPhaseSynthesisMCX plugin: ok = {decomposition is not None}")
         return decomposition

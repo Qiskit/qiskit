@@ -1177,6 +1177,7 @@ class MCXGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.synthesis.multi_controlled import synth_mcx_using_mcphase
 
+        # Note: The implementation is moved to synthesis/mcx
         self.definition = synth_mcx_using_mcphase(self.num_ctrl_qubits)
 
     @property
@@ -1345,7 +1346,7 @@ class MCXRecursive(MCXGate):
         # pylint: disable=cyclic-import
         from qiskit.synthesis.multi_controlled import synth_mcx_recursive
 
-        print(f"IN MCX_RECURSIVE_DEFINE: {self.num_qubits = }, {self.num_ctrl_qubits = }, {self.get_num_ancilla_qubits(self.num_ctrl_qubits) = }")
+        # Note: The implementation is moved to synthesis/mcx
         qc = synth_mcx_recursive(self.num_ctrl_qubits, self.num_qubits - self.num_ctrl_qubits - 1)
         qc.name = self.name
         self.definition = qc

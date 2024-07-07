@@ -36,8 +36,6 @@ def synth_mcx_recursive(num_control_qubits: int, num_ancilla_qubits: int) -> Qua
 
     num_qubits = num_control_qubits + num_required_ancilla_qubits + 1
 
-    print(f"I AM HERE: {num_control_qubits = }, {num_required_ancilla_qubits = }, {num_qubits = }")
-
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q)
     if num_control_qubits == 1:
