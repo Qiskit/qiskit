@@ -21,6 +21,7 @@ from qiskit.circuit.library import CXGate, CCXGate, C3XGate, C4XGate
 
 ### CODE TAKEN FROM MCX_RECURSIVE
 
+
 def synth_mcx_recursive(num_control_qubits: int, num_ancilla_qubits: int) -> QuantumCircuit | None:
     """
     num_ancilla_qubits is the available number, in practice may use less
@@ -78,6 +79,7 @@ def _recurse(q, q_ancilla=None):
 
 
 ### CODE TAKEN FROM MCX
+
 
 def synth_mcx_using_mcphase(num_control_qubits: int) -> QuantumCircuit | None:
     num_qubits = num_control_qubits + 1
