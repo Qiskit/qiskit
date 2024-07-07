@@ -439,17 +439,19 @@ class HighLevelSynthesis(TransformationPass):
 
             if isinstance(decomposition, DAGCircuit):
                 extra_qubits_used = decomposition.num_qubits() - len(node.qargs)
+
                 extended_qargs = (
                     node.qargs
                     if not extra_qubits_used
                     else list(node.qargs) + ancilla_qubits[0:extra_qubits_used]
                 )
                 for decomposition_node in decomposition.op_nodes():
-                    indices = [decomposition.find_bit(q).index for q in decomposition_node.qargs]
+                    q_indices = [decomposition.find_bit(q).index for q in decomposition_node.qargs]
+                    c_indices = [decomposition.find_bit(q).index for q in decomposition_node.cargs]
                     new_dag.apply_operation_back(
                         decomposition_node.op,
-                        [extended_qargs[i] for i in indices],
-                        node.cargs,
+                        [extended_qargs[i] for i in q_indices],
+                        [node.cargs[i] for i in c_indices],
                         check=True,
                     )
                 new_dag.global_phase += decomposition.global_phase
@@ -460,6 +462,7 @@ class HighLevelSynthesis(TransformationPass):
                     if not extra_qubits_used
                     else list(node.qargs) + ancilla_qubits[0:extra_qubits_used]
                 )
+                # Note: I am not sure about this at all. Let's see how many tests would fail.
                 new_dag.apply_operation_back(decomposition, extended_qargs, node.cargs)
 
         return new_dag
