@@ -1082,5 +1082,4 @@ class MCPhaseSynthesisMCX(HighLevelSynthesisPlugin):
 
         # decomposition may be None, that's ok
         decomposition = synth_mcx_using_mcphase(high_level_object.num_qubits - 1)
-        print(f"MCPhaseSynthesisMCX plugin: ok = {decomposition is not None}")
         return decomposition
