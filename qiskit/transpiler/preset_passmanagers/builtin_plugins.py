@@ -202,7 +202,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 init.append(Collect2qBlocks())
                 init.append(ConsolidateBlocks())
                 init.append(Split2QUnitaries())
-                pass
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
