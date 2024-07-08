@@ -478,7 +478,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
                 [
                     HighLevelSynthesis(
                         hls_config=hls_config,
-                        target=GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target,
+                        target=GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"]).target,
                     )
                 ]
             )
@@ -1221,7 +1221,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
         circuit = QuantumCircuit(6)
         circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
-        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
+        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u", "id"])(circuit)
         self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
 
     def test_definition_with_high_level_objects(self):
@@ -1248,7 +1248,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1, 2])
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"])
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -1261,7 +1261,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1, 2])
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"])
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
@@ -1276,7 +1276,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, InverseModifier())
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"])
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -1289,7 +1289,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, InverseModifier())
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"])
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
@@ -1304,7 +1304,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, PowerModifier(3))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"])
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -1317,7 +1317,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, PowerModifier(3))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx", "id"])
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
