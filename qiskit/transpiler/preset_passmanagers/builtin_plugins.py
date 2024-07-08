@@ -185,9 +185,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     if op is None or op.name in _discrete_skipped_ops:
                         continue
 
-                    if (isinstance(op.params, Iterable) and len(op.params) > 0) or (
-                        callable(op.params) and len(op.params()) > 0
-                    ):
+                    print(type(op))
+                    if len(op.params) > 0:
                         return True
                 return False
 
