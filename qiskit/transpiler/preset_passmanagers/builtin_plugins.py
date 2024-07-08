@@ -183,8 +183,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                         op = stdgates.get(op, None)
                     if op is None or op.name in _discrete_skipped_ops:
                         continue
-                    params = op.params
-                    if len(params) > 0:
+
+                    if len(list(op.params)) > 0:
                         return True
                 return False
 
