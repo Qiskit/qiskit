@@ -46,17 +46,8 @@ impl<'py> PySequenceIndex<'py> {
     pub fn with_len(&self, len: usize) -> Result<SequenceIndex, PySequenceIndexError> {
         match self {
             PySequenceIndex::Int(index) => {
-                let index = if *index >= 0 {
-                    let index = *index as usize;
-                    if index >= len {
-                        return Err(PySequenceIndexError::OutOfRange);
-                    }
-                    index
-                } else {
-                    len.checked_sub(index.unsigned_abs())
-                        .ok_or(PySequenceIndexError::OutOfRange)?
-                };
-                Ok(SequenceIndex::Int(index))
+                let wrapped_index = PySequenceIndex::convert_idx(*index, len)?;
+                Ok(SequenceIndex::Int(wrapped_index))
             }
             PySequenceIndex::Slice(slice) => {
                 let indices = slice
@@ -79,6 +70,22 @@ impl<'py> PySequenceIndex<'py> {
                 }
             }
         }
+    }
+
+    /// Given an integer (which may be negative) get a valid unsigned index for a sequence.
+    pub fn convert_idx(index: isize, length: usize) -> Result<usize, PySequenceIndexError> {
+        let wrapped_index = if index >= 0 {
+            let index = index as usize;
+            if index >= length {
+                return Err(PySequenceIndexError::OutOfRange);
+            }
+            index
+        } else {
+            length
+                .checked_sub(index.unsigned_abs())
+                .ok_or(PySequenceIndexError::OutOfRange)?
+        };
+        Ok(wrapped_index)
     }
 }
 
@@ -165,8 +172,8 @@ impl SequenceIndex {
         }
     }
 
-    // Get an iterator over the contained indices that is guaranteed to iterate from the highest
-    // index to the lowest.
+    /// Get an iterator over the contained indices that is guaranteed to iterate from the highest
+    /// index to the lowest.
     pub fn descending(&self) -> Descending {
         Descending(self.iter())
     }
@@ -370,6 +377,37 @@ mod test {
                 "descending {:?}\nActual  : {:?}\nExpected: {:?}",
                 index, actual, expected,
             );
+        }
+    }
+
+    /// Test SequenceIndex::from_int correctly handles positive and negative indices
+    #[test]
+    fn convert_py_idx() {
+        let cases = [
+            (2, 5, 2), // (index, sequence length, expected result)
+            (-2, 5, 3),
+            (0, 2, 0),
+        ];
+
+        for (py_index, length, expected) in cases {
+            let index = PySequenceIndex::convert_idx(py_index, length).unwrap();
+            assert_eq!(index, expected, "Expected {} but got {}", expected, index);
+        }
+    }
+
+    /// Test that out-of-range errors are returned as expected.
+    #[test]
+    fn bad_convert_py_idx() {
+        let cases = [
+            (5, 5), // (index, sequence length)
+            (-6, 5),
+        ];
+
+        for (py_index, length) in cases {
+            assert!(matches!(
+                PySequenceIndex::convert_idx(py_index, length).unwrap_err(),
+                PySequenceIndexError::OutOfRange,
+            ));
         }
     }
 }
