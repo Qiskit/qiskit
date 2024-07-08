@@ -347,12 +347,27 @@ class PauliFeatureMap(NLocal):
                             raise ValueError(f"Invalid value of entanglement:{e3}")
                         e2[ind] = tuple(map(int, e3))
 
-            chosen_entanglement = self.entanglement[i % num_i][j % num_j]
+            # Unlike Twolocal where we can specify entanglement blocks and rotation
+            # blocks separately, for PauliFeatureMap, all the paulis are specified
+            # as a single list (like ['Z', 'ZZ', 'YY']) and so if we just use
+            # self.entanglement[i % num_i][j % num_j] as the entanglement we will be
+            # choosing incorrect entanglement from the specified entanglement. So,
+            # here we subtract the number of single-qubit paulis from the j % num_j
+            # to pick correct entanglement from the specified List[List[List[List[int]]]]
+            count_single_qubit_paulis = 0
+            for pauli in self.paulis:
+                if len(pauli) == 1:
+                    count_single_qubit_paulis += 1
+
+            chosen_entanglement = self.entanglement[i % num_i][
+                (j % num_j) - count_single_qubit_paulis
+            ]
             return self._selective_entangler_map(num_block_qubits, chosen_entanglement)
 
         else:
-            # if the entanglement is not List[List[int]] or List[List[List[int]]]
-            # then we fall back on the original `get_entangler_map()` method from NLocal
+            # if the entanglement is not List[List[int]] or List[List[List[int]]] or
+            # List[List[List[List[int]]]] then we fall back on the original
+            # `get_entangler_map()` method from NLocal
             return super().get_entangler_map(rep_num, block_num, num_block_qubits)
 
 
