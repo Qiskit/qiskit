@@ -162,7 +162,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 # gate is not in rust yet
                 continue
             if gate_class.name == "mcx":
-                # ambiguos gate name
+                # ambiguous gate name
                 continue
 
             with self.subTest(name=name):
