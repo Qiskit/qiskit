@@ -10,6 +10,6 @@ prelude: >
     for quantum circuits that (a) contain two-qubit unitaries/gates that are actually a product of single-qubit gates
     or (b) contain multiple two-qubit gates in a continuous block of two-qubit gates. In the former case,
     the routing of the two-qubit gate can simply be skipped as no real interaction between a pair of qubits
-    occurs. In the latter case, the lookahead of routing algorithms is not 'polluted' by superfluous
+    occurs. In the latter case, the lookahead space of routing algorithms is not 'polluted' by superfluous
     two-qubit gates, i.e. for routing it is sufficient to only consider one single two-qubit gate per
     continuous block of two-qubit gates.
