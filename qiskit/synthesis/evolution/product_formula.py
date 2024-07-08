@@ -199,9 +199,9 @@ def _single_qubit_evolution(output, pauli, time, wrap):
             label += "Z"
 
     if wrap:
-        dest.name = f"exp(it {label})"
+        gate = dest.to_gate(label=f"exp(it {label})")
         qubits = [output.qubits[q] for q in qubits]
-        output.compose(dest, qubits=qubits, wrap=True, inplace=True)
+        output.append(gate, qargs=qubits, copy=False)
 
 
 def _two_qubit_evolution(output, pauli, time, cx_structure, wrap):
@@ -231,9 +231,9 @@ def _two_qubit_evolution(output, pauli, time, cx_structure, wrap):
         return
 
     if wrap:
-        dest.name = f"exp(it {''.join(labels)})"
+        gate = dest.to_gate(label=f"exp(it {''.join(labels)})")
         qubits = [output.qubits[q] for q in qubits]
-        output.compose(dest, qubits=qubits, wrap=True, inplace=True)
+        output.append(gate, qargs=qubits, copy=False)
 
 
 def _multi_qubit_evolution(output, pauli, time, cx_structure, wrap):
@@ -264,8 +264,8 @@ def _multi_qubit_evolution(output, pauli, time, cx_structure, wrap):
     dest.compose(cliff.inverse(), inplace=True)
 
     if wrap:
-        dest.name = f"exp(it {pauli.to_label()})"
-        output.compose(dest, wrap=True, inplace=True)
+        gate = dest.to_gate(label=f"exp(it {pauli.to_label()})")
+        output.append(gate, qargs=output.qubits, copy=False)
 
 
 def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
