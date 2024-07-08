@@ -31,8 +31,8 @@ use faer_ext::{IntoFaer, IntoFaerComplex, IntoNdarray, IntoNdarrayComplex};
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::Zip;
-use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, ToPyArray};
+use numpy::{PyReadonlyArray1, PyReadonlyArray2};
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -1883,9 +1883,76 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
+static MAGIC: [[Complex64; 4]; 4] = [
+    [
+        c64(FRAC_1_SQRT_2, 0.),
+        C_ZERO,
+        C_ZERO,
+        c64(0., FRAC_1_SQRT_2),
+    ],
+    [
+        C_ZERO,
+        c64(0., FRAC_1_SQRT_2),
+        c64(FRAC_1_SQRT_2, 0.),
+        C_ZERO,
+    ],
+    [
+        C_ZERO,
+        c64(0., FRAC_1_SQRT_2),
+        c64(-FRAC_1_SQRT_2, 0.),
+        C_ZERO,
+    ],
+    [
+        c64(FRAC_1_SQRT_2, 0.),
+        C_ZERO,
+        C_ZERO,
+        c64(0., -FRAC_1_SQRT_2),
+    ],
+];
+
+#[pyfunction]
+pub fn two_qubit_local_invariants(unitary: PyReadonlyArray2<Complex64>) -> [f64; 3] {
+    let mat = unitary.as_array();
+    // Transform to bell basis
+    let bell_basis_unitary = transpose_conjugate(aview2(&MAGIC)).dot(&mat.dot(&aview2(&MAGIC)));
+    // Get determinate since +- one is allowed.
+    let det_bell_basis = bell_basis_unitary
+        .view()
+        .into_faer_complex()
+        .determinant()
+        .to_num_complex();
+    let m = bell_basis_unitary.t().dot(&bell_basis_unitary);
+    let mut m_tr2 = m.diag().sum();
+    m_tr2 *= m_tr2;
+    // Table II of Ref. 1 or Eq. 28 of Ref. 2.
+    let g1 = m_tr2 / (16. * det_bell_basis);
+    let g2 = (m_tr2 - m.dot(&m).diag().sum()) / (4. * det_bell_basis);
+
+    // Here we split the real and imag pieces of G1 into two so as
+    // to better equate to the Weyl chamber coordinates (c0,c1,c2)
+    // and explore the parameter space.
+    // Also do a FP trick -0.0 + 0.0 = 0.0
+    [g1.re + 0., g1.im + 0., g2.re + 0.]
+}
+
+#[pyfunction]
+pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
+    let weyl = weyl.as_slice()?;
+    let weyl_2_cos_squared_product: f64 = weyl.iter().map(|x| (x * 2.).cos().powi(2)).product();
+    let weyl_2_sin_squared_product: f64 = weyl.iter().map(|x| (x * 2.).sin().powi(2)).product();
+    let g0_equiv = weyl_2_cos_squared_product - weyl_2_sin_squared_product;
+    let g1_equiv = weyl.iter().map(|x| (x * 4.).sin()).product::<f64>() / 4.;
+    let g2_equiv = 4. * weyl_2_cos_squared_product
+        - 4. * weyl_2_sin_squared_product
+        - weyl.iter().map(|x| (4. * x).cos()).product::<f64>();
+    Ok([g0_equiv + 0., g1_equiv + 0., g2_equiv + 0.])
+}
+
 #[pymodule]
 pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
+    m.add_wrapped(wrap_pyfunction!(two_qubit_local_invariants))?;
+    m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
     m.add_class::<Specialization>()?;
