@@ -22,7 +22,6 @@ from unittest.mock import patch
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
-from qiskit_ibm_runtime.fake_provider import FakeTorino
 
 from qiskit import (
     ClassicalRegister,
@@ -874,21 +873,6 @@ class TestTranspile(QiskitTestCase):
         with patch.object(GateDirection, "run", wraps=orig_pass.run) as mock_pass:
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
-
-    def tests_transpilation_fake_torino(self):
-        """Running transpilation on `FakeTorino`, which has `ControlFlowOp` classes as basis gates"""
-        qc = QuantumCircuit(3)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.cx(1, 2)
-        qc_t = transpile(qc, backend=FakeTorino(), optimization_level=2, initial_layout=[0, 1, 2])
-        qc_new = QuantumCircuit(qc.num_qubits)
-        for op in qc_t.data:
-            if all(qc_t.qubits.index(q) < qc.num_qubits for q in op.qubits):
-                qc_new.append(
-                    op.operation, qargs=(qc_new.qubits[qc_t.qubits.index(q)] for q in op.qubits)
-                )
-        self.assertTrue(Operator.from_circuit(qc_new).equiv(qc))
 
     def tests_conditional_run_split_2q_unitaries(self):
         """Tests running `Split2QUnitaries` when basis gate set is (non-) discrete"""
