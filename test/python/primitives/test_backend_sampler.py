@@ -117,7 +117,7 @@ class TestBackendSampler(QiskitTestCase):
             sampler = BackendSampler(backend=backend)
             job = sampler.run(circuits=[bell], shots=1000)
             result = job.result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)
         self.assertEqual(result.quasi_dists[0].stddev_upper_bound, math.sqrt(1 / 1000))
         self._compare_probs(result.quasi_dists, self._target[1])
@@ -187,7 +187,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=backend)
             result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
@@ -211,7 +211,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=backend)
             result = sampler.run([qc0, qc1, qc2, qc3]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
@@ -329,7 +329,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5))
             result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
@@ -349,7 +349,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=backend)
             result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)

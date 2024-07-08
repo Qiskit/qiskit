@@ -69,7 +69,7 @@ class TestEstimator(QiskitTestCase):
             # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
             job = estimator.run([psi1], [hamiltonian1], [theta1])
             result = job.result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956])
 
         # Objects can be passed instead of indices.
@@ -105,7 +105,7 @@ class TestEstimator(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             est = Estimator()
             result = est.run([circuit], [self.observable]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_run_single_circuit_observable(self):
@@ -176,22 +176,22 @@ class TestEstimator(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             est = Estimator()
             result = est.run([qc], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc2], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc2], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1])
 
     def test_run_2qubits(self):
@@ -207,32 +207,32 @@ class TestEstimator(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             est = Estimator()
             result = est.run([qc], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc2], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc2], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc], [op3], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
         with self.assertWarns(DeprecationWarning):
             result = est.run([qc2], [op3], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1])
 
     def test_run_errors(self):
@@ -292,7 +292,7 @@ class TestEstimator(QiskitTestCase):
                 shots=1024,
                 seed=15,
             ).result()
-        self.assertIsInstance(result, EstimatorResult)
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641])
 
     def test_run_with_shots_option_none(self):
@@ -332,7 +332,7 @@ class TestEstimator(QiskitTestCase):
                     [self.observable],
                     parameter_values=[[0, 1, 1, 2, 3, 5]],
                 ).result()
-            self.assertIsInstance(result, EstimatorResult)
+                self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641])
 
     def test_negative_variance(self):

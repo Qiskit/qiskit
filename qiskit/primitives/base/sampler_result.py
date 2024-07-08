@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from qiskit.result import QuasiDistribution
+from qiskit.utils.deprecation import deprecate_func
 
 from .base_result import _BasePrimitiveResult
 
@@ -43,3 +44,7 @@ class SamplerResult(_BasePrimitiveResult):
 
     quasi_dists: list[QuasiDistribution]
     metadata: list[dict[str, Any]]
+
+    @deprecate_func(since="1.2", additional_msg="Use PrimitiveResult instead.")
+    def __init__(self):
+        pass

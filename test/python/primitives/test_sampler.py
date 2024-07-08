@@ -91,7 +91,7 @@ class TestSampler(QiskitTestCase):
             sampler = Sampler()
             job = sampler.run(circuits=[bell])
             result = job.result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self._compare_probs(result.quasi_dists, self._target[1])
 
     def test_sample_run_multiple_circuits(self):
@@ -156,7 +156,7 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler()
             result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         for i in range(2):
@@ -181,7 +181,7 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler()
             result = sampler.run([qc0, qc1, qc2, qc3]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
         for i in range(4):
@@ -259,7 +259,7 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler()
             result = sampler.run([qc] * 2, [[0, 0], [np.pi / 2, 0]]).result()
-        self.assertIsInstance(result, SamplerResult)
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         # qc({x: 0, y: 0})

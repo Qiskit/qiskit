@@ -30,7 +30,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 @deprecate_func(
     since="1.2",
-    additional_msg="There is no replacement for this. Please adjust your code accordingly and use the new utils.",
+    additional_msg="Use ``QuantumCircuit.initialize`` instead.",
 )
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state by converting the input to a quantum circuit.
@@ -52,7 +52,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
 
 @deprecate_func(
     since="1.2",
-    additional_msg="There is no replacement for this. Please adjust your code accordingly and use the new utils.",
+    additional_msg="Use the constructor of ``SparsePauliOp`` instead.",
 )
 def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
@@ -79,7 +79,8 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
 
 @deprecate_func(
     since="1.2",
-    additional_msg="There is no replacement for this. Please adjust your code accordingly and use the new utils.",
+    additional_msg="Use ``mthree.utils.final_measurement_mapping`` instead. "
+    + "See https://qiskit-extensions.github.io/mthree/apidocs/utils.html for details.",
 )
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.
