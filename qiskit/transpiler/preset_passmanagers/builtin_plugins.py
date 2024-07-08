@@ -177,13 +177,9 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     if op is None or op.name in _discrete_skipped_ops:
                         continue
 
-                    if not isinstance(op, Instruction) and issubclass(op, ControlFlowOp):
+                    if not isinstance(op, Instruction):
                         continue
 
-                    print(op)
-                    print(type(op))
-                    print(pass_manager_config.target)
-                    print(pass_manager_config.basis_gates)
                     if len(op.params) > 0:
                         return True
                 return False
