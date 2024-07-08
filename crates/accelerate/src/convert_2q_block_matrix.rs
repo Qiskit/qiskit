@@ -79,8 +79,7 @@ pub fn blocks_to_matrix(
     let input_matrix = get_matrix_from_inst(py, &first_node.instruction)?;
     let mut matrix: Array2<Complex64> = match bit_map
         .map_bits(first_node.instruction.qubits.bind(py).iter())?
-        .map(|x| x as u8)
-        .collect::<SmallVec<[u8; 2]>>()
+        .collect::<Vec<_>>()
         .as_slice()
     {
         [0] => kron(&identity, &input_matrix),
