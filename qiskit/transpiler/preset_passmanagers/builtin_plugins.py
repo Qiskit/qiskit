@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Built-in transpiler stage plugins for preset pass managers."""
-from typing import Iterable
 
+from qiskit.circuit import ControlFlowOp, Instruction
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BasicSwap
@@ -67,15 +67,7 @@ from qiskit.circuit.library.standard_gates import (
     get_standard_gate_name_mapping,
 )
 
-_discrete_skipped_ops = {
-    "while_loop",
-    "delay",
-    "reset",
-    "for_loop",
-    "switch_case",
-    "measure",
-    "if_else",
-}
+_discrete_skipped_ops = {"delay", "reset", "measure"}
 
 
 class DefaultInitPassManager(PassManagerStagePlugin):
@@ -184,10 +176,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                         op = stdgates.get(op, None)
                     if op is None or op.name in _discrete_skipped_ops:
                         continue
-
-                    print(type(op))
-                    print(op)
-                    print(op.params)
+                    if not isinstance(op, Instruction) and issubclass(op, ControlFlowOp):
+                        continue
                     if len(op.params) > 0:
                         return True
                 return False
