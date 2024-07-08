@@ -12,7 +12,7 @@
 
 """Built-in transpiler stage plugins for preset pass managers."""
 
-from qiskit.circuit import ControlFlowOp, Instruction
+from qiskit.circuit import Instruction
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BasicSwap
