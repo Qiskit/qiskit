@@ -561,11 +561,11 @@ class UnitarySynthesis(TransformationPass):
                     qubits = node.qargs
                     user_gate_node = DAGOpNode(gate)
                     for (
-                        op_name,
+                        gate,
                         params,
                         qargs,
                     ) in node_list:
-                        if op_name == "USER_GATE":
+                        if gate is None:
                             node = DAGOpNode(
                                 user_gate_node._raw_op,
                                 params=user_gate_node.params,
@@ -574,7 +574,7 @@ class UnitarySynthesis(TransformationPass):
                             )
                         else:
                             node = DAGOpNode(
-                                GATE_NAME_MAP[op_name],
+                                gate,
                                 params=params,
                                 qargs=tuple(qubits[x] for x in qargs),
                                 dag=out_dag,
@@ -1007,8 +1007,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
-        for op_name, _params, qubits in synth_circ:
-            if op_name in {"USER_GATE", "cx"}:
+        for gate, _params, qubits in synth_circ:
+            if gate is None or gate == CXGate._standard_gate:
                 synth_direction = qubits
         if synth_direction is not None and synth_direction != preferred_direction:
             # TODO: Avoid using a dag to correct the synthesis direction

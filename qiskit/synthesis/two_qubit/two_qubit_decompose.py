@@ -35,7 +35,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate, CircuitInstruction
 from qiskit.circuit.library.standard_gates import (
     CXGate,
     U3Gate,
@@ -60,7 +60,7 @@ from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
 if TYPE_CHECKING:
-    from qiskit.dagcircuit.dagcircuit import DAGCircuit
+    from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
 
 logger = logging.getLogger(__name__)
 
@@ -230,13 +230,10 @@ class TwoQubitWeylDecomposition:
         self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form."""
-        circuit_sequence = self._inner_decomposition.circuit(
+        circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        circ = QuantumCircuit(2, global_phase=circuit_sequence.global_phase)
-        for name, params, qubits in circuit_sequence:
-            getattr(circ, name)(*params, *qubits)
-        return circ
+        return QuantumCircuit._from_circuit_data(circuit_data)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
@@ -641,47 +638,56 @@ class TwoQubitBasisDecomposer:
             QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
         """
 
-        sequence = self._inner_decomposer(
-            np.asarray(unitary, dtype=complex),
-            basis_fidelity,
-            approximate,
-            _num_basis_uses=_num_basis_uses,
-        )
-        q = QuantumRegister(2)
         if use_dag:
-            from qiskit.dagcircuit.dagcircuit import DAGCircuit
+            from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+
+            sequence = self._inner_decomposer(
+                np.asarray(unitary, dtype=complex),
+                basis_fidelity,
+                approximate,
+                _num_basis_uses=_num_basis_uses,
+            )
+            q = QuantumRegister(2)
 
             dag = DAGCircuit()
             dag.global_phase = sequence.global_phase
             dag.add_qreg(q)
-            for name, params, qubits in sequence:
-                if name == "USER_GATE":
+            for gate, params, qubits in sequence:
+                if gate is None:
                     dag.apply_operation_back(self.gate, tuple(q[x] for x in qubits), check=False)
                 else:
-                    gate = GATE_NAME_MAP[name](*params)
-                    dag.apply_operation_back(gate, tuple(q[x] for x in qubits), check=False)
+                    op = CircuitInstruction(gate, qubits=tuple(q[x] for x in qubits), params=params)
+                    node = DAGOpNode.from_instruction(op, dag=dag)
+                    dag._apply_op_node_back(node)
             return dag
         else:
-            circ = QuantumCircuit(q, global_phase=sequence.global_phase)
-            for name, params, qubits in sequence:
-                try:
-                    getattr(circ, name)(*params, *qubits)
-                except AttributeError as exc:
-                    if name == "USER_GATE":
-                        circ.append(self.gate, qubits)
-                    elif name == "u3":
-                        gate = U3Gate(*params)
-                        circ.append(gate, qubits)
-                    elif name == "u2":
-                        gate = U2Gate(*params)
-                        circ.append(gate, qubits)
-                    elif name == "u1":
-                        gate = U1Gate(*params)
-                        circ.append(gate, qubits)
+            if getattr(self.gate, "_standard_gate", None):
+                circ_data = self._inner_decomposer.to_circuit(
+                    np.asarray(unitary, dtype=complex),
+                    self.gate,
+                    basis_fidelity,
+                    approximate,
+                    _num_basis_uses=_num_basis_uses,
+                )
+                return QuantumCircuit._from_circuit_data(circ_data)
+            else:
+                sequence = self._inner_decomposer(
+                    np.asarray(unitary, dtype=complex),
+                    basis_fidelity,
+                    approximate,
+                    _num_basis_uses=_num_basis_uses,
+                )
+                q = QuantumRegister(2)
+                circ = QuantumCircuit(q, global_phase=sequence.global_phase)
+                for gate, params, qubits in sequence:
+                    if gate is None:
+                        circ._append(self.gate, qargs=tuple(q[x] for x in qubits))
                     else:
-                        raise QiskitError(f"Unknown gate {name}") from exc
-
-            return circ
+                        inst = CircuitInstruction(
+                            gate, qubits=tuple(q[x] for x in qubits), params=params
+                        )
+                        circ._append(inst)
+                return circ
 
     def traces(self, target):
         r"""
