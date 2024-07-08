@@ -174,10 +174,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 for op in ops:
                     if isinstance(op, str):
                         op = stdgates.get(op, None)
-                    if op is None or op.name in _discrete_skipped_ops:
-                        continue
-
-                    if not isinstance(op, Instruction):
+                        
+                    if op is None or not isinstance(op, Instruction) or op.name in _discrete_skipped_ops:
                         continue
 
                     if len(op.params) > 0:
