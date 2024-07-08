@@ -1883,7 +1883,7 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
-static MAGIC: [[Complex64; 4]; 4] = [
+static MAGIC: GateArray2Q = [
     [
         c64(FRAC_1_SQRT_2, 0.),
         C_ZERO,
@@ -1910,6 +1910,35 @@ static MAGIC: [[Complex64; 4]; 4] = [
     ],
 ];
 
+
+static MAGIC_DAGGER: GateArray2Q = [
+    [
+        c64(FRAC_1_SQRT_2, 0.),
+        C_ZERO,
+        C_ZERO,
+        c64(FRAC_1_SQRT_2, 0.),
+    ],
+    [
+        C_ZERO,
+        c64(0., -FRAC_1_SQRT_2),
+        c64(0., -FRAC_1_SQRT_2),
+        C_ZERO,
+    ],
+    [
+        C_ZERO,
+        c64(FRAC_1_SQRT_2, 0.),
+        c64(-FRAC_1_SQRT_2, 0.),
+        C_ZERO,
+    ],
+    [
+        c64(0., -FRAC_1_SQRT_2),
+        C_ZERO,
+        C_ZERO,
+        c64(0., FRAC_1_SQRT_2),
+    ],
+];
+
+
 /// Computes the local invariants for a two-qubit unitary.
 ///
 /// Based on:
@@ -1921,7 +1950,7 @@ static MAGIC: [[Complex64; 4]; 4] = [
 pub fn two_qubit_local_invariants(unitary: PyReadonlyArray2<Complex64>) -> [f64; 3] {
     let mat = unitary.as_array();
     // Transform to bell basis
-    let bell_basis_unitary = transpose_conjugate(aview2(&MAGIC)).dot(&mat.dot(&aview2(&MAGIC)));
+    let bell_basis_unitary = aview2(&MAGIC_DAGGER).dot(&mat.dot(&aview2(&MAGIC)));
     // Get determinate since +- one is allowed.
     let det_bell_basis = bell_basis_unitary
         .view()
