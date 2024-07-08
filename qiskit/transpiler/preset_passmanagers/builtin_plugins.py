@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Built-in transpiler stage plugins for preset pass managers."""
+from typing import Iterable
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -184,7 +185,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     if op is None or op.name in _discrete_skipped_ops:
                         continue
 
-                    if len(list(op.params)) > 0:
+                    if ((isinstance(op.params, Iterable) and len(op.params) > 0) or
+                            (callable(op.params) and len(op.params()) > 0)):
                         return True
                 return False
 
