@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def _log_schedule_time(start_time, end_time):
-    log_msg = "Total Scheduling Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    log_msg = f"Total Scheduling Time - {((end_time - start_time) * 1000):.5f} (ms)"
     logger.info(log_msg)
 
 

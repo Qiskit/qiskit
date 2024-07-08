@@ -10,16 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::interner::Index;
-use pyo3::prelude::*;
+mod clifford;
+pub mod linear;
+mod permutation;
 
-/// Private type used to store instructions with interned arg lists.
-#[derive(Clone, Debug)]
-pub(crate) struct PackedInstruction {
-    /// The Python-side operation instance.
-    pub op: PyObject,
-    /// The index under which the interner has stored `qubits`.
-    pub qubits_id: Index,
-    /// The index under which the interner has stored `clbits`.
-    pub clbits_id: Index,
+use pyo3::prelude::*;
+use pyo3::wrap_pymodule;
+
+#[pymodule]
+pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pymodule!(linear::linear))?;
+    m.add_wrapped(wrap_pymodule!(permutation::permutation))?;
+    m.add_wrapped(wrap_pymodule!(clifford::clifford))?;
+    Ok(())
 }

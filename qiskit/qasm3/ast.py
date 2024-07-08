@@ -317,7 +317,7 @@ class Designator(ASTNode):
 
 
 class ClassicalDeclaration(Statement):
-    """Declaration of a classical type, optionally initialising it to a value."""
+    """Declaration of a classical type, optionally initializing it to a value."""
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_
