@@ -186,6 +186,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                         continue
 
                     print(type(op))
+                    print(op)
+                    print(op.params)
                     if len(op.params) > 0:
                         return True
                 return False
