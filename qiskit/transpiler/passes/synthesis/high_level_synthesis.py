@@ -395,10 +395,7 @@ class HighLevelSynthesis(TransformationPass):
 
         new_dag = dag.copy_empty_like()
 
-        # copy dag_op_nodes because we are modifying the DAG below
-        dag_op_nodes = dag.op_nodes()
-
-        for node in dag_op_nodes:
+        for node in dag.topological_op_nodes():
             if isinstance(node.op, ControlFlowOp):
                 node.op = control_flow.map_blocks(self.run, node.op)
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
