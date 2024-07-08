@@ -77,7 +77,7 @@ class QDrift(ProductFormula):
                 three arguments: the circuit to append the evolution to, the Pauli operator to
                 evolve, and the evolution time. By default, a single Pauli evolution is decomposed
                 into a chain of ``CX`` gates and a single ``RZ`` gate.
-                **DEPRECATED:** The function takes only the Pauli operator and evolution time as
+                Alternatively, the function can also take Pauli operator and evolution time as
                 inputs and returns the circuit that will be appended to the overall circuit being
                 built.
             seed: An optional seed for reproducibility of the random sampling process.
