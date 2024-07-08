@@ -16,15 +16,27 @@ from __future__ import annotations
 from math import ceil
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library import CXGate, CCXGate, C3XGate, C4XGate
-
-### CODE TAKEN FROM MCX_RECURSIVE
 
 
 def synth_mcx_recursive(num_control_qubits: int, num_ancilla_qubits: int) -> QuantumCircuit | None:
     """
-    num_ancilla_qubits is the available number, in practice may use less
+    Synthesize MCX gate using the recursive algorithm used for ``MCXRecursive`` gates.
+
+    This method does not require any ancilla qubits when the number of control qubits is
+    up to 4, and requires exactly one ancilla qubits when the number of control qubits is
+    greater than or equal to 5.
+
+    Args:
+        num_control_qubits: The number of control qubits for the gate.
+        num_ancilla_qubits: The number of available ancilla qubits.
+
+    Returns:
+        The synthesized quantum circuit, or ``None`` if the number of available ancilla qubits
+            is not sufficient.
+
     """
     if num_control_qubits <= 4:
         num_required_ancilla_qubits = 0
@@ -78,10 +90,18 @@ def _recurse(q, q_ancilla=None):
     return rule
 
 
-### CODE TAKEN FROM MCX
-
-
 def synth_mcx_using_mcphase(num_control_qubits: int) -> QuantumCircuit | None:
+    """
+    Synthesize MCX gate using the reduction to MCPhase.
+
+    This method does not require any ancilla qubits.
+
+    Args:
+        num_control_qubits: The number of control qubits for the gate.
+
+    Returns:
+        The synthesized quantum circuit.
+    """
     num_qubits = num_control_qubits + 1
 
     q = QuantumRegister(num_qubits, name="q")

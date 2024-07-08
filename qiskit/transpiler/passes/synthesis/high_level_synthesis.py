@@ -1073,7 +1073,6 @@ class MCPhaseSynthesisMCX(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
-        num_ancilla_qubits = options.get("num_ancilla_qubits", 0)
 
         if high_level_object.num_qubits <= 5:
             # For MCX gates with up to 4 control qubits, we should not apply synth_mcx_recursive
