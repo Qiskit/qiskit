@@ -357,7 +357,7 @@ class TestEvolutionGate(QiskitTestCase):
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
         time = 0.123
         reps = 4
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             evo_gate = PauliEvolutionGate(
                 op, time, synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution)
             )

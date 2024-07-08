@@ -65,6 +65,7 @@ class LieTrotter(ProductFormula):
             "Instead you should update your 'atomic_evolution' function to be of the following "
             "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
         ),
+        pending=True,
     )
     def __init__(
         self,
