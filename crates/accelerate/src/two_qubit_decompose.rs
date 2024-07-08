@@ -1910,6 +1910,13 @@ static MAGIC: [[Complex64; 4]; 4] = [
     ],
 ];
 
+/// Computes the local invariants for a two-qubit unitary.
+///
+/// Based on:
+///
+/// Y. Makhlin, Quant. Info. Proc. 1, 243-252 (2002).
+///
+/// Zhang et al., Phys Rev A. 67, 042313 (2003).
 #[pyfunction]
 pub fn two_qubit_local_invariants(unitary: PyReadonlyArray2<Complex64>) -> [f64; 3] {
     let mat = unitary.as_array();
