@@ -507,10 +507,15 @@ class BitArray(ShapedMixin):
         num_bytes = self._array.shape[-1]
         indices = np.asarray(indices)
 
-        if num_indices > 0 and np.max(indices) >= self.num_bits:
-            raise ValueError(
-                f"index {int(np.max(indices))} is out of bounds for the number of bits {self.num_bits}."
-            )
+        if num_indices > 0:
+            if indices.max() >= self.num_bits: 
+                raise IndexError(
+                    f"index {int(indices.max())} is out of bounds for the number of bits {self.num_bits}."
+                )
+            elif indices.min() < -self.num_bits:
+                raise IndexError(
+                    f"index {int(indices.min())} is out of bounds for the number of bits {self.num_bits}."
+                )
 
         flattened = self.reshape((), self.size * self.num_shots)
 
@@ -518,9 +523,8 @@ class BitArray(ShapedMixin):
         if num_indices == 0:
             return flattened
 
-        # Allow for negative bit indices:
-        is_negative = indices < 0
-        indices[is_negative] = np.mod(indices[is_negative], self.num_bits, dtype=int)
+        # Make negative bit indices positive:
+        indices %= self.num_bits
 
         # Handle special-case of contradictory conditions:
         if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:

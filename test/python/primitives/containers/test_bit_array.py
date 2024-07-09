@@ -740,7 +740,7 @@ class BitArrayTestCase(QiskitTestCase):
                 ("repeated", [5, 5, 5], [False, False, False]),
                 ("contradict", [5, 5, 5], [True, False, False]),
                 ("unsorted", [5, 0, 9, 3], [True, False, True, False]),
-                ("negative", [-5, 1, -2, -5], [True, False, True, True]),
+                ("negative", [-5, 1, -2, -10], [True, False, True, False]),
                 ("trivial", [], []),
                 ("bareindex", 6, False),
             ]
@@ -763,7 +763,8 @@ class BitArrayTestCase(QiskitTestCase):
                     np.testing.assert_equal(postselected_bools, answer)
 
             error_cases = [
-                ("out_of_range", [0, 6, 14], [True, True, False], ValueError),
+                ("aboverange", [0, 6, 10], [True, True, False], IndexError),
+                ("belowrange", [0, 6, -11], [True, True, False], IndexError),
                 ("mismatch", [0, 1, 2], [False, False], ValueError),
             ]
             for name, indices, selection, error in error_cases:
