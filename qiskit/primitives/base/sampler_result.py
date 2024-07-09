@@ -17,9 +17,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+from warnings import warn
 
 from qiskit.result import QuasiDistribution
-from qiskit.utils.deprecation import deprecate_func
 
 from .base_result import _BasePrimitiveResult
 
@@ -45,6 +45,11 @@ class SamplerResult(_BasePrimitiveResult):
     quasi_dists: list[QuasiDistribution]
     metadata: list[dict[str, Any]]
 
-    @deprecate_func(since="1.2", additional_msg="Use PrimitiveResult instead.")
-    def __init__(self):
-        pass
+    def __post_init__(self) -> None:
+        warn(
+            "The class ``SamplerResult`` is deprecated as of qiskit 1.2. "
+            "It will be removed no earlier than 3 months after the release date. "
+            "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers`` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )

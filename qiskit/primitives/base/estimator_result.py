@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
-from qiskit.utils.deprecation import deprecate_func
+from warnings import warn
 
 from .base_result import _BasePrimitiveResult
 
@@ -46,6 +46,11 @@ class EstimatorResult(_BasePrimitiveResult):
     values: "np.ndarray[Any, np.dtype[np.float64]]"
     metadata: list[dict[str, Any]]
 
-    @deprecate_func(since="1.2", additional_msg="Use PrimitiveResult instead.")
-    def __init__(self):
-        pass
+    def __post_init__(self) -> None:
+        warn(
+            "The class ``EstimatorResult`` is deprecated as of qiskit 1.2. "
+            "It will be removed no earlier than 3 months after the release date. "
+            "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers`` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )

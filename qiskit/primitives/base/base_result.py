@@ -48,6 +48,7 @@ class _BasePrimitiveResult(ABC):
             "It will be removed no earlier than 3 months after the release date. "
             "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers`` instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
 
         num_experiments = None
