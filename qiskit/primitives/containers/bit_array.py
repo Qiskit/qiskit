@@ -490,7 +490,8 @@ class BitArray(ShapedMixin):
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
 
         Raises:
-            ValueError: If ``max(indices)`` is greater than :attr:`num_bits``.
+            IndexError: If ``max(indices)`` is greater than or equal to :attr:`num_bits``.
+            IndexError: If ``min(indices)`` is less than negative :attr:`num_bits``.
             ValueError: If the lengths of ``selection`` and ``indices`` do not match.
         """
         if isinstance(indices, int):
