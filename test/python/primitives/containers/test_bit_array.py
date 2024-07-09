@@ -741,6 +741,7 @@ class BitArrayTestCase(QiskitTestCase):
                 ("contradict", [5, 5, 5], [True, False, False]),
                 ("unsorted", [5, 0, 9, 3], [True, False, True, False]),
                 ("negative", [-5, 1, -2, -10], [True, False, True, False]),
+                ("negcontradict", [4, -6], [True, False]),
                 ("trivial", [], []),
                 ("bareindex", 6, False),
             ]
@@ -758,7 +759,7 @@ class BitArrayTestCase(QiskitTestCase):
                     if isinstance(selection, bool):
                         selection = (selection,)
                     answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
-                    if name != "contradict":
+                    if name not in ["contradict", "negcontradict"]:
                         self.assertGreater(len(answer), 0)  # avoiding trivial test case
                     np.testing.assert_equal(postselected_bools, answer)
 
