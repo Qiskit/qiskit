@@ -112,8 +112,8 @@ class GenericBackendV2(BackendV2):
         calibrate_instructions: bool | InstructionScheduleMap | None = None,
         dtm: float | None = None,
         seed: int | None = None,
-        include_channels: bool = False,
-        include_errors: bool = False
+        include_channels: bool = True,
+        include_errors: bool = True,
     ):
         """
         Args:

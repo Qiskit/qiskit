@@ -1,0 +1,6 @@
+---
+prelude: >
+    Added two parameters to :class:`.GenericBackendV2` to exclude error (`include_errors`) and
+    pulse channel information (`include_channels`) from the construction of the backend. These parameters
+    are true by default, replicating the initial default behavior of the constructor. A memory-sensitive
+    user may set these options to `False` to save one order of magnitude in memory allocations.
