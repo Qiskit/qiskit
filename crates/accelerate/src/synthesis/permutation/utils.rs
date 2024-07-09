@@ -144,3 +144,20 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
 
     swaps
 }
+
+// create swaps
+//Need to fix the below implementation
+pub fn _create_swap_layer(pattern: &ArrayView1<usize>) -> Vec<(usize, usize)> {
+    // let mut permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
+    let mut pattern_vec = pattern.to_vec();
+    let num_qubits = pattern_vec.len();
+    let mut gates = Vec::new();
+
+    for j in (0..num_qubits - 1).step_by(2) {
+        if pattern_vec[j] > pattern_vec[j + 1] {
+            gates.push((j, j +1));
+            pattern_vec.swap(j, j + 1);
+        }
+    }
+    gates
+}
