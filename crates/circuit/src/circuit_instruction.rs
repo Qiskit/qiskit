@@ -22,9 +22,7 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 
 use smallvec::SmallVec;
 
-use crate::imports::{
-    GATE, INSTRUCTION, OPERATION, SINGLETON_CONTROLLED_GATE, SINGLETON_GATE, WARNINGS_WARN,
-};
+use crate::imports::{GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
 };
@@ -114,31 +112,6 @@ pub struct CircuitInstruction {
 }
 
 impl CircuitInstruction {
-    pub fn new<T1, T2, U1, U2>(
-        py: Python,
-        operation: PackedOperation,
-        qubits: impl IntoIterator<Item = T1, IntoIter = U1>,
-        clbits: impl IntoIterator<Item = T2, IntoIter = U2>,
-        params: SmallVec<[Param; 3]>,
-        extra_attrs: Option<Box<ExtraInstructionAttributes>>,
-    ) -> Self
-    where
-        T1: ToPyObject,
-        T2: ToPyObject,
-        U1: ExactSizeIterator<Item = T1>,
-        U2: ExactSizeIterator<Item = T2>,
-    {
-        CircuitInstruction {
-            operation,
-            qubits: PyTuple::new_bound(py, qubits).unbind(),
-            clbits: PyTuple::new_bound(py, clbits).unbind(),
-            params,
-            extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(None),
-        }
-    }
-
     /// View the operation in this `CircuitInstruction`.
     pub fn op(&self) -> OperationRef {
         self.operation.view()
@@ -521,18 +494,17 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .and_then(|standard| standard.extract::<StandardGate>())
                 .ok() else { break 'standard };
 
-            // If the input instruction is a standard gate and a singleton instance
-            // we should check for mutable state. A mutable instance should be treated
-            // as a custom gate not a standard gate because it has custom properties.
+            // If the instruction is a controlled gate with a not-all-ones control state, it doesn't
+            // fit our definition of standard.  We abuse the fact that we know our standard-gate
+            // mapping to avoid an `isinstance` check on `ControlledGate` - a standard gate has
+            // nonzero `num_ctrl_qubits` iff it is a `ControlledGate`.
             //
-            // In the future we can revisit this when we've dropped `duration`, `unit`,
-            // and `condition` from the API, as we should own the label in the
-            // `CircuitInstruction`. The other piece here is for controlled gates there
-            // is the control state, so for `SingletonControlledGates` we'll still need
-            // this check.
-            if ob.getattr(intern!(py, "mutable"))?.is_truthy()?
-                && (ob.is_instance(SINGLETON_GATE.get_bound(py))?
-                    || ob.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?)
+            // `ControlledGate` also has a `base_gate` attribute, and we don't track enough in Rust
+            // space to handle the case that that was mutated away from a standard gate.
+            if standard.num_ctrl_qubits() != 0
+                && ((ob.getattr(intern!(py, "ctrl_state"))?.extract::<usize>()?
+                    != (1 << standard.num_ctrl_qubits()) - 1)
+                    || ob.getattr(intern!(py, "mutable"))?.extract()?)
             {
                 break 'standard;
             }

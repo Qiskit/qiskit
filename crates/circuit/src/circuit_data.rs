@@ -511,20 +511,7 @@ impl CircuitData {
                 });
             }
         } else {
-            // Clippy complains in some versions if you attempt to just feature-gate out the
-            // ref-cell setting line from the middle.
-            #[cfg(feature = "cache_pygates")]
-            {
-                res.data.extend(self.data.iter().map(|inst| {
-                    let out = inst.clone();
-                    *out.py_op.borrow_mut() = None;
-                    out
-                }));
-            }
-            #[cfg(not(feature = "cache_pygates"))]
-            {
-                res.data.extend(self.data.iter().cloned());
-            }
+            res.data.extend(self.data.iter().cloned());
         }
         Ok(res)
     }
@@ -715,14 +702,15 @@ impl CircuitData {
             let inst = &self.data[index];
             let qubits = self.qargs_interner.intern(inst.qubits);
             let clbits = self.cargs_interner.intern(inst.clbits);
-            CircuitInstruction::new(
-                py,
-                inst.op.clone(),
-                self.qubits.map_indices(qubits.value),
-                self.clbits.map_indices(clbits.value),
-                inst.params_view().iter().cloned().collect(),
-                inst.extra_attrs.clone(),
-            )
+            CircuitInstruction {
+                operation: inst.op.clone(),
+                qubits: PyTuple::new_bound(py, self.qubits.map_indices(qubits.value)).unbind(),
+                clbits: PyTuple::new_bound(py, self.clbits.map_indices(clbits.value)).unbind(),
+                params: inst.params_view().iter().cloned().collect(),
+                extra_attrs: inst.extra_attrs.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: inst.py_op.clone(),
+            }
             .into_py(py)
         };
         match index.with_len(self.data.len())? {

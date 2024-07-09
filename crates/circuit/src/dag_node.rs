@@ -240,7 +240,7 @@ impl DAGOpNode {
         self.instruction.extra_attrs = res.extra_attrs;
         #[cfg(feature = "cache_pygates")]
         {
-            *self.instruction.py_op.borrow_mut() = None;
+            *self.instruction.py_op.borrow_mut() = Some(op.into_py(op.py()));
         }
         Ok(())
     }
