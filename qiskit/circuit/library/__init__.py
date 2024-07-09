@@ -196,7 +196,6 @@ set the amount of qubits involved at instantiation time.
    UCRXGate
    UCRYGate
    UCRZGate
-   QFTGate
 
 Boolean Logic Circuits
 ======================
@@ -227,6 +226,7 @@ the computational basis and the Fourier basis.
    :template: autosummary/class_no_inherited_members.rst
 
    QFT
+   QFTGate
 
 Arithmetic Circuits
 ===================

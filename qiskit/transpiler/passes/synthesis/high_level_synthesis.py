@@ -909,7 +909,6 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
         It is possible to implement the QFT approximately by ignoring
         controlled-phase rotations with the angle beneath a threshold. This is discussed
         in more detail in [1] or [2].
-        https://arxiv.org/abs/quant-ph/0403071.
     * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
     * inverse (bool): If True, the inverse Fourier transform is constructed.
     * name (str): The name of the circuit.
