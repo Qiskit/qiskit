@@ -377,7 +377,7 @@ impl DAGOpNode {
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
     fn set_name(&mut self, py: Python, new_name: PyObject) -> PyResult<()> {
-        let op = self.instruction.get_operation(py)?.into_bound(py);
+        let op = self.instruction.get_operation_mut(py)?.into_bound(py);
         op.setattr(intern!(py, "name"), new_name)?;
         self.instruction.operation = op.extract::<OperationFromPython>()?.operation;
         Ok(())

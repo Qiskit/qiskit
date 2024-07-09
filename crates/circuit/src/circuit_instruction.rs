@@ -116,6 +116,22 @@ impl CircuitInstruction {
     pub fn op(&self) -> OperationRef {
         self.operation.view()
     }
+
+    /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
+    /// gates might not necessarily satisfy this otherwise).
+    ///
+    /// This returns the cached instruction if valid, and replaces the cached instruction if not.
+    pub fn get_operation_mut(&self, py: Python) -> PyResult<Py<PyAny>> {
+        let mut out = self.get_operation(py)?.into_bound(py);
+        if !out.getattr(intern!(py, "mutable"))?.extract::<bool>()? {
+            out = out.call_method0(intern!(py, "to_mutable"))?;
+        }
+        #[cfg(feature = "cache_pygates")]
+        {
+            *self.py_op.borrow_mut() = Some(out.to_object(py));
+        }
+        Ok(out.unbind())
+    }
 }
 
 #[pymethods]
