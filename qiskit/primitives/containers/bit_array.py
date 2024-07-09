@@ -511,11 +511,11 @@ class BitArray(ShapedMixin):
         if num_indices > 0:
             if indices.max() >= self.num_bits:
                 raise IndexError(
-                    f"index {int(indices.max())} is out of bounds for the number of bits {self.num_bits}."
+                    f"index {int(indices.max())} out of bounds for the number of bits {self.num_bits}."
                 )
-            elif indices.min() < -self.num_bits:
+            if indices.min() < -self.num_bits:
                 raise IndexError(
-                    f"index {int(indices.min())} is out of bounds for the number of bits {self.num_bits}."
+                    f"index {int(indices.min())} out of bounds for the number of bits {self.num_bits}."
                 )
 
         flattened = self.reshape((), self.size * self.num_shots)
