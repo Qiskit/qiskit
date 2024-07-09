@@ -900,19 +900,28 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
 
     The plugin supports the following additional options:
 
-    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (default) or the
-        "QFT-with-reversal" operation (non-default). Some implementation of the ``QFTGate``
-        include a layer of swap gates at the end of the synthesized circuit, which can in
-        principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
+        which is the default) or the "QFT-with-reversal" operation (if ``True``).
+        Some implementation of the ``QFTGate`` include a layer of swap gates at the end
+        of the synthesized circuit, which can in principle be dropped if the ``QFTGate``
+        itself is the last gate in the circuit.
     * approximation_degree (int): The degree of approximation (0 for no approximation).
         It is possible to implement the QFT approximately by ignoring
         controlled-phase rotations with the angle beneath a threshold. This is discussed
-        in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+        in more detail in [1] or [2].
         https://arxiv.org/abs/quant-ph/0403071.
     * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
     * inverse (bool): If True, the inverse Fourier transform is constructed.
     * name (str): The name of the circuit.
 
+    References:
+        1. Adriano Barenco, Artur Ekert, Kalle-Antti Suominen, and Päivi Törmä,
+           *Approximate Quantum Fourier Transform and Decoherence*,
+           Physical Review A (1996).
+           `arXiv:quant-ph/9601018 [quant-ph] <https://arxiv.org/abs/quant-ph/9601018>`_
+        2. Donny Cheung,
+           *Improved Bounds for the Approximate QFT* (2004),
+           `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -922,7 +931,7 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
                 "The synthesis plugin 'qft.full` only applies to objects of type QFTGate."
             )
 
-        reverse_qubits = options.get("reverse_qubits", True)
+        reverse_qubits = options.get("reverse_qubits", False)
         approximation_degree = options.get("approximation_degree", 0)
         insert_barriers = options.get("insert_barriers", False)
         inverse = options.get("inverse", False)
@@ -930,7 +939,7 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
 
         decomposition = synth_qft_full(
             num_qubits=high_level_object.num_qubits,
-            do_swaps=reverse_qubits,
+            do_swaps=not reverse_qubits,
             approximation_degree=approximation_degree,
             insert_barriers=insert_barriers,
             inverse=inverse,
@@ -947,15 +956,24 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
 
     The plugin supports the following additional options:
 
-    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (default) or the
-        "QFT-with-reversal" operation (non-default). Some implementation of the ``QFTGate``
-        include a layer of swap gates at the end of the synthesized circuit, which can in
-        principle be dropped if the ``QFTGate`` itself is the last gate in the circuit.
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
+        which is the default) or the "QFT-with-reversal" operation (if ``True``).
+        Some implementation of the ``QFTGate`` include a layer of swap gates at the end
+        of the synthesized circuit, which can in principle be dropped if the ``QFTGate``
+        itself is the last gate in the circuit.
     * approximation_degree (int): the degree of approximation (0 for no approximation).
         It is possible to implement the QFT approximately by ignoring
         controlled-phase rotations with the angle beneath a threshold. This is discussed
-        in more detail in https://arxiv.org/abs/quant-ph/9601018 or
-        https://arxiv.org/abs/quant-ph/0403071.
+        in more detail in [1] or [2].
+
+    References:
+        1. Adriano Barenco, Artur Ekert, Kalle-Antti Suominen, and Päivi Törmä,
+           *Approximate Quantum Fourier Transform and Decoherence*,
+           Physical Review A (1996).
+           `arXiv:quant-ph/9601018 [quant-ph] <https://arxiv.org/abs/quant-ph/9601018>`_
+        2. Donny Cheung,
+           *Improved Bounds for the Approximate QFT* (2004),
+           `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -965,12 +983,12 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
                 "The synthesis plugin 'qft.line` only applies to objects of type QFTGate."
             )
 
-        reverse_qubits = options.get("reverse_qubits", True)
+        reverse_qubits = options.get("reverse_qubits", False)
         approximation_degree = options.get("approximation_degree", 0)
 
         decomposition = synth_qft_line(
             num_qubits=high_level_object.num_qubits,
-            do_swaps=reverse_qubits,
+            do_swaps=not reverse_qubits,
             approximation_degree=approximation_degree,
         )
         return decomposition
