@@ -112,6 +112,8 @@ class GenericBackendV2(BackendV2):
         calibrate_instructions: bool | InstructionScheduleMap | None = None,
         dtm: float | None = None,
         seed: int | None = None,
+        include_channels: bool = False,
+        include_errors: bool = False
     ):
         """
         Args:
@@ -175,6 +177,7 @@ class GenericBackendV2(BackendV2):
         self._control_flow = control_flow
         self._calibrate_instructions = calibrate_instructions
         self._supported_gates = get_standard_gate_name_mapping()
+        self._include_errors = include_errors
 
         if coupling_map is None:
             self._coupling_map = CouplingMap().from_full(num_qubits)
@@ -198,7 +201,8 @@ class GenericBackendV2(BackendV2):
                 self._basis_gates.append(name)
 
         self._build_generic_target()
-        self._build_default_channels()
+        if include_channels:
+            self._build_default_channels()
 
     @property
     def target(self):
@@ -340,22 +344,31 @@ class GenericBackendV2(BackendV2):
         """
         # the qubit properties are sampled from default ranges
         properties = _QUBIT_PROPERTIES
-        self._target = Target(
-            description=f"Generic Target with {self._num_qubits} qubits",
-            num_qubits=self._num_qubits,
-            dt=properties["dt"],
-            qubit_properties=[
-                QubitProperties(
-                    t1=self._rng.uniform(properties["t1"][0], properties["t1"][1]),
-                    t2=self._rng.uniform(properties["t2"][0], properties["t2"][1]),
-                    frequency=self._rng.uniform(
-                        properties["frequency"][0], properties["frequency"][1]
-                    ),
-                )
-                for _ in range(self._num_qubits)
-            ],
-            concurrent_measurements=[list(range(self._num_qubits))],
-        )
+        if not self._include_errors:
+            self._target = Target(
+                description=f"Generic Target with {self._num_qubits} qubits",
+                num_qubits=self._num_qubits,
+                dt=properties["dt"],
+                qubit_properties=None,
+                concurrent_measurements=[list(range(self._num_qubits))],
+            )
+        else:
+            self._target = Target(
+                description=f"Generic Target with {self._num_qubits} qubits",
+                num_qubits=self._num_qubits,
+                dt=properties["dt"],
+                qubit_properties=[
+                    QubitProperties(
+                        t1=self._rng.uniform(properties["t1"][0], properties["t1"][1]),
+                        t2=self._rng.uniform(properties["t2"][0], properties["t2"][1]),
+                        frequency=self._rng.uniform(
+                            properties["frequency"][0], properties["frequency"][1]
+                        ),
+                    )
+                    for _ in range(self._num_qubits)
+                ],
+                concurrent_measurements=[list(range(self._num_qubits))],
+            )
 
         # Generate instruction schedule map with calibrations to add to target.
         calibration_inst_map = None
@@ -380,8 +393,11 @@ class GenericBackendV2(BackendV2):
                     f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
                     f"which is the size of the backend."
                 )
-            noise_params = self._get_noise_defaults(name, gate.num_qubits)
-            self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
+            if self._include_errors:
+                noise_params = self._get_noise_defaults(name, gate.num_qubits)
+                self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
+            else:
+                self._target.add_instruction(gate, properties=None, name=name)
 
         if self._control_flow:
             self._target.add_instruction(IfElseOp, name="if_else")
