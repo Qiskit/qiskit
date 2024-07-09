@@ -26,7 +26,6 @@ from qiskit.quantum_info import Operator
 
 SKIP_LIST = {"rx", "ry", "ecr"}
 CUSTOM_NAME_MAPPING = {"mcx": C3XGate()}
-MATRIX_SKIP_LIST = {"c3sx"}
 
 
 class TestRustGateEquivalence(QiskitTestCase):
@@ -141,9 +140,6 @@ class TestRustGateEquivalence(QiskitTestCase):
         """Test matrices are the same in rust space."""
         for name, gate_class in self.standard_gates.items():
             standard_gate = getattr(gate_class, "_standard_gate", None)
-            if name in MATRIX_SKIP_LIST:
-                # to_matrix not defined for type
-                continue
             if standard_gate is None:
                 # gate is not in rust yet
                 continue
