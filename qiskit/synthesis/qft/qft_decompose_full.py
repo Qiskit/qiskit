@@ -13,7 +13,7 @@
 Circuit synthesis for a QFT circuit.
 """
 
-from typing import Optional
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
@@ -24,7 +24,7 @@ def synth_qft_full(
     approximation_degree: int = 0,
     insert_barriers: bool = False,
     inverse: bool = False,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> QuantumCircuit:
     """Construct a circuit for the Quantum Fourier Transform using all-to-all connectivity.
 

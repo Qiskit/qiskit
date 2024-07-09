@@ -515,7 +515,6 @@ from .generalized_gates import (
     UCRXGate,
     UCRYGate,
     UCRZGate,
-    QFTGate,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
@@ -525,7 +524,7 @@ from .boolean_logic import (
     XOR,
     InnerProduct,
 )
-from .basis_change import QFT
+from .basis_change import QFT, QFTGate
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
