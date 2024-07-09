@@ -1973,7 +1973,7 @@ pub fn two_qubit_local_invariants(unitary: PyReadonlyArray2<Complex64>) -> [f64;
 
 #[pyfunction]
 pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
-    let weyl = weyl.as_slice()?;
+    let weyl = weyl.as_array();
     let weyl_2_cos_squared_product: f64 = weyl.iter().map(|x| (x * 2.).cos().powi(2)).product();
     let weyl_2_sin_squared_product: f64 = weyl.iter().map(|x| (x * 2.).sin().powi(2)).product();
     let g0_equiv = weyl_2_cos_squared_product - weyl_2_sin_squared_product;
