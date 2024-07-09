@@ -13,6 +13,7 @@
 """Test of generated fake backends."""
 import math
 import unittest
+import warnings
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
@@ -77,7 +78,10 @@ class FakeBackendsTest(QiskitTestCase):
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
-        raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
 
@@ -89,6 +93,10 @@ class FakeBackendsTest(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
-        res = backend.run(qc, shots=1000).result().get_counts()
+        with warnings.catch_warnings():
+            with warnings.catch_warnings():
+                # TODO remove this catch once Aer stops using QobjDictField
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})

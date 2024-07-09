@@ -70,12 +70,6 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertEqual(sc.data[4].operation.duration, 450928)
         self.assertEqual(sc.data[4].operation.unit, "dt")
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(sc, self.backend_with_dt)
-        self.assertEqual(qobj.experiments[0].instructions[0].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[0].params[0], 450900)
-        self.assertEqual(qobj.experiments[0].instructions[4].name, "delay")
-        self.assertEqual(qobj.experiments[0].instructions[4].params[0], 450928)
 
     def test_schedule_circuit_when_transpile_option_tells_dt(self):
         """dt is known to transpiler by transpile option"""
@@ -124,7 +118,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[4].operation.name, "delay")
         self.assertAlmostEqual(sc.data[4].operation.duration, 1.0e-4 + 1.0e-7)
         self.assertEqual(sc.data[4].operation.unit, "s")
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(DeprecationWarning):
             assemble(sc, self.backend_without_dt)
 
     def test_cannot_schedule_circuit_with_mixed_SI_and_dt_when_no_one_tells_dt(self):
@@ -448,7 +442,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(idle_dur, 0, "us")
         qc.measure(0, 0)
         qc = transpile(qc, self.backend_with_dt)
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(DeprecationWarning):
             assemble(qc, self.backend_with_dt)
 
     @data("asap", "alap")

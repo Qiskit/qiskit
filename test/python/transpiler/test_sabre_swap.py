@@ -15,6 +15,8 @@
 import unittest
 
 import itertools
+import warnings
+
 import ddt
 import numpy.random
 
@@ -273,15 +275,21 @@ class TestSabreSwap(QiskitTestCase):
 
         # Assert that the same keys are produced by a simulation - this is a test that the inserted
         # swaps route the qubits correctly.
-        if not optionals.HAS_AER:
-            return
+        with warnings.catch_warnings():
+            # TODO remove Aer stops using Provider Qiskit class
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            if not optionals.HAS_AER:
+                return
 
         from qiskit_aer import Aer
 
-        with self.assertWarns(DeprecationWarning):
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField and Provider ABC
+            # https://github.com/Qiskit/qiskit-aer/pull/2184
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             sim = Aer.get_backend("aer_simulator")
-        in_results = sim.run(qc, shots=4096).result().get_counts()
-        out_results = sim.run(routed, shots=4096).result().get_counts()
+            in_results = sim.run(qc, shots=4096).result().get_counts()
+            out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
 
     def test_classical_condition(self):

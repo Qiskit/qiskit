@@ -15,6 +15,7 @@ Expectation value class
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from itertools import accumulate
 
@@ -67,14 +68,17 @@ def _run_circuits(
         max_circuits = backend.max_circuits
     else:
         raise RuntimeError("Backend version not supported")
-    if max_circuits:
-        jobs = [
-            backend.run(circuits[pos : pos + max_circuits], **run_options)
-            for pos in range(0, len(circuits), max_circuits)
-        ]
-        result = [x.result() for x in jobs]
-    else:
-        result = [backend.run(circuits, **run_options).result()]
+    with warnings.catch_warnings():
+        # TODO remove this catch once Aer stops using QobjDictField
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+        if max_circuits:
+            jobs = [
+                backend.run(circuits[pos : pos + max_circuits], **run_options)
+                for pos in range(0, len(circuits), max_circuits)
+            ]
+            result = [x.result() for x in jobs]
+        else:
+            result = [backend.run(circuits, **run_options).result()]
     return result, metadata
 
 

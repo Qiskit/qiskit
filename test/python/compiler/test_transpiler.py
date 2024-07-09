@@ -17,6 +17,7 @@ import io
 import math
 import os
 import sys
+import warnings
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
 import numpy as np
@@ -2710,7 +2711,10 @@ class TestTranspileParallel(QiskitTestCase):
         tqc = transpile(
             qlist, backend=backend, optimization_level=opt_level, seed_transpiler=424242
         )
-        result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
         counts = result.get_counts()
         for count in counts:
             self.assertTrue(math.isclose(count["00000"], 500, rel_tol=0.1))

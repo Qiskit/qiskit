@@ -19,6 +19,7 @@ use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
 use crate::getenv_use_multiple_threads;
+use qiskit_circuit::util::c64;
 
 const PARALLEL_THRESHOLD: usize = 19;
 
@@ -88,7 +89,7 @@ pub fn expval_pauli_with_x(
         let index_0 = ((i << 1) & mask_u) | (i & mask_l);
         let index_1 = index_0 ^ x_mask;
         let val_0 = (phase
-            * Complex64::new(
+            * c64(
                 data_arr[index_1].re * data_arr[index_0].re
                     + data_arr[index_1].im * data_arr[index_0].im,
                 data_arr[index_1].im * data_arr[index_0].re
@@ -96,7 +97,7 @@ pub fn expval_pauli_with_x(
             ))
         .re;
         let val_1 = (phase
-            * Complex64::new(
+            * c64(
                 data_arr[index_0].re * data_arr[index_1].re
                     + data_arr[index_0].im * data_arr[index_1].im,
                 data_arr[index_0].im * data_arr[index_1].re

@@ -34,6 +34,7 @@ The circuit itself keeps this context.
 from __future__ import annotations
 
 import copy
+import warnings
 from itertools import zip_longest
 import math
 from typing import List, Type
@@ -47,7 +48,7 @@ from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-
+from qiskit.utils import deprecate_func
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -358,9 +359,22 @@ class Instruction(Operation):
         """Set the time unit of duration."""
         self._unit = unit
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The method assemble is being deprecated "
+        "as it is not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        return self._assemble()
+
+    def _assemble(self):
+        with warnings.catch_warnings():
+            # The class QasmQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]

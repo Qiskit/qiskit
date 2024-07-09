@@ -13,6 +13,7 @@
 """ Test of GenericBackendV2 backend"""
 
 import math
+import warnings
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -34,6 +35,16 @@ class TestGenericBackendV2(QiskitTestCase):
         """Test that target raises error if basis_gate not in ``supported_names``."""
         with self.assertRaises(QiskitError):
             GenericBackendV2(num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"])
+
+    def test_cx_1Q(self):
+        """Test failing with a backend with single qubit but with a two-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=1, basis_gates=["cx", "id"])
+
+    def test_ccx_2Q(self):
+        """Test failing with a backend with two qubits but with a three-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=2, basis_gates=["ccx", "id"])
 
     def test_operation_names(self):
         """Test that target basis gates include "delay", "measure" and "reset" even
@@ -106,7 +117,11 @@ class TestGenericBackendV2(QiskitTestCase):
 
         backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"])
         tqc = transpile(qc, backend=backend, optimization_level=3, seed_transpiler=42)
-        result = backend.run(tqc, seed_simulator=42, shots=1000).result()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using Provider ABC
+            # https://github.com/Qiskit/qiskit-aer/pull/2184
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            result = backend.run(tqc, seed_simulator=42, shots=1000).result()
         counts = result.get_counts()
 
         self.assertTrue(math.isclose(counts["00000"], 500, rel_tol=0.1))

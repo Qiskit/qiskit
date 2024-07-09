@@ -309,12 +309,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_sequenced_parameterized_schedule(self):
         """Test parameterized schedule consists of multiple instruction."""
 
-        converter = QobjToInstructionConverter([], buffer=0)
-        qobjs = [
-            PulseQobjInstruction(name="fc", ch="d0", t0=10, phase="P1"),
-            PulseQobjInstruction(name="fc", ch="d0", t0=20, phase="P2"),
-            PulseQobjInstruction(name="fc", ch="d0", t0=30, phase="P3"),
-        ]
+        with self.assertWarns(DeprecationWarning):
+            converter = QobjToInstructionConverter([], buffer=0)
+            qobjs = [
+                PulseQobjInstruction(name="fc", ch="d0", t0=10, phase="P1"),
+                PulseQobjInstruction(name="fc", ch="d0", t0=20, phase="P2"),
+                PulseQobjInstruction(name="fc", ch="d0", t0=30, phase="P3"),
+            ]
         converted_instruction = [converter(qobj) for qobj in qobjs]
 
         inst_map = InstructionScheduleMap()

@@ -39,8 +39,9 @@ class TestCXCZSynth(QiskitTestCase):
         rng = np.random.default_rng(seed)
         num_gates = 10
         num_trials = 8
+        seeds = rng.integers(100000, size=num_trials, dtype=np.uint64)
 
-        for _ in range(num_trials):
+        for seed in seeds:
             # Generate a random CZ circuit
             mat_z = np.zeros((num_qubits, num_qubits))
             cir_z = QuantumCircuit(num_qubits)
@@ -55,7 +56,7 @@ class TestCXCZSynth(QiskitTestCase):
                         mat_z[j][i] = (mat_z[j][i] + 1) % 2
 
             # Generate a random CX circuit
-            mat_x = random_invertible_binary_matrix(num_qubits, seed=rng)
+            mat_x = random_invertible_binary_matrix(num_qubits, seed=seed)
             mat_x = np.array(mat_x, dtype=bool)
             cir_x = synth_cnot_depth_line_kms(mat_x)
 

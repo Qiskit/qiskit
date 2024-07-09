@@ -15,6 +15,8 @@
 """Test the StarPreRouting pass"""
 
 import unittest
+import warnings
+
 from test import QiskitTestCase
 import ddt
 
@@ -258,8 +260,11 @@ class TestStarPreRouting(QiskitTestCase):
         )
         pm.init += StarPreRouting()
         result = pm.run(qc)
-        counts_before = AerSimulator().run(qc).result().get_counts()
-        counts_after = AerSimulator().run(result).result().get_counts()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using qiskit.qobj.common.QobjDictField`
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            counts_before = AerSimulator().run(qc).result().get_counts()
+            counts_after = AerSimulator().run(result).result().get_counts()
         self.assertEqual(counts_before, counts_after)
 
     def test_10q_bv_no_barrier(self):
@@ -298,8 +303,11 @@ class TestStarPreRouting(QiskitTestCase):
         )
         pm.init += StarPreRouting()
         result = pm.run(qc)
-        counts_before = AerSimulator().run(qc).result().get_counts()
-        counts_after = AerSimulator().run(result).result().get_counts()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using qiskit.qobj.common.QobjDictField`
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            counts_before = AerSimulator().run(qc).result().get_counts()
+            counts_after = AerSimulator().run(result).result().get_counts()
         self.assertEqual(counts_before, counts_after)
 
     def test_hadamard_ordering(self):
