@@ -1910,7 +1910,6 @@ static MAGIC: GateArray2Q = [
     ],
 ];
 
-
 static MAGIC_DAGGER: GateArray2Q = [
     [
         c64(FRAC_1_SQRT_2, 0.),
@@ -1937,7 +1936,6 @@ static MAGIC_DAGGER: GateArray2Q = [
         c64(0., FRAC_1_SQRT_2),
     ],
 ];
-
 
 /// Computes the local invariants for a two-qubit unitary.
 ///
