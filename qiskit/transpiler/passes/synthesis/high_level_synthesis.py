@@ -131,6 +131,32 @@ Permutation Synthesis
    ACGSynthesisPermutation
    KMSSynthesisPermutation
    TokenSwapperSynthesisPermutation
+
+
+QFT Synthesis
+'''''''''''''
+
+.. list-table:: Plugins for :class:`.QFTGate` (key = ``"qft"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+    * - ``"full"``
+      - :class:`~.QFTSynthesisFull`
+      - all-to-all
+    * - ``"line"``
+      - :class:`~.QFTSynthesisLine`
+      - linear
+    * - ``"default"``
+      - :class:`~.QFTSynthesisFull`
+      - all-to-all
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFTSynthesisFull
+   QFTSynthesisLine
 """
 
 from typing import Optional, Union, List, Tuple, Callable
