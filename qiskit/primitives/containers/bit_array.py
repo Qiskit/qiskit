@@ -508,7 +508,7 @@ class BitArray(ShapedMixin):
         indices = np.asarray(indices)
 
         if num_indices > 0:
-            if indices.max() >= self.num_bits: 
+            if indices.max() >= self.num_bits:
                 raise IndexError(
                     f"index {int(indices.max())} is out of bounds for the number of bits {self.num_bits}."
                 )
