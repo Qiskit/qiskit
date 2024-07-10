@@ -18,6 +18,7 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, CircuitInstruction
 from qiskit.circuit import Reset
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
 
 
 def random_circuit(
@@ -312,9 +313,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         QuantumCircuit: constructed circuit
     """
 
-    from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
-
-    gates_1q = list(set(_BASIS_1Q.keys()) - {"v", "w"})
+    gates_1q = list(set(_BASIS_1Q.keys()) - {"v", "w", "id", "iden", "sinv"})
     gates_2q = list(_BASIS_2Q.keys())
 
     if gates == "all":
