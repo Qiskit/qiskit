@@ -13,3 +13,11 @@ fixes:
     now we create an :class:`.AnnotatedOperation` as placeholder. This
     allows to insert the controlled gate into a circuit, bind the parameters
     at a later stage, and then synthesize the operation.
+    Fixes `#10311 <https://github.com/Qiskit/qiskit/issues/10311>`_,
+    `#10697 <https://github.com/Qiskit/qiskit/issues/10697>`_,
+    and `#12135 <https://github.com/Qiskit/qiskit/issues/12135>`_.
+  - |
+    The :class:`.SGate` and :class:`.SdgGate` now correctly return a 
+    :class:`.CSGate`, resp. :class:`.CSdgGate`, if they are controlled on
+    a single control qubit.
+
