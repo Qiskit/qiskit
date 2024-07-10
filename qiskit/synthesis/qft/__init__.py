@@ -13,3 +13,4 @@
 """Module containing stabilizer QFT circuit synthesis."""
 
 from .qft_decompose_lnn import synth_qft_line
+from .qft_decompose_full import synth_qft_full
