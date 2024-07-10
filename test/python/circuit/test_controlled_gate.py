@@ -38,7 +38,6 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
     U1Gate,
-    U2Gate,
     CYGate,
     CZGate,
     CU1Gate,
@@ -768,7 +767,6 @@ class TestControlledGate(QiskitTestCase):
         yields the expected number of cx gates."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(MCXGate(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-        from qiskit import transpile
 
         cqc = transpile(qc, basis_gates=["u", "cx"])
         cx_count = cqc.count_ops()["cx"]
