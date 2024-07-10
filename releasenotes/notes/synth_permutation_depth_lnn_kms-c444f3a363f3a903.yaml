@@ -1,4 +1,4 @@
 ---
-upgrade_synthesis:
+features_synthesis:
   - |
-    Port :func:`.synth_permutation_depth_lnn_kms`, used to synthesize qubit permutations, to Rust.
+    Port :func:`.synth_permutation_depth_lnn_kms`, used to synthesize permutations for linear connectivity, to Rust.

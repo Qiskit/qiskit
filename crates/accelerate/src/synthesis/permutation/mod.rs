@@ -90,14 +90,17 @@ pub fn _synth_permutation_depth_lnn_kms(py: Python, pattern: PyArrayLike1<i64>) 
     let inverted = utils::invert(&pattern.as_array());
     let view = inverted.view();
     let num_qubits = view.len();
+    let mut swap_layers: Vec<(usize, usize)> = Vec::new();
 
-    let swap_layer: Vec<(usize, usize)> = utils::_create_swap_layer(&view);
-        
-    println!("Swap layer: {:?}" , swap_layer);
+    for i in 0..num_qubits {
+        let swap_layer: Vec<(usize, usize)> = utils::create_swap_layer(&view, i % 2);
+        swap_layers.extend(swap_layer);
+    }
+
     CircuitData::from_standard_gates(
         py,
         num_qubits as u32,
-        swap_layer.iter().map(|(i, j)|  {
+        swap_layers.iter().map(|(i, j)|  {
             (
                 StandardGate::SwapGate,
                 smallvec![],
