@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed the api documentation for :class:`.RZXGate` which was incoherent with its notation.
+    The default notation for RZX gate was in big-endian and the example shown was in little-endian format.
+    Fix is done in the example section where the gate notation is concatenated with q_0 , q_1 and 
+    big-endian format is followed throughout. 
+    For example intial notation was :
+    R_{ZX}(\theta = 0) = I 
+
+    Now it would be 
+    R_{ZX}(\theta = 0)\ q_0, q_1 = I
