@@ -168,7 +168,7 @@ class Pauli(BasePauli):
 
         Args:
             data (str or tuple or Pauli or ScalarOp): input data for Pauli. If input is
-                a tuple it must be of the form ``(z, x)`` or (z, x, phase)`` where
+                a tuple it must be of the form ``(z, x)`` or ``(z, x, phase)`` where
                 ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from
                 :math:`\mathbb{Z}_4`.
                 If input is a string, it must be a concatenation of a phase and a Pauli string
