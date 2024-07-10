@@ -14,6 +14,7 @@
 
 mod errors;
 mod instruction_properties;
+mod nullable_index_map;
 
 use std::ops::Index;
 
@@ -22,6 +23,7 @@ use ahash::RandomState;
 use ahash::HashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use nullable_index_map::NullableIndexMap;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
@@ -31,7 +33,6 @@ use pyo3::{
 
 use qiskit_circuit::circuit_instruction::convert_py_to_operation_type;
 use qiskit_circuit::operations::{Operation, OperationType, Param};
-use rustworkx_core::dictmap::InitWithHasher;
 use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
@@ -50,11 +51,11 @@ mod exceptions {
 // Custom types
 type Qargs = SmallVec<[PhysicalQubit; 2]>;
 type GateMap = IndexMap<String, PropsMap, RandomState>;
-type PropsMap = IndexMap<Option<Qargs>, Option<InstructionProperties>, RandomState>;
+type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
 
 #[derive(Debug, Clone, FromPyObject)]
-enum TargetOperation {
+pub enum TargetOperation {
     Normal(NormalOperation),
     Variadic(PyObject),
 }
@@ -94,7 +95,7 @@ impl TargetOperation {
 }
 
 #[derive(Debug, Clone)]
-struct NormalOperation {
+pub struct NormalOperation {
     operation: OperationType,
     params: SmallVec<[Param; 3]>,
     op_object: PyObject,
@@ -167,7 +168,7 @@ pub struct Target {
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
     variable_class_operations: IndexSet<String, RandomState>,
-    qarg_gate_map: IndexMap<Option<Qargs>, Option<HashSet<String>>, RandomState>,
+    qarg_gate_map: NullableIndexMap<Qargs, Option<HashSet<String>>>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
 }
@@ -264,7 +265,7 @@ impl Target {
             _gate_name_map: IndexMap::default(),
             variable_class_operations: IndexSet::default(),
             global_operations: IndexMap::default(),
-            qarg_gate_map: IndexMap::default(),
+            qarg_gate_map: NullableIndexMap::default(),
             non_global_basis: None,
             non_global_strict_basis: None,
         })
@@ -340,7 +341,7 @@ impl Target {
         &mut self,
         instruction: TargetOperation,
         name: &str,
-        mut properties: Option<PropsMap>,
+        properties: Option<PropsMap>,
     ) -> PyResult<()> {
         if self.gate_map.contains_key(name) {
             return Err(PyAttributeError::new_err(format!(
@@ -356,10 +357,10 @@ impl Target {
                 self.variable_class_operations.insert(name.to_string());
             }
             TargetOperation::Normal(_) => {
-                if let Some(properties) = properties.as_mut() {
+                if let Some(mut properties) = properties {
                     qargs_val = PropsMap::with_capacity(properties.len());
                     let inst_num_qubits = instruction.num_qubits();
-                    if properties.contains_key(&None) {
+                    if properties.contains_key(None) {
                         self.global_operations
                             .entry(inst_num_qubits)
                             .and_modify(|e| {
@@ -367,7 +368,8 @@ impl Target {
                             })
                             .or_insert(HashSet::from_iter([name.to_string()]));
                     }
-                    let property_keys: Vec<Option<Qargs>> = properties.keys().cloned().collect();
+                    let property_keys: Vec<Option<Qargs>> =
+                        properties.keys().map(|qargs| qargs.cloned()).collect();
                     for qarg in property_keys {
                         if let Some(qarg) = qarg.as_ref() {
                             if qarg.len() != inst_num_qubits as usize {
@@ -388,16 +390,14 @@ impl Target {
                                     }) + 1,
                                 ));
                         }
-                        let inst_properties = properties.swap_remove(&qarg).unwrap();
+                        let inst_properties = properties.swap_remove(qarg.as_ref()).unwrap();
                         qargs_val.insert(qarg.clone(), inst_properties);
-                        self.qarg_gate_map
-                            .entry(qarg)
-                            .and_modify(|e| {
-                                if let Some(e) = e {
-                                    e.insert(name.to_string());
-                                }
-                            })
-                            .or_insert(Some(HashSet::from_iter([name.to_string()])));
+                        if let Some(Some(value)) = self.qarg_gate_map.get_mut(qarg.as_ref()) {
+                            value.insert(name.to_string());
+                        } else {
+                            self.qarg_gate_map
+                                .insert(qarg, Some(HashSet::from_iter([name.to_string()])));
+                        }
                     }
                 } else {
                     qargs_val = PropsMap::with_capacity(0);
@@ -433,14 +433,16 @@ impl Target {
             )));
         };
         let mut prop_map = self[&instruction].clone();
-        if !(prop_map.contains_key(&qargs)) {
+        if !(prop_map.contains_key(qargs.as_ref())) {
             return Err(PyKeyError::new_err(format!(
                 "Provided qarg {:?} not in this Target for {:?}.",
                 &qargs.unwrap_or_default(),
                 &instruction
             )));
         }
-        prop_map.entry(qargs).and_modify(|e| *e = properties);
+        if let Some(e) = prop_map.get_mut(qargs.as_ref()) {
+            *e = properties;
+        }
         self.gate_map
             .entry(instruction)
             .and_modify(|e| *e = prop_map);
@@ -522,7 +524,7 @@ impl Target {
     ///     KeyError: If ``qargs`` is not in target
     #[pyo3(name = "operation_names_for_qargs", signature=(qargs=None, /))]
     pub fn py_operation_names_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<HashSet<&str>> {
-        match self.operation_names_for_qargs(&qargs) {
+        match self.operation_names_for_qargs(qargs.as_ref()) {
             Ok(set) => Ok(set),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
@@ -632,10 +634,10 @@ impl Target {
                             if let Some(_qargs) = &qargs {
                                 if self.gate_map.contains_key(op_name) {
                                     let gate_map_name = &self.gate_map[op_name];
-                                    if gate_map_name.contains_key(&qargs) {
+                                    if gate_map_name.contains_key(qargs.as_ref()) {
                                         return Ok(true);
                                     }
-                                    if gate_map_name.contains_key(&None) {
+                                    if gate_map_name.contains_key(None) {
                                         let qubit_comparison =
                                             self._gate_name_map[op_name].num_qubits();
                                         return Ok(qubit_comparison == _qargs.len() as u32
@@ -692,7 +694,7 @@ impl Target {
                     return Ok(true);
                 }
             }
-            Ok(self.instruction_supported(&operation_name, &qargs))
+            Ok(self.instruction_supported(&operation_name, qargs.as_ref()))
         } else {
             Ok(false)
         }
@@ -914,7 +916,7 @@ impl Target {
                 .unwrap()
                 .extract::<GateMapState>()?
                 .into_iter()
-                .map(|(name, prop_map)| (name, IndexMap::from_iter(prop_map.into_iter()))),
+                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map.into_iter()))),
         );
         self._gate_name_map = state
             .get_item("gate_name_map")?
@@ -924,7 +926,7 @@ impl Target {
             .get_item("global_operations")?
             .unwrap()
             .extract::<IndexMap<u32, HashSet<String>, RandomState>>()?;
-        self.qarg_gate_map = IndexMap::from_iter(
+        self.qarg_gate_map = NullableIndexMap::from_iter(
             state
                 .get_item("qarg_gate_map")?
                 .unwrap()
@@ -962,7 +964,7 @@ impl Target {
         self.gate_map.iter().flat_map(move |(op, props_map)| {
             props_map
                 .keys()
-                .map(move |qargs| (&self._gate_name_map[op], qargs.as_ref()))
+                .map(move |qargs| (&self._gate_name_map[op], qargs))
         })
     }
     /// Returns an iterator over the operation names in the target.
@@ -971,15 +973,7 @@ impl Target {
     }
 
     /// Get the operation objects in the target.
-    pub fn operations(&self) -> impl Iterator<Item = (&OperationType, &SmallVec<[Param; 3]>)> {
-        return self._operations().filter_map(|operation| match operation {
-            TargetOperation::Normal(normal) => Some((&normal.operation, &normal.params)),
-            _ => None,
-        });
-    }
-
-    /// Get the operation objects in the target.
-    fn _operations(&self) -> impl Iterator<Item = &TargetOperation> {
+    pub fn operations(&self) -> impl Iterator<Item = &TargetOperation> {
         return self._gate_name_map.values();
     }
 
@@ -1063,13 +1057,13 @@ impl Target {
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
     pub fn operation_names_for_qargs(
         &self,
-        qargs: &Option<Qargs>,
+        qargs: Option<&Qargs>,
     ) -> Result<HashSet<&str>, TargetKeyError> {
         // When num_qubits == 0 we return globally defined operators
         let mut res: HashSet<&str> = HashSet::default();
         let mut qargs = qargs;
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
-            qargs = &None;
+            qargs = None;
         }
         if let Some(qargs) = qargs.as_ref() {
             if qargs
@@ -1107,7 +1101,7 @@ impl Target {
     /// Returns an iterator rust-native operation instances and parameters present in the Target that affect the provided qargs.
     pub fn ops_from_qargs(
         &self,
-        qargs: &Option<Qargs>,
+        qargs: Option<&Qargs>,
     ) -> Result<impl Iterator<Item = (&OperationType, &SmallVec<[Param; 3]>)>, TargetKeyError> {
         match self.operation_names_for_qargs(qargs) {
             Ok(operations) => {
@@ -1132,7 +1126,7 @@ impl Target {
         operation: &str,
     ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetKeyError> {
         if let Some(gate_map_oper) = self.gate_map.get(operation) {
-            if gate_map_oper.contains_key(&None) {
+            if gate_map_oper.contains_key(None) {
                 return Ok(None);
             }
             let qargs = gate_map_oper.keys().flatten();
@@ -1183,18 +1177,18 @@ impl Target {
         if qargs.len() == 1 && is_none {
             return None;
         }
-        Some(qargs.map(|qarg| qarg.as_ref()))
+        Some(qargs)
     }
 
-    pub fn instruction_supported(&self, operation_name: &str, qargs: &Option<Qargs>) -> bool {
+    pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
         if self.gate_map.contains_key(operation_name) {
-            if let Some(_qargs) = qargs.as_ref() {
-                let qarg_set: HashSet<PhysicalQubit> = _qargs.iter().cloned().collect();
+            if let Some(_qargs) = qargs {
+                let qarg_set: HashSet<&PhysicalQubit> = _qargs.iter().collect();
                 if let Some(gate_prop_name) = self.gate_map.get(operation_name) {
                     if gate_prop_name.contains_key(qargs) {
                         return true;
                     }
-                    if gate_prop_name.contains_key(&None) {
+                    if gate_prop_name.contains_key(None) {
                         let obj = &self._gate_name_map[operation_name];
                         if self.variable_class_operations.contains(operation_name) {
                             return qargs.is_none()
