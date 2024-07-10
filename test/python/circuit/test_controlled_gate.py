@@ -19,7 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumRegister, QuantumCircuit, QiskitError
+from qiskit import QuantumRegister, QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
@@ -38,6 +38,7 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
     U1Gate,
+    U2Gate,
     CYGate,
     CZGate,
     CU1Gate,
@@ -46,9 +47,13 @@ from qiskit.circuit.library import (
     CCXGate,
     HGate,
     RZGate,
-    RXGate,
-    CPhaseGate,
     RYGate,
+    RXGate,
+    RZZGate,
+    RZXGate,
+    RYYGate,
+    RXXGate,
+    CPhaseGate,
     CRYGate,
     CRXGate,
     CSwapGate,
@@ -73,6 +78,8 @@ from qiskit.circuit.library import (
     C3SXGate,
     C4XGate,
     MCPhaseGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
 )
@@ -808,8 +815,6 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the v-chain mcx with dirty ancilla
         is less than upper bound."""
-        from qiskit import transpile
-
         mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
         qc = QuantumCircuit(mcx_vchain.num_qubits)
 
@@ -1474,6 +1479,45 @@ class TestControlledGate(QiskitTestCase):
         target = np.eye(2**num_ctrl_qubits, dtype=np.complex128)
         target.flat[-1] = -1
         self.assertEqual(Operator(controlled), Operator(target))
+
+    @data(
+        RXGate,
+        RYGate,
+        RZGate,
+        RXXGate,
+        RYYGate,
+        RZXGate,
+        RZZGate,
+        UGate,
+        U3Gate,
+        XXMinusYYGate,
+        XXPlusYYGate,
+    )
+    def test_mc_failure_without_annotation(self, gate_cls):
+        """Test error for gates that cannot be multi-controlled without annotation."""
+        theta = Parameter("theta")
+        num_params = len(_get_free_params(gate_cls.__init__, ignore=["self"]))
+        params = [theta] + (num_params - 1) * [1.234]
+
+        for annotated in [False, None]:
+            with self.subTest(annotated=annotated):
+                # if annotated is False, check that a sensible error is raised
+                if annotated is False:
+                    with self.assertRaisesRegex(QiskitError, "unbound parameter"):
+                        _ = gate_cls(*params).control(5, annotated=False)
+
+                # else, check that the gate can be synthesized after all parameters
+                # have been bound
+                else:
+                    mc_gate = gate_cls(*params).control(5)
+
+                    circuit = QuantumCircuit(mc_gate.num_qubits)
+                    circuit.append(mc_gate, circuit.qubits)
+
+                    bound = circuit.assign_parameters([0.5123])
+                    unrolled = transpile(bound, basis_gates=["u", "cx"], optimization_level=0)
+
+                    self.assertEqual(unrolled.num_parameters, 0)
 
     def assertEqualTranslated(self, circuit, unrolled_reference, basis):
         """Assert that the circuit is equal to the unrolled reference circuit."""

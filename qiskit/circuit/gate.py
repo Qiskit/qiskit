@@ -104,10 +104,9 @@ class Gate(Instruction):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
-        """
-        Return the controlled version of itself.
+        """Return the controlled version of itself.
 
         Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
         or as an annotated operation (ref. :class:`.AnnotatedOperation`).
@@ -118,8 +117,8 @@ class Gate(Instruction):
                 operation.
             ctrl_state: the control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate is implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             Controlled version of the given operation.
@@ -127,7 +126,7 @@ class Gate(Instruction):
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state
         """
-        if not annotated:
+        if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
             from .add_control import add_control
 

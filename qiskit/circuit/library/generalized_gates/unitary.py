@@ -165,7 +165,7 @@ class UnitaryGate(Gate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ) -> ControlledGate | AnnotatedOperation:
         """Return controlled version of gate.
 
@@ -175,7 +175,7 @@ class UnitaryGate(Gate):
             ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
                 If ``None``, use ``2**num_ctrl_qubits - 1``.
             annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             Controlled version of gate.
