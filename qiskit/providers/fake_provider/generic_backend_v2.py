@@ -112,8 +112,8 @@ class GenericBackendV2(BackendV2):
         calibrate_instructions: bool | InstructionScheduleMap | None = None,
         dtm: float | None = None,
         seed: int | None = None,
-        include_channels: bool = True,
-        include_errors: bool = True,
+        pulse_channels: bool = True,
+        noise_info: bool = True,
     ):
         """
         Args:
@@ -161,6 +161,8 @@ class GenericBackendV2(BackendV2):
                 None by default.
 
             seed: Optional seed for generation of default values.
+            pulse_channels: If true, sets default pulse channel information on the backend.
+            noise_info: If true, associates gates and qubits with default noise information.
         """
 
         super().__init__(
@@ -177,7 +179,10 @@ class GenericBackendV2(BackendV2):
         self._control_flow = control_flow
         self._calibrate_instructions = calibrate_instructions
         self._supported_gates = get_standard_gate_name_mapping()
-        self._include_errors = include_errors
+        self._include_errors = noise_info
+
+        if calibrate_instructions and not noise_info:
+            raise QiskitError("Must set parameter noise_info when calibrating instructions.")
 
         if coupling_map is None:
             self._coupling_map = CouplingMap().from_full(num_qubits)
@@ -201,7 +206,7 @@ class GenericBackendV2(BackendV2):
                 self._basis_gates.append(name)
 
         self._build_generic_target()
-        if include_channels:
+        if pulse_channels:
             self._build_default_channels()
 
     @property
