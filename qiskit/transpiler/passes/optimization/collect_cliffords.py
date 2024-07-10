@@ -69,27 +69,11 @@ class CollectCliffords(CollectAndCollapse):
         )
 
 
-clifford_gate_names = [
-    "x",
-    "y",
-    "z",
-    "h",
-    "id",
-    "s",
-    "sdg",
-    "sx",
-    "sxdg",
-    "cx",
-    "cy",
-    "cz",
-    "dcx",
-    "ecr",
-    "swap",
-    "iswap",
-    "clifford",
-    "linear_function",
-    "pauli",
-]
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
+
+clifford_gate_names = (
+    list(_BASIS_1Q.keys()) + list(_BASIS_2Q.keys()) + ["clifford", "linear_function", "pauli"]
+)
 
 
 def _is_clifford_gate(node):
