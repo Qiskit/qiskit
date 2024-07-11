@@ -213,7 +213,7 @@ class QiskitTestCase(BaseQiskitTestCase):
         # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
         # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
         warnings.filterwarnings(
-            "default",
+            "ignore",
             category=DeprecationWarning,
             message=r".*numpy\.(\w+\.)*__warningregistry__",
         )
