@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod dag_node;
@@ -21,7 +22,6 @@ pub mod parameter_table;
 pub mod slice;
 pub mod util;
 
-mod bit_data;
 mod interner;
 
 use pyo3::{prelude::*, wrap_pymodule};
