@@ -66,6 +66,94 @@ class NLocal(BlueprintCircuit):
 
     If specified, barriers can be inserted in between every block.
     If an initial state object is provided, it is added in front of the NLocal.
+
+    Examples:
+        >>> q0,q1,q2,q3 = 0,1,2,3
+
+        >>> num_qubits = 3
+        >>> rotation_blocks = 'ry'      # this could be a circuit, list of circuit, circuit instruction ('ry'), list of circuit instructions, or None for default values
+        >>> entanglement_blocks = 'cx'  # this could be a circuit, list of circuit, circuit instruction ('ry'), list of circuit instructions, or None for default values
+        >>> layer_1 = [(q0,q1),(q0,q2)]
+        >>> layer_2 = [(q1,q2)]
+        >>> entanglement_map = [layer_1, layer_2]
+        >>> repitions = 2
+        
+        >>> circuit = NLocal(num_qubits, rotation_blocks, entanglement_blocks, entanglement_map, repitions, insert_barriers=True)
+        >>> print(circuit)  # decompose the layers into standard gates
+             ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
+        q_0: ┤ Ry(θ[0]) ├─░───■────────░─┤ Ry(θ[3]) ├─░───■────────░─┤ Ry(θ[6]) ├
+             ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
+        q_1: ┤ Ry(θ[1]) ├─░─┤ X ├──■───░─┤ Ry(θ[4]) ├─░─┤ X ├──■───░─┤ Ry(θ[7]) ├
+             ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
+        q_2: ┤ Ry(θ[2]) ├─░──────┤ X ├─░─┤ Ry(θ[5]) ├─░──────┤ X ├─░─┤ Ry(θ[8]) ├
+             └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
+        
+        >>> num_qubits = 3
+        >>> rotation_blocks = ['ry', 'rx'] 
+        >>> entanglement_blocks = 'cz' 
+        >>> repitions = 1
+
+        >>> circuit = NLocal(num_qubits, rotation_blocks, entanglement_blocks, entanglement_map, repitions, insert_barriers=True)
+        >>> qc = QuantumCircuit(num_qubits)
+        >>> qc += circuit
+        >>> print(qc.decompose().draw()) # decompose the layers into standard gates
+             ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
+        q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
+             ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
+        q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─░──■──┼──■──░─┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
+             ├──────────┤├──────────┤ ░     │  │  ░ ├──────────┤├───────────┤
+        q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├─░─────■──■──░─┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
+             └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
+          
+        >>> num_qubits = 3
+        >>> rotation_blocks = 'x'
+        >>> entanglement_blocks = 'crx' 
+        >>> entanglement_map = [[q0, q1], [q1, q2], [q2, q0]]  # circular entanglement for 3 qubits
+        >>> repitions = 1
+
+        >>> circuit = NLocal(num_qubits, rotation_blocks, entanglement_blocks, entanglement_map, repitions)
+        >>> print(circuit)  # note: no barriers inserted this time!
+                ┌───┐                             ┌──────────┐┌───┐
+        q_0: |0>┤ X ├─────■───────────────────────┤ Rx(θ[2]) ├┤ X ├
+                ├───┤┌────┴─────┐            ┌───┐└─────┬────┘└───┘
+        q_1: |0>┤ X ├┤ Rx(θ[0]) ├─────■──────┤ X ├──────┼──────────
+                ├───┤└──────────┘┌────┴─────┐└───┘      │     ┌───┐
+        q_2: |0>┤ X ├────────────┤ Rx(θ[1]) ├───────────■─────┤ X ├
+                └───┘            └──────────┘                 └───┘
+
+        >>> num_qubits = 4
+        >>> rotation_blocks = []
+        >>> entanglement_blocks = 'cry'
+        >>> entanglement_map = [[q0, q3], [q0, q2]]  # entangle the first and last two-way
+
+        >>> circuit = NLocal(num_qubits, rotation_blocks, entanglement_blocks, entanglement_map, repitions)
+        >>> circuit = circuit + circuit
+        >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
+        q_0: ─────■───────────■───────────■───────────■──────
+                  │           │           │           │
+        q_1: ─────┼───────────┼───────────┼───────────┼──────
+                  │      ┌────┴─────┐     │      ┌────┴─────┐
+        q_2: ─────┼──────┤ Ry(θ[1]) ├─────┼──────┤ Ry(θ[1]) ├
+             ┌────┴─────┐└──────────┘┌────┴─────┐└──────────┘
+        q_3: ┤ Ry(θ[0]) ├────────────┤ Ry(θ[0]) ├────────────
+             └──────────┘            └──────────┘
+
+        >>> num_qubits = 3
+        >>> rotation_blocks = 'x'
+        >>> entanglement_blocks = 'cr=x'
+        >>> layer_1 = [(q0,q1),(q0,q2)]
+        >>> layer_2 = [(q1,q2)]
+        >>> entanglement_map = [layer_1, layer_2]
+
+        >>> circuit = NLocal(num_qubits, rotation_blocks, entanglement_blocks, entanglement_map, reps=repitions, insert_barriers=True)
+        >>> print(circuit)
+             ┌───┐ ░            ░ ┌───┐ ░       ░ ┌───┐
+        q_0: ┤ X ├─░───■────■───░─┤ X ├─░───────░─┤ X ├
+             ├───┤ ░ ┌─┴─┐  │   ░ ├───┤ ░       ░ ├───┤
+        q_1: ┤ X ├─░─┤ X ├──┼───░─┤ X ├─░───■───░─┤ X ├
+             ├───┤ ░ └───┘┌─┴─┐ ░ ├───┤ ░ ┌─┴─┐ ░ ├───┤
+        q_2: ┤ X ├─░──────┤ X ├─░─┤ X ├─░─┤ X ├─░─┤ X ├
+             └───┘ ░      └───┘ ░ └───┘ ░ └───┘ ░ └───┘
     """
 
     def __init__(
