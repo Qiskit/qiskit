@@ -1336,7 +1336,11 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.backend = GenericBackendV2(
-            num_qubits=27, calibrate_instructions=True, control_flow=True, coupling_map=MUMBAI_CMAP
+            num_qubits=27,
+            calibrate_instructions=True,
+            control_flow=True,
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
         )
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
         cls.basis_gates = set(cls.backend.operation_names)

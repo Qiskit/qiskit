@@ -1489,7 +1489,7 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.backend = GenericBackendV2(
-            num_qubits=27, calibrate_instructions=True, control_flow=True
+            num_qubits=27, calibrate_instructions=True, control_flow=True, seed=42
         )
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
         cls.basis_gates = set(cls.backend.operation_names)
