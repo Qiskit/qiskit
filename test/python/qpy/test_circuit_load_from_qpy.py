@@ -61,8 +61,10 @@ class TestCalibrationPasses(QpyCircuitTestCase):
 
     def setUp(self):
         super().setUp()
-        # This backend provides CX(0,1) with native ECR direction.
-        self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
+        # TODO remove context once https://github.com/Qiskit/qiskit/issues/12759 is fixed
+        with self.assertWarns(DeprecationWarning):
+            # This backend provides CX(0,1) with native ECR direction.
+            self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):
