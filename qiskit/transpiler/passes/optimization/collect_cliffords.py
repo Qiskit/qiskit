@@ -71,7 +71,9 @@ class CollectCliffords(CollectAndCollapse):
 
 
 clifford_gate_names = (
-    list(_BASIS_1Q.keys()) + list(_BASIS_2Q.keys()) + ["clifford", "linear_function", "pauli"]
+    list(_BASIS_1Q.keys())
+    + list(_BASIS_2Q.keys())
+    + ["clifford", "linear_function", "pauli", "permutation"]
 )
 
 
