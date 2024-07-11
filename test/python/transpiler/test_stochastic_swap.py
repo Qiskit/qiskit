@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr, types
@@ -1488,10 +1488,11 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = Fake27QPulseV1()
-        cls.backend.configuration().basis_gates += ["for_loop", "while_loop", "if_else"]
-        cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
-        cls.basis_gates = set(cls.backend.configuration().basis_gates)
+        cls.backend = GenericBackendV2(
+            num_qubits=27, calibrate_instructions=True, control_flow=True
+        )
+        cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
+        cls.basis_gates = set(cls.backend.operation_names)
 
     def assert_valid_circuit(self, transpiled):
         """Assert circuit complies with constraints of backend."""
