@@ -167,6 +167,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 # each element of pub.observables.ravel() may be a multi-term observable
                 coeff_sq_sum = max(coeff_sq_sum, sum(coeff**2 for coeff in obs.values()))
             shots = int(math.ceil(coeff_sq_sum / pub.precision**2))
+            shots = max(1, shots)
             pub_dict[shots].append(i)
 
         results = [None] * len(pubs)
