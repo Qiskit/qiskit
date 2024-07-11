@@ -161,7 +161,9 @@ class GenericBackendV2(BackendV2):
                 None by default.
 
             seed: Optional seed for generation of default values.
+
             pulse_channels: If true, sets default pulse channel information on the backend.
+
             noise_info: If true, associates gates and qubits with default noise information.
         """
 
@@ -179,7 +181,7 @@ class GenericBackendV2(BackendV2):
         self._control_flow = control_flow
         self._calibrate_instructions = calibrate_instructions
         self._supported_gates = get_standard_gate_name_mapping()
-        self._include_errors = noise_info
+        self._noise_info = noise_info
 
         if calibrate_instructions and not noise_info:
             raise QiskitError("Must set parameter noise_info when calibrating instructions.")
@@ -208,6 +210,8 @@ class GenericBackendV2(BackendV2):
         self._build_generic_target()
         if pulse_channels:
             self._build_default_channels()
+        else:
+            self.channels_map = {}
 
     @property
     def target(self):
@@ -349,7 +353,7 @@ class GenericBackendV2(BackendV2):
         """
         # the qubit properties are sampled from default ranges
         properties = _QUBIT_PROPERTIES
-        if not self._include_errors:
+        if not self._noise_info:
             self._target = Target(
                 description=f"Generic Target with {self._num_qubits} qubits",
                 num_qubits=self._num_qubits,
@@ -398,7 +402,7 @@ class GenericBackendV2(BackendV2):
                     f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
                     f"which is the size of the backend."
                 )
-            if self._include_errors:
+            if self._noise_info:
                 noise_params = self._get_noise_defaults(name, gate.num_qubits)
                 self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
             else:
