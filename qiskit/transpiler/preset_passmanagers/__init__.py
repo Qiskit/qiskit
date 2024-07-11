@@ -323,7 +323,7 @@ def generate_preset_pass_manager(
         if backend is not None and _no_loose_constraints:
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
-        elif not _skip_target:
+        else:
             # Only parse backend properties when the target isn't skipped to
             # preserve the former behavior of transpile.
             backend_properties = _parse_backend_properties(backend_properties, backend)
@@ -351,28 +351,28 @@ def generate_preset_pass_manager(
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
 
-    if target is not None:
-        if coupling_map is None:
-            coupling_map = target.build_coupling_map()
-        if basis_gates is None:
-            basis_gates = target.operation_names
-        if instruction_durations is None:
-            instruction_durations = target.durations()
-        if inst_map is None:
-            inst_map = target.instruction_schedule_map()
-        if timing_constraints is None:
-            timing_constraints = target.timing_constraints()
-        if backend_properties is None:
-            backend_properties = target_to_backend_properties(target)
+    # if target is not None:
+    #     if coupling_map is None:
+    #         coupling_map = target.build_coupling_map()
+    #     if basis_gates is None:
+    #         basis_gates = target.operation_names
+    #     if instruction_durations is None:
+    #         instruction_durations = target.durations()
+    #     if inst_map is None:
+    #         inst_map = target.instruction_schedule_map()
+    #     if timing_constraints is None:
+    #         timing_constraints = target.timing_constraints()
+    #     if backend_properties is None:
+    #         backend_properties = target_to_backend_properties(target)
 
     pm_options = {
         "target": target,
-        "basis_gates": basis_gates,
-        "inst_map": inst_map,
-        "coupling_map": coupling_map,
-        "instruction_durations": instruction_durations,
-        "backend_properties": backend_properties,
-        "timing_constraints": timing_constraints,
+        # "basis_gates": basis_gates,
+        # "inst_map": inst_map,
+        # "coupling_map": coupling_map,
+        # "instruction_durations": instruction_durations,
+        # "backend_properties": backend_properties,
+        # "timing_constraints": timing_constraints,
         "layout_method": layout_method,
         "routing_method": routing_method,
         "translation_method": translation_method,
@@ -388,7 +388,7 @@ def generate_preset_pass_manager(
     }
 
     if backend is not None:
-        pm_options["_skip_target"] = _skip_target
+        # pm_options["_skip_target"] = _skip_target
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
