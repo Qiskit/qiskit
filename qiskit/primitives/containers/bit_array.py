@@ -451,7 +451,7 @@ class BitArray(ShapedMixin):
             A bit array sliced along the shots axis.
 
         Raises:
-            ValueError: If there are any invalid indices of the shots axis.
+            IndexError: If there are any invalid indices of the shots axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
