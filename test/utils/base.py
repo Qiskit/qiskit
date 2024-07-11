@@ -213,7 +213,7 @@ class QiskitTestCase(BaseQiskitTestCase):
         # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
         # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
         warnings.filterwarnings(
-            "ignore",
+            "default",
             category=DeprecationWarning,
             message=r".*numpy\.(\w+\.)*__warningregistry__",
         )
@@ -232,23 +232,11 @@ class QiskitTestCase(BaseQiskitTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "ignore",
+            "default",
             category=DeprecationWarning,
             message="Treating CircuitInstruction as an iterable is deprecated",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
-
-        # Add things here carefully, specially if they are *broad*. If they get forgotten here,
-        # they might silence important things. So, add a comment for each of them. On why they are there
-        # and when can they be removed.
-        #  Ideally, use
-        # `allow_DeprecationWarning_message` instead, because it can be much more specific.
-        allow_DeprecationWarning_modules = [
-            # Example - Because the deprecation of X #<issue/PR>. Can be removed once X is removed.
-            # "qiskit.quantum_info.operators.symplectic.pauli",
-        ]
-        for mod in allow_DeprecationWarning_modules:
-            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
 
         allow_DeprecationWarning_message = [
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
