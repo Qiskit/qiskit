@@ -230,6 +230,8 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CU3Gate
+
     def __init__(
         self,
         theta: ParameterValueType,

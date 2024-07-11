@@ -55,6 +55,7 @@ from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
 from qiskit._accelerate.euler_one_qubit_decomposer import collect_1q_runs_filter
+from qiskit._accelerate.convert_2q_block_matrix import collect_2q_blocks_filter
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -1348,9 +1349,9 @@ class DAGCircuit:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            if (condition := getattr(nd.op, "condition", None)) is not None:
+            if (condition := getattr(nd, "condition", None)) is not None:
                 block_cargs.update(condition_resources(condition).clbits)
-            elif isinstance(nd.op, SwitchCaseOp):
+            elif nd.name in CONTROL_FLOW_OP_NAMES and isinstance(nd.op, SwitchCaseOp):
                 if isinstance(nd.op.target, Clbit):
                     block_cargs.add(nd.op.target)
                 elif isinstance(nd.op.target, ClassicalRegister):
@@ -1985,9 +1986,7 @@ class DAGCircuit:
                 "node type was wrongly provided."
             )
 
-        self._multi_graph.remove_node_retain_edges(
-            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
-        )
+        self._multi_graph.remove_node_retain_edges_by_id(node._node_id)
         self._decrement_op(node.name)
 
     def remove_ancestors_of(self, node):
@@ -2158,28 +2157,13 @@ class DAGCircuit:
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 
-        to_qid = {}
-        for i, qubit in enumerate(self.qubits):
-            to_qid[qubit] = i
-
-        def filter_fn(node):
-            if isinstance(node, DAGOpNode):
-                return (
-                    isinstance(node.op, Gate)
-                    and len(node.qargs) <= 2
-                    and not getattr(node.op, "condition", None)
-                    and not node.op.is_parameterized()
-                )
-            else:
-                return None
-
         def color_fn(edge):
             if isinstance(edge, Qubit):
-                return to_qid[edge]
+                return self.find_bit(edge).index
             else:
                 return None
 
-        return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
+        return rx.collect_bicolor_runs(self._multi_graph, collect_2q_blocks_filter, color_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """

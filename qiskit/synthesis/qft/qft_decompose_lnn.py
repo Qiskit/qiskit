@@ -21,21 +21,29 @@ from qiskit.synthesis.permutation.permutation_reverse_lnn import _append_reverse
 def synth_qft_line(
     num_qubits: int, do_swaps: bool = True, approximation_degree: int = 0
 ) -> QuantumCircuit:
-    """Synthesis of a QFT circuit for a linear nearest neighbor connectivity.
-    Based on Fig 2.b in Fowler et al. [1].
+    """Construct a circuit for the Quantum Fourier Transform using linear
+    neighbor connectivity.
 
-    Note that this method *reverts* the order of qubits in the circuit,
-    compared to the original :class:`.QFT` code.
-    Hence, the default value of the ``do_swaps`` parameter is ``True``
-    since it produces a circuit with fewer CX gates.
+    The construction is based on Fig 2.b in Fowler et al. [1].
+
+    .. note::
+
+        With the default value of ``do_swaps = True``, this synthesis algorithm creates a
+        circuit that faithfully implements the QFT operation. When ``do_swaps = False``,
+        this synthesis algorithm creates a circuit that corresponds to "QFT-with-reversal":
+        applying the QFT and reversing the order of its output qubits.
 
     Args:
-        num_qubits: The number of qubits on which the QFT acts.
+        num_qubits: The number of qubits on which the Quantum Fourier Transform acts.
         approximation_degree: The degree of approximation (0 for no approximation).
-        do_swaps: Whether to include the final swaps in the QFT.
+            It is possible to implement the QFT approximately by ignoring
+            controlled-phase rotations with the angle beneath a threshold. This is discussed
+            in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+            https://arxiv.org/abs/quant-ph/0403071.
+        do_swaps: Whether to synthesize the "QFT" or the "QFT-with-reversal" operation.
 
     Returns:
-        A circuit implementation of the QFT circuit.
+        A circuit implementing the QFT operation.
 
     References:
         1. A. G. Fowler, S. J. Devitt, and L. C. L. Hollenberg,

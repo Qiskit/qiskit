@@ -286,6 +286,8 @@ class CCZGate(SingletonControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
+    _standard_gate = StandardGate.CCZGate
+
     def __init__(
         self,
         label: Optional[str] = None,

@@ -77,7 +77,7 @@ class Pauli(BasePauli):
 
     An :math:`n`-qubit Pauli may be represented by a string consisting of
     :math:`n` characters from ``['I', 'X', 'Y', 'Z']``, and optionally phase
-    coefficient in :math:`['', '-i', '-', 'i']`. For example: ``XYZ`` or
+    coefficient in ``['', '-i', '-', 'i']``. For example: ``'XYZ'`` or
     ``'-iZIZ'``.
 
     In the string representation qubit-0 corresponds to the right-most
@@ -160,21 +160,23 @@ class Pauli(BasePauli):
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
     def __init__(self, data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None):
-        """Initialize the Pauli.
+        r"""Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
         be provided, however the first (z) argument can be used alone for string
-        label, Pauli operator, or ScalarOp input data.
+        label, Pauli operator, or :class:`.ScalarOp` input data.
 
         Args:
             data (str or tuple or Pauli or ScalarOp): input data for Pauli. If input is
-                a tuple it must be of the form ``(z, x)`` or (z, x, phase)`` where
-                ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from Z_4.
+                a tuple it must be of the form ``(z, x)`` or ``(z, x, phase)`` where
+                ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from
+                :math:`\mathbb{Z}_4`.
                 If input is a string, it must be a concatenation of a phase and a Pauli string
-                (e.g. 'XYZ', '-iZIZ') where a phase string is a combination of at most three
-                characters from ['+', '-', ''], ['1', ''], and ['i', 'j', ''] in this order,
-                e.g. '', '-1j' while a Pauli string is 1 or more characters of 'I', 'X', 'Y' or 'Z',
-                e.g. 'Z', 'XIYY'.
+                (e.g. ``'XYZ', '-iZIZ'``) where a phase string is a combination of at most three
+                characters from ``['+', '-', '']``, ``['1', '']``, and ``['i', 'j', '']`` in this order,
+                e.g. ``''``, ``'-1j'`` while a Pauli string is 1 or more
+                characters of ``'I'``, ``'X'``, ``'Y'``, or ``'Z'``,
+                e.g. ``'Z'``, ``'XIYY'``.
 
         Raises:
             QiskitError: if input array is invalid shape.

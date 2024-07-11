@@ -397,6 +397,8 @@ def _read_instruction(
             "DiagonalGate",
         }:
             gate = gate_class(params)
+        elif gate_name == "QFTGate":
+            gate = gate_class(len(qargs), *params)
         else:
             if gate_name == "Barrier":
                 params = [len(qargs)]
