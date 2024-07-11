@@ -424,13 +424,13 @@ class BitArray(ShapedMixin):
             A bit array sliced along the bit axis.
 
         Raises:
-            IndexError: If there are any invalid indices of the bit axis.
+            ValueError: If there are any invalid indices of the bit axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_bits:
-                raise IndexError(
+                raise ValueError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
         # This implementation introduces a temporary 8x memory overhead due to bit
@@ -451,13 +451,13 @@ class BitArray(ShapedMixin):
             A bit array sliced along the shots axis.
 
         Raises:
-            IndexError: If there are any invalid indices of the shots axis.
+            ValueError: If there are any invalid indices of the shots axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_shots:
-                raise IndexError(
+                raise ValueError(
                     f"index {index} is out of bounds for the number of shots {self.num_shots}."
                 )
         arr = self._array
