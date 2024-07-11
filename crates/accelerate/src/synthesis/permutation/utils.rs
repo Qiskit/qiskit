@@ -15,7 +15,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::vec::Vec;
 
-use qiskit_circuit::slice::{PySequenceIndex, PySequenceIndexError, SequenceIndex};
+use qiskit_circuit::slice::PySequenceIndex;
 
 pub fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     let n = pattern.len();
@@ -120,11 +120,8 @@ pub fn pattern_to_cycles(pattern: &ArrayView1<usize>) -> Vec<Vec<usize>> {
 /// Periodic (or Python-like) access to a vector.
 /// Util used below in ``decompose_cycles``.
 #[inline]
-fn pget(vec: &[usize], index: isize) -> Result<usize, PySequenceIndexError> {
-    let SequenceIndex::Int(wrapped) = PySequenceIndex::Int(index).with_len(vec.len())? else {
-        unreachable!()
-    };
-    Ok(vec[wrapped])
+fn pget(vec: &[usize], index: isize) -> usize {
+    vec[PySequenceIndex::convert_idx(index, vec.len()).unwrap()]
 }
 
 /// Given a disjoint cycle decomposition of a permutation pattern (see the function
@@ -138,16 +135,10 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
         let length = cycle.len() as isize;
 
         for idx in 0..(length - 1) / 2 {
-            swaps.push((
-                pget(cycle, idx - 1).unwrap(),
-                pget(cycle, length - 3 - idx).unwrap(),
-            ));
+            swaps.push((pget(cycle, idx - 1), pget(cycle, length - 3 - idx)));
         }
         for idx in 0..length / 2 {
-            swaps.push((
-                pget(cycle, idx - 1).unwrap(),
-                pget(cycle, length - 2 - idx).unwrap(),
-            ));
+            swaps.push((pget(cycle, idx - 1), pget(cycle, length - 2 - idx)));
         }
     }
 
