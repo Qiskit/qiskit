@@ -77,6 +77,7 @@ sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
+sys.modules["qiskit._accelerate.star_prerouting"] = _accelerate.star_prerouting
 sys.modules["qiskit._accelerate.stochastic_swap"] = _accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
 sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
