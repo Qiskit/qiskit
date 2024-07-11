@@ -457,7 +457,7 @@ class BitArray(ShapedMixin):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_shots:
-                raise ValueError(
+                raise IndexError(
                     f"index {index} is out of bounds for the number of shots {self.num_shots}."
                 )
         arr = self._array
