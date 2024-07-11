@@ -1,0 +1,6 @@
+---
+upgrade_primitives:
+  - |
+    :meth:`.BitArray.slice_bits` and :meth:`.BitArray.slice_shots`
+    will now raise ``IndexError`` when indices are out of bounds.
+    They used to raise ``ValueError`` in the case.

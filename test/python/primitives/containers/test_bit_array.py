@@ -557,9 +557,9 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(ba2.get_counts((i, j, k)), expect)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index -1 is out of bounds"):
                 _ = ba.slice_bits(-1)
-            with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index 9 is out of bounds"):
                 _ = ba.slice_bits(9)
 
     def test_slice_shots(self):
@@ -607,9 +607,9 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(ba2.get_bitstrings((i, j, k)), expected)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index -1 is out of bounds"):
                 _ = ba.slice_shots(-1)
-            with self.assertRaisesRegex(ValueError, "index 10 is out of bounds"):
+            with self.assertRaisesRegex(IndexError, "index 10 is out of bounds"):
                 _ = ba.slice_shots(10)
 
     def test_expectation_values(self):
