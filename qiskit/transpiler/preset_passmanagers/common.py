@@ -521,7 +521,7 @@ def generate_translation_passmanager(
             ),
         ]
     else:
-        raise TranspilerError("Invalid translation method %s." % method)
+        raise TranspilerError(f"Invalid translation method {method}.")
     return PassManager(unroll)
 
 
@@ -560,7 +560,7 @@ def generate_scheduling(
         try:
             scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
+            raise TranspilerError(f"Invalid scheduling method {scheduling_method}.") from ex
     elif instruction_durations:
         # No scheduling. But do unit conversion for delays.
         def _contains_delay(property_set):
@@ -630,15 +630,10 @@ def get_vf2_limits(
     """
     limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
-        if optimization_level == 1:
+        if optimization_level in {1, 2}:
             limits = VF2Limits(
                 int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
                 2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
-            )
-        elif optimization_level == 2:
-            limits = VF2Limits(
-                int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
-                25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(

@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 from .xx_plus_yy import XXPlusYYGate
 
@@ -85,6 +86,8 @@ class iSwapGate(SingletonGate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.ISwapGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new iSwap gate."""
         super().__init__("iswap", 2, [], label=label, duration=duration, unit=unit)
@@ -124,8 +127,7 @@ class iSwapGate(SingletonGate):
 
         self.definition = qc
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return XXPlusYYGate(-np.pi * exponent)
 
     def __eq__(self, other):

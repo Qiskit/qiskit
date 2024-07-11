@@ -12,7 +12,7 @@
 
 """Check if the gates follow the right direction with respect to the coupling map."""
 
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -39,7 +39,7 @@ class CheckGateDirection(AnalysisPass):
             edges = self.coupling_map.get_edges()
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
-            if isinstance(node.op, ControlFlowOp):
+            if node.name in CONTROL_FLOW_OP_NAMES:
                 for block in node.op.blocks:
                     inner_wire_map = {
                         inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
@@ -57,7 +57,7 @@ class CheckGateDirection(AnalysisPass):
     def _target_visit(self, dag, wire_map):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
-            if isinstance(node.op, ControlFlowOp):
+            if node.name in CONTROL_FLOW_OP_NAMES:
                 for block in node.op.blocks:
                     inner_wire_map = {
                         inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
@@ -65,7 +65,7 @@ class CheckGateDirection(AnalysisPass):
                     if not self._target_visit(circuit_to_dag(block), inner_wire_map):
                         return False
             elif len(node.qargs) == 2 and not self.target.instruction_supported(
-                node.op.name, (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
+                node.name, (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             ):
                 return False
         return True

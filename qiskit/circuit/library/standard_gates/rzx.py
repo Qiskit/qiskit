@@ -16,6 +16,7 @@ from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZXGate(Gate):
@@ -117,6 +118,8 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.RZXGate
+
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
@@ -166,10 +169,12 @@ class RZXGate(Gate):
         """
         return RZXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZX gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)
@@ -178,8 +183,7 @@ class RZXGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZXGate(exponent * theta)
 

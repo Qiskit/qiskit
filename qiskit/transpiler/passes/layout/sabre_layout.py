@@ -147,7 +147,7 @@ class SabreLayout(TransformationPass):
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
             layout_trials (int): The number of random seed trials to run
-                layout with. When > 1 the trial that resuls in the output with
+                layout with. When > 1 the trial that results in the output with
                 the fewest swap gates will be selected. If this is not specified
                 (and ``routing_pass`` is not set) then the number of local
                 physical CPUs will be used as the default value. This option is
@@ -311,6 +311,12 @@ class SabreLayout(TransformationPass):
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             mapped_dag.add_creg(creg)
+        for var in dag.iter_input_vars():
+            mapped_dag.add_input_var(var)
+        for var in dag.iter_captured_vars():
+            mapped_dag.add_captured_var(var)
+        for var in dag.iter_declared_vars():
+            mapped_dag.add_declared_var(var)
         mapped_dag._global_phase = dag._global_phase
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
@@ -417,7 +423,7 @@ class SabreLayout(TransformationPass):
         )
 
     def _ancilla_allocation_no_pass_manager(self, dag):
-        """Run the ancilla-allocation and -enlargment passes on the DAG chained onto our
+        """Run the ancilla-allocation and -enlargement passes on the DAG chained onto our
         ``property_set``, skipping the DAG-to-circuit conversion cost of using a ``PassManager``."""
         ancilla_pass = FullAncillaAllocation(self.coupling_map)
         ancilla_pass.property_set = self.property_set

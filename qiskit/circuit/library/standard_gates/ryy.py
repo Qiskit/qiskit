@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RYYGate(Gate):
@@ -72,6 +73,8 @@ class RYYGate(Gate):
                                     \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.RYYGate
+
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
@@ -122,8 +125,10 @@ class RYYGate(Gate):
         """
         return RYYGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RYY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta = float(self.params[0])
         cos = math.cos(theta / 2)
         isin = 1j * math.sin(theta / 2)
@@ -132,8 +137,7 @@ class RYYGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RYYGate(exponent * theta)
 

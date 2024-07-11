@@ -124,16 +124,21 @@ def _measure_v1(
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
     for measure_group_qubits in measure_groups:
-        if qubit_mem_slots is not None:
-            unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+
+        unused_mem_slots = (
+            set()
+            if qubit_mem_slots is None
+            else set(measure_group_qubits) - set(qubit_mem_slots.values())
+        )
+
         try:
             default_sched = inst_map.get(measure_name, measure_group_qubits)
         except exceptions.PulseError as ex:
             raise exceptions.PulseError(
-                "We could not find a default measurement schedule called '{}'. "
+                f"We could not find a default measurement schedule called '{measure_name}'. "
                 "Please provide another name using the 'measure_name' keyword "
                 "argument. For assistance, the instructions which are defined are: "
-                "{}".format(measure_name, inst_map.instructions)
+                f"{inst_map.instructions}"
             ) from ex
         for time, inst in default_sched.instructions:
             if inst.channel.index not in qubits:
@@ -198,10 +203,10 @@ def _measure_v2(
                 schedule += _schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
         except KeyError as ex:
             raise exceptions.PulseError(
-                "We could not find a default measurement schedule called '{}'. "
+                f"We could not find a default measurement schedule called '{measure_name}'. "
                 "Please provide another name using the 'measure_name' keyword "
                 "argument. For assistance, the instructions which are defined are: "
-                "{}".format(measure_name, target.instructions)
+                f"{target.instructions}"
             ) from ex
     return schedule
 

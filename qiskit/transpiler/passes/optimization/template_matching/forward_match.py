@@ -147,8 +147,8 @@ class ForwardMatch:
         """
         matches = []
 
-        for i in range(0, len(self.match)):
-            matches.append(self.match[i][0])
+        for match in self.match:
+            matches.append(match[0])
 
         pred = matches.copy()
         if len(pred) > 1:
@@ -157,9 +157,7 @@ class ForwardMatch:
 
         if self.template_dag_dep.direct_successors(node_id_t):
             maximal_index = self.template_dag_dep.direct_successors(node_id_t)[-1]
-            for elem in pred:
-                if elem > maximal_index:
-                    pred.remove(elem)
+            pred = [elem for elem in pred if elem <= maximal_index]
 
         block: list[int] = []
         for node_id in pred:

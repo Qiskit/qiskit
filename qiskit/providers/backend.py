@@ -40,8 +40,8 @@ class Backend:
 class BackendV1(Backend, ABC):
     """Abstract class for Backends
 
-    This abstract class is to be used for all Backend objects created by a
-    provider. There are several classes of information contained in a Backend.
+    This abstract class is to be used for Backend objects.
+    There are several classes of information contained in a Backend.
     The first are the attributes of the class itself. These should be used to
     defined the immutable characteristics of the backend. The ``options``
     attribute of the backend is used to contain the dynamic user configurable
@@ -86,14 +86,8 @@ class BackendV1(Backend, ABC):
 
         ..
             This next bit is necessary just because autosummary generally won't summarise private
-            methods; changing that behaviour would have annoying knock-on effects through all the
+            methods; changing that behavior would have annoying knock-on effects through all the
             rest of the documentation, so instead we just hard-code the automethod directive.
-
-        In addition to the public abstract methods, subclasses should also implement the following
-        private methods:
-
-        .. automethod:: _default_options
-           :noindex:
         """
         self._configuration = configuration
         self._options = self._default_options()
@@ -101,7 +95,7 @@ class BackendV1(Backend, ABC):
         if fields:
             for field in fields:
                 if field not in self._options.data:
-                    raise AttributeError("Options field %s is not valid for this backend" % field)
+                    raise AttributeError(f"Options field {field} is not valid for this backend")
             self._options.update_config(**fields)
 
     @classmethod
@@ -135,7 +129,7 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this backend" % field)
+                raise AttributeError(f"Options field {field} is not valid for this backend")
         self._options.update_options(**fields)
 
     def configuration(self):
@@ -358,7 +352,7 @@ class BackendV2(Backend, ABC):
         if fields:
             for field in fields:
                 if field not in self._options.data:
-                    raise AttributeError("Options field %s is not valid for this backend" % field)
+                    raise AttributeError(f"Options field {field} is not valid for this backend")
             self._options.update_config(**fields)
         self.name = name
         """Name of the backend."""
@@ -604,7 +598,7 @@ class BackendV2(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this backend" % field)
+                raise AttributeError(f"Options field {field} is not valid for this backend")
         self._options.update_options(**fields)
 
     @property

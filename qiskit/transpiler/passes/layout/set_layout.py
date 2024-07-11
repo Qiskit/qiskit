@@ -65,7 +65,7 @@ class SetLayout(AnalysisPass):
             layout = None
         else:
             raise InvalidLayoutError(
-                f"SetLayout was intialized with the layout type: {type(self.layout)}"
+                f"SetLayout was initialized with the layout type: {type(self.layout)}"
             )
         self.property_set["layout"] = layout
         return dag

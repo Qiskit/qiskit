@@ -698,13 +698,13 @@ class HighLevelSynthesisPluginManager:
         self.plugins_by_op: dict[str, list[str]] = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
-            if op_name not in self.plugins_by_op.keys():
+            if op_name not in self.plugins_by_op:
                 self.plugins_by_op[op_name] = []
             self.plugins_by_op[op_name].append(method_name)
 
     def method_names(self, op_name: str) -> list[str]:
         """Returns plugin methods for op_name."""
-        if op_name in self.plugins_by_op.keys():
+        if op_name in self.plugins_by_op:
             return self.plugins_by_op[op_name]
         else:
             return []

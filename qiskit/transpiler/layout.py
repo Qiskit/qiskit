@@ -97,8 +97,8 @@ class Layout:
             virtual = value1
         else:
             raise LayoutError(
-                "The map (%s -> %s) has to be a (Bit -> integer)"
-                " or the other way around." % (type(value1), type(value2))
+                f"The map ({type(value1)} -> {type(value2)}) has to be a (Bit -> integer)"
+                " or the other way around."
             )
         return virtual, physical
 
@@ -136,7 +136,7 @@ class Layout:
         else:
             raise LayoutError(
                 "The key to remove should be of the form"
-                " Qubit or integer) and %s was provided" % (type(key),)
+                f" Qubit or integer) and {type(key)} was provided"
             )
 
     def __len__(self):
@@ -453,7 +453,7 @@ class TranspileLayout:
     qubits in the circuit as it fits the circuit to the target backend. For example,
     let the input circuit be:
 
-    .. plot:
+    .. plot::
        :include-source:
 
        from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -468,7 +468,7 @@ class TranspileLayout:
 
     Suppose that during the layout stage the transpiler reorders the qubits to be:
 
-    .. plot:
+    .. plot::
        :include-source:
 
        from qiskit import QuantumCircuit
@@ -496,7 +496,7 @@ class TranspileLayout:
     the transpiler needs to insert swap gates, and the output circuit
     becomes:
 
-    .. plot:
+    .. plot::
        :include-source:
 
        from qiskit import QuantumCircuit

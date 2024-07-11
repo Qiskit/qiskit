@@ -112,10 +112,10 @@ fn swap_trial(
     let mut new_cost: f64;
     let mut dist: f64;
 
-    let mut optimal_start = PhysicalQubit::new(std::u32::MAX);
-    let mut optimal_end = PhysicalQubit::new(std::u32::MAX);
-    let mut optimal_start_qubit = VirtualQubit::new(std::u32::MAX);
-    let mut optimal_end_qubit = VirtualQubit::new(std::u32::MAX);
+    let mut optimal_start = PhysicalQubit::new(u32::MAX);
+    let mut optimal_end = PhysicalQubit::new(u32::MAX);
+    let mut optimal_start_qubit = VirtualQubit::new(u32::MAX);
+    let mut optimal_end_qubit = VirtualQubit::new(u32::MAX);
 
     let mut scale = Array2::zeros((num_qubits, num_qubits));
 
@@ -270,7 +270,7 @@ pub fn swap_trials(
     // unless force threads is set.
     let run_in_parallel = getenv_use_multiple_threads();
 
-    let mut best_depth = std::usize::MAX;
+    let mut best_depth = usize::MAX;
     let mut best_edges: Option<EdgeCollection> = None;
     let mut best_layout: Option<NLayout> = None;
     if run_in_parallel {
