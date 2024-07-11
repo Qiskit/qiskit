@@ -17,8 +17,6 @@ import logging
 import math
 from collections.abc import Sequence
 
-from qiskit.dagcircuit import DAGOpNode
-
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.synthesis.one_qubit import one_qubit_decompose

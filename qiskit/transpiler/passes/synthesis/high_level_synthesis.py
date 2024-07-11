@@ -159,7 +159,7 @@ QFT Synthesis
    QFTSynthesisLine
 """
 from __future__ import annotations
-from typing import Optional, Union, List, Tuple, Callable
+from typing import Optional, Callable
 import numpy as np
 import rustworkx as rx
 
