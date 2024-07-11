@@ -52,11 +52,11 @@ def random_circuit_from_graph(
     This function will generate a random circuit by randomly selecting gates from the set of
     standard gates in :mod:`qiskit.circuit.library.standard_gates`. User can attach a numerical
     value as a metadata to the edge of the graph indicating the edge weight for that particular edge,
-    These edge weights  would be normalized to the probabilities for the edges of getting selected.
+    These edge weights would be normalized to the probabilities for the edges of getting selected.
     If all the edge weights are passed as `None`, then the probability of each qubit-pair of getting
-    selected is set to 1/N. (where N is the number of edges in the interaction_graph passed in)
-    If any weight of an edge is set as zero, that particular edge will be not be included in the
-    output circuit.
+    selected is set to 1/N, where `N` is the number of edges in the interaction_graph passed in,
+    i.e each edge is drawn uniformly. If any weight of an edge is set as zero, that particular
+    edge will be not be included in the output circuit.
 
     If numerical values are present as probabilities but some/any are None, or negative, this will
     raise a ValueError.
@@ -68,9 +68,10 @@ def random_circuit_from_graph(
     If :arg:`max_operands` is set to 2, then in every iteration `N` 2Q gates and qubit-pairs which
     exists in the input interaction graph are chosen at random, the qubit-pairs are also chosen at
     random based on the probability attached to the qubit-pair, the 2Q gates are applied on the
-    qubit-paris which are idle for that particular iteration, this is to make sure that for a particular
+    qubit-pairs which are idle for that particular iteration, this is to make sure that for a particular
     iteration only one circuit layer exists, now, if `insert_1q_oper` is set to True, randomly
-    chosen 1Q gates are applied to qubits that are still idle for that particular iteration.
+    chosen 1Q gates are applied to qubits that are still idle for that particular iteration, after
+    applying 2Q gates for that particular iteration.
 
     Example:
 
@@ -90,7 +91,7 @@ def random_circuit_from_graph(
         interaction_graph (PyGraph | PyDiGraph): Interaction Graph
         min_2q_gate_per_edge (int): Minimum number of times every qubit-pair must be used
         in the random circuit.
-        max_operands (int): maximum qubit operands of each gate(between 1 and 2)
+        max_operands (int): maximum qubit operands of each gate(should be 1 or 2)
         (optional, default:2)
         measure (bool): if True, measure all qubits at the end. (optional, default: False)
         conditional (bool): if True, insert middle measurements and conditionals.
@@ -167,7 +168,7 @@ def random_circuit_from_graph(
     # If any of the values of the probability is None, then it would raise an error.
     elif any(edges_probs):
         raise ValueError(
-            "The probabilities of a qubit-pair getting seleted contains `None`"
+            "Some of the probabilities of a qubit-pair getting selected is `None`"
             " It should either be all `None` or all positive numerical weights. "
         )
 
@@ -303,8 +304,9 @@ def random_circuit_from_graph(
 
         if insert_1q_oper:
             if not len(qubit_idx_not_used) == 0:
-                # Some extra 1Q Gate in to fill empty qubits for this while iteration.
 
+                # Some extra 1Q Gate in to fill qubits which are still idle for this
+                # particular while iteration.
                 extra_1q_gates = rng.choice(gates_1q, size=len(qubit_idx_not_used), replace=True)
 
                 cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)

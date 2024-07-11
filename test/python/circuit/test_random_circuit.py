@@ -251,14 +251,13 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
     @ddt.unpack
     def test_random_circuit_conditional_reset(self, inter_graph, seed):
         """Test generating random circuits with conditional and reset."""
-        # Presence of 'reset' in the circuit is probabilistic, at seed 0 reset exists in circuit.
 
         qc = random_circuit_from_graph(
             interaction_graph=inter_graph,
             min_2q_gate_per_edge=2,
             conditional=True,
             reset=True,
-            seed=seed,  # Do not change the seed or the args.486
+            seed=seed,  # Do not change the seed or the args.
             insert_1q_oper=True,
             prob_conditional=0.41,
             prob_reset=0.50,
@@ -353,7 +352,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         cp_mp = [(0, 1, None), (1, 2, 54), (2, 3, 23), (3, 4, 32)]
 
         pydi_graph.add_edges_from(cp_mp)
-        with self.assertRaisesRegex(ValueError, ".getting seleted contains."):
+        with self.assertRaisesRegex(ValueError, ".getting selected is."):
             _ = random_circuit_from_graph(
                 interaction_graph=pydi_graph,
                 min_2q_gate_per_edge=2,
@@ -370,10 +369,9 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
 
         pydi_graph = rx.PyDiGraph()
         pydi_graph.add_nodes_from(range(10))
-        inter_graph = pydi_graph
         with self.assertRaisesRegex(CircuitError, ".function is intended to only work on."):
             _ = random_circuit_from_graph(
-                interaction_graph=inter_graph,
+                interaction_graph=pydi_graph,
                 min_2q_gate_per_edge=2,
                 max_operands=3,  # This would fail
                 measure=True,
