@@ -1168,7 +1168,7 @@ impl CircuitData {
         })
     }
 
-    /// Rust native method, returns an iterator over all the instructions present in the circuit.
+    /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
     }
