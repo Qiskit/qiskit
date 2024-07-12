@@ -467,7 +467,7 @@ class BitArray(ShapedMixin):
     def postselect(
         self,
         indices: Sequence[int] | int,
-        selection: Sequence[bool] | bool,
+        selection: Sequence[bool | int] | bool | int,
     ) -> BitArray:
         """Post-select this bit array based on sliced equality with a given bitstring.
 
@@ -482,9 +482,10 @@ class BitArray(ShapedMixin):
                 :class:`~.ClassicalRegister` location ``creg[i]`` (as in :meth:`~slice_bits`).
                 Negative indices are allowed.
 
-            selection: A list of bools of length matching ``indices``, with ``indices[i]`` corresponding
-              to ``selection[i]``. Shots will be discarded unless all cbits specified by ``indices`` have
-              the values given by ``selection``.
+            selection: A list of binary values (will be cast to ``bool``) of length matching
+                ``indices``, with ``indices[i]`` corresponding to ``selection[i]``. Shots will be 
+                discarded unless all cbits specified by ``indices`` have the values given by 
+                ``selection``.
 
         Returns:
             A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
@@ -496,7 +497,7 @@ class BitArray(ShapedMixin):
         """
         if isinstance(indices, int):
             indices = (indices,)
-        if isinstance(selection, bool):
+        if isinstance(selection, (bool,int)):
             selection = (selection,)
         selection = np.asarray(selection, dtype=bool)
 
