@@ -609,7 +609,7 @@ def plot_gate_map(
     ]
 
     qubit_coordinates_map[156] = [
-                [0, 0],
+         [0, 0],
          [1, 0],
          [2, 0],
          [3, 0],
