@@ -30,7 +30,7 @@ class TestPulseDefaults(QiskitTestCase):
             # BackendV2 does not have defaults
             self.defs = FakeOpenPulse2Q().defaults()
         backend = GenericBackendV2(
-            27, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+            2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
         )
         self.inst_map = backend.instruction_schedule_map
 
