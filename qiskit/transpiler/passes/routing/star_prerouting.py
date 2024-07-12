@@ -351,9 +351,7 @@ class StarPreRouting(TransformationPass):
         return res_dag, qubit_mapping
 
 
-def _extract_nodes(
-    nodes: List[DAGOpNode], dag: DAGCircuit
-) -> List[Tuple[int, List[int], set[int], bool]]:
+def _extract_nodes(nodes, dag):
     """Extract and format node information for Rust representation used in SabreDAG.
 
     Each node is represented as a tuple containing:
@@ -363,11 +361,11 @@ def _extract_nodes(
     - Directive flag (bool): Indicates whether the operation is a directive (True) or not (False).
 
     Args:
-        nodes (list[DAGOpNode]): List of DAGOpNode objects representing the nodes to extract information from.
+        nodes (list[DAGOpNode]): List of DAGOpNode objects to extract information from.
         dag (DAGCircuit): DAGCircuit object containing the circuit structure.
 
     Returns:
-        list of tuples: Each tuple contains (node_id, qubit_indices, classical_bit_indices, is_directive).
+        list of tuples: Each tuple contains information about a node in the format described above.
     """
     extracted_node_info = []
     for node in nodes:
