@@ -51,6 +51,7 @@ class TestCircuitScheduler(QiskitTestCase):
 
     def test_instruction_map_and_backend_defaults_unavailable(self):
         """Test backend defaults unavailable when backend is provided, but instruction map is not."""
+        # TODO remove the test once BackendV1 is removed, since BackendV2 does not have defaults
         with self.assertWarns(DeprecationWarning):
             self.backend = FakeOpenPulse3Q()
         self.backend._defaults = None
