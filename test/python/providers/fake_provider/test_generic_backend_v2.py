@@ -16,8 +16,10 @@ import math
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -57,12 +59,53 @@ class TestGenericBackendV2(QiskitTestCase):
 
     def test_no_noise(self):
         """Test no noise info when parameter is false"""
-        backend = GenericBackendV2(num_qubits=2, noise_info=False)
+        backend = GenericBackendV2(
+            num_qubits=5, coupling_map=CouplingMap.from_line(5), noise_info=False
+        )
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 4)
+        qc.cx(3, 0)
+        qc.cx(2, 4)
+        qc_res = generate_preset_pass_manager(optimization_level=2, backend=backend).run(qc)
+        self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
+        self.assertEqual(backend.target.qubit_properties, None)
+
+    def test_no_info(self):
+        """Test no noise info when parameter is false"""
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=CouplingMap.from_line(5),
+            noise_info=False,
+            pulse_channels=False,
+        )
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 4)
+        qc.cx(3, 0)
+        qc.cx(2, 4)
+        qc_res = generate_preset_pass_manager(optimization_level=2, backend=backend).run(qc)
+        self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
         self.assertEqual(backend.target.qubit_properties, None)
 
     def test_no_pulse_channels(self):
         """Test no/empty pulse channels when parameter is false"""
-        backend = GenericBackendV2(num_qubits=2, pulse_channels=False)
+        backend = GenericBackendV2(
+            num_qubits=5, coupling_map=CouplingMap.from_line(5), pulse_channels=False
+        )
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 4)
+        qc.cx(3, 0)
+        qc.cx(2, 4)
+        qc_res = generate_preset_pass_manager(optimization_level=2, backend=backend).run(qc)
+        self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
         self.assertTrue(len(backend.channels_map) == 0)
 
     def test_operation_names(self):
