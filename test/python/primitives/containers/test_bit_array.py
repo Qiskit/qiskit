@@ -735,15 +735,15 @@ class BitArrayTestCase(QiskitTestCase):
             bool_array = bool_array.reshape(-1, num_bits)
 
             test_cases = [
-                ("basic", [0, 1], [False, False]),
-                ("multibyte", [0, 9], [False, True]),
-                ("repeated", [5, 5, 5], [False, False, False]),
-                ("contradict", [5, 5, 5], [True, False, False]),
-                ("unsorted", [5, 0, 9, 3], [True, False, True, False]),
-                ("negative", [-5, 1, -2, -10], [True, False, True, False]),
-                ("negcontradict", [4, -6], [True, False]),
+                ("basic", [0, 1], [0, 0]),
+                ("multibyte", [0, 9], [0, 1]),
+                ("repeated", [5, 5, 5], [0, 0, 0]),
+                ("contradict", [5, 5, 5], [0, 0, 0]),
+                ("unsorted", [5, 0, 9, 3], [1, 0, 1, 0]),
+                ("negative", [-5, 1, -2, -10], [1, 0, 1, 0]),
+                ("negcontradict", [4, -6], [1, 0]),
                 ("trivial", [], []),
-                ("bareindex", 6, False),
+                ("bareindex", 6, 0),
             ]
 
             for name, indices, selection in test_cases:
