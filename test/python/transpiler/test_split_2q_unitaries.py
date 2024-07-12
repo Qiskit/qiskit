@@ -50,6 +50,69 @@ class TestSplit2QUnitaries(QiskitTestCase):
             matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
         )
 
+    def test_2q_identity(self):
+        """Test that a 2q unitary matching the identity is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.id(0)
+        qc.id(1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc_split)
+
+        self.assertTrue(Operator(qc).equiv(qc_split))
+        self.assertTrue(
+            matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
+        )
+        self.assertEqual(qc_split.size(), 0)
+
+    def test_1q_identity(self):
+        """Test that a Kronecker product with one identity gate on top is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.id(1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc_split)
+
+        self.assertTrue(Operator(qc).equiv(qc_split))
+        self.assertTrue(
+            matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
+        )
+        self.assertEqual(qc_split.size(), 1)
+
+    def test_1q_identity2(self):
+        """Test that a Kronecker product with one identity gate on bottom is correctly processed."""
+        qc = QuantumCircuit(2)
+        qc.id(0)
+        qc.x(1)
+        qc.global_phase += 1.2345
+        qc_split = QuantumCircuit(2)
+        qc_split.append(UnitaryGate(Operator(qc)), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc_split)
+
+        self.assertTrue(Operator(qc).equiv(qc_split))
+        self.assertTrue(
+            matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
+        )
+        self.assertEqual(qc_split.size(), 1)
+
     def test_no_split(self):
         """Test that the pass does not split a non-local two-qubit unitary."""
         qc = QuantumCircuit(2)

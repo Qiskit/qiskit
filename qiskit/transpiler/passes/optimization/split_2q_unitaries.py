@@ -12,8 +12,10 @@
 """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
 
 import numpy as np
+
+from qiskit.circuit import CircuitInstruction
 from qiskit.circuit.library import UnitaryGate
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
 from qiskit.synthesis.two_qubit.two_qubit_decompose import decompose_two_qubit_product_gate
 from qiskit.transpiler import TransformationPass
@@ -24,27 +26,40 @@ class Split2QUnitaries(TransformationPass):
 
     def run(self, dag: DAGCircuit):
         """Run the Split2QUnitaries pass on `dag`."""
+        sq_id = np.eye(2)
         for node in dag.topological_op_nodes():
             # skip operations without two-qubits and for which we can not determine a potential 1q split
             if (
                 len(node.cargs) > 0
                 or len(node.qargs) != 2
                 or node.matrix is None
-                or node.is_parameterized())
+                or node.is_parameterized()
             ):
                 continue
 
             # check if the node can be represented by single-qubit gates
             nmat = node.matrix
-            local_invairants = two_qubit_local_invariants(nmat)
-            if local_invariants[0] == 1 and local_invariants[1] == 0 and local_invariants == 3:
+            local_invariants = two_qubit_local_invariants(nmat)
+            if local_invariants[0] == 1 and local_invariants[1] == 0 and local_invariants[2] == 3:
                 ul, ur, phase = decompose_two_qubit_product_gate(nmat)
-                dag_node = DAGCircuit()
-                dag_node.add_qubits(node.qargs)
 
-                dag_node.apply_operation_back(UnitaryGate(ur, check_input=False), qargs=(node.qargs[0],))
-                dag_node.apply_operation_back(UnitaryGate(ul, check_input=False), qargs=(node.qargs[1],))
-                dag_node.global_phase += phase
-                dag.substitute_node_with_dag(node, dag_node)
+                if not np.allclose(ur, sq_id):
+                    ur_node = DAGOpNode.from_instruction(
+                        CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=dag
+                    )
+                    ur_node._node_id = dag._multi_graph.add_node(ur_node)
+                    dag._increment_op("unitary")
+                    dag._multi_graph.insert_node_on_in_edges(ur_node._node_id, node._node_id)
+
+                if not np.allclose(ul, sq_id):
+                    ul_node = DAGOpNode.from_instruction(
+                        CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=dag
+                    )
+                    ul_node._node_id = dag._multi_graph.add_node(ul_node)
+                    dag._increment_op("unitary")
+                    dag._multi_graph.insert_node_on_in_edges(ul_node._node_id, node._node_id)
+
+                dag.global_phase += phase
+                dag.remove_op_node(node)
 
         return dag

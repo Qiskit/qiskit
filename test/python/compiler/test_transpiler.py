@@ -111,16 +111,6 @@ class CustomCX(Gate):
         self._definition = QuantumCircuit(2)
         self._definition.cx(0, 1)
 
-    def to_matrix(self) -> np.ndarray:
-        return np.asarray(
-            [
-                [1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
-                [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j],
-                [0.0 + 0.0j, 0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j],
-                [0.0 + 0.0j, 1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
-            ]
-        )
-
 
 def connected_qubits(physical: int, coupling_map: CouplingMap) -> set:
     """Get the physical qubits that have a connection to this one in the coupling map."""

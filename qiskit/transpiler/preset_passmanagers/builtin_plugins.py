@@ -187,16 +187,16 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 return False
 
             target = pass_manager_config.target
-            bases = pass_manager_config.basis_gates
+            basis = pass_manager_config.basis_gates
             # consolidate gates before routing if the user did not specify a discrete basis gate, i.e.
             # * no target or basis gate set has been specified
             # * target has been specified, and we have one non-discrete gate in the target's spec
             # * basis gates have been specified, and we have one non-discrete gate in that set
-            do_consolidate_blocks_init = target is None and bases is None
+            do_consolidate_blocks_init = target is None and basis is None
             do_consolidate_blocks_init |= target is not None and _is_one_op_non_discrete(
                 target.operations
             )
-            do_consolidate_blocks_init |= bases is not None and _is_one_op_non_discrete(bases)
+            do_consolidate_blocks_init |= basis is not None and _is_one_op_non_discrete(basis)
 
             if do_consolidate_blocks_init:
                 init.append(Collect2qBlocks())
