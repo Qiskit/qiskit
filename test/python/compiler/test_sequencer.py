@@ -27,7 +27,8 @@ class TestSequence(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = Fake127QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake127QPulseV1()
         self.backend.configuration().timing_constraints = {}
 
     def test_sequence_empty(self):
