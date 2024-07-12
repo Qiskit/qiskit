@@ -483,8 +483,8 @@ class BitArray(ShapedMixin):
                 Negative indices are allowed.
 
             selection: A list of binary values (will be cast to ``bool``) of length matching
-                ``indices``, with ``indices[i]`` corresponding to ``selection[i]``. Shots will be 
-                discarded unless all cbits specified by ``indices`` have the values given by 
+                ``indices``, with ``indices[i]`` corresponding to ``selection[i]``. Shots will be
+                discarded unless all cbits specified by ``indices`` have the values given by
                 ``selection``.
 
         Returns:
@@ -497,7 +497,7 @@ class BitArray(ShapedMixin):
         """
         if isinstance(indices, int):
             indices = (indices,)
-        if isinstance(selection, (bool,int)):
+        if isinstance(selection, (bool, int)):
             selection = (selection,)
         selection = np.asarray(selection, dtype=bool)
 
