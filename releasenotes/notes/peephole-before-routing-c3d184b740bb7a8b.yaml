@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new pass :class:`.Split2QUnitaries` that iterates over all two-qubit gates or unitaries in a
     circuit and replaces them with two single-qubit unitaries, if possible without introducing errors, i.e.

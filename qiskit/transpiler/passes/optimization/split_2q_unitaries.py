@@ -29,20 +29,21 @@ class Split2QUnitaries(TransformationPass):
             if (
                 len(node.cargs) > 0
                 or len(node.qargs) != 2
-                or not (hasattr(node.op, "to_matrix") and hasattr(node.op, "__array__"))
-                or (hasattr(node.op, "is_parameterized") and node.op.is_parameterized())
+                or node.matrix is None
+                or node.is_parameterized())
             ):
                 continue
 
             # check if the node can be represented by single-qubit gates
-            nmat = node.op.to_matrix()
-            if np.all(two_qubit_local_invariants(nmat) == [1, 0, 3]):
+            nmat = node.matrix
+            local_invairants = two_qubit_local_invariants(nmat)
+            if local_invariants[0] == 1 and local_invariants[1] == 0 and local_invariants == 3:
                 ul, ur, phase = decompose_two_qubit_product_gate(nmat)
                 dag_node = DAGCircuit()
                 dag_node.add_qubits(node.qargs)
 
-                dag_node.apply_operation_back(UnitaryGate(ur), qargs=(node.qargs[0],))
-                dag_node.apply_operation_back(UnitaryGate(ul), qargs=(node.qargs[1],))
+                dag_node.apply_operation_back(UnitaryGate(ur, check_input=False), qargs=(node.qargs[0],))
+                dag_node.apply_operation_back(UnitaryGate(ul, check_input=False), qargs=(node.qargs[1],))
                 dag_node.global_phase += phase
                 dag.substitute_node_with_dag(node, dag_node)
 
