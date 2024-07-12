@@ -1574,7 +1574,8 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        backend_v1 = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake27QPulseV1()
         backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1594,7 +1595,8 @@ class TestTranspile(QiskitTestCase):
         """Test that loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        backend_v1 = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake20QV1()
         backend_v2 = BackendV2Converter(backend_v1)
         qr1 = QuantumRegister(3, "qr1")
         qr2 = QuantumRegister(2, "qr2")

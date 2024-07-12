@@ -42,7 +42,9 @@ class FakeBackend(BackendV1):
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="Fake backends using BackendV1 are deprecated in favor of GenericBackendV2",
+        additional_msg="Fake backends using BackendV1 are deprecated in favor of "
+        ":class:`.GenericBackendV2`. You can convert BackendV1 to "
+        ":class:`.BackendV2` with :class:`.BackendV2Converter`.",
     )
     def __init__(self, configuration, time_alive=10):
         """FakeBackend initializer.
