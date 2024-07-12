@@ -1093,11 +1093,13 @@ def plot_coupling_map(
         }
         return out_dict
 
-    graph_attributes = {
-        "scale": "0.2",
-        "overlap": "ipsep",
-        "model": "subset",
-    }
+    graph_attributes = None
+    if not qubit_coordinates:
+        graph_attributes = {
+            "scale": "0.2",
+            "overlap": "ipsep",
+            "model": "subset",
+        }
     plot = graphviz_draw(
         graph,
         method="neato",
