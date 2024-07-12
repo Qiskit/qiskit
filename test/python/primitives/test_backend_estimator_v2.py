@@ -399,20 +399,28 @@ class TestBackendEstimatorV2(QiskitTestCase):
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
             SparsePauliOp.from_list([("ZZ", 1)]),
             SparsePauliOp.from_list([("ZZ", 1), ("ZZ", 1)]),
+            SparsePauliOp.from_list([("XX", 0), ("YY", 0)]),
         )
-        hamiltonian1 = hamiltonian[2].apply_layout(psi1.layout)
+        hamiltonian1 = hamiltonian[3].apply_layout(psi1.layout)
         theta1 = self.theta[0]
         job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=self._precision)
         result = job.result()
-        np.testing.assert_allclose(result[0].data.stds, [self._precision], rtol=self._rtol)
+        if np.sum(hamiltonian1.coeffs) == 0:
+            np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
+        else:
+            np.testing.assert_allclose(result[0].data.stds, [self._precision], rtol=self._rtol)
         # The result of the second run is the same
         job = estimator.run(
             [(psi1, hamiltonian1, [theta1]), (psi1, hamiltonian1, [theta1])],
             precision=self._precision,
         )
         result = job.result()
-        np.testing.assert_allclose(result[0].data.stds, [self._precision], rtol=self._rtol)
-        np.testing.assert_allclose(result[1].data.stds, [self._precision], rtol=self._rtol)
+        if np.sum(hamiltonian1.coeffs) == 0:
+            np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
+            np.testing.assert_allclose(result[1].data.stds, 0, rtol=self._rtol)
+        else:
+            np.testing.assert_allclose(result[0].data.stds, [self._precision], rtol=self._rtol)
+            np.testing.assert_allclose(result[1].data.stds, [self._precision], rtol=self._rtol)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     @combine(abelian_grouping=[True, False])
