@@ -1093,15 +1093,17 @@ def plot_coupling_map(
         }
         return out_dict
 
-    graph_attributes = {
-        "overlap_scaling": "-10",
-        "overlap": "prism",
-        "model": "subset",
-    }
+    graph_attributes = None
+    if not qubit_coordinates:
+        graph_attributes = {
+            "overlap_scaling": "-7",
+            "overlap": "prism",
+            "model": "subset",
+        }
     plot = graphviz_draw(
         graph,
         method="neato",
-        graph_attr=None if qubit_coordinates else graph_attributes,
+        graph_attr=graph_attributes,
         node_attr_fn=color_node,
         edge_attr_fn=color_edge,
         filename=filename,
