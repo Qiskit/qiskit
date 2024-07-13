@@ -1057,7 +1057,7 @@ def plot_coupling_map(
 
     if font_size is None:
         max_characters = max(1, max(len(str(x)) for x in qubit_labels))
-        font_size = max(int(20 / max_characters), 1)
+        font_size = max(int(40 / max_characters), 1)
 
     def color_node(node):
         if qubit_coordinates:
@@ -1094,14 +1094,14 @@ def plot_coupling_map(
         return out_dict
 
     graph_attributes = {
-        "scale": "0.2",
-        "overlap": "ipsep",
+        "overlap_scaling": "-10",
+        "overlap": "prism",
         "model": "subset",
     }
     plot = graphviz_draw(
         graph,
         method="neato",
-        graph_attr=graph_attributes,
+        graph_attr=None if qubit_coordinates else graph_attributes,
         node_attr_fn=color_node,
         edge_attr_fn=color_edge,
         filename=filename,
