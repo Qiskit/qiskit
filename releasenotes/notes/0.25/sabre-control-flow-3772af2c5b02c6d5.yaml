@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Control-flow operations are now supported by the Sabre family
+    of transpiler passes, namely layout pass :class:`.SabreLayout`
+    and routing pass :class:`.SabreSwap`. Function :func:`.transpile`
+    keyword arguments ``layout_method`` and ``routing_method`` now
+    accept the option "sabre" for circuits with control flow,
+    which was previously unsupported.

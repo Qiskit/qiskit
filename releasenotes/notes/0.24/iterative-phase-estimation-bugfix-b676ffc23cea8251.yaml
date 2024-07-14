@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug where :class:`.IterativePhaseEstimation` was generating the wrong circuit, causing the
+    algorithm to fail for simple cases. Fixed `#9280 <https://github.com/Qiskit/qiskit-terra/issues/9280>`__.

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add ``schmidt_decomposition`` function to the ``quantum_info`` module.
+    This function works with the ``Statevector`` and ``DensityMatrix``
+    classes for bipartite pure states.

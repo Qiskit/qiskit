@@ -32,7 +32,7 @@ class Fake1Q(FakeBackend):
         configuration = BackendProperties(
             backend_name="fake_1q",
             backend_version="0.0.0",
-            n_qubits=1,
+            num_qubits=1,
             basis_gates=["u1", "u2", "u3", "cx"],
             simulator=False,
             local=True,
@@ -89,11 +89,3 @@ class Fake1Q(FakeBackend):
             general=[],
         )
         super().__init__(configuration)
-
-    def defaults(self):
-        """defaults == configuration"""
-        return self._configuration
-
-    def properties(self):
-        """properties == configuration"""
-        return self._configuration

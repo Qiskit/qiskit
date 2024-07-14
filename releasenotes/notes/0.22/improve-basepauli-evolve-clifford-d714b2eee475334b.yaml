@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The runtime performance for conjugation of a long :class:`.PauliList`
+    object by a :class:`.Clifford` using the  :meth:`.PauliList.evolve`
+    has significantly improved. It will now run significantly faster than
+    before.

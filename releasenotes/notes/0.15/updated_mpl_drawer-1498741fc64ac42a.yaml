@@ -11,7 +11,7 @@ features:
     
     For example:
     
-    .. jupyter-execute::
+    .. code-block::
     
         from qiskit import QuantumCircuit
         circuit = QuantumCircuit(2)
@@ -27,7 +27,7 @@ features:
     
     For example:
     
-    .. jupyter-execute::
+    .. code-block::
     
         from qiskit import QuantumCircuit
         circuit = QuantumCircuit(2)
@@ -44,7 +44,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         from qiskit.circuit.library.standard_gates import YGate

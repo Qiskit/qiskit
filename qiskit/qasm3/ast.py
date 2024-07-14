@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, super-init-not-called
+# pylint: disable=invalid-name, super-init-not-called, missing-class-docstring, redefined-builtin
 
 """QASM3 AST Nodes"""
 
 import enum
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Iterable, Tuple
 
 
 class ASTNode:
@@ -34,8 +34,6 @@ class Statement(ASTNode):
         | aliasStatement
         | quantumStatement
     """
-
-    pass
 
 
 class Pragma(ASTNode):
@@ -110,9 +108,6 @@ class QuantumInstruction(ASTNode):
         | quantumBarrier
     """
 
-    def __init__(self):
-        pass
-
 
 class ClassicalType(ASTNode):
     """Information about a classical type.  This is just an abstract base for inheritance tests."""
@@ -128,6 +123,28 @@ class FloatType(ClassicalType, enum.Enum):
     OCT = 256
 
 
+class BoolType(ClassicalType):
+    """Type information for a Boolean."""
+
+
+class IntType(ClassicalType):
+    """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class UintType(ClassicalType):
+    """Type information for an unsigned integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class BitType(ClassicalType):
+    """Type information for a single bit."""
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -135,46 +152,19 @@ class BitArrayType(ClassicalType):
         self.size = size
 
 
-class Identifier(ASTNode):
-    """
-    Identifier : FirstIdCharacter GeneralIdCharacter* ;
-    """
-
-    def __init__(self, string):
-        self.string = string
-
-
-class PhysicalQubitIdentifier(Identifier):
-    """
-    Phisical qubit identifier
-    """
-
-    def __init__(self, identifier: Identifier):
-        self.identifier = identifier
-
-
 class Expression(ASTNode):
-    """
-    expression
-        // include terminator/unary as base cases to simplify parsing
-        : expressionTerminator
-        | unaryExpression
-        // expression hierarchy
-        | xOrExpression
-        | expression '|' xOrExpression
-    """
-
-    def __init__(self, something):
-        self.something = something
+    pass
 
 
-class Range(ASTNode):
-    """
-    A range expression::
+class StringifyAndPray(Expression):
+    # This is not a real AST node, yet is somehow very common. It's used when there are
+    # `ParameterExpression` instances; instead of actually visiting the Sympy expression tree into
+    # an OQ3 AST, we just convert it to a string, cross our fingers, and hope.
+    def __init__(self, obj):
+        self.obj = obj
 
-        <start>? (: <step>)? : <end>?
-    """
 
+class Range(Expression):
     def __init__(
         self,
         start: Optional[Expression] = None,
@@ -186,14 +176,101 @@ class Range(ASTNode):
         self.end = end
 
 
-class SubscriptedIdentifier(Identifier):
-    """
-    An identifier with subscripted access.
-    """
+class Identifier(Expression):
+    def __init__(self, string):
+        self.string = string
 
-    def __init__(self, identifier: Identifier, subscript: Union[Range, Expression]):
-        self.identifier = identifier
+
+class SubscriptedIdentifier(Identifier):
+    """An identifier with subscripted access."""
+
+    def __init__(self, string: str, subscript: Union[Range, Expression]):
+        super().__init__(string)
         self.subscript = subscript
+
+
+class Constant(Expression, enum.Enum):
+    """A constant value defined by the QASM 3 spec."""
+
+    PI = enum.auto()
+    EULER = enum.auto()
+    TAU = enum.auto()
+
+
+class IntegerLiteral(Expression):
+    def __init__(self, value):
+        self.value = value
+
+
+class BooleanLiteral(Expression):
+    def __init__(self, value):
+        self.value = value
+
+
+class BitstringLiteral(Expression):
+    def __init__(self, value, width):
+        self.value = value
+        self.width = width
+
+
+class DurationUnit(enum.Enum):
+    """Valid values for the unit of durations."""
+
+    NANOSECOND = "ns"
+    MICROSECOND = "us"
+    MILLISECOND = "ms"
+    SECOND = "s"
+    SAMPLE = "dt"
+
+
+class DurationLiteral(Expression):
+    def __init__(self, value: float, unit: DurationUnit):
+        self.value = value
+        self.unit = unit
+
+
+class Unary(Expression):
+    class Op(enum.Enum):
+        LOGIC_NOT = "!"
+        BIT_NOT = "~"
+
+    def __init__(self, op: Op, operand: Expression):
+        self.op = op
+        self.operand = operand
+
+
+class Binary(Expression):
+    class Op(enum.Enum):
+        BIT_AND = "&"
+        BIT_OR = "|"
+        BIT_XOR = "^"
+        LOGIC_AND = "&&"
+        LOGIC_OR = "||"
+        LESS = "<"
+        LESS_EQUAL = "<="
+        GREATER = ">"
+        GREATER_EQUAL = ">="
+        EQUAL = "=="
+        NOT_EQUAL = "!="
+        SHIFT_LEFT = "<<"
+        SHIFT_RIGHT = ">>"
+
+    def __init__(self, op: Op, left: Expression, right: Expression):
+        self.op = op
+        self.left = left
+        self.right = right
+
+
+class Cast(Expression):
+    def __init__(self, type: ClassicalType, operand: Expression):
+        self.type = type
+        self.operand = operand
+
+
+class Index(Expression):
+    def __init__(self, target: Expression, index: Expression):
+        self.target = target
+        self.index = index
 
 
 class IndexSet(ASTNode):
@@ -205,14 +282,6 @@ class IndexSet(ASTNode):
 
     def __init__(self, values: List[Expression]):
         self.values = values
-
-
-class Constant(Expression, enum.Enum):
-    """A constant value defined by the QASM 3 spec."""
-
-    PI = enum.auto()
-    EULER = enum.auto()
-    TAU = enum.auto()
 
 
 class QuantumMeasurement(ASTNode):
@@ -237,49 +306,6 @@ class QuantumMeasurementAssignment(Statement):
         self.quantumMeasurement = quantumMeasurement
 
 
-class ExpressionTerminator(Expression):
-    """
-    expressionTerminator
-        : Constant
-        | Integer
-        | RealNumber
-        | booleanLiteral
-        | Identifier
-        | StringLiteral
-        | builtInCall
-        | kernelCall
-        | subroutineCall
-        | timingTerminator
-        | LPAREN expression RPAREN
-        | expressionTerminator LBRACKET expression RBRACKET
-        | expressionTerminator incrementor
-    """
-
-    pass
-
-
-class Integer(Expression):
-    """Integer : Digit+ ;"""
-
-
-class DurationUnit(enum.Enum):
-    """Valid values for the unit of durations."""
-
-    NANOSECOND = "ns"
-    MICROSECOND = "us"
-    MILLISECOND = "ms"
-    SECOND = "s"
-    SAMPLE = "dt"
-
-
-class DurationLiteral(Expression):
-    """Duration literal."""
-
-    def __init__(self, value: float, unit: DurationUnit):
-        self.value = value
-        self.unit = unit
-
-
 class Designator(ASTNode):
     """
     designator
@@ -291,12 +317,20 @@ class Designator(ASTNode):
 
 
 class ClassicalDeclaration(Statement):
-    """Declaration of a classical type, optionally initialising it to a value."""
+    """Declaration of a classical type, optionally initializing it to a value."""
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_
         self.identifier = identifier
         self.initializer = initializer
+
+
+class AssignmentStatement(Statement):
+    """Assignment of an expression to an l-value."""
+
+    def __init__(self, lvalue: SubscriptedIdentifier, rvalue: Expression):
+        self.lvalue = lvalue
+        self.rvalue = rvalue
 
 
 class QuantumDeclaration(ASTNode):
@@ -317,9 +351,9 @@ class AliasStatement(ASTNode):
         : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
 
-    def __init__(self, identifier: Identifier, concatenation: List[Identifier]):
+    def __init__(self, identifier: Identifier, value: Expression):
         self.identifier = identifier
-        self.concatenation = concatenation
+        self.value = value
 
 
 class QuantumGateModifierName(enum.Enum):
@@ -356,23 +390,6 @@ class QuantumGateCall(QuantumInstruction):
         self.indexIdentifierList = indexIdentifierList
         self.parameters = parameters or []
         self.modifiers = modifiers or []
-
-
-class SubroutineCall(ExpressionTerminator):
-    """
-    subroutineCall
-        : Identifier ( LPAREN expressionList? RPAREN )? indexIdentifierList
-    """
-
-    def __init__(
-        self,
-        identifier: Identifier,
-        indexIdentifierList: List[Identifier],
-        expressionList: List[Expression] = None,
-    ):
-        self.identifier = identifier
-        self.indexIdentifierList = indexIdentifierList
-        self.expressionList = expressionList or []
 
 
 class QuantumBarrier(QuantumInstruction):
@@ -456,7 +473,7 @@ class QuantumGateSignature(ASTNode):
         self,
         name: Identifier,
         qargList: List[Identifier],
-        params: Optional[List[Identifier]] = None,
+        params: Optional[List[Expression]] = None,
     ):
         self.name = name
         self.qargList = qargList
@@ -521,50 +538,13 @@ class CalibrationDefinition(Statement):
         self.calibrationArgumentList = calibrationArgumentList or []
 
 
-class BooleanExpression(ASTNode):
-    """
-    programBlock
-        : statement | controlDirective
-        | LBRACE(statement | controlDirective) * RBRACE
-    """
-
-
-class RelationalOperator(ASTNode):
-    """Relational operator"""
-
-
-class LtOperator(RelationalOperator):
-    """Less than relational operator"""
-
-
-class EqualsOperator(RelationalOperator):
-    """Greater than relational operator"""
-
-
-class GtOperator(RelationalOperator):
-    """Greater than relational operator"""
-
-
-class ComparisonExpression(BooleanExpression):
-    """
-    comparisonExpression
-        : expression  // if (expression)
-        | expression relationalOperator expression
-    """
-
-    def __init__(self, left: Expression, relation: RelationalOperator, right: Expression):
-        self.left = left
-        self.relation = relation
-        self.right = right
-
-
 class BranchingStatement(Statement):
     """
     branchingStatement
         : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
     """
 
-    def __init__(self, condition: BooleanExpression, true_body: ProgramBlock, false_body=None):
+    def __init__(self, condition: Expression, true_body: ProgramBlock, false_body=None):
         self.condition = condition
         self.true_body = true_body
         self.false_body = false_body
@@ -603,7 +583,7 @@ class WhileLoopStatement(Statement):
         WhileLoop: "while" "(" Expression ")" ProgramBlock
     """
 
-    def __init__(self, condition: BooleanExpression, body: ProgramBlock):
+    def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
         self.body = body
 
@@ -629,3 +609,38 @@ class IODeclaration(ClassicalDeclaration):
     def __init__(self, modifier: IOModifier, type_: ClassicalType, identifier: Identifier):
         super().__init__(type_, identifier)
         self.modifier = modifier
+
+
+class DefaultCase(Expression):
+    """An object representing the `default` special label in switch statements."""
+
+
+class SwitchStatementPreview(Statement):
+    """AST node for the proposed 'switch-case' extension to OpenQASM 3, before the syntax was
+    stabilized.  This corresponds to the :attr:`.ExperimentalFeatures.SWITCH_CASE_V1` logic.
+
+    The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
+
+    def __init__(
+        self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
+    ):
+        self.target = target
+        self.cases = [(tuple(values), case) for values, case in cases]
+
+
+class SwitchStatement(Statement):
+    """AST node for the stable 'switch' statement of OpenQASM 3.
+
+    The only real difference from an AST form is that the default is required to be separate; it
+    cannot be joined with other cases (even though that's meaningless, the V1 syntax permitted it).
+    """
+
+    def __init__(
+        self,
+        target: Expression,
+        cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]],
+        default: Optional[ProgramBlock] = None,
+    ):
+        self.target = target
+        self.cases = [(tuple(values), case) for values, case in cases]
+        self.default = default

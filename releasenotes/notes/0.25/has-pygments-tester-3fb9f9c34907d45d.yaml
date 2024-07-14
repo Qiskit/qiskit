@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    A new lazy import tester, :data:`.HAS_PYGMENTS`, is available for testing for the presence of
+    `the Pygments syntax highlighting library <https://pygments.org/>`__.

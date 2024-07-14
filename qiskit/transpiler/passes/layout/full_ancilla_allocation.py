@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,14 +15,15 @@
 from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class FullAncillaAllocation(AnalysisPass):
-    """Allocate all idle nodes from the coupling map as ancilla on the layout.
+    """Allocate all idle nodes from the coupling map or target as ancilla on the layout.
 
     A pass for allocating all idle physical qubits (those that exist in coupling
-    map but not the dag circuit) as ancilla. It will also choose new virtual
-    qubits to correspond to those physical ancilla.
+    map or target but not the dag circuit) as ancilla. It will also choose new
+    virtual qubits to correspond to those physical ancilla.
 
     Note:
         This is an analysis pass, and only responsible for choosing physical
@@ -35,10 +36,15 @@ class FullAncillaAllocation(AnalysisPass):
         """FullAncillaAllocation initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.ancilla_name = "ancilla"
 
     def run(self, dag):
@@ -75,7 +81,11 @@ class FullAncillaAllocation(AnalysisPass):
 
         idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
-        if self.coupling_map:
+        if self.target is not None and self.target.num_qubits is not None:
+            idle_physical_qubits = [
+                q for q in range(self.target.num_qubits) if q not in physical_bits
+            ]
+        elif self.coupling_map:
             idle_physical_qubits = [
                 q for q in self.coupling_map.physical_qubits if q not in physical_bits
             ]
@@ -97,7 +107,7 @@ class FullAncillaAllocation(AnalysisPass):
     @staticmethod
     def validate_layout(layout_qubits, dag_qubits):
         """
-        Checks if all the qregs in layout_qregs already exist in dag_qregs. Otherwise, raise.
+        Checks if all the qregs in ``layout_qregs`` already exist in ``dag_qregs``. Otherwise, raise.
         """
         for qreg in layout_qubits:
             if qreg not in dag_qubits:

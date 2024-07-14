@@ -6,7 +6,7 @@ features:
     circuit object containing a specified number of repetitions of the original
     circuit. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit import QuantumCircuit
 

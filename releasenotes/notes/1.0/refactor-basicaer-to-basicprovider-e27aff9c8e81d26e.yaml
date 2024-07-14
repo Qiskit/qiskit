@@ -1,0 +1,98 @@
+---
+upgrade_providers:
+  - |
+    The ``qiskit.providers.basicaer`` module, exposed as ``qiskit.BasicAer``,
+    has been removed following it deprecation on the 0.46 release. Its
+    functionality has been replaced by the :mod:`qiskit.quantum_info`
+    module and the new :mod:`qiskit.providers.basic_provider` module.
+
+    The migration from using ``qiskit.providers.basicaer`` (``qiskit.BasicAer``)
+    to :mod:`qiskit.providers.basic_provider` can be performed as follows:
+
+    .. list-table:: BasicAer equivalences
+       :header-rows: 1
+
+       * - Migrate from
+         - Replace with
+       * - ``qiskit.BasicAer``
+         - The new provider doesn't have a global instance, imports should be from ``qiskit.providers.basic_provider``
+       * - ``qiskit.providers.basicaer``
+         - :mod:`.basic_provider`
+       * - ``BasicAerProvider``
+         - :class:`.BasicProvider`
+       * - ``BasicAerJob``
+         - :class:`.BasicProviderJob`
+       * - ``QasmSimulatorPy``
+         - :class:`.BasicSimulator`
+       * - ``UnitarySimulatorPy``
+         - use :class:`~.quantum_info.Operator`
+       * - ``StatevectorSimulatorPy``
+         - use :class:`~.quantum_info.Statevector`
+
+    A notable difference is that the new provider is no longer exposed through a global instance
+    (like ``BasicAer``), so it will not be valid to do ``from qiskit import BasicProvider``.
+    Instead, the provider class must be imported from its submodule and instantiated manually::
+
+        from qiskit.providers.basic_provider import BasicProvider
+
+        provider = BasicProvider()
+        backend = provider.get_backend("basic_simulator")
+
+    The following examples show the migration paths of the three simulators in ``BasicAer``.
+
+    1. Statevector simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+
+        # Former path
+        from qiskit import BasicAer
+        backend = BasicAer.get_backend("statevector_simulator")
+        statevector = backend.run(qc).result().get_statevector()
+
+        # New path
+        from qiskit.quantum_info import Statevector
+        statevector = Statevector(qc)
+
+    2. Unitary simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+
+        # Former path
+        from qiskit import BasicAer
+        backend = BasicAer.get_backend("unitary_simulator")
+        result = backend.run(qc).result()
+
+        # New path
+        from qiskit.quantum_info import Operator
+        result = Operator(qc).data
+
+    3. Qasm simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        from qiskit import BasicAer
+        backend = BasicAer.get_backend("qasm_simulator")
+        result = backend.run(qc).result()
+
+        # New path
+        from qiskit.providers.basic_provider import BasicProvider
+        backend = BasicProvider().get_backend("basic_simulator")
+        result = backend.run(qc).result()
+        # or, directly
+        from qiskit.providers.basic_provider import BasicSimulator
+        backend = BasicSimulator()
+        result = backend.run(qc).result()

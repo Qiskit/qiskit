@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Qiskit timeline drawer.
 
 This module provides a common user interface to the timeline drawer.
@@ -27,21 +25,27 @@ from qiskit import circuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types, core, stylesheet
+from qiskit.utils import deprecate_arg
 
 
+@deprecate_arg("show_idle", new_alias="idle_wires", since="1.1.0", pending=True)
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: circuit.QuantumCircuit,
     style: Optional[Dict[str, Any]] = None,
     time_range: Tuple[int, int] = None,
     disable_bits: List[types.Bits] = None,
     show_clbits: Optional[bool] = None,
-    show_idle: Optional[bool] = None,
-    show_barriers: Optional[bool] = None,
+    idle_wires: Optional[bool] = None,
+    plot_barriers: Optional[bool] = None,
     show_delays: Optional[bool] = None,
     show_labels: bool = True,
     plotter: Optional[str] = types.Plotter.MPL.value,
     axis: Optional[Any] = None,
     filename: Optional[str] = None,
+    *,
+    show_idle: Optional[bool] = None,
+    show_barriers: Optional[bool] = None,
 ):
     r"""Generate visualization data for scheduled circuit programs.
 
@@ -57,9 +61,9 @@ def draw(
         disable_bits: List of qubits of classical bits not shown in the output image.
         show_clbits: A control property to show classical bits.
             Set `True` to show classical bits.
-        show_idle: A control property to show idle timeline.
+        idle_wires: A control property to show idle timeline.
             Set `True` to show timeline without gates.
-        show_barriers: A control property to show barrier instructions.
+        plot_barriers: A control property to show barrier instructions.
             Set `True` to show barrier instructions.
         show_delays: A control property to show delay instructions.
             Set `True` to show delay instructions.
@@ -77,6 +81,8 @@ def draw(
             the plotters uses given `axis` instead of internally initializing a figure object.
             This object format depends on the plotter. See plotters section for details.
         filename: If provided the output image is dumped into a file under the filename.
+        show_idle: DEPRECATED.
+        show_barriers: DEPRECATED.
 
     Returns:
         Visualization output data.
@@ -287,47 +293,50 @@ def draw(
 
         Drawing with the default stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
+            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
             draw(qc)
 
         Drawing with the simple stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXSimple
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
+            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
             draw(qc, style=IQXSimple())
 
         Drawing with the stylesheet suited for program debugging.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXDebugging
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
+            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
             draw(qc, style=IQXDebugging())
 
         You can partially customize a preset stylesheet when call it::
@@ -346,19 +355,21 @@ def draw(
         This feature enables you to control the most of appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
     """
+    del show_idle
+    del show_barriers
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
     temp_style.update(style or stylesheet.IQXStandard())
 
     # update control properties
-    if show_idle is not None:
-        temp_style["formatter.control.show_idle"] = show_idle
+    if idle_wires is not None:
+        temp_style["formatter.control.show_idle"] = idle_wires
 
     if show_clbits is not None:
         temp_style["formatter.control.show_clbits"] = show_clbits
 
-    if show_barriers is not None:
-        temp_style["formatter.control.show_barriers"] = show_barriers
+    if plot_barriers is not None:
+        temp_style["formatter.control.show_barriers"] = plot_barriers
 
     if show_delays is not None:
         temp_style["formatter.control.show_delays"] = show_delays

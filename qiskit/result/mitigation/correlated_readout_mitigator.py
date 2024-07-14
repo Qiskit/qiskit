@@ -13,6 +13,7 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
+import math
 from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
@@ -46,15 +47,15 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         if np.any(assignment_matrix < 0) or not np.allclose(np.sum(assignment_matrix, axis=0), 1):
             raise QiskitError("Assignment matrix columns must be valid probability distributions")
         assignment_matrix = np.asarray(assignment_matrix, dtype=float)
-        matrix_qubits_num = int(np.log2(assignment_matrix.shape[0]))
+        matrix_qubits_num = int(math.log2(assignment_matrix.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
         else:
             if len(qubits) != matrix_qubits_num:
                 raise QiskitError(
-                    "The number of given qubits ({}) is different than the number of "
-                    "qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num)
+                    f"The number of given qubits ({len(qubits)}) is different than the number of "
+                    f"qubits inferred from the matrices ({matrix_qubits_num})"
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
@@ -84,7 +85,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Args:
             data: Counts object
             diagonal: Optional, the vector of diagonal values for summing the
-                      expectation value. If ``None`` the the default value is
+                      expectation value. If ``None`` the default value is
                       :math:`[1, -1]^\otimes n`.
             qubits: Optional, the measured physical qubits the count
                     bitstrings correspond to. If None qubits are assumed to be
@@ -133,7 +134,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        shots: Optional[bool] = False,
+        shots: Optional[int] = None,
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -141,19 +142,22 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
-            shots: the number of shots.
+            shots: Optional, the total number of shots, if None shots will
+                be calculated as the sum of all counts.
 
         Returns:
-            QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
+            QuasiDistribution: A dictionary containing pairs of [output, mean] where "output"
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
         """
         if qubits is None:
             qubits = self._qubits
-        probs_vec, shots = counts_probability_vector(
+        probs_vec, calculated_shots = counts_probability_vector(
             data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits
         )
+        if shots is None:
+            shots = calculated_shots
 
         # Get qubit mitigation matrix and mitigate probs
         mit_mat = self.mitigation_matrix(qubits)
@@ -257,7 +261,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             float: the standard deviation upper bound.
         """
         gamma = self._compute_gamma()
-        return gamma / np.sqrt(shots)
+        return gamma / math.sqrt(shots)
 
     @property
     def qubits(self) -> Tuple[int]:

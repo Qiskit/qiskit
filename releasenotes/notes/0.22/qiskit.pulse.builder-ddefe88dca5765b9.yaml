@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The ``qiskit.pulse.builder`` contexts ``inline`` and ``pad`` have been
+    removed.  These were first deprecated in Terra 0.18.0 (July 2021).  There is
+    no replacement for ``inline``; one can simply write the pulses in the
+    containing scope.  The ``pad`` context manager has had no effect since it
+    was deprecated.

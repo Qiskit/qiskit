@@ -7,7 +7,7 @@ features:
     composed circuits should be wrapped into an instruction or not. By
     default this is ``False``, i.e. no wrapping. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         circuit = QuantumCircuit(2)

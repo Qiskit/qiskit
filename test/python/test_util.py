@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,32 +13,55 @@
 """Tests for qiskit/utils"""
 
 from unittest import mock
-import numpy as np
 
-from qiskit.utils.multiprocessing import local_hardware_info
-from qiskit.test import QiskitTestCase
-from qiskit.utils.arithmetic import triu_to_dense
+from qiskit.utils import multiprocessing
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
 
-    @mock.patch("platform.system", return_value="Linux")
-    @mock.patch("psutil.virtual_memory")
-    @mock.patch("psutil.cpu_count", return_value=None)
-    def test_local_hardware_none_cpu_count(self, cpu_count_mock, vmem_mock, platform_mock):
+    def test_local_hardware_five_cpu_count(self):
+        """Test cpu count is half when sched affinity is 5"""
+        with mock.patch.object(multiprocessing, "os"):
+            multiprocessing.os.sched_getaffinity = mock.MagicMock(return_value=set(range(5)))
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(2, result["cpus"])
+
+    def test_local_hardware_sixty_four_cpu_count(self):
+        """Test cpu count is 32 when sched affinity is 64"""
+        with mock.patch.object(multiprocessing, "os"):
+            multiprocessing.os.sched_getaffinity = mock.MagicMock(return_value=set(range(64)))
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(32, result["cpus"])
+
+    def test_local_hardware_no_cpu_count(self):
         """Test cpu count fallback to 1 when true value can't be determined"""
-        del cpu_count_mock, vmem_mock, platform_mock  # unused
-        result = local_hardware_info()
+        with mock.patch.object(multiprocessing, "os"):
+            multiprocessing.os.sched_getaffinity = mock.MagicMock(return_value=set())
+            result = multiprocessing.local_hardware_info()
         self.assertEqual(1, result["cpus"])
 
-    def test_triu_to_dense(self):
-        """Test conversion of upper triangular matrix to dense matrix."""
-        np.random.seed(50)
-        n = np.random.randint(5, 15)
-        m = np.random.randint(-100, 100, size=(n, n))
-        symm = (m + m.T) / 2
+    def test_local_hardware_no_sched_five_count(self):
+        """Test cpu could if sched affinity method is missing and cpu count is 5."""
+        with mock.patch.object(multiprocessing, "os", spec=[]):
+            multiprocessing.os.cpu_count = mock.MagicMock(return_value=5)
+            del multiprocessing.os.sched_getaffinity
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(2, result["cpus"])
 
-        triu = np.array([[symm[i, j] for i in range(j, n)] for j in range(n)])
+    def test_local_hardware_no_sched_sixty_four_count(self):
+        """Test cpu could if sched affinity method is missing and cpu count is 64."""
+        with mock.patch.object(multiprocessing, "os", spec=[]):
+            multiprocessing.os.cpu_count = mock.MagicMock(return_value=64)
+            del multiprocessing.os.sched_getaffinity
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(32, result["cpus"])
 
-        self.assertTrue(np.array_equal(symm, triu_to_dense(triu)))
+    def test_local_hardware_no_sched_no_count(self):
+        """Test cpu count fallback to 1 when no sched getaffinity available."""
+        with mock.patch.object(multiprocessing, "os", spec=[]):
+            multiprocessing.os.cpu_count = mock.MagicMock(return_value=None)
+            del multiprocessing.os.sched_getaffinity
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(1, result["cpus"])

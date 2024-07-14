@@ -32,16 +32,21 @@ class Snapshot(Instruction):
                            The types of snapshots offered are defined by the simulator used.
             name: Snapshot name which defaults to ``label``. This parameter is only for display
                   purposes and is not taken into account during comparison.
+        """
+        self._channel = SnapshotChannel()
+
+        if name is None:
+            name = label
+        super().__init__(operands=(label, snapshot_type), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
 
         Raises:
             PulseError: If snapshot label is invalid.
         """
-        if not isinstance(label, str):
+        if not isinstance(self.label, str):
             raise PulseError("Snapshot label must be a string.")
-        self._channel = SnapshotChannel()
-        if name is None:
-            name = label
-        super().__init__(operands=(label, snapshot_type), name=name)
 
     @property
     def label(self) -> str:

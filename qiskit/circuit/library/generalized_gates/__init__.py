@@ -12,11 +12,19 @@
 
 """The circuit library module on generalized gates."""
 
-from .diagonal import Diagonal
-from .permutation import Permutation
+from .diagonal import Diagonal, DiagonalGate
+from .permutation import Permutation, PermutationGate
 from .mcmt import MCMT, MCMTVChain
 from .gms import GMS, MSGate
 from .gr import GR, GRX, GRY, GRZ
 from .pauli import PauliGate
 from .rv import RVGate
 from .linear_function import LinearFunction
+from .isometry import Isometry
+from .uc import UCGate
+from .uc_pauli_rot import UCPauliRotGate
+from .ucrx import UCRXGate
+from .ucry import UCRYGate
+from .ucrz import UCRZGate
+from .unitary import UnitaryGate
+from .mcg_up_to_diagonal import MCGupDiag

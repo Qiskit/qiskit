@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed an issue of :class:`~.LinCombSamplerGradient` that raises an error
+    with Aer Sampler.

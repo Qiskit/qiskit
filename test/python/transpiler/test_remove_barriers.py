@@ -16,7 +16,7 @@ import unittest
 from qiskit.transpiler.passes import RemoveBarriers
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestMergeAdjacentBarriers(QiskitTestCase):
@@ -51,6 +51,62 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result_dag.size(), 2)
         for ii, name in enumerate(["x", "h"]):
             self.assertEqual(op_nodes[ii].name, name)
+
+    def test_simple_if_else(self):
+        """Test that the pass recurses into an if-else."""
+        pass_ = RemoveBarriers()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.barrier()
+        base_test.measure(0, 0)
+
+        base_expected = QuantumCircuit(1, 1)
+        base_expected.measure(0, 0)
+
+        test = QuantumCircuit(1, 1)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
+        )
+
+        expected = QuantumCircuit(1, 1)
+        expected.if_else(
+            (expected.clbits[0], True),
+            base_expected.copy(),
+            base_expected.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that the pass recurses into nested control flow."""
+        pass_ = RemoveBarriers()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.barrier()
+        base_test.measure(0, 0)
+
+        base_expected = QuantumCircuit(1, 1)
+        base_expected.measure(0, 0)
+
+        body_test = QuantumCircuit(1, 1)
+        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)
+
+        body_expected = QuantumCircuit(1, 1)
+        body_expected.for_loop(
+            (0,), None, base_expected.copy(), body_expected.qubits, body_expected.clbits
+        )
+
+        test = QuantumCircuit(1, 1)
+        test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
+
+        expected = QuantumCircuit(1, 1)
+        expected.while_loop(
+            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
+        )
+
+        self.assertEqual(pass_(test), expected)
 
 
 if __name__ == "__main__":

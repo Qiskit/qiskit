@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """One-pulse single-qubit gate."""
-from math import sqrt
+from math import sqrt, pi
 from cmath import exp
 from typing import Optional
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class U2Gate(Gate):
@@ -87,11 +87,19 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
+    _standard_gate = StandardGate.U2Gate
+
     def __init__(
-        self, phi: ParameterValueType, lam: ParameterValueType, label: Optional[str] = None
+        self,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label)
+        super().__init__("u2", 1, [phi, lam], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -106,15 +114,26 @@ class U2Gate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U2 gate.
 
-        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
+        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.U2Gate` with inverse parameter values.
+
+        Returns:
+            U2Gate: inverse gate.
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U2 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         isqrt2 = 1 / sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
@@ -123,5 +142,5 @@ class U2Gate(Gate):
                 [isqrt2, -exp(1j * lam) * isqrt2],
                 [exp(1j * phi) * isqrt2, exp(1j * (phi + lam)) * isqrt2],
             ],
-            dtype=dtype,
+            dtype=dtype or complex,
         )

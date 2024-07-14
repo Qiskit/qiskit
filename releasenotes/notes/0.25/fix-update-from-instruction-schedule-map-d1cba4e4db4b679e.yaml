@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an failure of :meth:`.Target.update_from_instruction_schedule_map` when
+    the argument ``inst_map`` has schedule with unassigned duration.
+

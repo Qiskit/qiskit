@@ -18,7 +18,7 @@
 import copy
 import pprint
 from typing import Union, List
-import warnings
+
 import numpy
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
@@ -209,8 +209,8 @@ class PulseQobjInstruction:
         return out
 
     def __str__(self):
-        out = "Instruction: %s\n" % self.name
-        out += "\t\tt0: %s\n" % self.t0
+        out = f"Instruction: {self.name}\n"
+        out += f"\t\tt0: {self.t0}\n"
         for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
                 out += f"\t\t{attr}: {getattr(self, attr)}\n"
@@ -226,20 +226,34 @@ class PulseQobjInstruction:
         Returns:
             PulseQobjInstruction: The object from the input dictionary.
         """
-        t0 = data.pop("t0")
-        name = data.pop("name")
-        if "kernels" in data:
-            kernels = data.pop("kernels")
-            kernel_obj = [QobjMeasurementOption.from_dict(x) for x in kernels]
-            data["kernels"] = kernel_obj
-        if "discriminators" in data:
-            discriminators = data.pop("discriminators")
-            discriminators_obj = [QobjMeasurementOption.from_dict(x) for x in discriminators]
-            data["discriminators"] = discriminators_obj
-        if "parameters" in data and "amp" in data["parameters"]:
-            data["parameters"]["amp"] = _to_complex(data["parameters"]["amp"])
+        schema = {
+            "discriminators": QobjMeasurementOption,
+            "kernels": QobjMeasurementOption,
+        }
+        skip = ["t0", "name"]
 
-        return cls(name, t0, **data)
+        # Pulse instruction data is nested dictionary.
+        # To avoid deepcopy and avoid mutating the source object, create new dict here.
+        in_data = {}
+        for key, value in data.items():
+            if key in skip:
+                continue
+            if key == "parameters":
+                # This is flat dictionary of parametric pulse parameters
+                formatted_value = value.copy()
+                if "amp" in formatted_value:
+                    formatted_value["amp"] = _to_complex(formatted_value["amp"])
+                in_data[key] = formatted_value
+                continue
+            if key in schema:
+                if isinstance(value, list):
+                    in_data[key] = list(map(schema[key].from_dict, value))
+                else:
+                    in_data[key] = schema[key].from_dict(value)
+            else:
+                in_data[key] = value
+
+        return cls(data["name"], data["t0"], **in_data)
 
     def __eq__(self, other):
         if isinstance(other, PulseQobjInstruction):
@@ -279,7 +293,6 @@ class PulseQobjConfig(QobjDictField):
         rep_time=None,
         rep_delay=None,
         shots=None,
-        max_credits=None,
         seed_simulator=None,
         memory_slots=None,
         **kwargs,
@@ -306,9 +319,6 @@ class PulseQobjConfig(QobjDictField):
                 supplied by the backend (``backend.configuration().rep_delay_range``). Default is
                 ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
-            max_credits (int): DEPRECATED This parameter is deprecated as of
-                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
-                no effect on modern IBM Quantum systems, and no alternative is necessary.
             seed_simulator (int): the seed to use in the simulator
             memory_slots (list): The number of memory slots on the device
             kwargs: Additional free form key value fields to add to the
@@ -327,16 +337,6 @@ class PulseQobjConfig(QobjDictField):
             self.rep_delay = rep_delay
         if shots is not None:
             self.shots = int(shots)
-
-        if max_credits is not None:
-            self.max_credits = int(max_credits)
-            warnings.warn(
-                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-                "and will be removed in a future release. This parameter has no effect on "
-                "modern IBM Quantum systems, and no alternative is necessary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
 
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)
@@ -434,10 +434,10 @@ class PulseQobjExperiment:
             header = pprint.pformat(self.header.to_dict() or {})
         else:
             header = "{}"
-        out += "Header:\n%s\n" % header
-        out += "Config:\n%s\n\n" % config
+        out += f"Header:\n{header}\n"
+        out += f"Config:\n{config}\n\n"
         for instruction in self.instructions:
-            out += "\t%s\n" % instruction
+            out += f"\t{instruction}\n"
         return out
 
     @classmethod
@@ -567,23 +567,20 @@ class PulseQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "PulseQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
-            self.qobj_id,
-            repr(self.config),
-            experiments_repr,
-            repr(self.header),
+        return (
+            f"PulseQobj(qobj_id='{self.qobj_id}', config={repr(self.config)}, "
+            f"experiments={experiments_repr}, header={repr(self.header)})"
         )
-        return out
 
     def __str__(self):
-        out = "Pulse Qobj: %s:\n" % self.qobj_id
+        out = f"Pulse Qobj: {self.qobj_id}:\n"
         config = pprint.pformat(self.config.to_dict())
-        out += "Config: %s\n" % str(config)
+        out += f"Config: {str(config)}\n"
         header = pprint.pformat(self.header.to_dict())
-        out += "Header: %s\n" % str(header)
+        out += f"Header: {str(header)}\n"
         out += "Experiments:\n"
         for experiment in self.experiments:
-            out += "%s" % str(experiment)
+            out += str(experiment)
         return out
 
     def to_dict(self):

@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Methods inherited from ``set`` have been removed from :class:`.ParameterView`, the type returned
+    by :attr:`.QuantumCircuit.parameters`.  These were deprecated since Terra 0.17; this type has been
+    a general view type since then.

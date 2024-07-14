@@ -16,14 +16,15 @@ from collections import defaultdict
 import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
 from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGOutNode
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
 
 _CUTOFF_PRECISION = 1e-5
@@ -38,7 +39,7 @@ class CommutativeCancellation(TransformationPass):
         H, X, Y, Z, CX, CY, CZ
     """
 
-    def __init__(self, basis_gates=None):
+    def __init__(self, basis_gates=None, target=None):
         """
         CommutativeCancellation initializer.
 
@@ -47,12 +48,17 @@ class CommutativeCancellation(TransformationPass):
                 ``['u3', 'cx']``. For the effects of this pass, the basis is
                 the set intersection between the ``basis_gates`` parameter
                 and the gates in the dag.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis_gates`` and ``target`` are specified then this argument will take
+                precedence and ``basis_gates`` will be ignored.
         """
         super().__init__()
         if basis_gates:
             self.basis = set(basis_gates)
         else:
             self.basis = set()
+        if target is not None:
+            self.basis = set(target.operation_names)
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
         self.requires.append(CommutationAnalysis())
@@ -65,14 +71,11 @@ class CommutativeCancellation(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-
-        Raises:
-            TranspilerError: when the 1-qubit rotation gates are not found
         """
         var_z_gate = None
         z_var_gates = [gate for gate in dag.count_ops().keys() if gate in self._var_z_map]
         if z_var_gates:
-            # priortize z gates in circuit
+            # prioritize z gates in circuit
             var_z_gate = self._var_z_map[next(iter(z_var_gates))]
         else:
             z_var_gates = [gate for gate in self.basis if gate in self._var_z_map]
@@ -92,8 +95,7 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-
-        for wire in dag.wires:
+        for wire in dag.qubits:
             wire_commutation_set = self.property_set["commutation_set"][wire]
 
             for com_set_idx, com_set in enumerate(wire_commutation_set):
@@ -136,31 +138,37 @@ class CommutativeCancellation(TransformationPass):
                 total_phase = 0.0
                 for current_node in run:
                     if (
-                        getattr(current_node.op, "condition", None) is not None
+                        current_node.condition is not None
                         or len(current_node.qargs) != 1
                         or current_node.qargs[0] != run_qarg
                     ):
-                        raise TranspilerError("internal error")
+                        raise RuntimeError("internal error")
 
                     if current_node.name in ["p", "u1", "rz", "rx"]:
-                        current_angle = float(current_node.op.params[0])
+                        current_angle = float(current_node.params[0])
                     elif current_node.name in ["z", "x"]:
                         current_angle = np.pi
                     elif current_node.name == "t":
                         current_angle = np.pi / 4
                     elif current_node.name == "s":
                         current_angle = np.pi / 2
+                    else:
+                        raise RuntimeError(
+                            f"Angle for operation {current_node.name } is not defined"
+                        )
 
                     # Compose gates
                     total_angle = current_angle + total_angle
-                    if current_node.op.definition:
-                        total_phase += current_node.op.definition.global_phase
+                    if current_node.definition:
+                        total_phase += current_node.definition.global_phase
 
                 # Replace the data of the first node in the run
                 if cancel_set_key[0] == "z_rotation":
                     new_op = var_z_gate(total_angle)
                 elif cancel_set_key[0] == "x_rotation":
                     new_op = RXGate(total_angle)
+                else:
+                    raise RuntimeError("impossible case")
 
                 new_op_phase = 0
                 if np.mod(total_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
@@ -181,4 +189,23 @@ class CommutativeCancellation(TransformationPass):
                 if np.mod(total_angle, (2 * np.pi)) < _CUTOFF_PRECISION:
                     dag.remove_op_node(run[0])
 
+        dag = self._handle_control_flow_ops(dag)
+
+        return dag
+
+    def _handle_control_flow_ops(self, dag):
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        commutation analysis is redone for the control flow blocks.
+        """
+
+        pass_manager = PassManager([CommutationAnalysis(), self])
+        for node in dag.op_nodes():
+            if node.name not in CONTROL_FLOW_OP_NAMES:
+                continue
+            mapped_blocks = []
+            for block in node.op.blocks:
+                new_circ = pass_manager.run(block)
+                mapped_blocks.append(new_circ)
+            node.op = node.op.replace_blocks(mapped_blocks)
         return dag

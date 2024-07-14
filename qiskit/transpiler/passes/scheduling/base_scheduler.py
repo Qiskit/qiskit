@@ -11,15 +11,16 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
+import warnings
 
-from typing import Dict
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
-from qiskit.circuit import Delay, Gate
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit, DAGOutNode
+from qiskit.circuit import Delay, Gate, Measure, Reset
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class BaseSchedulerTransform(TransformationPass):
@@ -67,7 +68,7 @@ class BaseSchedulerTransform(TransformationPass):
         However, such optimization should be done by another pass,
         otherwise scheduling may break topological ordering of the original circuit.
 
-    Realistic control flow scheduling respecting for microarcitecture
+    Realistic control flow scheduling respecting for microarchitecture
 
         In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
         followed by resonator ring-down (depopulation). This microwave signal is recorded
@@ -217,9 +218,10 @@ class BaseSchedulerTransform(TransformationPass):
 
     def __init__(
         self,
-        durations: InstructionDurations,
+        durations: InstructionDurations = None,
         clbit_write_latency: int = 0,
         conditional_latency: int = 0,
+        target: Target = None,
     ):
         """Scheduler initializer.
 
@@ -237,25 +239,30 @@ class BaseSchedulerTransform(TransformationPass):
                 The gate operation occurs after this latency. This appears as a delay
                 in front of the DAGOpNode of the gate.
                 This defaults to 0 dt.
+            target: The :class:`~.Target` representing the target backend, if both
+                ``durations`` and this are specified then this argument will take
+                precedence and ``durations`` will be ignored.
         """
         super().__init__()
         self.durations = durations
+        # Ensure op node durations are attached and in consistent unit
+        if target is not None:
+            self.durations = target.durations()
+        self.requires.append(TimeUnitConversion(self.durations))
 
         # Control flow constraints.
         self.clbit_write_latency = clbit_write_latency
         self.conditional_latency = conditional_latency
 
-        # Ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
+        self.target = target
 
     @staticmethod
     def _get_node_duration(
         node: DAGOpNode,
-        bit_index_map: Dict,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node or calibration."""
-        indices = [bit_index_map[qarg] for qarg in node.qargs]
+        indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
         if dag.has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
@@ -263,6 +270,23 @@ class BaseSchedulerTransform(TransformationPass):
             duration = dag.calibrations[node.op.name][cal_key].duration
         else:
             duration = node.op.duration
+
+        if isinstance(node.op, Reset):
+            warnings.warn(
+                "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
+                "Actual behavior depends on the control system of your quantum backend. "
+                "Your backend may provide a plugin scheduler pass."
+            )
+        elif isinstance(node.op, Measure):
+            is_mid_circuit = not any(
+                isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
+            )
+            if is_mid_circuit:
+                warnings.warn(
+                    "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
+                    "Actual backend may apply custom scheduling. "
+                    "Your backend may provide a plugin scheduler pass."
+                )
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(
@@ -273,6 +297,12 @@ class BaseSchedulerTransform(TransformationPass):
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 
         return duration
+
+    def _delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
 
     def run(self, dag: DAGCircuit):
         raise NotImplementedError

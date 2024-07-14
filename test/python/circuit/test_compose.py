@@ -16,6 +16,8 @@
 
 import unittest
 
+import numpy as np
+
 from qiskit import transpile
 from qiskit.pulse import Schedule
 from qiskit.circuit import (
@@ -27,9 +29,13 @@ from qiskit.circuit import (
     Parameter,
     Gate,
     Instruction,
+    CASE_DEFAULT,
+    SwitchCaseOp,
+    CircuitError,
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
-from qiskit.test import QiskitTestCase
+from qiskit.circuit.classical import expr, types
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitCompose(QiskitTestCase):
@@ -105,6 +111,30 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_expected.z(self.left_qubit4)
 
         circuit_composed = self.circuit_left.compose(circuit_right, inplace=False)
+        self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_inorder_unusual_types(self):
+        """Test that composition works in order, using Numpy integer types as well as regular
+        integer types.  In general, it should be permissible to use any of the same `QubitSpecifier`
+        types (or similar for `Clbit`) that `QuantumCircuit.append` uses."""
+        qreg = QuantumRegister(5, "rqr")
+        creg = ClassicalRegister(2, "rcr")
+        circuit_right = QuantumCircuit(qreg, creg)
+        circuit_right.cx(qreg[0], qreg[3])
+        circuit_right.x(qreg[1])
+        circuit_right.y(qreg[2])
+        circuit_right.z(qreg[4])
+        circuit_right.measure([0, 1], [0, 1])
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.cx(self.left_qubit0, self.left_qubit3)
+        circuit_expected.x(self.left_qubit1)
+        circuit_expected.y(self.left_qubit2)
+        circuit_expected.z(self.left_qubit4)
+        circuit_expected.measure(self.left_qubit0, self.left_clbit0)
+        circuit_expected.measure(self.left_qubit1, self.left_clbit1)
+
+        circuit_composed = self.circuit_left.compose(circuit_right, np.arange(5), slice(0, 2))
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_inorder_inplace(self):
@@ -315,6 +345,27 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(circuit_composed, circuit_expected)
 
+    def test_compose_copy(self):
+        """Test that `compose` copies instructions where appropriate."""
+        base = QuantumCircuit(2, 2)
+
+        # If given a parametric instruction, the instruction should be copied in the output unless
+        # specifically set to take ownership.
+        parametric = QuantumCircuit(1)
+        parametric.rz(Parameter("x"), 0)
+        should_copy = base.compose(parametric, qubits=[0])
+        self.assertIsNot(should_copy.data[-1].operation, parametric.data[-1].operation)
+        self.assertEqual(should_copy.data[-1].operation, parametric.data[-1].operation)
+        forbid_copy = base.compose(parametric, qubits=[0], copy=False)
+        # For standard gates a fresh copy is returned from the data list each time
+        self.assertEqual(forbid_copy.data[-1].operation, parametric.data[-1].operation)
+
+        conditional = QuantumCircuit(1, 1)
+        conditional.x(0).c_if(conditional.clbits[0], True)
+        test = base.compose(conditional, qubits=[0], clbits=[0], copy=False)
+        self.assertIs(test.data[-1].operation, conditional.data[-1].operation)
+        self.assertEqual(test.data[-1].operation.condition, (test.clbits[0], True))
+
     def test_compose_classical(self):
         """Composing on classical bits.
 
@@ -397,9 +448,9 @@ class TestCircuitCompose(QiskitTestCase):
         lqr_2_1: ──┤ X ├────┤ X ├────┼───┤M├─╫─
                    └───┘    └─┬─┘    │   └╥┘ ║
                            ┌──┴──┐┌──┴──┐ ║  ║
-        lcr_0: ════════════╡     ╞╡     ╞═╩══╬═
-                           │ = 3 ││ = 3 │    ║
-        lcr_1: ════════════╡     ╞╡     ╞════╩═
+        lcr_0: ════════════╡     ╞╡     ╞═╬══╩═
+                           │ = 3 ││ = 3 │ ║
+        lcr_1: ════════════╡     ╞╡     ╞═╩════
                            └─────┘└─────┘
         """
         qreg = QuantumRegister(2, "rqr")
@@ -411,15 +462,84 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
-        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[0, 1])
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.x(self.left_qubit4).c_if(*self.condition)
         circuit_expected.h(self.left_qubit1).c_if(*self.condition)
-        circuit_expected.measure(self.left_qubit4, self.left_clbit0)
-        circuit_expected.measure(self.left_qubit1, self.left_clbit1)
+        circuit_expected.measure(self.left_qubit1, self.left_clbit0)
+        circuit_expected.measure(self.left_qubit4, self.left_clbit1)
 
         self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_conditional_no_match(self):
+        """Test that compose correctly maps registers in conditions to the new circuit, even when
+        there are no matching registers in the destination circuit.
+
+        Regression test of gh-6583 and gh-6584."""
+        right = QuantumCircuit(QuantumRegister(3), ClassicalRegister(1), ClassicalRegister(1))
+        right.h(1)
+        right.cx(1, 2)
+        right.cx(0, 1)
+        right.h(0)
+        right.measure([0, 1], [0, 1])
+        right.z(2).c_if(right.cregs[0], 1)
+        right.x(2).c_if(right.cregs[1], 1)
+        test = QuantumCircuit(3, 3).compose(right, range(3), range(2))
+        z = next(ins.operation for ins in test.data[::-1] if ins.operation.name == "z")
+        x = next(ins.operation for ins in test.data[::-1] if ins.operation.name == "x")
+        # The registers should have been mapped, including the bits inside them.  Unlike the
+        # previous test, there are no matching registers in the destination circuit, so the
+        # composition needs to add new registers (bit groupings) over the existing mapped bits.
+        self.assertIsNot(z.condition, None)
+        self.assertIsInstance(z.condition[0], ClassicalRegister)
+        self.assertEqual(len(z.condition[0]), len(right.cregs[0]))
+        self.assertIs(z.condition[0][0], test.clbits[0])
+        self.assertEqual(z.condition[1], 1)
+        self.assertIsNot(x.condition, None)
+        self.assertIsInstance(x.condition[0], ClassicalRegister)
+        self.assertEqual(len(x.condition[0]), len(right.cregs[1]))
+        self.assertEqual(z.condition[1], 1)
+        self.assertIs(x.condition[0][0], test.clbits[1])
+
+    def test_compose_switch_match(self):
+        """Test that composition containing a `switch` with a register that matches proceeds
+        correctly."""
+        case_0 = QuantumCircuit(1, 2)
+        case_0.x(0)
+        case_1 = QuantumCircuit(1, 2)
+        case_1.z(0)
+        case_default = QuantumCircuit(1, 2)
+        cr = ClassicalRegister(2, "target")
+        right = QuantumCircuit(QuantumRegister(1), cr)
+        right.switch(cr, [(0, case_0), (1, case_1), (CASE_DEFAULT, case_default)], [0], [0, 1])
+
+        test = QuantumCircuit(QuantumRegister(3), cr, ClassicalRegister(2)).compose(
+            right, [1], [0, 1]
+        )
+
+        expected = test.copy_empty_like()
+        expected.switch(cr, [(0, case_0), (1, case_1), (CASE_DEFAULT, case_default)], [1], [0, 1])
+        self.assertEqual(test, expected)
+
+    def test_compose_switch_no_match(self):
+        """Test that composition containing a `switch` with a register that matches proceeds
+        correctly."""
+        case_0 = QuantumCircuit(1, 2)
+        case_0.x(0)
+        case_1 = QuantumCircuit(1, 2)
+        case_1.z(0)
+        case_default = QuantumCircuit(1, 2)
+        cr = ClassicalRegister(2, "target")
+        right = QuantumCircuit(QuantumRegister(1), cr)
+        right.switch(cr, [(0, case_0), (1, case_1), (CASE_DEFAULT, case_default)], [0], [0, 1])
+        test = QuantumCircuit(3, 3).compose(right, [1], [0, 1])
+
+        self.assertEqual(len(test.data), 1)
+        self.assertIsInstance(test.data[0].operation, SwitchCaseOp)
+        target = test.data[0].operation.target
+        self.assertIn(target, test.cregs)
+        self.assertEqual(list(target), test.clbits[0:2])
 
     def test_compose_gate(self):
         """Composing with a gate.
@@ -691,6 +811,277 @@ class TestCircuitCompose(QiskitTestCase):
         outer.compose(inner, inplace=True)
         self.assertEqual(outer.clbits, inner.clbits)
         self.assertEqual(outer.cregs, [])
+
+    def test_expr_condition_is_mapped(self):
+        """Test that an expression in a condition involving several registers is mapped correctly to
+        the destination circuit."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+        a_src = ClassicalRegister(2, "a_src")
+        b_src = ClassicalRegister(2, "b_src")
+        c_src = ClassicalRegister(name="c_src", bits=list(a_src) + list(b_src))
+        source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
+        target_var = source.add_input("target_var", types.Uint(2))
+
+        test_1 = lambda: expr.lift(a_src[0])
+        test_2 = lambda: expr.logic_not(b_src[1])
+        test_3 = lambda: expr.logic_and(expr.bit_and(b_src, 2), expr.less(c_src, 7))
+        test_4 = lambda: expr.bit_xor(expr.index(target_var, 0), expr.index(target_var, 1))
+        source.if_test(test_1(), inner.copy(), [0], [])
+        source.if_else(test_2(), inner.copy(), inner.copy(), [0], [])
+        source.while_loop(test_3(), inner.copy(), [0], [])
+        source.if_test(test_4(), inner.copy(), [0], [])
+
+        a_dest = ClassicalRegister(2, "a_dest")
+        b_dest = ClassicalRegister(2, "b_dest")
+        dest = QuantumCircuit(QuantumRegister(1), a_dest, b_dest).compose(source)
+
+        # Check that the input conditions weren't mutated.
+        for in_condition, instruction in zip((test_1, test_2, test_3), source.data):
+            self.assertEqual(in_condition(), instruction.operation.condition)
+
+        # Should be `a_dest`, `b_dest` and an added one to account for `c_src`.
+        self.assertEqual(len(dest.cregs), 3)
+        mapped_reg = dest.cregs[-1]
+
+        expected = QuantumCircuit(dest.qregs[0], a_dest, b_dest, mapped_reg, inputs=[target_var])
+        expected.if_test(expr.lift(a_dest[0]), inner.copy(), [0], [])
+        expected.if_else(expr.logic_not(b_dest[1]), inner.copy(), inner.copy(), [0], [])
+        expected.while_loop(
+            expr.logic_and(expr.bit_and(b_dest, 2), expr.less(mapped_reg, 7)), inner.copy(), [0], []
+        )
+        # `Var` nodes aren't remapped, but this should be passed through fine.
+        expected.if_test(
+            expr.bit_xor(expr.index(target_var, 0), expr.index(target_var, 1)),
+            inner.copy(),
+            [0],
+            [],
+        )
+        self.assertEqual(dest, expected)
+
+    def test_expr_target_is_mapped(self):
+        """Test that an expression in a switch statement's target is mapping correctly to the
+        destination circuit."""
+        inner1 = QuantumCircuit(1)
+        inner1.x(0)
+        inner2 = QuantumCircuit(1)
+        inner2.z(0)
+
+        a_src = ClassicalRegister(2, "a_src")
+        b_src = ClassicalRegister(2, "b_src")
+        c_src = ClassicalRegister(name="c_src", bits=list(a_src) + list(b_src))
+        source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
+
+        test_1 = lambda: expr.lift(a_src[0])
+        test_2 = lambda: expr.logic_not(b_src[1])
+        test_3 = lambda: expr.lift(b_src)
+        test_4 = lambda: expr.bit_and(c_src, 7)
+        source.switch(test_1(), [(False, inner1.copy()), (True, inner2.copy())], [0], [])
+        source.switch(test_2(), [(False, inner1.copy()), (True, inner2.copy())], [0], [])
+        source.switch(test_3(), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], [])
+        source.switch(test_4(), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], [])
+
+        a_dest = ClassicalRegister(2, "a_dest")
+        b_dest = ClassicalRegister(2, "b_dest")
+        dest = QuantumCircuit(QuantumRegister(1), a_dest, b_dest).compose(source)
+
+        # Check that the input expressions weren't mutated.
+        for in_target, instruction in zip((test_1, test_2, test_3, test_4), source.data):
+            self.assertEqual(in_target(), instruction.operation.target)
+
+        # Should be `a_dest`, `b_dest` and an added one to account for `c_src`.
+        self.assertEqual(len(dest.cregs), 3)
+        mapped_reg = dest.cregs[-1]
+
+        expected = QuantumCircuit(dest.qregs[0], a_dest, b_dest, mapped_reg)
+        expected.switch(
+            expr.lift(a_dest[0]), [(False, inner1.copy()), (True, inner2.copy())], [0], []
+        )
+        expected.switch(
+            expr.logic_not(b_dest[1]), [(False, inner1.copy()), (True, inner2.copy())], [0], []
+        )
+        expected.switch(
+            expr.lift(b_dest), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], []
+        )
+        expected.switch(
+            expr.bit_and(mapped_reg, 7),
+            [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())],
+            [0],
+            [],
+        )
+
+        self.assertEqual(dest, expected)
+
+    def test_join_unrelated_vars(self):
+        """Composing disjoint sets of vars should produce an additive output."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        base = QuantumCircuit(inputs=[a])
+        other = QuantumCircuit(inputs=[b])
+        out = base.compose(other)
+        self.assertEqual({a, b}, set(out.iter_vars()))
+        self.assertEqual({a, b}, set(out.iter_input_vars()))
+        # Assert that base was unaltered.
+        self.assertEqual({a}, set(base.iter_vars()))
+
+        base = QuantumCircuit(captures=[a])
+        other = QuantumCircuit(captures=[b])
+        out = base.compose(other)
+        self.assertEqual({a, b}, set(out.iter_vars()))
+        self.assertEqual({a, b}, set(out.iter_captured_vars()))
+        self.assertEqual({a}, set(base.iter_vars()))
+
+        base = QuantumCircuit(inputs=[a])
+        other = QuantumCircuit(declarations=[(b, 255)])
+        out = base.compose(other)
+        self.assertEqual({a, b}, set(out.iter_vars()))
+        self.assertEqual({a}, set(out.iter_input_vars()))
+        self.assertEqual({b}, set(out.iter_declared_vars()))
+
+    def test_var_remap_to_avoid_collisions(self):
+        """We can use `var_remap` to avoid a variable collision."""
+        a1 = expr.Var.new("a", types.Bool())
+        a2 = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        base = QuantumCircuit(inputs=[a1])
+        other = QuantumCircuit(inputs=[a2])
+
+        out = base.compose(other, var_remap={a2: b})
+        self.assertEqual([a1, b], list(out.iter_input_vars()))
+        self.assertEqual([a1, b], list(out.iter_vars()))
+
+        out = base.compose(other, var_remap={"a": b})
+        self.assertEqual([a1, b], list(out.iter_input_vars()))
+        self.assertEqual([a1, b], list(out.iter_vars()))
+
+        out = base.compose(other, var_remap={"a": "c"})
+        self.assertTrue(out.has_var("c"))
+        c = out.get_var("c")
+        self.assertEqual(c.name, "c")
+        self.assertEqual([a1, c], list(out.iter_input_vars()))
+        self.assertEqual([a1, c], list(out.iter_vars()))
+
+    def test_simple_inline_captures(self):
+        """We should be able to inline captures onto other variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        base = QuantumCircuit(inputs=[a, b])
+        base.add_var(c, 255)
+        base.store(a, expr.logic_or(a, b))
+        other = QuantumCircuit(captures=[a, b, c])
+        other.store(c, 254)
+        other.store(b, expr.logic_or(a, b))
+        new = base.compose(other, inline_captures=True)
+
+        expected = QuantumCircuit(inputs=[a, b])
+        expected.add_var(c, 255)
+        expected.store(a, expr.logic_or(a, b))
+        expected.store(c, 254)
+        expected.store(b, expr.logic_or(a, b))
+        self.assertEqual(new, expected)
+
+    def test_can_inline_a_capture_after_remapping(self):
+        """We can use `var_remap` to redefine a capture variable _and then_ inline it in deeply
+        nested scopes.  This is a stress test of capture inlining."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        # We shouldn't be able to inline `qc`'s variable use as-is because it closes over the wrong
+        # variable, but it should work after variable remapping.  (This isn't expected to be super
+        # useful, it's just a consequence of how the order between `var_remap` and `inline_captures`
+        # is defined).
+        base = QuantumCircuit(inputs=[a])
+        qc = QuantumCircuit(declarations=[(c, 255)], captures=[b])
+        qc.store(b, expr.logic_and(b, b))
+        with qc.if_test(expr.logic_not(b)):
+            with qc.while_loop(b):
+                qc.store(b, expr.logic_not(b))
+            # Note that 'c' is captured in this scope, so this is also a test that 'inline_captures'
+            # doesn't do something silly in nested scopes.
+            with qc.switch(c) as case:
+                with case(0):
+                    qc.store(c, expr.bit_and(c, 255))
+                with case(case.DEFAULT):
+                    qc.store(b, expr.equal(c, 255))
+        base.compose(qc, inplace=True, inline_captures=True, var_remap={b: a})
+
+        expected = QuantumCircuit(inputs=[a], declarations=[(c, 255)])
+        expected.store(a, expr.logic_and(a, a))
+        with expected.if_test(expr.logic_not(a)):
+            with expected.while_loop(a):
+                expected.store(a, expr.logic_not(a))
+            # Note that 'c' is not remapped.
+            with expected.switch(c) as case:
+                with case(0):
+                    expected.store(c, expr.bit_and(c, 255))
+                with case(case.DEFAULT):
+                    expected.store(a, expr.equal(c, 255))
+
+        self.assertEqual(base, expected)
+
+    def test_rejects_duplicate_bits(self):
+        """Test that compose rejects duplicates in either qubits or clbits."""
+        base = QuantumCircuit(5, 5)
+
+        attempt = QuantumCircuit(2, 2)
+        with self.assertRaisesRegex(CircuitError, "Duplicate qubits"):
+            base.compose(attempt, [1, 1], [0, 1])
+        with self.assertRaisesRegex(CircuitError, "Duplicate clbits"):
+            base.compose(attempt, [0, 1], [1, 1])
+
+    def test_cannot_mix_inputs_and_captures(self):
+        """The rules about mixing `input` and `capture` vars should still apply."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        with self.assertRaisesRegex(CircuitError, "circuits with input variables cannot be"):
+            QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[b]))
+        with self.assertRaisesRegex(CircuitError, "circuits to be enclosed with captures cannot"):
+            QuantumCircuit(captures=[a]).compose(QuantumCircuit(inputs=[b]))
+
+    def test_reject_var_naming_collision(self):
+        """We can't have multiple vars with the same name."""
+        a1 = expr.Var.new("a", types.Bool())
+        a2 = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        self.assertNotEqual(a1, a2)
+
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(inputs=[a1]).compose(QuantumCircuit(inputs=[a2]))
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(captures=[a1]).compose(QuantumCircuit(declarations=[(a2, False)]))
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(declarations=[(a1, True)]).compose(
+                QuantumCircuit(inputs=[b]), var_remap={b: a2}
+            )
+
+    def test_reject_remap_var_to_bad_type(self):
+        """Can't map a var to a different type."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "mismatched types"):
+            QuantumCircuit().compose(qc, var_remap={a: b})
+        qc = QuantumCircuit(captures=[b])
+        with self.assertRaisesRegex(CircuitError, "mismatched types"):
+            QuantumCircuit().compose(qc, var_remap={b: a})
+
+    def test_reject_inlining_missing_var(self):
+        """Can't inline a var that doesn't exist."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "Variable '.*' to be inlined is not in the base"):
+            QuantumCircuit().compose(qc, inline_captures=True)
+
+        # 'a' _would_ be present, except we also say to remap it before attempting the inline.
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "Replacement '.*' for variable '.*' is not in"):
+            QuantumCircuit(inputs=[a]).compose(qc, var_remap={a: b}, inline_captures=True)
 
 
 if __name__ == "__main__":

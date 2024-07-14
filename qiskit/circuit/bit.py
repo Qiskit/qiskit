@@ -13,13 +13,18 @@
 """
 Quantum bit and Classical bit objects.
 """
-import warnings
+import copy
 
 from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
-    """Implement a generic bit."""
+    """Implement a generic bit.
+
+    .. note::
+        This class should not be instantiated directly. This is just a superclass
+        for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
+    """
 
     __slots__ = {"_register", "_index", "_hash", "_repr"}
 
@@ -52,38 +57,6 @@ class Bit:
             self._hash = hash((self._register, self._index))
             self._repr = f"{self.__class__.__name__}({self._register}, {self._index})"
 
-    @property
-    def register(self):
-        """Get bit's register."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError("Attempt to query register of a new-style Bit.")
-
-        warnings.warn(
-            "Back-references to from Bit instances to their containing "
-            "Registers have been deprecated. Instead, inspect Registers "
-            "to find their contained Bits.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        return self._register
-
-    @property
-    def index(self):
-        """Get bit's index."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError("Attempt to query index of a new-style Bit.")
-
-        warnings.warn(
-            "Back-references to from Bit instances to their containing "
-            "Registers have been deprecated. Instead, inspect Registers "
-            "to find their contained Bits.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        return self._index
-
     def __repr__(self):
         """Return the official string representing the bit."""
         if (self._register, self._index) == (None, None):
@@ -102,3 +75,20 @@ class Bit:
             return self._repr == other._repr
         except AttributeError:
             return False
+
+    def __copy__(self):
+        # Bits are immutable.
+        return self
+
+    def __deepcopy__(self, memo=None):
+        if (self._register, self._index) == (None, None):
+            return self
+
+        # Old-style bits need special handling for now, since some code seems
+        # to rely on their registers getting deep-copied.
+        bit = type(self).__new__(type(self))
+        bit._register = copy.deepcopy(self._register, memo)
+        bit._index = self._index
+        bit._hash = self._hash
+        bit._repr = self._repr
+        return bit

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,16 +12,20 @@
 
 """Test library of QFT circuits."""
 
+import io
+
 import unittest
 import warnings
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
 from qiskit import transpile
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import QFT
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QFT, QFTGate
 from qiskit.quantum_info import Operator
+from qiskit.qpy import dump, load
+from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -183,7 +187,7 @@ class TestQFT(QiskitTestCase):
                 raise self
 
         # We don't want to issue a warning on mutation until we know that the values are
-        # finalised; this is because a user might want to mutate the number of qubits and the
+        # finalized; this is because a user might want to mutate the number of qubits and the
         # approximation degree.  In these cases, wait until we try to build the circuit.
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
@@ -204,6 +208,115 @@ class TestQFT(QiskitTestCase):
             with self.assertWarnsRegex(RuntimeWarning, "precision loss in QFT"):
                 with self.assertRaises(SentinelException):
                     qft._build()
+
+
+@ddt
+class TestQFTGate(QiskitTestCase):
+    """Test the QFT Gate."""
+
+    @data(2, 3, 4, 5, 6)
+    def test_array_equivalent_to_decomposition(self, num_qubits):
+        """Test that the provided __array__ method and that the provided basic
+        definition are equivalent.
+        """
+        qft_gate = QFTGate(num_qubits=num_qubits)
+        qft_gate_decomposition = qft_gate.definition
+        self.assertEqual(Operator(qft_gate), Operator(qft_gate_decomposition))
+
+    @data(2, 3, 4, 5, 6)
+    def test_gate_equivalent_to_original(self, num_qubits):
+        """Test that the Operator can be constructed out of a QFT gate, and is
+        equivalent to the Operator constructed out of a QFT circuit.
+        """
+        qft_gate = QFTGate(num_qubits=num_qubits)
+        qft_circuit = QFT(num_qubits=num_qubits)
+        self.assertEqual(Operator(qft_gate), Operator(qft_circuit))
+
+    def test_append_to_circuit(self):
+        """Test adding a QFTGate to a quantum circuit."""
+        qc = QuantumCircuit(5)
+        qc.append(QFTGate(4), [1, 2, 0, 4])
+        self.assertIsInstance(qc.data[0].operation, QFTGate)
+
+    @data(2, 3, 4, 5, 6)
+    def test_circuit_with_gate_equivalent_to_original(self, num_qubits):
+        """Test that the Operator can be constructed out of a circuit containing a QFT gate, and is
+        equivalent to the Operator constructed out of a QFT circuit.
+        """
+        qft_gate = QFTGate(num_qubits=num_qubits)
+        circuit_with_qft_gate = QuantumCircuit(num_qubits)
+        circuit_with_qft_gate.append(qft_gate, range(num_qubits))
+        qft_circuit = QFT(num_qubits=num_qubits)
+        self.assertEqual(Operator(circuit_with_qft_gate), Operator(qft_circuit))
+
+    def test_inverse(self):
+        """Test that inverse can be constructed for a circuit with a QFTGate."""
+        qc = QuantumCircuit(5)
+        qc.append(QFTGate(4), [1, 2, 0, 4])
+        qci = qc.inverse()
+        self.assertEqual(Operator(qci), Operator(qc).adjoint())
+
+    def test_reverse_ops(self):
+        """Test reverse_ops works for a circuit with a QFTGate."""
+        qc = QuantumCircuit(5)
+        qc.cx(1, 3)
+        qc.append(QFTGate(4), [1, 2, 0, 4])
+        qc.h(0)
+        qcr = qc.reverse_ops()
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.append(QFTGate(4), [1, 2, 0, 4])
+        expected.cx(1, 3)
+        self.assertEqual(qcr, expected)
+
+    def test_conditional(self):
+        """Test adding conditional to a QFTGate."""
+        qc = QuantumCircuit(5, 1)
+        qc.append(QFTGate(4), [1, 2, 0, 4]).c_if(0, 1)
+        self.assertIsNotNone(qc.data[0].operation.condition)
+
+    def test_qasm(self):
+        """Test qasm for circuits with QFTGates."""
+        qr = QuantumRegister(5, "q0")
+        qc = QuantumCircuit(qr)
+        qc.append(QFTGate(num_qubits=4), [1, 2, 0, 4])
+        qc.append(QFTGate(num_qubits=3), [0, 1, 2])
+        qc.h(qr[0])
+        qc_qasm = dumps(qc)
+        reconstructed = QuantumCircuit.from_qasm_str(qc_qasm)
+        self.assertEqual(Operator(qc), Operator(reconstructed))
+
+    def test_qpy(self):
+        """Test qpy for circuits with QFTGates."""
+        qc = QuantumCircuit(6, 1)
+        qc.append(QFTGate(num_qubits=4), [1, 2, 0, 4])
+        qc.append(QFTGate(num_qubits=3), [0, 1, 2])
+        qc.h(0)
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_gate_equality(self):
+        """Test checking equality of QFTGates."""
+        self.assertEqual(QFTGate(num_qubits=3), QFTGate(num_qubits=3))
+        self.assertNotEqual(QFTGate(num_qubits=3), QFTGate(num_qubits=4))
+
+    def test_circuit_with_gate_equality(self):
+        """Test checking equality of circuits with QFTGates."""
+        qc1 = QuantumCircuit(5)
+        qc1.append(QFTGate(num_qubits=3), [1, 2, 0])
+
+        qc2 = QuantumCircuit(5)
+        qc2.append(QFTGate(num_qubits=3), [1, 2, 0])
+
+        qc3 = QuantumCircuit(5)
+        qc3.append(QFTGate(num_qubits=4), [1, 2, 0, 4])
+
+        self.assertEqual(qc1, qc2)
+        self.assertNotEqual(qc1, qc3)
 
 
 if __name__ == "__main__":

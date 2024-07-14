@@ -12,6 +12,8 @@
 
 """User interface of qpy serializer."""
 
+from __future__ import annotations
+
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional
 from collections.abc import Iterable
@@ -25,7 +27,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
-from qiskit.utils.deprecation import deprecate_arguments
 
 
 # pylint: disable=invalid-name
@@ -72,11 +73,12 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_arguments({"circuits": "programs"})
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
+    use_symengine: bool = True,
+    version: int = common.QPY_VERSION,
 ):
     """Write QPY binary data to a file
 
@@ -122,10 +124,30 @@ def dump(
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
+        use_symengine: If True, all objects containing symbolic expressions will be serialized
+            using symengine's native mechanism. This is a faster serialization alternative,
+            but not supported in all platforms. Please check that your target platform is supported
+            by the symengine library before setting this option, as it will be required by qpy to
+            deserialize the payload. For this reason, the option defaults to False.
+        version: The QPY format version to emit. By default this defaults to
+            the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
+            compatibility reasons if you need to load the generated QPY payload with an older
+            version of Qiskit you can also select an older QPY format version down to the minimum
+            supported export version, which only can change during a Qiskit major version release,
+            to generate an older QPY format version.  You can access the current QPY version and
+            minimum compatible version with :attr:`.qpy.QPY_VERSION` and
+            :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
+
+            .. note::
+
+                If specified with an older version of QPY the limitations and potential bugs stemming
+                from the QPY format at that version will persist. This should only be used if
+                compatibility with loading the payload with an older version of Qiskit is necessary.
 
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
+        ValueError: When an unsupported version number is passed in for the ``version`` argument
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
@@ -150,22 +172,39 @@ def dump(
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
 
+    if version is None:
+        version = common.QPY_VERSION
+    elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
+        raise ValueError(
+            f"The specified QPY version {version} is not support for dumping with this version, "
+            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
+            f"{common.QPY_VERSION}"
+        )
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
+    encoding = type_keys.SymExprEncoding.assign(use_symengine)
     header = struct.pack(
-        formats.FILE_HEADER_PACK,
+        formats.FILE_HEADER_V10_PACK,
         b"QISKIT",
-        common.QPY_VERSION,
+        version,
         version_parts[0],
         version_parts[1],
         version_parts[2],
         len(programs),
+        encoding,
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_key)
 
     for program in programs:
-        writer(file_obj, program, metadata_serializer=metadata_serializer)
+        writer(
+            file_obj,
+            program,
+            metadata_serializer=metadata_serializer,
+            use_symengine=use_symengine,
+            version=version,
+        )
 
 
 def load(
@@ -219,38 +258,57 @@ def load(
         QiskitError: if ``file_obj`` is not a valid QPY file
         TypeError: When invalid data type is loaded.
     """
-    data = formats.FILE_HEADER._make(
-        struct.unpack(
-            formats.FILE_HEADER_PACK,
-            file_obj.read(formats.FILE_HEADER_SIZE),
+
+    # identify file header version
+    version = struct.unpack("!6sB", file_obj.read(7))[1]
+    file_obj.seek(0)
+
+    if version > common.QPY_VERSION:
+        raise QiskitError(
+            f"The QPY format version being read, {version}, isn't supported by "
+            "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
-    )
+
+    if version < 10:
+        data = formats.FILE_HEADER._make(
+            struct.unpack(
+                formats.FILE_HEADER_PACK,
+                file_obj.read(formats.FILE_HEADER_SIZE),
+            )
+        )
+    else:
+        data = formats.FILE_HEADER_V10._make(
+            struct.unpack(
+                formats.FILE_HEADER_V10_PACK,
+                file_obj.read(formats.FILE_HEADER_V10_SIZE),
+            )
+        )
+
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
     version_match = VERSION_PATTERN_REGEX.search(__version__)
-    version_parts = [int(x) for x in version_match.group("release").split(".")]
+    env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
-    header_version_parts = [data.major_version, data.minor_version, data.patch_version]
-
+    qiskit_version = (data.major_version, data.minor_version, data.patch_version)
     # pylint: disable=too-many-boolean-expressions
     if (
-        version_parts[0] < header_version_parts[0]
+        env_qiskit_version[0] < qiskit_version[0]
         or (
-            version_parts[0] == header_version_parts[0]
-            and header_version_parts[1] > version_parts[1]
+            env_qiskit_version[0] == qiskit_version[0] and qiskit_version[1] > env_qiskit_version[1]
         )
         or (
-            version_parts[0] == header_version_parts[0]
-            and header_version_parts[1] == version_parts[1]
-            and header_version_parts[2] > version_parts[2]
+            env_qiskit_version[0] == qiskit_version[0]
+            and qiskit_version[1] == env_qiskit_version[1]
+            and qiskit_version[2] > env_qiskit_version[2]
         )
     ):
         warnings.warn(
             "The qiskit version used to generate the provided QPY "
-            "file, %s, is newer than the current qiskit version %s. "
+            f"file, {'.'.join([str(x) for x in qiskit_version])}, "
+            f"is newer than the current qiskit version {__version__}. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
+            "version"
         )
 
     if data.qpy_version < 5:
@@ -265,9 +323,19 @@ def load(
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
+    if data.qpy_version < 10:
+        use_symengine = False
+    else:
+        use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
+
     programs = []
     for _ in range(data.num_programs):
         programs.append(
-            loader(file_obj, data.qpy_version, metadata_deserializer=metadata_deserializer)
+            loader(
+                file_obj,
+                data.qpy_version,
+                metadata_deserializer=metadata_deserializer,
+                use_symengine=use_symengine,
+            )
         )
     return programs

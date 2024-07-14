@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The Qiskit gates :class:`~.CCZGate`, :class:`~.CSGate`, :class:`~.CSdgGate` are not defined in
+    ``qelib1.inc`` and, therefore, when dump as OpenQASM 2.0, their definition should be inserted in the file.
+    Fixes `#9559 <https://github.com/Qiskit/qiskit-terra/issues/9559>`__,
+    `#9721 <https://github.com/Qiskit/qiskit-terra/issues/9721>`__, and
+    `#9722 <https://github.com/Qiskit/qiskit-terra/issues/9722>`__.

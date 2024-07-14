@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import Size
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSizePass(QiskitTestCase):
@@ -64,6 +64,27 @@ class TestSizePass(QiskitTestCase):
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set["size"], 2)
+
+    def test_size_control_flow(self):
+        """A DAG with control flow still gives an estimate."""
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+            qc.cx(2, 3)
+        with else_:
+            qc.x(1)
+            with qc.for_loop(range(3)):
+                qc.z(2)
+                with qc.for_loop((4, 0, 1)):
+                    qc.z(2)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.h(0)
+            qc.measure(0, 0)
+        pass_ = Size(recurse=True)
+        pass_(qc)
+        self.assertEqual(pass_.property_set["size"], 19)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A fast path for :meth:`.Parameter.assign` has been added, which improves the performance of
+    :meth:`.QuantumCircuit.assign_parameters` for the common case of circuits that contain
+    predominantly "expressions" that are actually just single parameters to be assigned later.

@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The import ``qiskit.circuit.qpy_serialization`` is deprecated, as QPY has been promoted to the
+    top level.  You should import the same objects from :mod:`qiskit.qpy` instead.  The old path
+    will be removed in a future of Qiskit Terra.

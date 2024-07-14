@@ -11,27 +11,42 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to a dag"""
+import copy
 
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit._accelerate.circuit import StandardGate
 
 
-def circuit_to_dag(circuit):
-    """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
+def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
+    """Build a :class:`.DAGCircuit` object from a :class:`.QuantumCircuit`.
 
     Args:
         circuit (QuantumCircuit): the input circuit.
+        copy_operations (bool): Deep copy the operation objects
+            in the :class:`~.QuantumCircuit` for the output :class:`~.DAGCircuit`.
+            This should only be set to ``False`` if the input :class:`~.QuantumCircuit`
+            will not be used anymore as the operations in the output
+            :class:`~.DAGCircuit` will be shared instances and modifications to
+            operations in the :class:`~.DAGCircuit` will be reflected in the
+            :class:`~.QuantumCircuit` (and vice versa).
+        qubit_order (Iterable[~qiskit.circuit.Qubit] or None): the order that the qubits should be
+            indexed in the output DAG.  Defaults to the same order as in the circuit.
+        clbit_order (Iterable[Clbit] or None): the order that the clbits should be indexed in the
+            output DAG.  Defaults to the same order as in the circuit.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
 
+    Raises:
+        ValueError: if the ``qubit_order`` or ``clbit_order`` parameters do not match the bits in
+            the circuit.
+
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
-            from qiskit.visualization import dag_drawer
-            %matplotlib inline
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -41,7 +56,6 @@ def circuit_to_dag(circuit):
             circ.measure(q[0], c[0])
             circ.rz(0.5, q[1]).c_if(c, 2)
             dag = circuit_to_dag(circ)
-            dag_drawer(dag)
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
@@ -49,8 +63,29 @@ def circuit_to_dag(circuit):
     dagcircuit.calibrations = circuit.calibrations
     dagcircuit.metadata = circuit.metadata
 
-    dagcircuit.add_qubits(circuit.qubits)
-    dagcircuit.add_clbits(circuit.clbits)
+    if qubit_order is None:
+        qubits = circuit.qubits
+    elif len(qubit_order) != circuit.num_qubits or set(qubit_order) != set(circuit.qubits):
+        raise ValueError("'qubit_order' does not contain exactly the same qubits as the circuit")
+    else:
+        qubits = qubit_order
+
+    if clbit_order is None:
+        clbits = circuit.clbits
+    elif len(clbit_order) != circuit.num_clbits or set(clbit_order) != set(circuit.clbits):
+        raise ValueError("'clbit_order' does not contain exactly the same clbits as the circuit")
+    else:
+        clbits = clbit_order
+
+    dagcircuit.add_qubits(qubits)
+    dagcircuit.add_clbits(clbits)
+
+    for var in circuit.iter_input_vars():
+        dagcircuit.add_input_var(var)
+    for var in circuit.iter_captured_vars():
+        dagcircuit.add_captured_var(var)
+    for var in circuit.iter_declared_vars():
+        dagcircuit.add_declared_var(var)
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
@@ -59,9 +94,24 @@ def circuit_to_dag(circuit):
         dagcircuit.add_creg(register)
 
     for instruction in circuit.data:
-        dagcircuit.apply_operation_back(
-            instruction.operation.copy(), instruction.qubits, instruction.clbits
-        )
+        if not isinstance(instruction._raw_op, StandardGate):
+            op = instruction.operation
+            if copy_operations:
+                op = copy.deepcopy(op)
+            dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits, check=False)
+        else:
+            node = DAGOpNode(
+                instruction._raw_op,
+                qargs=instruction.qubits,
+                cargs=instruction.clbits,
+                params=instruction.params,
+                label=instruction.label,
+                duration=instruction.duration,
+                unit=instruction.unit,
+                condition=instruction.condition,
+                dag=dagcircuit,
+            )
+            dagcircuit._apply_op_node_back(node)
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit

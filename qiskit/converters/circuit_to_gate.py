@@ -12,9 +12,19 @@
 
 
 """Helper function for converting a circuit to a gate"""
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
+
+
+def _check_is_gate(op):
+    """Checks whether op can be converted to Gate."""
+    if isinstance(op, Gate):
+        return True
+    elif isinstance(op, AnnotatedOperation):
+        return _check_is_gate(op.base_op)
+    return False
 
 
 def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
@@ -48,14 +58,14 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     if circuit.clbits:
         raise QiskitError("Circuit with classical bits cannot be converted to gate.")
+    if circuit.num_vars:
+        raise QiskitError("circuits with realtime classical variables cannot be converted to gates")
 
     for instruction in circuit.data:
-        if not isinstance(instruction.operation, Gate):
+        if not _check_is_gate(instruction.operation):
             raise QiskitError(
-                (
-                    "One or more instructions cannot be converted to"
-                    ' a gate. "{}" is not a gate instruction'
-                ).format(instruction.operation.name)
+                "One or more instructions cannot be converted to"
+                f' a gate. "{instruction.operation.name}" is not a gate instruction'
             )
 
     if parameter_map is None:
@@ -65,10 +75,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     if parameter_dict.keys() != circuit.parameters:
         raise QiskitError(
-            (
-                "parameter_map should map all circuit parameters. "
-                "Circuit parameters: {}, parameter_map: {}"
-            ).format(circuit.parameters, parameter_dict)
+            "parameter_map should map all circuit parameters. "
+            f"Circuit parameters: {circuit.parameters}, parameter_map: {parameter_dict}"
         )
 
     gate = Gate(
@@ -84,15 +92,15 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if equivalence_library is not None:
         equivalence_library.add_equivalence(gate, target)
 
+    qc = QuantumCircuit(name=gate.name, global_phase=target.global_phase)
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, "q")
-
+        qc.add_register(q)
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
 
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
     for instruction in target.data:
         qc._append(instruction.replace(qubits=tuple(qubit_map[y] for y in instruction.qubits)))
     gate.definition = qc

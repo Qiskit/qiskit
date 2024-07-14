@@ -17,8 +17,8 @@ import io
 from logging import StreamHandler, getLogger
 import sys
 import copy
-
 import numpy as np
+
 from qiskit import pulse
 from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -27,17 +27,16 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
-from qiskit.pulse.library import gaussian
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse.macros import measure
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,
-    FakeYorktown,
-    FakeAlmaden,
+    Fake5QV1,
+    Fake27QPulseV1,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class RxGate(Gate):
@@ -64,7 +63,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.circ.cx(qr[0], qr[1])
         self.circ.measure(qr, cr)
 
-        self.backend = FakeYorktown()
+        self.backend = Fake5QV1()
         self.backend_config = self.backend.configuration()
         self.num_qubits = self.backend_config.n_qubits
 
@@ -234,7 +233,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
 
     def test_assemble_unroll_parametervector(self):
-        """Verfiy that assemble unrolls parametervectors ref #5467"""
+        """Verify that assemble unrolls parametervectors ref #5467"""
         pv1 = ParameterVector("pv1", 3)
         pv2 = ParameterVector("pv2", 3)
         qc = QuantumCircuit(2, 2)
@@ -244,7 +243,7 @@ class TestCircuitAssembler(QiskitTestCase):
         qc.barrier()
         qc.measure([0, 1], [0, 1])
 
-        qc.bind_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
+        qc.assign_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
 
         qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
 
@@ -529,6 +528,24 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(lib), 2)
         self.assertTrue(all(len(item.samples) == 50 for item in lib))
 
+    def test_custom_pulse_gates_single_circ(self):
+        """Test that we can add calibrations to circuits of pulses which are not in
+        qiskit.qobj.converters.pulse_instruction.ParametricPulseShapes"""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Triangle(50, 0.1, 0.2), pulse.DriveChannel(0))
+
+        circ.add_calibration("h", [0], custom_h_schedule)
+
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        lib = qobj.config.pulse_library
+        self.assertEqual(len(lib), 1)
+        np.testing.assert_almost_equal(
+            lib[0].samples, pulse.library.Triangle(50, 0.1, 0.2).get_waveform().samples
+        )
+
     def test_pulse_gates_with_parameteric_pulses(self):
         """Test that pulse gates are assembled efficiently for backends that enable
         parametric pulses.
@@ -592,8 +609,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertFalse(hasattr(qobj.experiments[1].config, "calibrations"))
 
     def test_assemble_adds_circuit_metadata_to_experiment_header(self):
-        """Verify that any circuit metadata is added to the exeriment header."""
-        circ = QuantumCircuit(2, metadata=dict(experiment_type="gst", execution_number="1234"))
+        """Verify that any circuit metadata is added to the experiment header."""
+        circ = QuantumCircuit(2, metadata={"experiment_type": "gst", "execution_number": "1234"})
         qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
         self.assertEqual(
             qobj.experiments[0].header.metadata,
@@ -926,7 +943,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
 
     def test_assemble_adds_schedule_metadata_to_experiment_header(self):
-        """Verify that any circuit metadata is added to the exeriment header."""
+        """Verify that any circuit metadata is added to the experiment header."""
         self.schedule.metadata = {"experiment_type": "gst", "execution_number": "1234"}
         qobj = assemble(
             self.schedule,
@@ -1194,17 +1211,20 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts_in_other_schedule(self):
         """Test two pulses with the same name in different schedule can be resolved."""
-        backend = FakeAlmaden()
+        backend = Fake27QPulseV1()
+        defaults = backend.defaults()
 
         schedules = []
         ch_d0 = pulse.DriveChannel(0)
         for amp in (0.1, 0.2):
             sched = Schedule()
-            sched += Play(gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0)
+            sched += Play(pulse.Gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0)
             sched += measure(qubits=[0], backend=backend) << 100
             schedules.append(sched)
 
-        qobj = assemble(schedules, backend)
+        qobj = assemble(
+            schedules, qubit_lo_freq=defaults.qubit_freq_est, meas_lo_freq=defaults.meas_freq_est
+        )
 
         # two user pulses and one measurement pulse should be contained
         self.assertEqual(len(qobj.config.pulse_library), 3)
@@ -1275,12 +1295,21 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric(self):
         """Test that parametric pulses can be assembled properly into a PulseQobj."""
+        amp = [0.5, 0.6, 1, 0.2]
+        angle = [np.pi / 2, 0.6, 0, 0]
         sched = pulse.Schedule(name="test_parametric")
-        sched += Play(pulse.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
-        sched += Play(pulse.Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
+        sched += Play(
+            pulse.Gaussian(duration=25, sigma=4, amp=amp[0], angle=angle[0]), DriveChannel(0)
+        )
+        sched += Play(
+            pulse.Drag(duration=25, amp=amp[1], angle=angle[1], sigma=7.8, beta=4), DriveChannel(1)
+        )
+        sched += Play(pulse.Constant(duration=25, amp=amp[2], angle=angle[2]), DriveChannel(2))
         sched += (
-            Play(pulse.GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), MeasureChannel(0))
+            Play(
+                pulse.GaussianSquare(duration=150, amp=amp[3], angle=angle[3], sigma=8, width=140),
+                MeasureChannel(0),
+            )
             << sched.duration
         )
         backend = FakeOpenPulse3Q()
@@ -1299,16 +1328,24 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj_insts[1].pulse_shape, "drag")
         self.assertEqual(qobj_insts[2].pulse_shape, "constant")
         self.assertEqual(qobj_insts[3].pulse_shape, "gaussian_square")
-        self.assertDictEqual(qobj_insts[0].parameters, {"duration": 25, "sigma": 4, "amp": 0.5j})
         self.assertDictEqual(
-            qobj_insts[1].parameters, {"duration": 25, "sigma": 7.8, "amp": 0.2 + 0.3j, "beta": 4}
+            qobj_insts[0].parameters,
+            {"duration": 25, "sigma": 4, "amp": amp[0] * np.exp(1j * angle[0])},
         )
-        self.assertDictEqual(qobj_insts[2].parameters, {"duration": 25, "amp": 1})
         self.assertDictEqual(
-            qobj_insts[3].parameters, {"duration": 150, "sigma": 8, "amp": 0.2, "width": 140}
+            qobj_insts[1].parameters,
+            {"duration": 25, "sigma": 7.8, "amp": amp[1] * np.exp(1j * angle[1]), "beta": 4},
+        )
+        self.assertDictEqual(
+            qobj_insts[2].parameters, {"duration": 25, "amp": amp[2] * np.exp(1j * angle[2])}
+        )
+        self.assertDictEqual(
+            qobj_insts[3].parameters,
+            {"duration": 150, "sigma": 8, "amp": amp[3] * np.exp(1j * angle[3]), "width": 140},
         )
         self.assertEqual(
-            qobj.to_dict()["experiments"][0]["instructions"][0]["parameters"]["amp"], 0.5j
+            qobj.to_dict()["experiments"][0]["instructions"][0]["parameters"]["amp"],
+            amp[0] * np.exp(1j * angle[0]),
         )
 
     def test_assemble_parametric_unsupported(self):
@@ -1316,7 +1353,9 @@ class TestPulseAssembler(QiskitTestCase):
         by the backend during assemble time.
         """
         sched = pulse.Schedule(name="test_parametric_to_sample_pulse")
-        sched += Play(pulse.Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), DriveChannel(1))
+        sched += Play(
+            pulse.Drag(duration=25, amp=0.5, angle=-0.3, sigma=7.8, beta=4), DriveChannel(1)
+        )
         sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
         backend = FakeOpenPulse3Q()
@@ -1330,7 +1369,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg over backend"""
-        backend = FakeAlmaden()
+        backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1345,7 +1384,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg as empty list over backend"""
-        backend = FakeAlmaden()
+        backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)

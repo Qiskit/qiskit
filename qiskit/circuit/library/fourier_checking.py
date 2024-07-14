@@ -18,6 +18,8 @@ import math
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
+from .generalized_gates.diagonal import Diagonal
+
 
 class FourierChecking(QuantumCircuit):
     """Fourier checking circuit.
@@ -61,15 +63,14 @@ class FourierChecking(QuantumCircuit):
             CircuitError: if the inputs f and g are not valid.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import FourierChecking
-                import qiskit.tools.jupyter
-                f = [1, -1, -1, -1]
-                g = [1, 1, -1, -1]
-                circuit = FourierChecking(f, g)
-                %circuit_library_info circuit
+               from qiskit.circuit.library import FourierChecking
+               from qiskit.visualization.library import _generate_circuit_library_visualization
+               f = [1, -1, -1, -1]
+               g = [1, 1, -1, -1]
+               circuit = FourierChecking(f, g)
+               _generate_circuit_library_visualization(circuit)
         """
         num_qubits = math.log2(len(f))
 
@@ -84,11 +85,11 @@ class FourierChecking(QuantumCircuit):
 
         circuit.h(circuit.qubits)
 
-        circuit.diagonal(f, circuit.qubits)
+        circuit.compose(Diagonal(f), inplace=True)
 
         circuit.h(circuit.qubits)
 
-        circuit.diagonal(g, circuit.qubits)
+        circuit.compose(Diagonal(g), inplace=True)
 
         circuit.h(circuit.qubits)
 

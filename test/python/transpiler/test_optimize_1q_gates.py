@@ -17,12 +17,17 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import Optimize1qGates, Unroller
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -36,8 +41,8 @@ class TestOptimize1qGates(QiskitTestCase):
         """
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr)
-        circuit.i(qr)
-        circuit.i(qr)
+        circuit.id(qr)
+        circuit.id(qr)
         dag = circuit_to_dag(circuit)
 
         pass_ = Optimize1qGates()
@@ -57,7 +62,7 @@ class TestOptimize1qGates(QiskitTestCase):
         expected.append(U2Gate(0, np.pi), [qr[0]])
 
         passmanager = PassManager()
-        passmanager.append(Unroller(["u2"]))
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
         result = passmanager.run(circuit)
 
@@ -318,9 +323,24 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u3_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate definition."""
+
+            def __init__(self, lam):
+                super().__init__("u1", 1, [lam])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.p(*self.params, 0)
+                self.definition = qc
+
+            def _matrix(self):
+                return U1Gate(*self.params).to_matrix()
+
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        u1 = U1Gate(0.1)
+        u1 = CustomGate(0.1)
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3
@@ -332,9 +352,24 @@ class TestOptimize1qGates(QiskitTestCase):
 
     def test_global_phase_u_on_left(self):
         """Check proper phase accumulation with instruction with no definition."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate."""
+
+            def __init__(self, lam):
+                super().__init__("u1", 1, [lam])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.p(*self.params, 0)
+                self.definition = qc
+
+            def _matrix(self):
+                return U1Gate(*self.params).to_matrix()
+
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        u1 = U1Gate(0.1)
+        u1 = CustomGate(0.1)
         u1.definition.global_phase = np.pi / 2
         qc.append(u1, [0])
         qc.global_phase = np.pi / 3
@@ -480,6 +515,24 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(["u2"]))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_basis_u2_with_target(self):
+        """U3(pi/2, 0, pi/4) ->  U2(0, pi/4)"""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.append(U3Gate(np.pi / 2, 0, np.pi / 4), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(U2Gate(0, np.pi / 4), [qr[0]])
+
+        target = Target(num_qubits=1)
+        target.add_instruction(U2Gate(Parameter("theta"), Parameter("phi")))
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(target=target))
         result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)
@@ -675,8 +728,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         qc.ry(alpha, qr[0])
         qc.ry(0.1, qr[0])
         qc.ry(0.2, qr[0])
-
-        passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
+        passmanager = PassManager([BasisTranslator(std_eqlib, ["u3"]), Optimize1qGates()])
         result = passmanager.run(qc)
 
         expected = QuantumCircuit(qr)

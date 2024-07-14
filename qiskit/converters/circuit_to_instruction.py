@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -44,7 +43,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         yield the components comprising the original circuit.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.converters import circuit_to_instruction
@@ -61,6 +60,28 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+    if circuit.num_input_vars:
+        # This could be supported by moving the `input` variables to be parameters of the
+        # instruction, but we don't really have a good representation of that yet, so safer to
+        # forbid it.
+        raise QiskitError("Circuits with 'input' variables cannot yet be converted to instructions")
+    if circuit.num_captured_vars:
+        raise QiskitError("Circuits that capture variables cannot be converted to instructions")
+    if circuit.num_declared_vars:
+        # This could very easily be supported in representations, since the variables are allocated
+        # and freed within the instruction itself.  The reason to initially forbid it is to avoid
+        # needing to support unrolling such instructions within the transpiler; we would potentially
+        # need to remap variables to unique names in the larger context, and we don't yet have a way
+        # to return that information from the transpiler.  We have to catch that in the transpiler
+        # as well since a user could manually make an instruction with such a definition, but
+        # forbidding it here means users get a more meaningful error at the point that the
+        # instruction actually gets created (since users often aren't aware that
+        # `QuantumCircuit.append(QuantumCircuit)` implicitly converts to an instruction).
+        raise QiskitError(
+            "Circuits with internal variables cannot yet be converted to instructions."
+            " You may be able to use `QuantumCircuit.compose` to inline this circuit into another."
+        )
+
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
     else:
@@ -68,10 +89,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     if parameter_dict.keys() != circuit.parameters:
         raise QiskitError(
-            (
-                "parameter_map should map all circuit parameters. "
-                "Circuit parameters: {}, parameter_map: {}"
-            ).format(circuit.parameters, parameter_dict)
+            "parameter_map should map all circuit parameters. "
+            f"Circuit parameters: {circuit.parameters}, parameter_map: {parameter_dict}"
         )
 
     out_instruction = Instruction(
@@ -81,7 +100,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         params=[*parameter_dict.values()],
         label=label,
     )
-    out_instruction.condition = None
+    out_instruction._condition = None
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
@@ -89,43 +108,45 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         equivalence_library.add_equivalence(out_instruction, target)
 
     regs = []
+    qreg, creg = None, None
     if out_instruction.num_qubits > 0:
-        q = QuantumRegister(out_instruction.num_qubits, "q")
-        regs.append(q)
+        qreg = QuantumRegister(out_instruction.num_qubits, "q")
+        regs.append(qreg)
 
     if out_instruction.num_clbits > 0:
-        c = ClassicalRegister(out_instruction.num_clbits, "c")
-        regs.append(c)
+        creg = ClassicalRegister(out_instruction.num_clbits, "c")
+        regs.append(creg)
 
-    qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
-    clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
+    clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
+    operation_map = {}
 
-    definition = [
-        instruction.replace(
-            qubits=[qubit_map[y] for y in instruction.qubits],
-            clbits=[clbit_map[y] for y in instruction.clbits],
-        )
-        for instruction in target.data
-    ]
+    def fix_condition(op):
+        original_id = id(op)
+        if (out := operation_map.get(original_id)) is not None:
+            return out
 
-    # fix condition
-    for rule in definition:
-        condition = getattr(rule.operation, "condition", None)
+        condition = getattr(op, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                rule.operation.condition = (clbit_map[reg], val)
-            elif reg.size == c.size:
-                rule.operation.condition = (c, val)
+                op = op.c_if(clbit_map[reg], val)
+            elif reg.size == creg.size:
+                op = op.c_if(creg, val)
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "
                     "multiple classical registers to instruction"
                 )
+        operation_map[original_id] = op
+        return op
+
+    data = target._data.copy()
+    data.replace_bits(qubits=qreg, clbits=creg)
+    data.map_ops(fix_condition)
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
-    for instruction in definition:
-        qc._append(instruction)
+    qc._data = data
+
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
 

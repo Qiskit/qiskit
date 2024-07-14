@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :func:`.QuantumCircuit.decompose` method
+    where passing a circuit name to the function that matched a
+    composite gate name would not decompose the gate if it had a label
+    assigned to it as well.
+    Fixed `#9136 <https://github.com/Qiskit/qiskit-terra/issues/9136>`__

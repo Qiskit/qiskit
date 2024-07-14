@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,17 @@
 
 """A gate to implement time-evolution of operators."""
 
-from typing import Union, Optional
+from __future__ import annotations
+
+from typing import Union, Optional, TYPE_CHECKING
 import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
+
+if TYPE_CHECKING:
+    from qiskit.synthesis.evolution import EvolutionSynthesis
 
 
 class PauliEvolutionGate(Gate):
@@ -48,7 +52,10 @@ class PauliEvolutionGate(Gate):
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import PauliEvolutionGate
-        from qiskit.opflow import I, Z, X
+        from qiskit.quantum_info import SparsePauliOp
+
+        X = SparsePauliOp("X")
+        Z = SparsePauliOp("Z")
 
         # build the evolution gate
         operator = (Z ^ Z) - 0.1 * (X ^ I)
@@ -84,7 +91,7 @@ class PauliEvolutionGate(Gate):
     ) -> None:
         """
         Args:
-            operator (Pauli | PauliOp | SparsePauliOp | PauliSumOp | list):
+            operator (Pauli | SparsePauliOp | list):
                 The operator to evolve. Can also be provided as list of non-commuting
                 operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
@@ -102,6 +109,8 @@ class PauliEvolutionGate(Gate):
             operator = _to_sparse_pauli_op(operator)
 
         if synthesis is None:
+            from qiskit.synthesis.evolution import LieTrotter
+
             synthesis = LieTrotter()
 
         if label is None:
@@ -109,7 +118,6 @@ class PauliEvolutionGate(Gate):
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
-
         self.operator = operator
         self.synthesis = synthesis
 
@@ -146,22 +154,9 @@ class PauliEvolutionGate(Gate):
 
 
 def _to_sparse_pauli_op(operator):
-    """Cast the operator to a SparsePauliOp.
+    """Cast the operator to a SparsePauliOp."""
 
-    For Opflow objects, return a global coefficient that must be multiplied to the evolution time.
-    Since this coefficient might contain unbound parameters it cannot be absorbed into the
-    coefficients of the SparsePauliOp.
-    """
-    # pylint: disable=cyclic-import
-    from qiskit.opflow import PauliSumOp, PauliOp
-
-    if isinstance(operator, PauliSumOp):
-        sparse_pauli = operator.primitive
-        sparse_pauli._coeffs *= operator.coeff
-    elif isinstance(operator, PauliOp):
-        sparse_pauli = SparsePauliOp(operator.primitive)
-        sparse_pauli._coeffs *= operator.coeff
-    elif isinstance(operator, Pauli):
+    if isinstance(operator, Pauli):
         sparse_pauli = SparsePauliOp(operator)
     elif isinstance(operator, SparsePauliOp):
         sparse_pauli = operator
@@ -170,6 +165,8 @@ def _to_sparse_pauli_op(operator):
 
     if any(np.iscomplex(sparse_pauli.coeffs)):
         raise ValueError("Operator contains complex coefficients, which are not supported.")
+    if any(isinstance(coeff, ParameterExpression) for coeff in sparse_pauli.coeffs):
+        raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
     return sparse_pauli
 

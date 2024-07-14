@@ -14,22 +14,36 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
+
 import numpy as np
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
+from qiskit.circuit.library.templates.nct import template_nct_2a_2, template_nct_5a_3
+from qiskit.circuit.library.templates.clifford import (
+    clifford_2_1,
+    clifford_2_2,
+    clifford_2_3,
+    clifford_2_4,
+    clifford_3_1,
+    clifford_4_1,
+    clifford_4_2,
+)
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+    random_clifford_circuit,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
-    """Create a simple pass manager that runs a template optimisation with a single transformation.
+    """Create a simple pass manager that runs a template optimization with a single transformation.
     It turns ``RX(pi/2).RY(parameter).RX(-pi/2)`` into the equivalent virtual ``RZ`` rotation, where
     if ``parameter`` is given, it will be the instance used in the template."""
     if parameter is None:
@@ -187,10 +201,12 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list)
         dag_opt = pass_.run(dag_in)
 
+        # note: cx(2, 1) commutes both with ccx(3, 4, 0) and with cx(2, 4),
+        # so there is no real difference with the circuit drawn on the picture above.
         circuit_expected = QuantumCircuit(qr)
+        circuit_expected.cx(qr[2], qr[1])
         circuit_expected.ccx(qr[3], qr[4], qr[0])
         circuit_expected.cx(qr[2], qr[4])
-        circuit_expected.cx(qr[2], qr[1])
         circuit_expected.z(qr[1])
         circuit_expected.h(qr[3])
         circuit_expected.cx(qr[2], qr[3])
@@ -232,8 +248,8 @@ class TestTemplateMatching(QiskitTestCase):
         Check that users can supply DAGDependency in the template list.
         """
         circuit_in = QuantumCircuit(2)
-        circuit_in.cnot(0, 1)
-        circuit_in.cnot(0, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.cx(0, 1)
 
         templates = [circuit_to_dagdependency(circuit_in)]
 
@@ -332,6 +348,43 @@ class TestTemplateMatching(QiskitTestCase):
         # however these are equivalent if the operators are the same
         self.assertTrue(Operator(circuit_in).equiv(circuit_out))
 
+    def test_output_symbolic_library_equal(self):
+        """Test that the template matcher returns parameter expressions that use the same symbolic
+        library as the default; it should not coerce everything to Sympy when playing with the
+        `ParameterExpression` internals."""
+
+        a, b = Parameter("a"), Parameter("b")
+
+        template = QuantumCircuit(1)
+        template.p(a, 0)
+        template.p(-a, 0)
+        template.rz(a, 0)
+        template.rz(-a, 0)
+
+        circuit = QuantumCircuit(1)
+        circuit.p(-b, 0)
+        circuit.p(b, 0)
+
+        pass_ = TemplateOptimization(template_list=[template], user_cost_dict={"p": 100, "rz": 1})
+        out = pass_(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.rz(-b, 0)
+        expected.rz(b, 0)
+        self.assertEqual(out, expected)
+
+        def symbolic_library(expr):
+            """Get the symbolic library of the expression - 'sympy' or 'symengine'."""
+            return type(expr._symbol_expr).__module__.split(".")[0]
+
+        out_exprs = [expr for instruction in out.data for expr in instruction.operation.params]
+        self.assertEqual(
+            [symbolic_library(b)] * len(out_exprs), [symbolic_library(expr) for expr in out_exprs]
+        )
+
+        # Assert that the result still works with parametric assignment.
+        self.assertEqual(out.assign_parameters({b: 1.5}), expected.assign_parameters({b: 1.5}))
+
     def test_optimizer_does_not_replace_unbound_partial_match(self):
         """
         Test that partial matches with parameters will not raise errors.
@@ -356,7 +409,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # The template optimisation should not have replaced anything, because
+        # The template optimization should not have replaced anything, because
         # that would require it to leave dummy parameters in place without
         # binding them.
         self.assertEqual(circuit_in, circuit_out)
@@ -384,8 +437,8 @@ class TestTemplateMatching(QiskitTestCase):
         # however these are equivalent if the operators are the same
         theta_set = 0.42
         self.assertTrue(
-            Operator(circuit_in.bind_parameters({theta: theta_set})).equiv(
-                circuit_out.bind_parameters({theta: theta_set})
+            Operator(circuit_in.assign_parameters({theta: theta_set})).equiv(
+                circuit_out.assign_parameters({theta: theta_set})
             )
         )
 
@@ -471,8 +524,8 @@ class TestTemplateMatching(QiskitTestCase):
         alpha_set = 0.37
         beta_set = 0.42
         self.assertTrue(
-            Operator(circuit_in.bind_parameters({alpha: alpha_set, beta: beta_set})).equiv(
-                circuit_out.bind_parameters({alpha: alpha_set, beta: beta_set})
+            Operator(circuit_in.assign_parameters({alpha: alpha_set, beta: beta_set})).equiv(
+                circuit_out.assign_parameters({alpha: alpha_set, beta: beta_set})
             )
         )
 
@@ -644,6 +697,101 @@ class TestTemplateMatching(QiskitTestCase):
         expected.rz(a_circuit + b_circuit, 0)
 
         self.assertEqual(circuit_out, expected)
+
+    def test_consecutive_templates_apply(self):
+        """Test the scenario where one template optimization creates an opportunity for
+        another template optimization.
+
+        This is the original circuit:
+
+             ┌───┐
+        q_0: ┤ X ├──■───X───────■─
+             └─┬─┘┌─┴─┐ │ ┌───┐ │
+        q_1: ──■──┤ X ├─X─┤ H ├─■─
+                  └───┘   └───┘
+
+        The clifford_4_1 template allows to replace the two CNOTs followed by the SWAP by a
+        single CNOT:
+
+        q_0: ──■────────■─
+             ┌─┴─┐┌───┐ │
+        q_1: ┤ X ├┤ H ├─■─
+             └───┘└───┘
+
+        At these point, the clifford_4_2 template allows to replace the circuit by a single
+        Hadamard gate:
+
+        q_0: ─────
+             ┌───┐
+        q_1: ┤ H ├
+             └───┘
+
+        The second optimization would not have been possible without the applying the first
+        optimization.
+        """
+        qc = QuantumCircuit(2)
+        qc.cx(1, 0)
+        qc.cx(0, 1)
+        qc.swap(0, 1)
+        qc.h(1)
+        qc.cz(0, 1)
+
+        qc_expected = QuantumCircuit(2)
+        qc_expected.h(1)
+
+        costs = {"h": 1, "cx": 2, "cz": 2, "swap": 3}
+
+        # Check that consecutively applying both templates leads to the expected circuit.
+        qc_opt = TemplateOptimization(
+            template_list=[clifford_4_1(), clifford_4_2()], user_cost_dict=costs
+        )(qc)
+        self.assertEqual(qc_opt, qc_expected)
+
+        # Also check that applying the second template by itself does not do anything.
+        qc_non_opt = TemplateOptimization(template_list=[clifford_4_2()], user_cost_dict=costs)(qc)
+        self.assertEqual(qc, qc_non_opt)
+
+    def test_consecutive_templates_do_not_apply(self):
+        """Test that applying one template optimization does not allow incorrectly
+        applying other templates (which could happen if the DagDependency graph is
+        not constructed correctly after the optimization).
+        """
+        template_list = [
+            clifford_2_2(),
+            clifford_2_3(),
+        ]
+        pm = PassManager(TemplateOptimization(template_list=template_list))
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.swap(0, 1)
+        qc.h(0)
+        qc_opt = pm.run(qc)
+        self.assertTrue(Operator(qc) == Operator(qc_opt))
+
+    def test_clifford_templates(self):
+        """Tests TemplateOptimization pass on several larger examples."""
+        template_list = [
+            clifford_2_1(),
+            clifford_2_2(),
+            clifford_2_3(),
+            clifford_2_4(),
+            clifford_3_1(),
+        ]
+        pm = PassManager(TemplateOptimization(template_list=template_list))
+        scc.clear_cached_commutations()
+        for seed in range(10):
+            qc = random_clifford_circuit(
+                num_qubits=5,
+                num_gates=100,
+                gates=["x", "y", "z", "h", "s", "sdg", "cx", "cz", "swap"],
+                seed=seed,
+            )
+            qc_opt = pm.run(qc)
+            self.assertTrue(Operator(qc) == Operator(qc_opt))
+        # All of these gates are in the commutation library, i.e. the cache should not be used
+        self.assertEqual(scc.num_cached_entries(), 0)
 
 
 if __name__ == "__main__":

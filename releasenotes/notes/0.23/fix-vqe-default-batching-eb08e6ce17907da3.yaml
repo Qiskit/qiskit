@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a performance bug where the new primitive-based variational algorithms
+    :class:`.minimum_eigensolvers.VQE`, :class:`.eigensolvers.VQD` and :class:`.SamplingVQE`
+    did not batch energy evaluations per default, which resulted in a significant slowdown
+    if a hardware backend was used.

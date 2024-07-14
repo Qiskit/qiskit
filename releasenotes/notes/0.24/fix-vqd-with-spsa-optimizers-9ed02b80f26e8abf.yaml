@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`~.eigensolvers.VQD` algorithm where
+    the energy evaluation function could not process batches of parameters, making it
+    incompatible with optimizers with ``max_evals_grouped>1``.
+    See `#9500 <https://github.com/Qiskit/qiskit-terra/issues/9500>`__.

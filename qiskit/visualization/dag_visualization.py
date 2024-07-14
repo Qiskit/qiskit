@@ -15,10 +15,12 @@
 """
 Visualization function for DAG circuit representation.
 """
-from retworkx.visualization import graphviz_draw
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.circuit import Qubit
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister
+from qiskit.circuit.classical import expr
+from qiskit.converters import dagdependency_to_circuit
 from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
@@ -29,8 +31,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
-    This function calls the :func:`~retworkx.visualization.graphviz_draw` function from the ``retworkx``
-    package to draw the DAG.
+    This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
+    ``rustworkx`` package to draw the DAG.
 
     Args:
         dag (DAGCircuit): The dag to draw.
@@ -48,9 +50,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         InvalidFileError: when filename provided is not valid
 
     Example:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
-            %matplotlib inline
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
@@ -72,47 +74,89 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
     type_str = str(type(dag))
+    register_bit_labels = {
+        bit: f"{reg.name}[{idx}]"
+        for reg in list(dag.qregs.values()) + list(dag.cregs.values())
+        for (idx, bit) in enumerate(reg)
+    }
     if "DAGDependency" in type_str:
+        # pylint: disable=cyclic-import
+        from qiskit.visualization.circuit._utils import get_bit_reg_index
+
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         graph_attrs = {"dpi": str(100 * scale)}
+        dag_dep_circ = dagdependency_to_circuit(dag)
 
         def node_attr_func(node):
+            if "DAGDependencyV2" in type_str:
+                nid_str = str(node._node_id)
+            else:
+                nid_str = str(node.node_id)
             if style == "plain":
                 return {}
             if style == "color":
                 n = {}
-                n["label"] = str(node.node_id) + ": " + str(node.name)
-                if node.name == "measure":
-                    n["color"] = "blue"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightblue"
+                args = []
+                for count, arg in enumerate(node.qargs + node.cargs):
+                    if count > 4:
+                        args.append("...")
+                        break
+                    if isinstance(arg, Qubit):
+                        f_str = f"q_{qubit_indices[arg]}"
+                    elif isinstance(arg, Clbit):
+                        f_str = f"c_{clbit_indices[arg]}"
+                    else:
+                        f_str = f"{arg.index}"
+                    arg_str = register_bit_labels.get(arg, f_str)
+                    args.append(arg_str)
+
+                n["color"] = "black"
+                n["label"] = (
+                    nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
+                )
                 if node.name == "barrier":
-                    n["color"] = "black"
                     n["style"] = "filled"
-                    n["fillcolor"] = "green"
-                if getattr(node.op, "_directive", False):
-                    n["color"] = "black"
+                    n["fillcolor"] = "grey"
+                elif getattr(node.op, "_directive", False):
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
-                if getattr(node.op, "condition", None):
-                    n["label"] = str(node.node_id) + ": " + str(node.name) + " (conditional)"
-                    n["color"] = "black"
+                elif getattr(node.op, "condition", None):
+                    condition = node.op.condition
+                    if isinstance(condition, expr.Expr):
+                        cond_txt = " (cond: [Expr]) ("
+                    elif isinstance(condition[0], ClassicalRegister):
+                        cond_txt = f" (cond: {condition[0].name}, {int(condition[1])}) ("
+                    else:
+                        register, bit_index, reg_index = get_bit_reg_index(
+                            dag_dep_circ, condition[0]
+                        )
+                        if register is not None:
+                            cond_txt = (
+                                f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
+                            )
+                        else:
+                            cond_txt = f" (cond: {bit_index}, {int(condition[1])}) ("
                     n["style"] = "filled"
-                    n["fillcolor"] = "lightgreen"
+                    n["fillcolor"] = "green"
+                    n["label"] = (
+                        nid_str
+                        + ": "
+                        + str(node.name)
+                        + cond_txt
+                        + str(args)[1:-1].replace("'", "")
+                        + ")"
+                    )
+                elif node.name != "measure":  # measure is unfilled
+                    n["style"] = "filled"
+                    n["fillcolor"] = "lightblue"
                 return n
             else:
-                raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+                raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
         edge_attr_func = None
 
     else:
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
-        register_bit_labels = {
-            bit: f"{reg.name}[{idx}]"
-            for reg in list(dag.qregs.values()) + list(dag.cregs.values())
-            for (idx, bit) in enumerate(reg)
-        }
-
         graph_attrs = {"dpi": str(100 * scale)}
 
         def node_attr_func(node):
@@ -127,32 +171,40 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "lightblue"
                 if isinstance(node, DAGInNode):
                     if isinstance(node.wire, Qubit):
-                        label = register_bit_labels.get(node.wire, f"q_{qubit_indices[node.wire]}")
+                        label = register_bit_labels.get(
+                            node.wire, f"q_{dag.find_bit(node.wire).index}"
+                        )
                     else:
-                        label = register_bit_labels.get(node.wire, f"c_{clbit_indices[node.wire]}")
+                        label = register_bit_labels.get(
+                            node.wire, f"c_{dag.find_bit(node.wire).index}"
+                        )
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                 if isinstance(node, DAGOutNode):
                     if isinstance(node.wire, Qubit):
-                        label = register_bit_labels.get(node.wire, f"q[{qubit_indices[node.wire]}]")
+                        label = register_bit_labels.get(
+                            node.wire, f"q[{dag.find_bit(node.wire).index}]"
+                        )
                     else:
-                        label = register_bit_labels.get(node.wire, f"c[{clbit_indices[node.wire]}]")
+                        label = register_bit_labels.get(
+                            node.wire, f"c[{dag.find_bit(node.wire).index}]"
+                        )
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 return n
             else:
-                raise VisualizationError("Invalid style %s" % style)
+                raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}
             if isinstance(edge, Qubit):
-                label = register_bit_labels.get(edge, f"q_{qubit_indices[edge]}")
+                label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")
             else:
-                label = register_bit_labels.get(edge, f"c_{clbit_indices[edge]}")
+                label = register_bit_labels.get(edge, f"c_{dag.find_bit(edge).index}")
             e["label"] = label
             return e
 

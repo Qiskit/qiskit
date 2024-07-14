@@ -6,7 +6,7 @@ features:
     which can be used for prepending the other circuit before the origin
     circuit instead of appending. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit import QuantumCircuit
 

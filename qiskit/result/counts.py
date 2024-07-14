@@ -38,17 +38,17 @@ class Counts(dict):
                 integer the number of shots with that result.
                 The keys can be one of several formats:
 
-                     * A hexadecimal string of the form ``"0x4a"``
+                     * A hexadecimal string of the form ``'0x4a'``
                      * A bit string prefixed with ``0b`` for example ``'0b1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
                      * A dit string, for example ``'02'``. Note for objects created
-                       with dit strings the ``creg_sizes``and ``memory_slots``
+                       with dit strings the ``creg_sizes`` and ``memory_slots``
                        kwargs don't work and :meth:`hex_outcomes` and
                        :meth:`int_outcomes` also do not work.
 
             time_taken (float): The duration of the experiment that generated
-                the counts
+                the counts in seconds.
             creg_sizes (list): a nested list where the inner element is a list
                 of tuples containing both the classical register name and
                 classical register size. For example,
@@ -56,9 +56,9 @@ class Counts(dict):
             memory_slots (int): The number of total ``memory_slots`` in the
                 experiment.
         Raises:
-            TypeError: If the input key type is not an int or string
-            QiskitError: If a dit string key is input with creg_sizes and/or
-                memory_slots
+            TypeError: If the input key type is not an ``int`` or ``str``.
+            QiskitError: If a dit string key is input with ``creg_sizes`` and/or
+                ``memory_slots``.
         """
         bin_data = None
         data = dict(data)
@@ -101,7 +101,7 @@ class Counts(dict):
             else:
                 raise TypeError(
                     "Invalid input key type %s, must be either an int "
-                    "key or string key with hexademical value or bit string"
+                    "key or string key with hexadecimal value or bit string"
                 )
         header = {}
         self.creg_sizes = creg_sizes
@@ -130,7 +130,7 @@ class Counts(dict):
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
             raise exceptions.QiskitError(
-                "Multiple values have the same maximum counts: %s" % ",".join(max_values_counts)
+                f"Multiple values have the same maximum counts: {','.join(max_values_counts)}"
             )
         return max_values_counts[0]
 

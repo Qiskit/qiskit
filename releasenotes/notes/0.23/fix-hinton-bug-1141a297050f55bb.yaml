@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed poor spacing and offset plotting in :func:`.plot_state_hinton`.
+  - |
+    The displayed image in :func:`.plot_state_hinton` now has the state labels
+    ordered correctly, and the image matches up with the natural "matrix" ordering.

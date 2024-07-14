@@ -21,10 +21,10 @@ from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.converters import circuit_to_dagdependency
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 try:
-    import retworkx as rx
+    import rustworkx as rx
 except ImportError:
     pass
 
@@ -243,6 +243,36 @@ class TestDagNodeSelection(QiskitTestCase):
         predecessors_fourth = self.dag.predecessors(3)
         self.assertEqual(predecessors_fourth, [])
 
+    def test_option_create_preds_and_succs_is_false(self):
+        """Test that when the option ``create_preds_and_succs`` is False,
+        direct successors and predecessors still get constructed, but
+        transitive successors and predecessors do not."""
+
+        circuit = QuantumCircuit(self.qreg, self.creg)
+        circuit.h(self.qreg[0])
+        circuit.x(self.qreg[0])
+        circuit.h(self.qreg[0])
+        circuit.x(self.qreg[1])
+        circuit.h(self.qreg[0])
+        circuit.measure(self.qreg[0], self.creg[0])
+
+        self.dag = circuit_to_dagdependency(circuit, create_preds_and_succs=False)
+
+        self.assertEqual(self.dag.direct_predecessors(1), [0])
+        self.assertEqual(self.dag.direct_successors(1), [2, 4])
+        self.assertEqual(self.dag.predecessors(1), [])
+        self.assertEqual(self.dag.successors(1), [])
+
+        self.assertEqual(self.dag.direct_predecessors(3), [])
+        self.assertEqual(self.dag.direct_successors(3), [])
+        self.assertEqual(self.dag.predecessors(3), [])
+        self.assertEqual(self.dag.successors(3), [])
+
+        self.assertEqual(self.dag.direct_predecessors(5), [2, 4])
+        self.assertEqual(self.dag.direct_successors(5), [])
+        self.assertEqual(self.dag.predecessors(5), [])
+        self.assertEqual(self.dag.successors(5), [])
+
 
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
@@ -288,6 +318,12 @@ class TestDagProperties(QiskitTestCase):
         qc = QuantumCircuit(q)
         dag = circuit_to_dagdependency(qc)
         self.assertEqual(dag.depth(), 0)
+
+    def test_default_metadata_value(self):
+        """Test that the default DAGDependency metadata is valid QuantumCircuit metadata."""
+        qc = QuantumCircuit(1)
+        qc.metadata = self.dag.metadata
+        self.assertEqual(qc.metadata, {})
 
 
 if __name__ == "__main__":

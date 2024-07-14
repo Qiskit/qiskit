@@ -19,7 +19,8 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
 from qiskit.visualization.circuit import _utils
 from qiskit.visualization import array_to_latex
-from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestVisualizationUtils(QiskitTestCase):
@@ -355,10 +356,12 @@ class TestVisualizationUtils(QiskitTestCase):
             expected, [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops]
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_nomathmode(self):
         """Test generate latex label default."""
         self.assertEqual("abc", _utils.generate_latex_label("abc"))
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_nomathmode_utf8char(self):
         """Test generate latex label utf8 characters."""
         self.assertEqual(
@@ -366,6 +369,7 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label("∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_mathmode_utf8char(self):
         """Test generate latex label mathtext with utf8."""
         self.assertEqual(
@@ -373,6 +377,7 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label("$abc_$∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_mathmode_underscore_outside(self):
         """Test generate latex label with underscore outside mathmode."""
         self.assertEqual(
@@ -380,10 +385,12 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label("$abc$_∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_escaped_dollar_signs(self):
         """Test generate latex label with escaped dollarsign."""
         self.assertEqual("${\\ensuremath{\\forall}}$", _utils.generate_latex_label(r"\$∀\$"))
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
         """Test generate latex label with escaped dollar sign in mathmode."""
         self.assertEqual(
@@ -399,9 +406,10 @@ class TestVisualizationUtils(QiskitTestCase):
         ]
         matrix = np.array(matrix)
         exp_str = (
-            "\\begin{bmatrix}\\tfrac{1}{\\sqrt{2}}&\\tfrac{1}{16}&\\tfrac{1}{\\sqrt{8}}+3i&"
-            "\\tfrac{1}{2}(-1+i)\\\\\\tfrac{1}{3}(1+i)&\\tfrac{1}{\\sqrt{2}}i&34.321&"
-            "-\\tfrac{9}{2}\\\\\\end{bmatrix}"
+            "\\begin{bmatrix}\\frac{\\sqrt{2}}{2}&\\frac{1}{16}&"
+            "\\frac{\\sqrt{2}}{4}+3i&-\\frac{1}{2}+\\frac{i}{2}\\\\"
+            "\\frac{1}{3}+\\frac{i}{3}&\\frac{\\sqrt{2}i}{2}&34.321&-"
+            "\\frac{9}{2}\\\\\\end{bmatrix}"
         )
         result = array_to_latex(matrix, source=True).replace(" ", "").replace("\n", "")
         self.assertEqual(exp_str, result)

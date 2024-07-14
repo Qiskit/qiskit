@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,13 +16,13 @@ Ripple adder example based on Cuccaro et al., quant-ph/0410184.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
-from qiskit import execute
+from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = BasicAer.get_backend("qasm_simulator")
+backend = BasicSimulator()
 coupling_map = [
     [0, 1],
     [0, 8],
@@ -90,7 +90,7 @@ unmajority(adder_subcircuit, cin[0], b[0], a[0])
 qc.x(a[0])  # Set input a = 0...0001
 qc.x(b)  # Set input b = 1...1111
 # Apply the adder
-qc += adder_subcircuit
+qc &= adder_subcircuit
 # Measure the output register in the computational basis
 for j in range(n):
     qc.measure(b[j], ans[j])
@@ -101,12 +101,12 @@ qc.measure(cout[0], ans[n])
 ###############################################################
 
 # First version: not mapped
-job = execute(qc, backend=backend, coupling_map=None, shots=1024)
+job = backend.run(transpile(qc, backend=backend, coupling_map=None), shots=1024)
 result = job.result()
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
-job = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024)
+job = backend.run(transpile(qc, basis_gates=["u", "cx"], coupling_map=coupling_map), shots=1024)
 result = job.result()
 print(result.get_counts(qc))
 

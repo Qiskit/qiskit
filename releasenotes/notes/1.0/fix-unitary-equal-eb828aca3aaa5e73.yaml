@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Previously two objects of type :class:`~.UnitaryGate` class were considered equal
+    even when they had different global phases. This could lead to transpiler
+    passes not maintaining the global phase and, in theory, to incorrect optimizations.
+    This commit changes the :meth:`~.UnitaryGate.__eq__` method not to ignore the global
+    phases in the comparison.

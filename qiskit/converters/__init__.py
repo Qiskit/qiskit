@@ -17,25 +17,35 @@ Circuit Converters (:mod:`qiskit.converters`)
 
 .. currentmodule:: qiskit.converters
 
-.. autosummary::
-   :toctree: ../stubs/
+QuantumCircuit -> circuit components
+====================================
 
-   circuit_to_dag
-   dag_to_circuit
-   circuit_to_instruction
-   circuit_to_gate
-   ast_to_dag
-   dagdependency_to_circuit
-   circuit_to_dagdependency
-   dag_to_dagdependency
-   dagdependency_to_dag
+.. autofunction:: circuit_to_instruction
+.. autofunction:: circuit_to_gate
+
+QuantumCircuit <-> DagCircuit 
+=============================
+
+.. autofunction:: circuit_to_dag
+.. autofunction:: dag_to_circuit
+
+QuantumCircuit <-> DagDependency 
+================================
+
+.. autofunction:: dagdependency_to_circuit
+.. autofunction:: circuit_to_dagdependency
+
+DagCircuit <-> DagDependency 
+============================
+
+.. autofunction:: dag_to_dagdependency
+.. autofunction:: dagdependency_to_dag
 """
 
 from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
 from .circuit_to_instruction import circuit_to_instruction
 from .circuit_to_gate import circuit_to_gate
-from .ast_to_dag import ast_to_dag
 from .circuit_to_dagdependency import circuit_to_dagdependency
 from .dagdependency_to_circuit import dagdependency_to_circuit
 from .dag_to_dagdependency import dag_to_dagdependency

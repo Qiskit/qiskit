@@ -26,7 +26,7 @@ class RemoveFinalMeasurements(TransformationPass):
 
     Classical registers are removed iff they reference at least one bit
     that has become unused by the circuit as a result of the operation, and all
-    of their other bits are also unused. Seperately, classical bits are removed
+    of their other bits are also unused. Separately, classical bits are removed
     iff they have become unused by the circuit as a result of the operation,
     or they appear in a removed classical register, but do not appear
     in a classical register that will remain.
@@ -36,8 +36,8 @@ class RemoveFinalMeasurements(TransformationPass):
         final_op_types = {"measure", "barrier"}
         final_ops = []
 
-        to_visit = list(next(dag.predecessors(dag.output_map[qubit])) for qubit in dag.qubits)
-        barrier_encounters_remaining = dict()
+        to_visit = [next(dag.predecessors(dag.output_map[qubit])) for qubit in dag.qubits]
+        barrier_encounters_remaining = {}
 
         while to_visit:
             node = to_visit.pop()

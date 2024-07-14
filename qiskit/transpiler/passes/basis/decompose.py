@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
-import warnings
 from typing import Type, Union, List, Optional
 from fnmatch import fnmatch
 
@@ -19,61 +18,23 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.circuit.gate import Gate
-from qiskit.utils.deprecation import deprecate_arguments
 
 
 class Decompose(TransformationPass):
     """Expand a gate in a circuit using its decomposition rules."""
 
-    @deprecate_arguments({"gate": "gates_to_decompose"})
     def __init__(
         self,
-        gate: Optional[Type[Gate]] = None,
         gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
     ) -> None:
         """Decompose initializer.
 
         Args:
-            gate: DEPRECATED gate to decompose.
             gates_to_decompose: optional subset of gates to be decomposed,
                 identified by gate label, name or type. Defaults to all gates.
         """
         super().__init__()
-
-        if gate is not None:
-            self.gates_to_decompose = gate
-        else:
-            self.gates_to_decompose = gates_to_decompose
-
-    @property
-    def gate(self) -> Gate:
-        """Returns the gate"""
-        warnings.warn(
-            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
-            "will be removed no earlier than 3 months after that "
-            "release date. You should use the gates_to_decompose argument "
-            "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gates_to_decompose
-
-    @gate.setter
-    def gate(self, value):
-        """Sets the gate
-
-        Args:
-            value (Gate): new value for gate
-        """
-        warnings.warn(
-            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
-            "will be removed no earlier than 3 months after that "
-            "release date. You should use the gates_to_decompose argument "
-            "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.gates_to_decompose = value
+        self.gates_to_decompose = gates_to_decompose
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
@@ -111,8 +72,6 @@ class Decompose(TransformationPass):
         if self.gates_to_decompose is None:  # check if no gates given
             return True
 
-        has_label = False
-
         if not isinstance(self.gates_to_decompose, list):
             gates = [self.gates_to_decompose]
         else:
@@ -121,15 +80,16 @@ class Decompose(TransformationPass):
         strings_list = [s for s in gates if isinstance(s, str)]
         gate_type_list = [g for g in gates if isinstance(g, type)]
 
-        if hasattr(node.op, "label") and node.op.label is not None:
-            has_label = True
-
-        if has_label and (  # check if label or label wildcard is given
-            node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
+        if (
+            getattr(node.op, "label", None) is not None
+            and node.op.label != ""
+            and (  # check if label or label wildcard is given
+                node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
+            )
         ):
             return True
-        elif not has_label and (  # check if name or name wildcard is given
-            node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
+        elif node.name in gates or any(  # check if name or name wildcard is given
+            fnmatch(node.name, p) for p in strings_list
         ):
             return True
         elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given

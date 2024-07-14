@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The circuit drawers (:meth:`.QuantumCircuit.draw` and :func:`.circuit_drawer`) will no
+    longer emit a warning about the ``cregbundle`` parameter when using the default arguments,
+    if the content of the circuit requires all bits to be drawn individually.  This was most
+    likely to appear when trying to draw circuits with new-style control-flow operations.

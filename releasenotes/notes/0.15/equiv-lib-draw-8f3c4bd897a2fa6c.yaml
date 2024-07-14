@@ -6,7 +6,7 @@ features:
     method can be used for drawing the contents of an equivalence library,
     which can be useful for debugging. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from numpy import pi
 

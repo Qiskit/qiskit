@@ -7,7 +7,7 @@ features:
     ``Int1`` at the moment) into :class:`~qiskit.circuit.QuantumCircuit`
     objects. For example:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       from qiskit.circuit import classical_function, Int1
 
@@ -26,7 +26,7 @@ features:
     :meth:`~qiskit.circuit.classicalfunction.ClassicalFunction.synth` creates a
     circuit with registers refering to the parameter names. For example:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       quantum_circuit = grover_oracle.synth(registerless=False)
       quantum_circuit.draw()
@@ -34,7 +34,7 @@ features:
     A decorated classical function can be used the same way as any other
     quantum gate when appending it to a circuit.
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       circuit = QuantumCircuit(5)
       circuit.append(grover_oracle, range(5))
@@ -42,7 +42,7 @@ features:
 
     The ``GROVER_ORACLE`` gate is synthesized when its decomposition is required.
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       circuit.decompose().draw()
 

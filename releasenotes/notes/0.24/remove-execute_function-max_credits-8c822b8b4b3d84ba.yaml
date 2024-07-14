@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The ``max_credits`` argument to :func:`~.execute_function.execute`, :func:`~.compiler.assemble` and all
+    of the ``Qobj`` configurations (e.g. :class:`.QasmQobjConfig` and
+    :class:`.PulseQobjConfig`) has been removed.
+    The credit system has not been in use on IBM Quantum backends for
+    nearly three years, and the option has no effect.  No alternative is necessary.

@@ -16,6 +16,7 @@
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 
 
@@ -26,6 +27,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
     the classical bit of the measure instruction.
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the OptimizeSwapBeforeMeasure pass on `dag`.
 
@@ -35,12 +37,13 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
             if getattr(swap.op, "condition", None) is not None:
                 continue
             final_successor = []
-            for successor in dag.successors(swap):
+            for successor in dag.descendants(swap):
                 final_successor.append(
                     isinstance(successor, DAGOutNode)
                     or (isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure))
@@ -53,7 +56,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                     measure_layer.add_qreg(qreg)
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
-                for successor in list(dag.successors(swap)):
+                for successor in list(dag.descendants(swap)):
                     if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure):
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.
@@ -61,7 +64,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                         old_measure_qarg = successor.qargs[0]
                         new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
                         measure_layer.apply_operation_back(
-                            Measure(), [new_measure_qarg], [successor.cargs[0]]
+                            Measure(), (new_measure_qarg,), (successor.cargs[0],), check=False
                         )
                 dag.compose(measure_layer)
                 dag.remove_op_node(swap)

@@ -14,14 +14,15 @@
 
 import unittest
 from numpy import pi
+
 from qiskit.utils import optionals
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @unittest.skipUnless(optionals.HAS_Z3, "z3-solver needs to be installed to run these tests")

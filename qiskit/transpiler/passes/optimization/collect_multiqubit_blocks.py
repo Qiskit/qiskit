@@ -19,11 +19,11 @@ from qiskit.dagcircuit import DAGOpNode, DAGInNode
 
 class CollectMultiQBlocks(AnalysisPass):
     """Collect sequences of uninterrupted gates acting on groups of qubits.
-    max_block_size specifies the maximum number of qubits that can be acted upon
+    ``max_block_size`` specifies the maximum number of qubits that can be acted upon
     by any single group of gates
 
     Traverse the DAG and find blocks of gates that act consecutively on
-    groups of qubits. Write the blocks to propert_set as a list of blocks
+    groups of qubits. Write the blocks to ``property_set`` as a list of blocks
     of the form::
 
         [[g0, g1, g2], [g4, g5]]
@@ -31,9 +31,9 @@ class CollectMultiQBlocks(AnalysisPass):
     Blocks are reported in a valid topological order. Further, the gates
     within each block are also reported in topological order
     Some gates may not be present in any block (e.g. if the number
-    of operands is greater than max_block_size)
+    of operands is greater than ``max_block_size``)
 
-    A Disjont Set Union data structure (DSU) is used to maintain blocks as
+    A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.
@@ -126,7 +126,6 @@ class CollectMultiQBlocks(AnalysisPass):
             return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for nd in op_nodes:
             can_process = True
@@ -140,7 +139,7 @@ class CollectMultiQBlocks(AnalysisPass):
             ):
                 can_process = False
 
-            cur_qubits = {qubit_indices[bit] for bit in nd.qargs}
+            cur_qubits = {dag.find_bit(bit).index for bit in nd.qargs}
 
             if can_process:
                 # if the gate is valid, check if grouping up the bits
@@ -219,8 +218,8 @@ class CollectMultiQBlocks(AnalysisPass):
                     prev = bit
                 self.gate_groups[self.find_set(prev)].append(nd)
         # need to turn all groups that still exist into their own blocks
-        for index in self.parent:
-            if self.parent[index] == index and len(self.gate_groups[index]) != 0:
+        for index, item in self.parent.items():
+            if item == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])
 
         self.property_set["block_list"] = block_list

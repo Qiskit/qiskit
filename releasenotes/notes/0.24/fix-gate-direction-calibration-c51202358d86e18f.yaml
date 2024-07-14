@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The :class:`.GateDirection` transpiler pass will no longer reject gates that have been given
+    explicit calibrations, but do not exist in the generic coupling map or target.

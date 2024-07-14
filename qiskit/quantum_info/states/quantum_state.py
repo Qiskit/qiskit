@@ -14,11 +14,15 @@
 Abstract QuantumState class.
 """
 
+from __future__ import annotations
 import copy
 from abc import abstractmethod
 
 import numpy as np
 
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
 
@@ -26,7 +30,7 @@ from qiskit.result.counts import Counts
 class QuantumState:
     """Abstract quantum state base class"""
 
-    def __init__(self, op_shape=None):
+    def __init__(self, op_shape: OpShape | None = None):
         """Initialize a QuantumState object.
 
         Args:
@@ -106,7 +110,7 @@ class QuantumState:
         pass
 
     @abstractmethod
-    def tensor(self, other):
+    def tensor(self, other: QuantumState) -> QuantumState:
         """Return the tensor product state self ⊗ other.
 
         Args:
@@ -121,7 +125,7 @@ class QuantumState:
         pass
 
     @abstractmethod
-    def expand(self, other):
+    def expand(self, other: QuantumState) -> QuantumState:
         """Return the tensor product state other ⊗ self.
 
         Args:
@@ -165,7 +169,7 @@ class QuantumState:
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     @abstractmethod
-    def evolve(self, other, qargs=None):
+    def evolve(self, other: Operator | QuantumChannel, qargs: list | None = None) -> QuantumState:
         """Evolve a quantum state by the operator.
 
         Args:
@@ -183,7 +187,7 @@ class QuantumState:
         pass
 
     @abstractmethod
-    def expectation_value(self, oper, qargs=None):
+    def expectation_value(self, oper: BaseOperator, qargs: None | list = None) -> complex:
         """Compute the expectation value of an operator.
 
         Args:
@@ -196,7 +200,7 @@ class QuantumState:
         pass
 
     @abstractmethod
-    def probabilities(self, qargs=None, decimals=None):
+    def probabilities(self, qargs: None | list = None, decimals: None | int = None) -> np.ndarray:
         """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
@@ -213,7 +217,7 @@ class QuantumState:
         """
         pass
 
-    def probabilities_dict(self, qargs=None, decimals=None):
+    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -234,10 +238,12 @@ class QuantumState:
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
+            self.probabilities(qargs=qargs, decimals=decimals),
+            self.dims(qargs),
+            string_labels=True,
         )
 
-    def sample_memory(self, shots, qargs=None):
+    def sample_memory(self, shots: int, qargs: None | list = None) -> np.ndarray:
         """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
@@ -268,7 +274,7 @@ class QuantumState:
         )
         return self._rng.choice(labels, p=probs, size=shots)
 
-    def sample_counts(self, shots, qargs=None):
+    def sample_counts(self, shots: int, qargs: None | list = None) -> Counts:
         """Sample a dict of qubit measurement outcomes in the computational basis.
 
         Args:
@@ -297,7 +303,7 @@ class QuantumState:
         inds, counts = np.unique(samples, return_counts=True)
         return Counts(zip(inds, counts))
 
-    def measure(self, qargs=None):
+    def measure(self, qargs: list | None = None) -> tuple:
         """Measure subsystems and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
@@ -335,7 +341,9 @@ class QuantumState:
         return outcome, ret
 
     @staticmethod
-    def _index_to_ket_array(inds, dims, string_labels=False):
+    def _index_to_ket_array(
+        inds: np.ndarray, dims: tuple, string_labels: bool = False
+    ) -> np.ndarray:
         """Convert an index array into a ket array.
 
         Args:
@@ -355,7 +363,7 @@ class QuantumState:
 
         if string_labels:
             max_dim = max(dims)
-            char_kets = np.asarray(kets, dtype=np.unicode_)
+            char_kets = np.asarray(kets, dtype=np.str_)
             str_kets = char_kets[0]
             for row in char_kets[1:]:
                 if max_dim > 10:
@@ -437,7 +445,9 @@ class QuantumState:
         }
 
     @staticmethod
-    def _subsystem_probabilities(probs, dims, qargs=None):
+    def _subsystem_probabilities(
+        probs: np.ndarray, dims: tuple, qargs: None | list = None
+    ) -> np.ndarray:
         """Marginalize a probability vector according to subsystems.
 
         Args:
@@ -454,7 +464,7 @@ class QuantumState:
         if qargs is None:
             return probs
         # Convert qargs to tensor axes
-        probs_tens = np.reshape(probs, dims)
+        probs_tens = np.reshape(probs, list(reversed(dims)))
         ndim = probs_tens.ndim
         qargs_axes = [ndim - 1 - i for i in reversed(qargs)]
         # Get sum axis for marginalized subsystems

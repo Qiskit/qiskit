@@ -13,6 +13,7 @@
 """QASM3 Exporter"""
 
 import collections
+import re
 import io
 import itertools
 import numbers
@@ -29,25 +30,29 @@ from qiskit.circuit import (
     Parameter,
     ParameterExpression,
     QuantumCircuit,
-    QuantumRegister,
     Qubit,
     Reset,
     Delay,
+    Store,
 )
 from qiskit.circuit.bit import Bit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import (
     IfElseOp,
     ForLoopOp,
     WhileLoopOp,
+    SwitchCaseOp,
     ControlFlowOp,
     BreakLoopOp,
     ContinueLoopOp,
+    CASE_DEFAULT,
 )
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.register import Register
 from qiskit.circuit.tools import pi_check
 
 from . import ast
+from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
 
@@ -58,7 +63,6 @@ from .printer import BasicPrinter
 _RESERVED_KEYWORDS = frozenset(
     {
         "OPENQASM",
-        "U",
         "angle",
         "array",
         "barrier",
@@ -108,6 +112,17 @@ _RESERVED_KEYWORDS = frozenset(
     }
 )
 
+# This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
+# handle all Unicode character classes, and this should be close enough for users who aren't
+# actively _trying_ to break us (fingers crossed).
+_VALID_IDENTIFIER = re.compile(r"[\w][\w\d]*", flags=re.U)
+
+
+def _escape_invalid_identifier(name: str) -> str:
+    if name in _RESERVED_KEYWORDS or not _VALID_IDENTIFIER.fullmatch(name):
+        name = "_" + re.sub(r"[^\w\d]", "_", name)
+    return name
+
 
 class Exporter:
     """QASM3 exporter main class."""
@@ -117,8 +132,10 @@ class Exporter:
         includes: Sequence[str] = ("stdgates.inc",),
         basis_gates: Sequence[str] = ("U",),
         disable_constants: bool = False,
-        alias_classical_registers: bool = False,
+        alias_classical_registers: bool = None,
+        allow_aliasing: bool = None,
         indent: str = "  ",
+        experimental: ExperimentalFeatures = ExperimentalFeatures(0),
     ):
         """
         Args:
@@ -128,42 +145,55 @@ class Exporter:
             basis_gates: the basic defined gate set of the backend.
             disable_constants: if ``True``, always emit floating-point constants for numeric
                 parameter values.  If ``False`` (the default), then values close to multiples of
-                QASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
+                OpenQASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
                 constants instead, potentially improving accuracy in the output.
-            alias_classical_registers: If ``True``, then classical bit and classical register
-                declarations will look similar to quantum declarations, where the whole set of bits
-                will be declared in a flat array, and the registers will just be aliases to
-                collections of these bits.  This is inefficient for running OpenQASM 3 programs,
-                however, and may not be well supported on backends.  Instead, the default behaviour
-                of ``False`` means that individual classical registers will gain their own
-                ``bit[size] register;`` declarations, and loose :obj:`.Clbit`\\ s will go onto their
-                own declaration.  In this form, each :obj:`.Clbit` must be in either zero or one
-                :obj:`.ClassicalRegister`\\ s.
+            alias_classical_registers: If ``True``, then bits may be contained in more than one
+                register.  If so, the registers will be emitted using "alias" definitions, which
+                might not be well supported by consumers of OpenQASM 3.
+
+                .. seealso::
+                    Parameter ``allow_aliasing``
+                        A value for ``allow_aliasing`` overrides any value given here, and
+                        supersedes this parameter.
+            allow_aliasing: If ``True``, then bits may be contained in more than one register.  If
+                so, the registers will be emitted using "alias" definitions, which might not be
+                well supported by consumers of OpenQASM 3.  Defaults to ``False`` or the value of
+                ``alias_classical_registers``.
+
+                .. versionadded:: 0.25.0
             indent: the indentation string to use for each level within an indented block.  Can be
                 set to the empty string to disable indentation.
+            experimental: any experimental features to enable during the export.  See
+                :class:`ExperimentalFeatures` for more details.
         """
         self.basis_gates = basis_gates
         self.disable_constants = disable_constants
-        self.alias_classical_registers = alias_classical_registers
+        self.allow_aliasing = (
+            allow_aliasing if allow_aliasing is not None else (alias_classical_registers or False)
+        )
         self.includes = list(includes)
         self.indent = indent
+        self.experimental = experimental
 
     def dumps(self, circuit):
-        """Convert the circuit to QASM 3, returning the result as a string."""
+        """Convert the circuit to OpenQASM 3, returning the result as a string."""
         with io.StringIO() as stream:
             self.dump(circuit, stream)
             return stream.getvalue()
 
     def dump(self, circuit, stream):
-        """Convert the circuit to QASM 3, dumping the result to a file or text stream."""
+        """Convert the circuit to OpenQASM 3, dumping the result to a file or text stream."""
         builder = QASM3Builder(
             circuit,
             includeslist=self.includes,
             basis_gates=self.basis_gates,
             disable_constants=self.disable_constants,
-            alias_classical_registers=self.alias_classical_registers,
+            allow_aliasing=self.allow_aliasing,
+            experimental=self.experimental,
         )
-        BasicPrinter(stream, indent=self.indent).visit(builder.build_program())
+        BasicPrinter(stream, indent=self.indent, experimental=self.experimental).visit(
+            builder.build_program()
+        )
 
 
 class GlobalNamespace:
@@ -209,6 +239,7 @@ class GlobalNamespace:
 
     def __init__(self, includelist, basis_gates=()):
         self._data = {gate: self.BASIS_GATE for gate in basis_gates}
+        self._data["U"] = self.BASIS_GATE
 
         for includefile in includelist:
             if includefile == "stdgates.inc":
@@ -219,8 +250,11 @@ class GlobalNamespace:
                 pass
 
     def __setitem__(self, name_str, instruction):
-        self._data[name_str] = type(instruction)
+        self._data[name_str] = instruction.base_class
         self._data[id(instruction)] = name_str
+        ctrl_state = str(getattr(instruction, "ctrl_state", ""))
+
+        self._data[f"{instruction.name}_{ctrl_state}_{instruction.params}"] = name_str
 
     def __getitem__(self, key):
         if isinstance(key, Instruction):
@@ -231,7 +265,9 @@ class GlobalNamespace:
                 pass
             # Built-in gates.
             if key.name not in self._data:
-                raise KeyError(key)
+                # Registerd qiskit standard gate without stgates.inc
+                ctrl_state = str(getattr(key, "ctrl_state", ""))
+                return self._data[f"{key.name}_{ctrl_state}_{key.params}"]
             return key.name
         return self._data[key]
 
@@ -251,6 +287,10 @@ class GlobalNamespace:
         if isinstance(type_, type) and isinstance(instruction, type_):
             return True
         return False
+
+    def has_symbol(self, name: str) -> bool:
+        """Whether a symbol's name is present in the table."""
+        return name in self._data
 
     def register(self, instruction):
         """Register an instruction in the namespace"""
@@ -294,7 +334,9 @@ _Scope = collections.namedtuple("_Scope", ("circuit", "bit_map", "symbol_map"))
 class QASM3Builder:
     """QASM3 builder constructs an AST from a QuantumCircuit."""
 
-    builtins = (Barrier, Measure, Reset, Delay, BreakLoopOp, ContinueLoopOp)
+    builtins = (Barrier, Measure, Reset, Delay, BreakLoopOp, ContinueLoopOp, Store)
+    loose_bit_prefix = "_bit"
+    loose_qubit_prefix = "_qubit"
     gate_parameter_prefix = "_gate_p"
     gate_qubit_prefix = "_gate_q"
 
@@ -304,7 +346,8 @@ class QASM3Builder:
         includeslist,
         basis_gates,
         disable_constants,
-        alias_classical_registers,
+        allow_aliasing,
+        experimental=ExperimentalFeatures(0),
     ):
         # This is a stack of stacks; the outer stack is a list of "outer" look-up contexts, and the
         # inner stack is for scopes within these.  A "outer" look-up context in this sense means
@@ -313,34 +356,37 @@ class QASM3Builder:
         self._circuit_ctx = []
         self.push_context(quantumcircuit)
         self.includeslist = includeslist
-        self._gate_to_declare = {}
-        self._subroutine_to_declare = {}
-        self._opaque_to_declare = {}
-        self._flat_reg = False
-        self._physical_qubit = False
-        self._loose_clbit_index_lookup = {}
+        # `_global_io_declarations` and `_global_classical_declarations` are stateful, and any
+        # operation that needs a parameter can append to them during the build.  We make all
+        # classical declarations global because the IBM qe-compiler stack (our initial consumer of
+        # OQ3 strings) prefers declarations to all be global, and it's valid OQ3, so it's not vendor
+        # lock-in.  It's possibly slightly memory inefficient, but that's not likely to be a problem
+        # in the near term.
+        self._global_io_declarations = []
+        self._global_classical_forward_declarations = []
         # An arbitrary counter to help with generation of unique ids for symbol names when there are
         # clashes (though we generally prefer to keep user names if possible).
         self._counter = itertools.count()
         self.disable_constants = disable_constants
-        self.alias_classical_registers = alias_classical_registers
+        self.allow_aliasing = allow_aliasing
         self.global_namespace = GlobalNamespace(includeslist, basis_gates)
+        self.experimental = experimental
+
+    def _unique_name(self, prefix: str, scope: _Scope) -> str:
+        table = scope.symbol_map
+        name = basename = _escape_invalid_identifier(prefix)
+        while name in table or name in _RESERVED_KEYWORDS or self.global_namespace.has_symbol(name):
+            name = f"{basename}__generated{next(self._counter)}"
+        return name
 
     def _register_gate(self, gate):
         self.global_namespace.register(gate)
-        self._gate_to_declare[id(gate)] = gate
-
-    def _register_subroutine(self, instruction):
-        self.global_namespace.register(instruction)
-        self._subroutine_to_declare[id(instruction)] = instruction
 
     def _register_opaque(self, instruction):
-        if instruction not in self.global_namespace:
-            self.global_namespace.register(instruction)
-            self._opaque_to_declare[id(instruction)] = instruction
+        self.global_namespace.register(instruction)
 
-    def _register_variable(self, variable, name=None) -> ast.Identifier:
-        """Register a variable in the symbol table for the current scope, returning the name that
+    def _register_variable(self, variable, scope: _Scope, name=None) -> ast.Identifier:
+        """Register a variable in the symbol table for the given scope, returning the name that
         should be used to refer to the variable.  The same name will be returned by subsequent calls
         to :meth:`_lookup_variable` within the same scope.
 
@@ -350,7 +396,7 @@ class QASM3Builder:
         # in the current scope, not just one that's available.  This is a rough implementation of
         # the shadowing proposal currently being drafted for OpenQASM 3, though we expect it to be
         # expanded and modified in the future (2022-03-07).
-        table = self.current_scope().symbol_map
+        table = scope.symbol_map
         if name is not None:
             if name in _RESERVED_KEYWORDS:
                 raise QASM3ExporterError(f"cannot reserve the keyword '{name}' as a variable name")
@@ -358,25 +404,26 @@ class QASM3Builder:
                 raise QASM3ExporterError(
                     f"tried to reserve '{name}', but it is already used by '{table[name]}'"
                 )
+            if self.global_namespace.has_symbol(name):
+                raise QASM3ExporterError(
+                    f"tried to reserve '{name}', but it is already used by a gate"
+                )
         else:
-            name = variable.name
-            while name in table or name in _RESERVED_KEYWORDS:
-                name = f"{variable.name}__generated{next(self._counter)}"
+            name = self._unique_name(variable.name, scope)
         identifier = ast.Identifier(name)
         table[identifier.string] = variable
         table[variable] = identifier
         return identifier
 
-    def _reserve_variable_name(self, name: ast.Identifier) -> ast.Identifier:
-        """Reserve a variable name in the current scope, raising a :class:`.QASM3ExporterError` if
+    def _reserve_variable_name(self, name: ast.Identifier, scope: _Scope) -> ast.Identifier:
+        """Reserve a variable name in the given scope, raising a :class:`.QASM3ExporterError` if
         the name is already in use.
 
         This is useful for autogenerated names that the exporter itself reserves when dealing with
-        objects that have no standard Terra object backing them, such as the declaration of all
-        circuit qubits, so cannot be placed into the symbol table by the normal means.
+        objects that have no standard Terra object backing them.
 
         Returns the same identifier, for convenience in chaining."""
-        table = self.current_scope().symbol_map
+        table = scope.symbol_map
         if name.string in table:
             variable = table[name.string]
             raise QASM3ExporterError(
@@ -388,6 +435,8 @@ class QASM3Builder:
     def _lookup_variable(self, variable) -> ast.Identifier:
         """Lookup a Terra object within the current context, and return the name that should be used
         to represent it in OpenQASM 3 programmes."""
+        if isinstance(variable, Bit):
+            variable = self.current_scope().bit_map[variable]
         for scope in reversed(self.current_context()):
             if variable in scope.symbol_map:
                 return scope.symbol_map[variable]
@@ -395,35 +444,97 @@ class QASM3Builder:
 
     def build_header(self):
         """Builds a Header"""
-        version = ast.Version("3")
+        version = ast.Version("3.0")
         includes = self.build_includes()
         return ast.Header(version, includes)
 
     def build_program(self):
         """Builds a Program"""
-        self.hoist_declarations(self.global_scope(assert_=True).circuit.data)
-        return ast.Program(self.build_header(), self.build_global_statements())
+        circuit = self.global_scope(assert_=True).circuit
+        if circuit.num_captured_vars:
+            raise QASM3ExporterError(
+                "cannot export an inner scope with captured variables as a top-level program"
+            )
+        header = self.build_header()
 
-    def hoist_declarations(self, instructions):
-        """Walks the definitions in gates/instructions to make a list of gates to declare."""
+        opaques_to_declare, gates_to_declare = self.hoist_declarations(
+            circuit.data, opaques=[], gates=[]
+        )
+        opaque_definitions = [
+            self.build_opaque_definition(instruction) for instruction in opaques_to_declare
+        ]
+        gate_definitions = [
+            self.build_gate_definition(instruction) for instruction in gates_to_declare
+        ]
+
+        # Early IBM runtime parametrization uses unbound `Parameter` instances as `input` variables,
+        # not the explicit realtime `Var` variables, so we need this explicit scan.
+        self.hoist_global_parameter_declarations()
+        # Qiskit's clbits and classical registers need to get mapped to implicit OQ3 variables, but
+        # only if they're in the top-level circuit.  The QuantumCircuit data model is that inner
+        # clbits are bound to outer bits, and inner registers must be closing over outer ones.
+        self.hoist_classical_register_declarations()
+        # We hoist registers before new-style vars because registers are an older part of the data
+        # model (and used implicitly in PrimitivesV2 outputs) so they get the first go at reserving
+        # names in the symbol table.
+        self.hoist_classical_io_var_declarations()
+
+        # Similarly, QuantumCircuit qubits/registers are only new variables in the global scope.
+        quantum_declarations = self.build_quantum_declarations()
+        # This call has side-effects - it can populate `self._global_io_declarations` and
+        # `self._global_classical_declarations` as a courtesy to the qe-compiler that prefers our
+        # hacky temporary `switch` target variables to be globally defined.
+        main_statements = self.build_current_scope()
+
+        statements = [
+            statement
+            for source in (
+                # In older versions of the reference OQ3 grammar, IO declarations had to come before
+                # anything else, so we keep doing that as a courtesy.
+                self._global_io_declarations,
+                opaque_definitions,
+                gate_definitions,
+                self._global_classical_forward_declarations,
+                quantum_declarations,
+                main_statements,
+            )
+            for statement in source
+        ]
+        return ast.Program(header, statements)
+
+    def hoist_declarations(self, instructions, *, opaques, gates):
+        """Walks the definitions in gates/instructions to make a list of gates to declare.
+
+        Mutates ``opaques`` and ``gates`` in-place if given, and returns them."""
         for instruction in instructions:
             if isinstance(instruction.operation, ControlFlowOp):
                 for block in instruction.operation.blocks:
-                    self.hoist_declarations(block.data)
+                    self.hoist_declarations(block.data, opaques=opaques, gates=gates)
                 continue
             if instruction.operation in self.global_namespace or isinstance(
                 instruction.operation, self.builtins
             ):
                 continue
 
-            if instruction.operation.definition is None:
+            if isinstance(instruction.operation, standard_gates.CXGate):
+                # CX gets super duper special treatment because it's the base of Terra's definition
+                # tree, but isn't an OQ3 built-in.  We use `isinstance` because we haven't fully
+                # fixed what the name/class distinction is (there's a test from the original OQ3
+                # exporter that tries a naming collision with 'cx').
+                self._register_gate(instruction.operation)
+                gates.append(instruction.operation)
+            elif instruction.operation.definition is None:
                 self._register_opaque(instruction.operation)
+                opaques.append(instruction.operation)
+            elif not isinstance(instruction.operation, Gate):
+                raise QASM3ExporterError("Exporting non-unitary instructions is not yet supported.")
             else:
-                self.hoist_declarations(instruction.operation.definition.data)
-                if isinstance(instruction.operation, Gate):
-                    self._register_gate(instruction.operation)
-                else:
-                    self._register_subroutine(instruction.operation)
+                self.hoist_declarations(
+                    instruction.operation.definition.data, opaques=opaques, gates=gates
+                )
+                self._register_gate(instruction.operation)
+                gates.append(instruction.operation)
+        return opaques, gates
 
     def global_scope(self, assert_=False):
         """Return the global circuit scope that is used as the basis of the full program.  If
@@ -435,12 +546,6 @@ class QASM3Builder:
                 f"Not currently in the global context. Current contexts are: {self._circuit_ctx}"
             )
         return self._circuit_ctx[0][0]
-
-    def current_outermost_scope(self):
-        """Return the outermost scope for this context.  If building the main program, then this is
-        the :obj:`.QuantumCircuit` instance that the full program is being built from.  If building
-        a gate or subroutine definition, this is the body that defines the gate or subroutine."""
-        return self._circuit_ctx[-1][0]
 
     def current_scope(self):
         """Return the current circuit scope."""
@@ -467,7 +572,7 @@ class QASM3Builder:
                 f" provided {len(clbits)} clbits to create the mapping."
             )
         mapping = dict(itertools.chain(zip(circuit.qubits, qubits), zip(circuit.clbits, clbits)))
-        self._circuit_ctx[-1].append(_Scope(circuit, mapping, {}))
+        self.current_context().append(_Scope(circuit, mapping, {}))
 
     def pop_scope(self) -> _Scope:
         """Pop the current scope (like a ``for`` or ``while`` loop body) off the current context
@@ -500,76 +605,6 @@ class QASM3Builder:
         """Builds a list of included files."""
         return [ast.Include(filename) for filename in self.includeslist]
 
-    def build_global_statements(self) -> List[ast.Statement]:
-        """
-        globalStatement
-            : subroutineDefinition
-            | kernelDeclaration
-            | quantumGateDefinition
-            | calibration
-            | quantumDeclarationStatement  # build_quantumdeclaration
-            | pragma
-            ;
-
-        statement
-            : expressionStatement
-            | assignmentStatement
-            | classicalDeclarationStatement
-            | branchingStatement
-            | loopStatement
-            | endStatement
-            | aliasStatement
-            | quantumStatement  # build_quantuminstruction
-            ;
-        """
-        definitions = self.build_definitions()
-        inputs, outputs, variables = self.build_variable_declarations()
-        bit_declarations = self.build_classical_declarations()
-        context = self.global_scope(assert_=True).circuit
-        if getattr(context, "_layout", None) is not None:
-            self._physical_qubit = True
-            quantum_declarations = []
-        else:
-            quantum_declarations = self.build_quantum_declarations()
-        quantum_instructions = self.build_quantum_instructions(context.data)
-        self._physical_qubit = False
-
-        return [
-            statement
-            for source in (
-                inputs,
-                outputs,
-                definitions,
-                variables,
-                bit_declarations,
-                quantum_declarations,
-                quantum_instructions,
-            )
-            for statement in source
-        ]
-
-    def build_definitions(self):
-        """Builds all the definition."""
-        ret = []
-        for instruction in self._opaque_to_declare.values():
-            ret.append(self.build_definition(instruction, self.build_opaque_definition))
-        for instruction in self._subroutine_to_declare.values():
-            ret.append(self.build_definition(instruction, self.build_subroutine_definition))
-        for instruction in self._gate_to_declare.values():
-            ret.append(self.build_definition(instruction, self.build_gate_definition))
-        return ret
-
-    def build_definition(self, instruction, builder):
-        """Using a given definition builder, builds that definition."""
-        try:
-            return instruction._define_qasm3()
-        except AttributeError:
-            pass
-        self._flat_reg = True
-        definition = builder(instruction)
-        self._flat_reg = False
-        return definition
-
     def build_opaque_definition(self, instruction):
         """Builds an Opaque gate definition as a CalibrationDefinition"""
         # We can't do anything sensible with this yet, so it's better to loudly say that.
@@ -579,36 +614,28 @@ class QASM3Builder:
             f"\n{instruction}"
         )
 
-    def build_subroutine_definition(self, instruction):
-        """Builds a SubroutineDefinition"""
-        if instruction.definition.parameters:
-            # We don't yet have the type system to store the parameter types in a symbol table, and
-            # we currently don't have the correct logic in place to handle parameters correctly in
-            # the definition.
-            raise QASM3ExporterError(
-                "Exporting subroutines with parameters is not yet supported by the OpenQASM 3"
-                " exporter. Received this instruction, which appears parameterized:"
-                f"\n{instruction}"
-            )
-        name = self.global_namespace[instruction]
-        self.push_context(instruction.definition)
-        quantum_arguments = [
-            ast.QuantumArgument(
-                self._reserve_variable_name(ast.Identifier(f"{self.gate_qubit_prefix}_{n_qubit}"))
-            )
-            for n_qubit in range(len(instruction.definition.qubits))
-        ]
-        subroutine_body = ast.SubroutineBlock(
-            self.build_quantum_instructions(instruction.definition.data),
-        )
-        self.pop_context()
-        return ast.SubroutineDefinition(ast.Identifier(name), subroutine_body, quantum_arguments)
-
     def build_gate_definition(self, gate):
         """Builds a QuantumGateDefinition"""
+        if isinstance(gate, standard_gates.CXGate):
+            # CX gets super duper special treatment because it's the base of Terra's definition
+            # tree, but isn't an OQ3 built-in.  We use `isinstance` because we haven't fully
+            # fixed what the name/class distinction is (there's a test from the original OQ3
+            # exporter that tries a naming collision with 'cx').
+            control, target = ast.Identifier("c"), ast.Identifier("t")
+            call = ast.QuantumGateCall(
+                ast.Identifier("U"),
+                [control, target],
+                parameters=[ast.Constant.PI, ast.IntegerLiteral(0), ast.Constant.PI],
+                modifiers=[ast.QuantumGateModifier(ast.QuantumGateModifierName.CTRL)],
+            )
+            return ast.QuantumGateDefinition(
+                ast.QuantumGateSignature(ast.Identifier("cx"), [control, target]),
+                ast.QuantumBlock([call]),
+            )
+
         self.push_context(gate.definition)
         signature = self.build_gate_signature(gate)
-        body = ast.QuantumBlock(self.build_quantum_instructions(gate.definition.data))
+        body = ast.QuantumBlock(self.build_current_scope())
         self.pop_context()
         return ast.QuantumGateDefinition(signature, body)
 
@@ -618,231 +645,329 @@ class QASM3Builder:
         params = []
         definition = gate.definition
         # Dummy parameters
+        scope = self.current_scope()
         for num in range(len(gate.params) - len(definition.parameters)):
             param_name = f"{self.gate_parameter_prefix}_{num}"
-            params.append(self._reserve_variable_name(ast.Identifier(param_name)))
-        params += [self._register_variable(param) for param in definition.parameters]
+            params.append(self._reserve_variable_name(ast.Identifier(param_name), scope))
+        params += [self._register_variable(param, scope) for param in definition.parameters]
         quantum_arguments = [
-            self._reserve_variable_name(ast.Identifier(f"{self.gate_qubit_prefix}_{n_qubit}"))
-            for n_qubit in range(len(definition.qubits))
+            self._register_variable(
+                qubit, scope, self._unique_name(f"{self.gate_qubit_prefix}_{i}", scope)
+            )
+            for i, qubit in enumerate(definition.qubits)
         ]
         return ast.QuantumGateSignature(ast.Identifier(name), quantum_arguments, params or None)
 
-    def build_variable_declarations(self):
-        """Builds lists of the input, output and standard variables used in this program."""
-        inputs, outputs, variables = [], [], []
-        global_scope = self.global_scope(assert_=True).circuit
-        for parameter in global_scope.parameters:
-            parameter_name = self._register_variable(parameter)
-            declaration = _infer_variable_declaration(global_scope, parameter, parameter_name)
+    def hoist_global_parameter_declarations(self):
+        """Extend ``self._global_io_declarations`` and ``self._global_classical_declarations`` with
+        any implicit declarations used to support the early IBM efforts to use :class:`.Parameter`
+        as an input variable."""
+        global_scope = self.global_scope(assert_=True)
+        for parameter in global_scope.circuit.parameters:
+            parameter_name = self._register_variable(parameter, global_scope)
+            declaration = _infer_variable_declaration(
+                global_scope.circuit, parameter, parameter_name
+            )
             if declaration is None:
                 continue
             if isinstance(declaration, ast.IODeclaration):
-                if declaration.modifier is ast.IOModifier.INPUT:
-                    inputs.append(declaration)
-                else:
-                    outputs.append(declaration)
+                self._global_io_declarations.append(declaration)
             else:
-                variables.append(declaration)
-        return inputs, outputs, variables
+                self._global_classical_forward_declarations.append(declaration)
 
-    @property
-    def base_classical_register_name(self):
-        """The base register name"""
-        name = "_all_clbits" if self.alias_classical_registers else "_loose_clbits"
-        if name in self.global_namespace._data:
-            raise NotImplementedError  # TODO choose a different name if there is a name collision
-        return name
+    def hoist_classical_register_declarations(self):
+        """Extend the global classical declarations with AST nodes declaring all the global-scope
+        circuit :class:`.Clbit` and :class:`.ClassicalRegister` instances.  Qiskit's data model
+        doesn't involve the declaration of *new* bits or registers in inner scopes; only the
+        :class:`.expr.Var` mechanism allows that.
 
-    @property
-    def base_quantum_register_name(self):
-        """The base register name"""
-        name = "_all_qubits"
-        if name in self.global_namespace._data:
-            raise NotImplementedError  # TODO choose a different name if there is a name collision
-        return name
-
-    def build_classical_declarations(self):
-        """Return a list of AST nodes declaring all the classical bits and registers.
-
-        The behaviour of this function depends on the setting ``alias_classical_registers``. If this
+        The behavior of this function depends on the setting ``allow_aliasing``. If this
         is ``True``, then the output will be in the same form as the output of
         :meth:`.build_classical_declarations`, with the registers being aliases.  If ``False``, it
         will instead return a :obj:`.ast.ClassicalDeclaration` for each classical register, and one
         for the loose :obj:`.Clbit` instances, and will raise :obj:`QASM3ExporterError` if any
         registers overlap.
-
-        This function populates the lookup table ``self._loose_clbit_index_lookup``.
         """
-        circuit = self.current_scope().circuit
-        if self.alias_classical_registers:
-            self._loose_clbit_index_lookup = {
-                bit: index for index, bit in enumerate(circuit.clbits)
-            }
-            flat_declaration = self.build_clbit_declaration(
-                len(circuit.clbits),
-                self._reserve_variable_name(ast.Identifier(self.base_classical_register_name)),
-            )
-            return [flat_declaration] + self.build_aliases(circuit.cregs)
-        loose_register_size = 0
-        for index, bit in enumerate(circuit.clbits):
-            found_bit = circuit.find_bit(bit)
-            if len(found_bit.registers) > 1:
+        scope = self.global_scope(assert_=True)
+        if any(len(scope.circuit.find_bit(q).registers) > 1 for q in scope.circuit.clbits):
+            # There are overlapping registers, so we need to use aliases to emit the structure.
+            if not self.allow_aliasing:
                 raise QASM3ExporterError(
-                    f"Clbit {index} is in multiple registers, but 'alias_classical_registers' is"
-                    f" False. Registers and indices: {found_bit.registers}."
+                    "Some classical registers in this circuit overlap and need aliases to express,"
+                    " but 'allow_aliasing' is false."
                 )
-            if not found_bit.registers:
-                self._loose_clbit_index_lookup[bit] = loose_register_size
-                loose_register_size += 1
-        if loose_register_size > 0:
-            loose = [
-                self.build_clbit_declaration(
-                    loose_register_size,
-                    self._reserve_variable_name(ast.Identifier(self.base_classical_register_name)),
+            clbits = (
+                ast.ClassicalDeclaration(
+                    ast.BitType(),
+                    self._register_variable(
+                        clbit, scope, self._unique_name(f"{self.loose_bit_prefix}{i}", scope)
+                    ),
                 )
-            ]
-        else:
-            loose = []
-        return loose + [
-            self.build_clbit_declaration(len(register), self._register_variable(register))
-            for register in circuit.cregs
-        ]
+                for i, clbit in enumerate(scope.circuit.clbits)
+            )
+            self._global_classical_forward_declarations.extend(clbits)
+            self._global_classical_forward_declarations.extend(
+                self.build_aliases(scope.circuit.cregs)
+            )
+            return
+        # If we're here, we're in the clbit happy path where there are no clbits that are in more
+        # than one register.  We can output things very naturally.
+        self._global_classical_forward_declarations.extend(
+            ast.ClassicalDeclaration(
+                ast.BitType(),
+                self._register_variable(
+                    clbit, scope, self._unique_name(f"{self.loose_bit_prefix}{i}", scope)
+                ),
+            )
+            for i, clbit in enumerate(scope.circuit.clbits)
+            if not scope.circuit.find_bit(clbit).registers
+        )
+        for register in scope.circuit.cregs:
+            name = self._register_variable(register, scope)
+            for i, bit in enumerate(register):
+                scope.symbol_map[bit] = ast.SubscriptedIdentifier(
+                    name.string, ast.IntegerLiteral(i)
+                )
+            self._global_classical_forward_declarations.append(
+                ast.ClassicalDeclaration(ast.BitArrayType(len(register)), name)
+            )
 
-    def build_clbit_declaration(
-        self, n_clbits: int, name: ast.Identifier
-    ) -> ast.ClassicalDeclaration:
-        """Return a declaration of the :obj:`.Clbit`\\ s as a ``bit[n]``."""
-        return ast.ClassicalDeclaration(ast.BitArrayType(n_clbits), name)
+    def hoist_classical_io_var_declarations(self):
+        """Hoist the declarations of classical IO :class:`.expr.Var` nodes into the global state.
+
+        Local :class:`.expr.Var` declarations are handled by the regular local-block scope builder,
+        and the :class:`.QuantumCircuit` data model ensures that the only time an IO variable can
+        occur is in an outermost block."""
+        scope = self.global_scope(assert_=True)
+        for var in scope.circuit.iter_input_vars():
+            self._global_io_declarations.append(
+                ast.IODeclaration(
+                    ast.IOModifier.INPUT,
+                    _build_ast_type(var.type),
+                    self._register_variable(var, scope),
+                )
+            )
 
     def build_quantum_declarations(self):
         """Return a list of AST nodes declaring all the qubits in the current scope, and all the
         alias declarations for these qubits."""
-        return [self.build_qubit_declarations()] + self.build_aliases(
-            self.current_scope().circuit.qregs
-        )
-
-    def build_qubit_declarations(self):
-        """Return a declaration of all the :obj:`.Qubit`\\ s in the current scope."""
-        # Base register
-        return ast.QuantumDeclaration(
-            self._reserve_variable_name(ast.Identifier(self.base_quantum_register_name)),
-            ast.Designator(self.build_integer(self.current_scope().circuit.num_qubits)),
-        )
+        scope = self.global_scope(assert_=True)
+        if scope.circuit.layout is not None:
+            # We're referring to physical qubits.  These can't be declared in OQ3, but we need to
+            # track the bit -> expression mapping in our symbol table.
+            for i, bit in enumerate(scope.circuit.qubits):
+                scope.symbol_map[bit] = ast.Identifier(f"${i}")
+            return []
+        if any(len(scope.circuit.find_bit(q).registers) > 1 for q in scope.circuit.qubits):
+            # There are overlapping registers, so we need to use aliases to emit the structure.
+            if not self.allow_aliasing:
+                raise QASM3ExporterError(
+                    "Some quantum registers in this circuit overlap and need aliases to express,"
+                    " but 'allow_aliasing' is false."
+                )
+            qubits = [
+                ast.QuantumDeclaration(
+                    self._register_variable(
+                        qubit, scope, self._unique_name(f"{self.loose_qubit_prefix}{i}", scope)
+                    )
+                )
+                for i, qubit in enumerate(scope.circuit.qubits)
+            ]
+            return qubits + self.build_aliases(scope.circuit.qregs)
+        # If we're here, we're in the virtual-qubit happy path where there are no qubits that are in
+        # more than one register.  We can output things very naturally.
+        loose_qubits = [
+            ast.QuantumDeclaration(
+                self._register_variable(
+                    qubit, scope, self._unique_name(f"{self.loose_qubit_prefix}{i}", scope)
+                )
+            )
+            for i, qubit in enumerate(scope.circuit.qubits)
+            if not scope.circuit.find_bit(qubit).registers
+        ]
+        registers = []
+        for register in scope.circuit.qregs:
+            name = self._register_variable(register, scope)
+            for i, bit in enumerate(register):
+                scope.symbol_map[bit] = ast.SubscriptedIdentifier(
+                    name.string, ast.IntegerLiteral(i)
+                )
+            registers.append(
+                ast.QuantumDeclaration(name, ast.Designator(ast.IntegerLiteral(len(register))))
+            )
+        return loose_qubits + registers
 
     def build_aliases(self, registers: Iterable[Register]) -> List[ast.AliasStatement]:
         """Return a list of alias declarations for the given registers.  The registers can be either
         classical or quantum."""
+        scope = self.current_scope()
         out = []
         for register in registers:
-            elements = []
-            # Greedily consolidate runs of bits into ranges.  We don't bother trying to handle
-            # steps; there's no need in generated code.  Even single bits are referenced as ranges
-            # because the concatenation in an alias statement can only concatenate arraylike values.
-            start_index, prev_index = None, None
-            register_identifier = (
-                ast.Identifier(self.base_quantum_register_name)
-                if isinstance(register, QuantumRegister)
-                else ast.Identifier(self.base_classical_register_name)
-            )
-            for bit in register:
-                cur_index = self.find_bit(bit).index
-                if start_index is None:
-                    start_index = cur_index
-                elif cur_index != prev_index + 1:
-                    elements.append(
-                        ast.SubscriptedIdentifier(
-                            register_identifier,
-                            ast.Range(
-                                start=self.build_integer(start_index),
-                                end=self.build_integer(prev_index),
-                            ),
-                        )
-                    )
-                    start_index = prev_index = cur_index
-                prev_index = cur_index
-            # After the loop, if there were any bits at all, there's always one unemitted range.
-            if len(register) != 0:
-                elements.append(
-                    ast.SubscriptedIdentifier(
-                        register_identifier,
-                        ast.Range(
-                            start=self.build_integer(start_index),
-                            end=self.build_integer(prev_index),
-                        ),
-                    )
+            name = self._register_variable(register, scope)
+            elements = [self._lookup_variable(bit) for bit in register]
+            for i, bit in enumerate(register):
+                # This might shadow previous definitions, but that's not a problem.
+                scope.symbol_map[bit] = ast.SubscriptedIdentifier(
+                    name.string, ast.IntegerLiteral(i)
                 )
-            out.append(ast.AliasStatement(self._register_variable(register), elements))
+            out.append(ast.AliasStatement(name, ast.IndexSet(elements)))
         return out
 
-    def build_quantum_instructions(self, instructions):
-        """Builds a list of call statements"""
-        ret = []
-        for instruction in instructions:
-            if isinstance(instruction.operation, Gate):
-                if instruction.operation.condition:
-                    eqcondition = self.build_eqcondition(instruction.operation.condition)
-                    operation_without_condition = instruction.operation.copy()
-                    operation_without_condition.condition = None
-                    true_body = self.build_program_block(
-                        [instruction.replace(operation=operation_without_condition)]
-                    )
-                    ret.append(ast.BranchingStatement(eqcondition, true_body))
+    def build_current_scope(self) -> List[ast.Statement]:
+        """Build the instructions that occur in the current scope.
+
+        In addition to everything literally in the circuit's ``data`` field, this also includes
+        declarations for any local :class:`.expr.Var` nodes.
+        """
+        scope = self.current_scope()
+
+        # We forward-declare all local variables uninitialised at the top of their scope. It would
+        # be nice to declare the variable at the point of first store (so we can write things like
+        # `uint[8] a = 12;`), but there's lots of edge-case logic to catch with that around
+        # use-before-definition errors in the OQ3 output, for example if the user has side-stepped
+        # the `QuantumCircuit` API protection to produce a circuit that uses an uninitialised
+        # variable, or the initial write to a variable is within a control-flow scope.  (It would be
+        # easier to see the def/use chain needed to do this cleanly if we were using `DAGCircuit`.)
+        statements = [
+            ast.ClassicalDeclaration(_build_ast_type(var.type), self._register_variable(var, scope))
+            for var in scope.circuit.iter_declared_vars()
+        ]
+        for instruction in scope.circuit.data:
+            if isinstance(instruction.operation, ControlFlowOp):
+                if isinstance(instruction.operation, ForLoopOp):
+                    statements.append(self.build_for_loop(instruction))
+                elif isinstance(instruction.operation, WhileLoopOp):
+                    statements.append(self.build_while_loop(instruction))
+                elif isinstance(instruction.operation, IfElseOp):
+                    statements.append(self.build_if_statement(instruction))
+                elif isinstance(instruction.operation, SwitchCaseOp):
+                    statements.extend(self.build_switch_statement(instruction))
                 else:
-                    ret.append(self.build_gate_call(instruction))
+                    raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
+                continue
+            # Build the node, ignoring any condition.
+            if isinstance(instruction.operation, Gate):
+                nodes = [self.build_gate_call(instruction)]
             elif isinstance(instruction.operation, Barrier):
-                operands = [
-                    self.build_single_bit_reference(operand) for operand in instruction.qubits
-                ]
-                ret.append(ast.QuantumBarrier(operands))
+                operands = [self._lookup_variable(operand) for operand in instruction.qubits]
+                nodes = [ast.QuantumBarrier(operands)]
             elif isinstance(instruction.operation, Measure):
                 measurement = ast.QuantumMeasurement(
-                    [self.build_single_bit_reference(operand) for operand in instruction.qubits]
+                    [self._lookup_variable(operand) for operand in instruction.qubits]
                 )
-                qubit = self.build_single_bit_reference(instruction.clbits[0])
-                ret.append(ast.QuantumMeasurementAssignment(qubit, measurement))
+                qubit = self._lookup_variable(instruction.clbits[0])
+                nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
             elif isinstance(instruction.operation, Reset):
-                for operand in instruction.qubits:
-                    ret.append(ast.QuantumReset(self.build_single_bit_reference(operand)))
+                nodes = [
+                    ast.QuantumReset(self._lookup_variable(operand))
+                    for operand in instruction.qubits
+                ]
             elif isinstance(instruction.operation, Delay):
-                ret.append(self.build_delay(instruction))
-            elif isinstance(instruction.operation, ForLoopOp):
-                ret.append(self.build_for_loop(instruction))
-            elif isinstance(instruction.operation, WhileLoopOp):
-                ret.append(self.build_while_loop(instruction))
-            elif isinstance(instruction.operation, IfElseOp):
-                ret.append(self.build_if_statement(instruction))
+                nodes = [self.build_delay(instruction)]
+            elif isinstance(instruction.operation, Store):
+                nodes = [
+                    ast.AssignmentStatement(
+                        self.build_expression(instruction.operation.lvalue),
+                        self.build_expression(instruction.operation.rvalue),
+                    )
+                ]
             elif isinstance(instruction.operation, BreakLoopOp):
-                ret.append(ast.BreakStatement())
+                nodes = [ast.BreakStatement()]
             elif isinstance(instruction.operation, ContinueLoopOp):
-                ret.append(ast.ContinueStatement())
+                nodes = [ast.ContinueStatement()]
             else:
-                ret.append(self.build_subroutine_call(instruction))
-        return ret
+                nodes = [self.build_subroutine_call(instruction)]
+
+            if instruction.operation.condition is None:
+                statements.extend(nodes)
+            else:
+                body = ast.ProgramBlock(nodes)
+                statements.append(
+                    ast.BranchingStatement(
+                        self.build_expression(_lift_condition(instruction.operation.condition)),
+                        body,
+                    )
+                )
+        return statements
 
     def build_if_statement(self, instruction: CircuitInstruction) -> ast.BranchingStatement:
         """Build an :obj:`.IfElseOp` into a :obj:`.ast.BranchingStatement`."""
-        condition = self.build_eqcondition(instruction.operation.condition)
+        condition = self.build_expression(_lift_condition(instruction.operation.condition))
 
         true_circuit = instruction.operation.blocks[0]
         self.push_scope(true_circuit, instruction.qubits, instruction.clbits)
-        true_body = self.build_program_block(true_circuit.data)
+        true_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         if len(instruction.operation.blocks) == 1:
             return ast.BranchingStatement(condition, true_body, None)
 
         false_circuit = instruction.operation.blocks[1]
         self.push_scope(false_circuit, instruction.qubits, instruction.clbits)
-        false_body = self.build_program_block(false_circuit.data)
+        false_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         return ast.BranchingStatement(condition, true_body, false_body)
 
+    def build_switch_statement(self, instruction: CircuitInstruction) -> Iterable[ast.Statement]:
+        """Build a :obj:`.SwitchCaseOp` into a :class:`.ast.SwitchStatement`."""
+        real_target = self.build_expression(expr.lift(instruction.operation.target))
+        global_scope = self.global_scope()
+        target = self._reserve_variable_name(
+            ast.Identifier(self._unique_name("switch_dummy", global_scope)), global_scope
+        )
+        self._global_classical_forward_declarations.append(
+            ast.ClassicalDeclaration(ast.IntType(), target, None)
+        )
+
+        if ExperimentalFeatures.SWITCH_CASE_V1 in self.experimental:
+            # In this case, defaults can be folded in with other cases (useless as that is).
+
+            def case(values, case_block):
+                values = [
+                    ast.DefaultCase() if v is CASE_DEFAULT else self.build_integer(v)
+                    for v in values
+                ]
+                self.push_scope(case_block, instruction.qubits, instruction.clbits)
+                case_body = ast.ProgramBlock(self.build_current_scope())
+                self.pop_scope()
+                return values, case_body
+
+            return [
+                ast.AssignmentStatement(target, real_target),
+                ast.SwitchStatementPreview(
+                    target,
+                    (
+                        case(values, block)
+                        for values, block in instruction.operation.cases_specifier()
+                    ),
+                ),
+            ]
+
+        # Handle the stabilized syntax.
+        cases = []
+        default = None
+        for values, block in instruction.operation.cases_specifier():
+            self.push_scope(block, instruction.qubits, instruction.clbits)
+            case_body = ast.ProgramBlock(self.build_current_scope())
+            self.pop_scope()
+            if CASE_DEFAULT in values:
+                # Even if it's mixed in with other cases, we can skip them and only output the
+                # `default` since that's valid and execution will be the same; the evaluation of
+                # case labels can't have side effects.
+                default = case_body
+                continue
+            cases.append(([self.build_integer(value) for value in values], case_body))
+
+        return [
+            ast.AssignmentStatement(target, real_target),
+            ast.SwitchStatement(target, cases, default=default),
+        ]
+
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
         """Build a :obj:`.WhileLoopOp` into a :obj:`.ast.WhileLoopStatement`."""
-        condition = self.build_eqcondition(instruction.operation.condition)
+        condition = self.build_expression(_lift_condition(instruction.operation.condition))
         loop_circuit = instruction.operation.blocks[0]
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
-        loop_body = self.build_program_block(loop_circuit.data)
+        loop_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         return ast.WhileLoopStatement(condition, loop_body)
 
@@ -850,14 +975,15 @@ class QASM3Builder:
         """Build a :obj:`.ForLoopOp` into a :obj:`.ast.ForLoopStatement`."""
         indexset, loop_parameter, loop_circuit = instruction.operation.params
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
+        scope = self.current_scope()
         if loop_parameter is None:
             # The loop parameter is implicitly declared by the ``for`` loop (see also
             # _infer_parameter_declaration), so it doesn't matter that we haven't declared this.
-            loop_parameter_ast = self._reserve_variable_name(ast.Identifier("_"))
+            loop_parameter_ast = self._reserve_variable_name(ast.Identifier("_"), scope)
         else:
-            loop_parameter_ast = self._register_variable(loop_parameter)
+            loop_parameter_ast = self._register_variable(loop_parameter, scope)
         if isinstance(indexset, range):
-            # QASM 3 uses inclusive ranges on both ends, unlike Python.
+            # OpenQASM 3 uses inclusive ranges on both ends, unlike Python.
             indexset_ast = ast.Range(
                 start=self.build_integer(indexset.start),
                 end=self.build_integer(indexset.stop - 1),
@@ -868,12 +994,16 @@ class QASM3Builder:
                 indexset_ast = ast.IndexSet([self.build_integer(value) for value in indexset])
             except QASM3ExporterError:
                 raise QASM3ExporterError(
-                    "The values in QASM 3 'for' loops must all be integers, but received"
+                    "The values in OpenQASM 3 'for' loops must all be integers, but received"
                     f" '{indexset}'."
                 ) from None
-        body_ast = self.build_program_block(loop_circuit)
+        body_ast = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
+
+    def build_expression(self, node: expr.Expr) -> ast.Expression:
+        """Build an expression."""
+        return node.accept(_ExprBuilder(self._lookup_variable))
 
     def build_delay(self, instruction: CircuitInstruction) -> ast.QuantumDelay:
         """Build a built-in delay statement."""
@@ -894,10 +1024,10 @@ class QASM3Builder:
             }
             duration = ast.DurationLiteral(duration_value, unit_map[unit])
         return ast.QuantumDelay(
-            duration, [self.build_single_bit_reference(qubit) for qubit in instruction.qubits]
+            duration, [self._lookup_variable(qubit) for qubit in instruction.qubits]
         )
 
-    def build_integer(self, value) -> ast.Integer:
+    def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
         actually an
         integer."""
@@ -905,21 +1035,7 @@ class QASM3Builder:
             # This is meant to be purely defensive, in case a non-integer slips into the logic
             # somewhere, but no valid Terra object should trigger this.
             raise QASM3ExporterError(f"'{value}' is not an integer")  # pragma: no cover
-        return ast.Integer(int(value))
-
-    def build_program_block(self, instructions):
-        """Builds a ProgramBlock"""
-        return ast.ProgramBlock(self.build_quantum_instructions(instructions))
-
-    def build_eqcondition(self, condition):
-        """Classical Conditional condition from a instruction.condition"""
-        if isinstance(condition[0], Clbit):
-            condition_on = self.build_single_bit_reference(condition[0])
-        else:
-            condition_on = self._lookup_variable(condition[0])
-        return ast.ComparisonExpression(
-            condition_on, ast.EqualsOperator(), self.build_integer(condition[1])
-        )
+        return ast.IntegerLiteral(int(value))
 
     def _rebind_scoped_parameters(self, expression):
         """If the input is a :class:`.ParameterExpression`, rebind any internal
@@ -942,62 +1058,19 @@ class QASM3Builder:
             gate_name = ast.Identifier("U")
         else:
             gate_name = ast.Identifier(self.global_namespace[instruction.operation])
-        qubits = [self.build_single_bit_reference(qubit) for qubit in instruction.qubits]
+        qubits = [self._lookup_variable(qubit) for qubit in instruction.qubits]
         if self.disable_constants:
             parameters = [
-                ast.Expression(self._rebind_scoped_parameters(param))
+                ast.StringifyAndPray(self._rebind_scoped_parameters(param))
                 for param in instruction.operation.params
             ]
         else:
             parameters = [
-                ast.Expression(pi_check(self._rebind_scoped_parameters(param), output="qasm"))
+                ast.StringifyAndPray(pi_check(self._rebind_scoped_parameters(param), output="qasm"))
                 for param in instruction.operation.params
             ]
 
         return ast.QuantumGateCall(gate_name, qubits, parameters=parameters)
-
-    def build_subroutine_call(self, instruction: CircuitInstruction):
-        """Builds a SubroutineCall"""
-        identifier = ast.Identifier(self.global_namespace[instruction.operation])
-        expressions = [ast.Expression(param) for param in instruction.operation.params]
-        # TODO: qubits should go inside the brackets of subroutine calls, but neither Terra nor the
-        # AST here really support the calls, so there's no sensible way of writing it yet.
-        bits = [self.build_single_bit_reference(bit) for bit in instruction.qubits]
-        return ast.SubroutineCall(identifier, bits, expressions)
-
-    def build_single_bit_reference(self, bit: Bit) -> ast.Identifier:
-        """Get an identifier node that refers to one particular bit."""
-        found_bit = self.find_bit(bit)
-        if self._physical_qubit and isinstance(bit, Qubit):
-            return ast.PhysicalQubitIdentifier(ast.Identifier(str(found_bit.index)))
-        if self._flat_reg:
-            return ast.Identifier(f"{self.gate_qubit_prefix}_{found_bit.index}")
-        if found_bit.registers:
-            # We preferentially return a reference via a register in the hope that this is what the
-            # user is used to seeing as well.
-            register, index = found_bit.registers[0]
-            return ast.SubscriptedIdentifier(
-                self._lookup_variable(register), self.build_integer(index)
-            )
-        # Otherwise reference via the list of all qubits, or the list of loose clbits.
-        if isinstance(bit, Qubit):
-            return ast.SubscriptedIdentifier(
-                ast.Identifier(self.base_quantum_register_name), self.build_integer(found_bit.index)
-            )
-        return ast.SubscriptedIdentifier(
-            ast.Identifier(self.base_classical_register_name),
-            self.build_integer(self._loose_clbit_index_lookup[bit]),
-        )
-
-    def find_bit(self, bit: Bit):
-        """Look up the bit using :meth:`.QuantumCircuit.find_bit` in the current outermost scope."""
-        # This is a hacky work-around for now. Really this should be a proper symbol-table lookup,
-        # but with us expecting to put in a whole new AST for Terra 0.20, this should be sufficient
-        # for the use-cases we support.  (Jake, 2021-11-22.)
-        if len(self.current_context()) > 1:
-            ancestor_bit = self.current_scope().bit_map[bit]
-            return self.current_outermost_scope().circuit.find_bit(ancestor_bit)
-        return self.current_scope().circuit.find_bit(bit)
 
 
 def _infer_variable_declaration(
@@ -1007,8 +1080,8 @@ def _infer_variable_declaration(
 
     This is very simplistic; it assumes all parameters are real numbers that need to be input to the
     program, unless one is used as a loop variable, in which case it shouldn't be declared at all,
-    because the ``for`` loop declares it implicitly (per the Qiskit/QSS reading of the OpenQASM
-    spec at Qiskit/openqasm@8ee55ec).
+    because the ``for`` loop declares it implicitly (per the Qiskit/qe-compiler reading of the
+    OpenQASM spec at openqasm/openqasm@8ee55ec).
 
     .. note::
 
@@ -1034,7 +1107,8 @@ def _infer_variable_declaration(
         # _should_ be an intrinsic part of the parameter, or somewhere publicly accessible, but
         # Terra doesn't have those concepts yet.  We can only try and guess at the type by looking
         # at all the places it's used in the circuit.
-        for instruction, index in circuit._parameter_table[parameter]:
+        for instr_index, index in circuit._data._get_param(parameter.uuid.int):
+            instruction = circuit.data[instr_index].operation
             if isinstance(instruction, ForLoopOp):
                 # The parameters of ForLoopOp are (indexset, loop_parameter, body).
                 if index == 1:
@@ -1049,3 +1123,54 @@ def _infer_variable_declaration(
     # Arbitrary choice of double-precision float for all other parameters, but it's what we actually
     # expect people to be binding to their Parameters right now.
     return ast.IODeclaration(ast.IOModifier.INPUT, ast.FloatType.DOUBLE, parameter_name)
+
+
+def _lift_condition(condition):
+    if isinstance(condition, expr.Expr):
+        return condition
+    return expr.lift_legacy_condition(condition)
+
+
+def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
+    if type_.kind is types.Bool:
+        return ast.BoolType()
+    if type_.kind is types.Uint:
+        return ast.UintType(type_.width)
+    raise RuntimeError(f"unhandled expr type '{type_}'")
+
+
+class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
+    __slots__ = ("lookup",)
+
+    # This is a very simple, non-contextual converter.  As the type system expands, we may well end
+    # up with some places where Terra's abstract type system needs to be lowered to OQ3 rather than
+    # mapping 100% directly, which might need a more contextual visitor.
+
+    def __init__(self, lookup):
+        self.lookup = lookup
+
+    def visit_var(self, node, /):
+        return self.lookup(node) if node.standalone else self.lookup(node.var)
+
+    def visit_value(self, node, /):
+        if node.type.kind is types.Bool:
+            return ast.BooleanLiteral(node.value)
+        if node.type.kind is types.Uint:
+            return ast.IntegerLiteral(node.value)
+        raise RuntimeError(f"unhandled Value type '{node}'")
+
+    def visit_cast(self, node, /):
+        if node.implicit:
+            return node.operand.accept(self)
+        return ast.Cast(_build_ast_type(node.type), node.operand.accept(self))
+
+    def visit_unary(self, node, /):
+        return ast.Unary(ast.Unary.Op[node.op.name], node.operand.accept(self))
+
+    def visit_binary(self, node, /):
+        return ast.Binary(
+            ast.Binary.Op[node.op.name], node.left.accept(self), node.right.accept(self)
+        )
+
+    def visit_index(self, node, /):
+        return ast.Index(node.target.accept(self), node.index.accept(self))

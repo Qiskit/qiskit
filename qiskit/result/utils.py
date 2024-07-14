@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=c-extension-no-member
 
 """Utility functions for working with Results."""
 
@@ -28,8 +27,7 @@ from qiskit.result.distributions.quasi import QuasiDistribution
 
 from qiskit.result.postprocess import _bin_to_hex
 
-# pylint: disable=import-error, no-name-in-module
-from qiskit._accelerate import results as results_rs
+from qiskit._accelerate import results as results_rs  # pylint: disable=no-name-in-module
 
 
 def marginal_counts(
@@ -233,9 +231,9 @@ def marginal_distribution(
         res = results_rs.marginal_distribution(counts, indices)
     else:
         first_value = next(iter(counts.values()))
-        if isinstance(first_value, int):
+        if isinstance(first_value, (int, np.integer)):
             res = results_rs.marginal_counts(counts, indices)
-        elif isinstance(first_value, float):
+        elif isinstance(first_value, (float, np.floating)):
             res = results_rs.marginal_distribution(counts, indices)
         else:
             raise QiskitError("Values of counts must be an int or float")

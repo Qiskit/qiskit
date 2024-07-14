@@ -14,8 +14,8 @@
 """Test Qiskit's QuantumCircuit class for multiple registers."""
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
@@ -35,7 +35,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qreg0, creg0)
         meas.measure(qreg1, creg1)
 
-        qc = circ + meas
+        qc = circ.compose(meas)
 
         circ2 = QuantumCircuit()
         circ2.add_register(qreg0)
@@ -53,7 +53,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas2.measure(qreg0, creg0)
         meas2.measure(qreg1, creg1)
 
-        qc2 = circ2 + meas2
+        qc2 = circ2.compose(meas2)
 
         dag_qc = circuit_to_dag(qc)
         dag_qc2 = circuit_to_dag(qc2)

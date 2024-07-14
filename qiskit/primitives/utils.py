@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,17 @@
 """
 Utility functions for primitives
 """
-
 from __future__ import annotations
 
-from qiskit.circuit import ParameterExpression, QuantumCircuit, Instruction
-from qiskit.extensions.quantum_initializer.initializer import Initialize
-from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from collections.abc import Iterable
+
+import numpy as np
+
+from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit.bit import Bit
+from qiskit.circuit.library.data_preparation import Initialize
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import PauliList, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 
@@ -41,7 +45,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
-def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
+def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Args:
@@ -51,22 +55,16 @@ def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
         The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Raises:
-        TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
-            coefficient.
+        QiskitError: when observable type cannot be converted to SparsePauliOp.
     """
+
     if isinstance(observable, SparsePauliOp):
         return observable
-    elif isinstance(observable, PauliSumOp):
-        if isinstance(observable.coeff, ParameterExpression):
-            raise TypeError(
-                f"Observable must have numerical coefficient, not {type(observable.coeff)}."
-            )
-        return observable.coeff * observable.primitive
-    elif isinstance(observable, BasePauli):
-        return SparsePauliOp(observable)
-    elif isinstance(observable, BaseOperator):
-        return SparsePauliOp.from_operator(observable)
+    elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
+        raise QiskitError(f"observable type not supported: {type(observable)}")
     else:
+        if isinstance(observable, PauliList):
+            raise QiskitError(f"observable type not supported: {type(observable)}")
         return SparsePauliOp(observable)
 
 
@@ -75,10 +73,6 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
 
     Dict keys label measured qubits, whereas the values indicate the
     classical bit onto which that qubits measurement result is stored.
-
-    Note: this function is a slightly simplified version of a utility function
-    ``_final_measurement_mapping`` of
-    `mthree <https://github.com/Qiskit-Partners/mthree>`_.
 
     Parameters:
         circuit: Input quantum circuit.
@@ -99,7 +93,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
                 mapping[qbit] = cbit
                 active_cbits.remove(cbit)
                 active_qubits.remove(qbit)
-        elif item.operation.name != "barrier":
+        elif item.operation.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:
@@ -111,6 +105,78 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     # Sort so that classical bits are in numeric order low->high.
     mapping = dict(sorted(mapping.items(), key=lambda item: item[1]))
     return mapping
+
+
+def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
+    return tuple(
+        (
+            circuit.find_bit(bit).index,
+            tuple((reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers),
+        )
+        for bit in bits
+    )
+
+
+def _format_params(param):
+    if isinstance(param, np.ndarray):
+        return param.data.tobytes()
+    elif isinstance(param, QuantumCircuit):
+        return _circuit_key(param)
+    elif isinstance(param, Iterable):
+        return tuple(param)
+    return param
+
+
+def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
+    """Private key function for QuantumCircuit.
+
+    This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
+    If key collision is found, please add elements to avoid it.
+
+    Args:
+        circuit: Input quantum circuit.
+        functional: If True, the returned key only includes functional data (i.e. execution related).
+
+    Returns:
+        Composite key for circuit.
+    """
+    functional_key: tuple = (
+        circuit.num_qubits,
+        circuit.num_clbits,
+        circuit.num_parameters,
+        tuple(  # circuit.data
+            (
+                _bits_key(data.qubits, circuit),  # qubits
+                _bits_key(data.clbits, circuit),  # clbits
+                data.operation.name,  # operation.name
+                tuple(_format_params(param) for param in data.operation.params),  # operation.params
+            )
+            for data in circuit.data
+        ),
+        None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+    )
+    if functional:
+        return functional_key
+    return (
+        circuit.name,
+        *functional_key,
+    )
+
+
+def _observable_key(observable: SparsePauliOp) -> tuple:
+    """Private key function for SparsePauliOp.
+    Args:
+        observable: Input operator.
+
+    Returns:
+        Key for observables.
+    """
+    return (
+        observable.paulis.z.tobytes(),
+        observable.paulis.x.tobytes(),
+        observable.paulis.phase.tobytes(),
+        observable.coeffs.tobytes(),
+    )
 
 
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:

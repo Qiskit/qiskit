@@ -41,14 +41,16 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    :toctree: ../stubs/
 
    Acquire
-   Call
+   Reference
    Delay
    Play
+   RelativeBarrier
    SetFrequency
    ShiftFrequency
    SetPhase
    ShiftPhase
    Snapshot
+   TimeBlockade
 
 These are all instances of the same base class:
 
@@ -56,10 +58,10 @@ These are all instances of the same base class:
 """
 from .acquire import Acquire
 from .delay import Delay
-from .directives import Directive, RelativeBarrier
-from .call import Call
+from .directives import Directive, RelativeBarrier, TimeBlockade
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase
 from .play import Play
 from .snapshot import Snapshot
+from .reference import Reference

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue when :func:`~circuit_drawer` was used with ``reverse_bits=True`` on a
+    circuit without classical bits that would cause a potentially confusing warning about
+    ``cregbundle`` to be emitted.
+    Fixed `#8690 <https://github.com/Qiskit/qiskit-terra/issues/8690>`__

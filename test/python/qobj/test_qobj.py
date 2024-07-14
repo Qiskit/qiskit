@@ -17,7 +17,6 @@ import copy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble
-
 from qiskit.qobj import (
     QasmQobj,
     PulseQobj,
@@ -34,7 +33,7 @@ from qiskit.qobj import (
     GateCalibration,
 )
 
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestQASMQobj(QiskitTestCase):

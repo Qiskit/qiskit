@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue in QPY serialization (:func:`~.qpy.dump`) when a custom
+    :class:`~.ControlledGate` subclass that overloaded the ``_define()``
+    method to provide a custom definition for the operation. Previously,
+    this case of operation was not serialized correctly because it wasn't
+    accounting for using the potentially ``_define()`` method to provide
+    a definition.
+    Fixes `#8794 <https://github.com/Qiskit/qiskit-terra/issues/8794>`__

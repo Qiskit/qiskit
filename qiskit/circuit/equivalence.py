@@ -12,20 +12,21 @@
 
 """Gate equivalence library."""
 
+import copy
 from collections import namedtuple
 
-from retworkx.visualization import graphviz_draw
-import retworkx as rx
+from rustworkx.visualization import graphviz_draw
+import rustworkx as rx
 
 from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError
+from .parameter import Parameter
 from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
-
-Entry = namedtuple("Entry", ["search_base", "equivalences"])
-
 Equivalence = namedtuple("Equivalence", ["params", "circuit"])  # Ordered to match Gate.params
+NodeData = namedtuple("NodeData", ["key", "equivs"])
+EdgeData = namedtuple("EdgeData", ["index", "num_gates", "rule", "source"])
 
 
 class EquivalenceLibrary:
@@ -37,11 +38,40 @@ class EquivalenceLibrary:
 
         Args:
             base (Optional[EquivalenceLibrary]):  Base equivalence library to
-                will be referenced if an entry is not found in this library.
+                be referenced if an entry is not found in this library.
         """
         self._base = base
 
-        self._map = {}
+        if base is None:
+            self._graph = rx.PyDiGraph()
+            self._key_to_node_index = {}
+            # Some unique identifier for rules.
+            self._rule_id = 0
+        else:
+            self._graph = base._graph.copy()
+            self._key_to_node_index = copy.deepcopy(base._key_to_node_index)
+            self._rule_id = base._rule_id
+
+    @property
+    def graph(self) -> rx.PyDiGraph:
+        """Return graph representing the equivalence library data.
+
+        This property should be treated as read-only as it provides
+        a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+        If the graph returned by this property is mutated it could corrupt the
+        the contents of the object. If you need to modify the output ``PyDiGraph``
+        be sure to make a copy prior to any modification.
+
+        Returns:
+            PyDiGraph: A graph object with equivalence data in each node.
+        """
+        return self._graph
+
+    def _set_default_node(self, key):
+        """Create a new node if key not found"""
+        if key not in self._key_to_node_index:
+            self._key_to_node_index[key] = self._graph.add_node(NodeData(key=key, equivs=[]))
+        return self._key_to_node_index[key]
 
     def add_equivalence(self, gate, equivalent_circuit):
         """Add a new equivalence to the library. Future queries for the Gate
@@ -62,13 +92,25 @@ class EquivalenceLibrary:
         _raise_if_param_mismatch(gate.params, equivalent_circuit.parameters)
 
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
-
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
 
-        if key not in self._map:
-            self._map[key] = Entry(search_base=True, equivalences=[])
+        target = self._set_default_node(key)
+        self._graph[target].equivs.append(equiv)
 
-        self._map[key].equivalences.append(equiv)
+        sources = {
+            Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
+            for instruction in equivalent_circuit
+        }
+        edges = [
+            (
+                self._set_default_node(source),
+                target,
+                EdgeData(index=self._rule_id, num_gates=len(sources), rule=equiv, source=source),
+            )
+            for source in sources
+        ]
+        self._graph.add_edges_from(edges)
+        self._rule_id += 1
 
     def has_entry(self, gate):
         """Check if a library contains any decompositions for gate.
@@ -80,10 +122,9 @@ class EquivalenceLibrary:
             Bool: True if gate has a known decomposition in the library.
                 False otherwise.
         """
-
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
 
-        return key in self._map or (self._base.has_entry(gate) if self._base is not None else False)
+        return key in self._key_to_node_index
 
     def set_entry(self, gate, entry):
         """Set the equivalence record for a Gate. Future queries for the Gate
@@ -98,16 +139,19 @@ class EquivalenceLibrary:
             entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
                 equivalently implementing the given Gate.
         """
-
         for equiv in entry:
             _raise_if_shape_mismatch(gate, equiv)
             _raise_if_param_mismatch(gate.params, equiv.parameters)
 
-        key = Key(name=gate.name, num_qubits=gate.num_qubits)
-
-        equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
-
-        self._map[key] = Entry(search_base=False, equivalences=equivs)
+        node_index = self._set_default_node(Key(name=gate.name, num_qubits=gate.num_qubits))
+        # Remove previous equivalences of this node, leaving in place any later equivalences that
+        # were added that use `gate`.
+        self._graph[node_index].equivs.clear()
+        for parent, child, _ in self._graph.in_edges(node_index):
+            # `child` should always be ourselves, but there might be parallel edges.
+            self._graph.remove_edge(parent, child)
+        for equivalence in entry:
+            self.add_equivalence(gate, equivalence)
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -128,12 +172,29 @@ class EquivalenceLibrary:
                 ordering of the StandardEquivalenceLibrary will not generally be
                 consistent across Qiskit versions.
         """
-
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
-
         query_params = gate.params
 
         return [_rebind_equiv(equiv, query_params) for equiv in self._get_equivalences(key)]
+
+    def keys(self):
+        """Return list of keys to key to node index map.
+
+        Returns:
+            List: Keys to the key to node index map.
+        """
+        return self._key_to_node_index.keys()
+
+    def node_index(self, key):
+        """Return node index for a given key.
+
+        Args:
+            key (Key): Key to an equivalence.
+
+        Returns:
+            Int: Index to the node in the graph for the given key.
+        """
+        return self._key_to_node_index[key]
 
     def draw(self, filename=None):
         """Draws the equivalence relations available in the library.
@@ -166,7 +227,7 @@ class EquivalenceLibrary:
         graph = rx.PyDiGraph()
 
         node_map = {}
-        for key in self._get_all_keys():
+        for key in self._key_to_node_index:
             name, num_qubits = key
             equivalences = self._get_equivalences(key)
 
@@ -188,32 +249,22 @@ class EquivalenceLibrary:
                     )
                     node_map[decomp_basis] = decomp_basis_node
 
-                label = "{}\n{}".format(str(params), str(decomp) if num_qubits <= 5 else "...")
+                label = f"{str(params)}\n{str(decomp) if num_qubits <= 5 else '...'}"
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],
-                    dict(label=label, fontname="Courier", fontsize=str(8)),
+                    {"label": label, "fontname": "Courier", "fontsize": str(8)},
                 )
 
         return graph
 
-    def _get_all_keys(self):
-        base_keys = self._base._get_all_keys() if self._base is not None else set()
-
-        self_keys = set(self._map.keys())
-
-        return self_keys | {
-            base_key
-            for base_key in base_keys
-            if base_key not in self._map or self._map[base_key].search_base
-        }
-
     def _get_equivalences(self, key):
-        search_base, equivalences = self._map.get(key, (True, []))
-
-        if search_base and self._base is not None:
-            return equivalences + self._base._get_equivalences(key)
-        return equivalences
+        """Get all the equivalences for the given key"""
+        return (
+            self._graph[self._key_to_node_index[key]].equivs
+            if key in self._key_to_node_index
+            else []
+        )
 
 
 def _raise_if_param_mismatch(gate_params, circuit_parameters):
@@ -222,8 +273,8 @@ def _raise_if_param_mismatch(gate_params, circuit_parameters):
     if set(gate_parameters) != circuit_parameters:
         raise CircuitError(
             "Cannot add equivalence between circuit and gate "
-            "of different parameters. Gate params: {}. "
-            "Circuit params: {}.".format(gate_parameters, circuit_parameters)
+            f"of different parameters. Gate params: {gate_parameters}. "
+            f"Circuit params: {circuit_parameters}."
         )
 
 
@@ -231,16 +282,14 @@ def _raise_if_shape_mismatch(gate, circuit):
     if gate.num_qubits != circuit.num_qubits or gate.num_clbits != circuit.num_clbits:
         raise CircuitError(
             "Cannot add equivalence between circuit and gate "
-            "of different shapes. Gate: {} qubits and {} clbits. "
-            "Circuit: {} qubits and {} clbits.".format(
-                gate.num_qubits, gate.num_clbits, circuit.num_qubits, circuit.num_clbits
-            )
+            f"of different shapes. Gate: {gate.num_qubits} qubits and {gate.num_clbits} clbits. "
+            f"Circuit: {circuit.num_qubits} qubits and {circuit.num_clbits} clbits."
         )
 
 
 def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
-    param_map = dict(zip(equiv_params, query_params))
-    equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
+    param_map = {x: y for x, y in zip(equiv_params, query_params) if isinstance(x, Parameter)}
+    equiv = equiv_circuit.assign_parameters(param_map, inplace=False, flat_input=True)
 
     return equiv

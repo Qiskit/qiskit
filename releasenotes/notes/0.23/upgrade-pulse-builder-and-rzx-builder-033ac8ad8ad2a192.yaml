@@ -1,0 +1,31 @@
+---
+upgrade:
+  - |
+    The behavior of the pulse builder when a :class:`.Schedule` is called
+    has been upgraded. Called schedules are internally converted into
+    :class:`.ScheduleBlock` representation and now reference mechanism is
+    always applied rather than appending the schedules wrapped by
+    the :class:`~qiskit.pulse.instructions.Call` instruction.
+    Note that the converted block doesn't necessary recover the original alignment context.
+    This is simply an ASAP aligned sequence of pulse instructions with absolute time intervals.
+    This is an upgrade of internal representation of called pulse programs and thus no API changes.
+    However the :class:`~qiskit.pulse.instructions.Call` instruction and :class:`.Schedule`
+    no longer appear in the builder's pulse program.
+    This change guarantees the generated schedule blocks are always QPY compatible.
+    If you are filtering the output schedule instructions by :class:`~qiskit.pulse.instructions.Call`,
+    you can access to the :attr:`.ScheduleBlock.references` instead to retrieve the called program.
+  - |
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+    and :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho` transpiler pass
+    have been upgraded to generate :class:`.ScheduleBlock`.
+    This change guarantees the transpiled circuits are always QPY compatible.
+    If you are directly using :meth:`~qiskit.transpiler.passes.RZXCalibrationBuilder.rescale_cr_inst`,
+    method from another program or a pass subclass to rescale cross resonance pulse of the device,
+    now this method is turned into a pulse builder macro, and you need to use this method
+    within the pulse builder context to adopts to new release.
+    The method call injects a play instruction to the context pulse program,
+    instead of returning a :class:`.Play` instruction with the stretched pulse.
+fixes:
+  - |
+    The ECR pulse sequence misalignment of :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+    pass has been fixed. See Qiskit/qiskit-terra/#9013 for details.

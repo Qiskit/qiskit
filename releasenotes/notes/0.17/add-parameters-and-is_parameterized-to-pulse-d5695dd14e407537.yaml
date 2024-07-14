@@ -11,7 +11,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit import Parameter
         from qiskit import pulse

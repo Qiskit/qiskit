@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now correctly
-    define the qubit parameters for :class:`.UnitaryGate` operations that do
-    not affect all the qubits they are defined over.
-    Fixed `#8224 <https://github.com/Qiskit/qiskit-terra/issues/8224>`__.

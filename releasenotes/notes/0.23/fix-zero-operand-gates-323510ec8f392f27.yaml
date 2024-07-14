@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Zero-operand gates and instructions will now work with
+    :func:`.circuit_to_gate`, :meth:`.QuantumCircuit.to_gate`,
+    :meth:`.Gate.control`, and the construction of an
+    :class:`~.quantum_info.Operator` from a :class:`.QuantumCircuit` containing
+    zero-operand instructions.  This edge case is occasionally useful in creating
+    global-phase gates as part of larger compound instructions, though for many
+    uses, :attr:`.QuantumCircuit.global_phase` may be more appropriate.

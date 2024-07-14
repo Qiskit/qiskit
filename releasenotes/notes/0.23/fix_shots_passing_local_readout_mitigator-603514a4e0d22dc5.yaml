@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.LocalReadoutMitigator.quasi_probabilities` method where 
+    the ``shots`` argument was not used. It is now used to set the number of shots
+    in the return object.

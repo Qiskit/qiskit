@@ -12,9 +12,7 @@
 
 """Internal utils for Classical Function Compiler"""
 
-from tweedledum.ir import Qubit
-from tweedledum.passes import parity_decomp
-
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
@@ -42,16 +40,19 @@ _QISKIT_OPS = {
 }
 
 
+@HAS_TWEEDLEDUM.require_in_call
 def _convert_tweedledum_operator(op):
     base_gate = _QISKIT_OPS.get(op.kind())
     if base_gate is None:
         if op.kind() == "py_operator":
             return op.py_op()
         else:
-            raise RuntimeError("Unrecognized operator: %s" % op.kind())
+            raise RuntimeError(f"Unrecognized operator: {op.kind()}")
 
     # TODO: need to deal with cbits too!
     if op.num_controls() > 0:
+        from tweedledum.ir import Qubit  # pylint: disable=import-error
+
         qubits = op.qubits()
         ctrl_state = ""
         for qubit in qubits[: op.num_controls()]:
@@ -60,6 +61,7 @@ def _convert_tweedledum_operator(op):
     return base_gate()
 
 
+@HAS_TWEEDLEDUM.require_in_call
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
     """Converts a `Tweedledum <https://github.com/boschmitt/tweedledum>`_
     circuit into a Qiskit circuit.
@@ -73,13 +75,14 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         QuantumCircuit: The Tweedledum circuit converted to a Qiskit circuit.
 
     Raises:
-        ClassicalFunctionCompilerError: If there a gate in the Tweedledum circuit has no Qiskit
-        equivalent.
+        ClassicalFunctionCompilerError: If a gate in the Tweedledum circuit has no Qiskit equivalent.
     """
     if qregs:
         qiskit_qc = QuantumCircuit(*qregs, name=name)
     else:
         qiskit_qc = QuantumCircuit(tweedledum_circuit.num_qubits(), name=name)
+
+    from tweedledum.passes import parity_decomp  # pylint: disable=import-error
 
     for instruction in parity_decomp(tweedledum_circuit):
         gate = _convert_tweedledum_operator(instruction)

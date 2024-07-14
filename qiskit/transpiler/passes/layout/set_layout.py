@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Set the ``layout`` property to the given layout."""
-
-
+from qiskit.transpiler import Layout
+from qiskit.transpiler.exceptions import InvalidLayoutError
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -27,13 +27,18 @@ class SetLayout(AnalysisPass):
         """SetLayout initializer.
 
         Args:
-            layout (Layout): the layout to set.
+            layout (Layout or List[int]): the layout to set. It can be:
+
+                * a :class:`Layout` instance: sets that layout.
+                * a list of integers: takes the index in the list as the physical position in which the
+                  virtual qubit is going to be mapped.
+
         """
         super().__init__()
         self.layout = layout
 
     def run(self, dag):
-        """Run the SetLayout pass on `dag`.
+        """Run the SetLayout pass on ``dag``.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -41,5 +46,24 @@ class SetLayout(AnalysisPass):
         Returns:
             DAGCircuit: the original DAG.
         """
-        self.property_set["layout"] = None if self.layout is None else self.layout.copy()
+        if isinstance(self.layout, list):
+            if len(self.layout) != len(dag.qubits):
+                raise InvalidLayoutError(
+                    "The length of the layout is different than the size of the "
+                    f"circuit: {len(self.layout)} <> {len(dag.qubits)}"
+                )
+            if len(set(self.layout)) != len(self.layout):
+                raise InvalidLayoutError(
+                    f"The provided layout {self.layout} contains duplicate qubits"
+                )
+            layout = Layout({phys: dag.qubits[i] for i, phys in enumerate(self.layout)})
+        elif isinstance(self.layout, Layout):
+            layout = self.layout.copy()
+        elif self.layout is None:
+            layout = None
+        else:
+            raise InvalidLayoutError(
+                f"SetLayout was initialized with the layout type: {type(self.layout)}"
+            )
+        self.property_set["layout"] = layout
         return dag

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,11 +15,10 @@ Test that the PulseBackendConfiguration methods work as expected with a mocked P
 import collections
 import copy
 
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeProvider
-
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeOpenPulse3Q, Fake27QPulseV1
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.providers import BackendConfigurationError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBackendConfiguration(QiskitTestCase):
@@ -27,22 +26,14 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = FakeProvider()
-        self.config = self.provider.get_backend("fake_openpulse_2q").configuration()
+        backend = FakeOpenPulse2Q()
+        self.config = backend.configuration()
 
     def test_simple_config(self):
         """Test the most basic getters."""
         self.assertEqual(self.config.dt, 1.3333 * 1.0e-9)
         self.assertEqual(self.config.dtm, 10.5 * 1.0e-9)
         self.assertEqual(self.config.basis_gates, ["u1", "u2", "u3", "cx", "id"])
-
-    def test_simple_config_qasm(self):
-        """Test the most basic getters for qasm."""
-        qasm_conf = self.provider.get_backend("fake_qasm_simulator").configuration()
-        self.assertEqual(qasm_conf.dt, 1.3333 * 1.0e-9)
-        self.assertEqual(qasm_conf.dtm, 10.5 * 1.0e-9)
-        self.assertEqual(qasm_conf.qubit_lo_range, [[4.95e9, 5.05e9] for _ in range(5)])
-        self.assertEqual(qasm_conf.meas_lo_range, [[6.65e9, 6.75e9] for _ in range(5)])
 
     def test_sample_rate(self):
         """Test that sample rate is 1/dt."""
@@ -69,7 +60,7 @@ class TestBackendConfiguration(QiskitTestCase):
             {k: var * 1e-9 for k, var in ref_vars.items()},
         )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
+        backend_3q = FakeOpenPulse3Q()
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
 
     def test_get_channels(self):
@@ -89,7 +80,7 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test to get all qubits operated on a given channel."""
         self.assertEqual(self.config.get_channel_qubits(channel=DriveChannel(0)), [0])
         self.assertEqual(self.config.get_channel_qubits(channel=ControlChannel(0)), [0, 1])
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
+        backend_3q = FakeOpenPulse3Q()
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1])
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0])
         with self.assertRaises(BackendConfigurationError):
@@ -116,7 +107,7 @@ class TestBackendConfiguration(QiskitTestCase):
                 ],
             )
         )
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
+        backend_3q = FakeOpenPulse3Q()
         self.assertTrue(
             self._test_lists_equal(
                 actual=backend_3q.configuration().get_qubit_channels(1),
@@ -187,7 +178,7 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_u_channel_lo_scale(self):
         """Ensure that u_channel_lo scale is a complex number"""
-        valencia_conf = self.provider.get_backend("fake_valencia").configuration()
+        valencia_conf = Fake27QPulseV1().configuration()
         self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))
 
     def test_processor_type(self):

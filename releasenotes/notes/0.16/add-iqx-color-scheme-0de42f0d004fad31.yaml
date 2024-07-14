@@ -16,7 +16,7 @@ features:
     ``QuantumCircuit.draw`` method or to the ``circuit_drawer`` function. The
     second way will override the setting in the settings.conf file. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit import QuantumCircuit
 
@@ -38,7 +38,7 @@ features:
     number of gate types, from one to the entire ``displaycolor`` dict. For
     example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit import QuantumCircuit
 
@@ -50,7 +50,7 @@ features:
 
     or
 
-    .. jupyter-execute::
+    .. code-block::
 
       style_dict = {'displaycolor': {'h': '#FA74A6'}}
       circuit.draw('mpl', style=style_dict)

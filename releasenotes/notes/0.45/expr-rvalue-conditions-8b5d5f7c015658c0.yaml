@@ -1,0 +1,83 @@
+---
+features:
+  - |
+    The fields :attr:`.IfElseOp.condition`, :attr:`.WhileLoopOp.condition` and
+    :attr:`.SwitchCaseOp.target` can now be instances of the new runtime classical-expression type
+    :class:`.expr.Expr`.  This is distinct from :class:`.ParameterExpression` because it is
+    evaluated *at runtime* for backends that support such operations.
+
+    These new expressions have significantly more power than the old two-tuple form of supplying
+    classical conditions.  For example, one can now represent equality constraints between two
+    different classical registers, or the logic "or" of two classical bits.  These two examples
+    would look like::
+
+      from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+      from qiskit.circuit.classical import expr
+
+      qr = QuantumRegister(4)
+      cr1 = ClassicalRegister(2)
+      cr2 = ClassicalRegister(2)
+      qc = QuantumCircuit(qr, cr1, cr2)
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.h(2)
+      qc.cx(2, 3)
+      qc.measure([0, 1, 2, 3], [0, 1, 2, 3])
+
+      # If the two registers are equal to each other.
+      with qc.if_test(expr.equal(cr1, cr2)):
+        qc.x(0)
+
+      # While either of two bits are set.
+      with qc.while_loop(expr.logic_or(cr1[0], cr1[1])):
+        qc.reset(0)
+        qc.reset(1)
+        qc.measure([0, 1], cr1)
+
+    For more examples, see the documentation for :mod:`qiskit.circuit.classical`.
+
+    This is a feature that hardware is only just beginning to support, so Qiskit's support is
+    starting conservatively, and you may well find rough edges in places where hardware doesn't
+    support expressions that look simple in Qiskit.  Please bear with us, and your hardware vendors!
+
+    In this initial release, Qiskit has added the operations:
+
+    * :func:`~.expr.bit_not`
+    * :func:`~.expr.logic_not`
+    * :func:`~.expr.bit_and`
+    * :func:`~.expr.bit_or`
+    * :func:`~.expr.bit_xor`
+    * :func:`~.expr.logic_and`
+    * :func:`~.expr.logic_or`
+    * :func:`~.expr.equal`
+    * :func:`~.expr.not_equal`
+    * :func:`~.expr.less`
+    * :func:`~.expr.less_equal`
+    * :func:`~.expr.greater`
+    * :func:`~.expr.greater_equal`
+
+    These can act on Python integer and Boolean literals, or on :class:`.ClassicalRegister`
+    and :class:`.Clbit` instances.
+
+    All these classical expressions are fully supported through the Qiskit transpiler stack, through
+    QPY serialization (:mod:`qiskit.qpy`) and for export to OpenQASM 3 (:mod:`qiskit.qasm3`). Import
+    from OpenQASM 3 is currently managed by `a separate package <https://github.com/Qiskit/qiskit-qasm3-import>`__
+    (which is re-exposed via :mod:`qiskit.qasm3`), which we hope will be extended to match the new
+    features in Qiskit.
+  - |
+    In addition to the new representations of classical runtime expressions, some tools for working
+    with these objects have also been added.  A general :class:`~.expr.ExprVisitor` is provided for
+    consumers of these expressions to subclass.  Two utilities based on this structure,
+    :func:`~.expr.iter_vars` and :func:`~.expr.structurally_equivalent`, are also provided, which
+    respectively produce an iterator through the :class:`~.expr.Var` nodes and check whether two
+    :class:`~.expr.Expr` instances are structurally the same, up to some mapping of the
+    :class:`~.expr.Var` nodes contained.
+  - |
+    For those who wish to convert all old-style conditions into new-style :class:`~.expr.Expr` nodes
+    immediately, the function :func:`~.expr.lift_legacy_condition` is provided, though these new
+    expression nodes are not permitted in old-style :attr:`.Instruction.condition` fields, which are
+    due to be replaced by more advanced classical handling such as :class:`.IfElseOp`.
+issues:
+  - |
+    Circuits containing classical expressions made with the :mod:`~.classical.expr` module are not
+    yet supported by the circuit visualizers.

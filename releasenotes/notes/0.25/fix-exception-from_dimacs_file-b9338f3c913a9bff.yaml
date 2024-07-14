@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.BooleanExpression.from_dimacs_file`
+    constructor method where the exception type raised when tweedledum wasn't
+    installed was not the expected :class:`~.MissingOptionalLibrary`.
+    Fixed `#10079 <https://github.com/Qiskit/qiskit-terra/issues/10079>`__

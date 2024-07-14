@@ -12,7 +12,7 @@
 
 """Parameter Vector Class to simplify management of parameter lists."""
 
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from .parameter import Parameter
 
@@ -20,23 +20,10 @@ from .parameter import Parameter
 class ParameterVectorElement(Parameter):
     """An element of a ParameterVector."""
 
-    def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
-        obj = object.__new__(cls)
+    ___slots__ = ("_vector", "_index")
 
-        if uuid is None:
-            obj._uuid = uuid4()
-        else:
-            obj._uuid = uuid
-
-        obj._hash = hash(obj._uuid)
-        return obj
-
-    def __getnewargs__(self):
-        return (self.vector, self.index, self._uuid)
-
-    def __init__(self, vector, index):
-        name = f"{vector.name}[{index}]"
-        super().__init__(name)
+    def __init__(self, vector, index, uuid=None):
+        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
         self._vector = vector
         self._index = index
 
@@ -51,30 +38,27 @@ class ParameterVectorElement(Parameter):
         return self._vector
 
     def __getstate__(self):
-        return {
-            "name": self._name,
-            "uuid": self._uuid,
-            "vector": self._vector,
-            "index": self._index,
-        }
+        return super().__getstate__() + (self._vector, self._index)
 
     def __setstate__(self, state):
-        self._name = state["name"]
-        self._uuid = state["uuid"]
-        self._vector = state["vector"]
-        self._index = state["index"]
-        super().__init__(self._name)
+        *super_state, vector, index = state
+        super().__setstate__(super_state)
+        self._vector = vector
+        self._index = index
 
 
 class ParameterVector:
     """ParameterVector class to quickly generate lists of parameters."""
 
+    __slots__ = ("_name", "_params", "_root_uuid")
+
     def __init__(self, name, length=0):
         self._name = name
-        self._params = []
-        self._size = length
-        for i in range(length):
-            self._params += [ParameterVectorElement(self, i)]
+        self._root_uuid = uuid4()
+        root_uuid_int = self._root_uuid.int
+        self._params = [
+            ParameterVectorElement(self, i, UUID(int=root_uuid_int + i)) for i in range(length)
+        ]
 
     @property
     def name(self):
@@ -91,34 +75,46 @@ class ParameterVector:
         return self._params.index(value)
 
     def __getitem__(self, key):
-        if isinstance(key, slice):
-            start, stop, step = key.indices(self._size)
-            return self.params[start:stop:step]
-
-        if key > self._size:
-            raise IndexError(f"Index out of range: {key} > {self._size}")
         return self.params[key]
 
     def __iter__(self):
-        return iter(self.params[: self._size])
+        return iter(self.params)
 
     def __len__(self):
-        return self._size
+        return len(self._params)
 
     def __str__(self):
-        return f"{self.name}, {[str(item) for item in self.params[: self._size]]}"
+        return f"{self.name}, {[str(item) for item in self.params]}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name}, length={len(self)})"
+        return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
 
     def resize(self, length):
-        """Resize the parameter vector.
+        """Resize the parameter vector.  If necessary, new elements are generated.
 
-        If necessary, new elements are generated. If length is smaller than before, the
-        previous elements are cached and not re-generated if the vector is enlarged again.
+        Note that the UUID of each :class:`.Parameter` element will be generated
+        deterministically given the root UUID of the ``ParameterVector`` and the index
+        of the element.  In particular, if a ``ParameterVector`` is resized to
+        be smaller and then later resized to be larger, the UUID of the later
+        generated element at a given index will be the same as the UUID of the
+        previous element at that index.
         This is to ensure that the parameter instances do not change.
+
+        >>> from qiskit.circuit import ParameterVector
+        >>> pv = ParameterVector("theta", 20)
+        >>> elt_19 = pv[19]
+        >>> rv.resize(10)
+        >>> rv.resize(20)
+        >>> pv[19] == elt_19
+        True
         """
         if length > len(self._params):
-            for i in range(len(self._params), length):
-                self._params += [ParameterVectorElement(self, i)]
-        self._size = length
+            root_uuid_int = self._root_uuid.int
+            self._params.extend(
+                [
+                    ParameterVectorElement(self, i, UUID(int=root_uuid_int + i))
+                    for i in range(len(self._params), length)
+                ]
+            )
+        else:
+            del self._params[length:]

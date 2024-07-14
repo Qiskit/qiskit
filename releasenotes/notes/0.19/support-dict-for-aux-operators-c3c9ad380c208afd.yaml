@@ -1,9 +1,11 @@
 ---
 features:
   - |
-    The :obj:`.Eigensolver` and :obj:`.MinimumEigensolver` interfaces now support the type
+    The :obj:`~qiskit.algorithms.eigen_solvers.Eigensolver` and
+    :obj:`~qiskit.algorithms.minimimum_eigen_solvers.MinimumEigensolver` interfaces now support the type
     ``Dict[str, Optional[OperatorBase]]`` for the ``aux_operators`` parameter in their respective
-    :meth:`~.Eigensolver.compute_eigenvalues` and :meth:`~.MinimumEigensolver.compute_minimum_eigenvalue` methods.
+    :meth:`~qiskit.algorithms.eigen_solvers.Eigensolver.compute_eigenvalues` and
+    :meth:`~qiskit.algorithms.minimimum_eigen_solvers.MinimumEigensolver.compute_minimum_eigenvalue` methods.
     In this case, the auxiliary eigenvalues are also stored in a dictionary under the same keys
     provided by the ``aux_operators`` dictionary. Keys that correspond to an operator that does not commute
     with the main operator are dropped.

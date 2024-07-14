@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,34 +14,53 @@
 
 """Tests for Pauli operator class."""
 
-import unittest
 import itertools as it
+import re
+import unittest
 from functools import lru_cache
+from test import QiskitTestCase, combine
 
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 
 from qiskit import QuantumCircuit
-from qiskit.exceptions import QiskitError
+from qiskit.circuit import Qubit
 from qiskit.circuit.library import (
+    CXGate,
+    CYGate,
+    CZGate,
+    ECRGate,
+    EfficientSU2,
+    HGate,
     IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
     XGate,
     YGate,
     ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CZGate,
-    CYGate,
-    SwapGate,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.test import QiskitTestCase
-
+from qiskit.compiler.transpiler import transpile
+from qiskit.exceptions import QiskitError
+from qiskit.primitives import BackendEstimator
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.quantum_info.operators import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.operators import Pauli, Operator
-from qiskit.quantum_info.operators.symplectic.pauli import _split_pauli_label, _phase_from_label
+from qiskit.utils import optionals
+
+LABEL_REGEX = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
+PHASE_MAP = {"": 0, "-i": 1, "-": 2, "i": 3}
+
+
+def _split_pauli_label(label):
+    match_ = LABEL_REGEX.fullmatch(label)
+    return match_["pauli"], match_["coeff"]
+
+
+def _phase_from_label(label):
+    coeff = LABEL_REGEX.fullmatch(label)["coeff"] or ""
+    return PHASE_MAP[coeff.replace("+", "").replace("1", "").replace("j", "i")]
 
 
 @lru_cache(maxsize=8)
@@ -210,6 +229,8 @@ class TestPauliProperties(QiskitTestCase):
     def test_delete(self):
         """Test delete method"""
         pauli = Pauli("IXYZ")
+        pauli = pauli.delete([])
+        self.assertEqual(str(pauli), "IXYZ")
         pauli = pauli.delete([0, 2])
         self.assertEqual(str(pauli), "IY")
 
@@ -389,7 +410,11 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
-    @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()), pauli_group_labels(2, False)))
+    @data(
+        *it.product(
+            (CXGate(), CYGate(), CZGate(), SwapGate(), ECRGate()), pauli_group_labels(2, False)
+        )
+    )
     @unpack
     def test_evolve_clifford2(self, gate, label):
         """Test evolve method for 2-qubit Clifford gates."""
@@ -403,6 +428,35 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
+
+    @data(
+        *it.product(
+            (
+                IGate(),
+                XGate(),
+                YGate(),
+                ZGate(),
+                HGate(),
+                SGate(),
+                SdgGate(),
+                CXGate(),
+                CYGate(),
+                CZGate(),
+                SwapGate(),
+                ECRGate(),
+            ),
+            [int, np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
+        )
+    )
+    @unpack
+    def test_phase_dtype_evolve_clifford(self, gate, dtype):
+        """Test phase dtype for evolve method for Clifford gates."""
+        z = np.ones(gate.num_qubits, dtype=bool)
+        x = np.ones(gate.num_qubits, dtype=bool)
+        phase = (np.sum(z & x) % 4).astype(dtype)
+        paulis = Pauli((z, x, phase))
+        evo = paulis.evolve(gate)
+        self.assertEqual(evo.phase.dtype, dtype)
 
     def test_evolve_clifford_qargs(self):
         """Test evolve method for random Clifford"""
@@ -419,6 +473,13 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
+    @data("s", "h")
+    def test_evolve_with_misleading_name(self, frame):
+        """Test evolve by circuit contents, not by name (fixed bug)."""
+        circ = QuantumCircuit(2, name="cx")
+        p = Pauli("IX")
+        self.assertEqual(p, p.evolve(circ, frame=frame))
+
     def test_barrier_delay_sim(self):
         """Test barrier and delay instructions can be simulated"""
         target_circ = QuantumCircuit(2)
@@ -433,6 +494,135 @@ class TestPauli(QiskitTestCase):
         circ.y(1)
         value = Pauli(circ)
         self.assertEqual(value, target)
+
+    @data(("", 0), ("-", 2), ("i", 3), ("-1j", 1))
+    @unpack
+    def test_zero_qubit_pauli_construction(self, label, phase):
+        """Test that Paulis of zero qubits can be constructed."""
+        expected = Pauli(label + "X")[0:0]  # Empty slice from a 1q Pauli, which becomes phaseless
+        expected.phase = phase
+        test = Pauli(label)
+        self.assertEqual(expected, test)
+
+    def test_circuit_with_bit(self):
+        """Test new-style Bit support when converting from QuantumCircuit"""
+        circ = QuantumCircuit([Qubit()])
+        circ.x(0)
+        value = Pauli(circ)
+        target = Pauli("X")
+
+        self.assertEqual(value, target)
+
+    def test_apply_layout_with_transpile(self):
+        """Test the apply_layout method with a transpiler layout."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("IZZZ")
+        backend = GenericBackendV2(num_qubits=7)
+        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        identity_op = Pauli("I" * 7)
+        initial_layout = transpiled_psi.layout.initial_index_layout(filter_ancillas=True)
+        final_layout = transpiled_psi.layout.routing_permutation()
+        qargs = [final_layout[x] for x in initial_layout]
+        expected_op = identity_op.compose(op, qargs=qargs)
+        self.assertNotEqual(op, permuted_op)
+        self.assertEqual(permuted_op, expected_op)
+
+    def test_apply_layout_consistency(self):
+        """Test that the Pauli apply_layout() is consistent with the SparsePauliOp apply_layout()."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("IZZZ")
+        sparse_op = SparsePauliOp(op)
+        backend = GenericBackendV2(num_qubits=7)
+        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        permuted_sparse_op = sparse_op.apply_layout(transpiled_psi.layout)
+        self.assertEqual(SparsePauliOp(permuted_op), permuted_sparse_op)
+
+    def test_permute_pauli_estimator_example(self):
+        """Test using the apply_layout method with an estimator workflow."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("XXXI")
+        backend = GenericBackendV2(num_qubits=7, seed=0)
+        backend.set_options(seed_simulator=123)
+        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        thetas = list(range(len(psi.parameters)))
+        transpiled_psi = transpile(psi, backend, optimization_level=3)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        job = estimator.run(transpiled_psi, permuted_op, thetas)
+        res = job.result().values
+        if optionals.HAS_AER:
+            np.testing.assert_allclose(res, [0.20898438], rtol=0.5, atol=0.2)
+        else:
+            np.testing.assert_allclose(res, [0.15820312], rtol=0.5, atol=0.2)
+
+    def test_apply_layout_invalid_qubits_list(self):
+        """Test that apply_layout with an invalid qubit count raises."""
+        op = Pauli("YI")
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 1], 1)
+
+    def test_apply_layout_invalid_layout_list(self):
+        """Test that apply_layout with an invalid layout list raises."""
+        op = Pauli("YI")
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 3], 2)
+
+    def test_apply_layout_invalid_layout_list_no_num_qubits(self):
+        """Test that apply_layout with an invalid layout list raises."""
+        op = Pauli("YI")
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 2])
+
+    def test_apply_layout_layout_list_no_num_qubits(self):
+        """Test apply_layout with a layout list and no qubit count"""
+        op = Pauli("YI")
+        res = op.apply_layout([1, 0])
+        self.assertEqual(Pauli("IY"), res)
+
+    def test_apply_layout_layout_list_and_num_qubits(self):
+        """Test apply_layout with a layout list and qubit count"""
+        op = Pauli("YI")
+        res = op.apply_layout([4, 0], 5)
+        self.assertEqual(Pauli("IIIIY"), res)
+
+    def test_apply_layout_null_layout_no_num_qubits(self):
+        """Test apply_layout with a null layout"""
+        op = Pauli("IZ")
+        res = op.apply_layout(layout=None)
+        self.assertEqual(op, res)
+
+    def test_apply_layout_null_layout_and_num_qubits(self):
+        """Test apply_layout with a null layout a num_qubits provided"""
+        op = Pauli("IZ")
+        res = op.apply_layout(layout=None, num_qubits=5)
+        # this should expand the operator
+        self.assertEqual(Pauli("IIIIZ"), res)
+
+    def test_apply_layout_null_layout_invalid_num_qubits(self):
+        """Test apply_layout with a null layout and num_qubits smaller than capable"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=None, num_qubits=1)
+
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
+    @combine(phase=["", "-i", "-", "i"], layout=[None, []])
+    def test_apply_layout_zero_qubit(self, phase, layout):
+        """Test apply_layout with a zero-qubit operator"""
+        op = Pauli(phase)
+        res = op.apply_layout(layout=layout, num_qubits=5)
+        self.assertEqual(Pauli(phase + "IIIII"), res)
 
 
 if __name__ == "__main__":

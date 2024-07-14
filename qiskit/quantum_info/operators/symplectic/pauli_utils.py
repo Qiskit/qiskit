@@ -13,11 +13,13 @@
 PauliList utility functions.
 """
 
+from __future__ import annotations
+
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
 
-def pauli_basis(num_qubits, weight=False):
-    """Return the ordered PauliTable or PauliList for the n-qubit Pauli basis.
+def pauli_basis(num_qubits: int, weight: bool = False) -> PauliList:
+    """Return the ordered PauliList for the n-qubit Pauli basis.
 
     Args:
         num_qubits (int): number of qubits
@@ -25,7 +27,7 @@ def pauli_basis(num_qubits, weight=False):
                        rather than lexicographic order (Default: False)
 
     Returns:
-        PauliTable, PauliList: the Paulis for the basis
+        PauliList: the Paulis for the basis
     """
     pauli_1q = PauliList(["I", "X", "Y", "Z"])
     if num_qubits == 1:

@@ -7,7 +7,7 @@ features:
     will sort the x axis based on the maximum probability for each bitstring.
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.visualization import plot_histogram
 

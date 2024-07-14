@@ -14,45 +14,21 @@
 Qubit reset to computational zero.
 """
 
-import warnings
-
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 
 
-class Reset(Instruction):
-    """Qubit reset."""
+class Reset(SingletonInstruction):
+    r"""Incoherently reset a qubit to the :math:`\lvert0\rangle` state."""
 
-    def __init__(self):
-        """Create new reset instruction."""
-        super().__init__("reset", 1, 0, [])
+    def __init__(self, label=None, *, duration=None, unit="dt"):
+        """
+        Args:
+            label: optional string label of this instruction.
+        """
+        super().__init__("reset", 1, 0, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def broadcast_arguments(self, qargs, cargs):
         for qarg in qargs[0]:
             yield [qarg], []
-
-
-def reset(circuit, qubit):
-    """Reset a quantum bit on a circuit.
-
-    .. deprecated:: Qiskit Terra 0.19
-        Use :meth:`.QuantumCircuit.reset` instead, either by calling ``circuit.reset(qubit)``, or if
-        a full function is required, then ``QuantumCircuit.reset(circuit, qubit)``.
-
-    Args:
-        circuit (QuantumCircuit): the quantum circuit to attach the reset operation to.
-        qubit (Union[Qubit, int]): the quantum bit to reset
-
-    Returns:
-        .InstructionSet: a handle to the created instruction.
-
-    Raises:
-        CircuitError: if the qubit is not in the circuit, or is in a bad format.
-    """
-    warnings.warn(
-        "The loose 'reset' function is deprecated as of Qiskit Terra 0.19, and will be removed"
-        " in a future release.  Instead, you should call 'circuit.reset(qubit)', or if you"
-        " need a function, you can do `QuantumCircuit.reset(circuit, qubit)'.",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    return circuit.reset(qubit)

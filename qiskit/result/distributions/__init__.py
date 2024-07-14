@@ -13,3 +13,5 @@
 """
 Distributions
 """
+from .probability import ProbDistribution
+from .quasi import QuasiDistribution

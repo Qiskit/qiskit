@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Powering gates using ``**`` is now supported.
+    Example: ``sqrt_x = XGate() ** 0.5``

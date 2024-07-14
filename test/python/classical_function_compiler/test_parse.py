@@ -11,14 +11,21 @@
 # that they have been altered from the originals.
 
 """Tests the classicalfunction parser."""
-from qiskit.circuit.classicalfunction import ClassicalFunctionParseError
-from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 
-from qiskit.test import QiskitTestCase
-from . import bad_examples as examples
+import unittest
+
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+if HAS_TWEEDLEDUM:
+    from . import bad_examples as examples
+    from qiskit.circuit.classicalfunction import ClassicalFunctionParseError
+    from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestParseFail(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests bad_examples with the classicalfunction parser."""
 
     def assertExceptionMessage(self, context, message):

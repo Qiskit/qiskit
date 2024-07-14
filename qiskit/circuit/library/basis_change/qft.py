@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum Fourier Transform Circuit."""
+"""Define a Quantum Fourier Transform circuit (QFT) and a native gate (QFTGate)."""
 
-from typing import Optional
+from __future__ import annotations
 import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, CircuitInstruction
-
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, CircuitInstruction, Gate
 from ..blueprintcircuit import BlueprintCircuit
 
 
@@ -38,24 +37,22 @@ class QFT(BlueprintCircuit):
 
     For 4 qubits, the circuit that implements this transformation is:
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QFT
-        import qiskit.tools.jupyter
-        circuit = QFT(4)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import QFT
+       from qiskit.visualization.library import _generate_circuit_library_visualization
+       circuit = QFT(4)
+       _generate_circuit_library_visualization(circuit)
 
     The inverse QFT can be obtained by calling the ``inverse`` method on this class.
     The respective circuit diagram is:
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QFT
-        import qiskit.tools.jupyter
-        circuit = QFT(4).inverse()
-        %circuit_library_info circuit
+       from qiskit.circuit.library import QFT
+       from qiskit.visualization.library import _generate_circuit_library_visualization
+       circuit = QFT(4).inverse()
+       _generate_circuit_library_visualization(circuit)
 
     One method to reduce circuit depth is to implement the QFT approximately by ignoring
     controlled-phase rotations where the angle is beneath a threshold. This is discussed
@@ -66,24 +63,23 @@ class QFT(BlueprintCircuit):
     ``approximation_degree`` rotation angles are dropped from the QFT. For instance, a QFT
     on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QFT
-        import qiskit.tools.jupyter
-        circuit = QFT(5, approximation_degree=2)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import QFT
+       from qiskit.visualization.library import _generate_circuit_library_visualization
+       circuit = QFT(5, approximation_degree=2)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
+        num_qubits: int | None = None,
         approximation_degree: int = 0,
         do_swaps: bool = True,
         inverse: bool = False,
         insert_barriers: bool = False,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> None:
         """Construct a new QFT circuit.
 
@@ -206,8 +202,14 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def inverse(self) -> "QFT":
+    def inverse(self, annotated: bool = False) -> "QFT":
         """Invert this circuit.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate. The value of this argument is ignored as the
+                inverse of a QFT is an IQFT which is just another instance of
+                :class:`.QFT`.
 
         Returns:
             The inverted circuit.
@@ -290,3 +292,38 @@ class QFT(BlueprintCircuit):
 
         wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
         self.compose(wrapped, qubits=self.qubits, inplace=True)
+
+
+class QFTGate(Gate):
+    r"""Quantum Fourier Transform Gate.
+
+    The Quantum Fourier Transform (QFT) on :math:`n` qubits is the operation
+
+    .. math::
+
+        |j\rangle \mapsto \frac{1}{2^{n/2}} \sum_{k=0}^{2^n - 1} e^{2\pi ijk / 2^n} |k\rangle
+
+    """
+
+    def __init__(
+        self,
+        num_qubits: int,
+    ):
+        """
+        Args:
+            num_qubits: The number of qubits on which the QFT acts.
+        """
+        super().__init__(name="qft", num_qubits=num_qubits, params=[])
+
+    def __array__(self, dtype=complex):
+        """Return a numpy array for the QFTGate."""
+        n = self.num_qubits
+        nums = np.arange(2**n)
+        outer = np.outer(nums, nums)
+        return np.exp(2j * np.pi * outer * (0.5**n), dtype=dtype) * (0.5 ** (n / 2))
+
+    def _define(self):
+        """Provide a specific decomposition of the QFTGate into a quantum circuit."""
+        from qiskit.synthesis.qft import synth_qft_full
+
+        self.definition = synth_qft_full(num_qubits=self.num_qubits)

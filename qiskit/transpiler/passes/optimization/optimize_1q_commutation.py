@@ -16,9 +16,9 @@ from copy import copy
 import logging
 from collections import deque
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate
-from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
@@ -46,10 +46,10 @@ NOTE: These rules are _symmetric_, so that they may be applied in reverse.
 
 class Optimize1qGatesSimpleCommutation(TransformationPass):
     """
-    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and re-
-    synthesizing the results.  The commutation rules are stored in `commutation_table`.
+    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and
+    resynthesizing the results.  The commutation rules are stored in ``commutation_table``.
 
-    NOTE: In addition to those mentioned in `commutation_table`, this pass has some limitations:
+    NOTE: In addition to those mentioned in ``commutation_table``, this pass has some limitations:
           + Does not handle multiple commutations in a row without intermediate progress.
           + Can only commute into positions where there are pre-existing runs.
           + Does not exhaustively test all the different ways commuting gates can be assigned to
@@ -58,21 +58,23 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             barriers.)
     """
 
-    # NOTE: A run from `dag.collect_1q_runs` is always nonempty, so we sometimes use an empty list
+    # NOTE: A run from dag.collect_1q_runs is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
-    def __init__(self, basis=None, run_to_completion=False):
+    def __init__(self, basis=None, run_to_completion=False, target=None):
         """
         Args:
             basis (List[str]): See also `Optimize1qGatesDecomposition`.
             run_to_completion (bool): If `True`, this pass retries until it is unable to do any more
                 work.  If `False`, it finds and performs one optimization, and for full optimization
                 the user is obligated to re-call the pass until the output stabilizes.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis`` and this are specified then this argument will take
+                precedence and ``basis`` will be ignored.
         """
         super().__init__()
 
-        self._basis = basis
-        self._optimize1q = Optimize1qGatesDecomposition(basis)
+        self._optimize1q = Optimize1qGatesDecomposition(basis=basis, target=target)
         self._run_to_completion = run_to_completion
 
     @staticmethod
@@ -81,7 +83,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         Finds the run which abuts `run` from the front (or the rear if `front == False`), separated
         by a blocking node.
 
-        Returns a pair of the abutting multi-qubit gate and the run which it separates from this
+        Returns a pair of the abutting multiqubit gate and the run which it separates from this
         one. The next run can be the empty list `[]` if it is absent.
         """
         edge_node = run[0] if front else run[-1]
@@ -130,9 +132,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             if (
                 preindex is not None
                 and isinstance(blocker, DAGOpNode)
-                and type(blocker.op) in commutation_table
+                and blocker.op.base_class in commutation_table
             ):
-                commutation_rule = commutation_table[type(blocker.op)][preindex]
+                commutation_rule = commutation_table[blocker.op.base_class][preindex]
 
         if commutation_rule is not None:
             while run_clone:
@@ -150,25 +152,30 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         else:
             return list(run_clone), list(commuted)
 
-    def _resynthesize(self, new_run):
+    def _resynthesize(self, run, qubit):
         """
-        Synthesizes an efficient circuit from a sequence `new_run` of `DAGOpNode`s.
+        Synthesizes an efficient circuit from a sequence `run` of `DAGOpNode`s.
 
         NOTE: Returns None when resynthesis is not possible.
         """
-        if len(new_run) == 0:
-            return (), QuantumCircuit(1)
-
-        return self._optimize1q._resynthesize_run(new_run)
+        if len(run) == 0:
+            dag = DAGCircuit()
+            dag.add_qreg(QuantumRegister(1))
+            return dag
+        operator = run[0].op.to_matrix()
+        for gate in run[1:]:
+            operator = gate.op.to_matrix().dot(operator)
+        return self._optimize1q._gate_sequence_to_dag(
+            self._optimize1q._resynthesize_run(operator, qubit)
+        )
 
     @staticmethod
-    def _replace_subdag(dag, old_run, new_circ):
+    def _replace_subdag(dag, old_run, new_dag):
         """
         Replaces a nonempty sequence `old_run` of `DAGNode`s, assumed to be a complete chain in
         `dag`, with the circuit `new_circ`.
         """
 
-        new_dag = circuit_to_dag(new_circ)
         node_map = dag.substitute_node_with_dag(old_run[0], new_dag)
 
         for node in old_run[1:]:
@@ -210,24 +217,18 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            new_preceding_basis, new_preceding_run = self._resynthesize(
-                preceding_run + commuted_preceding
-            )
-            new_succeeding_basis, new_succeeding_run = self._resynthesize(
-                commuted_succeeding + succeeding_run
-            )
-            new_basis, new_run = self._resynthesize(run_clone)
+            qubit = dag.find_bit(run[0].qargs[0]).index
+            new_preceding_run = self._resynthesize(preceding_run + commuted_preceding, qubit)
+            new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run, qubit)
+            new_run = self._resynthesize(run_clone, qubit)
 
             # perform the replacement if it was indeed a good idea
             if self._optimize1q._substitution_checks(
                 dag,
                 (preceding_run or []) + run + (succeeding_run or []),
-                (
-                    (new_preceding_run or QuantumCircuit(1)).data
-                    + (new_run or QuantumCircuit(1)).data
-                    + (new_succeeding_run or QuantumCircuit(1)).data
-                ),
-                new_basis + new_preceding_basis + new_succeeding_basis,
+                new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
+                self._optimize1q._basis_gates,
+                dag.find_bit(run[0].qargs[0]).index,
             ):
                 if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)

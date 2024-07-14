@@ -1,0 +1,21 @@
+---
+upgrade:
+  - |
+    The :class:`.QuantumCircuit` methods ``u1``, ``u2``, ``u3``, and their
+    controlled variants ``cu1``, ``cu3`` and ``mcu1`` have been removed following
+    their deprecation in Qiskit Terra 0.16.0.  This was to remove gate names
+    that were usually IBM-specific, in favour of the more general methods :meth:`~.QuantumCircuit.p`,
+    :meth:`~.QuantumCircuit.u`, :meth:`~.QuantumCircuit.cp` and :meth:`~.QuantumCircuit.cu`.
+    The gate classes :class:`.U1Gate`, :class:`.U2Gate` and :class:`.U3Gate`
+    are still available for use with :meth:`.QuantumCircuit.append`, so backends
+    can still support bases with these gates explicitly given.
+  - |
+    The :class:`.QuantumCircuit` methods ``combine`` and ``extend`` have been
+    removed following their deprecation in Qiskit Terra 0.17.0.  This was done
+    because these functions were simply less powerful versions of
+    :meth:`.QuantumCircuit.compose`, which should be used instead.
+
+    The removal of ``extend`` also means that the ``+`` and ``+=`` operators are
+    no longer defined for :class:`.QuantumCircuit`.  Instead, you can use the
+    ``&`` and ``&=`` operators respectively, which use
+    :meth:`.QuantumCircuit.compose`.

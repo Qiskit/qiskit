@@ -17,9 +17,9 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import barrier, chart, frame, snapshot, waveform
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
@@ -83,7 +83,7 @@ class TestWaveformGenerators(QiskitTestCase):
 
     def test_parse_waveform(self):
         """Test helper function that parse waveform with Waveform instance."""
-        test_pulse = pulse.library.gaussian(10, 0.1, 3)
+        test_pulse = pulse.library.Gaussian(10, 0.1, 3).get_waveform()
 
         inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
         inst_data = create_instruction(inst, 0, 0, 10, 0.1)
@@ -376,6 +376,7 @@ class TestWaveformGenerators(QiskitTestCase):
             "t0 (sec)": 0.5,
             "waveform shape": "Gaussian",
             "amp": "amp",
+            "angle": 0,
             "sigma": 3,
             "phase": np.pi / 2,
             "frequency": 5e9,

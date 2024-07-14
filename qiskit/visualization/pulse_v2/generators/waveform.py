@@ -37,21 +37,23 @@ Arbitrary generator function satisfying the above format can be accepted.
 Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
 """
+
+from __future__ import annotations
 import re
 from fractions import Fraction
-from typing import Dict, Any, List, Union
+from typing import Any
 
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import instructions
+from qiskit.pulse import instructions, library
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_filled_waveform_stepwise(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
+) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
     The curve of envelope is not interpolated nor smoothed and presented
@@ -105,10 +107,11 @@ def gen_filled_waveform_stepwise(
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
-        if hasattr(data.inst.pulse, "pulse_type"):
-            pulse_shape = data.inst.pulse.pulse_type
+        pulse_data = data.inst.pulse
+        if isinstance(pulse_data, library.SymbolicPulse):
+            pulse_shape = pulse_data.pulse_type
         else:
-            pulse_shape = data.inst.pulse.__class__.__name__
+            pulse_shape = "Waveform"
 
         return _draw_opaque_waveform(
             init_time=data.t0,
@@ -125,8 +128,8 @@ def gen_filled_waveform_stepwise(
 
 
 def gen_ibmq_latex_waveform_name(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+    data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
+) -> list[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
     Channel name and ID string are removed and the rotation angle is expressed in units of pi.
@@ -174,7 +177,14 @@ def gen_ibmq_latex_waveform_name(
         systematic_name = data.inst.name or "Delay"
         latex_name = None
     else:
-        systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
+        pulse_data = data.inst.pulse
+        if pulse_data.name:
+            systematic_name = pulse_data.name
+        else:
+            if isinstance(pulse_data, library.SymbolicPulse):
+                systematic_name = pulse_data.pulse_type
+            else:
+                systematic_name = "Waveform"
 
         template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
@@ -193,11 +203,10 @@ def gen_ibmq_latex_waveform_name(
                 if frac.numerator == 1:
                     angle = rf"\pi/{frac.denominator:d}"
                 else:
-                    angle = r"{num:d}/{denom:d} \pi".format(
-                        num=frac.numerator, denom=frac.denominator
-                    )
+                    angle = rf"{frac.numerator:d}/{frac.denominator:d} \pi"
             else:
                 # single qubit pulse
+                # pylint: disable-next=consider-using-f-string
                 op_name = r"{{\rm {}}}".format(match_dict["op"])
                 angle_val = match_dict["angle"]
                 if angle_val is None:
@@ -207,9 +216,7 @@ def gen_ibmq_latex_waveform_name(
                     if frac.numerator == 1:
                         angle = rf"\pi/{frac.denominator:d}"
                     else:
-                        angle = r"{num:d}/{denom:d} \pi".format(
-                            num=frac.numerator, denom=frac.denominator
-                        )
+                        angle = rf"{frac.numerator:d}/{frac.denominator:d} \pi"
             latex_name = rf"{op_name}({sign}{angle})"
         else:
             latex_name = None
@@ -229,8 +236,8 @@ def gen_ibmq_latex_waveform_name(
 
 
 def gen_waveform_max_value(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+    data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
+) -> list[drawings.TextData]:
     """Generate the annotation for the maximum waveform height for
     the real and the imaginary part of the waveform envelope.
 
@@ -261,7 +268,7 @@ def gen_waveform_max_value(
     if isinstance(data.inst, instructions.Play):
         # pulse
         operand = data.inst.pulse
-        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
+        if isinstance(operand, pulse.SymbolicPulse):
             pulse_data = operand.get_waveform()
         else:
             pulse_data = operand
@@ -326,10 +333,10 @@ def gen_waveform_max_value(
 def _draw_shaped_waveform(
     xdata: np.ndarray,
     ydata: np.ndarray,
-    meta: Dict[str, Any],
+    meta: dict[str, Any],
     channel: pulse.channels.PulseChannel,
-    formatter: Dict[str, Any],
-) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    formatter: dict[str, Any],
+) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
@@ -345,16 +352,16 @@ def _draw_shaped_waveform(
     Raises:
         VisualizationError: When the waveform color for channel is not defined.
     """
-    fill_objs = []
+    fill_objs: list[drawings.LineData | drawings.BoxData | drawings.TextData] = []
 
     resolution = formatter["general.vertical_resolution"]
 
     # stepwise interpolation
-    xdata = np.concatenate((xdata, [xdata[-1] + 1]))
+    xdata: np.ndarray = np.concatenate((xdata, [xdata[-1] + 1]))
     ydata = np.repeat(ydata, 2)
     re_y = np.real(ydata)
     im_y = np.imag(ydata)
-    time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
+    time: np.ndarray = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
 
     # setup style options
     style = {
@@ -430,11 +437,11 @@ def _draw_opaque_waveform(
     init_time: int,
     duration: int,
     pulse_shape: str,
-    pnames: List[str],
-    meta: Dict[str, Any],
+    pnames: list[str],
+    meta: dict[str, Any],
     channel: pulse.channels.PulseChannel,
-    formatter: Dict[str, Any],
-) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    formatter: dict[str, Any],
+) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
@@ -449,7 +456,7 @@ def _draw_opaque_waveform(
     Returns:
         List of drawings.
     """
-    fill_objs = []
+    fill_objs: list[drawings.LineData | drawings.BoxData | drawings.TextData] = []
 
     fc, ec = formatter["color.opaque_shape"]
     # setup style options
@@ -480,7 +487,7 @@ def _draw_opaque_waveform(
     fill_objs.append(box_obj)
 
     # parameter name
-    func_repr = "{func}({params})".format(func=pulse_shape, params=", ".join(pnames))
+    func_repr = f"{pulse_shape}({', '.join(pnames)})"
 
     text_style = {
         "zorder": formatter["layer.annotate"],
@@ -534,7 +541,7 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
 
 def _parse_waveform(
     data: types.PulseInstruction,
-) -> Union[types.ParsedInstruction, types.OpaqueShape]:
+) -> types.ParsedInstruction | types.OpaqueShape:
     """A helper function that generates an array for the waveform with
     instruction metadata.
 
@@ -549,22 +556,22 @@ def _parse_waveform(
     """
     inst = data.inst
 
-    meta = {}
+    meta: dict[str, Any] = {}
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
-        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
+        if isinstance(operand, pulse.SymbolicPulse):
             # parametric pulse
             params = operand.parameters
             duration = params.pop("duration", None)
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            if hasattr(operand, "pulse_type"):
-                # Symbolic pulse
-                meta["waveform shape"] = operand.pulse_type
+            if isinstance(operand, library.SymbolicPulse):
+                pulse_shape = operand.pulse_type
             else:
-                meta["waveform"] = operand.__class__.__name__
+                pulse_shape = "Waveform"
+            meta["waveform shape"] = pulse_shape
 
             meta.update(
                 {
@@ -620,8 +627,7 @@ def _parse_waveform(
         meta.update(acq_data)
     else:
         raise VisualizationError(
-            "Unsupported instruction {inst} by "
-            "filled envelope.".format(inst=inst.__class__.__name__)
+            f"Unsupported instruction {inst.__class__.__name__} by " "filled envelope."
         )
 
     meta.update(

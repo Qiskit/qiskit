@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :meth:`.QuantumCircuit.append` will now correctly raise an error if given an incorrect number of
+    classical bits to apply to an operation.  Fix `#9385 <https://github.com/Qiskit/qiskit-terra/issues/9385>`__.

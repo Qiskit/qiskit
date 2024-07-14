@@ -34,7 +34,7 @@ from qiskit.qobj import (
     converters,
     QobjHeader,
 )
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 
 
 PulseLibrary = Dict[str, List[complex]]
@@ -105,7 +105,7 @@ def _assemble_circuit(
     if calibrations:
         config.calibrations = calibrations
 
-    # Convert conditionals from QASM-style (creg ?= int) to qobj-style
+    # Convert conditionals from OpenQASM-2-style (creg ?= int) to qobj-style
     # (register_bit ?= 1), by assuming device has unlimited register slots
     # (supported only for simulators). Map all measures to a register matching
     # their clbit_index, create a new register slot for every conditional gate
@@ -153,9 +153,9 @@ def _assemble_circuit(
             conditional_reg_idx = memory_slots + max_conditional_idx
             conversion_bfunc = QasmQobjInstruction(
                 name="bfunc",
-                mask="0x%X" % mask,
+                mask="0x%X" % mask,  # pylint: disable=consider-using-f-string
                 relation="==",
-                val="0x%X" % val,
+                val="0x%X" % val,  # pylint: disable=consider-using-f-string
                 register=conditional_reg_idx,
             )
             instructions.append(conversion_bfunc)
@@ -213,7 +213,7 @@ def _extract_common_calibrations(
     and delete them from their local experiments.
 
     Args:
-        experiments: The list of Qasm experiments that are being assembled into one qobj
+        experiments: The list of OpenQASM experiments that are being assembled into one qobj
 
     Returns:
         The input experiments with modified calibrations, and common calibrations, if there
@@ -312,6 +312,26 @@ def assemble_circuits(
 
     Returns:
         The qobj to be run on the backends
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.assembler import assemble_circuits
+            from qiskit.assembler.run_config import RunConfig
+            # Build a circuit to convert into a Qobj
+            q = QuantumRegister(2)
+            c = ClassicalRegister(2)
+            qc = QuantumCircuit(q, c)
+            qc.h(q[0])
+            qc.cx(q[0], q[1])
+            qc.measure(q, c)
+            # Assemble a Qobj from the input circuit
+            qobj = assemble_circuits(circuits=[qc],
+                                     qobj_id="custom-id",
+                                     qobj_header=[],
+                                     run_config=RunConfig(shots=2000, memory=True, init_qubits=True))
     """
     # assemble the circuit experiments
     experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])

@@ -1,0 +1,59 @@
+---
+prelude: |
+  The Qiskit Terra 0.22.0 release is a major feature release that includes
+  a myriad of new feature and bugfixes. The highlights for this release are:
+
+    * Adding initial support to the transpiler for transpiling
+      :class:`~.QuantumCircuit` objects that contain control flow instructions
+      such as :class:`~.ForLoopOp` and :class:`~.WhileLoopOp`.
+
+    * Greatly improved scaling and performance for the :func:`~.transpile` function
+      with large numbers of qubits, especially when ``optimization_level=3`` is used.
+
+    * External plugin interface for :func:`~.transpile` that enables external
+      packages to implement stages for the default pass managers. More details on this
+      can be found at :mod:`qiskit.transpiler.preset_passmanagers.plugin`.
+      Additionally, :class:`~.BackendV2` backends can now optionally set
+      custom default plugins to use for the scheduling and translation stages.
+
+    * Updated algorithm implementations in :mod:`qiskit.algorithms` that leverage
+      the :mod:`~.primitives` classes that implement the :class:`~.BaseSampler` and
+      :class:`~.BaseEstimator`.
+
+features:
+  - |
+    Added new primitive implementations, :class:`~.BackendSampler` and :class:`~.BackendEstimator`,
+    to :mod:`qiskit.primitives`. Thes new primitive class implementation wrap a :class:`~.BackendV1`
+    or :class:`~.BackendV2` instance as a :class:`~.BaseSampler` or :class:`~.BaseEstimator`
+    respectively. The intended use case for these primitive implementations is to bridge the gap
+    between providers that do not have native primitive implementations and use that provider's
+    backend with APIs that work with primitives. For example, the :class:`~.SamplingVQE` class
+    takes a :class:`~.BaseSampler` instance to function. If you'd like to run that class with
+    a backend from a provider without a native primitive implementation you can construct a
+    :class:`~.BackendSampler` to do this::
+
+        from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
+        from qiskit.algorithms.optimizers import SLSQP
+        from qiskit.circuit.library import TwoLocal
+        from qiskit.primitives import BackendSampler
+        from qiskit.providers.fake_provider import FakeHanoi
+        from qiskit.opflow import PauliSumOp
+        from qiskit.quantum_info import SparsePauliOp
+
+        backend = FakeHanoi()
+        sampler = BackendSampler(backend=backend)
+
+        operator = PauliSumOp(SparsePauliOp(["ZZ", "IZ", "II"], coeffs=[1, -0.5, 0.12]))
+        ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+        optimizer = SLSQP()
+        sampling_vqe = SamplingVQE(sampler, ansatz, optimizer)
+        result = sampling_vqe.compute_minimum_eigenvalue(operator)
+        eigenvalue = result.eigenvalue
+
+    If you're using a provider that has native primitive implementations (such as
+    ``qiskit-ibm-runtime`` or ``qiskit-aer``) it is always a better choice to use that native
+    primitive implementation instead of :class:`~.BackendEstimator` or :class:`~.BackendSampler`
+    as the native implementations will be much more efficient and/or do additional pre and post
+    processing. :class:`~.BackendEstimator` and :class:`~.BackendSampler` are designed to be
+    generic that can work with any backend that returns :class:`~.Counts` in their
+    :class:`~.Results` which precludes additional optimization.

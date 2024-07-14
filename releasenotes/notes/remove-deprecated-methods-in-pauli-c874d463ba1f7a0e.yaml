@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The deprecated method ``SparsePauliOp.table`` has been removed.
-    It was originally deprecated in Qiskit Terra 0.19.
-    Returning PauliTable of :func:`~pauli_basis` has been removed.
-    The argument ``pauli_list`` in :func:`pauli_basis` has been removed.

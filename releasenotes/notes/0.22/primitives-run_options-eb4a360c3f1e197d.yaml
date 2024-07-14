@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The constructors for the :class:`~.BaseSampler` and
+    :class:`~.BaseEstimator` primitive classes have a new optional keyword
+    argument, ``options`` which is used to set the default values for the
+    options exposed via the :attr:`~.BaseSampler.options` attribute.

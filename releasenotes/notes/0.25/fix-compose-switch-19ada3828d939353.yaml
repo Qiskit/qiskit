@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.QuantumCircuit.compose` where the :attr:`.SwitchCaseOp.target` attribute
+    in the subcircuit would not get mapped to a register in the base circuit correctly.

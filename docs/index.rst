@@ -1,16 +1,15 @@
-##########################
-Qiskit Terra documentation
-##########################
+#################################
+Qiskit |version| API docs preview
+#################################
+
+Qiskit docs live at docs.quantum.ibm.com and come from https://github.com/Qiskit/documentation.
+This site is only used to generate our API docs, which then get migrated to
+https://github.com/Qiskit/documentation.
+
 
 .. toctree::
-  :maxdepth: 2
-  :hidden:
+   :hidden:
 
-  API References <apidocs/terra>
-  Circuit Library <apidocs/circuit_library>
-  Release Notes <release_notes>
-
-.. Hiding - Indices and tables
-   :ref:`genindex`
-   :ref:`modindex`
-   :ref:`search`
+   Documentation Home <self>
+   API Reference <apidoc/index>
+   Release Notes <release_notes>

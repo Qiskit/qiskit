@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The :class:`.Commuting2qGateRouter` constructor now has a new keyword
+    argument, ``edge_coloring``. This argument is used to provide an edge
+    coloring of the coupling map to determine the order in which the
+    commuting gates are applied.

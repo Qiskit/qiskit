@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The lazy optional checkers :data:`.HAS_MATPLOTLIB`, :data:`.HAS_PIL`, :data:`.HAS_PYLATEX` and
+    :data:`.HAS_PDFTOCAIRO` are no longer exposed from :mod:`qiskit.visualization`, having been
+    deprecated in Qiskit Terra 0.21.  The canonical location for these (and many other lazy checkers)
+    is :mod:`qiskit.utils.optionals`, and all four objects can be found there.

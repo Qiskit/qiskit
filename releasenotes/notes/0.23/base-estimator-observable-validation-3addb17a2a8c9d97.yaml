@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Fully normalize ``observables`` arg in ``BaseEstimator.run()`` method to the more 
+    specific type ``tuple[SparsePauliOp, ...]``.
+  - |
+    Additionally, through this new normalization ``str`` types are now accepted both 
+    standalone, or as elements in a ``Sequence`` object.

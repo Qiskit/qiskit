@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added a depth-efficient synthesis algorithm
+    :func:`qiskit.synthesis.linear.linear_depth_lnn.synth_cnot_depth_line_kms`
+    for linear reversible circuits :class:`~qiskit.circuit.library.LinearFunction`
+    over the linear nearest-neighbor architecture,
+    following the paper <https://arxiv.org/abs/quant-ph/0701194>`__.
+upgrade:
+  - |
+    Added to the Qiskit documentation the synthesis algorithm
+    :func:`qiskit.synthesis.linear.linear_depth_lnn.synth_cnot_count_full_pmh`
+    for linear reversible circuits :class:`~qiskit.circuit.library.LinearFunction`
+    for all-to-all architecture, following the paper
+    <https://arxiv.org/abs/quant-ph/0302002>`__.

@@ -10,6 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Init for circuit visualizations """
+"""Init for circuit visualizations"""
 
 from .circuit_visualization import circuit_drawer

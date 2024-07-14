@@ -14,9 +14,9 @@
 """Test Qiskit's EquivalenceLibrary class."""
 
 import unittest
-import numpy as np
 
-from qiskit.test import QiskitTestCase
+import numpy as np
+import rustworkx as rx
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
@@ -24,6 +24,8 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
 from qiskit.circuit import EquivalenceLibrary
 from qiskit.utils import optionals
+from qiskit.circuit.equivalence import Key, Equivalence, NodeData, EdgeData
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -101,24 +103,87 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         self.assertEqual(entry[1], second_equiv)
 
     def test_set_entry(self):
-        """Verify setting an entry overrides any previously added."""
+        """Verify setting an entry overrides any previously added, without affecting entries that
+        depended on the set entry."""
         eq_lib = EquivalenceLibrary()
 
-        gate = OneQubitZeroParamGate()
-        first_equiv = QuantumCircuit(1)
-        first_equiv.h(0)
+        gates = {key: Gate(key, 1, []) for key in "abcd"}
+        target = Gate("target", 1, [])
 
-        eq_lib.add_equivalence(gate, first_equiv)
+        old = QuantumCircuit(1)
+        old.append(gates["a"], [0])
+        old.append(gates["b"], [0])
+        eq_lib.add_equivalence(target, old)
 
-        second_equiv = QuantumCircuit(1)
-        second_equiv.append(U2Gate(0, np.pi), [0])
+        outbound = QuantumCircuit(1)
+        outbound.append(target, [0])
+        eq_lib.add_equivalence(gates["c"], outbound)
 
-        eq_lib.set_entry(gate, [second_equiv])
+        self.assertEqual(eq_lib.get_entry(target), [old])
+        self.assertEqual(eq_lib.get_entry(gates["c"]), [outbound])
+        # Assert the underlying graph structure is correct as well.
+        gate_indices = {eq_lib.graph[node].key.name: node for node in eq_lib.graph.node_indices()}
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["a"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["b"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["target"], gate_indices["c"]))
 
-        entry = eq_lib.get_entry(gate)
+        new = QuantumCircuit(1)
+        new.append(gates["d"], [0])
+        eq_lib.set_entry(target, [new])
 
-        self.assertEqual(len(entry), 1)
-        self.assertEqual(entry[0], second_equiv)
+        self.assertEqual(eq_lib.get_entry(target), [new])
+        self.assertEqual(eq_lib.get_entry(gates["c"]), [outbound])
+        # Assert the underlying graph structure is correct as well.
+        gate_indices = {eq_lib.graph[node].key.name: node for node in eq_lib.graph.node_indices()}
+        self.assertFalse(eq_lib.graph.has_edge(gate_indices["a"], gate_indices["target"]))
+        self.assertFalse(eq_lib.graph.has_edge(gate_indices["b"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["d"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["target"], gate_indices["c"]))
+
+    def test_set_entry_parallel_edges(self):
+        """Test that `set_entry` works correctly in the case of parallel wires."""
+        eq_lib = EquivalenceLibrary()
+        gates = {key: Gate(key, 1, []) for key in "abcd"}
+        target = Gate("target", 1, [])
+
+        old_1 = QuantumCircuit(1, name="a")
+        old_1.append(gates["a"], [0])
+        old_1.append(gates["b"], [0])
+        eq_lib.add_equivalence(target, old_1)
+
+        old_2 = QuantumCircuit(1, name="b")
+        old_2.append(gates["b"], [0])
+        old_2.append(gates["a"], [0])
+        eq_lib.add_equivalence(target, old_2)
+
+        # This extra rule is so that 'a' still has edges, so we can do an exact isomorphism test.
+        # There's not particular requirement for `set_entry` to remove orphan nodes, so we'll just
+        # craft a test that doesn't care either way.
+        a_to_b = QuantumCircuit(1)
+        a_to_b.append(gates["b"], [0])
+        eq_lib.add_equivalence(gates["a"], a_to_b)
+
+        self.assertEqual(sorted(eq_lib.get_entry(target), key=lambda qc: qc.name), [old_1, old_2])
+
+        new = QuantumCircuit(1, name="c")
+        # No more use of 'a', but re-use 'b' and introduce 'c'.
+        new.append(gates["b"], [0])
+        new.append(gates["c"], [0])
+        eq_lib.set_entry(target, [new])
+
+        self.assertEqual(eq_lib.get_entry(target), [new])
+
+        expected = EquivalenceLibrary()
+        expected.add_equivalence(gates["a"], a_to_b)
+        expected.add_equivalence(target, new)
+
+        def node_fn(left, right):
+            return left == right
+
+        def edge_fn(left, right):
+            return left.rule == right.rule
+
+        self.assertTrue(rx.is_isomorphic(eq_lib.graph, expected.graph, node_fn, edge_fn))
 
     def test_raise_if_gate_entry_shape_mismatch(self):
         """Verify we raise if adding a circuit and gate with different shapes."""
@@ -153,6 +218,47 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         eq_lib = EquivalenceLibrary()
 
         self.assertFalse(eq_lib.has_entry(OneQubitZeroParamGate()))
+
+    def test_equivalence_graph(self):
+        """Verify valid graph created by add_equivalence"""
+
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+        eq_lib.add_equivalence(gate, first_equiv)
+
+        equiv_copy = eq_lib._get_equivalences(Key(name="1q0p", num_qubits=1))[0].circuit
+
+        egraph = rx.PyDiGraph()
+        node_wt = NodeData(
+            key=Key(name="1q0p", num_qubits=1), equivs=[Equivalence(params=[], circuit=equiv_copy)]
+        )
+
+        egraph.add_node(node_wt)
+
+        node_wt = NodeData(key=Key(name="h", num_qubits=1), equivs=[])
+        egraph.add_node(node_wt)
+
+        edge_wt = EdgeData(
+            index=0,
+            num_gates=1,
+            rule=Equivalence(params=[], circuit=equiv_copy),
+            source=Key(name="h", num_qubits=1),
+        )
+        egraph.add_edge(0, 1, edge_wt)
+
+        for node in eq_lib.graph.nodes():
+            self.assertTrue(node in egraph.nodes())
+            for edge in eq_lib.graph.edges():
+                self.assertTrue(edge in egraph.edges())
+
+        self.assertEqual(len(eq_lib.graph.nodes()), len(egraph.nodes()))
+        self.assertEqual(len(eq_lib.graph.edges()), len(egraph.edges()))
+
+        keys = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}.keys()
+        self.assertEqual(keys, eq_lib.keys())
 
 
 class TestEquivalenceLibraryWithBase(QiskitTestCase):
@@ -207,8 +313,9 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         entry = eq_lib.get_entry(gate)
 
         self.assertEqual(len(entry), 2)
-        self.assertEqual(entry[0], second_equiv)
-        self.assertEqual(entry[1], first_equiv)
+        self.assertNotEqual(entry[0], entry[1])
+        self.assertTrue(entry[0] in [first_equiv, second_equiv])
+        self.assertTrue(entry[1] in [first_equiv, second_equiv])
 
     def test_set_entry(self):
         """Verify we find only equivalences from top when explicitly set."""
@@ -470,6 +577,7 @@ class TestEquivalenceLibraryVisualization(QiskitVisualizationTestCase):
     """Test cases for EquivalenceLibrary visualization."""
 
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(optionals.HAS_PIL, "PIL not installed")
     def test_equivalence_draw(self):
         """Verify EquivalenceLibrary drawing with reference image."""
         sel = EquivalenceLibrary()

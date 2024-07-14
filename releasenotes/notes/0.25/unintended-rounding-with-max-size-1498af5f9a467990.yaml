@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The function :func:`~qiskit.visualization.state_visualization.state_to_latex` produced not valid LaTeX with unintended coefficient rounding,
+    resulting in errors when calling :func:`~qiskit.visualization.state_visualization.state_drawer` is called.
+    Fixed `#9297 <https://github.com/Qiskit/qiskit-terra/issues/9297>`__.

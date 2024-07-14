@@ -13,13 +13,13 @@
 # pylint: disable=invalid-name
 
 """Test cases for the pulse schedule block."""
-import unittest
+import re
+from typing import List, Any
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
-from qiskit.utils import has_aer
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -370,18 +370,6 @@ class TestBlockOperation(BaseTestBlock):
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    def test_execute_block(self):
-        """Test executing a ScheduleBlock on a Pulse backend"""
-
-        with pulse.build(name="test_block") as sched_block:
-            pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
-            pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
-
-        backend = FakeArmonk()
-        test_result = backend.run(sched_block).result()
-        self.assertDictEqual(test_result.get_counts(), {"0": 1024})
-
 
 class TestBlockEquality(BaseTestBlock):
     """Test equality of blocks.
@@ -478,6 +466,24 @@ class TestBlockEquality(BaseTestBlock):
         block1 += pulse.Play(self.test_waveform0, self.d1)
 
         block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d1)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
+
+        self.assertNotEqual(block1, block2)
+
+    def test_instruction_out_of_order_sequential_more(self):
+        """Test equality is False if three blocks have instructions in different order.
+
+        This could detect a particular bug as discussed in this thread:
+        https://github.com/Qiskit/qiskit-terra/pull/8005#discussion_r966191018
+        """
+        block1 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d1)
+
+        block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
         block2 += pulse.Play(self.test_waveform0, self.d1)
         block2 += pulse.Play(self.test_waveform0, self.d0)
 
@@ -651,25 +657,6 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
         self.assertEqual(block.duration, 400)
 
-    def test_nested_parametrized_instructions(self):
-        """Test parameters of nested schedule can be assigned."""
-        test_waveform = pulse.Constant(100, self.amp0)
-
-        param_sched = pulse.Schedule(pulse.Play(test_waveform, self.d0))
-        call_inst = pulse.instructions.Call(param_sched)
-
-        sub_block = pulse.ScheduleBlock()
-        sub_block += call_inst
-
-        block = pulse.ScheduleBlock()
-        block += sub_block
-
-        self.assertTrue(block.is_parameterized())
-
-        # assign durations
-        block = block.assign_parameters({self.amp0: 0.1})
-        self.assertFalse(block.is_parameterized())
-
     def test_equality_of_parametrized_channels(self):
         """Test check equality of blocks involving parametrized channels."""
         par_ch = circuit.Parameter("ch")
@@ -730,19 +717,224 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
         self.assertScheduleEqual(block, ref_sched)
 
-    def test_assigned_amplitude_is_complex(self):
-        """Test pulse amp parameter is always complex valued.
 
-        Note that IBM backend treats "amp" as a special parameter,
-        and this should be complex value otherwise IBM backends raise 8042 error.
+class TestBlockFilter(BaseTestBlock):
+    """Test ScheduleBlock filtering methods."""
 
-        "Pulse parameter "amp" must be specified as a list of the form [real, imag]"
+    def test_filter_channels(self):
+        """Test filtering over channels."""
+        with pulse.build() as blk:
+            pulse.play(self.test_waveform0, self.d0)
+            pulse.delay(10, self.d0)
+            pulse.play(self.test_waveform1, self.d1)
+
+        filtered_blk = self._filter_and_test_consistency(blk, channels=[self.d0])
+        self.assertEqual(len(filtered_blk.channels), 1)
+        self.assertTrue(self.d0 in filtered_blk.channels)
+        with pulse.build() as ref_blk:
+            pulse.play(self.test_waveform0, self.d0)
+            pulse.delay(10, self.d0)
+        self.assertEqual(filtered_blk, ref_blk)
+
+        filtered_blk = self._filter_and_test_consistency(blk, channels=[self.d1])
+        self.assertEqual(len(filtered_blk.channels), 1)
+        self.assertTrue(self.d1 in filtered_blk.channels)
+        with pulse.build() as ref_blk:
+            pulse.play(self.test_waveform1, self.d1)
+        self.assertEqual(filtered_blk, ref_blk)
+
+        filtered_blk = self._filter_and_test_consistency(blk, channels=[self.d0, self.d1])
+        self.assertEqual(len(filtered_blk.channels), 2)
+        for ch in [self.d0, self.d1]:
+            self.assertTrue(ch in filtered_blk.channels)
+        self.assertEqual(filtered_blk, blk)
+
+    def test_filter_channels_nested_block(self):
+        """Test filtering over channels in a nested block."""
+        with pulse.build() as blk:
+            with pulse.align_sequential():
+                pulse.play(self.test_waveform0, self.d0)
+                pulse.delay(5, self.d0)
+                pulse.call(
+                    self.backend.defaults()
+                    .instruction_schedule_map._get_calibration_entry("cx", (0, 1))
+                    .get_schedule()
+                )
+
+        for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
+            filtered_blk = self._filter_and_test_consistency(blk, channels=[ch])
+            self.assertEqual(len(filtered_blk.channels), 1)
+            self.assertTrue(ch in filtered_blk.channels)
+
+    def test_filter_inst_types(self):
+        """Test filtering on instruction types."""
+        with pulse.build() as blk:
+            pulse.acquire(5, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+
+            with pulse.build() as blk_internal:
+                pulse.play(self.test_waveform1, self.d1)
+
+            pulse.call(blk_internal)
+            pulse.reference(name="dummy_reference")
+            pulse.delay(10, self.d0)
+            pulse.play(self.test_waveform0, self.d0)
+            pulse.barrier(self.d0, self.d1, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+            pulse.set_frequency(10, self.d0)
+            pulse.shift_frequency(5, self.d1)
+            pulse.set_phase(3.14 / 4.0, self.d0)
+            pulse.shift_phase(-3.14 / 2.0, self.d1)
+            pulse.snapshot(label="dummy_snapshot")
+
+        # test filtering Acquire
+        filtered_blk = self._filter_and_test_consistency(blk, instruction_types=[pulse.Acquire])
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.Acquire)
+        self.assertEqual(len(filtered_blk.channels), 2)
+
+        # test filtering Reference
+        filtered_blk = self._filter_and_test_consistency(
+            blk, instruction_types=[pulse.instructions.Reference]
+        )
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.instructions.Reference)
+
+        # test filtering Delay
+        filtered_blk = self._filter_and_test_consistency(blk, instruction_types=[pulse.Delay])
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.Delay)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+        # test filtering Play
+        filtered_blk = self._filter_and_test_consistency(blk, instruction_types=[pulse.Play])
+        self.assertEqual(len(filtered_blk.blocks), 2)
+        self.assertIsInstance(filtered_blk.blocks[0].blocks[0], pulse.Play)
+        self.assertIsInstance(filtered_blk.blocks[1], pulse.Play)
+        self.assertEqual(len(filtered_blk.channels), 2)
+
+        # test filtering RelativeBarrier
+        filtered_blk = self._filter_and_test_consistency(
+            blk, instruction_types=[pulse.instructions.RelativeBarrier]
+        )
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.instructions.RelativeBarrier)
+        self.assertEqual(len(filtered_blk.channels), 4)
+
+        # test filtering SetFrequency
+        filtered_blk = self._filter_and_test_consistency(
+            blk, instruction_types=[pulse.SetFrequency]
+        )
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.SetFrequency)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+        # test filtering ShiftFrequency
+        filtered_blk = self._filter_and_test_consistency(
+            blk, instruction_types=[pulse.ShiftFrequency]
+        )
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.ShiftFrequency)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+        # test filtering SetPhase
+        filtered_blk = self._filter_and_test_consistency(blk, instruction_types=[pulse.SetPhase])
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.SetPhase)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+        # test filtering ShiftPhase
+        filtered_blk = self._filter_and_test_consistency(blk, instruction_types=[pulse.ShiftPhase])
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.ShiftPhase)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+        # test filtering SnapShot
+        filtered_blk = self._filter_and_test_consistency(blk, instruction_types=[pulse.Snapshot])
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.Snapshot)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+    def test_filter_functionals(self):
+        """Test functional filtering."""
+        with pulse.build() as blk:
+            pulse.play(self.test_waveform0, self.d0, "play0")
+            pulse.delay(10, self.d0, "delay0")
+
+            with pulse.build() as blk_internal:
+                pulse.play(self.test_waveform1, self.d1, "play1")
+
+            pulse.call(blk_internal)
+            pulse.play(self.test_waveform1, self.d1)
+
+        def filter_with_inst_name(inst: pulse.Instruction) -> bool:
+            try:
+                if isinstance(inst.name, str):
+                    match_obj = re.search(pattern="play", string=inst.name)
+                    if match_obj is not None:
+                        return True
+            except AttributeError:
+                pass
+            return False
+
+        filtered_blk = self._filter_and_test_consistency(blk, filter_with_inst_name)
+        self.assertEqual(len(filtered_blk.blocks), 2)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
+        self.assertIsInstance(filtered_blk.blocks[1].blocks[0], pulse.Play)
+        self.assertEqual(len(filtered_blk.channels), 2)
+
+    def test_filter_multiple(self):
+        """Test filter composition."""
+        with pulse.build() as blk:
+            pulse.play(pulse.Constant(100, 0.1, name="play0"), self.d0)
+            pulse.delay(10, self.d0, "delay0")
+
+            with pulse.build(name="internal_blk") as blk_internal:
+                pulse.play(pulse.Constant(50, 0.1, name="play1"), self.d0)
+
+            pulse.call(blk_internal)
+            pulse.barrier(self.d0, self.d1)
+            pulse.play(pulse.Constant(100, 0.1, name="play2"), self.d1)
+
+        def filter_with_pulse_name(inst: pulse.Instruction) -> bool:
+            try:
+                if isinstance(inst.pulse.name, str):
+                    match_obj = re.search(pattern="play", string=inst.pulse.name)
+                    if match_obj is not None:
+                        return True
+            except AttributeError:
+                pass
+            return False
+
+        filtered_blk = self._filter_and_test_consistency(
+            blk, filter_with_pulse_name, channels=[self.d1], instruction_types=[pulse.Play]
+        )
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+    def _filter_and_test_consistency(
+        self, sched_blk: pulse.ScheduleBlock, *args: Any, **kwargs: Any
+    ) -> pulse.ScheduleBlock:
         """
-        amp = circuit.Parameter("amp")
-        block = pulse.ScheduleBlock()
-        block += pulse.Play(pulse.Constant(100, amp), pulse.DriveChannel(0))
+        Returns sched_blk.filter(*args, **kwargs),
+        including a test that sched_blk.filter | sched_blk.exclude == sched_blk
+        in terms of instructions.
+        """
+        filtered = sched_blk.filter(*args, **kwargs)
+        excluded = sched_blk.exclude(*args, **kwargs)
 
-        assigned_block = block.assign_parameters({amp: 0.1}, inplace=True)
+        def list_instructions(blk: pulse.ScheduleBlock) -> List[pulse.Instruction]:
+            insts = []
+            for element in blk.blocks:
+                if isinstance(element, pulse.ScheduleBlock):
+                    inner_insts = list_instructions(element)
+                    if len(inner_insts) != 0:
+                        insts.extend(inner_insts)
+                elif isinstance(element, pulse.Instruction):
+                    insts.append(element)
+            return insts
 
-        assigned_amp = assigned_block.blocks[0].pulse.amp
-        self.assertIsInstance(assigned_amp, complex)
+        sum_insts = list_instructions(filtered) + list_instructions(excluded)
+        ref_insts = list_instructions(sched_blk)
+        self.assertEqual(len(sum_insts), len(ref_insts))
+        self.assertTrue(all(inst in ref_insts for inst in sum_insts))
+        return filtered

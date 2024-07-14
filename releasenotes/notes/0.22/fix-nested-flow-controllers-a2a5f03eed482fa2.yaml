@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Nesting a :class:`.FlowController` inside another in a :class:`.PassManager`
+    could previously cause some transpiler passes to become "forgotten" during
+    transpilation, if the passes returned a new :class:`.DAGCircuit` rather than
+    mutating their input.  Nested :class:`.FlowController`\ s will now affect
+    the transpilation correctly.

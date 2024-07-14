@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The class ``LinearFunctionsSynthesis`` was marked as deprecated, as it is simply
+    a special case of the more general ``HighLevelSynthesis`` transpiler pass. It will be
+    removed in a future release.

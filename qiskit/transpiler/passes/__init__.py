@@ -26,7 +26,6 @@ Layout Selection (Placement)
    SetLayout
    TrivialLayout
    DenseLayout
-   NoiseAdaptiveLayout
    SabreLayout
    CSPLayout
    VF2Layout
@@ -34,6 +33,7 @@ Layout Selection (Placement)
    Layout2qDistance
    EnlargeWithAncilla
    FullAncillaAllocation
+   SabrePreLayout
 
 Routing
 =======
@@ -45,8 +45,8 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
-   BIPMapping
    Commuting2qGateRouter
+   StarPreRouting
 
 Basis Change
 ============
@@ -54,11 +54,11 @@ Basis Change
 .. autosummary::
    :toctree: ../stubs/
 
-   Unroller
-   Unroll3qOrMore
-   Decompose
-   UnrollCustomDefinitions
    BasisTranslator
+   Decompose
+   TranslateParameterizedGates
+   Unroll3qOrMore
+   UnrollCustomDefinitions
 
 Optimizations
 =============
@@ -72,6 +72,7 @@ Optimizations
    Collect2qBlocks
    CollectMultiQBlocks
    CollectLinearFunctions
+   CollectCliffords
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -81,12 +82,15 @@ Optimizations
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
-   CrosstalkAdaptiveSchedule
+   RemoveFinalReset
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   ElidePermutations
+   NormalizeRXAngle
+   OptimizeAnnotated
 
 Calibration
 =============
@@ -97,6 +101,9 @@ Calibration
    PulseGates
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
+   RXCalibrationBuilder
+
+.. autofunction:: rzx_templates
 
 Scheduling
 =============
@@ -110,13 +117,13 @@ Scheduling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
-   AlignMeasures
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
+   AlignMeasures
 
 Circuit Analysis
 ================
@@ -133,18 +140,24 @@ Circuit Analysis
    DAGLongestPath
 
 Synthesis
-=============
+=========
+
+The synthesis transpiler plugin documentation can be found in the
+:mod:`qiskit.transpiler.passes.synthesis.plugin` page.
 
 .. autosummary::
    :toctree: ../stubs/
 
    UnitarySynthesis
-   LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   HLSConfig
+   SolovayKitaev
 
-Post Layout (Post transpile qubit selection)
-============================================
+Post Layout
+===========
+
+These are post qubit selection.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -158,9 +171,7 @@ Additional Passes
    :toctree: ../stubs/
 
    CheckMap
-   CheckCXDirection
    CheckGateDirection
-   CXDirection
    GateDirection
    MergeAdjacentBarriers
    RemoveBarriers
@@ -168,15 +179,18 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
+   ConvertConditionsToIfOps
+   UnrollForLoops
+   FilterOpNodes
 """
 
 # layout selection (placement)
 from .layout import SetLayout
 from .layout import TrivialLayout
 from .layout import DenseLayout
-from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
@@ -185,6 +199,7 @@ from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
 from .layout import FullAncillaAllocation
+from .layout import SabrePreLayout
 
 # routing
 from .routing import BasicSwap
@@ -192,15 +207,15 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
-from .routing import BIPMapping
 from .routing import Commuting2qGateRouter
+from .routing import StarPreRouting
 
 # basis change
 from .basis import Decompose
-from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import TranslateParameterizedGates
 
 # optimization
 from .optimization import Optimize1qGates
@@ -216,15 +231,19 @@ from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
+from .optimization import RemoveFinalReset
 from .optimization import RemoveDiagonalGatesBeforeMeasure
-from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import ElidePermutations
+from .optimization import NormalizeRXAngle
+from .optimization import OptimizeAnnotated
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -239,34 +258,37 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
-from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import HLSConfig
+from .synthesis import SolovayKitaev
+from .synthesis import SolovayKitaevSynthesis
+from .synthesis import AQCSynthesisPlugin
 
 # calibration
 from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
+from .calibration import RXCalibrationBuilder
+from .calibration.rzx_templates import rzx_templates
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPScheduleAnalysis
 from .scheduling import ASAPScheduleAnalysis
-from .scheduling import ALAPSchedule
-from .scheduling import ASAPSchedule
 from .scheduling import PadDynamicalDecoupling
-from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import DynamicalDecoupling
+from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
-from .utils import CheckCXDirection  # Deprecated
-from .utils import CXDirection  # Deprecated
 from .utils import CheckGateDirection
 from .utils import GateDirection
 from .utils import BarrierBeforeFinalMeasurements
@@ -274,7 +296,11 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
+from .utils import ConvertConditionsToIfOps
+from .utils import UnrollForLoops
+from .utils import FilterOpNodes

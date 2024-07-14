@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Importing :mod:`qiskit.primitives` will no longer cause deprecation warnings stemming from the
+    deprecated :mod:`qiskit.opflow` module.  These warnings would have been hidden to users by the
+    default Python filters, but triggered the eager import of :mod:`.opflow`, which meant that a
+    subsequent import by a user would not trigger the warnings.

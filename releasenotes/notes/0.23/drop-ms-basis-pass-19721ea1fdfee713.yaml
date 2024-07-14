@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``MSBasisDecomposer`` transpiler pass available
+    via the :mod:`qiskit.transpiler.passes` module has been removed. It was
+    originally deprecated as part of the Qiskit Terra 0.16.0 release
+    (10-16-2020). Instead the :class:`~.BasisTranslator` transpiler pass
+    should be used instead to translate a circuit into an appropriate basis
+    with a :class:`~.RXXGate`

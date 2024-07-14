@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added a depth-efficient synthesis algorithm
+    :func:`qiskit.synthesis.permutation.permutation_lnn.synth_permutation_depth_lnn_kms`
+    for :class:`~qiskit.circuit.library.Permutation`
+    over the linear nearest-neighbor architecture,
+    following the paper <https://arxiv.org/abs/quant-ph/0701194>`__.

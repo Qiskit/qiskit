@@ -6,7 +6,7 @@ features:
     of a 2-design circuit from https://arxiv.org/pdf/1803.11173.pdf
     For instance, this circuit can look like:
     
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit.library import PauliTwoDesign
       circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)

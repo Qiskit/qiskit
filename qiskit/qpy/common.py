@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements
 
 """
 Common functions across several serialization and deserialization modules.
@@ -21,7 +20,8 @@ import struct
 
 from qiskit.qpy import formats
 
-QPY_VERSION = 5
+QPY_VERSION = 12
+QPY_COMPATIBILITY_VERSION = 10
 ENCODE = "utf8"
 
 

@@ -17,10 +17,11 @@ from copy import deepcopy
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit.library import U1Gate, CU1Gate
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
@@ -212,6 +213,62 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_simple_if_else(self):
+        """Test that the pass recurses into an if-else."""
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.z(0)
+        base_test.measure(0, 0)
+
+        base_expected = QuantumCircuit(1, 1)
+        base_expected.measure(0, 0)
+
+        test = QuantumCircuit(1, 1)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
+        )
+
+        expected = QuantumCircuit(1, 1)
+        expected.if_else(
+            (expected.clbits[0], True),
+            base_expected.copy(),
+            base_expected.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that the pass recurses into nested control flow."""
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+
+        base_test = QuantumCircuit(2, 1)
+        base_test.cz(0, 1)
+        base_test.measure(0, 0)
+
+        base_expected = QuantumCircuit(2, 1)
+        base_expected.measure(1, 0)
+
+        body_test = QuantumCircuit(2, 1)
+        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)
+
+        body_expected = QuantumCircuit(2, 1)
+        body_expected.for_loop(
+            (0,), None, base_expected.copy(), body_expected.qubits, body_expected.clbits
+        )
+
+        test = QuantumCircuit(2, 1)
+        test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
+
+        expected = QuantumCircuit(2, 1)
+        expected.while_loop(
+            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
+        )
+
+        self.assertEqual(pass_(test), expected)
+
 
 class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
     """Test remove diagonal control gates before measure."""
@@ -394,8 +451,10 @@ class TestRemoveDiagonalGatesBeforeMeasureFixedPoint(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(
-            [RemoveDiagonalGatesBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
+            DoWhileController(
+                [RemoveDiagonalGatesBeforeMeasure(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         )
         after = pass_manager.run(circuit)
 

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add support for time-dependent Hamiltonians in 
+    :class:`~.time_evolvers.TrotterQRTE`.
+  - | 
+    Add support for observable evaluations at every time-step in 
+    :class:`~.time_evolvers.TrotterQRTE`.

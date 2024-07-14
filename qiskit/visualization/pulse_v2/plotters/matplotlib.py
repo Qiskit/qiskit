@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Matplotlib plotter API."""
 
 from typing import Optional
@@ -120,9 +118,8 @@ class Mpl2DPlotter(BasePlotter):
                     )
                     self.ax.add_patch(box)
                 else:
-                    VisualizationError(
-                        "Data {name} is not supported "
-                        "by {plotter}".format(name=data, plotter=self.__class__.__name__)
+                    raise VisualizationError(
+                        f"Data {data} is not supported " f"by {self.__class__.__name__}"
                     )
             # axis break
             for pos in axis_config.axis_break_pos:

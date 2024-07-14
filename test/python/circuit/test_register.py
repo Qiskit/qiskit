@@ -16,13 +16,12 @@
 
 from ddt import data, ddt
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import bit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import ClassicalRegister
-
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -51,11 +50,6 @@ class TestRegisterClass(QiskitTestCase):
         bits = [bit.Bit()]
         with self.assertRaisesRegex(CircuitError, "did not all match register type"):
             _ = reg_type(bits=bits)
-
-    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
-    def test_init_raise_if_passed_invalid_name(self, reg_type):
-        with self.assertRaisesRegex(CircuitError, "invalid OPENQASM register name"):
-            _ = reg_type(size=1, name="_q")
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_with_zero_size(self, reg_type):

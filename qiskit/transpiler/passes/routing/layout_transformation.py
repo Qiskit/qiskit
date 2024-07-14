@@ -10,8 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
-from typing import Union
+"""Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates."""
+from __future__ import annotations
 
 import numpy as np
 
@@ -19,6 +19,7 @@ from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.target import Target
 
 
 class LayoutTransformation(TransformationPass):
@@ -30,16 +31,16 @@ class LayoutTransformation(TransformationPass):
 
     def __init__(
         self,
-        coupling_map: CouplingMap,
-        from_layout: Union[Layout, str],
-        to_layout: Union[Layout, str],
-        seed: Union[int, np.random.default_rng] = None,
+        coupling_map: CouplingMap | Target | None,
+        from_layout: Layout | str,
+        to_layout: Layout | str,
+        seed: int | np.random.Generator | None = None,
         trials=4,
     ):
         """LayoutTransformation initializer.
 
         Args:
-            coupling_map (CouplingMap):
+            coupling_map:
                 Directed graph representing a coupling map.
 
             from_layout (Union[Layout, str]):
@@ -48,7 +49,7 @@ class LayoutTransformation(TransformationPass):
 
             to_layout (Union[Layout, str]):
                 The final layout of qubits on physical qubits.
-                If the type is str, look up `property_set` when this pass runs.
+                If the type is str, look up ``property_set`` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
                 Seed to use for random trials.
@@ -59,12 +60,15 @@ class LayoutTransformation(TransformationPass):
         super().__init__()
         self.from_layout = from_layout
         self.to_layout = to_layout
-        if coupling_map:
-            self.coupling_map = coupling_map
-            graph = coupling_map.graph.to_undirected()
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
         else:
+            self.target = None
+            self.coupling_map = coupling_map
+        if self.coupling_map is None:
             self.coupling_map = CouplingMap.from_full(len(to_layout))
-            graph = self.coupling_map.graph.to_undirected()
+        graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 

@@ -10,21 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Testing a Faulty Ourense Backend."""
+"""Testing a Faulty 7QV1Pulse Backend."""
 
-from qiskit.test import QiskitTestCase
+from qiskit.providers.backend_compat import convert_to_target
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from .faulty_backends import (
-    FakeOurenseFaultyCX01CX10,
-    FakeOurenseFaultyQ1,
-    FakeOurenseFaultyCX13CX31,
+    Fake7QV1FaultyCX01CX10,
+    Fake7QV1FaultyQ1,
+    Fake7QV1MissingQ1Property,
+    Fake7QV1FaultyCX13CX31,
 )
 
 
 class FaultyQubitBackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyQ1,
-    which is like FakeOurense but with a faulty 1Q"""
+    """Test operational-related methods of backend.properties() with Fake7QV1FaultyQ1,
+    which is like Fake7QV1 but with a faulty 1Q"""
 
-    backend = FakeOurenseFaultyQ1()
+    backend = Fake7QV1FaultyQ1()
 
     def test_operational_false(self):
         """Test operation status of the qubit. Q1 is non-operational"""
@@ -34,12 +36,57 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
         """Test faulty_qubits method."""
         self.assertEqual(self.backend.properties().faulty_qubits(), [1])
 
+    def test_convert_to_target_with_filter(self):
+        """Test converting legacy data structure to V2 target model with faulty qubits.
+
+        Measure and Delay are automatically added to the output Target
+        even though instruction is not provided by the backend,
+        since these are the necessary instructions that the transpiler may assume.
+        """
+
+        # Filter out faulty Q1
+        target = convert_to_target(
+            configuration=self.backend.configuration(),
+            properties=self.backend.properties(),
+            add_delay=True,
+            filter_faulty=True,
+        )
+        self.assertFalse(target.instruction_supported(operation_name="measure", qargs=(1,)))
+        self.assertFalse(target.instruction_supported(operation_name="delay", qargs=(1,)))
+
+    def test_convert_to_target_without_filter(self):
+        """Test converting legacy data structure to V2 target model with faulty qubits."""
+
+        # Include faulty Q1 even though data could be incomplete
+        target = convert_to_target(
+            configuration=self.backend.configuration(),
+            properties=self.backend.properties(),
+            add_delay=True,
+            filter_faulty=False,
+        )
+        self.assertTrue(target.instruction_supported(operation_name="measure", qargs=(1,)))
+        self.assertTrue(target.instruction_supported(operation_name="delay", qargs=(1,)))
+
+        # Properties are preserved
+        self.assertEqual(
+            target.qubit_properties[1].t1,
+            self.backend.properties().t1(1),
+        )
+        self.assertEqual(
+            target.qubit_properties[1].t2,
+            self.backend.properties().t2(1),
+        )
+        self.assertEqual(
+            target.qubit_properties[1].frequency,
+            self.backend.properties().frequency(1),
+        )
+
 
 class FaultyGate13BackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13CX31,
-    which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
+    """Test operational-related methods of backend.properties() with Fake7QV1FaultyCX13CX31,
+    which is like Fake7QV1 but with a faulty CX(Q1, Q3) and symmetric."""
 
-    backend = FakeOurenseFaultyCX13CX31()
+    backend = Fake7QV1FaultyCX13CX31()
 
     def test_operational_gate(self):
         """Test is_gate_operational method."""
@@ -55,10 +102,10 @@ class FaultyGate13BackendTestCase(QiskitTestCase):
 
 
 class FaultyGate01BackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13CX31,
-    which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
+    """Test operational-related methods of backend.properties() with Fake7QV1FaultyCX13CX31,
+    which is like Fake7QV1 but with a faulty CX(Q1, Q3) and symmetric."""
 
-    backend = FakeOurenseFaultyCX01CX10()
+    backend = Fake7QV1FaultyCX01CX10()
 
     def test_operational_gate(self):
         """Test is_gate_operational method."""
@@ -71,3 +118,30 @@ class FaultyGate01BackendTestCase(QiskitTestCase):
         self.assertEqual(len(gates), 2)
         self.assertEqual([gate.gate for gate in gates], ["cx", "cx"])
         self.assertEqual(sorted(gate.qubits for gate in gates), [[0, 1], [1, 0]])
+
+
+class MissingPropertyQubitBackendTestCase(QiskitTestCase):
+    """Test operational-related methods of backend.properties() with Fake7QV1MissingQ1Property,
+    which is like Fake7QV1 but with Q1 with missing T1 property."""
+
+    backend = Fake7QV1MissingQ1Property()
+
+    def test_convert_to_target(self):
+        """Test converting legacy data structure to V2 target model with missing qubit property."""
+
+        target = convert_to_target(
+            configuration=self.backend.configuration(),
+            properties=self.backend.properties(),
+            add_delay=True,
+            filter_faulty=True,
+        )
+
+        self.assertIsNone(target.qubit_properties[1].t1)
+        self.assertEqual(
+            target.qubit_properties[1].t2,
+            self.backend.properties().t2(1),
+        )
+        self.assertEqual(
+            target.qubit_properties[1].frequency,
+            self.backend.properties().frequency(1),
+        )

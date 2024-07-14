@@ -10,11 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Pass for Hoare logic circuit optimization. """
+"""Pass for Hoare logic circuit optimization."""
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumRegister, ControlledGate, Gate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
@@ -28,8 +28,6 @@ class HoareOptimizer(TransformationPass):
     https://arxiv.org/abs/1810.00375
     """
 
-    # pylint: disable=import-error
-
     def __init__(self, size=10):
         """
         Args:
@@ -38,7 +36,7 @@ class HoareOptimizer(TransformationPass):
             MissingOptionalLibraryError: if unable to import z3 solver
         """
         # This module is just a script that adds several post conditions onto existing classes.
-        from . import _gate_extension  # pylint: disable=unused-import
+        from . import _gate_extension
 
         super().__init__()
         self.solver = None
@@ -216,7 +214,7 @@ class HoareOptimizer(TransformationPass):
             if remove_ctrl:
                 dag.substitute_node_with_dag(node, new_dag)
                 gate = gate.base_gate
-                node.op = gate
+                node.op = gate.to_mutable()
                 node.name = gate.name
                 node.qargs = tuple((ctrlqb + trgtqb)[qi] for qi in qb_idx)
                 _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
@@ -293,10 +291,10 @@ class HoareOptimizer(TransformationPass):
 
         if isinstance(gate1, ControlledGate):
             gate1 = gate1.base_gate
-        gate1 = type(gate1)
+        gate1 = gate1.base_class
         if isinstance(gate2, ControlledGate):
             gate2 = gate2.base_gate
-        gate2 = type(gate2)
+        gate2 = gate2.base_class
 
         # equality of gates can be determined via type and parameters, unless
         # the gates have no specific type, in which case definition is used

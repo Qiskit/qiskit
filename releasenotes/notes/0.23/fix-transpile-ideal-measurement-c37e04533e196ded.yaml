@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with :func:`~.transpile` when targeting a :class:`~.Target`
+    (either directly via the ``target`` argument or via a
+    :class:`~.BackendV2` instance from the ``backend`` argument) that
+    contained an ideal :class:`~.Measure` instruction (one that does not have
+    any properties defined). Previously this would raise an exception
+    trying to parse the target.
+    Fixed `#8969 <https://github.com/Qiskit/qiskit-terra/issues/8969>`__

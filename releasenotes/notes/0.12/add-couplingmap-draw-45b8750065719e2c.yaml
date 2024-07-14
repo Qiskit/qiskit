@@ -5,7 +5,7 @@ features:
     :class:`qiskit.transpiler.CouplingMap` to generate a graphviz images from
     the coupling map graph. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.transpiler import CouplingMap
 

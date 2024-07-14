@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed the following issues with the function
-    :func:`~qiskit.opflow.gradients.derivative_base.gradient_wrapper`:
-    - reusing a circuit sampler between the calls,
-    - binding nested parameters.

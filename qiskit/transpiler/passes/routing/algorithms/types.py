@@ -40,7 +40,7 @@ PermutationCircuit = NamedTuple(
     "PermutationCircuit",
     [
         ("circuit", DAGCircuit),
-        ("inputmap", Dict[Union[int, Qubit], Qubit])
+        ("inputmap", Dict[Union[int, Qubit], Qubit]),
         # A mapping from architecture nodes to circuit registers.
     ],
 )

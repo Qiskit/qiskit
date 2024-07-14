@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    The :class:`.AmplitudeEstimation` class now correctly warns if an :class:`.EstimationProblem`
+    with a set ``is_good_state`` property is passed as input, as it is not supported and ignored.
+    Previously, the algorithm would silently ignore this option leading to unexpected results.
+features:
+  - |
+    Added the :attr:`.EstimationProblem.has_good_state` attribute, which allows to check
+    whether an :class:`.EstimationProblem` has a custom :attr:`.EstimationProblem.is_good_state`
+    or if it is the default. This is useful for checks in amplitude estimators, such as
+    :class:`.AmplitudeEstimation`, which only support the default implementation.

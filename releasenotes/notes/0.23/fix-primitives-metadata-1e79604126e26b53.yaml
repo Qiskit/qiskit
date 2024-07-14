@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in the primitives' metadata, where the list made copies by reference and
+    all elements were updated with the same value at every iteration.

@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug in :meth:`.QuantumCircuit.initialize` and :meth:`.QuantumCircuit.prepare_state`
-    that caused them to not accept a single :class:`Qubit` as argument to initialize.

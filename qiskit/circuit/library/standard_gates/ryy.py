@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RYYGate(Gate):
@@ -41,14 +42,14 @@ class RYYGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{YY}(\theta) = \exp\left(-i \th Y{\otimes}Y\right) =
+        R_{YY}(\theta) = \exp\left(-i \rotationangle Y{\otimes}Y\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & 0           & 0           & i\sin\left(\th\right) \\
-                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
-                0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
-                i\sin\left(\th\right)  & 0           & 0           & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & 0 & 0 & i\sin\left(\rotationangle\right) \\
+                0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
+                i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     **Examples:**
@@ -72,9 +73,13 @@ class RYYGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    _standard_gate = StandardGate.RYYGate
+
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RYY gate."""
-        super().__init__("ryy", 2, [theta], label=label)
+        super().__init__("ryy", 2, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -106,12 +111,24 @@ class RYYGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse RYY gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse RYY gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RYYGate` with an inverted parameter value.
+
+        Returns:
+            RYYGate: inverse gate.
+        """
         return RYYGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RYY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta = float(self.params[0])
         cos = math.cos(theta / 2)
         isin = 1j * math.sin(theta / 2)
@@ -119,3 +136,12 @@ class RYYGate(Gate):
             [[cos, 0, 0, isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [isin, 0, 0, cos]],
             dtype=dtype,
         )
+
+    def power(self, exponent: float, annotated: bool = False):
+        (theta,) = self.params
+        return RYYGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RYYGate):
+            return self._compare_parameters(other)
+        return False

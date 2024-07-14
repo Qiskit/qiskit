@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Added a new constructor for the :class:`~.Target` class,
+    :meth:`.Target.from_configuration`, which lets you construct a
+    :class:`~.Target` object from the separate object types for describing
+    the constraints of a backend (e.g. basis gates, :class:`~.CouplingMap`,
+    :class:`~.BackendProperties`, etc). For example::
+
+        target = Target.from_configuration(
+            basis_gates=["u", "cx", "measure"],
+            coupling_map=CouplingMap.from_line(25),
+        )
+
+    This will construct a :class:`~.Target` object that has :class:`~.UGate`,
+    :class:`~.CXGate`, and :class:`~.Measure` globally available on 25 qubits
+    which are connected in a line.

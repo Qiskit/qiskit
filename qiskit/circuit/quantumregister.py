@@ -10,12 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """
 Quantum register reference object.
 """
 import itertools
 
 from qiskit.circuit.exceptions import CircuitError
+
 from .register import Register
 from .bit import Bit
 
@@ -40,7 +43,7 @@ class Qubit(Bit):
             super().__init__(register, index)
         else:
             raise CircuitError(
-                "Qubit needs a QuantumRegister and %s was provided" % type(register).__name__
+                f"Qubit needs a QuantumRegister and {type(register).__name__} was provided"
             )
 
 
@@ -52,10 +55,6 @@ class QuantumRegister(Register):
     # Prefix to use for auto naming.
     prefix = "q"
     bit_type = Qubit
-
-    def qasm(self):
-        """Return OPENQASM string for this register."""
-        return "qreg %s[%d];" % (self.name, self.size)
 
 
 class AncillaQubit(Qubit):

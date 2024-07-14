@@ -18,10 +18,11 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 
 
 class ASAPScheduleAnalysis(BaseScheduler):
-    """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
+    """ASAP Scheduling pass, which schedules the start time of instructions as early as possible.
 
-    See Scheduling section in :ref:`transpiler_supplemental` for
-    the detailed behavior of the control flow operation, i.e. ``c_if``.
+    See the :ref:`scheduling_stage` section in the :mod:`qiskit.transpiler`
+    module documentation for the detailed behavior of the control flow
+    operation, i.e. ``c_if``.
     """
 
     def run(self, dag):
@@ -43,11 +44,10 @@ class ASAPScheduleAnalysis(BaseScheduler):
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
-        node_start_time = dict()
+        node_start_time = {}
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
-        bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
-            op_duration = self._get_node_duration(node, bit_indices, dag)
+            op_duration = self._get_node_duration(node, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction

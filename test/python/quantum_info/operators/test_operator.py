@@ -17,17 +17,24 @@
 import unittest
 import logging
 import copy
+
+from test import combine
 import numpy as np
+from ddt import ddt
 from numpy.testing import assert_allclose
 import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler.layout import Layout
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.compiler.transpiler import transpile
+from qiskit.circuit import Qubit
+from qiskit.circuit.library import Permutation, PermutationGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +96,7 @@ class OperatorTestCase(QiskitTestCase):
         return circ
 
 
+@ddt
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
 
@@ -203,6 +211,12 @@ class TestOperator(OperatorTestCase):
         mat = self.rand_matrix(2, 2)
         op = Operator(mat)
         assert_allclose(mat, op.data)
+
+    def test_to_matrix(self):
+        """Test Operator to_matrix method."""
+        mat = self.rand_matrix(2, 2)
+        op = Operator(mat)
+        assert_allclose(mat, op.to_matrix())
 
     def test_dim(self):
         """Test Operator dim property."""
@@ -486,6 +500,18 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
         self.assertEqual(op.power(8), Operator(np.eye(2)))
 
+    def test_floating_point_power(self):
+        """Test handling floating-point powers."""
+        circuit = QuantumCircuit(2)
+        circuit.crz(np.pi, 0, 1)
+        op = Operator(circuit)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.crz(np.pi / 4, 0, 1)
+        expected_op = Operator(expected_circuit)
+
+        self.assertEqual(op.power(0.25), expected_op)
+
     def test_expand(self):
         """Test expand method."""
         mat1 = self.UX
@@ -669,6 +695,18 @@ class TestOperator(OperatorTestCase):
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        op = Operator.from_circuit(qc1)
+        with self.subTest(msg="str(operator)"):
+            str(op)
+        for drawtype in ["repr", "text", "latex_source"]:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                op.draw(drawtype)
+        with self.subTest(msg=" draw('latex')"):
+            op.draw("latex")
+
     def test_from_circuit_constructor_no_layout(self):
         """Test initialization from a circuit using the from_circuit constructor."""
         # Test tensor product of 1-qubit gates
@@ -699,6 +737,28 @@ class TestOperator(OperatorTestCase):
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
+    def test_from_circuit_initial_layout_final_layout(self):
+        """Test initialization from a circuit with a non-trivial initial_layout and final_layout as given
+        by a transpiled circuit."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(2, 1)
+        qc.cx(1, 2)
+        qc.cx(1, 0)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.h(2)
+
+        qc_transpiled = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            initial_layout=[2, 3, 4, 0, 1],
+            optimization_level=1,
+            seed_transpiler=17,
+        )
+
+        self.assertTrue(Operator.from_circuit(qc_transpiled).equiv(qc))
+
     def test_from_circuit_constructor_reverse_embedded_layout(self):
         """Test initialization from a circuit with an embedded reverse layout."""
         # Test tensor product of 1-qubit gates
@@ -706,7 +766,10 @@ class TestOperator(OperatorTestCase):
         circuit.h(2)
         circuit.x(1)
         circuit.ry(np.pi / 2, 0)
-        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         op = Operator.from_circuit(circuit)
         y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
         target = np.kron(y90, np.kron(self.UX, self.UH))
@@ -717,7 +780,10 @@ class TestOperator(OperatorTestCase):
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.cp(lam, 1, 0)
-        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         op = Operator.from_circuit(circuit)
         target = np.diag([1, 1, 1, np.exp(1j * lam)])
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
@@ -726,9 +792,83 @@ class TestOperator(OperatorTestCase):
         # Test decomposition of controlled-H gate
         circuit = QuantumCircuit(2)
         circuit.ch(1, 0)
-        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         op = Operator.from_circuit(circuit)
         target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_from_transpile(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        output = transpile(circuit, initial_layout=[2, 1, 0])
+        op = Operator.from_circuit(output)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_from_transpile_with_registers(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        output = transpile(circuit, initial_layout=[2, 1, 0])
+        op = Operator.from_circuit(output)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_and_final_layout(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+            Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1}),
+        )
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        op = Operator.from_circuit(circuit)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_and_manual_final_layout(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        final_layout = Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1})
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        op = Operator.from_circuit(circuit, final_layout=final_layout)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
@@ -739,7 +879,10 @@ class TestOperator(OperatorTestCase):
         circuit.h(2)
         circuit.x(1)
         circuit.ry(np.pi / 2, 0)
-        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
         y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
         target = np.kron(y90, np.kron(self.UX, self.UH))
@@ -750,7 +893,10 @@ class TestOperator(OperatorTestCase):
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.cp(lam, 1, 0)
-        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
         target = np.diag([1, 1, 1, np.exp(1j * lam)])
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
@@ -759,7 +905,10 @@ class TestOperator(OperatorTestCase):
         # Test decomposition of controlled-H gate
         circuit = QuantumCircuit(2)
         circuit.ch(1, 0)
-        circuit._layout = Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         op = Operator.from_circuit(circuit, ignore_set_layout=True).reverse_qargs()
         target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
@@ -806,14 +955,17 @@ class TestOperator(OperatorTestCase):
         circuit.cx(3, 2)
         circuit.cx(3, 0)
         circuit.cx(3, 1)
-        circuit._layout = Layout(
-            {
-                circuit.qubits[3]: 0,
-                circuit.qubits[4]: 1,
-                circuit.qubits[2]: 2,
-                circuit.qubits[0]: 3,
-                circuit.qubits[1]: 4,
-            }
+        circuit._layout = TranspileLayout(
+            Layout(
+                {
+                    circuit.qubits[3]: 0,
+                    circuit.qubits[4]: 1,
+                    circuit.qubits[2]: 2,
+                    circuit.qubits[0]: 3,
+                    circuit.qubits[1]: 4,
+                }
+            ),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
         result = Operator.from_circuit(circuit)
         expected = QuantumCircuit(5)
@@ -828,7 +980,7 @@ class TestOperator(OperatorTestCase):
     def test_from_circuit_empty_circuit_empty_layout(self):
         """Test an out of order ghz state with a layout set."""
         circuit = QuantumCircuit()
-        circuit._layout = Layout()
+        circuit._layout = TranspileLayout(Layout(), {})
         op = Operator.from_circuit(circuit)
         self.assertEqual(Operator([1]), op)
 
@@ -840,6 +992,268 @@ class TestOperator(OperatorTestCase):
         layout = Layout()
         with self.assertRaises(KeyError):
             Operator.from_circuit(circuit, layout=layout)
+
+    def test_compose_scalar(self):
+        """Test that composition works with a scalar-valued operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = Operator(np.array([[-1.0 + 0.0j]]))
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
+
+    def test_compose_scalar_op(self):
+        """Test that composition works with an explicit scalar operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = ScalarOp(coeff=-1.0 + 0.0j)
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
+
+    def test_from_circuit_single_flat_default_register_transpiled(self):
+        """Test a transpiled circuit with layout set from default register."""
+        circuit = QuantumCircuit(5)
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        init_layout = Layout(
+            {
+                circuit.qubits[0]: 3,
+                circuit.qubits[1]: 4,
+                circuit.qubits[2]: 1,
+                circuit.qubits[3]: 2,
+                circuit.qubits[4]: 0,
+            }
+        )
+        tqc = transpile(circuit, initial_layout=init_layout)
+        result = Operator.from_circuit(tqc)
+        self.assertTrue(Operator.from_circuit(circuit).equiv(result))
+
+    def test_from_circuit_loose_bits_transpiled(self):
+        """Test a transpiled circuit with layout set from loose bits."""
+        bits = [Qubit() for _ in range(5)]
+        circuit = QuantumCircuit()
+        circuit.add_bits(bits)
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        init_layout = Layout(
+            {
+                circuit.qubits[0]: 3,
+                circuit.qubits[1]: 4,
+                circuit.qubits[2]: 1,
+                circuit.qubits[3]: 2,
+                circuit.qubits[4]: 0,
+            }
+        )
+        tqc = transpile(circuit, initial_layout=init_layout)
+        result = Operator.from_circuit(tqc)
+        self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_multiple_registers_bits_transpiled(self):
+        """Test a transpiled circuit with layout set from loose bits."""
+        regs = [QuantumRegister(1, name=f"custom_reg-{i}") for i in range(5)]
+        circuit = QuantumCircuit()
+        for reg in regs:
+            circuit.add_register(reg)
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        tqc = transpile(circuit, initial_layout=[3, 4, 1, 2, 0])
+        result = Operator.from_circuit(tqc)
+        self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_single_flat_custom_register_transpiled(self):
+        """Test a transpiled circuit with layout set from loose bits."""
+        circuit = QuantumCircuit(QuantumRegister(5, name="custom_reg"))
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        tqc = transpile(circuit, initial_layout=[3, 4, 1, 2, 0])
+        result = Operator.from_circuit(tqc)
+        self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_mixed_reg_loose_bits_transpiled(self):
+        """Test a transpiled circuit with layout set from loose bits."""
+        bits = [Qubit(), Qubit()]
+        circuit = QuantumCircuit()
+        circuit.add_bits(bits)
+        circuit.add_register(QuantumRegister(3, name="a_reg"))
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        init_layout = Layout(
+            {
+                circuit.qubits[0]: 3,
+                circuit.qubits[1]: 4,
+                circuit.qubits[2]: 1,
+                circuit.qubits[3]: 2,
+                circuit.qubits[4]: 0,
+            }
+        )
+        tqc = transpile(circuit, initial_layout=init_layout)
+        result = Operator.from_circuit(tqc)
+        self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_into_larger_map(self):
+        """Test from_circuit method when the number of physical
+        qubits is larger than the number of original virtual qubits."""
+
+        # original circuit on 3 qubits
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        # transpile into 5-qubits
+        tqc = transpile(qc, coupling_map=CouplingMap.from_line(5), initial_layout=[0, 2, 4])
+
+        # qc expanded with ancilla qubits
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+
+        self.assertEqual(Operator.from_circuit(tqc), Operator(expected))
+
+    def test_apply_permutation_back(self):
+        """Test applying permutation to the operator,
+        where the operator is applied first and the permutation second."""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(Permutation(6, pattern))
+        op2 &= perm_op
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 &= perm_op
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=False)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_front(self):
+        """Test applying permutation to the operator,
+        where the permutation is applied first and the operator second"""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(Permutation(6, pattern))
+        op2 = perm_op & op2
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 = perm_op & op3
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=True)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_qudits_back(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the operator O is applied first and the permutation P second.
+        The matrix of the resulting operator is the product [P][O] and
+        corresponds to suitably permuting the rows of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=False)
+
+        # Rows of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[[0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(2, 3), output_dims=(3, 2))
+        self.assertEqual(actual, expected)
+
+    def test_apply_permutation_qudits_front(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the permutation P is applied first and the operator O is applied second.
+        The matrix of the resulting operator is the product [O][P] and
+        corresponds to suitably permuting the columns of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=True)
+
+        # Columns of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[:, [0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(3, 2), output_dims=(2, 3))
+        self.assertEqual(actual, expected)
+
+    @combine(
+        dims=((2, 3, 4, 5), (5, 2, 4, 3), (3, 5, 2, 4), (5, 3, 4, 2), (4, 5, 2, 3), (4, 3, 2, 5))
+    )
+    def test_reverse_qargs_as_apply_permutation(self, dims):
+        """Test reversing qargs by pre- and post-composing with reversal
+        permutation.
+        """
+        perm = [3, 2, 1, 0]
+        op = Operator(
+            np.array(range(120 * 120)).reshape((120, 120)), input_dims=dims, output_dims=dims
+        )
+        op2 = op.reverse_qargs()
+        op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
+        self.assertEqual(op2, op3)
+
+    def test_apply_permutation_exceptions(self):
+        """Checks that applying permutation raises an error when dimensions do not match."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([1, 0], front=False)
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([2, 1, 0], front=True)
+
+    def test_apply_permutation_dimensions(self):
+        """Checks the dimensions of the operator after applying permutation."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+        op2 = op.apply_permutation([1, 2, 0], front=False)
+        self.assertEqual(op2.output_dims(), (4, 2, 3))
+
+        op = Operator(
+            np.array(range(24 * 30)).reshape((30, 24)), input_dims=(2, 3, 4), output_dims=(6, 5)
+        )
+        op2 = op.apply_permutation([2, 0, 1], front=True)
+        self.assertEqual(op2.input_dims(), (4, 2, 3))
 
 
 if __name__ == "__main__":

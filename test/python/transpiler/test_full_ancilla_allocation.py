@@ -16,10 +16,11 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout, Target
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestFullAncillaAllocation(QiskitTestCase):
@@ -48,6 +49,41 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
+        pass_.property_set["layout"] = initial_layout
+
+        pass_.run(dag)
+        after_layout = pass_.property_set["layout"]
+
+        ancilla = QuantumRegister(2, "ancilla")
+
+        self.assertEqual(after_layout[0], qr[0])
+        self.assertEqual(after_layout[1], qr[1])
+        self.assertEqual(after_layout[2], qr[2])
+        self.assertEqual(after_layout[3], ancilla[0])
+        self.assertEqual(after_layout[4], ancilla[1])
+
+    def test_3q_circuit_5q_target(self):
+        """Allocates 2 ancillas for a 3q circuit in a 5q coupling map
+
+                    0 -> q0
+        q0 -> 0     1 -> q1
+        q1 -> 1  => 2 -> q2
+        q2 -> 2     3 -> ancilla0
+                    4 -> ancilla1
+        """
+        target = Target(num_qubits=5)
+        target.add_instruction(CXGate(), {edge: None for edge in self.cmap5.get_edges()})
+
+        qr = QuantumRegister(3, "q")
+        circ = QuantumCircuit(qr)
+        dag = circuit_to_dag(circ)
+
+        initial_layout = Layout()
+        initial_layout[0] = qr[0]
+        initial_layout[1] = qr[1]
+        initial_layout[2] = qr[2]
+
+        pass_ = FullAncillaAllocation(target)
         pass_.property_set["layout"] = initial_layout
 
         pass_.run(dag)
@@ -158,7 +194,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         )
 
     def test_bad_layout(self):
-        """Layout referes to a register that do not exist in the circuit"""
+        """Layout refers to a register that do not exist in the circuit"""
         qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)
@@ -177,6 +213,28 @@ class TestFullAncillaAllocation(QiskitTestCase):
             "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
+
+    def test_target_without_cmap(self):
+        """Test that FullAncillaAllocation works when the target does not have a coupling map.
+
+        This situation occurs at the early stages of backend bring-up.
+        """
+        target_data = {"basis_gates": ["h"], "num_qubits": 3}
+        target = Target.from_configuration(**target_data)
+
+        circ = QuantumCircuit(1)
+        circ.h(0)
+
+        pass_ = FullAncillaAllocation(target)
+        pass_.property_set["layout"] = Layout.from_intlist([0], *circ.qregs)
+
+        # Pre pass check
+        self.assertEqual(len(pass_.property_set["layout"]), 1)
+
+        pass_.run(circuit_to_dag(circ))
+
+        # Post pass check
+        self.assertEqual(len(pass_.property_set["layout"]), target.num_qubits)
 
 
 if __name__ == "__main__":

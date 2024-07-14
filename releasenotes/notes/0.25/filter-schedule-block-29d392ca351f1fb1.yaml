@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    The method :meth:`~qiskit.pulse.schedule.ScheduleBlock.filter` is activated
+    in the :class:`~qiskit.pulse.schedule.ScheduleBlock` class.
+    This method enables users to retain only :class:`~qiskit.pulse.Instruction`
+    objects which pass through all the provided filters.
+    As builtin filter conditions, pulse :class:`~qiskit.pulse.channels.Channel`
+    subclass instance and :class:`~qiskit.pulse.instructions.Instruction`
+    subclass type can be specified.
+    User-defined callbacks taking :class:`~qiskit.pulse.instructions.Instruction` instance
+    can be added to the filters, too.
+  - |
+    The method :meth:`~qiskit.pulse.schedule.ScheduleBlock.exclude` is activated
+    in the :class:`~qiskit.pulse.schedule.ScheduleBlock` class.
+    This method enables users to retain only :class:`~qiskit.pulse.Instruction`
+    objects which do not pass at least one of all the provided filters.
+    As builtin filter conditions, pulse :class:`~qiskit.pulse.channels.Channel`
+    subclass instance and :class:`~qiskit.pulse.instructions.Instruction`
+    subclass type can be specified.
+    User-defined callbacks taking :class:`~qiskit.pulse.instructions.Instruction` instance
+    can be added to the filters, too.
+    This method is the complement of :meth:`~qiskit.pulse.schedule.ScheduleBlock.filter`, so
+    the following condition is always satisfied:
+    ``block.filter(*filters) + block.exclude(*filters) == block`` in terms of
+    instructions included, where ``block`` is a :class:`~qiskit.pulse.schedule.ScheduleBlock`
+    instance.

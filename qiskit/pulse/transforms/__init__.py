@@ -17,6 +17,8 @@ Pulse Transforms (:mod:`qiskit.pulse.transforms`)
 The pulse transforms provide transformation routines to reallocate and optimize
 pulse programs for backends.
 
+.. _pulse_alignments:
+
 Alignments
 ==========
 
@@ -37,25 +39,26 @@ These are all subtypes of the abstract base class :class:`AlignmentKind`.
 .. autoclass:: AlignmentKind
 
 
+.. _pulse_canonical_transform:
+
 Canonicalization
 ================
 
 The canonicalization transforms convert schedules to a form amenable for execution on
 OpenPulse backends.
 
-.. autosummary::
-   :toctree: ../stubs/
+.. autofunction:: add_implicit_acquires
+.. autofunction:: align_measures
+.. autofunction:: block_to_schedule
+.. autofunction:: compress_pulses
+.. autofunction:: flatten
+.. autofunction:: inline_subroutines
+.. autofunction:: pad
+.. autofunction:: remove_directives
+.. autofunction:: remove_trivial_barriers
 
-   add_implicit_acquires
-   align_measures
-   block_to_schedule
-   compress_pulses
-   flatten
-   inline_subroutines
-   pad
-   remove_directives
-   remove_trivial_barriers
 
+.. _pulse_dag:
 
 DAG
 ===
@@ -63,25 +66,21 @@ DAG
 The DAG transforms create DAG representation of input program. This can be used for
 optimization of instructions and equality checks.
 
-.. autosummary::
-   :toctree: ../stubs/
+.. autofunction:: block_to_dag
 
-   block_to_dag
 
+.. _pulse_transform_chain:
 
 Composite transform
 ===================
 
 A sequence of transformations to generate a target code.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   target_qobj_transform
+.. autofunction:: target_qobj_transform
 
 """
 
-from qiskit.pulse.transforms.alignments import (
+from .alignments import (
     AlignEquispaced,
     AlignFunc,
     AlignLeft,
@@ -90,9 +89,9 @@ from qiskit.pulse.transforms.alignments import (
     AlignmentKind,
 )
 
-from qiskit.pulse.transforms.base_transforms import target_qobj_transform
+from .base_transforms import target_qobj_transform
 
-from qiskit.pulse.transforms.canonicalization import (
+from .canonicalization import (
     add_implicit_acquires,
     align_measures,
     block_to_schedule,
@@ -104,4 +103,4 @@ from qiskit.pulse.transforms.canonicalization import (
     remove_trivial_barriers,
 )
 
-from qiskit.pulse.transforms.dag import block_to_dag
+from .dag import block_to_dag

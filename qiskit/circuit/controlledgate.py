@@ -12,8 +12,9 @@
 
 """Controlled unitary gate."""
 
+from __future__ import annotations
 import copy
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -31,12 +32,16 @@ class ControlledGate(Gate):
         self,
         name: str,
         num_qubits: int,
-        params: List,
+        params: list,
         label: Optional[str] = None,
         num_ctrl_qubits: Optional[int] = 1,
         definition: Optional["QuantumCircuit"] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         base_gate: Optional[Gate] = None,
+        duration=None,
+        unit=None,
+        *,
+        _base_label=None,
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
@@ -64,7 +69,8 @@ class ControlledGate(Gate):
 
         Create a controlled standard gate and apply it to a circuit.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            from qiskit import QuantumCircuit, QuantumRegister
            from qiskit.circuit.library.standard_gates import HGate
@@ -73,11 +79,12 @@ class ControlledGate(Gate):
            qc = QuantumCircuit(qr)
            c3h_gate = HGate().control(2)
            qc.append(c3h_gate, qr)
-           qc.draw()
+           qc.draw('mpl')
 
         Create a controlled custom gate and apply it to a circuit.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            from qiskit import QuantumCircuit, QuantumRegister
            from qiskit.circuit.library.standard_gates import HGate
@@ -89,26 +96,27 @@ class ControlledGate(Gate):
 
            qc2 = QuantumCircuit(4)
            qc2.append(custom, [0, 3, 1, 2])
-           qc2.draw()
+           qc2.draw('mpl')
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
-        super().__init__(name, num_qubits, params, label=label)
+        super().__init__(name, num_qubits, params, label=label, duration=duration, unit=unit)
         self._num_ctrl_qubits = 1
         self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
+        self._open_ctrl = None
         self.ctrl_state = ctrl_state
         self._name = name
 
     @property
-    def definition(self) -> List:
+    def definition(self) -> QuantumCircuit:
         """Return definition in terms of other basic gates. If the gate has
-        open controls, as determined from `self.ctrl_state`, the returned
+        open controls, as determined from :attr:`ctrl_state`, the returned
         definition is conjugated with X without changing the internal
-        `_definition`.
+        ``_definition``.
         """
         if self._open_ctrl:
-            closed_gate = self.copy()
+            closed_gate = self.to_mutable()
             closed_gate.ctrl_state = None
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
             qreg = QuantumRegister(self.num_qubits, "q")
@@ -129,7 +137,8 @@ class ControlledGate(Gate):
         """Set controlled gate definition with closed controls.
 
         Args:
-            excited_def: The circuit with all closed controls."""
+            excited_def: The circuit with all closed controls.
+        """
         self._definition = excited_def
 
     @property
@@ -169,15 +178,21 @@ class ControlledGate(Gate):
         """Set the number of control qubits.
 
         Args:
-            num_ctrl_qubits (int): The number of control qubits in [1, num_qubits-1].
+            num_ctrl_qubits (int): The number of control qubits.
 
         Raises:
-            CircuitError: num_ctrl_qubits is not an integer in [1, num_qubits - 1].
+            CircuitError: ``num_ctrl_qubits`` is not an integer in ``[1, num_qubits]``.
         """
-        if num_ctrl_qubits == int(num_ctrl_qubits) and 1 <= num_ctrl_qubits < self.num_qubits:
-            self._num_ctrl_qubits = num_ctrl_qubits
-        else:
-            raise CircuitError("The number of control qubits must be in [1, num_qubits-1]")
+        if num_ctrl_qubits != int(num_ctrl_qubits):
+            raise CircuitError("The number of control qubits must be an integer.")
+        num_ctrl_qubits = int(num_ctrl_qubits)
+        # This is a range rather than an equality limit because some controlled gates represent a
+        # controlled version of the base gate whose definition also uses auxiliary qubits.
+        upper_limit = self.num_qubits - getattr(self.base_gate, "num_qubits", 0)
+        if num_ctrl_qubits < 1 or num_ctrl_qubits > upper_limit:
+            limit = "num_qubits" if self.base_gate is None else "num_qubits - base_gate.num_qubits"
+            raise CircuitError(f"The number of control qubits must be in `[1, {limit}]`.")
+        self._num_ctrl_qubits = num_ctrl_qubits
 
     @property
     def ctrl_state(self) -> int:
@@ -195,6 +210,7 @@ class ControlledGate(Gate):
             CircuitError: ctrl_state is invalid.
         """
         self._ctrl_state = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
+        self._open_ctrl = self.ctrl_state < 2**self.num_ctrl_qubits - 1
 
     @property
     def params(self):
@@ -222,21 +238,19 @@ class ControlledGate(Gate):
             CircuitError: If controlled gate does not define a base gate.
         """
         if self.base_gate:
-            self.base_gate.params = parameters
+            if self.base_gate.mutable:
+                self.base_gate.params = parameters
+            elif parameters:
+                raise CircuitError("cannot set parameters on immutable base gate")
         else:
             raise CircuitError("Controlled gate does not define base gate for extracting params")
 
-    def __deepcopy__(self, _memo=None):
+    def __deepcopy__(self, memo=None):
         cpy = copy.copy(self)
         cpy.base_gate = self.base_gate.copy()
         if self._definition:
-            cpy._definition = copy.deepcopy(self._definition, _memo)
+            cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
-
-    @property
-    def _open_ctrl(self) -> bool:
-        """Return whether gate has any open controls"""
-        return self.ctrl_state < 2**self.num_ctrl_qubits - 1
 
     def __eq__(self, other) -> bool:
         return (
@@ -249,6 +263,12 @@ class ControlledGate(Gate):
             and self.definition == other.definition
         )
 
-    def inverse(self) -> "ControlledGate":
+    def inverse(self, annotated: bool = False) -> "ControlledGate" | "AnnotatedOperation":
         """Invert this gate by calling inverse on the base gate."""
-        return self.base_gate.inverse().control(self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        if not annotated:
+            inverse_gate = self.base_gate.inverse().control(
+                self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+            )
+        else:
+            inverse_gate = super().inverse(annotated=annotated)
+        return inverse_gate

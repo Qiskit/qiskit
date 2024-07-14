@@ -19,7 +19,6 @@ import numpy as np
 
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.library import (
@@ -38,10 +37,12 @@ from qiskit.circuit.library import (
     RXXGate,
     RYYGate,
     CXGate,
+    SXGate,
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -378,7 +379,7 @@ class TestNLocal(QiskitTestCase):
 
         # pairwise entanglement is only defined if the entangling gate has 2 qubits
         with self.assertRaises(ValueError):
-            print(nlocal.draw())
+            _ = str(nlocal.draw())
 
     def test_entanglement_by_list(self):
         """Test setting the entanglement by list.
@@ -697,6 +698,16 @@ class TestTwoLocal(QiskitTestCase):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
+    def test_rzsx_blocks(self):
+        """Test that the EfficientSU2 circuit is instantiated correctly."""
+        two = EfficientSU2(3, ["rz", "sx", "rz", "sx", "rz"])
+        expected = [[RZGate], [SXGate], [RZGate], [SXGate], [RZGate]]
+        actual = [
+            [instruction.operation.base_class for instruction in block]
+            for block in two.rotation_blocks
+        ]
+        self.assertEqual(actual, expected)
+
     def test_ryrz_circuit(self):
         """Test an EfficientSU2 circuit."""
         num_qubits = 3
@@ -913,7 +924,8 @@ class TestTwoLocal(QiskitTestCase):
         reverse = RealAmplitudes(num_qubits=num_qubits, entanglement="reverse_linear", reps=reps)
         full.assign_parameters(params, inplace=True)
         reverse.assign_parameters(params, inplace=True)
-        assert Operator(full) == Operator(reverse)
+
+        self.assertEqual(Operator(full), Operator(reverse))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed the documentation in :class:`.LinCombEstimatorGradient` to correctly 
+    show the derivative applied on the ket-side of the expectation 
+    value. Previously, the derivative had been documented in the bra-side, which
+    led to a sign swap for gradients in the ``IMAG`` and ``COMPLEX`` 
+    cases of the :class:`.DerivativeType`.
+

@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Conjugation of a long :class:`.PauliList` by a :class:`.Clifford` using
-    :meth:`.PauliList.evolve` will now run much faster.

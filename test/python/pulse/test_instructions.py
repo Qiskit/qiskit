@@ -14,10 +14,9 @@
 
 import numpy as np
 
-from qiskit import pulse, circuit
+from qiskit import circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
-from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAcquire(QiskitTestCase):
@@ -67,31 +66,16 @@ class TestAcquire(QiskitTestCase):
 
     def test_instructions_hash(self):
         """Test hashing for acquire instruction."""
-        kernel_opts = {"start_window": 0, "stop_window": 10}
-        kernel = configuration.Kernel(name="boxcar", **kernel_opts)
-
-        discriminator_opts = {
-            "neighborhoods": [{"qubits": 1, "channels": 1}],
-            "cal": "coloring",
-            "resample": False,
-        }
-        discriminator = configuration.Discriminator(
-            name="linear_discriminator", **discriminator_opts
-        )
         acq_1 = instructions.Acquire(
             10,
             channels.AcquireChannel(0),
             channels.MemorySlot(0),
-            kernel=kernel,
-            discriminator=discriminator,
             name="acquire",
         )
         acq_2 = instructions.Acquire(
             10,
             channels.AcquireChannel(0),
             channels.MemorySlot(0),
-            kernel=kernel,
-            discriminator=discriminator,
             name="acquire",
         )
 
@@ -132,7 +116,7 @@ class TestDelay(QiskitTestCase):
         op_delay = Operator(circ)
 
         expected = QuantumCircuit(1)
-        expected.i(0)
+        expected.id(0)
         op_identity = Operator(expected)
         self.assertEqual(op_delay, op_identity)
 
@@ -161,6 +145,15 @@ class TestSetFrequency(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.SetFrequency(4.5e9, channels.RegisterSlot(1), name="test")
 
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.SetFrequency(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestShiftFrequency(QiskitTestCase):
     """Shift frequency tests."""
@@ -188,6 +181,15 @@ class TestShiftFrequency(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.ShiftFrequency(4.5e9, channels.RegisterSlot(1), name="test")
 
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.ShiftFrequency(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestSetPhase(QiskitTestCase):
     """Test the instruction construction."""
@@ -214,6 +216,15 @@ class TestSetPhase(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.SetPhase(1.57, channels.RegisterSlot(1), name="test")
 
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.SetPhase(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
@@ -239,6 +250,15 @@ class TestShiftPhase(QiskitTestCase):
         """Test shift phase constructor with illegal channel"""
         with self.assertRaises(exceptions.PulseError):
             instructions.ShiftPhase(1.57, channels.RegisterSlot(1), name="test")
+
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.ShiftPhase(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
 
 
 class TestSnapshot(QiskitTestCase):
@@ -303,86 +323,3 @@ class TestDirectives(QiskitTestCase):
         self.assertEqual(barrier.duration, 0)
         self.assertEqual(barrier.channels, chans)
         self.assertEqual(barrier.operands, chans)
-
-
-class TestCall(QiskitTestCase):
-    """Test call instruction."""
-
-    def setUp(self):
-        super().setUp()
-
-        with pulse.build() as _subroutine:
-            pulse.delay(10, pulse.DriveChannel(0))
-        self.subroutine = _subroutine
-
-        self.param1 = circuit.Parameter("amp1")
-        self.param2 = circuit.Parameter("amp2")
-        with pulse.build() as _function:
-            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, self.param2, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, self.param1, 40), pulse.DriveChannel(0))
-        self.function = _function
-
-    def test_call(self):
-        """Test basic call instruction."""
-        call = instructions.Call(subroutine=self.subroutine)
-
-        self.assertEqual(call.duration, 10)
-        self.assertEqual(call.subroutine, self.subroutine)
-
-    def test_parameterized_call(self):
-        """Test call instruction with parameterized subroutine."""
-        call = instructions.Call(subroutine=self.function)
-
-        self.assertTrue(call.is_parameterized())
-        self.assertEqual(len(call.parameters), 2)
-
-    def test_assign_parameters_to_call(self):
-        """Test create schedule by calling subroutine and assign parameters to it."""
-        init_dict = {self.param1: 0.1, self.param2: 0.5}
-
-        with pulse.build() as test_sched:
-            pulse.call(self.function)
-
-        test_sched = test_sched.assign_parameters(value_dict=init_dict)
-        test_sched = inline_subroutines(test_sched)
-
-        with pulse.build() as ref_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-
-        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))
-
-    def test_call_initialize_with_parameter(self):
-        """Test call instruction with parameterized subroutine with initial dict."""
-        init_dict = {self.param1: 0.1, self.param2: 0.5}
-        call = instructions.Call(subroutine=self.function, value_dict=init_dict)
-
-        with pulse.build() as ref_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-
-        self.assertEqual(
-            target_qobj_transform(call.assigned_subroutine()), target_qobj_transform(ref_sched)
-        )
-
-    def test_call_subroutine_with_different_parameters(self):
-        """Test call subroutines with different parameters in the same schedule."""
-        init_dict1 = {self.param1: 0.1, self.param2: 0.5}
-        init_dict2 = {self.param1: 0.3, self.param2: 0.7}
-
-        with pulse.build() as test_sched:
-            pulse.call(self.function, value_dict=init_dict1)
-            pulse.call(self.function, value_dict=init_dict2)
-
-        with pulse.build() as ref_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.5, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.7, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.3, 40), pulse.DriveChannel(0))
-
-        self.assertEqual(target_qobj_transform(test_sched), target_qobj_transform(ref_sched))

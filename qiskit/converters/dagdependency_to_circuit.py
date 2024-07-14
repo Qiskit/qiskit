@@ -36,7 +36,7 @@ def dagdependency_to_circuit(dagdependency):
 
     circuit.calibrations = dagdependency.calibrations
 
-    for node in dagdependency.get_nodes():
+    for node in dagdependency.topological_nodes():
         circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))
 
     return circuit

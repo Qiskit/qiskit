@@ -12,10 +12,11 @@
 
 """Quantum States."""
 
+from __future__ import annotations
 from .statevector import Statevector
 from .stabilizerstate import StabilizerState
 from .densitymatrix import DensityMatrix
-from .utils import partial_trace, shannon_entropy
+from .utils import partial_trace, schmidt_decomposition, shannon_entropy
 from .measures import (
     state_fidelity,
     purity,
@@ -23,4 +24,5 @@ from .measures import (
     concurrence,
     mutual_information,
     entanglement_of_formation,
+    negativity,
 )

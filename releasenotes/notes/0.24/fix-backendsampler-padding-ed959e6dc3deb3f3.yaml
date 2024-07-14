@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.BackendSampler` where the binary probability bitstrings
+    were truncated to the minimal number of bits required to represent the largest outcome
+    as integer. That means that if e.g. ``{"0001": 1.0}`` was measured, the result was truncated
+    to ``{"1": 1.0}``.

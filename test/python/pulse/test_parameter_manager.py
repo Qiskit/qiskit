@@ -15,15 +15,18 @@
 """Test cases for parameter manager."""
 
 from copy import deepcopy
+from unittest.mock import patch
 
+import ddt
 import numpy as np
 
 from qiskit import pulse
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
-from qiskit.test import QiskitTestCase
+from qiskit.pulse.utils import format_parameter_value
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class ParameterTestBase(QiskitTestCase):
@@ -77,9 +80,6 @@ class ParameterTestBase(QiskitTestCase):
         subroutine += pulse.ShiftPhase(self.phi1, self.d1)
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi3, self.d3)
-
         long_schedule = pulse.ScheduleBlock(
             alignment_context=AlignEquispaced(self.context_dur), name="long_schedule"
         )
@@ -87,7 +87,7 @@ class ParameterTestBase(QiskitTestCase):
         long_schedule += subroutine
         long_schedule += pulse.ShiftPhase(self.phi2, self.d2)
         long_schedule += pulse.Play(self.parametric_waveform2, self.d2)
-        long_schedule += pulse.Call(sched)
+        long_schedule += pulse.ShiftPhase(self.phi3, self.d3)
         long_schedule += pulse.Play(self.parametric_waveform3, self.d3)
 
         long_schedule += pulse.Acquire(
@@ -147,20 +147,6 @@ class TestParameterGetter(ParameterTestBase):
 
         self.assertSetEqual(visitor.parameters, ref_params)
 
-    def test_get_parameter_from_call(self):
-        """Test get parameters from instruction."""
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi1, self.d1)
-
-        test_obj = pulse.Call(subroutine=sched)
-
-        visitor = ParameterGetter()
-        visitor.visit(test_obj)
-
-        ref_params = {self.phi1, self.ch1}
-
-        self.assertSetEqual(visitor.parameters, ref_params)
-
     def test_with_function(self):
         """Test ParameterExpressions formed trivially in a function."""
 
@@ -201,7 +187,7 @@ class TestParameterSetter(ParameterTestBase):
     """Test setting parameters."""
 
     def test_set_parameter_to_channel(self):
-        """Test get parameters from channel."""
+        """Test set parameters from channel."""
         test_obj = pulse.DriveChannel(self.ch1 + self.ch2)
 
         value_dict = {self.ch1: 1, self.ch2: 2}
@@ -214,7 +200,7 @@ class TestParameterSetter(ParameterTestBase):
         self.assertEqual(assigned, ref_obj)
 
     def test_set_parameter_to_pulse(self):
-        """Test get parameters from pulse instruction."""
+        """Test set parameters from pulse instruction."""
         test_obj = self.parametric_waveform1
 
         value_dict = {self.amp1_1: 0.1, self.amp1_2: 0.2, self.dur1: 160}
@@ -249,25 +235,6 @@ class TestParameterSetter(ParameterTestBase):
         assigned = visitor.visit(test_obj)
 
         ref_obj = pulse.ShiftPhase(0.579, pulse.DriveChannel(0))
-
-        self.assertEqual(assigned, ref_obj)
-
-    def test_set_parameter_to_call(self):
-        """Test get parameters from instruction."""
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi1, self.d1)
-
-        test_obj = pulse.Call(subroutine=sched)
-
-        value_dict = {self.phi1: 1.57, self.ch1: 2}
-
-        visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(test_obj)
-
-        ref_sched = pulse.Schedule()
-        ref_sched += pulse.ShiftPhase(1.57, pulse.DriveChannel(2))
-
-        ref_obj = pulse.Call(subroutine=ref_sched)
 
         self.assertEqual(assigned, ref_obj)
 
@@ -309,7 +276,8 @@ class TestParameterSetter(ParameterTestBase):
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
         nested_block = pulse.ScheduleBlock()
-        nested_block += pulse.Call(subroutine=subroutine)
+
+        nested_block += subroutine
 
         test_obj = pulse.ScheduleBlock()
         test_obj += nested_block
@@ -336,42 +304,43 @@ class TestParameterSetter(ParameterTestBase):
         self.assertEqual(assigned, ref_obj)
 
     def test_complex_valued_parameter(self):
-        """Test complex valued parameter can be casted to a complex value."""
+        """Test complex valued parameter can be casted to a complex value,
+        but raises PendingDeprecationWarning.."""
         amp = Parameter("amp")
         test_obj = pulse.Constant(duration=160, amp=1j * amp)
 
         value_dict = {amp: 0.1}
 
         visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(test_obj)
+        with self.assertWarns(PendingDeprecationWarning):
+            assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
-
-        self.assertEqual(assigned, ref_obj)
+        self.assertEqual(assigned.amp, 0.1j)
 
     def test_complex_value_to_parameter(self):
-        """Test complex value can be assigned to parameter object."""
+        """Test complex value can be assigned to parameter object,
+        but raises PendingDeprecationWarning."""
         amp = Parameter("amp")
         test_obj = pulse.Constant(duration=160, amp=amp)
 
         value_dict = {amp: 0.1j}
 
         visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(test_obj)
+        with self.assertWarns(PendingDeprecationWarning):
+            assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
-
-        self.assertEqual(assigned, ref_obj)
+        self.assertEqual(assigned.amp, 0.1j)
 
     def test_complex_parameter_expression(self):
-        """Test assignment of complex-valued parameter expression to parameter."""
+        """Test assignment of complex-valued parameter expression to parameter,
+        but raises PendingDeprecationWarning."""
         amp = Parameter("amp")
 
         mag = Parameter("A")
         phi = Parameter("phi")
 
         test_obj = pulse.Constant(duration=160, amp=amp)
-
+        test_obj_copy = deepcopy(test_obj)
         # generate parameter expression
         value_dict = {amp: mag * np.exp(1j * phi)}
         visitor = ParameterSetter(param_map=value_dict)
@@ -380,13 +349,15 @@ class TestParameterSetter(ParameterTestBase):
         # generate complex value
         value_dict = {mag: 0.1, phi: 0.5}
         visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(assigned)
+        with self.assertWarns(PendingDeprecationWarning):
+            assigned = visitor.visit(assigned)
 
         # evaluated parameter expression: 0.0877582561890373 + 0.0479425538604203*I
         value_dict = {amp: 0.1 * np.exp(0.5j)}
-        visitor = ParameterSetter(param_map=value_dict)
-        ref_obj = visitor.visit(test_obj)
 
+        visitor = ParameterSetter(param_map=value_dict)
+        with self.assertWarns(PendingDeprecationWarning):
+            ref_obj = visitor.visit(test_obj_copy)
         self.assertEqual(assigned, ref_obj)
 
     def test_invalid_pulse_amplitude(self):
@@ -403,6 +374,35 @@ class TestParameterSetter(ParameterTestBase):
         )
         with self.assertRaises(PulseError):
             test_sched.assign_parameters({amp: 0.6}, inplace=False)
+
+    def test_disable_validation_parameter_assignment(self):
+        """Test that pulse validation can be disabled on the class level.
+
+        Tests for representative examples.
+        """
+        sig = Parameter("sigma")
+        test_sched = pulse.ScheduleBlock()
+        test_sched.append(
+            pulse.Play(
+                pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0), pulse.DriveChannel(0)
+            ),
+            inplace=True,
+        )
+        with self.assertRaises(PulseError):
+            test_sched.assign_parameters({sig: -1.0}, inplace=False)
+        with patch(
+            "qiskit.pulse.library.symbolic_pulses.SymbolicPulse.disable_validation", new=True
+        ):
+            test_sched = pulse.ScheduleBlock()
+            test_sched.append(
+                pulse.Play(
+                    pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0),
+                    pulse.DriveChannel(0),
+                ),
+                inplace=True,
+            )
+            binded_sched = test_sched.assign_parameters({sig: -1.0}, inplace=False)
+            self.assertLess(binded_sched.instructions[0][1].pulse.sigma, 0)
 
     def test_set_parameter_to_complex_schedule(self):
         """Test get parameters from complicated schedule."""
@@ -436,15 +436,12 @@ class TestParameterSetter(ParameterTestBase):
         subroutine += pulse.ShiftPhase(1.0, pulse.DriveChannel(0))
         subroutine += pulse.Play(pulse.Gaussian(100, 0.3, 25), pulse.DriveChannel(0))
 
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
-
         ref_obj = pulse.ScheduleBlock(alignment_context=AlignEquispaced(1000), name="long_schedule")
 
         ref_obj += subroutine
         ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2))
         ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), pulse.DriveChannel(2))
-        ref_obj += pulse.Call(sched)
+        ref_obj += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
         ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), pulse.DriveChannel(4))
 
         ref_obj += pulse.Acquire(
@@ -469,7 +466,7 @@ class TestAssignFromProgram(QiskitTestCase):
 
         ref_set = {amp, sigma}
 
-        self.assertSetEqual(block.parameters, ref_set)
+        self.assertSetEqual(set(block.parameters), ref_set)
 
     def test_parametric_pulses(self):
         """Test Parametric Pulses with parameters determined by ParameterExpressions
@@ -486,67 +483,75 @@ class TestAssignFromProgram(QiskitTestCase):
         self.assertEqual(block.blocks[0].pulse.amp, 0.2)
         self.assertEqual(block.blocks[0].pulse.sigma, 4.0)
 
-    def test_parameters_from_subroutine(self):
-        """Test that get parameter objects from subroutines."""
-        param1 = Parameter("amp")
-        waveform = pulse.library.Constant(duration=100, amp=param1)
+    def test_parametric_pulses_with_parameter_vector(self):
+        """Test Parametric Pulses with parameters determined by a ParameterVector
+        in the Play instruction."""
+        param_vec = ParameterVector("param_vec", 3)
+        param = Parameter("param")
 
-        program_layer0 = pulse.Schedule()
-        program_layer0 += pulse.Play(waveform, pulse.DriveChannel(0))
+        waveform = pulse.library.Gaussian(duration=128, sigma=param_vec[0], amp=param_vec[1])
 
-        # from call instruction
-        program_layer1 = pulse.Schedule()
-        program_layer1 += pulse.instructions.Call(program_layer0)
-        self.assertEqual(program_layer1.get_parameters("amp")[0], param1)
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        block1 = block.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        block2 = block.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].phase, 0.1)
+        self.assertEqual(block2.blocks[0].pulse.amp, param)
+        self.assertEqual(block2.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block2.blocks[1].phase, 0.1)
 
-        # from nested call instruction
-        program_layer2 = pulse.Schedule()
-        program_layer2 += pulse.instructions.Call(program_layer1)
-        self.assertEqual(program_layer2.get_parameters("amp")[0], param1)
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        sched2 = sched.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].phase, 0.1)
+        self.assertEqual(sched2.instructions[0][1].pulse.amp, param)
+        self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched2.instructions[1][1].phase, 0.1)
 
-    def test_assign_parameter_to_subroutine(self):
-        """Test that assign parameter objects to subroutines."""
-        param1 = Parameter("amp")
-        waveform = pulse.library.Constant(duration=100, amp=param1)
+    def test_pulse_assignment_with_parameter_names(self):
+        """Test pulse assignment with parameter names."""
+        sigma = Parameter("sigma")
+        amp = Parameter("amp")
+        param_vec = ParameterVector("param_vec", 2)
 
-        program_layer0 = pulse.Schedule()
-        program_layer0 += pulse.Play(waveform, pulse.DriveChannel(0))
-        reference = program_layer0.assign_parameters({param1: 0.1}, inplace=False)
+        waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
+        waveform2 = pulse.library.Gaussian(duration=128, sigma=40, amp=amp)
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform2, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        block1 = block.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
 
-        # to call instruction
-        program_layer1 = pulse.Schedule()
-        program_layer1 += pulse.instructions.Call(program_layer0)
-        target = program_layer1.assign_parameters({param1: 0.1}, inplace=False)
-        self.assertEqual(inline_subroutines(target), reference)
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[2].phase, 3.14)
+        self.assertEqual(block1.blocks[3].phase, 1.57)
 
-        # to nested call instruction
-        program_layer2 = pulse.Schedule()
-        program_layer2 += pulse.instructions.Call(program_layer1)
-        target = program_layer2.assign_parameters({param1: 0.1}, inplace=False)
-        self.assertEqual(inline_subroutines(target), reference)
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.Play(waveform2, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
 
-    def test_assign_parameter_to_subroutine_parameter(self):
-        """Test that assign parameter objects to parameter of subroutine."""
-        param1 = Parameter("amp")
-        waveform = pulse.library.Constant(duration=100, amp=param1)
-
-        param_sub1 = Parameter("p1")
-        param_sub2 = Parameter("p2")
-
-        subroutine = pulse.Schedule()
-        subroutine += pulse.Play(waveform, pulse.DriveChannel(0))
-        reference = subroutine.assign_parameters({param1: 0.6}, inplace=False)
-
-        main_prog = pulse.Schedule()
-        pdict = {param1: param_sub1 + param_sub2}
-        main_prog += pulse.instructions.Call(subroutine, value_dict=pdict)
-
-        # parameter is overwritten by parameters
-        self.assertEqual(len(main_prog.parameters), 2)
-        target = main_prog.assign_parameters({param_sub1: 0.1, param_sub2: 0.5}, inplace=False)
-        result = inline_subroutines(target)
-
-        self.assertEqual(result, reference)
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[2][1].phase, 3.14)
+        self.assertEqual(sched1.instructions[3][1].phase, 1.57)
 
 
 class TestScheduleTimeslots(QiskitTestCase):
@@ -624,3 +629,80 @@ class TestScheduleTimeslots(QiskitTestCase):
         sched = pulse.Schedule()
         with self.assertRaises(UnassignedDurationError):
             sched.insert(0, test_play)
+
+
+@ddt.ddt
+class TestFormatParameter(QiskitTestCase):
+    """Test format_parameter_value function."""
+
+    def test_format_unassigned(self):
+        """Format unassigned parameter expression."""
+        p1 = Parameter("P1")
+        p2 = Parameter("P2")
+        expr = p1 + p2
+
+        self.assertEqual(format_parameter_value(expr), expr)
+
+    def test_partly_unassigned(self):
+        """Format partly assigned parameter expression."""
+        p1 = Parameter("P1")
+        p2 = Parameter("P2")
+        expr = (p1 + p2).assign(p1, 3.0)
+
+        self.assertEqual(format_parameter_value(expr), expr)
+
+    @ddt.data(1, 1.0, 1.00000000001, np.int64(1))
+    def test_integer(self, value):
+        """Format integer parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, int)
+        self.assertEqual(out, 1)
+
+    @ddt.data(1.2, np.float64(1.2))
+    def test_float(self, value):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.2)
+
+    @ddt.data(1.2 + 3.4j, np.complex128(1.2 + 3.4j))
+    def test_complex(self, value):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, complex)
+        self.assertEqual(out, 1.2 + 3.4j)
+
+    def test_complex_rounding_error(self):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, 1.2 + 1j * 1e-20)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.2)
+
+    def test_builtin_float(self):
+        """Format float parameter expression."""
+        expr = 1.23
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.23)
+
+    @ddt.data(15482812500000, 8465625000000, 4255312500000)
+    def test_edge_case(self, edge_case_val):
+        """Format integer parameter expression with
+        a particular integer number that causes rounding error at typecast."""
+
+        # Numbers to be tested here are chosen randomly.
+        # These numbers had caused mis-typecast into float before qiskit/#11972.
+
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, edge_case_val)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, int)
+        self.assertEqual(out, edge_case_val)

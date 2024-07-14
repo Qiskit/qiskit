@@ -18,7 +18,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRemoveFinalMeasurements(QiskitTestCase):

@@ -14,10 +14,16 @@
 Mixin for gate operator interface.
 """
 
+import sys
 from abc import ABC, abstractmethod
 from numbers import Integral
 
 from qiskit.exceptions import QiskitError
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class GroupMixin(ABC):
@@ -46,20 +52,20 @@ class GroupMixin(ABC):
         - ``expand(self, other)``
     """
 
-    def __and__(self, other):
+    def __and__(self, other) -> Self:
         return self.compose(other)
 
-    def __pow__(self, n):
+    def __pow__(self, n) -> Self:
         return self.power(n)
 
-    def __xor__(self, other):
+    def __xor__(self, other) -> Self:
         return self.tensor(other)
 
-    def __matmul__(self, other):
+    def __matmul__(self, other) -> Self:
         return self.dot(other)
 
     @abstractmethod
-    def tensor(self, other):
+    def tensor(self, other) -> Self:
         r"""Return the tensor product with another CLASS.
 
         Args:
@@ -79,7 +85,7 @@ class GroupMixin(ABC):
         """
 
     @abstractmethod
-    def expand(self, other):
+    def expand(self, other) -> Self:
         r"""Return the reverse-order tensor product with another CLASS.
 
         Args:
@@ -95,7 +101,7 @@ class GroupMixin(ABC):
         """
 
     @abstractmethod
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other, qargs=None, front=False) -> Self:
         """Return the operator composition with another CLASS.
 
         Args:
@@ -124,7 +130,7 @@ class GroupMixin(ABC):
             ``A.dot(B) == A.compose(B, front=True)``.
         """
 
-    def dot(self, other, qargs=None):
+    def dot(self, other, qargs=None) -> Self:
         """Return the right multiplied operator self * other.
 
         Args:
@@ -142,7 +148,7 @@ class GroupMixin(ABC):
         """
         return self.compose(other, qargs=qargs, front=True)
 
-    def power(self, n):
+    def power(self, n) -> Self:
         """Return the compose of a operator with itself n times.
 
         Args:

@@ -1,31 +1,49 @@
+# Requirements to develop Terra, and the minimum needed to run its CI.  All
+# optional requirements should go in `requirements-optionals.txt` instead.
+#
+# Version requirements here can be more restrictive than elsewhere, because they
+# never become actual package requirements, but still try to be as relaxed as
+# possible so it's easy to develop multiple packages from the same venv.
+
+# Build Rust directly
+setuptools
+setuptools-rust
+
+# Style
+black[jupyter]~=24.1
+
+
+# Lint
+#
+# These versions are pinned precisely because pylint frequently includes new
+# on-by-default lint failures in new versions, which breaks our CI.
+astroid==3.2.2
+pylint==3.2.3
+ruff==0.0.267
+
+
+# Tests
 coverage>=4.4.0
 hypothesis>=4.24.3
-python-constraint>=1.4
-ipython<7.22.0
-ipykernel<5.5.2
-ipywidgets>=7.3.0
-jupyter
-matplotlib>=3.3
-pillow>=4.2.1
-black[jupyter]~=22.0
-pydot
-astroid==2.5.6
-pylint==2.8.3
-stestr>=2.0.0
-pylatexenc>=1.4
+stestr>=2.0.0,!=4.0.0
 ddt>=1.2.0,!=1.4.0,!=1.4.3
-seaborn>=0.9.0
-reno>=3.4.0
-Sphinx>=3.0.0
-qiskit-sphinx-theme>=1.6
-qiskit-toqm>=0.0.4;platform_machine != 'aarch64' or platform_system != 'Linux'
-sphinx-autodoc-typehints<1.14.0
-jupyter-sphinx
-sphinx-design>=0.2.0
-pygments>=2.4
-networkx>=2.2
-scikit-learn>=0.20.0
-scikit-quant<=0.7;platform_system != 'Windows'
-jax;platform_system != 'Windows'
-jaxlib;platform_system != 'Windows'
-docplex
+# used to get more complete information on Numpy/Scipy and their BLAS usage during
+# CI reporting
+threadpoolctl
+
+
+# Documentation tooling.
+#
+# This alone is not sufficient to fully build the documentation, because several
+# components of Qiskit use some of its optional dependencies in order to document
+# themselves. These are the requirements that are _only_ required for the docs
+# build, and are not used by Qiskit itself.
+#
+# Be careful when adding new requirements. We want to keep the docs build simple because
+# we only build docs in this repo to generate API references that get consumed by
+# https://github.com/Qiskit/documentation. For example, coordinate adding dependencies
+# like `sphinx-design` to make sure that `Qiskit/documentation` will be able to
+# consume it properly.
+Sphinx>=6.0,<7.2
+reno >= 4.1.0
+sphinxcontrib-katex==0.9.9

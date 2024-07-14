@@ -25,7 +25,8 @@ from qiskit.circuit import (
     Gate,
 )
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitRegisters(QiskitTestCase):
@@ -96,7 +97,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test numpy array of Registers .
         See https://github.com/Qiskit/qiskit-terra/issues/1898
         """
-        qrs = [QuantumRegister(2, name="q%s" % i) for i in range(5)]
+        qrs = [QuantumRegister(2, name=f"q{i}") for i in range(5)]
         qreg_array = np.array([], dtype=object, ndmin=1)
         qreg_array = np.append(qreg_array, qrs)
 
@@ -284,7 +285,7 @@ class TestCircuitRegisters(QiskitTestCase):
         num_qubits = 2
         qc = QuantumCircuit(qr, cr)
         qc.barrier(qr[0:num_qubits])
-        self.log.info(qc.qasm())
+        self.log.info(dumps(qc))
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0].operation.name, "barrier")
         self.assertEqual(len(qc.data[0].qubits), num_qubits)
