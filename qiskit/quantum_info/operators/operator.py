@@ -128,12 +128,9 @@ class Operator(LinearOp):
     def __repr__(self):
         prefix = "Operator("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(self.data, separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(self.data, separator=', ', prefix=prefix)},\n"
+            f"{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other):
@@ -414,6 +411,8 @@ class Operator(LinearOp):
 
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
+        op = Operator(circuit)
+
         if initial_layout is not None:
             input_qubits = [None] * len(layout.input_qubit_mapping)
             for q, p in layout.input_qubit_mapping.items():
@@ -421,21 +420,17 @@ class Operator(LinearOp):
 
             initial_permutation = initial_layout.to_permutation(input_qubits)
             initial_permutation_inverse = _inverse_pattern(initial_permutation)
-
-        if final_layout is not None:
-            final_permutation = final_layout.to_permutation(circuit.qubits)
-            final_permutation_inverse = _inverse_pattern(final_permutation)
-
-        op = Operator(circuit)
-
-        if initial_layout:
             op = op.apply_permutation(initial_permutation, True)
 
-        if final_layout:
-            op = op.apply_permutation(final_permutation_inverse, False)
-
-        if initial_layout:
+            if final_layout is not None:
+                final_permutation = final_layout.to_permutation(circuit.qubits)
+                final_permutation_inverse = _inverse_pattern(final_permutation)
+                op = op.apply_permutation(final_permutation_inverse, False)
             op = op.apply_permutation(initial_permutation_inverse, False)
+        elif final_layout is not None:
+            final_permutation = final_layout.to_permutation(circuit.qubits)
+            final_permutation_inverse = _inverse_pattern(final_permutation)
+            op = op.apply_permutation(final_permutation_inverse, False)
 
         return op
 
@@ -765,10 +760,8 @@ class Operator(LinearOp):
                 raise QiskitError(f"Cannot apply Operation: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    'Operation "{}" '
-                    "definition is {} but expected QuantumCircuit.".format(
-                        obj.name, type(obj.definition)
-                    )
+                    f'Operation "{obj.name}" '
+                    f"definition is {type(obj.definition)} but expected QuantumCircuit."
                 )
             if obj.definition.global_phase:
                 dimension = 2**obj.num_qubits

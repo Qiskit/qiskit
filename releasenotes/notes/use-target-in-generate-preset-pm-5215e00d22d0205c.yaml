@@ -1,0 +1,14 @@
+---
+features_transpiler:
+  - |
+    A new ``dt`` argument has been added to :func:`.generate_preset_pass_manager` to match
+    the set of arguments of :func:`.transpile`. This will allow for the internal conversion 
+    of transpilation constraints to a :class:`.Target` representation.
+    
+upgrade_transpiler:
+  - |
+    The :func:`.generate_preset_pass_manager` function has been upgraded to, when possible,
+    internally convert transpiler constraints into a :class:`.Target` instance.
+    If a `backend` input of type :class:`.BackendV1` is provided, it will be 
+    converted to :class:`.BackendV2` to expose its :class:`.Target`. This change does 
+    not require any user action.

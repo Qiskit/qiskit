@@ -260,7 +260,7 @@ class StarPreRouting(TransformationPass):
         # star block by a linear sequence of gates
         new_dag, qubit_mapping = self.star_preroute(dag, star_blocks, processing_order)
 
-        # Fix output permuation -- copied from ElidePermutations
+        # Fix output permutation -- copied from ElidePermutations
         input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         if self.property_set["original_qubit_indices"] is None:
