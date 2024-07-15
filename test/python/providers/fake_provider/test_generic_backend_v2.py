@@ -73,6 +73,20 @@ class TestGenericBackendV2(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
         self.assertEqual(backend.target.qubit_properties, None)
 
+    def test_no_noise_fully_connected(self):
+        """Test no noise info when parameter is false"""
+        backend = GenericBackendV2(num_qubits=5, noise_info=False)
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 4)
+        qc.cx(3, 0)
+        qc.cx(2, 4)
+        qc_res = generate_preset_pass_manager(optimization_level=2, backend=backend).run(qc)
+        self.assertTrue(Operator.from_circuit(qc_res).equiv(qc))
+        self.assertEqual(backend.target.qubit_properties, None)
+
     def test_no_info(self):
         """Test no noise info when parameter is false"""
         backend = GenericBackendV2(
