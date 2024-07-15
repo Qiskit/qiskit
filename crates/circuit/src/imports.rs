@@ -86,121 +86,119 @@ pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn
 /// index of it's entry in this table. This is all done statically for performance
 // TODO: replace placeholders with actual implementation
 static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
-    // ZGate = 0
-    ["qiskit.circuit.library.standard_gates.z", "ZGate"],
-    // YGate = 1
-    ["qiskit.circuit.library.standard_gates.y", "YGate"],
-    // XGate = 2
-    ["qiskit.circuit.library.standard_gates.x", "XGate"],
-    // CZGate = 3
-    ["qiskit.circuit.library.standard_gates.z", "CZGate"],
-    // CYGate = 4
-    ["qiskit.circuit.library.standard_gates.y", "CYGate"],
-    // CXGate = 5
-    ["qiskit.circuit.library.standard_gates.x", "CXGate"],
-    // CCXGate = 6
-    ["qiskit.circuit.library.standard_gates.x", "CCXGate"],
-    // RXGate = 7
-    ["qiskit.circuit.library.standard_gates.rx", "RXGate"],
-    // RYGate = 8
-    ["qiskit.circuit.library.standard_gates.ry", "RYGate"],
-    // RZGate = 9
-    ["qiskit.circuit.library.standard_gates.rz", "RZGate"],
-    // ECRGate = 10
-    ["qiskit.circuit.library.standard_gates.ecr", "ECRGate"],
-    // SwapGate = 11
-    ["qiskit.circuit.library.standard_gates.swap", "SwapGate"],
-    // SXGate = 12
-    ["qiskit.circuit.library.standard_gates.sx", "SXGate"],
-    // GlobalPhaseGate = 13
+    // GlobalPhaseGate = 0
     [
         "qiskit.circuit.library.standard_gates.global_phase",
         "GlobalPhaseGate",
     ],
-    // IGate = 14
-    ["qiskit.circuit.library.standard_gates.i", "IGate"],
-    // HGate = 15
+    // HGate = 1
     ["qiskit.circuit.library.standard_gates.h", "HGate"],
-    // PhaseGate = 16
+    // IGate = 2
+    ["qiskit.circuit.library.standard_gates.i", "IGate"],
+    // XGate = 3
+    ["qiskit.circuit.library.standard_gates.x", "XGate"],
+    // YGate = 4
+    ["qiskit.circuit.library.standard_gates.y", "YGate"],
+    // ZGate = 5
+    ["qiskit.circuit.library.standard_gates.z", "ZGate"],
+    // PhaseGate = 6
     ["qiskit.circuit.library.standard_gates.p", "PhaseGate"],
+    // RGate 7
+    ["qiskit.circuit.library.standard_gates.r", "RGate"],
+    // RXGate = 8
+    ["qiskit.circuit.library.standard_gates.rx", "RXGate"],
+    // RYGate = 9
+    ["qiskit.circuit.library.standard_gates.ry", "RYGate"],
+    // RZGate = 10
+    ["qiskit.circuit.library.standard_gates.rz", "RZGate"],
+    // SGate = 11
+    ["qiskit.circuit.library.standard_gates.s", "SGate"],
+    // SdgGate = 12
+    ["qiskit.circuit.library.standard_gates.s", "SdgGate"],
+    // SXGate = 13
+    ["qiskit.circuit.library.standard_gates.sx", "SXGate"],
+    // SXdgGate = 14
+    ["qiskit.circuit.library.standard_gates.sx", "SXdgGate"],
+    // TGate = 15
+    ["qiskit.circuit.library.standard_gates.t", "TGate"],
+    // TdgGate = 16
+    ["qiskit.circuit.library.standard_gates.t", "TdgGate"],
     // UGate = 17
     ["qiskit.circuit.library.standard_gates.u", "UGate"],
-    // SGate = 18
-    ["qiskit.circuit.library.standard_gates.s", "SGate"],
-    // SdgGate = 19
-    ["qiskit.circuit.library.standard_gates.s", "SdgGate"],
-    // TGate = 20
-    ["qiskit.circuit.library.standard_gates.t", "TGate"],
-    // TdgGate = 21
-    ["qiskit.circuit.library.standard_gates.t", "TdgGate"],
-    // SXdgGate = 22
-    ["qiskit.circuit.library.standard_gates.sx", "SXdgGate"],
-    // iSWAPGate = 23
+    // U1Gate = 18
+    ["qiskit.circuit.library.standard_gates.u1", "U1Gate"],
+    // U2Gate = 19
+    ["qiskit.circuit.library.standard_gates.u2", "U2Gate"],
+    // U3Gate = 20
+    ["qiskit.circuit.library.standard_gates.u3", "U3Gate"],
+    // CHGate = 21
+    ["qiskit.circuit.library.standard_gates.h", "CHGate"],
+    // CXGate = 22
+    ["qiskit.circuit.library.standard_gates.x", "CXGate"],
+    // CYGate = 23
+    ["qiskit.circuit.library.standard_gates.y", "CYGate"],
+    // CZGate = 24
+    ["qiskit.circuit.library.standard_gates.z", "CZGate"],
+    // DCXGate = 25
+    ["qiskit.circuit.library.standard_gates.dcx", "DCXGate"],
+    // ECRGate = 26
+    ["qiskit.circuit.library.standard_gates.ecr", "ECRGate"],
+    // SwapGate = 27
+    ["qiskit.circuit.library.standard_gates.swap", "SwapGate"],
+    // iSWAPGate = 28
     ["qiskit.circuit.library.standard_gates.iswap", "iSwapGate"],
-    // XXMinusYYGate = 24
+    // CPhaseGate = 29
+    ["qiskit.circuit.library.standard_gates.p", "CPhaseGate"],
+    // CRXGate = 30
+    ["qiskit.circuit.library.standard_gates.rx", "CRXGate"],
+    // CRYGate = 31
+    ["qiskit.circuit.library.standard_gates.ry", "CRYGate"],
+    // CRZGate = 32
+    ["qiskit.circuit.library.standard_gates.rz", "CRZGate"],
+    // CSGate = 33
+    ["qiskit.circuit.library.standard_gates.s", "CSGate"],
+    // CSdgGate = 34
+    ["qiskit.circuit.library.standard_gates.s", "CSdgGate"],
+    // CSXGate = 35
+    ["qiskit.circuit.library.standard_gates.sx", "CSXGate"],
+    // CUGate = 36
+    ["qiskit.circuit.library.standard_gates.u", "CUGate"],
+    // CU1Gate = 37
+    ["qiskit.circuit.library.standard_gates.u1", "CU1Gate"],
+    // CU3Gate = 38
+    ["qiskit.circuit.library.standard_gates.u3", "CU3Gate"],
+    // RXXGate = 39
+    ["qiskit.circuit.library.standard_gates.rxx", "RXXGate"],
+    // RYYGate = 40
+    ["qiskit.circuit.library.standard_gates.ryy", "RYYGate"],
+    // RZZGate = 41
+    ["qiskit.circuit.library.standard_gates.rzz", "RZZGate"],
+    // RZXGate = 42
+    ["qiskit.circuit.library.standard_gates.rzx", "RZXGate"],
+    // XXMinusYYGate = 43
     [
         "qiskit.circuit.library.standard_gates.xx_minus_yy",
         "XXMinusYYGate",
     ],
-    // XXPlusYYGate = 25
+    // XXPlusYYGate = 44
     [
         "qiskit.circuit.library.standard_gates.xx_plus_yy",
         "XXPlusYYGate",
     ],
-    // U1Gate = 26
-    ["qiskit.circuit.library.standard_gates.u1", "U1Gate"],
-    // U2Gate = 27
-    ["qiskit.circuit.library.standard_gates.u2", "U2Gate"],
-    // U3Gate = 28
-    ["qiskit.circuit.library.standard_gates.u3", "U3Gate"],
-    // CRXGate = 29
-    ["qiskit.circuit.library.standard_gates.rx", "CRXGate"],
-    // CRYGate = 30
-    ["qiskit.circuit.library.standard_gates.ry", "CRYGate"],
-    // CRZGate = 31
-    ["qiskit.circuit.library.standard_gates.rz", "CRZGate"],
-    // RGate 32
-    ["qiskit.circuit.library.standard_gates.r", "RGate"],
-    // CHGate = 33
-    ["qiskit.circuit.library.standard_gates.h", "CHGate"],
-    // CPhaseGate = 34
-    ["qiskit.circuit.library.standard_gates.p", "CPhaseGate"],
-    // CSGate = 35
-    ["qiskit.circuit.library.standard_gates.s", "CSGate"],
-    // CSdgGate = 36
-    ["qiskit.circuit.library.standard_gates.s", "CSdgGate"],
-    // CSXGate = 37
-    ["qiskit.circuit.library.standard_gates.sx", "CSXGate"],
-    // CSwapGate = 38
-    ["qiskit.circuit.library.standard_gates.swap", "CSwapGate"],
-    // CUGate = 39
-    ["qiskit.circuit.library.standard_gates.u", "CUGate"],
-    // CU1Gate = 40
-    ["qiskit.circuit.library.standard_gates.u1", "CU1Gate"],
-    // CU3Gate = 41
-    ["qiskit.circuit.library.standard_gates.u3", "CU3Gate"],
-    // C3XGate = 42
-    ["qiskit.circuit.library.standard_gates.x", "C3XGate"],
-    // C3SXGate = 43
-    ["qiskit.circuit.library.standard_gates.x", "C3SXGate"],
-    // C4XGate = 44
-    ["qiskit.circuit.library.standard_gates.x", "C4XGate"],
-    // DCXGate = 45
-    ["qiskit.circuit.library.standard_gates.dcx", "DCXGate"],
+    // CCXGate = 45
+    ["qiskit.circuit.library.standard_gates.x", "CCXGate"],
     // CCZGate = 46
     ["qiskit.circuit.library.standard_gates.z", "CCZGate"],
-    // RCCXGate = 47
+    // CSwapGate = 47
+    ["qiskit.circuit.library.standard_gates.swap", "CSwapGate"],
+    // RCCXGate = 48
     ["qiskit.circuit.library.standard_gates.x", "RCCXGate"],
-    // RC3XGate = 48
+    // C3XGate = 49
+    ["qiskit.circuit.library.standard_gates.x", "C3XGate"],
+    // C3SXGate = 50
+    ["qiskit.circuit.library.standard_gates.x", "C3SXGate"],
+    // RC3XGate = 51
     ["qiskit.circuit.library.standard_gates.x", "RC3XGate"],
-    // RXXGate = 49
-    ["qiskit.circuit.library.standard_gates.rxx", "RXXGate"],
-    // RYYGate = 50
-    ["qiskit.circuit.library.standard_gates.ryy", "RYYGate"],
-    // RZZGate = 51
-    ["qiskit.circuit.library.standard_gates.rzz", "RZZGate"],
-    // RZXGate = 52
-    ["qiskit.circuit.library.standard_gates.rzx", "RZXGate"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the
