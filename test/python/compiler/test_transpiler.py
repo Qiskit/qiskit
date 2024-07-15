@@ -499,7 +499,7 @@ class TestTranspile(QiskitTestCase):
         self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_transpile_bell_discrete_basis(self):
-        """Test that it's possible to transpile a very simple circuit to a discrete stabiliser-like
+        """Test that it's possible to transpile a very simple circuit to a discrete stabilizer-like
         basis.  In general, we do not make any guarantees about the possibility or quality of
         transpilation in these situations, but this is at least useful as a check that stuff that
         _could_ be possible remains so."""
@@ -1890,7 +1890,7 @@ class TestTranspile(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
-        """Test transpile() with a target and constrol flow ops."""
+        """Test transpile() with a target and control flow ops."""
         target = GenericBackendV2(num_qubits=8, control_flow=True).target
 
         circuit = QuantumCircuit(6, 1)
@@ -1927,7 +1927,7 @@ class TestTranspile(QiskitTestCase):
         transpiled = transpile(
             circuit, optimization_level=opt_level, target=target, seed_transpiler=12434
         )
-        # Tests of the complete validity of a circuit are mostly done at the indiviual pass level;
+        # Tests of the complete validity of a circuit are mostly done at the individual pass level;
         # here we're just checking that various passes do appear to have run.
         self.assertIsInstance(transpiled, QuantumCircuit)
         # Assert layout ran.
@@ -2864,7 +2864,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             def _default_options(cls):
                 return Options(shots=1024)
 
-            def run(self, circuit, **kwargs):
+            def run(self, circuit, **kwargs):  # pylint:disable=arguments-renamed
                 raise NotImplementedError
 
         self.backend = FakeMultiChip()

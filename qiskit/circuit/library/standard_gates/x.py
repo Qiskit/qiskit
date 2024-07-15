@@ -19,8 +19,10 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _X_ARRAY = [[0, 1], [1, 0]]
+_SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
 
 
 @with_gate_array(_X_ARRAY)
@@ -69,6 +71,8 @@ class XGate(SingletonGate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
+
+    _standard_gate = StandardGate.XGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
@@ -211,6 +215,8 @@ class CXGate(SingletonControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
+
+    _standard_gate = StandardGate.CXGate
 
     def __init__(
         self,
@@ -361,6 +367,8 @@ class CCXGate(SingletonControlledGate):
                 \end{pmatrix}
 
     """
+
+    _standard_gate = StandardGate.CCXGate
 
     def __init__(
         self,
@@ -515,6 +523,8 @@ class RCCXGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
+    _standard_gate = StandardGate.RCCXGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new simplified CCX gate."""
         super().__init__("rccx", 3, [], label=label, duration=duration, unit=unit)
@@ -562,6 +572,7 @@ class RCCXGate(SingletonGate):
         return isinstance(other, RCCXGate)
 
 
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
 class C3SXGate(SingletonControlledGate):
     """The 3-qubit controlled sqrt-X gate.
 
@@ -570,6 +581,8 @@ class C3SXGate(SingletonControlledGate):
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
+
+    _standard_gate = StandardGate.C3SXGate
 
     def __init__(
         self,
@@ -674,6 +687,8 @@ class C3XGate(SingletonControlledGate):
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
+
+    _standard_gate = StandardGate.C3XGate
 
     def __init__(
         self,
@@ -862,6 +877,8 @@ class RC3XGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
+    _standard_gate = StandardGate.RC3XGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new RC3X gate."""
         super().__init__("rcccx", 4, [], label=label, duration=duration, unit=unit)
@@ -965,7 +982,7 @@ class C4XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3sqrtx a,b,c,d
@@ -1402,6 +1419,8 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
+        relative_phase: bool = False,  # pylint: disable=unused-argument
+        action_only: bool = False,  # pylint: disable=unused-argument
     ):
         """Create a new MCX instance.
 
@@ -1427,7 +1446,24 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
+        relative_phase: bool = False,
+        action_only: bool = False,
     ):
+        """
+        Args:
+            dirty_ancillas: when set to ``True``, the method applies an optimized multicontrolled-X gate
+                up to a relative phase using dirty ancillary qubits with the properties of lemmas 7 and 8
+                from arXiv:1501.06911, with at most 8*k - 6 CNOT gates.
+                For k within the range {1, ..., ceil(n/2)}. And for n representing the total number of
+                qubits.
+            relative_phase: when set to ``True``, the method applies the optimized multicontrolled-X gate
+                up to a relative phase, in a way that, by lemma 7 of arXiv:1501.06911, the relative
+                phases of the ``action part`` cancel out with the phases of the ``reset part``.
+
+            action_only: when set to ``True``, the method applies only the action part of lemma 8
+                from arXiv:1501.06911.
+
+        """
         super().__init__(
             num_ctrl_qubits,
             label=label,
@@ -1438,6 +1474,9 @@ class MCXVChain(MCXGate):
             unit=unit,
         )
         self._dirty_ancillas = dirty_ancillas
+        self._relative_phase = relative_phase
+        self._action_only = action_only
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
 
     def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse.
@@ -1455,6 +1494,8 @@ class MCXVChain(MCXGate):
             num_ctrl_qubits=self.num_ctrl_qubits,
             dirty_ancillas=self._dirty_ancillas,
             ctrl_state=self.ctrl_state,
+            relative_phase=self._relative_phase,
+            action_only=self._action_only,
         )
 
     @staticmethod
@@ -1466,8 +1507,6 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
-        from .u2 import U2Gate
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
@@ -1475,64 +1514,83 @@ class MCXVChain(MCXGate):
         q_target = q[self.num_ctrl_qubits]
         q_ancillas = q[self.num_ctrl_qubits + 1 :]
 
-        definition = []
-
         if self._dirty_ancillas:
-            i = self.num_ctrl_qubits - 3
-            ancilla_pre_rule = [
-                (U2Gate(0, numpy.pi), [q_target], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            ]
-            for inst in ancilla_pre_rule:
-                definition.append(inst)
+            if self.num_ctrl_qubits < 3:
+                qc.mcx(q_controls, q_target)
+            elif not self._relative_phase and self.num_ctrl_qubits == 3:
+                qc._append(C3XGate(), [*q_controls, q_target], [])
+            else:
+                num_ancillas = self.num_ctrl_qubits - 2
+                targets = [q_target] + q_ancillas[:num_ancillas][::-1]
+
+                for j in range(2):
+                    for i in range(self.num_ctrl_qubits):  # action part
+                        if i < self.num_ctrl_qubits - 2:
+                            if targets[i] != q_target or self._relative_phase:
+                                # gate cancelling
+
+                                # cancel rightmost gates of action part
+                                # with leftmost gates of reset part
+                                if self._relative_phase and targets[i] == q_target and j == 1:
+                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
+                                    qc.t(targets[i])
+                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                                    qc.tdg(targets[i])
+                                    qc.h(targets[i])
+                                else:
+                                    qc.h(targets[i])
+                                    qc.t(targets[i])
+                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                                    qc.tdg(targets[i])
+                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
+                            else:
+                                controls = [
+                                    q_controls[self.num_ctrl_qubits - i - 1],
+                                    q_ancillas[num_ancillas - i - 1],
+                                ]
+
+                                qc.ccx(controls[0], controls[1], targets[i])
+                        else:
+                            # implements an optimized toffoli operation
+                            # up to a diagonal gate, akin to lemma 6 of arXiv:1501.06911
+                            qc.h(targets[i])
+                            qc.t(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
+                            qc.tdg(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                            qc.t(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
+                            qc.tdg(targets[i])
+                            qc.h(targets[i])
+
+                            break
+
+                    for i in range(num_ancillas - 1):  # reset part
+                        qc.cx(q_ancillas[i], q_ancillas[i + 1])
+                        qc.t(q_ancillas[i + 1])
+                        qc.cx(q_controls[2 + i], q_ancillas[i + 1])
+                        qc.tdg(q_ancillas[i + 1])
+                        qc.h(q_ancillas[i + 1])
+
+                    if self._action_only:
+                        qc.ccx(q_controls[-1], q_ancillas[-1], q_target)
+
+                        break
+        else:
+            qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
+            i = 0
+            for j in range(2, self.num_ctrl_qubits - 1):
+                qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
+
+                i += 1
+
+            qc.ccx(q_controls[-1], q_ancillas[i], q_target)
 
             for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
-                )
+                qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
+
                 i -= 1
 
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
-        i = 0
-        for j in range(2, self.num_ctrl_qubits - 1):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
-            i += 1
+            qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
 
-        if self._dirty_ancillas:
-            ancilla_post_rule = [
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U2Gate(0, numpy.pi), [q_target], []),
-            ]
-            for inst in ancilla_post_rule:
-                definition.append(inst)
-        else:
-            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
-
-        for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
-            i -= 1
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
-
-        if self._dirty_ancillas:
-            for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
-                )
-
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
         self.definition = qc

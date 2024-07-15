@@ -74,7 +74,7 @@ class GraphState(QuantumCircuit):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
         num_qubits = len(adjacency_matrix)
-        circuit = QuantumCircuit(num_qubits, name="graph: %s" % (adjacency_matrix))
+        circuit = QuantumCircuit(num_qubits, name=f"graph: {adjacency_matrix}")
 
         circuit.h(range(num_qubits))
         for i in range(num_qubits):

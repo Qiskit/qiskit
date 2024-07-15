@@ -19,6 +19,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class PhaseGate(Gate):
@@ -74,6 +75,8 @@ class PhaseGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
+
+    _standard_gate = StandardGate.PhaseGate
 
     def __init__(
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
@@ -196,6 +199,8 @@ class CPhaseGate(ControlledGate):
         of Phase and RZ, CPhase and CRZ are different gates with a relative
         phase difference.
     """
+
+    _standard_gate = StandardGate.CPhaseGate
 
     def __init__(
         self,
