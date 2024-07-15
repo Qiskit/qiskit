@@ -1320,9 +1320,14 @@ class MCXGrayCode(MCXGate):
 class MCXRecursive(MCXGate):
     """Implement the multi-controlled X gate using recursion.
 
-    Using a single ancilla qubit, the multi-controlled X gate is recursively split onto
-    four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
-    for these we have a concrete implementation that do not require ancillas.
+    Using a single clean ancilla qubit, the multi-controlled X gate is split into
+    four sub-registers, each one of them uses the V-chain method.
+
+    The method is based on Lemma 9 of [2], first shown in Lemma 7.3 of [1].
+
+    References:
+        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+        [2] Iten et al., 2015. https://arxiv.org/abs/1501.06911
     """
 
     def __init__(
