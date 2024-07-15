@@ -427,7 +427,7 @@ gate mcx_vchain_{0} q0,q1,q2,q3,q4,q5,q6,q7,q8 {{ rccx q0,q1,q6; rccx q2,q6,q7; 
 qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
-mcx_vchain_{0} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n""".format(
+mcx_vchain_{0} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];""".format(
             mcx_vchain_id
         )
         self.assertEqual(dumps(qc), expected_qasm)
