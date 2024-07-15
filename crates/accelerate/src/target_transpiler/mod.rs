@@ -82,7 +82,9 @@ impl TargetOperation {
     fn num_qubits(&self) -> u32 {
         match &self {
             Self::Normal(normal) => normal.operation.num_qubits(),
-            Self::Variadic(_) => 0,
+            Self::Variadic(_) => {
+                unreachable!("'num_qubits' property is reserved for normal operations only.")
+            }
         }
     }
 
@@ -777,7 +779,7 @@ impl Target {
             .to_object(py)
     }
 
-    // Class properties
+    // Instance attributes
 
     /// The set of qargs in the target.
     #[getter]

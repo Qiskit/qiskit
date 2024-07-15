@@ -22,6 +22,7 @@ from __future__ import annotations
 import itertools
 
 from typing import Optional, List, Any
+from collections.abc import Mapping
 import datetime
 import io
 import logging
@@ -30,7 +31,7 @@ import inspect
 import rustworkx as rx
 
 # import target class from the rust side
-from qiskit._accelerate.target import (  # pylint: disable=unused-import
+from qiskit._accelerate.target import (
     BaseTarget,
     BaseInstructionProperties,
 )
@@ -1162,6 +1163,9 @@ class Target(BaseTarget):
             for gate in global_ideal_variable_width_gates:
                 target.add_instruction(name_mapping[gate], name=gate)
         return target
+
+
+Mapping.register(Target)
 
 
 def target_to_backend_properties(target: Target):
