@@ -1,7 +1,7 @@
 ---
-upgrade_transpiler:
+features_transpiler:
   - |
-    Added a new global import for :func:`.generate_preset_pass_manager`, so that it can be imported as::
+    Added a new import path option for :func:`.generate_preset_pass_manager`, so that it can now be imported as::
     
       from qiskit import generate_preset_pass_manager
     
