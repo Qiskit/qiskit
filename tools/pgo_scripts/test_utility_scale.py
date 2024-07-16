@@ -16,9 +16,9 @@
 
 import os
 
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler import CouplingMap
 from qiskit import qasm2
 
 QASM_DIR = os.path.join(
