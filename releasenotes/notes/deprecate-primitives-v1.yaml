@@ -19,9 +19,12 @@ deprecations_primitives:
 
     In addition, the following utility functions are deprecated:
 
-    * :func:`.init_circuit`, use :meth:`.QuantumCircuit.initialize` instead,
+    * :func:`.init_circuit`, to initialize a circuit from a :class:`.Statevector`,
+      use :meth:`.QuantumCircuit.initialize` instead,
     * :func:`.init_observable`, use the constructor of :class:`.SparsePauliOp` instead,
-    * :func:`.final_measurement_mapping`, use ``mthree.utils.final_measurement_mapping`` instead.
+    * :func:`.final_measurement_mapping`, use :meth:`.QuantumCircuit.layout` and
+      :meth:`.SparsePauliOp.apply_layout` to adjust an operator for a layout.
+      Otherwise, use ``mthree.utils.final_measurement_mapping``.
       See `Mthree Utility functions <https://qiskit-extensions.github.io/mthree/apidocs/utils.html>`__
       for details.
 
