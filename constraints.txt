@@ -13,3 +13,9 @@ scipy==1.13.1; python_version=='3.12'
 # `macos_11_7` platform tag.  This should be purely a CI artefact, and not
 # affect local usage.
 z3-solver==4.12.2.0; platform_system=="Darwin"
+
+# There are minor differences in output between pydot 2 and pydot 3 for
+# things like the pass-manager drawer.  This is totally fine for general
+# usage, but our test suite uses an exact reference file that uses the
+# pydot 3 output, so we need to enforce that during tests.
+pydot>=3.0.0
