@@ -49,9 +49,9 @@ fontname=helvetica;
 label="[5] ";
 labeljust=l;
 14 [color=green, fontname=helvetica, label=CheckMap, shape=rectangle];
-15 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+15 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 15 -> 14;
-16 [color=black, fontname=helvetica, fontsize=10, label=property_set_field, shape=ellipse, style=dashed];
+16 [color=black, fontname=helvetica, fontsize=10, label="property_set_field", shape=ellipse, style=dashed];
 16 -> 14;
 12 -> 14;
 }
