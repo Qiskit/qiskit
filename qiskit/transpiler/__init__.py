@@ -1273,6 +1273,7 @@ from .exceptions import (
     CircuitTooWideForTarget,
     InvalidLayoutError,
 )
+from .preset_passmanagers import generate_preset_pass_manager
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout

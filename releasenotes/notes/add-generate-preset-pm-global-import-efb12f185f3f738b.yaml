@@ -9,3 +9,6 @@ features_transpiler:
       
       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
     
+    Starting in Qiskit 1.2, the function is also importable from the :mod:`qiskit.transpiler` module as::
+    
+      from qiskit.transpiler import generate_preset_pass_manager
