@@ -55,7 +55,7 @@ type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
 
 #[derive(Debug, Clone, FromPyObject)]
-pub enum TargetOperation {
+pub(crate) enum TargetOperation {
     Normal(NormalOperation),
     Variadic(PyObject),
 }
@@ -97,9 +97,9 @@ impl TargetOperation {
 }
 
 #[derive(Debug, Clone)]
-pub struct NormalOperation {
-    operation: OperationType,
-    params: SmallVec<[Param; 3]>,
+pub(crate) struct NormalOperation {
+    pub operation: OperationType,
+    pub params: SmallVec<[Param; 3]>,
     op_object: PyObject,
 }
 
@@ -127,17 +127,12 @@ impl ToPyObject for NormalOperation {
 }
 
 /**
-A rust representation of a ``Target`` object.
+The base class for a Python ``Target`` object. Contains data representing the
+constraints of a particular backend.
 
-The intent of the ``Target`` object is to inform Qiskit's compiler about
-the constraints of a particular backend so the compiler can compile an
-input circuit to something that works and is optimized for a device. It
-currently contains a description of instructions on a backend and their
-properties as well as some timing information. However, this exact
-interface may evolve over time as the needs of the compiler change. These
-changes will be done in a backwards compatible and controlled manner when
-they are made (either through versioning, subclassing, or mixins) to add
-on to the set of information exposed by a target.
+The intent of this struct is to contain data that can be representable and
+accessible through both Rust and Python, so it can be used for rust-based
+transpiler processes.
  */
 #[pyclass(
     mapping,
@@ -146,7 +141,7 @@ on to the set of information exposed by a target.
     module = "qiskit._accelerate.target"
 )]
 #[derive(Clone, Debug)]
-pub struct Target {
+pub(crate) struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
@@ -273,67 +268,13 @@ impl Target {
         })
     }
 
-    /// Add a new instruction to the :class:`~qiskit.transpiler.Target`
-    ///
-    /// As ``Target`` objects are strictly additive this is the primary method
-    /// for modifying a ``Target``. Typically, you will use this to fully populate
-    /// a ``Target`` before using it in :class:`~qiskit.providers.BackendV2`. For
-    /// example::
-    ///
-    ///     from qiskit.circuit.library import CXGate
-    ///     from qiskit.transpiler import Target, InstructionProperties
-    ///
-    ///     target = Target()
-    ///     cx_properties = {
-    ///         (0, 1): None,
-    ///         (1, 0): None,
-    ///         (0, 2): None,
-    ///         (2, 0): None,
-    ///         (0, 3): None,
-    ///         (2, 3): None,
-    ///         (3, 0): None,
-    ///         (3, 2): None
-    ///     }
-    ///     target.add_instruction(CXGate(), cx_properties)
-    ///
-    /// Will add a :class:`~qiskit.circuit.library.CXGate` to the target with no
-    /// properties (duration, error, etc) with the coupling edge list:
-    /// ``(0, 1), (1, 0), (0, 2), (2, 0), (0, 3), (2, 3), (3, 0), (3, 2)``. If
-    /// there are properties available for the instruction you can replace the
-    /// ``None`` value in the properties dictionary with an
-    /// :class:`~qiskit.transpiler.InstructionProperties` object. This pattern
-    /// is repeated for each :class:`~qiskit.circuit.Instruction` the target
-    /// supports.
+    /// Add a new instruction to the `Target` after it has been processed in python.
     ///
     /// Args:
-    ///     instruction (Union[qiskit.circuit.Instruction, Type[qiskit.circuit.Instruction]]):
-    ///         The operation object to add to the map. If it's parameterized any value
-    ///         of the parameter can be set. Optionally for variable width
-    ///         instructions (such as control flow operations such as :class:`~.ForLoop` or
-    ///         :class:`~MCXGate`) you can specify the class. If the class is specified than the
-    ///         ``name`` argument must be specified. When a class is used the gate is treated as global
-    ///         and not having any properties set.
-    ///     properties (dict): A dictionary of qarg entries to an
-    ///         :class:`~qiskit.transpiler.InstructionProperties` object for that
-    ///         instruction implementation on the backend. Properties are optional
-    ///         for any instruction implementation, if there are no
-    ///         :class:`~qiskit.transpiler.InstructionProperties` available for the
-    ///         backend the value can be None. If there are no constraints on the
-    ///         instruction (as in a noiseless/ideal simulation) this can be set to
-    ///         ``{None, None}`` which will indicate it runs on all qubits (or all
-    ///         available permutations of qubits for multi-qubit gates). The first
-    ///         ``None`` indicates it applies to all qubits and the second ``None``
-    ///         indicates there are no
-    ///         :class:`~qiskit.transpiler.InstructionProperties` for the
-    ///         instruction. By default, if properties is not set it is equivalent to
-    ///         passing ``{None: None}``.
-    ///     name (str): An optional name to use for identifying the instruction. If not
-    ///         specified the :attr:`~qiskit.circuit.Instruction.name` attribute
-    ///         of ``gate`` will be used. All gates in the ``Target`` need unique
-    ///         names. Backends can differentiate between different
-    ///         parameterization of a single gate by providing a unique name for
-    ///         each (e.g. `"rx30"`, `"rx60", ``"rx90"`` similar to the example in the
-    ///         documentation for the :class:`~qiskit.transpiler.Target` class).
+    ///     instruction: An instance of `Instruction` or the class representing said instructionm
+    ///         if representing a variadic.
+    ///     properties: A mapping of qargs and ``InstructionProperties``.
+    ///     name: A name assigned to the provided gate.
     /// Raises:
     ///     AttributeError: If gate is already in map
     ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
@@ -413,7 +354,7 @@ impl Target {
         Ok(())
     }
 
-    /// Update the property object for an instruction qarg pair already in the Target
+    /// Update the property object for an instruction qarg pair already in the `Target`
     ///
     /// Args:
     ///     instruction (str): The instruction name to update
@@ -458,7 +399,7 @@ impl Target {
     /// Returns:
     ///     set: The set of qargs the gate instance applies to.
     #[pyo3(name = "qargs_for_operation_name")]
-    fn py_qargs_for_operation_name(
+    pub fn py_qargs_for_operation_name(
         &self,
         py: Python,
         operation: &str,
@@ -481,7 +422,7 @@ impl Target {
     ///     name. This also can also be the class for globally defined variable with
     ///     operations.
     #[pyo3(name = "operation_from_name")]
-    fn py_operation_from_name(&self, py: Python, instruction: &str) -> PyResult<PyObject> {
+    pub fn py_operation_from_name(&self, py: Python, instruction: &str) -> PyResult<PyObject> {
         match self._operation_from_name(instruction) {
             Ok(instruction) => Ok(instruction.to_object(py)),
             Err(e) => Err(PyKeyError::new_err(e.message)),
@@ -503,7 +444,11 @@ impl Target {
     /// Raises:
     ///     KeyError: If qargs is not in target
     #[pyo3(name = "operations_for_qargs", signature=(qargs=None, /))]
-    fn py_operations_for_qargs(&self, py: Python, qargs: Option<Qargs>) -> PyResult<Vec<PyObject>> {
+    pub fn py_operations_for_qargs(
+        &self,
+        py: Python,
+        qargs: Option<Qargs>,
+    ) -> PyResult<Vec<PyObject>> {
         // Move to rust native once Gates are in rust
         Ok(self
             .py_operation_names_for_qargs(qargs)?
@@ -597,7 +542,7 @@ impl Target {
         py: Python,
         operation_name: Option<String>,
         qargs: Option<Qargs>,
-        operation_class: Option<PyObject>,
+        operation_class: Option<&Bound<PyAny>>,
         parameters: Option<Vec<Param>>,
     ) -> PyResult<bool> {
         let mut qargs = qargs;
@@ -608,7 +553,7 @@ impl Target {
             for (op_name, obj) in self._gate_name_map.iter() {
                 match obj {
                     TargetOperation::Variadic(variable) => {
-                        if !python_compare(py, variable, &_operation_class)? {
+                        if !_operation_class.eq(variable)? {
                             continue;
                         }
                         // If no qargs operation class is supported
@@ -624,7 +569,7 @@ impl Target {
                         }
                     }
                     TargetOperation::Normal(normal) => {
-                        if python_is_instance(py, normal, &_operation_class)? {
+                        if python_is_instance(py, normal, _operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.params.len() {
                                     continue;
@@ -817,7 +762,7 @@ impl Target {
     #[getter]
     #[pyo3(name = "operation_names")]
     fn py_operation_names(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, self.gate_map.keys()).unbind()
+        PyList::new_bound(py, self.operation_names()).unbind()
     }
 
     /// Get the operation objects in the target.
@@ -831,7 +776,7 @@ impl Target {
     #[getter]
     #[pyo3(name = "physical_qubits")]
     fn py_physical_qubits(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, 0..self.num_qubits.unwrap_or_default()).unbind()
+        PyList::new_bound(py, self.physical_qubits()).unbind()
     }
 
     // Magic methods:
@@ -950,12 +895,12 @@ impl Target {
 impl Target {
     /// Returns an iterator over all the instructions present in the `Target`
     /// as pair of `&OperationType`, `&SmallVec<[Param; 3]>` and `Option<&Qargs>`.
-    pub fn instructions(
-        &self,
-    ) -> impl Iterator<Item = (&OperationType, &SmallVec<[Param; 3]>, Option<&Qargs>)> {
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
+    pub fn instructions(&self) -> impl Iterator<Item = (&NormalOperation, Option<&Qargs>)> {
         self._instructions()
             .filter_map(|(operation, qargs)| match &operation {
-                TargetOperation::Normal(oper) => Some((&oper.operation, &oper.params, qargs)),
+                TargetOperation::Normal(oper) => Some((oper, qargs)),
                 _ => None,
             })
     }
@@ -970,17 +915,24 @@ impl Target {
         })
     }
     /// Returns an iterator over the operation names in the target.
-    pub fn operation_names(&self) -> impl Iterator<Item = &str> {
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
+    pub fn operation_names(&self) -> impl ExactSizeIterator<Item = &str> {
         self.gate_map.keys().map(|x| x.as_str())
     }
 
-    /// Get the operation objects in the target.
-    pub fn operations(&self) -> impl Iterator<Item = &TargetOperation> {
-        return self._gate_name_map.values();
+    /// Get the `OperationType` objects present in the target.
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
+    pub fn operations(&self) -> impl Iterator<Item = &NormalOperation> {
+        return self._gate_name_map.values().filter_map(|oper| match oper {
+            TargetOperation::Normal(oper) => Some(oper),
+            _ => None,
+        });
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl Iterator<Item = usize> {
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
         0..self.num_qubits.unwrap_or_default()
     }
 
@@ -1100,24 +1052,21 @@ impl Target {
         Ok(res)
     }
 
-    /// Returns an iterator rust-native operation instances and parameters present in the Target that affect the provided qargs.
-    pub fn ops_from_qargs(
+    /// Returns an iterator of `OperationType` instances and parameters present in the Target that affect the provided qargs.
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
+    pub fn operations_for_qargs(
         &self,
         qargs: Option<&Qargs>,
-    ) -> Result<impl Iterator<Item = (&OperationType, &SmallVec<[Param; 3]>)>, TargetKeyError> {
-        match self.operation_names_for_qargs(qargs) {
-            Ok(operations) => {
-                Ok(operations
-                    .into_iter()
-                    .filter_map(|oper| match &self._gate_name_map[oper] {
-                        TargetOperation::Normal(normal) => {
-                            Some((&normal.operation, &normal.params))
-                        }
-                        _ => None,
-                    }))
-            }
-            Err(e) => Err(e),
-        }
+    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetKeyError> {
+        self.operation_names_for_qargs(qargs).map(|operations| {
+            operations
+                .into_iter()
+                .filter_map(|oper| match &self._gate_name_map[oper] {
+                    TargetOperation::Normal(normal) => Some(normal),
+                    _ => None,
+                })
+        })
     }
 
     /// Gets an iterator with all the qargs used by the specified operation name.
@@ -1141,20 +1090,18 @@ impl Target {
     }
 
     /// Gets a tuple of Operation object and Parameters based on the operation name if present in the Target.
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
     pub fn operation_from_name(
         &self,
         instruction: &str,
-    ) -> Result<(&OperationType, &SmallVec<[Param; 3]>), TargetKeyError> {
+    ) -> Result<&NormalOperation, TargetKeyError> {
         match self._operation_from_name(instruction) {
-            Ok(gate_obj) => match &gate_obj {
-                &TargetOperation::Normal(operation) => {
-                    Ok((&operation.operation, &operation.params))
-                }
-                _ => Err(TargetKeyError::new_err(format!(
-                    "Instruction {:?} was found in the target, but the instruction is Varidic.",
-                    instruction
-                ))),
-            },
+            Ok(TargetOperation::Normal(operation)) => Ok(operation),
+            Ok(TargetOperation::Variadic(_)) => Err(TargetKeyError::new_err(format!(
+                "Instruction {:?} was found in the target, but the instruction is Varidic.",
+                instruction
+            ))),
             Err(e) => Err(e),
         }
     }
@@ -1171,7 +1118,7 @@ impl Target {
         }
     }
 
-    /// Rust-native method to get all the qargs of a specific Target object
+    /// Returns an iterator over all the qargs of a specific Target object
     pub fn qargs(&self) -> Option<impl Iterator<Item = Option<&Qargs>>> {
         let mut qargs = self.qarg_gate_map.keys().peekable();
         let next_entry = qargs.peek();
@@ -1182,6 +1129,7 @@ impl Target {
         Some(qargs)
     }
 
+    /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
     pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
         if self.gate_map.contains_key(operation_name) {
             if let Some(_qargs) = qargs {
@@ -1231,11 +1179,15 @@ impl Target {
     // IndexMap methods
 
     /// Retreive all the gate names in the Target
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.gate_map.keys().map(|x| x.as_str())
     }
 
     /// Retrieves an iterator over the property maps stored within the Target
+    // TODO: Remove once `Target` is being consumed.
+    #[allow(dead_code)]
     pub fn values(&self) -> impl Iterator<Item = &PropsMap> {
         self.gate_map.values()
     }
@@ -1265,6 +1217,7 @@ fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
                 }
             }
             (&Param::ParameterExpression(_), Param::Float(_)) => return false,
+            (&Param::ParameterExpression(_), Param::Obj(_)) => return false,
             _ => continue,
         }
     }

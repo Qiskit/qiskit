@@ -37,7 +37,7 @@ type BaseMap<K, V> = IndexMap<K, V, RandomState>;
 /// **Warning:** This is an experimental feature and should be used with care as it does not
 /// fully implement all the methods present in `IndexMap<K, V>` due to API limitations.
 #[derive(Debug, Clone)]
-pub struct NullableIndexMap<K, V>
+pub(crate) struct NullableIndexMap<K, V>
 where
     K: Eq + Hash + Clone,
     V: Clone,
@@ -159,6 +159,8 @@ where
     }
 
     /// Returns an iterator over references of the key-value pairs of the map.
+    // TODO: Remove once `NullableIndexMap` is being consumed.
+    #[allow(dead_code)]
     pub fn iter(&self) -> Iter<K, V> {
         Iter {
             map: self.map.iter(),
