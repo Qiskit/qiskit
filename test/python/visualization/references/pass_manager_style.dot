@@ -13,7 +13,7 @@ fontname=helvetica;
 label="[1] condition";
 labeljust=l;
 4 [color=red, fontname=helvetica, label=TrivialLayout, shape=rectangle];
-5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+5 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 5 -> 4;
 1 -> 4;
 }
@@ -23,7 +23,7 @@ fontname=helvetica;
 label="[2] ";
 labeljust=l;
 7 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
-8 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+8 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 8 -> 7;
 4 -> 7;
 }
@@ -69,7 +69,7 @@ fontname=helvetica;
 label="[7] ";
 labeljust=l;
 20 [color=blue, fontname=helvetica, label=GateDirection, shape=rectangle];
-21 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+21 [color=black, fontname=helvetica, fontsize=10, label="coupling_map", shape=ellipse, style=solid];
 21 -> 20;
 22 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
 22 -> 20;

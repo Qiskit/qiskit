@@ -180,7 +180,7 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=DeprecationWarning)
                 passes = stage.passes()
-            stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
+            stagegraph = pydot.Cluster(str(st), fontname="helvetica", label=str(st), labeljust="l")
             for controller_group in passes:
                 subgraph, component_id, prev_node = draw_subgraph(
                     controller_group, component_id, style, prev_node, idx
@@ -201,7 +201,7 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
     label = "[{}] {}".format(idx, ", ".join(controller_group["flow_controllers"]))
 
     # create the subgraph for this controller
-    subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
+    subgraph = pydot.Cluster(str(component_id), fontname="helvetica", label=label, labeljust="l")
     component_id += 1
 
     for pass_ in controller_group["passes"]:
@@ -209,10 +209,10 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
         # label is the name of the pass
         node = pydot.Node(
             str(component_id),
-            label=str(type(pass_).__name__),
             color=_get_node_color(pass_, style),
-            shape="rectangle",
             fontname="helvetica",
+            label=str(type(pass_).__name__),
+            shape="rectangle",
         )
 
         subgraph.add_node(node)
@@ -235,12 +235,12 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
 
             input_node = pydot.Node(
                 component_id,
-                label=arg,
                 color="black",
-                shape="ellipse",
-                fontsize=10,
-                style=nd_style,
                 fontname="helvetica",
+                fontsize=10,
+                label=arg,
+                shape="ellipse",
+                style=nd_style,
             )
             subgraph.add_node(input_node)
             component_id += 1
