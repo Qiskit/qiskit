@@ -1974,9 +1974,7 @@ class DAGCircuit:
                 "node type was wrongly provided."
             )
 
-        self._multi_graph.remove_node_retain_edges(
-            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
-        )
+        self._multi_graph.remove_node_retain_edges_by_id(node._node_id)
         self._decrement_op(node.name)
 
     def remove_ancestors_of(self, node):

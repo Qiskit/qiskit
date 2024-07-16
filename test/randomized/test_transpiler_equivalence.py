@@ -48,6 +48,8 @@ QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
 """
 
 import os
+import warnings
+
 from test.utils.base import dicts_almost_equal
 
 from math import pi
@@ -292,7 +294,16 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         # Note that there's no transpilation here, which is why the gates are limited to only ones
         # that Aer supports natively.
-        aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
+        with warnings.catch_warnings():
+            # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+            # of Aer.
+            warnings.filterwarnings(
+                "default",
+                category=DeprecationWarning,
+                module="qiskit_aer",
+                message="Treating CircuitInstruction as an iterable",
+            )
+            aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
 
         try:
             xpiled_qc = transpile(self.qc, **kwargs)
