@@ -1273,7 +1273,6 @@ from .exceptions import (
     CircuitTooWideForTarget,
     InvalidLayoutError,
 )
-from .preset_passmanagers import generate_preset_pass_manager
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
@@ -1281,3 +1280,4 @@ from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
+from .preset_passmanagers import generate_preset_pass_manager
