@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    :class:`.MCXRecursive` with k controls and a single clean auxiliary qubits now requires at most
+    16*k-8 cx gates.
