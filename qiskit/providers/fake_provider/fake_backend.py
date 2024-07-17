@@ -65,10 +65,7 @@ class FakeBackend(BackendV1):
 
             self.sim = AerSimulator()
             if self.properties():
-                with warnings.catch_warnings():
-                    # TODO remove this catch once Aer stops Treating CircuitInstruction as an iterable
-                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-                    noise_model = NoiseModel.from_backend(self)
+                noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default options too to avoid overwriting
                 # it when run() is called

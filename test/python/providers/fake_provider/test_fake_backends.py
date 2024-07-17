@@ -13,10 +13,9 @@
 """Test of generated fake backends."""
 import math
 import unittest
-import warnings
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -38,16 +37,15 @@ class FakeBackendsTest(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backends_get_kwargs_v1(self):
-        """Fake backends honor kwargs passed.
-        To remove once Fake5QV1 gets removed"""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
+        """Fake backends honor kwargs passed."""
+        backend = GenericBackendV2(num_qubits=5)
 
         qc = QuantumCircuit(2)
         qc.x(range(0, 2))
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
+
         raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
@@ -78,10 +76,7 @@ class FakeBackendsTest(QiskitTestCase):
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
-        with warnings.catch_warnings():
-            # TODO remove this catch once Aer stops using QobjDictField
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
+        raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
 
@@ -93,10 +88,7 @@ class FakeBackendsTest(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
-        with warnings.catch_warnings():
-            with warnings.catch_warnings():
-                # TODO remove this catch once Aer stops using QobjDictField
-                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-                res = backend.run(qc, shots=1000).result().get_counts()
+
+        res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})

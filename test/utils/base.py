@@ -129,6 +129,24 @@ class QiskitTestCase(BaseTestCase):
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message=r".* If user still need Qobj,.*",
+            module=r"qiskit_aer",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
+            module="qiskit_aer",
+        )
+
         allow_DeprecationWarning_message = [
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
         ]
