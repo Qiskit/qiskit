@@ -46,27 +46,20 @@ macro_rules! make_n_controlled_gate {
     }};
 }
 
+pub static H_GATE: GateArray1Q = [
+    [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
+    [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
+];
+
 pub static X_GATE: GateArray1Q = [[C_ZERO, C_ONE], [C_ONE, C_ZERO]];
 
 pub static Z_GATE: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, C_M_ONE]];
 
 pub static Y_GATE: GateArray1Q = [[C_ZERO, M_IM], [IM, C_ZERO]];
 
-pub static H_GATE: GateArray1Q = [
-    [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
-    [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
-];
-
 pub static S_GATE: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, IM]];
 
 pub static SDG_GATE: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, M_IM]];
-
-pub static T_GATE: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, c64(FRAC_1_SQRT_2, FRAC_1_SQRT_2)]];
-
-pub static TDG_GATE: GateArray1Q = [
-    [C_ONE, C_ZERO],
-    [C_ZERO, c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2)],
-];
 
 pub static SX_GATE: GateArray1Q = [
     [c64(0.5, 0.5), c64(0.5, -0.5)],
@@ -78,27 +71,27 @@ pub static SXDG_GATE: GateArray1Q = [
     [c64(0.5, 0.5), c64(0.5, -0.5)],
 ];
 
-pub static CX_GATE: GateArray2Q = make_n_controlled_gate!(X_GATE, 1);
+pub static T_GATE: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, c64(FRAC_1_SQRT_2, FRAC_1_SQRT_2)]];
 
-pub static CZ_GATE: GateArray2Q = make_n_controlled_gate!(Z_GATE, 1);
-
-pub static CY_GATE: GateArray2Q = make_n_controlled_gate!(Y_GATE, 1);
-
-pub static CCX_GATE: GateArray3Q = make_n_controlled_gate!(X_GATE, 2);
-
-pub static CCZ_GATE: GateArray3Q = make_n_controlled_gate!(Z_GATE, 2);
-
-pub static C3X_GATE: GateArray4Q = make_n_controlled_gate!(X_GATE, 3);
-
-pub static C3SX_GATE: GateArray4Q = make_n_controlled_gate!(SX_GATE, 3);
+pub static TDG_GATE: GateArray1Q = [
+    [C_ONE, C_ZERO],
+    [C_ZERO, c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2)],
+];
 
 pub static CH_GATE: GateArray2Q = make_n_controlled_gate!(H_GATE, 1);
 
-pub static CS_GATE: GateArray2Q = make_n_controlled_gate!(S_GATE, 1);
+pub static CX_GATE: GateArray2Q = make_n_controlled_gate!(X_GATE, 1);
 
-pub static CSDG_GATE: GateArray2Q = make_n_controlled_gate!(SDG_GATE, 1);
+pub static CY_GATE: GateArray2Q = make_n_controlled_gate!(Y_GATE, 1);
 
-pub static CSX_GATE: GateArray2Q = make_n_controlled_gate!(SX_GATE, 1);
+pub static CZ_GATE: GateArray2Q = make_n_controlled_gate!(Z_GATE, 1);
+
+pub static DCX_GATE: GateArray2Q = [
+    [C_ONE, C_ZERO, C_ZERO, C_ZERO],
+    [C_ZERO, C_ZERO, C_ZERO, C_ONE],
+    [C_ZERO, C_ONE, C_ZERO, C_ZERO],
+    [C_ZERO, C_ZERO, C_ONE, C_ZERO],
+];
 
 pub static ECR_GATE: GateArray2Q = [
     [
@@ -133,12 +126,23 @@ pub static SWAP_GATE: GateArray2Q = [
     [C_ZERO, C_ONE, C_ZERO, C_ZERO],
     [C_ZERO, C_ZERO, C_ZERO, C_ONE],
 ];
+
 pub static ISWAP_GATE: GateArray2Q = [
     [C_ONE, C_ZERO, C_ZERO, C_ZERO],
     [C_ZERO, C_ZERO, IM, C_ZERO],
     [C_ZERO, IM, C_ZERO, C_ZERO],
     [C_ZERO, C_ZERO, C_ZERO, C_ONE],
 ];
+
+pub static CS_GATE: GateArray2Q = make_n_controlled_gate!(S_GATE, 1);
+
+pub static CSDG_GATE: GateArray2Q = make_n_controlled_gate!(SDG_GATE, 1);
+
+pub static CSX_GATE: GateArray2Q = make_n_controlled_gate!(SX_GATE, 1);
+
+pub static CCX_GATE: GateArray3Q = make_n_controlled_gate!(X_GATE, 2);
+
+pub static CCZ_GATE: GateArray3Q = make_n_controlled_gate!(Z_GATE, 2);
 
 pub static CSWAP_GATE: GateArray3Q = [
     [
@@ -167,13 +171,6 @@ pub static CSWAP_GATE: GateArray3Q = [
     ],
 ];
 
-pub static DCX_GATE: GateArray2Q = [
-    [C_ONE, C_ZERO, C_ZERO, C_ZERO],
-    [C_ZERO, C_ZERO, C_ZERO, C_ONE],
-    [C_ZERO, C_ONE, C_ZERO, C_ZERO],
-    [C_ZERO, C_ZERO, C_ONE, C_ZERO],
-];
-
 pub static RCCX_GATE: GateArray3Q = [
     [
         C_ONE, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO, C_ZERO,
@@ -196,6 +193,10 @@ pub static RCCX_GATE: GateArray3Q = [
     ],
     [C_ZERO, C_ZERO, C_ZERO, IM, C_ZERO, C_ZERO, C_ZERO, C_ZERO],
 ];
+
+pub static C3X_GATE: GateArray4Q = make_n_controlled_gate!(X_GATE, 3);
+
+pub static C3SX_GATE: GateArray4Q = make_n_controlled_gate!(SX_GATE, 3);
 
 pub static RC3X_GATE: GateArray4Q = [
     [
@@ -275,6 +276,41 @@ pub fn phase_gate(lam: f64) -> GateArray1Q {
 }
 
 #[inline]
+pub fn r_gate(theta: f64, phi: f64) -> GateArray1Q {
+    let half_theta = theta / 2.;
+    let cost = c64(half_theta.cos(), 0.);
+    let sint = half_theta.sin();
+    let cosphi = phi.cos();
+    let sinphi = phi.sin();
+    [
+        [cost, c64(-sint * sinphi, -sint * cosphi)],
+        [c64(sint * sinphi, -sint * cosphi), cost],
+    ]
+}
+
+#[inline]
+pub fn rx_gate(theta: f64) -> GateArray1Q {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let isin = c64(0., -half_theta.sin());
+    [[cos, isin], [isin, cos]]
+}
+
+#[inline]
+pub fn ry_gate(theta: f64) -> GateArray1Q {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let sin = c64(half_theta.sin(), 0.);
+    [[cos, -sin], [sin, cos]]
+}
+
+#[inline]
+pub fn rz_gate(theta: f64) -> GateArray1Q {
+    let ilam2 = c64(0., 0.5 * theta);
+    [[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+}
+
+#[inline]
 pub fn u_gate(theta: f64, phi: f64, lam: f64) -> GateArray1Q {
     let cos = (theta / 2.).cos();
     let sin = (theta / 2.).sin();
@@ -324,6 +360,24 @@ pub fn cp_gate(lam: f64) -> GateArray2Q {
 }
 
 #[inline]
+pub fn crx_gate(theta: f64) -> GateArray2Q {
+    let gate_matrix = rx_gate(theta);
+    make_n_controlled_gate!(gate_matrix, 1)
+}
+
+#[inline]
+pub fn cry_gate(theta: f64) -> GateArray2Q {
+    let gate_matrix = ry_gate(theta);
+    make_n_controlled_gate!(gate_matrix, 1)
+}
+
+#[inline]
+pub fn crz_gate(theta: f64) -> GateArray2Q {
+    let gate_matrix = rz_gate(theta);
+    make_n_controlled_gate!(gate_matrix, 1)
+}
+
+#[inline]
 pub fn cu_gate(theta: f64, phi: f64, lam: f64, gamma: f64) -> GateArray2Q {
     let cos_theta = (theta / 2.).cos();
     let sin_theta = (theta / 2.).sin();
@@ -354,59 +408,6 @@ pub fn cu1_gate(lam: f64) -> GateArray2Q {
 #[inline]
 pub fn cu3_gate(theta: f64, phi: f64, lam: f64) -> GateArray2Q {
     let gate_matrix = u3_gate(theta, phi, lam);
-    make_n_controlled_gate!(gate_matrix, 1)
-}
-
-#[inline]
-pub fn r_gate(theta: f64, phi: f64) -> GateArray1Q {
-    let half_theta = theta / 2.;
-    let cost = c64(half_theta.cos(), 0.);
-    let sint = half_theta.sin();
-    let cosphi = phi.cos();
-    let sinphi = phi.sin();
-    [
-        [cost, c64(-sint * sinphi, -sint * cosphi)],
-        [c64(sint * sinphi, -sint * cosphi), cost],
-    ]
-}
-
-#[inline]
-pub fn rx_gate(theta: f64) -> GateArray1Q {
-    let half_theta = theta / 2.;
-    let cos = c64(half_theta.cos(), 0.);
-    let isin = c64(0., -half_theta.sin());
-    [[cos, isin], [isin, cos]]
-}
-
-#[inline]
-pub fn ry_gate(theta: f64) -> GateArray1Q {
-    let half_theta = theta / 2.;
-    let cos = c64(half_theta.cos(), 0.);
-    let sin = c64(half_theta.sin(), 0.);
-    [[cos, -sin], [sin, cos]]
-}
-
-#[inline]
-pub fn rz_gate(theta: f64) -> GateArray1Q {
-    let ilam2 = c64(0., 0.5 * theta);
-    [[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
-}
-
-#[inline]
-pub fn crx_gate(theta: f64) -> GateArray2Q {
-    let gate_matrix = rx_gate(theta);
-    make_n_controlled_gate!(gate_matrix, 1)
-}
-
-#[inline]
-pub fn cry_gate(theta: f64) -> GateArray2Q {
-    let gate_matrix = ry_gate(theta);
-    make_n_controlled_gate!(gate_matrix, 1)
-}
-
-#[inline]
-pub fn crz_gate(theta: f64) -> GateArray2Q {
-    let gate_matrix = rz_gate(theta);
     make_n_controlled_gate!(gate_matrix, 1)
 }
 
