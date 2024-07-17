@@ -13,6 +13,8 @@
 """Generic BackendV2 class that with a simulated ``run``."""
 
 from __future__ import annotations
+
+import itertools
 import warnings
 
 from collections.abc import Iterable
@@ -182,6 +184,15 @@ class GenericBackendV2(BackendV2):
         self._calibrate_instructions = calibrate_instructions
         self._supported_gates = get_standard_gate_name_mapping()
         self._noise_info = noise_info
+
+        self._supported_control_flow_ops = {
+            "if_else": IfElseOp,
+            "while_loop": WhileLoopOp,
+            "for_loop": ForLoopOp,
+            "switch_case": SwitchCaseOp,
+            "break_loop": BreakLoopOp,
+            "continue_loop": ContinueLoopOp,
+        }
 
         if calibrate_instructions and not noise_info:
             raise QiskitError("Must set parameter noise_info when calibrating instructions.")
@@ -391,22 +402,26 @@ class GenericBackendV2(BackendV2):
         # Iterate over gates, generate noise params from defaults,
         # and add instructions, noise and calibrations to target.
         for name in self._basis_gates:
-            if name not in self._supported_gates:
+            if name not in self._supported_gates and name not in self._supported_control_flow_ops:
                 raise QiskitError(
                     f"Provided basis gate {name} is not an instruction "
                     f"in the standard qiskit circuit library."
                 )
-            gate = self._supported_gates[name]
-            if self.num_qubits < gate.num_qubits:
-                raise QiskitError(
-                    f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
-                    f"which is the size of the backend."
-                )
-            if self._noise_info:
-                noise_params = self._get_noise_defaults(name, gate.num_qubits)
-                self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
-            else:
-                self._target.add_instruction(gate, properties=None, name=name)
+            if name in self._supported_gates:
+                gate = self._supported_gates[name]
+                if self.num_qubits < gate.num_qubits:
+                    raise QiskitError(
+                        f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
+                        f"which is the size of the backend."
+                    )
+                if self._noise_info:
+                    noise_params = self._get_noise_defaults(name, gate.num_qubits)
+                    self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
+                else:
+                    self._target.add_instruction(gate, properties=None, name=name)
+
+            if name in self._supported_control_flow_ops:
+                self._target.add_instruction(self._supported_control_flow_ops[name], name=name)
 
         if self._control_flow:
             self._target.add_instruction(IfElseOp, name="if_else")
@@ -430,7 +445,22 @@ class GenericBackendV2(BackendV2):
                 include in instruction properties.
             calibration_inst_map: Instruction schedule map with calibration defaults
         """
-        qarg_set = self._coupling_map if instruction.num_qubits > 1 else range(self.num_qubits)
+        # Using proper qarg_set based on number of qubits. Usually the coupling map
+        # is in terms of 2 qubit tuple but for an instruction with more than 2 qubits
+        # (like 'ccx') we use itertools to generate qarg_set.
+        if instruction.num_qubits == 1:
+            qarg_set = range(self.num_qubits)
+        elif instruction.num_qubits == 2:
+            qarg_set = self._coupling_map
+        elif instruction.num_qubits > 2:
+            qarg_set = list(itertools.permutations(range(self.num_qubits), instruction.num_qubits))
+        # In all the list(get_standard_gate_name_mapping()) only 'global_phase' gate
+        # returns 0 for global_phase.num_qubits and so we will handle this case
+        # like we handle control flow operations i.e by just adding them to the target
+        else:
+            self._target.add_instruction(instruction, name="global_phase")
+            return
+
         props = {}
         for qarg in qarg_set:
             try:
