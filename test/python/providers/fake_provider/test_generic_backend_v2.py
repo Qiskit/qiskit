@@ -16,6 +16,7 @@ import math
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.circuit.library import get_standard_gate_name_mapping
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -164,3 +165,18 @@ class TestGenericBackendV2(QiskitTestCase):
                     if inst not in ["delay", "reset"]:
                         self.assertGreaterEqual(duration, expected_durations[inst][0])
                         self.assertLessEqual(duration, expected_durations[inst][1])
+
+    def test_all_stdgates_and_ctrlflow(self):
+        """Test that the Generic BackendV2 can be constructed from any kind of
+        standard gate and control flow operations without using the
+        control_flow=True option"""
+
+        std_gates = list(get_standard_gate_name_mapping())
+        ctrlflow = ["if_else", "while_loop", "for_loop", "switch_case", "break_loop", "continue_loop"]
+
+        basis_gates = std_gates + ctrlflow
+
+        backend = GenericBackendV2(num_qubits=5, basis_gates=basis_gates, control_flow=False)
+        op_names = backend.operation_names
+
+        self.assertEqual(op_names, basis_gates)
