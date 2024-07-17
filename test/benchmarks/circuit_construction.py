@@ -16,6 +16,7 @@
 import os
 import itertools
 
+from qiskit.quantum_info import *
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, QuantumVolume
@@ -169,3 +170,11 @@ class QasmImport:
         assert ops.get("rx", 0) == 80000
         assert ops.get("cx", 0) == 15000
         return ops
+
+class CliffordSynthesis:
+    param_names = ["num_qubits"]
+    params = [10, 50, 100]
+    def time_clifford_synthesis(self,num_qubits):
+        cliff = random_clifford(num_qubits)
+        qc = cliff.to_circuit()
+        return qc
