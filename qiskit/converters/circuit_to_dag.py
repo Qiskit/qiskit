@@ -13,7 +13,8 @@
 """Helper function for converting a circuit to a dag"""
 import copy
 
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit._accelerate.circuit import StandardGate
 
 
 def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
@@ -79,6 +80,13 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
     dagcircuit.add_qubits(qubits)
     dagcircuit.add_clbits(clbits)
 
+    for var in circuit.iter_input_vars():
+        dagcircuit.add_input_var(var)
+    for var in circuit.iter_captured_vars():
+        dagcircuit.add_captured_var(var)
+    for var in circuit.iter_declared_vars():
+        dagcircuit.add_declared_var(var)
+
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
 
@@ -86,10 +94,24 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
         dagcircuit.add_creg(register)
 
     for instruction in circuit.data:
-        op = instruction.operation
-        if copy_operations:
-            op = copy.deepcopy(op)
-        dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits, check=False)
+        if not isinstance(instruction._raw_op, StandardGate):
+            op = instruction.operation
+            if copy_operations:
+                op = copy.deepcopy(op)
+            dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits, check=False)
+        else:
+            node = DAGOpNode(
+                instruction._raw_op,
+                qargs=instruction.qubits,
+                cargs=instruction.clbits,
+                params=instruction.params,
+                label=instruction.label,
+                duration=instruction.duration,
+                unit=instruction.unit,
+                condition=instruction.condition,
+                dag=dagcircuit,
+            )
+            dagcircuit._apply_op_node_back(node)
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit

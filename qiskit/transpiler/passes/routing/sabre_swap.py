@@ -31,8 +31,8 @@ from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.utils.parallel import CPU_COUNT
 
-from qiskit._accelerate.sabre_swap import (
-    build_swap_map,
+from qiskit._accelerate.sabre import (
+    sabre_routing,
     Heuristic,
     NeighborTable,
     SabreDAG,
@@ -218,7 +218,7 @@ class SabreSwap(TransformationPass):
         elif self.heuristic == "decay":
             heuristic = Heuristic.Decay
         else:
-            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
+            raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
         disjoint_utils.require_layout_isolated_to_component(
             dag, self.coupling_map if self.target is None else self.target
         )
@@ -239,8 +239,7 @@ class SabreSwap(TransformationPass):
             self._qubit_indices,
         )
         sabre_start = time.perf_counter()
-        *sabre_result, final_permutation = build_swap_map(
-            len(dag.qubits),
+        *sabre_result, final_permutation = sabre_routing(
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
@@ -251,8 +250,13 @@ class SabreSwap(TransformationPass):
         )
         sabre_stop = time.perf_counter()
         logging.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
-
-        self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, final_permutation)))
+        final_layout = Layout(dict(zip(dag.qubits, final_permutation)))
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = final_layout
+        else:
+            self.property_set["final_layout"] = final_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         if self.fake_run:
             return dag
         return _apply_sabre_result(

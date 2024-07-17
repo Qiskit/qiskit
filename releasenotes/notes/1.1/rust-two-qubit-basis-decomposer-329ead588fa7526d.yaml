@@ -1,0 +1,5 @@
+---
+features_synthesis:
+  - |
+    The :class:`.TwoQubitBasisDecomposer` class has been rewritten in Rust
+    which greatly improves the runtime performance.

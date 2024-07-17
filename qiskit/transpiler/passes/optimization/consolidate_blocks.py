@@ -24,10 +24,11 @@ from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
 from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
-from qiskit.transpiler.passes.utils import _block_to_matrix
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit._accelerate.convert_2q_block_matrix import blocks_to_matrix
+
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
 
@@ -105,14 +106,14 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
-                        block_cargs |= set(getattr(nd.op, "condition", None)[0])
+                    if isinstance(nd, DAGOpNode) and getattr(nd, "condition", None):
+                        block_cargs |= set(getattr(nd, "condition", None)[0])
                     all_block_gates.add(nd)
                 block_index_map = self._block_qargs_to_indices(dag, block_qargs)
                 for nd in block:
-                    if nd.op.name == basis_gate_name:
+                    if nd.name == basis_gate_name:
                         basis_count += 1
-                    if self._check_not_in_basis(dag, nd.op.name, nd.qargs):
+                    if self._check_not_in_basis(dag, nd.name, nd.qargs):
                         outside_basis = True
                 if len(block_qargs) > 2:
                     q = QuantumRegister(len(block_qargs))
@@ -124,14 +125,14 @@ class ConsolidateBlocks(TransformationPass):
                         qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                     unitary = UnitaryGate(Operator(qc), check_input=False)
                 else:
-                    matrix = _block_to_matrix(block, block_index_map)
+                    matrix = blocks_to_matrix(block, block_index_map)
                     unitary = UnitaryGate(matrix, check_input=False)
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
                 if (  # pylint: disable=too-many-boolean-expressions
                     self.force_consolidate
                     or unitary.num_qubits > 2
-                    or self.decomposer.num_basis_gates(unitary) < basis_count
+                    or self.decomposer.num_basis_gates(matrix) < basis_count
                     or len(block) > max_2q_depth
                     or ((self.basis_gates is not None) and outside_basis)
                     or ((self.target is not None) and outside_basis)
@@ -192,7 +193,9 @@ class ConsolidateBlocks(TransformationPass):
             pass_manager.append(Collect2qBlocks())
 
         pass_manager.append(self)
-        for node in dag.op_nodes(ControlFlowOp):
+        for node in dag.op_nodes():
+            if node.name not in CONTROL_FLOW_OP_NAMES:
+                continue
             node.op = node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks)
         return dag
 

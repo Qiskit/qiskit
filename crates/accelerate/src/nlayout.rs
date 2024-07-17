@@ -57,8 +57,8 @@ macro_rules! qubit_newtype {
         unsafe impl numpy::Element for $id {
             const IS_COPY: bool = true;
 
-            fn get_dtype(py: Python<'_>) -> &numpy::PyArrayDescr {
-                u32::get_dtype(py)
+            fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
+                u32::get_dtype_bound(py)
             }
         }
     };
@@ -91,7 +91,7 @@ impl VirtualQubit {
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.stochastic_swap")]
+#[pyclass(module = "qiskit._accelerate.nlayout")]
 #[derive(Clone, Debug)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
@@ -107,8 +107,8 @@ impl NLayout {
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            virt_to_phys: vec![PhysicalQubit(std::u32::MAX); virtual_qubits],
-            phys_to_virt: vec![VirtualQubit(std::u32::MAX); physical_qubits],
+            virt_to_phys: vec![PhysicalQubit(u32::MAX); virtual_qubits],
+            phys_to_virt: vec![VirtualQubit(u32::MAX); physical_qubits],
         };
         for (virt, phys) in qubit_indices {
             res.virt_to_phys[virt.index()] = phys;
@@ -117,13 +117,13 @@ impl NLayout {
         res
     }
 
-    fn __getstate__(&self) -> (Vec<PhysicalQubit>, Vec<VirtualQubit>) {
-        (self.virt_to_phys.clone(), self.phys_to_virt.clone())
-    }
-
-    fn __setstate__(&mut self, state: (Vec<PhysicalQubit>, Vec<VirtualQubit>)) {
-        self.virt_to_phys = state.0;
-        self.phys_to_virt = state.1;
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok((
+            py.get_type_bound::<Self>()
+                .getattr("from_virtual_to_physical")?,
+            (self.virt_to_phys.to_object(py),),
+        )
+            .into_py(py))
     }
 
     /// Return the layout mapping.
@@ -139,7 +139,7 @@ impl NLayout {
     ///
     #[pyo3(text_signature = "(self, /)")]
     fn layout_mapping(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new(py, self.iter_virtual()).into()
+        PyList::new_bound(py, self.iter_virtual()).into()
     }
 
     /// Get physical bit from virtual bit
@@ -184,7 +184,7 @@ impl NLayout {
 
     #[staticmethod]
     pub fn from_virtual_to_physical(virt_to_phys: Vec<PhysicalQubit>) -> PyResult<Self> {
-        let mut phys_to_virt = vec![VirtualQubit(std::u32::MAX); virt_to_phys.len()];
+        let mut phys_to_virt = vec![VirtualQubit(u32::MAX); virt_to_phys.len()];
         for (virt, phys) in virt_to_phys.iter().enumerate() {
             phys_to_virt[phys.index()] = VirtualQubit(virt.try_into()?);
         }
@@ -217,7 +217,7 @@ impl NLayout {
 }
 
 #[pymodule]
-pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())
 }

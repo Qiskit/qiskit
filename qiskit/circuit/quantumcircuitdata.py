@@ -15,14 +15,14 @@ QuantumCircuit.data while maintaining the interface of a python list."""
 
 from collections.abc import MutableSequence
 
-import qiskit._accelerate.quantum_circuit
+import qiskit._accelerate.circuit
 
 from .exceptions import CircuitError
 from .instruction import Instruction
 from .operation import Operation
 
 
-CircuitInstruction = qiskit._accelerate.quantum_circuit.CircuitInstruction
+CircuitInstruction = qiskit._accelerate.circuit.CircuitInstruction
 
 
 class QuantumCircuitData(MutableSequence):
@@ -45,8 +45,6 @@ class QuantumCircuitData(MutableSequence):
             operation, qargs, cargs = value
         value = self._resolve_legacy_value(operation, qargs, cargs)
         self._circuit._data[key] = value
-        if isinstance(value.operation, Instruction):
-            self._circuit._update_parameter_table(value.operation)
 
     def _resolve_legacy_value(self, operation, qargs, cargs) -> CircuitInstruction:
         """Resolve the old-style 3-tuple into the new :class:`CircuitInstruction` type."""
@@ -76,7 +74,7 @@ class QuantumCircuitData(MutableSequence):
         return CircuitInstruction(operation, tuple(qargs), tuple(cargs))
 
     def insert(self, index, value):
-        self._circuit._data.insert(index, CircuitInstruction(None, (), ()))
+        self._circuit._data.insert(index, value.replace(qubits=(), clbits=()))
         try:
             self[index] = value
         except CircuitError:

@@ -241,7 +241,7 @@ class TestSabreSwap(QiskitTestCase):
         self.assertIsInstance(second_measure.operation, Measure)
         # Assert that the first measure is on the same qubit that the HGate was applied to, and the
         # second measurement is on a different qubit (though we don't care which exactly - that
-        # depends a little on the randomisation of the pass).
+        # depends a little on the randomization of the pass).
         self.assertEqual(last_h.qubits, first_measure.qubits)
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
@@ -278,7 +278,8 @@ class TestSabreSwap(QiskitTestCase):
 
         from qiskit_aer import Aer
 
-        sim = Aer.get_backend("aer_simulator")
+        with self.assertWarns(DeprecationWarning):
+            sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()
         out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
@@ -1328,9 +1329,9 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
         super().setUpClass()
         cls.backend = Fake27QPulseV1()
         cls.backend.configuration().coupling_map = MUMBAI_CMAP
+        cls.backend.configuration().basis_gates += ["for_loop", "while_loop", "if_else"]
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
-        cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
 
     def assert_valid_circuit(self, transpiled):
         """Assert circuit complies with constraints of backend."""
@@ -1345,7 +1346,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
                 qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
                 if not isinstance(instruction.operation, ControlFlowOp):
                     if len(qargs) > 2 or len(qargs) < 0:
-                        raise Exception("Invalid number of qargs for instruction")
+                        raise RuntimeError("Invalid number of qargs for instruction")
                     if len(qargs) == 2:
                         self.assertIn(qargs, self.coupling_edge_set)
                     else:

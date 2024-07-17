@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,6 +20,7 @@ from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
+from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -109,8 +110,7 @@ class DynamicalDecoupling(TransformationPass):
             "Instead, use :class:`~.PadDynamicalDecoupling`, which performs the same "
             "function but requires scheduling and alignment analysis passes to run prior to it."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(
         self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True, target=None
@@ -130,7 +130,7 @@ class DynamicalDecoupling(TransformationPass):
                 will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits (bool): if True, does not insert DD on idle
                 periods that immediately follow initialized/reset qubits (as
-                qubits in the ground state are less susceptile to decoherence).
+                qubits in the ground state are less susceptible to decoherence).
             target (Target): The :class:`~.Target` representing the target backend, if both
                   ``durations`` and this are specified then this argument will take
                   precedence and ``durations`` will be ignored.
@@ -168,6 +168,8 @@ class DynamicalDecoupling(TransformationPass):
 
         if dag.duration is None:
             raise TranspilerError("DD runs after circuit is scheduled.")
+
+        durations = self._update_inst_durations(dag)
 
         num_pulses = len(self._dd_sequence)
         sequence_gphase = 0
@@ -209,7 +211,7 @@ class DynamicalDecoupling(TransformationPass):
             for index, gate in enumerate(self._dd_sequence):
                 gate = gate.to_mutable()
                 self._dd_sequence[index] = gate
-                gate.duration = self._durations.get(gate, physical_qubit)
+                gate.duration = durations.get(gate, physical_qubit)
 
                 dd_sequence_duration += gate.duration
             index_sequence_duration_map[physical_qubit] = dd_sequence_duration
@@ -277,6 +279,26 @@ class DynamicalDecoupling(TransformationPass):
             new_dag.global_phase = new_dag.global_phase + sequence_gphase
 
         return new_dag
+
+    def _update_inst_durations(self, dag):
+        """Update instruction durations with circuit information. If the dag contains gate
+        calibrations and no instruction durations were provided through the target or as a
+        standalone input, the circuit calibration durations will be used.
+        The priority order for instruction durations is: target > standalone > circuit.
+        """
+        circ_durations = InstructionDurations()
+
+        if dag.calibrations:
+            cal_durations = []
+            for gate, gate_cals in dag.calibrations.items():
+                for (qubits, parameters), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            circ_durations.update(cal_durations, circ_durations.dt)
+
+        if self._durations is not None:
+            circ_durations.update(self._durations, getattr(self._durations, "dt", None))
+
+        return circ_durations
 
     def __gate_supported(self, gate: Gate, qarg: int) -> bool:
         """A gate is supported on the qubit (qarg) or not."""

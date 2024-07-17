@@ -18,6 +18,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
+use qiskit_circuit::util::c64;
 
 const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
 const fn generate_oper_table() -> [[f64; 2]; OPER_TABLE_SIZE] {
@@ -81,13 +82,13 @@ pub fn sampled_expval_complex(
     let out: Complex64 = oper_strs
         .into_iter()
         .enumerate()
-        .map(|(idx, string)| coeff_arr[idx] * Complex64::new(bitstring_expval(&dist, string), 0.))
+        .map(|(idx, string)| coeff_arr[idx] * c64(bitstring_expval(&dist, string), 0.))
         .sum();
     Ok(out.re)
 }
 
 #[pymodule]
-pub fn sampled_exp_val(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sampled_expval_float))?;
     m.add_wrapped(wrap_pyfunction!(sampled_expval_complex))?;
     Ok(())

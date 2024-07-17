@@ -89,6 +89,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         dag_dep_circ = dagdependency_to_circuit(dag)
 
         def node_attr_func(node):
+            if "DAGDependencyV2" in type_str:
+                nid_str = str(node._node_id)
+            else:
+                nid_str = str(node.node_id)
             if style == "plain":
                 return {}
             if style == "color":
@@ -109,12 +113,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
                 n["color"] = "black"
                 n["label"] = (
-                    str(node.node_id)
-                    + ": "
-                    + str(node.name)
-                    + " ("
-                    + str(args)[1:-1].replace("'", "")
-                    + ")"
+                    nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
                 )
                 if node.name == "barrier":
                     n["style"] = "filled"
@@ -141,7 +140,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                     n["label"] = (
-                        str(node.node_id)
+                        nid_str
                         + ": "
                         + str(node.name)
                         + cond_txt
@@ -153,7 +152,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "lightblue"
                 return n
             else:
-                raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
+                raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
         edge_attr_func = None
 
@@ -198,7 +197,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "red"
                 return n
             else:
-                raise VisualizationError("Invalid style %s" % style)
+                raise VisualizationError(f"Invalid style {style}")
 
         def edge_attr_func(edge):
             e = {}

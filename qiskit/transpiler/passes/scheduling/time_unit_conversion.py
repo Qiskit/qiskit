@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -51,6 +51,7 @@ class TimeUnitConversion(TransformationPass):
         self.inst_durations = inst_durations or InstructionDurations()
         if target is not None:
             self.inst_durations = target.durations()
+        self._durations_provided = inst_durations is not None or target is not None
 
     def run(self, dag: DAGCircuit):
         """Run the TimeUnitAnalysis pass on `dag`.
@@ -64,8 +65,11 @@ class TimeUnitConversion(TransformationPass):
         Raises:
             TranspilerError: if the units are not unifiable
         """
+
+        inst_durations = self._update_inst_durations(dag)
+
         # Choose unit
-        if self.inst_durations.dt is not None:
+        if inst_durations.dt is not None:
             time_unit = "dt"
         else:
             # Check what units are used in delays and other instructions: dt or SI or mixed
@@ -75,7 +79,7 @@ class TimeUnitConversion(TransformationPass):
                     "Fail to unify time units in delays. SI units "
                     "and dt unit must not be mixed when dt is not supplied."
                 )
-            units_other = self.inst_durations.units_used()
+            units_other = inst_durations.units_used()
             if self._unified(units_other) == "mixed":
                 raise TranspilerError(
                     "Fail to unify time units in instruction_durations. SI units "
@@ -96,17 +100,38 @@ class TimeUnitConversion(TransformationPass):
         # Make units consistent
         for node in dag.op_nodes():
             try:
-                duration = self.inst_durations.get(
+                duration = inst_durations.get(
                     node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
                 )
             except TranspilerError:
                 continue
-            node.op = node.op.to_mutable()
-            node.op.duration = duration
-            node.op.unit = time_unit
+            op = node.op.to_mutable()
+            op.duration = duration
+            op.unit = time_unit
+            node.op = op
 
         self.property_set["time_unit"] = time_unit
         return dag
+
+    def _update_inst_durations(self, dag):
+        """Update instruction durations with circuit information. If the dag contains gate
+        calibrations and no instruction durations were provided through the target or as a
+        standalone input, the circuit calibration durations will be used.
+        The priority order for instruction durations is: target > standalone > circuit.
+        """
+        circ_durations = InstructionDurations()
+
+        if dag.calibrations:
+            cal_durations = []
+            for gate, gate_cals in dag.calibrations.items():
+                for (qubits, parameters), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            circ_durations.update(cal_durations, circ_durations.dt)
+
+        if self._durations_provided:
+            circ_durations.update(self.inst_durations, getattr(self.inst_durations, "dt", None))
+
+        return circ_durations
 
     @staticmethod
     def _units_used_in_delays(dag: DAGCircuit) -> Set[str]:

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -76,11 +76,11 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
         pos = [qubit, qubit + num_qubits]
         circ = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]])
         if len(circ) > 0:
-            ret_circ.append(circ, [qubit])
+            ret_circ.append(circ, [qubit], copy=False)
 
     # Add the inverse of the 2-qubit reductions circuit
     if len(inv_circuit) > 0:
-        ret_circ.append(inv_circuit.inverse(), range(num_qubits))
+        ret_circ.append(inv_circuit.inverse(), range(num_qubits), copy=False)
 
     return ret_circ.decompose()
 
@@ -192,7 +192,7 @@ def _cx_cost(clifford):
         return _cx_cost2(clifford)
     if clifford.num_qubits == 3:
         return _cx_cost3(clifford)
-    raise Exception("No Clifford CX cost function for num_qubits > 3.")
+    raise RuntimeError("No Clifford CX cost function for num_qubits > 3.")
 
 
 def _rank2(a, b, c, d):

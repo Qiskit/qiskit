@@ -215,12 +215,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
                 "Number of qubits of other Pauli does not match number of "
-                "qargs ({} != {}).".format(other.num_qubits, len(qargs))
+                f"qargs ({other.num_qubits} != {len(qargs)})."
             )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
                 "Number of qubits of other Pauli does not match the current "
-                "Pauli ({} != {}).".format(other.num_qubits, self.num_qubits)
+                f"Pauli ({other.num_qubits} != {self.num_qubits})."
             )
         if qargs is not None:
             inds = list(qargs)
@@ -262,15 +262,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Check dimension
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
-                "Incorrect number of qubits for Clifford circuit ({} != {}).".format(
-                    other.num_qubits, len(qargs)
-                )
+                f"Incorrect number of qubits for Clifford circuit ({other.num_qubits} != {len(qargs)})."
             )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
-                "Incorrect number of qubits for Clifford circuit ({} != {}).".format(
-                    other.num_qubits, self.num_qubits
-                )
+                f"Incorrect number of qubits for Clifford circuit "
+                f"({other.num_qubits} != {self.num_qubits})."
             )
 
         # Evolve via Pauli
@@ -541,75 +538,49 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if qargs is None:
             qargs = list(range(self.num_qubits))
 
-        if isinstance(circuit, QuantumCircuit):
-            gate = circuit.to_instruction()
-        else:
+        if not isinstance(circuit, QuantumCircuit):
             gate = circuit
 
-        # Basis Clifford Gates
-        basis_1q = {
-            "i": _evolve_i,
-            "id": _evolve_i,
-            "iden": _evolve_i,
-            "x": _evolve_x,
-            "y": _evolve_y,
-            "z": _evolve_z,
-            "h": _evolve_h,
-            "s": _evolve_s,
-            "sdg": _evolve_sdg,
-            "sinv": _evolve_sdg,
-        }
-        basis_2q = {"cx": _evolve_cx, "cz": _evolve_cz, "cy": _evolve_cy, "swap": _evolve_swap}
+            if isinstance(gate, str):
+                # Check if gate is a valid Clifford basis gate string
+                if gate not in _basis_1q and gate not in _basis_2q:
+                    raise QiskitError(f"Invalid Clifford gate name string {gate}")
+                name = gate
+            else:
+                # Assume gate is an Instruction
+                name = gate.name
 
-        # Non-Clifford gates
-        non_clifford = ["t", "tdg", "ccx", "ccz"]
+            # Apply gate if it is a Clifford basis gate
+            if name in _non_clifford:
+                raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
+            if name in _basis_1q:
+                if len(qargs) != 1:
+                    raise QiskitError("Invalid qubits for 1-qubit gate.")
+                return _basis_1q[name](self, qargs[0])
+            if name in _basis_2q:
+                if len(qargs) != 2:
+                    raise QiskitError("Invalid qubits for 2-qubit gate.")
+                return _basis_2q[name](self, qargs[0], qargs[1])
 
-        if isinstance(gate, str):
-            # Check if gate is a valid Clifford basis gate string
-            if gate not in basis_1q and gate not in basis_2q:
-                raise QiskitError(f"Invalid Clifford gate name string {gate}")
-            name = gate
-        else:
-            # Assume gate is an Instruction
-            name = gate.name
-
-        # Apply gate if it is a Clifford basis gate
-        if name in non_clifford:
-            raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
-        if name in basis_1q:
-            if len(qargs) != 1:
-                raise QiskitError("Invalid qubits for 1-qubit gate.")
-            return basis_1q[name](self, qargs[0])
-        if name in basis_2q:
-            if len(qargs) != 2:
-                raise QiskitError("Invalid qubits for 2-qubit gate.")
-            return basis_2q[name](self, qargs[0], qargs[1])
-
-        # If not a Clifford basis gate we try to unroll the gate and
-        # raise an exception if unrolling reaches a non-Clifford gate.
-        if gate.definition is None:
-            raise QiskitError(f"Cannot apply Instruction: {gate.name}")
-        if not isinstance(gate.definition, QuantumCircuit):
-            raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    gate.name, type(gate.definition)
+            # If not a Clifford basis gate we try to unroll the gate and
+            # raise an exception if unrolling reaches a non-Clifford gate.
+            if gate.definition is None:
+                raise QiskitError(f"Cannot apply Instruction: {gate.name}")
+            if not isinstance(gate.definition, QuantumCircuit):
+                raise QiskitError(
+                    f"{gate.name} instruction definition is {type(gate.definition)};"
+                    f" expected QuantumCircuit"
                 )
-            )
 
-        flat_instr = gate.definition
-        bit_indices = {
-            bit: index
-            for bits in [flat_instr.qubits, flat_instr.clbits]
-            for index, bit in enumerate(bits)
-        }
+            circuit = gate.definition
 
-        for instruction in flat_instr:
+        for instruction in circuit:
             if instruction.clbits:
                 raise QiskitError(
                     f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
-            new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+            new_qubits = [qargs[circuit.find_bit(qb)[0]] for qb in instruction.qubits]
             self._append_circuit(instruction.operation, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
@@ -715,6 +686,42 @@ def _evolve_swap(base_pauli, q1, q2):
     return base_pauli
 
 
+def _evolve_ecr(base_pauli, q1, q2):
+    """Update P -> ECR.P.ECR"""
+    base_pauli = _evolve_s(base_pauli, q1)
+    base_pauli = _evolve_h(base_pauli, q2)
+    base_pauli = _evolve_s(base_pauli, q2)
+    base_pauli = _evolve_h(base_pauli, q2)
+    base_pauli = _evolve_cx(base_pauli, q1, q2)
+    base_pauli = _evolve_x(base_pauli, q1)
+    return base_pauli
+
+
 def _count_y(x, z, dtype=None):
     """Count the number of I Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)
+
+
+# Basis Clifford Gates
+_basis_1q = {
+    "i": _evolve_i,
+    "id": _evolve_i,
+    "iden": _evolve_i,
+    "x": _evolve_x,
+    "y": _evolve_y,
+    "z": _evolve_z,
+    "h": _evolve_h,
+    "s": _evolve_s,
+    "sdg": _evolve_sdg,
+    "sinv": _evolve_sdg,
+}
+_basis_2q = {
+    "cx": _evolve_cx,
+    "cz": _evolve_cz,
+    "cy": _evolve_cy,
+    "swap": _evolve_swap,
+    "ecr": _evolve_ecr,
+}
+
+# Non-Clifford gates
+_non_clifford = ["t", "tdg", "ccx", "ccz"]

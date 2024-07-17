@@ -352,7 +352,8 @@ class TestBackendSampler(QiskitTestCase):
             qc.measure(0, 0)
             qc.break_loop().c_if(0, True)
 
-        backend = Aer.get_backend("aer_simulator")
+        with self.assertWarns(DeprecationWarning):
+            backend = Aer.get_backend("aer_simulator")
         sampler = BackendSampler(backend, skip_transpilation=True)
         sampler.set_options(seed_simulator=15)
         sampler.set_transpile_options(seed_transpiler=15)

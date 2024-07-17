@@ -19,6 +19,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class PhaseGate(Gate):
@@ -74,6 +75,8 @@ class PhaseGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
+
+    _standard_gate = StandardGate.PhaseGate
 
     def __init__(
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
@@ -140,13 +143,14 @@ class PhaseGate(Gate):
         """
         return PhaseGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the Phase gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return PhaseGate(exponent * theta)
 
@@ -195,6 +199,8 @@ class CPhaseGate(ControlledGate):
         of Phase and RZ, CPhase and CRZ are different gates with a relative
         phase difference.
     """
+
+    _standard_gate = StandardGate.CPhaseGate
 
     def __init__(
         self,
@@ -280,8 +286,10 @@ class CPhaseGate(ControlledGate):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda)^{\dagger} = CPhase(-\lambda)`)"""
         return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CPhase gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
@@ -289,8 +297,7 @@ class CPhaseGate(ControlledGate):
             )
         return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return CPhaseGate(exponent * theta)
 
@@ -333,6 +340,7 @@ class MCPhaseGate(ControlledGate):
         lam: ParameterValueType,
         num_ctrl_qubits: int,
         label: str | None = None,
+        ctrl_state: str | int | None = None,
         *,
         duration=None,
         unit="dt",
@@ -345,6 +353,7 @@ class MCPhaseGate(ControlledGate):
             [lam],
             num_ctrl_qubits=num_ctrl_qubits,
             label=label,
+            ctrl_state=ctrl_state,
             base_gate=PhaseGate(lam, label=_base_label),
             duration=duration,
             unit=unit,
@@ -354,20 +363,32 @@ class MCPhaseGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qr = QuantumRegister(self.num_qubits, "q")
+        qc = QuantumCircuit(qr, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             qc.p(self.params[0], 0)
         if self.num_ctrl_qubits == 1:
             qc.cp(self.params[0], 0, 1)
         else:
-            from .u3 import _gray_code_chain
+            lam = self.params[0]
+            if type(lam) in [float, int]:
+                q_controls = list(range(self.num_ctrl_qubits))
+                q_target = self.num_ctrl_qubits
+                new_target = q_target
+                for k in range(self.num_ctrl_qubits):
+                    qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=True)
+                    new_target = q_controls.pop()
+                qc.p(lam / (2**self.num_ctrl_qubits), new_target)
+            else:  # in this case type(lam) is ParameterValueType
+                from .u3 import _gray_code_chain
 
-            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = CPhaseGate(scaled_lam)
-            for operation, qubits, clbits in _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate):
-                qc._append(operation, qubits, clbits)
+                scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
+                bottom_gate = CPhaseGate(scaled_lam)
+                for operation, qubits, clbits in _gray_code_chain(
+                    qr, self.num_ctrl_qubits, bottom_gate
+                ):
+                    qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def control(
@@ -407,5 +428,5 @@ class MCPhaseGate(ControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
+        r"""Return inverted MCPhase gate (:math:`MCPhase(\lambda)^{\dagger} = MCPhase(-\lambda)`)"""
         return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)

@@ -264,10 +264,9 @@ def gen_raw_operand_values_compact(
         freq_sci_notation = "0.0"
     else:
         abs_freq = np.abs(data.frame.freq)
-        freq_sci_notation = "{base:.1f}e{exp:d}".format(
-            base=data.frame.freq / (10 ** int(np.floor(np.log10(abs_freq)))),
-            exp=int(np.floor(np.log10(abs_freq))),
-        )
+        base = data.frame.freq / (10 ** int(np.floor(np.log10(abs_freq))))
+        exponent = int(np.floor(np.log10(abs_freq)))
+        freq_sci_notation = f"{base:.1f}e{exponent:d}"
     frame_info = f"{data.frame.phase:.2f}\n{freq_sci_notation}"
 
     text = drawings.TextData(
