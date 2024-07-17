@@ -132,7 +132,7 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "default",
+            "ignore",
             category=DeprecationWarning,
             message=r".* If user still need Qobj,.*",
             module=r"qiskit_aer",
