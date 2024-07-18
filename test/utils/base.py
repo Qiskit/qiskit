@@ -123,7 +123,7 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "default",
+            "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
             message="Treating CircuitInstruction as an iterable is deprecated",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
