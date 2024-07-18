@@ -26,6 +26,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
+from qiskit.utils import deprecate_func
 
 
 class GateConfig:
@@ -493,7 +494,15 @@ class QasmBackendConfiguration:
 class BackendConfiguration(QasmBackendConfiguration):
     """Backwards compat shim representing an abstract backend configuration."""
 
-    pass
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The class `BackendConfiguration` is being deprecated "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class PulseBackendConfiguration(QasmBackendConfiguration):
