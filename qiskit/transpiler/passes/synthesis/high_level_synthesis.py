@@ -421,12 +421,11 @@ class HighLevelSynthesis(TransformationPass):
         represents whether the qubits are initially ``0``. Note that this method
         calls itself recursively.
         """
-
         new_dag = dag.copy_empty_like()
 
         # For now, we only use auxiliary qubits if HighLevelSynthesis runs before
-        # layout/routing.
-        use_ancillas = not self._use_qubit_indices
+        # layout/routing (coupling map is None)
+        use_ancillas = self._coupling_map is None
 
         # Starting set of clean auxiliary qubits
         if use_ancillas and is_zero_initialized:
@@ -1219,7 +1218,6 @@ class RecursiveSynthesisMCX(HighLevelSynthesisPlugin):
         """Run synthesis for the given Permutation."""
         num_clean_ancillas = options.get("_num_clean_ancillas", 0)
         num_dirty_ancillas = options.get("_num_dirty_ancillas", 0)
-        print(f"In RecursiveMCXPlugin: {num_clean_ancillas = }, {num_dirty_ancillas = }")
 
         if high_level_object.num_qubits <= 5:
             # For MCX gates with up to 4 control qubits, we should not apply synth_mcx_recursive
@@ -1228,7 +1226,6 @@ class RecursiveSynthesisMCX(HighLevelSynthesisPlugin):
 
         # decomposition may be None, that's ok
         decomposition = synth_mcx_recursive(high_level_object.num_qubits - 1, num_clean_ancillas)
-        # print(f"RecursiveSynthesisMCX plugin: ok = {decomposition is not None}")
         return decomposition
 
 
