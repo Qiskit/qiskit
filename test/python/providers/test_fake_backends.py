@@ -143,15 +143,18 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_qobj_failure(self):
         backend = BACKENDS[-1]
-        tqc = transpile(self.circuit, backend)
         with self.assertWarns(DeprecationWarning):
+            tqc = transpile(self.circuit, backend)
             qobj = assemble(tqc, backend)
         with self.assertRaises(QiskitError):
             backend.run(qobj)
 
     @data(*BACKENDS)
     def test_to_dict_properties(self, backend):
-        properties = backend.properties()
+        with warnings.catch_warnings():
+            # The class QobjExperimentHeader is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            properties = backend.properties()
         if properties:
             self.assertIsInstance(backend.properties().to_dict(), dict)
         else:
@@ -526,10 +529,10 @@ class TestFakeBackends(QiskitTestCase):
         """Test faulty qubits in v2 conversion."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake127QPulseV1()
-        # Get properties dict to make it easier to work with the properties API
-        # is difficult to edit because of the multiple layers of nesting and
-        # different object types
-        props_dict = backend.properties().to_dict()
+            # Get properties dict to make it easier to work with the properties API
+            # is difficult to edit because of the multiple layers of nesting and
+            # different object types
+            props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
                 "date": datetime.datetime.now(datetime.timezone.utc),
@@ -538,7 +541,8 @@ class TestFakeBackends(QiskitTestCase):
                 "value": 0,
             }
             props_dict["qubits"][i].append(non_operational)
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
@@ -548,10 +552,10 @@ class TestFakeBackends(QiskitTestCase):
         """Test faulty qubits in v2 conversion."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake127QPulseV1()
-        # Get properties dict to make it easier to work with the properties API
-        # is difficult to edit because of the multiple layers of nesting and
-        # different object types
-        props_dict = backend.properties().to_dict()
+            # Get properties dict to make it easier to work with the properties API
+            # is difficult to edit because of the multiple layers of nesting and
+            # different object types
+            props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
                 "date": datetime.datetime.now(datetime.timezone.utc),
@@ -560,7 +564,8 @@ class TestFakeBackends(QiskitTestCase):
                 "value": 0,
             }
             props_dict["qubits"][i].append(non_operational)
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True, add_delay=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
@@ -617,10 +622,10 @@ class TestFakeBackends(QiskitTestCase):
         """Test faulty gates and qubits."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake127QPulseV1()
-        # Get properties dict to make it easier to work with the properties API
-        # is difficult to edit because of the multiple layers of nesting and
-        # different object types
-        props_dict = backend.properties().to_dict()
+            # Get properties dict to make it easier to work with the properties API
+            # is difficult to edit because of the multiple layers of nesting and
+            # different object types
+            props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
                 "date": datetime.datetime.now(datetime.timezone.utc),
@@ -649,7 +654,8 @@ class TestFakeBackends(QiskitTestCase):
             if tuple(gate["qubits"]) in invalid_cx_edges:
                 gate["parameters"].append(non_operational_gate)
 
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
@@ -696,7 +702,7 @@ class TestFakeBackends(QiskitTestCase):
         """Test that faulty qubit filtering does nothing with all operational qubits and gates."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake127QPulseV1()
-        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+            v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(v2_backend.num_qubits):
             self.assertIn((i,), v2_backend.target.qargs)
 
