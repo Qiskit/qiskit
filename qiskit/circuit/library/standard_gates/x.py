@@ -13,7 +13,7 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 from typing import Optional, Union, Type
-from math import pi
+from math import ceil, pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -1185,10 +1185,23 @@ class MCXGate(ControlledGate):
     def _define(self):
         """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.multi_controlled import synth_mcx_using_mcphase
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        # Note: The implementation is moved to synthesis/mcx
-        self.definition = synth_mcx_using_mcphase(self.num_ctrl_qubits)
+        q = QuantumRegister(self.num_qubits, name="q")
+        qc = QuantumCircuit(q)
+        if self.num_qubits == 4:
+            qc._append(C3XGate(), q[:], [])
+            self.definition = qc
+        elif self.num_qubits == 5:
+            qc._append(C4XGate(), q[:], [])
+            self.definition = qc
+        else:
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            qc.h(q_target)
+            qc.mcp(numpy.pi, q_controls, q_target)
+            qc.h(q_target)
+            self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
@@ -1359,12 +1372,46 @@ class MCXRecursive(MCXGate):
     def _define(self):
         """Define the MCX gate using recursion."""
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.multi_controlled import synth_mcx_recursive
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        # Note: The implementation is moved to synthesis/mcx
-        qc = synth_mcx_recursive(self.num_ctrl_qubits, self.num_qubits - self.num_ctrl_qubits - 1)
-        qc.name = self.name
-        self.definition = qc
+        q = QuantumRegister(self.num_qubits, name="q")
+        qc = QuantumCircuit(q, name=self.name)
+        if self.num_qubits == 4:
+            qc._append(C3XGate(), q[:], [])
+            self.definition = qc
+        elif self.num_qubits == 5:
+            qc._append(C4XGate(), q[:], [])
+            self.definition = qc
+        else:
+            num_ctrl_qubits = len(q) - 1
+            q_ancilla = q[-1]
+            q_target = q[-2]
+            middle = ceil(num_ctrl_qubits / 2)
+            first_half = [*q[:middle]]
+            second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+
+            self.definition = qc
 
 
 class MCXVChain(MCXGate):

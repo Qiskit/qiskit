@@ -92,9 +92,6 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "qft.line" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QFTSynthesisLine"
 "qft.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:QFTSynthesisFull"
 "permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:TokenSwapperSynthesisPermutation"
-"mcx.default" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:MCPhaseSynthesisMCX"
-"mcx.recursive" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:RecursiveSynthesisMCX"
-"mcx.mcphase" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:MCPhaseSynthesisMCX"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
