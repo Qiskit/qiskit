@@ -403,28 +403,28 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 SparsePauliOp.from_list([("ZZ", 1), ("ZZ", 1)]),
             ],
         ]
-        for i in range(len(hamiltonian)):
+        for hamiltonian in hamiltonians:
             job = estimator.run(
-                [(self.psi[0], hamiltonian[i], [self.theta[0]])], precision=self._precision
+                [(self.psi[0], hamiltonian, [self.theta[0]])], precision=self._precision
             )
             result = job.result()
             np.testing.assert_array_less(
-                result[0].data.stds, [self._precision] * len(hamiltonian[i])
+                result[0].data.stds, [self._precision] * len(hamiltonian)
             )
             # The result of the second run is the same
             job = estimator.run(
                 [
-                    (self.psi[0], hamiltonian[i], [self.theta[0]]),
-                    (self.psi[0], hamiltonian[i], [self.theta[0]]),
+                    (self.psi[0], hamiltonian, [self.theta[0]]),
+                    (self.psi[0], hamiltonian, [self.theta[0]]),
                 ],
                 precision=self._precision,
             )
             result = job.result()
             np.testing.assert_array_less(
-                result[0].data.stds, [self._precision] * len(hamiltonian[i])
+                result[0].data.stds, [self._precision] * len(hamiltonian)
             )
             np.testing.assert_array_less(
-                result[1].data.stds, [self._precision] * len(hamiltonian[i])
+                result[1].data.stds, [self._precision] * len(hamiltonian)
             )
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
