@@ -215,10 +215,10 @@ class QasmBackendConfiguration:
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="The class `QasmBackendConfiguration` is being deprecated "
-        "as they are not necessary for BackendV2. If user still need Qobj, "
+        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
         "that probably means that they are using a backend based on the "
         "deprecated BackendV1 class.",
+        stacklevel=3,
     )
     def __init__(
         self,

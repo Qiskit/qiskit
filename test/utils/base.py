@@ -135,7 +135,7 @@ class QiskitTestCase(BaseTestCase):
             "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
             message=r".* If user still need Qobj,.*",
-            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+            module=r"qiskit_aer",
         )
 
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
