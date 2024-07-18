@@ -48,14 +48,20 @@ from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 def get_standard_gate_name_mapping():
     """Return a dictionary mapping the name of standard gates and instructions to an object for
-    that name."""
+    that name.
+
+    For variadic operations (i.e. operations that operate on a variable
+    number of qubits), such as :class:`~.MCXGate`, the class for that
+    operation is returned and not an instance.
+    """
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.measure import Measure
     from qiskit.circuit.delay import Delay
     from qiskit.circuit.reset import Reset
+    from qiskit.circuit.controlflow import IfElseOp, WhileLoopOp, ForLoopOp
 
     # Standard gates library mapping, multicontrolled gates not included since they're
-    # variable width
+    # variable width.
     gates = [
         IGate(),
         SXGate(),
@@ -113,4 +119,15 @@ def get_standard_gate_name_mapping():
         Measure(),
     ]
     name_mapping = {gate.name: gate for gate in gates}
+    # Add variable width gates as a mapping between names and classes
+    # since an instance requires knowing how many qubits are being operated on
+    name_mapping["if_else"] = IfElseOp
+    name_mapping["for_loop"] = ForLoopOp
+    name_mapping["while_loop"] = WhileLoopOP
+    name_mapping["mcx"] = MCXGate
+    name_mapping["mcx_gray"] = MCXGrayCode
+    name_mapping["mcx_recursive"] = MCXRecursive
+    name_mapping["mcx_vchain"] = MCXVChain
+    name_mapping["mcp"] = MCPhaseGate
+    name_mapping["mcu1"] = MCU1Gate
     return name_mapping
