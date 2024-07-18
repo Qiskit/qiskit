@@ -142,6 +142,13 @@ class UchannelLO:
         scale: Scale factor for qubit frequency.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
+        "that probably means that they are using a backend based on the "
+        "deprecated BackendV1 class.",
+    )
     def __init__(self, q, scale):
         """Initialize a UchannelLOSchema object
 
