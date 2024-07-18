@@ -205,6 +205,46 @@ impl ToPyObject for Param {
     }
 }
 
+impl Param {
+    pub fn add(&self, other: &Param, py: Python) -> Param {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Param::Float(a + b),
+            [Self::Float(a), Self::ParameterExpression(b)] => Param::ParameterExpression(
+                b.clone_ref(py)
+                    .call_method1(py, intern!(py, "__radd__"), (*a,))
+                    .expect("Parameter expression addition failed"),
+            ),
+            [Self::ParameterExpression(a), Self::Float(b)] => Param::ParameterExpression(
+                a.clone_ref(py)
+                    .call_method1(py, intern!(py, "__add__"), (*b,))
+                    .expect("Parameter expression addition failed"),
+            ),
+            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => {
+                Param::ParameterExpression(
+                    a.clone_ref(py)
+                        .call_method1(py, intern!(py, "__add__"), (b,))
+                        .expect("Parameter expression addition failed"),
+                )
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn eq(&self, other: &Param, py: Python) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(a == b),
+            [Self::Float(a), Self::ParameterExpression(b)] => b.bind(py).eq(a),
+            [Self::ParameterExpression(a), Self::Float(b)] => a.bind(py).eq(b),
+            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(_), Self::Float(_)] => Ok(false),
+            [Self::Float(_), Self::Obj(_)] => Ok(false),
+            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
+            [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[pyclass(module = "qiskit._accelerate.circuit")]
 pub enum StandardGate {

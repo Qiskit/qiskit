@@ -52,7 +52,6 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
-use std::ffi::c_double;
 use std::hash::Hash;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
@@ -211,10 +210,10 @@ pub struct DAGCircuit {
     /// Circuit name.  Generally, this corresponds to the name
     /// of the QuantumCircuit from which the DAG was generated.
     #[pyo3(get, set)]
-    name: Option<Py<PyString>>,
+    name: Option<PyObject>,
     /// Circuit metadata
     #[pyo3(get, set)]
-    metadata: Option<Py<PyDict>>,
+    metadata: Option<PyObject>,
 
     calibrations: HashMap<String, Py<PyDict>>,
 
@@ -234,7 +233,7 @@ pub struct DAGCircuit {
     /// Clbits registered in the circuit.
     pub(crate) clbits: BitData<Clbit>,
     /// Global phase.
-    global_phase: PyObject,
+    global_phase: Param,
     /// Duration.
     #[pyo3(get, set)]
     duration: Option<PyObject>,
@@ -474,7 +473,7 @@ impl DAGCircuit {
             cargs_cache: IndexedInterner::new(),
             qubits: BitData::new(py, "qubits".to_string()),
             clbits: BitData::new(py, "clbits".to_string()),
-            global_phase: PyFloat::new_bound(py, 0 as c_double).into_any().unbind(),
+            global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
             qubit_locations: PyDict::new_bound(py).unbind(),
@@ -582,8 +581,8 @@ impl DAGCircuit {
 
     /// Return the global phase of the circuit.
     #[getter]
-    fn get_global_phase(&self) -> &PyObject {
-        &self.global_phase
+    fn get_global_phase(&self) -> Param {
+        self.global_phase.clone()
     }
 
     /// Set the global phase of the circuit.
@@ -591,20 +590,15 @@ impl DAGCircuit {
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
     #[setter]
-    fn set_global_phase(&mut self, py: Python<'_>, angle: &Bound<PyAny>) -> PyResult<()> {
-        if let Ok(angle) = angle.downcast::<PyFloat>() {
-            self.global_phase = PyFloat::new_bound(
-                py,
-                if !angle.is_truthy()? {
-                    0 as c_double
-                } else {
-                    angle.value() % (2f64 * PI)
-                },
-            )
-            .into_any()
-            .unbind();
-        } else {
-            self.global_phase = angle.clone().unbind()
+    fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+        match angle {
+            Param::Float(angle) => {
+                self.global_phase = Param::Float(angle.rem_euclid(2. * PI));
+            }
+            Param::ParameterExpression(angle) => {
+                self.global_phase = Param::ParameterExpression(angle);
+            }
+            Param::Obj(_) => return Err(PyValueError::new_err("Invalid type for global phase")),
         }
         Ok(())
     }
@@ -1204,7 +1198,7 @@ def _format(operand):
     fn copy_empty_like(&self, py: Python) -> PyResult<Self> {
         let mut target_dag = DAGCircuit::new(py)?;
         target_dag.name = self.name.as_ref().map(|n| n.clone_ref(py));
-        target_dag.global_phase = self.global_phase.clone_ref(py);
+        target_dag.global_phase = self.global_phase.clone();
         target_dag.duration = self.duration.as_ref().map(|d| d.clone_ref(py));
         target_dag.unit = self.unit.clone();
         target_dag.metadata = self.metadata.as_ref().map(|m| m.clone_ref(py));
@@ -1576,7 +1570,7 @@ def _format(operand):
             Py::new(py, slf.clone())?.into_bound(py).borrow_mut()
         };
 
-        dag.global_phase = dag.global_phase.bind(py).add(&other.global_phase)?.unbind();
+        dag.global_phase = dag.global_phase.add(&other.global_phase, py);
 
         for (gate, cals) in other.calibrations.iter() {
             dag.calibrations[gate]
@@ -1986,39 +1980,8 @@ def _format(operand):
         // Try to convert to float, but in case of unbound ParameterExpressions
         // a TypeError will be raise, fallback to normal equality in those
         // cases.
-        let self_phase = match self
-            .global_phase
-            .bind(py)
-            .call_method0(intern!(py, "__float__"))
-        {
-            Err(e) if !e.is_instance_of::<PyTypeError>(py) => {
-                return Err(e);
-            }
-            res => res.ok(),
-        };
-        let other_phase = match other
-            .global_phase
-            .bind(py)
-            .call_method0(intern!(py, "__float__"))
-        {
-            Err(e) if !e.is_instance_of::<PyTypeError>(py) => {
-                return Err(e);
-            }
-            res => res.ok(),
-        };
-        match (self_phase, other_phase) {
-            (Some(self_phase), Some(other_phase)) => {
-                let self_phase: f64 = self_phase.extract()?;
-                let other_phase: f64 = other_phase.extract()?;
-                if (((self_phase - other_phase + PI) % (2.0 * PI)) - PI).abs() > 1.0e-10 {
-                    return Ok(false);
-                }
-            }
-            _ => {
-                if !self.global_phase.bind(py).eq(other.global_phase.bind(py))? {
-                    return Ok(false);
-                }
-            }
+        if !self.global_phase.eq(&other.global_phase, py)? {
+            return Ok(false);
         }
 
         if self.calibrations.len() != other.calibrations.len() {
