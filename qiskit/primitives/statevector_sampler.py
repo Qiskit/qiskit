@@ -197,7 +197,10 @@ class StatevectorSampler(BaseSamplerV2):
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        return SamplerPubResult(DataBin(**meas, shape=pub.shape), metadata={"shots": pub.shots})
+        return SamplerPubResult(
+            DataBin(**meas, shape=pub.shape),
+            metadata={"shots": pub.shots, "circuit_metadata": pub.circuit.metadata},
+        )
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):

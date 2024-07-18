@@ -275,7 +275,14 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 variances[index] += np.abs(coeff) * variance**0.5
         stds = variances / np.sqrt(shots)
         data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
-        return PubResult(data_bin, metadata={"target_precision": pub.precision})
+        return PubResult(
+            data_bin,
+            metadata={
+                "target_precision": pub.precision,
+                "shots": shots,
+                "circuit_metadata": pub.circuit.metadata,
+            },
+        )
 
     def _bind_and_add_measurements(
         self,

@@ -473,6 +473,30 @@ class TestBackendEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
         np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733], rtol=self._rtol)
 
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.metadata = {"a": 1}
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        qc, qc2 = pm.run([qc, qc2])
+        op = SparsePauliOp("ZZ").apply_layout(qc.layout)
+        op2 = SparsePauliOp("ZZ").apply_layout(qc2.layout)
+        result = estimator.run([(qc, op), (qc2, op2)], precision=0.1).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result.metadata, dict)
+        self.assertEqual(
+            result[0].metadata,
+            {"target_precision": 0.1, "shots": 100, "circuit_metadata": qc.metadata},
+        )
+        self.assertEqual(
+            result[1].metadata,
+            {"target_precision": 0.1, "shots": 100, "circuit_metadata": qc2.metadata},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

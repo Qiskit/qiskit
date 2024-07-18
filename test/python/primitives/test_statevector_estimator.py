@@ -129,7 +129,7 @@ class TestStatevectorEstimator(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
+                self.assertEqual(result[0].metadata["target_precision"], 0)
 
         with self.subTest("One parameter"):
             param = Parameter("x")
@@ -145,7 +145,7 @@ class TestStatevectorEstimator(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
+                self.assertEqual(result[0].metadata["target_precision"], 0)
 
         with self.subTest("More than one parameter"):
             qc = self.psi[0]
@@ -162,7 +162,7 @@ class TestStatevectorEstimator(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
+                self.assertEqual(result[0].metadata["target_precision"], 0)
 
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""
@@ -289,6 +289,23 @@ class TestStatevectorEstimator(QiskitTestCase):
         result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733])
         np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733])
+
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.metadata = {"a": 1}
+        estimator = StatevectorEstimator()
+        result = estimator.run([(qc, "ZZ"), (qc2, "ZZ")], precision=0.1).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result.metadata, dict)
+        self.assertEqual(
+            result[0].metadata, {"target_precision": 0.1, "circuit_metadata": qc.metadata}
+        )
+        self.assertEqual(
+            result[1].metadata, {"target_precision": 0.1, "circuit_metadata": qc2.metadata}
+        )
 
 
 if __name__ == "__main__":

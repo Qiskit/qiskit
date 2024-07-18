@@ -162,4 +162,6 @@ class StatevectorEstimator(BaseEstimatorV2):
             evs[index] = expectation_value
 
         data = DataBin(evs=evs, stds=stds, shape=evs.shape)
-        return PubResult(data, metadata={"precision": precision})
+        return PubResult(
+            data, metadata={"target_precision": precision, "circuit_metadata": pub.circuit.metadata}
+        )
