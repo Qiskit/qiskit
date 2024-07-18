@@ -513,7 +513,7 @@ class HighLevelSynthesis(TransformationPass):
                         # annotated operations (for example, a singly-controlled CX-gate may result in a
                         # CCX-gate). There should be no case when this Operation would have more qubits
                         # than the original operation.
-                        if decomposition.num_qubits() != len(node.qargs):
+                        if decomposition.num_qubits != len(node.qargs):
                             raise TranspilerError(
                                 f"HighLevelSynthesis reached an unexpected result."
                             )
