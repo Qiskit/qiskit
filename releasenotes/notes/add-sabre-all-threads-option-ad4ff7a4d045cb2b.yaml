@@ -10,9 +10,9 @@ features_transpiler:
     output with fewer :class:`.SwapGate`\s.
 
     These transpiler passes run multiple random trials in parallel and pick
-    the result which results in the fewest :class:`.SwapGate`\s. As a rule of
-    thumb if you run more trials the provides the algorithm more opportunities
-    to find a better result. By default the preset pass managers used a fixed
+    the output which results in the fewest :class:`.SwapGate`\s. As a rule of
+    thumb, if you run more trials, this provides the algorithm more opportunities
+    to find a better result. By default, the preset pass managers use a fixed
     number of trials, in this release 5 trials for levels 0 and 1, and 20
     trials for levels 2 and 3, but these numbers may change in future releases
     (and were different in historical releases). Using a fixed number of
