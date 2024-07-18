@@ -435,10 +435,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         hamiltonian = [
             SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
             SparsePauliOp.from_list([("ZZ", 0)]),
-            SparsePauliOp.from_list([("ZZ", 0), ("ZZ", 0)]),
             [
                 SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
-                SparsePauliOp.from_list([("ZZ", 0)]),
+                SparsePauliOp.from_list([("ZZ", 1)]),
                 SparsePauliOp.from_list([("ZZ", 0), ("ZZ", 0)]),
             ],
         ]
