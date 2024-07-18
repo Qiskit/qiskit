@@ -197,9 +197,10 @@ class TestPulseGate(QiskitTestCase):
         )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
-        dummy_config = GateConfig(
-            name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,), (1,)]
-        )
+        with self.assertWarns(DeprecationWarning):
+            dummy_config = GateConfig(
+                name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,), (1,)]
+            )
         backend.configuration().gates.append(dummy_config)
         # Remove timing constraints to avoid triggering
         # scheduling passes.
@@ -231,7 +232,10 @@ class TestPulseGate(QiskitTestCase):
         )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
-        dummy_config = GateConfig(name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,)])
+        with self.assertWarns(DeprecationWarning):
+            dummy_config = GateConfig(
+                name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,)]
+            )
         backend.configuration().gates.append(dummy_config)
         # Remove timing constraints to avoid triggering
         # scheduling passes.
@@ -261,7 +265,10 @@ class TestPulseGate(QiskitTestCase):
         )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
-        dummy_config = GateConfig(name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,)])
+        with self.assertWarns(DeprecationWarning):
+            dummy_config = GateConfig(
+                name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,)]
+            )
         backend.configuration().gates.append(dummy_config)
         # Remove timing constraints to avoid triggering
         # scheduling passes.
@@ -292,7 +299,10 @@ class TestPulseGate(QiskitTestCase):
         )
         # Add gate to backend configuration
         backend.configuration().basis_gates.append("my_gate")
-        dummy_config = GateConfig(name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,)])
+        with self.assertWarns(DeprecationWarning):
+            dummy_config = GateConfig(
+                name="my_gate", parameters=[], qasm_def="", coupling_map=[(0,)]
+            )
         backend.configuration().gates.append(dummy_config)
         # Remove timing constraints to avoid triggering
         # scheduling passes.
