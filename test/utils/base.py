@@ -123,7 +123,7 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "ignore",
+            "default",
             category=DeprecationWarning,
             message="Treating CircuitInstruction as an iterable is deprecated",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
@@ -132,7 +132,7 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "ignore",
+            "once",  # If "default", it floods the CI output
             category=DeprecationWarning,
             message=r".* If user still need Qobj,.*",
             module=r"qiskit_aer",
@@ -141,7 +141,7 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "ignore",
+            "once",  # If "default", it floods the CI output
             category=DeprecationWarning,
             message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
             module="qiskit_aer",
