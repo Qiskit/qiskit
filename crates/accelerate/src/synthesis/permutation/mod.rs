@@ -83,20 +83,20 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
 }
 
 /// Synthesize a permutation circuit for a linear nearest-neighbor
-/// architecture using the Kutin, Moulton, Smithline method.
+///     architecture using the Kutin, Moulton, Smithline method.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 pub fn _synth_permutation_depth_lnn_kms(
     py: Python,
     pattern: PyArrayLike1<i64>,
 ) -> PyResult<CircuitData> {
-    let inverted = utils::invert(&pattern.as_array());
-    let view = inverted.view();
+    let mut inverted = utils::invert(&pattern.as_array());
+    let mut view = inverted.view_mut();
     let num_qubits = view.len();
     let mut swap_layers: Vec<(usize, usize)> = Vec::new();
 
     for i in 0..num_qubits {
-        let swap_layer: Vec<(usize, usize)> = utils::create_swap_layer(&view, i % 2);
+        let swap_layer: Vec<(usize, usize)> = utils::create_swap_layer(&mut view, i % 2);
         swap_layers.extend(swap_layer);
     }
 

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ndarray::ArrayViewMut1;
 use ndarray::{Array1, ArrayView1};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -145,19 +146,21 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
     swaps
 }
 
-//
+/// Implements a single swap layer, consisting of conditional swaps between each
+/// neighboring couple. The starting_point is the first qubit to use (either 0 or 1
+///     for even or odd layers respectively). Mutates both the quantum circuit ``qc``
+///     and the permutation pattern ``pattern``.
 pub fn create_swap_layer(
-    pattern: &ArrayView1<usize>,
+    pattern: &mut ArrayViewMut1<usize>,
     starting_point: usize,
 ) -> Vec<(usize, usize)> {
-    let mut pattern_vec = pattern.to_vec();
-    let num_qubits = pattern_vec.len();
+    let num_qubits = pattern.len();
     let mut gates = Vec::new();
 
-    for j in (starting_point..num_qubits).step_by(2) {
-        if pattern_vec[j] > pattern_vec[(j + 1) % num_qubits] {
-            gates.push((j, (j + 1) % num_qubits));
-            pattern_vec.swap(j, (j + 1) % num_qubits);
+    for j in (starting_point..num_qubits - 1).step_by(2) {
+        if pattern[j] > pattern[j + 1] {
+            gates.push((j, (j + 1)));
+            pattern.swap(j, j + 1);
         }
     }
     gates
