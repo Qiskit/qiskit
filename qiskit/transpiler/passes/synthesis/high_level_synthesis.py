@@ -530,7 +530,7 @@ class HighLevelSynthesis(TransformationPass):
         op: Operation,
         qubits: Optional[List] = None,
         num_clean_ancillas: int = 0,
-        num_dirty_ancillas=0,
+        num_dirty_ancillas: int = 0,
     ) -> Tuple[Union[QuantumCircuit, DAGCircuit, Operation], bool]:
         """Recursively synthesizes a single operation.
 
@@ -615,13 +615,6 @@ class HighLevelSynthesis(TransformationPass):
         dag = self._run_inner(dag, is_zero_initialized=False)
         return dag, True
 
-    # Note: now this function also receives the number of ancilla
-    # qubits it can use to synthesize a given operation. A synthesis
-    # method does not need to use these qubits, but it might.
-    # Recall that a synthesis method can return None if it cannot
-    # synthesize a given operation, for example when the number of
-    # required ancilla qubits exceeds the number of available
-    # ancilla qubits.
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List, num_clean_ancillas: int = 0, num_dirty_ancillas: int = 0
     ) -> Union[QuantumCircuit, None]:
@@ -634,7 +627,7 @@ class HighLevelSynthesis(TransformationPass):
 
         Returns either the synthesized circuit or None (which may occur
         when no synthesis methods is available or specified, or when there is
-        an unsufficient number of auxiliary qubits).
+        an insufficient number of auxiliary qubits).
         """
         hls_plugin_manager = self.hls_plugin_manager
 
@@ -725,7 +718,10 @@ class HighLevelSynthesis(TransformationPass):
             # Recursively handle the base operation
             # This results in QuantumCircuit, DAGCircuit or Gate
             synthesized_op, _ = self._recursively_handle_op(
-                op.base_op, qubits=None, num_ancilla_qubits=0
+                op.base_op,
+                qubits=None,
+                num_clean_ancillas=0,
+                num_dirty_ancillas=0,
             )
 
             if isinstance(synthesized_op, AnnotatedOperation):
@@ -763,7 +759,7 @@ class HighLevelSynthesis(TransformationPass):
 
                     # Unrolling
                     synthesized_op, _ = self._recursively_handle_op(
-                        synthesized_op, num_ancilla_qubits=0
+                        synthesized_op, num_clean_ancillas=0, num_dirty_ancillas=0
                     )
 
                 elif isinstance(modifier, PowerModifier):
@@ -784,7 +780,7 @@ class HighLevelSynthesis(TransformationPass):
 
                     # Unrolling
                     synthesized_op, _ = self._recursively_handle_op(
-                        synthesized_op, num_ancilla_qubits=0
+                        synthesized_op, num_clean_ancillas=0, num_dirty_ancillas=0
                     )
 
                 else:

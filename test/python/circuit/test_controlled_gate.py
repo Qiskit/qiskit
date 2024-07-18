@@ -230,6 +230,12 @@ class TestControlledGate(QiskitTestCase):
                 # Ensure that both the array form (if the gate overrides `__array__`) and the
                 # circuit-definition form are tested.
                 self.assertTrue(Operator(special_case_gate).equiv(naive_operator))
+                if not isinstance(special_case_gate, (MCXGate, MCPhaseGate, MCU1Gate)):
+                    # Ensure that the to_matrix method yields the same result
+                    np.testing.assert_allclose(
+                        special_case_gate.to_matrix(), naive_operator.to_matrix(), atol=1e-8
+                    )
+
                 if not isinstance(special_case_gate, CXGate):
                     # CX is treated like a primitive within Terra, and doesn't have a definition.
                     self.assertTrue(Operator(special_case_gate.definition).equiv(naive_operator))
@@ -813,6 +819,22 @@ class TestControlledGate(QiskitTestCase):
         cx_count = tr_mcx_vchain.count_ops()["cx"]
 
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
+
+    @data(7, 10, 15)
+    def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
+        """Test if cx count of the mcx with one clean ancilla
+        is less than upper bound."""
+        from qiskit import transpile
+
+        mcx_recursive = MCXRecursive(num_ctrl_qubits)
+        qc = QuantumCircuit(mcx_recursive.num_qubits)
+
+        qc.append(mcx_recursive, list(range(mcx_recursive.num_qubits)))
+
+        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = tr_mcx_rec.count_ops()["cx"]
+
+        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
     def test_mcxvchain_dirty_ancilla_action_only(self):
         """Test the v-chain mcx with dirty auxiliary qubits

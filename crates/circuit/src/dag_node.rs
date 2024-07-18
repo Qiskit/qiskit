@@ -270,6 +270,11 @@ impl DAGOpNode {
         self.instruction.params.to_object(py)
     }
 
+    #[setter]
+    fn set_params(&mut self, val: smallvec::SmallVec<[crate::operations::Param; 3]>) {
+        self.instruction.params = val;
+    }
+
     pub fn is_parameterized(&self) -> bool {
         self.instruction.is_parameterized()
     }
