@@ -281,7 +281,7 @@ impl PyCircuitModule {
 /// Circuit construction context object to provide an easier Rust-space interface for us to
 /// construct the Python :class:`.QuantumCircuit`.  The idea of doing this from Rust space like
 /// this is that we might steadily be able to move more and more of it into being native Rust as
-/// the Rust-space APIs around the internal circuit data stabilise.
+/// the Rust-space APIs around the internal circuit data stabilize.
 pub struct PyCircuit(Py<PyAny>);
 
 impl PyCircuit {

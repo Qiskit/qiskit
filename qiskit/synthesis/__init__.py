@@ -91,6 +91,7 @@ Basis Change Synthesis
 ======================
 
 .. autofunction:: synth_qft_line
+.. autofunction:: synth_qft_full
 
 Unitary Synthesis
 =================
@@ -162,7 +163,7 @@ from .stabilizer import (
     synth_circuit_from_stabilizers,
 )
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
-from .qft import synth_qft_line
+from .qft import synth_qft_line, synth_qft_full
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
 from .one_qubit import OneQubitEulerDecomposer

@@ -104,15 +104,21 @@ class VF2Layout(AnalysisPass):
                 limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for ``properties`` and
-                ``coupling_map``.
+                ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
+                of ``target`` models an ideal backend without any constraints then the value of
+                ``coupling_map``
+                will be used.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
         super().__init__()
         self.target = target
-        if target is not None:
-            self.coupling_map = self.target.build_coupling_map()
+        if (
+            target is not None
+            and (target_coupling_map := self.target.build_coupling_map()) is not None
+        ):
+            self.coupling_map = target_coupling_map
         else:
             self.coupling_map = coupling_map
         self.properties = properties
@@ -145,7 +151,7 @@ class VF2Layout(AnalysisPass):
         )
         # Filter qubits without any supported operations. If they don't support any operations
         # They're not valid for layout selection
-        if self.target is not None:
+        if self.target is not None and self.target.qargs is not None:
             has_operations = set(itertools.chain.from_iterable(self.target.qargs))
             to_remove = set(range(len(cm_nodes))).difference(has_operations)
             if to_remove:
@@ -189,7 +195,7 @@ class VF2Layout(AnalysisPass):
             if len(cm_graph) == len(im_graph):
                 chosen_layout = mapping_to_layout(layout_mapping)
                 break
-            # If there is no error map avilable we can just skip the scoring stage as there
+            # If there is no error map available we can just skip the scoring stage as there
             # is nothing to score with, so any match is the best we can find.
             if self.avg_error_map is None:
                 chosen_layout = mapping_to_layout(layout_mapping)

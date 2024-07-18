@@ -283,6 +283,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "ClassicalFunction",
         "ClassicalElement",
         "StatePreparation",
+        "UniformSuperpositionGate",
         "LinearFunction",
         "PermutationGate",
         "Commuting2qBlock",
@@ -293,6 +294,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_DefinedGate",
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
+        "QFTGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get

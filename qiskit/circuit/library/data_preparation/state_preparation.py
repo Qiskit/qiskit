@@ -25,7 +25,9 @@ from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.generalized_gates import Isometry
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
+from qiskit.quantum_info.states.statevector import (
+    Statevector,
+)  # pylint: disable=cyclic-import
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -154,8 +156,8 @@ class StatePreparation(Gate):
         # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
             raise QiskitError(
-                "StatePreparation integer has %s bits, but this exceeds the"
-                " number of qubits in the circuit, %s." % (len(intstr), self.num_qubits)
+                f"StatePreparation integer has {len(intstr)} bits, but this exceeds the"
+                f" number of qubits in the circuit, {self.num_qubits}."
             )
 
         for qubit, bit in enumerate(intstr):
@@ -212,9 +214,9 @@ class StatePreparation(Gate):
 
         if self.num_qubits != len(flat_qargs):
             raise QiskitError(
-                "StatePreparation parameter vector has %d elements, therefore expects %s "
-                "qubits. However, %s were provided."
-                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
+                f"StatePreparation parameter vector has {2**self.num_qubits}"
+                f" elements, therefore expects {self.num_qubits} "
+                f"qubits. However, {len(flat_qargs)} were provided."
             )
         yield flat_qargs, []
 
@@ -226,8 +228,8 @@ class StatePreparation(Gate):
             if parameter in ["0", "1", "+", "-", "l", "r"]:
                 return parameter
             raise CircuitError(
-                "invalid param label {} for instruction {}. Label should be "
-                "0, 1, +, -, l, or r ".format(type(parameter), self.name)
+                f"invalid param label {type(parameter)} for instruction {self.name}. Label should be "
+                "0, 1, +, -, l, or r "
             )
 
         # StatePreparation instruction parameter can be int, float, and complex.
@@ -240,3 +242,95 @@ class StatePreparation(Gate):
 
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
+
+
+class UniformSuperpositionGate(Gate):
+    r"""Implements a uniform superposition state.
+
+    This gate is used to create the uniform superposition state
+    :math:`\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  |j\rangle` when it acts on an input
+    state :math:`|0...0\rangle`. Note, that `M` is not required to be
+    a power of 2, in which case the uniform superposition could be
+    prepared by a single layer of Hadamard gates.
+
+    .. note::
+
+        This class uses the Shukla-Vedula algorithm [1], which only needs
+        :math:`O(\log_2 (M))` qubits and :math:`O(\log_2 (M))` gates,
+        to prepare the superposition.
+
+    **References:**
+    [1]: A. Shukla and P. Vedula (2024), An efficient quantum algorithm for preparation
+    of uniform quantum superposition states, `Quantum Inf Process 23, 38
+    <https://link.springer.com/article/10.1007/s11128-024-04258-4>`_.
+    """
+
+    def __init__(
+        self,
+        num_superpos_states: int = 2,
+        num_qubits: Optional[int] = None,
+    ):
+        r"""
+        Args:
+            num_superpos_states (int):
+                A positive integer M = num_superpos_states (> 1) representing the number of computational
+                basis states with an amplitude of 1/sqrt(M) in the uniform superposition
+                state (:math:`\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  |j\rangle`, where
+                :math:`1< M <= 2^n`). Note that the remaining (:math:`2^n - M`) computational basis
+                states have zero amplitudes. Here M need not be an integer power of 2.
+
+            num_qubits (int):
+                A positive integer representing the number of qubits used.  If num_qubits is None
+                or is not specified, then num_qubits is set to ceil(log2(num_superpos_states)).
+
+        Raises:
+            ValueError: num_qubits must be an integer greater than or equal to log2(num_superpos_states).
+
+        """
+        if num_superpos_states <= 1:
+            raise ValueError("num_superpos_states must be a positive integer greater than 1.")
+        if num_qubits is None:
+            num_qubits = int(math.ceil(math.log2(num_superpos_states)))
+        else:
+            if not (isinstance(num_qubits, int) and (num_qubits >= math.log2(num_superpos_states))):
+                raise ValueError(
+                    "num_qubits must be an integer greater than or equal to log2(num_superpos_states)."
+                )
+        super().__init__("USup", num_qubits, [num_superpos_states])
+
+    def _define(self):
+
+        qc = QuantumCircuit(self._num_qubits)
+
+        num_superpos_states = self.params[0]
+
+        if (
+            num_superpos_states & (num_superpos_states - 1)
+        ) == 0:  # if num_superpos_states is an integer power of 2
+            m = int(math.log2(num_superpos_states))
+            qc.h(range(m))
+            self.definition = qc
+            return
+
+        n_value = [int(x) for x in reversed(np.binary_repr(num_superpos_states))]
+        k = len(n_value)
+        l_value = [index for (index, item) in enumerate(n_value) if item == 1]  # Locations of '1's
+
+        qc.x(l_value[1:k])
+        m_current_value = 2 ** l_value[0]
+        theta = -2 * np.arccos(np.sqrt(m_current_value / num_superpos_states))
+
+        if l_value[0] > 0:  # if num_superpos_states is even
+            qc.h(range(l_value[0]))
+        qc.ry(theta, l_value[1])
+        qc.ch(l_value[1], range(l_value[0], l_value[1]), ctrl_state="0")
+
+        for m in range(1, len(l_value) - 1):
+            theta = -2 * np.arccos(
+                np.sqrt(2 ** l_value[m] / (num_superpos_states - m_current_value))
+            )
+            qc.cry(theta, l_value[m], l_value[m + 1], ctrl_state="0")
+            qc.ch(l_value[m + 1], range(l_value[m], l_value[m + 1]), ctrl_state="0")
+            m_current_value = m_current_value + 2 ** l_value[m]
+
+        self.definition = qc

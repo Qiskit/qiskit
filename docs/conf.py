@@ -114,9 +114,9 @@ autoclass_content = "both"
 autosummary_generate = True
 autosummary_generate_overwrite = False
 
-# The pulse library contains some names that differ only in capitalisation, during the changeover
+# The pulse library contains some names that differ only in capitalization, during the changeover
 # surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
-# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# capitalization, this causes problems when the documentation is built on an OS/filesystem that is
 # enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
 # from happening.
 autosummary_filename_map = {
