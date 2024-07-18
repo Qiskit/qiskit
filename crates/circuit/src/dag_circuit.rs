@@ -975,8 +975,7 @@ def _format(operand):
         for reg in cregs.iter() {
             if !reg.is_instance(self.circuit_module.classical_register.bind(py))? {
                 non_regs.push(reg);
-            } else if self.cregs.bind(py).values().contains(&reg)? {
-                // TODO: make check not quadratic
+            } else if !self.cregs.bind(py).contains(&reg.getattr(intern!(py, "name"))?)? {
                 unknown_regs.push(reg);
             }
         }
@@ -1105,8 +1104,7 @@ def _format(operand):
         for reg in qregs.iter() {
             if !reg.is_instance(self.circuit_module.quantum_register.bind(py))? {
                 non_regs.push(reg);
-            } else if self.qregs.bind(py).values().contains(&reg)? {
-                // TODO: make check not quadratic
+            } else if !self.qregs.bind(py).contains(&reg.getattr(intern!(py, "name"))?)? {
                 unknown_regs.push(reg);
             }
         }
