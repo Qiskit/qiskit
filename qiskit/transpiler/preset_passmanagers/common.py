@@ -187,6 +187,7 @@ def generate_unroll_3q(
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
+    is_zero_initialized=True,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -202,8 +203,10 @@ def generate_unroll_3q(
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
         hls_config (HLSConfig): An optional configuration class to use for
-                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
-                Specifies how to synthesize various high-level objects.
+            :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+            Specifies how to synthesize various high-level objects.
+        is_zero_initialized (bool): Indicates whether the input circuit is
+            zero-initialized.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -228,6 +231,7 @@ def generate_unroll_3q(
             equivalence_library=sel,
             basis_gates=basis_gates,
             min_qubits=3,
+            is_zero_initialized=is_zero_initialized,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -417,6 +421,7 @@ def generate_translation_passmanager(
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
+    is_zero_initialized=True,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
@@ -442,6 +447,8 @@ def generate_translation_passmanager(
         hls_config (HLSConfig): An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
+        is_zero_initialized (bool): Indicates whether the input circuit is
+            zero-initialized.
 
     Returns:
         PassManager: The basis translation pass manager
@@ -469,6 +476,7 @@ def generate_translation_passmanager(
                 use_qubit_indices=True,
                 equivalence_library=sel,
                 basis_gates=basis_gates,
+                is_zero_initialized=is_zero_initialized,
             ),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -493,6 +501,7 @@ def generate_translation_passmanager(
                 use_qubit_indices=True,
                 basis_gates=basis_gates,
                 min_qubits=3,
+                is_zero_initialized=is_zero_initialized,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
@@ -515,6 +524,7 @@ def generate_translation_passmanager(
                 target=target,
                 use_qubit_indices=True,
                 basis_gates=basis_gates,
+                is_zero_initialized=is_zero_initialized,
             ),
         ]
     else:

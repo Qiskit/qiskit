@@ -42,6 +42,7 @@ class PassManagerConfig:
         hls_config=None,
         init_method=None,
         optimization_method=None,
+        is_zero_initialized=True,
     ):
         """Initialize a PassManagerConfig object
 
@@ -84,6 +85,8 @@ class PassManagerConfig:
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
+            is_zero_initialized (bool): Indicates whether the input circuit is
+                zero-initialized.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -104,6 +107,7 @@ class PassManagerConfig:
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
         self.hls_config = hls_config
+        self.is_zero_initialized = is_zero_initialized
 
     @classmethod
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):
@@ -190,4 +194,5 @@ class PassManagerConfig:
             f"\tunitary_synthesis_method: {self.unitary_synthesis_method}\n"
             f"\tunitary_synthesis_plugin_config: {self.unitary_synthesis_plugin_config}\n"
             f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
+            f"\tis_zero_initialized: {self.is_zero_initialized}\n"
         )

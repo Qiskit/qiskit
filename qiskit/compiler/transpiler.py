@@ -67,6 +67,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
     num_processes: Optional[int] = None,
+    is_zero_initialized: bool = True,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -285,6 +286,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
             environment variable. If set to ``None`` the system default or local user configuration
             will be used.
+        is_zero_initialized: Indicates whether the input circuit is zero-initialized.
 
     Returns:
         The transpiled circuit(s).
@@ -372,6 +374,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         init_method=init_method,
         optimization_method=optimization_method,
         dt=dt,
+        is_zero_initialized=is_zero_initialized,
     )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)

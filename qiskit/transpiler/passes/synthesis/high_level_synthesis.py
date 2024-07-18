@@ -131,6 +131,32 @@ Permutation Synthesis
    ACGSynthesisPermutation
    KMSSynthesisPermutation
    TokenSwapperSynthesisPermutation
+
+
+QFT Synthesis
+'''''''''''''
+
+.. list-table:: Plugins for :class:`.QFTGate` (key = ``"qft"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+    * - ``"full"``
+      - :class:`~.QFTSynthesisFull`
+      - all-to-all
+    * - ``"line"``
+      - :class:`~.QFTSynthesisLine`
+      - linear
+    * - ``"default"``
+      - :class:`~.QFTSynthesisFull`
+      - all-to-all
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFTSynthesisFull
+   QFTSynthesisLine
 """
 
 from typing import Optional, Union, List, Tuple, Callable
@@ -158,6 +184,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
+from qiskit.circuit.library import QFTGate
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -176,6 +203,10 @@ from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
     synth_permutation_depth_lnn_kms,
+)
+from qiskit.synthesis.qft import (
+    synth_qft_full,
+    synth_qft_line,
 )
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
@@ -320,8 +351,9 @@ class HighLevelSynthesis(TransformationPass):
         equivalence_library: Optional[EquivalenceLibrary] = None,
         basis_gates: Optional[List[str]] = None,
         min_qubits: int = 0,
+        is_zero_initialized: bool = True,
     ):
-        """
+        r"""
         HighLevelSynthesis initializer.
 
         Args:
@@ -340,6 +372,7 @@ class HighLevelSynthesis(TransformationPass):
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
+            is_zero_initialized: Indicates whether the qubits are initially in the state :math:`|0\rangle`.
         """
         super().__init__()
 
@@ -354,6 +387,7 @@ class HighLevelSynthesis(TransformationPass):
         self._coupling_map = coupling_map
         self._target = target
         self._use_qubit_indices = use_qubit_indices
+        self.is_zero_initialized = is_zero_initialized
         if target is not None:
             self._coupling_map = self._target.build_coupling_map()
         self._equiv_lib = equivalence_library
@@ -380,92 +414,123 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
         """
+        return self._run_inner(dag, self.is_zero_initialized)
 
-        # Notes:
-        # - In the new flow, we may synthesize an object defined over
-        #   k qubits using additional ancilla qubits. This requires us
-        #   rebuilding the circuit instead of replacing a node by a node
-        #   or a dag.
-        # - This function is run recursively, so there is no guarantee
-        #   that unused qubits are "clean". This can be solved. For now,
-        #   we only consider synthesis algorithms that work with dirty
-        #   ancilla qubits; they can use any qubit not used in the current
-        #   operation, which is fine because such synthesis algorithm
-        #   return the qubit to its previous state.
+    def _run_inner(self, dag: DAGCircuit, is_zero_initialized=False) -> DAGCircuit:
+        """Runs high-level-synthesis on a dag. The flag ``is_zero_initialized``
+        represents whether the qubits are initially ``0``. Note that this method
+        calls itself recursively.
+        """
 
         new_dag = dag.copy_empty_like()
 
+        # For now, we only use auxiliary qubits if HighLevelSynthesis runs before
+        # layout/routing.
+        use_ancillas = not self._use_qubit_indices
+
+        # Starting set of clean auxiliary qubits
+        if use_ancillas and is_zero_initialized:
+            clean_ancillas = dag.qubits
+        else:
+            clean_ancillas = []
+
         for node in dag.topological_op_nodes():
             if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
+                node.op = control_flow.map_blocks(self._run_inner, node.op)
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-                continue
 
-            if getattr(node.op, "_directive", False):
+            elif getattr(node.op, "_directive", False):
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-                continue
 
-            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
+            elif dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-                continue
 
-            qubits = (
-                [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
-            )
-
-            # Note: let us only use ancilla qubits when HighLevelSynthesis
-            # runs before routing (we can worry about the other case later).
-            # This is not supposed to be the most optimized code for now.
-            # We should probably also sort ancilla_qubits for deterministic
-            # behavior.
-            num_ancilla_qubits = dag.num_qubits() - len(node.qargs) if qubits is not None else None
-            ancilla_qubits = (
-                [] if num_ancilla_qubits == 0 else list(set(dag.qubits).difference(set(node.qargs)))
-            )
-
-            decomposition, modified = self._recursively_handle_op(
-                node.op, qubits, num_ancilla_qubits
-            )
-
-            if not modified:
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-                continue
-
-            if isinstance(decomposition, QuantumCircuit):
-                decomposition = circuit_to_dag(decomposition, copy_operations=False)
-
-            if isinstance(decomposition, DAGCircuit):
-                extra_qubits_used = decomposition.num_qubits() - len(node.qargs)
-
-                extended_qargs = (
-                    node.qargs
-                    if not extra_qubits_used
-                    else list(node.qargs) + ancilla_qubits[0:extra_qubits_used]
+            else:
+                node_qubits = (
+                    [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
                 )
-                for decomposition_node in decomposition.op_nodes():
-                    q_indices = [decomposition.find_bit(q).index for q in decomposition_node.qargs]
-                    c_indices = [decomposition.find_bit(q).index for q in decomposition_node.cargs]
-                    new_dag.apply_operation_back(
-                        decomposition_node.op,
-                        [extended_qargs[i] for i in q_indices],
-                        [node.cargs[i] for i in c_indices],
-                        check=True,
-                    )
-                new_dag.global_phase += decomposition.global_phase
-            elif isinstance(decomposition, Operation):
-                extra_qubits_used = decomposition.num_qubits - len(node.qargs)
-                extended_qargs = (
-                    node.qargs
-                    if not extra_qubits_used
-                    else list(node.qargs) + ancilla_qubits[0:extra_qubits_used]
+
+                if use_ancillas:
+                    clean_ancillas_available = [q for q in clean_ancillas if q not in node.qargs]
+                    dirty_ancillas_available = [
+                        q
+                        for q in dag.qubits
+                        if q not in node.qargs and q not in clean_ancillas_available
+                    ]
+                else:
+                    clean_ancillas_available = []
+                    dirty_ancillas_available = []
+
+                decomposition, modified = self._recursively_handle_op(
+                    node.op,
+                    node_qubits,
+                    num_clean_ancillas=len(clean_ancillas_available),
+                    num_dirty_ancillas=len(dirty_ancillas_available),
                 )
-                # Note: I am not sure about this at all. Let's see how many tests would fail.
-                new_dag.apply_operation_back(decomposition, extended_qargs, node.cargs)
+
+                if not modified:
+                    new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+
+                else:
+                    if isinstance(decomposition, QuantumCircuit):
+                        decomposition = circuit_to_dag(decomposition, copy_operations=False)
+
+                    if isinstance(decomposition, DAGCircuit):
+                        # Compute the qubits on which to apply the decomposition
+                        # (including auxiliary qubits).
+                        num_ancillas_used = decomposition.num_qubits() - len(node.qargs)
+                        if not use_ancillas or num_ancillas_used == 0:
+                            extended_qargs = node.qargs
+                        elif num_ancillas_used <= len(clean_ancillas_available):
+                            extended_qargs = (
+                                list(node.qargs) + clean_ancillas_available[0:num_ancillas_used]
+                            )
+                        else:
+                            extended_qargs = (
+                                list(node.qargs)
+                                + clean_ancillas_available
+                                + dirty_ancillas_available[
+                                    0 : num_ancillas_used - len(clean_ancillas_available)
+                                ]
+                            )
+
+                        for decomposition_node in decomposition.op_nodes():
+                            q_indices = [
+                                decomposition.find_bit(q).index for q in decomposition_node.qargs
+                            ]
+                            c_indices = [
+                                decomposition.find_bit(q).index for q in decomposition_node.cargs
+                            ]
+                            new_dag.apply_operation_back(
+                                decomposition_node.op,
+                                [extended_qargs[i] for i in q_indices],
+                                [node.cargs[i] for i in c_indices],
+                                check=True,
+                            )
+                        new_dag.global_phase += decomposition.global_phase
+
+                    elif isinstance(decomposition, Operation):
+                        # As of now, HighLevelSynthesis can only produce an Operation when synthesizing
+                        # annotated operations (for example, a singly-controlled CX-gate may result in a
+                        # CCX-gate). There should be no case when this Operation would have more qubits
+                        # than the original operation.
+                        if decomposition.num_qubits() != len(node.qargs):
+                            raise TranspilerError(
+                                f"HighLevelSynthesis reached an unexpected result."
+                            )
+                        new_dag.apply_operation_back(decomposition, node.qargs, node.cargs)
+
+            # update the list of clean ancilla qubits
+            clean_ancillas = [q for q in clean_ancillas if q not in node.qargs]
 
         return new_dag
 
     def _recursively_handle_op(
-        self, op: Operation, qubits: Optional[List] = None, num_ancilla_qubits: int = 0
+        self,
+        op: Operation,
+        qubits: Optional[List] = None,
+        num_clean_ancillas: int = 0,
+        num_dirty_ancillas=0,
     ) -> Tuple[Union[QuantumCircuit, DAGCircuit, Operation], bool]:
         """Recursively synthesizes a single operation.
 
@@ -489,18 +554,21 @@ class HighLevelSynthesis(TransformationPass):
         The function is recursive, for example synthesizing an annotated operation
         involves synthesizing its "base operation" which might also be
         an annotated operation.
+
+        The arguments ``num_clean_ancillas`` and ``num_dirty_ancillas`` specify
+        the number of clean and dirty qubits available to synthesize the given operation.
         """
 
         # Try to apply plugin mechanism
-        decomposition = self._synthesize_op_using_plugins(op, qubits, num_ancilla_qubits)
+        decomposition = self._synthesize_op_using_plugins(
+            op, qubits, num_clean_ancillas=num_clean_ancillas, num_dirty_ancillas=num_dirty_ancillas
+        )
         if decomposition is not None:
-            # Note: with the introduction of MCX synthesis algorithms,
-            # running an HLS plugin may create a circuit with some other
-            # high-level objects. This forces us to run the pass
-            # recursively, similar to the code that unwraps the
+            # Some synthesis algorithms may produce a circuit with other high-level objects.
+            # This forces us to run the pass recursively, similar to the code that unwraps the
             # definitions.
             dag = circuit_to_dag(decomposition, copy_operations=False)
-            dag = self.run(dag)
+            dag = self._run_inner(dag, is_zero_initialized=False)
             return dag, True
 
         # Handle annotated operations
@@ -544,7 +612,7 @@ class HighLevelSynthesis(TransformationPass):
             raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op}.")
 
         dag = circuit_to_dag(definition, copy_operations=False)
-        dag = self.run(dag)
+        dag = self._run_inner(dag, is_zero_initialized=False)
         return dag, True
 
     # Note: now this function also receives the number of ancilla
@@ -555,12 +623,18 @@ class HighLevelSynthesis(TransformationPass):
     # required ancilla qubits exceeds the number of available
     # ancilla qubits.
     def _synthesize_op_using_plugins(
-        self, op: Operation, qubits: List, num_ancilla_qubits: int = 0
+        self, op: Operation, qubits: List, num_clean_ancillas: int = 0, num_dirty_ancillas: int = 0
     ) -> Union[QuantumCircuit, None]:
         """
         Attempts to synthesize op using plugin mechanism.
-        Returns either the synthesized circuit or None (which occurs when no
-        synthesis methods are available or specified).
+
+        The arguments ``num_clean_ancillas`` and ``num_dirty_ancillas`` specify
+        the number of clean and dirty qubits available to synthesize the given
+        operation. A synthesis method does not need to use these additional qubits.
+
+        Returns either the synthesized circuit or None (which may occur
+        when no synthesis methods is available or specified, or when there is
+        an unsufficient number of auxiliary qubits).
         """
         hls_plugin_manager = self.hls_plugin_manager
 
@@ -611,13 +685,9 @@ class HighLevelSynthesis(TransformationPass):
             else:
                 plugin_method = plugin_specifier
 
-            # Note: it is probably bad that we use the option
-            # name "num_ancilla_qubits" for internal handling.
-            # We should either make it into an explicit argument of
-            # the run function, or create a convention such as
-            # options names preceded by underscore are internal.
-            # In this case, we should rename this to "_num_ancilla_qubits".
-            plugin_args["num_ancilla_qubits"] = num_ancilla_qubits
+            # Set the number of available clean and dirty auxiliary qubits via plugin args.
+            plugin_args["_num_clean_ancillas"] = num_clean_ancillas
+            plugin_args["_num_dirty_ancillas"] = num_dirty_ancillas
 
             decomposition = plugin_method.run(
                 op,
@@ -965,6 +1035,107 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class QFTSynthesisFull(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using all-to-all connectivity.
+
+    This plugin name is :``qft.full`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
+        which is the default) or the "QFT-with-reversal" operation (if ``True``).
+        Some implementation of the ``QFTGate`` include a layer of swap gates at the end
+        of the synthesized circuit, which can in principle be dropped if the ``QFTGate``
+        itself is the last gate in the circuit.
+    * approximation_degree (int): The degree of approximation (0 for no approximation).
+        It is possible to implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle beneath a threshold. This is discussed
+        in more detail in [1] or [2].
+    * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
+    * inverse (bool): If True, the inverse Fourier transform is constructed.
+    * name (str): The name of the circuit.
+
+    References:
+        1. Adriano Barenco, Artur Ekert, Kalle-Antti Suominen, and Päivi Törmä,
+           *Approximate Quantum Fourier Transform and Decoherence*,
+           Physical Review A (1996).
+           `arXiv:quant-ph/9601018 [quant-ph] <https://arxiv.org/abs/quant-ph/9601018>`_
+        2. Donny Cheung,
+           *Improved Bounds for the Approximate QFT* (2004),
+           `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QFTGate."""
+        if not isinstance(high_level_object, QFTGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.full` only applies to objects of type QFTGate."
+            )
+
+        reverse_qubits = options.get("reverse_qubits", False)
+        approximation_degree = options.get("approximation_degree", 0)
+        insert_barriers = options.get("insert_barriers", False)
+        inverse = options.get("inverse", False)
+        name = options.get("name", None)
+
+        decomposition = synth_qft_full(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=not reverse_qubits,
+            approximation_degree=approximation_degree,
+            insert_barriers=insert_barriers,
+            inverse=inverse,
+            name=name,
+        )
+        return decomposition
+
+
+class QFTSynthesisLine(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using linear connectivity.
+
+    This plugin name is :``qft.line`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
+        which is the default) or the "QFT-with-reversal" operation (if ``True``).
+        Some implementation of the ``QFTGate`` include a layer of swap gates at the end
+        of the synthesized circuit, which can in principle be dropped if the ``QFTGate``
+        itself is the last gate in the circuit.
+    * approximation_degree (int): the degree of approximation (0 for no approximation).
+        It is possible to implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle beneath a threshold. This is discussed
+        in more detail in [1] or [2].
+
+    References:
+        1. Adriano Barenco, Artur Ekert, Kalle-Antti Suominen, and Päivi Törmä,
+           *Approximate Quantum Fourier Transform and Decoherence*,
+           Physical Review A (1996).
+           `arXiv:quant-ph/9601018 [quant-ph] <https://arxiv.org/abs/quant-ph/9601018>`_
+        2. Donny Cheung,
+           *Improved Bounds for the Approximate QFT* (2004),
+           `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QFTGate."""
+        if not isinstance(high_level_object, QFTGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.line` only applies to objects of type QFTGate."
+            )
+
+        reverse_qubits = options.get("reverse_qubits", False)
+        approximation_degree = options.get("approximation_degree", 0)
+
+        decomposition = synth_qft_line(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=not reverse_qubits,
+            approximation_degree=approximation_degree,
+        )
+        return decomposition
+
+
 class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
     """The permutation synthesis plugin based on the token swapper algorithm.
 
@@ -995,7 +1166,6 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     For more details on the token swapper algorithm, see to the paper:
     `arXiv:1902.09102 <https://arxiv.org/abs/1902.09102>`__.
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):

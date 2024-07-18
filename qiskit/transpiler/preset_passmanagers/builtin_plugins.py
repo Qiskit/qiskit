@@ -86,6 +86,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
+                    pass_manager_config.is_zero_initialized,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -104,6 +105,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
+                    pass_manager_config.is_zero_initialized,
                 )
             init.append(
                 InverseCancellation(
@@ -132,6 +134,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_method,
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
+                pass_manager_config.is_zero_initialized,
             )
             init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
@@ -173,6 +176,7 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
+            is_zero_initialized=pass_manager_config.is_zero_initialized,
         )
 
 
@@ -190,6 +194,7 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
+            is_zero_initialized=pass_manager_config.is_zero_initialized,
         )
 
 
