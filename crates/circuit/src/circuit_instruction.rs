@@ -44,7 +44,7 @@ pub struct ExtraInstructionAttributes {
 
 /// Private type used to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
-pub(crate) struct PackedInstruction {
+pub struct PackedInstruction {
     /// The Python-side operation instance.
     pub op: OperationType,
     /// The index under which the interner has stored `qubits`.

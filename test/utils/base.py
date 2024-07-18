@@ -129,30 +129,8 @@ class QiskitTestCase(BaseTestCase):
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
-        allow_DeprecationWarning_modules = [
-            "test.python.pulse.test_builder",
-            "test.python.pulse.test_block",
-            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
-            "qiskit.quantum_info.operators.pauli",
-            "pybobyqa",
-            "numba",
-            "qiskit.utils.measurement_error_mitigation",
-            "qiskit.circuit.library.standard_gates.x",
-            "qiskit.pulse.schedule",
-            "qiskit.pulse.instructions.instruction",
-            "qiskit.pulse.instructions.play",
-            "qiskit.pulse.library.parametric_pulses",
-            "qiskit.quantum_info.operators.symplectic.pauli",
-        ]
-        for mod in allow_DeprecationWarning_modules:
-            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r"elementwise comparison failed.*",
-            r"The jsonschema validation included in qiskit-terra.*",
-            r"The DerivativeBase.parameter_expression_grad method.*",
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
-            # Caused by internal scikit-learn scipy usage
-            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
