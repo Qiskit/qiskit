@@ -15,6 +15,8 @@
 import unittest
 
 import itertools
+import warnings
+
 import ddt
 import numpy.random
 
@@ -24,7 +26,7 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -273,13 +275,15 @@ class TestSabreSwap(QiskitTestCase):
 
         # Assert that the same keys are produced by a simulation - this is a test that the inserted
         # swaps route the qubits correctly.
-        if not optionals.HAS_AER:
-            return
+        with warnings.catch_warnings():
+            # TODO remove Aer stops using Provider Qiskit class
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            if not optionals.HAS_AER:
+                return
 
         from qiskit_aer import Aer
 
-        with self.assertWarns(DeprecationWarning):
-            sim = Aer.get_backend("aer_simulator")
+        sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()
         out_results = sim.run(routed, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
@@ -1327,11 +1331,15 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = Fake27QPulseV1()
-        cls.backend.configuration().coupling_map = MUMBAI_CMAP
-        cls.backend.configuration().basis_gates += ["for_loop", "while_loop", "if_else"]
-        cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
-        cls.basis_gates = set(cls.backend.configuration().basis_gates)
+        cls.backend = GenericBackendV2(
+            num_qubits=27,
+            calibrate_instructions=True,
+            control_flow=True,
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
+        cls.coupling_edge_set = {tuple(x) for x in cls.backend.coupling_map}
+        cls.basis_gates = set(cls.backend.operation_names)
 
     def assert_valid_circuit(self, transpiled):
         """Assert circuit complies with constraints of backend."""

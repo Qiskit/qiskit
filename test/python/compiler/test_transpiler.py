@@ -170,7 +170,7 @@ class TestTranspile(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        target = GenericBackendV2(num_qubits=27).target
+        target = GenericBackendV2(num_qubits=27, seed=42).target
         res = transpile([qc] * 3, target=target, num_processes=num_processes)
         self.assertIsInstance(res, list)
         for circ in res:
@@ -269,7 +269,7 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
 
         backend = GenericBackendV2(
-            num_qubits=15, basis_gates=["ecr", "id", "rz", "sx", "x"], coupling_map=cmap
+            num_qubits=15, basis_gates=["ecr", "id", "rz", "sx", "x"], coupling_map=cmap, seed=42
         )
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
@@ -313,7 +313,7 @@ class TestTranspile(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
 
-        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
+        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42)
         coupling_map = backend.coupling_map
         basis_gates = backend.operation_names
 
@@ -588,7 +588,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_correction(self):
         """Test mapping works in previous failed case."""
-        backend = GenericBackendV2(num_qubits=12)
+        backend = GenericBackendV2(num_qubits=12, seed=42)
         qr = QuantumRegister(name="qr", size=11)
         cr = ClassicalRegister(name="qc", size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -708,7 +708,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs."""
-        backend = GenericBackendV2(num_qubits=8)
+        backend = GenericBackendV2(num_qubits=8, seed=42)
         qr = QuantumRegister(3, name="qr")
         qr2 = QuantumRegister(1, name="qr2")
         qr3 = QuantumRegister(4, name="qr3")
@@ -725,7 +725,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_transpile_circuits_diff_registers(self):
         """Transpile list of circuits with different qreg names."""
-        backend = GenericBackendV2(num_qubits=4)
+        backend = GenericBackendV2(num_qubits=4, seed=42)
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -741,7 +741,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_wrong_initial_layout(self):
         """Test transpile with a bad initial layout."""
-        backend = GenericBackendV2(num_qubits=4)
+        backend = GenericBackendV2(num_qubits=4, seed=42)
 
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -780,7 +780,7 @@ class TestTranspile(QiskitTestCase):
 
         theta = Parameter("theta")
         qc.p(theta, qr[0])
-        backend = GenericBackendV2(num_qubits=4)
+        backend = GenericBackendV2(num_qubits=4, seed=42)
 
         transpiled_qc = transpile(
             qc,
@@ -820,7 +820,7 @@ class TestTranspile(QiskitTestCase):
         square = theta * theta
         qc.rz(square, qr[0])
 
-        backend = GenericBackendV2(num_qubits=4)
+        backend = GenericBackendV2(num_qubits=4, seed=42)
         transpiled_qc = transpile(
             qc,
             backend=backend,
@@ -853,7 +853,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
-        for node1, node2 in GenericBackendV2(num_qubits=16).coupling_map:
+        for node1, node2 in GenericBackendV2(num_qubits=16, seed=42).coupling_map:
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
@@ -912,7 +912,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping."""
-        cmap = GenericBackendV2(num_qubits=16).coupling_map
+        cmap = GenericBackendV2(num_qubits=16, seed=42).coupling_map
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
@@ -956,7 +956,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
 
-        out = transpile(qc, backend=GenericBackendV2(num_qubits=4))
+        out = transpile(qc, backend=GenericBackendV2(num_qubits=4, seed=42))
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
@@ -1275,7 +1275,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circuit = transpile(
             circ,
-            backend=GenericBackendV2(num_qubits=4),
+            backend=GenericBackendV2(num_qubits=4, seed=42),
             layout_method="trivial",
             seed_transpiler=42,
         )
@@ -1511,7 +1511,8 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        backend_v1 = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake27QPulseV1()
         backend_v2 = BackendV2Converter(backend_v1)
         # the original timing constraints are granularity = min_length = 16
         timing_constraints = TimingConstraints(granularity=32, min_length=64)
@@ -1546,7 +1547,8 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        backend_v1 = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake27QPulseV1()
         backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -1571,7 +1573,8 @@ class TestTranspile(QiskitTestCase):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        backend_v1 = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake27QPulseV1()
         backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1591,7 +1594,8 @@ class TestTranspile(QiskitTestCase):
         """Test that loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
-        backend_v1 = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake20QV1()
         backend_v2 = BackendV2Converter(backend_v1)
         qr1 = QuantumRegister(3, "qr1")
         qr2 = QuantumRegister(2, "qr2")
@@ -2069,13 +2073,80 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(expected))
 
     @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops_with_backend_v1(self, opt_level):
+        """Test transpilation of circuits with annotated operations given a backend.
+        Remove once Fake20QV1 is removed."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
+        transpiled = transpile(
+            qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
+        )
+        self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
+
+    @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops_with_backend(self, opt_level):
         """Test transpilation of circuits with annotated operations given a backend."""
         qc = QuantumCircuit(3)
         qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
         qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
         qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
-        backend = Fake20QV1()
+
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=[
+                [0, 1],
+                [1, 0],
+                [1, 2],
+                [1, 6],
+                [2, 1],
+                [2, 3],
+                [3, 2],
+                [3, 4],
+                [3, 8],
+                [4, 3],
+                [5, 6],
+                [5, 10],
+                [6, 1],
+                [6, 5],
+                [6, 7],
+                [7, 6],
+                [7, 8],
+                [7, 12],
+                [8, 3],
+                [8, 7],
+                [8, 9],
+                [9, 8],
+                [9, 14],
+                [10, 5],
+                [10, 11],
+                [11, 10],
+                [11, 12],
+                [11, 16],
+                [12, 7],
+                [12, 11],
+                [12, 13],
+                [13, 12],
+                [13, 14],
+                [13, 18],
+                [14, 9],
+                [14, 13],
+                [15, 16],
+                [16, 11],
+                [16, 15],
+                [16, 17],
+                [17, 16],
+                [17, 18],
+                [18, 13],
+                [18, 17],
+                [18, 19],
+                [19, 18],
+            ],
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+        )
         transpiled = transpile(
             qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
         )
@@ -2383,9 +2454,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_qasm3_output(self, optimization_level):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
+
         transpiled = transpile(
             self._regular_circuit(),
-            backend=Fake20QV1(),
+            backend=backend,
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )

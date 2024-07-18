@@ -23,7 +23,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
-from qiskit.utils import optionals as _optionals
+from qiskit.utils import optionals as _optionals, deprecate_func
 from qiskit.providers import basic_provider
 
 
@@ -39,6 +39,13 @@ class _Credentials:
 class FakeBackend(BackendV1):
     """This is a dummy backend just for testing purposes."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Fake backends using BackendV1 are deprecated in favor of "
+        ":class:`.GenericBackendV2`. You can convert BackendV1 to "
+        ":class:`.BackendV2` with :class:`.BackendV2Converter`.",
+    )
     def __init__(self, configuration, time_alive=10):
         """FakeBackend initializer.
 
@@ -120,12 +127,20 @@ class FakeBackend(BackendV1):
 
     @classmethod
     def _default_options(cls):
-        if _optionals.HAS_AER:
-            from qiskit_aer import QasmSimulator
+        with warnings.catch_warnings():
+            # Remove once https://github.com/Qiskit/qiskit-aer/issues/2178 gets closed.
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                module="qiskit",
+                message=".+abstract Provider and ProviderV1.+",
+            )
+            if _optionals.HAS_AER:
+                from qiskit_aer import QasmSimulator
 
-            return QasmSimulator._default_options()
-        else:
-            return basic_provider.BasicSimulator._default_options()
+                return QasmSimulator._default_options()
+            else:
+                return basic_provider.BasicSimulator._default_options()
 
     def run(self, run_input, **kwargs):
         """Main job in simulator"""
