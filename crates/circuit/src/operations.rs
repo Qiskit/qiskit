@@ -13,7 +13,9 @@
 use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{CONTROL_FLOW_OP, DEEPCOPY, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
+use crate::imports::{
+    get_std_gate_class, CONTROL_FLOW_OP, DEEPCOPY, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT,
+};
 use crate::{gate_matrix, Qubit};
 
 use ndarray::{aview2, Array2};
@@ -39,20 +41,17 @@ pub enum OperationType {
 impl OperationType {
     pub fn is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
         let py = py_type.py();
-        let our_py_type = match self {
+        let py_op = match self {
             OperationType::Standard(op) => {
-                let their_standard_gate: Option<StandardGate> =
-                    match py_type.getattr(intern!(py, "_standard_gate")).ok() {
-                        None => None,
-                        Some(standard_gate) => standard_gate.extract()?,
-                    };
-                return Ok(Some(*op) == their_standard_gate);
+                let raw_class = get_std_gate_class(py, *op)?;
+                let our_class: &Bound<PyType> = raw_class.downcast_bound(py)?;
+                return our_class.is_subclass(py_type);
             }
-            OperationType::Instruction(op) => op.instruction.bind(py).get_type(),
-            OperationType::Gate(op) => op.gate.bind(py).get_type(),
-            OperationType::Operation(op) => op.operation.bind(py).get_type(),
+            OperationType::Instruction(op) => op.instruction.bind(py),
+            OperationType::Gate(op) => op.gate.bind(py),
+            OperationType::Operation(op) => op.operation.bind(py),
         };
-        return our_py_type.eq(py_type);
+        return py_op.is_instance(py_type);
     }
 }
 

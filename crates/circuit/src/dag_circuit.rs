@@ -975,7 +975,11 @@ def _format(operand):
         for reg in cregs.iter() {
             if !reg.is_instance(self.circuit_module.classical_register.bind(py))? {
                 non_regs.push(reg);
-            } else if !self.cregs.bind(py).contains(&reg.getattr(intern!(py, "name"))?)? {
+            } else if !self
+                .cregs
+                .bind(py)
+                .contains(&reg.getattr(intern!(py, "name"))?)?
+            {
                 unknown_regs.push(reg);
             }
         }
@@ -1104,7 +1108,11 @@ def _format(operand):
         for reg in qregs.iter() {
             if !reg.is_instance(self.circuit_module.quantum_register.bind(py))? {
                 non_regs.push(reg);
-            } else if !self.qregs.bind(py).contains(&reg.getattr(intern!(py, "name"))?)? {
+            } else if !self
+                .qregs
+                .bind(py)
+                .contains(&reg.getattr(intern!(py, "name"))?)?
+            {
                 unknown_regs.push(reg);
             }
         }
@@ -1819,38 +1827,46 @@ def _format(operand):
         }
 
         let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
-
-        for node in self.py_op_nodes(py, Some(CONTROL_FLOW_OP.get_bound(py).downcast()?), true)? {
-            let node = node.bind(py);
-            let inner = if node.is_instance(self.circuit_module.for_loop_op.bind(py))? {
-                let indexset = node.getattr("params")?.get_item(0)?;
-                let raw_blocks = node.getattr("op")?.getattr("blocks")?;
-                let blocks: &Bound<PyList> = raw_blocks.downcast::<PyList>()?;
-                let block_zero = blocks.get_item(0)?;
-                let inner_dag: &DAGCircuit =
-                    &circuit_to_dag.call1((block_zero.clone(),))?.extract()?;
-                indexset.len()? * inner_dag.size(py, true)?
-            } else if node.is_instance(self.circuit_module.while_loop_op.bind(py))? {
-                let raw_blocks = node.getattr("op")?.getattr("blocks")?;
-                let blocks: &Bound<PyList> = raw_blocks.downcast::<PyList>()?;
-                let block_zero = blocks.get_item(0)?;
-                let inner_dag: &DAGCircuit =
-                    &circuit_to_dag.call1((block_zero.clone(),))?.extract()?;
-                inner_dag.size(py, true)?
-            } else if node.is_instance(self.circuit_module.if_else_op.bind(py))?
-                || node.is_instance(self.circuit_module.switch_case_op.bind(py))?
-            {
-                let raw_blocks = node.getattr("op")?.getattr("blocks")?;
-                let blocks: &Bound<PyList> = raw_blocks.downcast::<PyList>()?;
-                let mut inner_ops = 0;
-                for block in blocks.iter() {
-                    let inner_dag: &DAGCircuit =
-                        &circuit_to_dag.call1((block.clone(),))?.extract()?;
-                    inner_ops += inner_dag.size(py, true)?;
+        for node_index in
+            self.op_nodes_by_py_type(py, CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
+        {
+            let inner = if let NodeType::Operation(node) = &self.dag[node_index] {
+                if let OperationType::Instruction(inst) = &node.op {
+                    let inst_bound = inst.instruction.bind(py);
+                    if inst_bound.is_instance(self.circuit_module.for_loop_op.bind(py))? {
+                        let raw_blocks = inst_bound.getattr("blocks")?;
+                        let blocks: &Bound<PySequence> = raw_blocks.downcast()?;
+                        let block_zero = blocks.get_item(0).unwrap();
+                        let inner_dag: &DAGCircuit =
+                            &circuit_to_dag.call1((block_zero.clone(),))?.extract()?;
+                        node.params.len() * inner_dag.size(py, true)?
+                    } else if inst_bound.is_instance(self.circuit_module.while_loop_op.bind(py))? {
+                        let raw_blocks = inst_bound.getattr("blocks")?;
+                        let blocks: &Bound<PySequence> = raw_blocks.downcast()?;
+                        let block_zero = blocks.get_item(0).unwrap();
+                        let inner_dag: &DAGCircuit =
+                            &circuit_to_dag.call1((block_zero.clone(),))?.extract()?;
+                        inner_dag.size(py, true)?
+                    } else if inst_bound.is_instance(self.circuit_module.if_else_op.bind(py))?
+                        || inst_bound.is_instance(self.circuit_module.switch_case_op.bind(py))?
+                    {
+                        let raw_blocks = inst_bound.getattr("blocks")?;
+                        let blocks: &Bound<PyTuple> = raw_blocks.downcast()?;
+                        let mut inner_ops = 0;
+                        for block in blocks.iter() {
+                            let inner_dag: &DAGCircuit =
+                                &circuit_to_dag.call1((block.clone(),))?.extract()?;
+                            inner_ops += inner_dag.size(py, true)?;
+                        }
+                        inner_ops
+                    } else {
+                        return Err(DAGCircuitError::new_err("unknown control-flow type"));
+                    }
+                } else {
+                    unreachable!("Control Flow operations must be a PyInstruction");
                 }
-                inner_ops
             } else {
-                return Err(DAGCircuitError::new_err("unknown control-flow type"));
+                unreachable!("Control Flow operation nodes must be a Operation node");
             };
             length += inner - 1
         }
@@ -1882,27 +1898,33 @@ def _format(operand):
             let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
             let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
 
-            for node in
-                self.py_op_nodes(py, Some(CONTROL_FLOW_OP.get_bound(py).downcast()?), true)?
+            for node_index in
+                self.op_nodes_by_py_type(py, CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
             {
-                let node = node.bind(py);
-                let weight = if node.is_instance(self.circuit_module.for_loop_op.bind(py))? {
-                    node.getattr("params")?.get_item(0)?.len()?
-                } else {
-                    1
-                };
-                let node_index = node.extract::<DAGNode>()?.node.unwrap();
-                if weight == 0 {
-                    node_lookup.insert(node_index, 0);
-                } else {
-                    let raw_blocks = node.getattr("op")?.getattr("blocks")?;
-                    let blocks: &Bound<PyList> = raw_blocks.downcast::<PyList>()?;
-                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
-                    for block in blocks.iter() {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block,))?.extract()?;
-                        block_weights.push(inner_dag.depth(py, true)?);
+                if let NodeType::Operation(node) = &self.dag[node_index] {
+                    if let OperationType::Instruction(inst) = &node.op {
+                        let inst_bound = inst.instruction.bind(py);
+                        let weight =
+                            if inst_bound.is_instance(self.circuit_module.for_loop_op.bind(py))? {
+                                node.params.len()
+                            } else {
+                                1
+                            };
+                        if weight == 0 {
+                            node_lookup.insert(node_index, 0);
+                        } else {
+                            let raw_blocks = inst_bound.getattr("blocks")?;
+                            let blocks = raw_blocks.downcast::<PyTuple>()?;
+                            let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
+                            for block in blocks.iter() {
+                                let inner_dag: &DAGCircuit =
+                                    &circuit_to_dag.call1((block,))?.extract()?;
+                                block_weights.push(inner_dag.depth(py, true)?);
+                            }
+                            node_lookup
+                                .insert(node_index, weight * block_weights.iter().max().unwrap());
+                        }
                     }
-                    node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
                 }
             }
 
@@ -2694,7 +2716,7 @@ def _format(operand):
 
         for comp_nodes in connected_components.iter() {
             let mut new_dag = self.copy_empty_like(py)?;
-            new_dag.set_global_phase(py, &PyFloat::new_bound(py, 0 as c_double))?;
+            new_dag.global_phase = Param::Float(0.);
 
             // A map from nodes in the this DAGCircuit to nodes in the new dag. Used for adding edges
             let mut node_map: HashMap<NodeIndex, NodeIndex> =
@@ -3611,10 +3633,10 @@ def _format(operand):
                     dag.py_op_nodes(py, Some(CONTROL_FLOW_OP.get_bound(py).downcast()?), true)?
                 {
                     let raw_blocks = node.getattr(py, "op")?.getattr(py, "blocks")?;
-                    let blocks: &Bound<PyList> = raw_blocks.downcast_bound::<PyList>(py)?;
+                    let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py)?;
                     for block in blocks.iter() {
                         let inner_dag: &DAGCircuit =
-                            &circuit_to_dag.call1((node.clone_ref(py),))?.extract()?;
+                            &circuit_to_dag.call1((block.clone(),))?.extract()?;
                         inner(py, inner_dag, counts)?;
                     }
                 }
@@ -4614,6 +4636,29 @@ impl DAGCircuit {
         } else {
             Box::new(node_ops_iter.map(|(index, _)| index))
         }
+    }
+
+    pub fn op_nodes_by_py_type<'a>(
+        &'a self,
+        py: Python,
+        op: &'a Bound<PyType>,
+        include_directives: bool,
+    ) -> impl Iterator<Item = NodeIndex> + 'a {
+        self.dag
+            .node_references()
+            .filter_map(move |(node, weight)| {
+                if let NodeType::Operation(ref packed) = weight {
+                    if !include_directives && packed.op.directive() {
+                        None
+                    } else if packed.op.is_instance(op).unwrap() {
+                        Some(node)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
     }
 
     /// Returns an iterator over a list layers of the `DAGCircuit``.
