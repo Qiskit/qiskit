@@ -146,7 +146,10 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
 }
 
 //
-pub fn create_swap_layer(pattern: &ArrayView1<usize>, starting_point: usize) -> Vec<(usize, usize)> {
+pub fn create_swap_layer(
+    pattern: &ArrayView1<usize>, 
+    starting_point: usize
+) -> Vec<(usize, usize)> {
     let mut pattern_vec = pattern.to_vec();
     let num_qubits = pattern_vec.len();
     let mut gates = Vec::new();
