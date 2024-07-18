@@ -193,6 +193,6 @@ class PassManagerConfig:
             f"\ttiming_constraints: {self.timing_constraints}\n"
             f"\tunitary_synthesis_method: {self.unitary_synthesis_method}\n"
             f"\tunitary_synthesis_plugin_config: {self.unitary_synthesis_plugin_config}\n"
-            f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
             f"\tis_zero_initialized: {self.is_zero_initialized}\n"
+            f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
         )
