@@ -86,7 +86,10 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
 /// architecture using the Kutin, Moulton, Smithline method.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_depth_lnn_kms(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_depth_lnn_kms(
+    py: Python,
+    pattern: PyArrayLike1<i64>,
+) -> PyResult<CircuitData> {
     let inverted = utils::invert(&pattern.as_array());
     let view = inverted.view();
     let num_qubits = view.len();
@@ -100,7 +103,7 @@ pub fn _synth_permutation_depth_lnn_kms(py: Python, pattern: PyArrayLike1<i64>) 
     CircuitData::from_standard_gates(
         py,
         num_qubits as u32,
-        swap_layers.iter().map(|(i, j)|  {
+        swap_layers.iter().map(|(i, j)| {
             (
                 StandardGate::SwapGate,
                 smallvec![],
