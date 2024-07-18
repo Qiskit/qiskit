@@ -408,7 +408,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 [(self.psi[0], hamiltonian[i], [self.theta[0]])], precision=self._precision
             )
             result = job.result()
-            np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian[i]))
+            np.testing.assert_array_less(
+                result[0].data.stds, [self._precision] * len(hamiltonian[i])
+            )
             # The result of the second run is the same
             job = estimator.run(
                 [
@@ -418,8 +420,12 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 precision=self._precision,
             )
             result = job.result()
-            np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian[i]))
-            np.testing.assert_array_less(result[1].data.stds, [self._precision] * len(hamiltonian[i]))
+            np.testing.assert_array_less(
+                result[0].data.stds, [self._precision] * len(hamiltonian[i])
+            )
+            np.testing.assert_array_less(
+                result[1].data.stds, [self._precision] * len(hamiltonian[i])
+            )
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test0_precision_and_stds(self, backend, abelian_grouping):
@@ -453,7 +459,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
             result = job.result()
             np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
             np.testing.assert_allclose(result[1].data.stds, 0, rtol=self._rtol)
-    
+
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     @combine(abelian_grouping=[True, False])
     def test_aer(self, abelian_grouping):
