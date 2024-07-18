@@ -1403,7 +1403,8 @@ class QuantumCircuit:
     @classmethod
     @deprecate_func(
         since=1.2,
-        additional_msg="This method is only used as an internal helper and will be removed with no replacement.",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
     )
     def cls_instances(cls) -> int:
         """Return the current number of instances of this class,
@@ -1419,7 +1420,8 @@ class QuantumCircuit:
     @classmethod
     @deprecate_func(
         since=1.2,
-        additional_msg="This method is only used as an internal helper and will be removed with no replacement.",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
     )
     def cls_prefix(cls) -> str:
         """Return the prefix to use for auto naming."""
@@ -2289,11 +2291,15 @@ class QuantumCircuit:
     @staticmethod
     @deprecate_func(
         since=1.2,
-        additional_msg="This method is only used as an internal helper and will be removed with no replacement.",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
     )
     def cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
         """Best effort to cast value to type. Otherwise, returns the value."""
-        return self._cast(value, type_)
+        try:
+            return type_(value)
+        except (ValueError, TypeError):
+            return value
 
     @staticmethod
     def _cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
@@ -2305,7 +2311,8 @@ class QuantumCircuit:
 
     @deprecate_func(
         since=1.2,
-        additional_msg="This method is only used as an internal helper and will be removed with no replacement.",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
     )
     def qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
         """
@@ -2338,7 +2345,8 @@ class QuantumCircuit:
 
     @deprecate_func(
         since=1.2,
-        additional_msg="This method is only used as an internal helper and will be removed with no replacement.",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
     )
     def cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
