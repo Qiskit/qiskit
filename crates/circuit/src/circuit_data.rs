@@ -1167,4 +1167,9 @@ impl CircuitData {
             py_op: RefCell::new(inst.py_op.clone()),
         })
     }
+
+    /// Returns an iterator over all the instructions present in the circuit.
+    pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
+        self.data.iter()
+    }
 }
