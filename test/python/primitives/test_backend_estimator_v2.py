@@ -428,7 +428,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
             )
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
-    def test0_precision_and_stds(self, backend, abelian_grouping):
+    def test_precision_with_zero_coefficients(self, backend, abelian_grouping):
         """Test that errors are within user-specified precision when all observable term coefficients are zero"""
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
