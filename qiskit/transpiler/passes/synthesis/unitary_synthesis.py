@@ -49,6 +49,7 @@ from qiskit.circuit.library.standard_gates import (
     CZGate,
     RXXGate,
     RZXGate,
+    RZZGate,
     ECRGate,
     RXGate,
     SXGate,
@@ -779,6 +780,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 op = RXXGate(pi / 2)
             elif isinstance(op, RZXGate) and isinstance(op.params[0], Parameter):
                 op = RZXGate(pi / 4)
+            elif isinstance(op, RZZGate) and isinstance(op.params[0], Parameter):
+                op = RZZGate(pi / 2)
             return op
 
         try:
@@ -817,7 +820,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         def is_supercontrolled(gate):
             try:
                 operator = Operator(gate)
-            except (QiskitError, TypeError):  # TypeError: parametrized gate
+            except QiskitError:
                 return False
             kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
@@ -825,7 +828,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         def is_controlled(gate):
             try:
                 operator = Operator(gate)
-            except (QiskitError, TypeError):  # TypeError: parametrized gate
+            except QiskitError:
                 return False
             kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)
