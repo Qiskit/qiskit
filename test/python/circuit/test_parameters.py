@@ -1129,6 +1129,7 @@ class TestParameters(QiskitTestCase):
                     [2, 4],
                     [4, 2],
                 ],
+                seed=42,
             ),
             optimization_level=opt_level,
         )

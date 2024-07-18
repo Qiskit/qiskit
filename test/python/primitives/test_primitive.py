@@ -143,8 +143,7 @@ class TestCircuitKey(QiskitTestCase):
                 qc.x(0)
                 qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
                 backend = GenericBackendV2(
-                    num_qubits=20,
-                    basis_gates=["id", "u1", "u2", "u3", "cx"],
+                    num_qubits=20, basis_gates=["id", "u1", "u2", "u3", "cx"], seed=42
                 )
                 return transpile(qc, backend, scheduling_method="alap")
 

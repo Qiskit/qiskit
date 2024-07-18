@@ -41,7 +41,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = GenericBackendV2(num_qubits=27)
+        backend = GenericBackendV2(num_qubits=27, seed=42)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.inst_map, backend.instruction_schedule_map)
@@ -137,6 +137,7 @@ class TestPassManagerConfig(QiskitTestCase):
             ],
             basis_gates=["id", "u1", "u2", "u3", "cx"],
             calibrate_instructions=None,
+            seed=42,
         )
         config = PassManagerConfig.from_backend(
             backend, basis_gates=["user_gate"], initial_layout=initial_layout
@@ -158,7 +159,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
-        backend = GenericBackendV2(num_qubits=20)
+        backend = GenericBackendV2(num_qubits=20, seed=42)
         with self.assertRaises(TypeError):
             PassManagerConfig.from_backend(backend, invalid_option=None)
 

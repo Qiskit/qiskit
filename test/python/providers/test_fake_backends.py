@@ -84,7 +84,7 @@ with warnings.catch_warnings():
 BACKENDS_V2 = []
 for n in [5, 7, 16, 20, 27, 65, 127]:
     cmap = CouplingMap.from_ring(n)
-    BACKENDS_V2.append(GenericBackendV2(num_qubits=n, coupling_map=cmap))
+    BACKENDS_V2.append(GenericBackendV2(num_qubits=n, coupling_map=cmap, seed=42))
 
 
 @ddt
@@ -269,9 +269,11 @@ class TestFakeBackends(QiskitTestCase):
         self.assertDictEqual(backend_v2.target["u2"], {None: None})
 
     def test_non_cx_tests(self):
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cz", "x", "sx", "id", "rz"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["cz", "x", "sx", "id", "rz"], seed=42)
         self.assertIsInstance(backend.target.operation_from_name("cz"), CZGate)
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["ecr", "x", "sx", "id", "rz"])
+        backend = GenericBackendV2(
+            num_qubits=5, basis_gates=["ecr", "x", "sx", "id", "rz"], seed=42
+        )
         self.assertIsInstance(backend.target.operation_from_name("ecr"), ECRGate)
 
     @unittest.skipUnless(optionals.HAS_AER, "Aer required for this test")

@@ -41,6 +41,7 @@ class TestMeasure(QiskitTestCase):
         self.backend_v2 = GenericBackendV2(
             num_qubits=27,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
+            seed=42,
         )
 
     def test_measure(self):
@@ -220,6 +221,7 @@ class TestMeasureAll(QiskitTestCase):
         self.backend_v2 = GenericBackendV2(
             num_qubits=2,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
+            seed=42,
         )
 
     def test_measure_all(self):

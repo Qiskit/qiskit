@@ -305,7 +305,7 @@ class TestScheduledCircuit(QiskitTestCase):
         """Test that circuit duration unit conversion is applied only when necessary.
         Tests fix for bug reported in PR #11782."""
 
-        backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=10)
+        backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
         schedule_config = ScheduleConfig(
             inst_map=backend.target.instruction_schedule_map(),
             meas_map=backend.meas_map,

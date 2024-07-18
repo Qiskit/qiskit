@@ -38,7 +38,7 @@ class FakeBackendsTest(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backends_get_kwargs_v1(self):
         """Fake backends honor kwargs passed."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
 
         qc = QuantumCircuit(2)
         qc.x(range(0, 2))
@@ -69,6 +69,7 @@ class FakeBackendsTest(QiskitTestCase):
                 [2, 4],
                 [4, 2],
             ],
+            seed=42,
         )
 
         qc = QuantumCircuit(2)

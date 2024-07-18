@@ -284,7 +284,7 @@ class TestBackendEstimator(QiskitTestCase):
             def max_circuits(self):
                 return 1
 
-        backend = FakeBackendLimitedCircuits(num_qubits=5)
+        backend = FakeBackendLimitedCircuits(num_qubits=5, seed=42)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])

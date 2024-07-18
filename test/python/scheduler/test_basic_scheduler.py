@@ -516,7 +516,7 @@ class TestBasicScheduleV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True)
+        self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
         self.inst_map = self.backend.instruction_schedule_map
         # self.pulse_2_samples is the pulse sequence used to calibrate "measure" in
         # GenericBackendV2. See class construction for more details.

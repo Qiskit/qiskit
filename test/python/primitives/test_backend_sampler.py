@@ -312,7 +312,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5))
+        sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5, seed=42))
         result = sampler.run([qc, qc2]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
