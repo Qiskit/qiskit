@@ -19,15 +19,12 @@ import copy
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers.backend_compat import BackendV2Converter
-
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.timing_constraints import TimingConstraints
-
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, target_to_backend_properties
-from qiskit.transpiler import CouplingMap
-
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager

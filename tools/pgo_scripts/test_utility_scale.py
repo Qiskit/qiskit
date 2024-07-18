@@ -15,11 +15,10 @@
 """Script to generate 'utility scale' load for profiling in a PGO context"""
 
 import os
-
+from qiskit import qasm2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit import qasm2
 
 QASM_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
