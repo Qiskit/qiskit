@@ -166,7 +166,6 @@ import rustworkx as rx
 
 from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.synthesis.multi_controlled import synth_mcx_recursive, synth_mcx_using_mcphase
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
@@ -372,7 +371,8 @@ class HighLevelSynthesis(TransformationPass):
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
-            is_zero_initialized: Indicates whether the qubits are initially in the state :math:`|0\rangle`.
+            is_zero_initialized: Indicates whether the qubits are initially in the state
+                :math:`|0\rangle`.
         """
         super().__init__()
 
@@ -515,7 +515,7 @@ class HighLevelSynthesis(TransformationPass):
                         # than the original operation.
                         if decomposition.num_qubits != len(node.qargs):
                             raise TranspilerError(
-                                f"HighLevelSynthesis reached an unexpected result."
+                                "HighLevelSynthesis reached an unexpected result."
                             )
                         new_dag.apply_operation_back(decomposition, node.qargs, node.cargs)
 
