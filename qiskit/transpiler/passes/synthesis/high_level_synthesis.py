@@ -1217,7 +1217,9 @@ class RecursiveSynthesisMCX(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
-        num_ancilla_qubits = options.get("num_ancilla_qubits", 0)
+        num_clean_ancillas = options.get("_num_clean_ancillas", 0)
+        num_dirty_ancillas = options.get("_num_dirty_ancillas", 0)
+        print(f"In RecursiveMCXPlugin: {num_clean_ancillas = }, {num_dirty_ancillas = }")
 
         if high_level_object.num_qubits <= 5:
             # For MCX gates with up to 4 control qubits, we should not apply synth_mcx_recursive
@@ -1225,7 +1227,7 @@ class RecursiveSynthesisMCX(HighLevelSynthesisPlugin):
             return None
 
         # decomposition may be None, that's ok
-        decomposition = synth_mcx_recursive(high_level_object.num_qubits - 1, num_ancilla_qubits)
+        decomposition = synth_mcx_recursive(high_level_object.num_qubits - 1, num_clean_ancillas)
         # print(f"RecursiveSynthesisMCX plugin: ok = {decomposition is not None}")
         return decomposition
 

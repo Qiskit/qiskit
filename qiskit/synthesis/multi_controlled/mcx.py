@@ -21,7 +21,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library import CXGate, CCXGate, C3XGate, C4XGate
 
 
-def synth_mcx_recursive(num_control_qubits: int, num_ancilla_qubits: int) -> QuantumCircuit | None:
+def synth_mcx_recursive(num_control_qubits: int, num_clean_ancillas: int) -> QuantumCircuit | None:
     """
     Synthesize MCX gate using the recursive algorithm used for ``MCXRecursive`` gates.
 
@@ -38,16 +38,19 @@ def synth_mcx_recursive(num_control_qubits: int, num_ancilla_qubits: int) -> Qua
             is not sufficient.
 
     """
-    if num_control_qubits <= 4:
-        num_required_ancilla_qubits = 0
-    else:
-        num_required_ancilla_qubits = 1
 
-    if num_ancilla_qubits < num_required_ancilla_qubits:
+    print(f"In synth_mcx_recursive: {num_clean_ancillas = }")
+
+    if num_control_qubits <= 4:
+        num_clean_ancillas_required = 0
+    else:
+        num_clean_ancillas_required = 1
+
+    if num_clean_ancillas < num_clean_ancillas_required:
         # Not enough ancilla qubits available to run the algorithm
         return None
 
-    num_qubits = num_control_qubits + num_required_ancilla_qubits + 1
+    num_qubits = num_control_qubits + num_clean_ancillas_required + 1
 
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q)
