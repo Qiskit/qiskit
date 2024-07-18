@@ -739,13 +739,7 @@ class TextDrawing:
         self._wire_map = {}
         self.cregbundle = cregbundle
 
-        if encoding:
-            self.encoding = encoding
-        else:
-            if sys.stdout.encoding:
-                self.encoding = sys.stdout.encoding
-            else:
-                self.encoding = "utf8"
+        self.encoding = encoding or sys.stdout.encoding or "utf8"
 
         self._nest_depth = 0  # nesting depth for control flow ops
         self._expr_text = ""  # expression text to display
@@ -765,7 +759,7 @@ class TextDrawing:
             "background: #fff0;"
             "line-height: 1.1;"
             'font-family: &quot;Courier New&quot;,Courier,monospace">'
-            "%s</pre>" % self.single_string()
+            f"{self.single_string()}</pre>"
         )
 
     def __repr__(self):
@@ -786,8 +780,9 @@ class TextDrawing:
             )
         except (UnicodeEncodeError, UnicodeDecodeError):
             warn(
-                "The encoding %s has a limited charset. Consider a different encoding in your "
-                "environment. UTF-8 is being used instead" % self.encoding,
+                f"The encoding {self.encoding} has a limited charset."
+                " Consider a different encoding in your "
+                "environment. UTF-8 is being used instead",
                 RuntimeWarning,
             )
             self.encoding = "utf-8"
@@ -867,7 +862,7 @@ class TextDrawing:
         lines = []
 
         if self.global_phase:
-            lines.append("global phase: %s" % pi_check(self.global_phase, ndigits=5))
+            lines.append(f"global phase: {pi_check(self.global_phase, ndigits=5)}")
 
         for layer_group in layer_groups:
             wires = list(zip(*layer_group))
@@ -1174,7 +1169,7 @@ class TextDrawing:
 
         elif isinstance(op, RZZGate):
             # rzz
-            connection_label = "ZZ%s" % params
+            connection_label = f"ZZ{params}"
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
@@ -1217,7 +1212,7 @@ class TextDrawing:
                 add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
             elif base_gate.name == "rzz":
                 # crzz
-                connection_label = "ZZ%s" % params
+                connection_label = f"ZZ{params}"
                 gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             elif len(rest) > 1:
                 top_connect = "┴" if controlled_top else None

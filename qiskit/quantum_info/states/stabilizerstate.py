@@ -297,7 +297,7 @@ class StabilizerState(QuantumState):
 
         # Otherwise pauli is (-1)^a prod_j S_j^b_j for Clifford stabilizers
         # If pauli anti-commutes with D_j then b_j = 1.
-        # Multiply pauli by stabilizers with anti-commuting destabilizers
+        # Multiply pauli by stabilizers with anti-commuting destabilisers
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
@@ -646,7 +646,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def _rowsum_deterministic(clifford, aux_pauli, row):
-        """Updating an auxilary Pauli aux_pauli in the
+        """Updating an auxiliary Pauli aux_pauli in the
         deterministic rowsum calculation.
         The StabilizerState itself is not updated."""
 
@@ -680,8 +680,8 @@ class StabilizerState(QuantumState):
         Args:
             qubits (range): range of qubits
             outcome (list[str]): outcome being built
-            outcome_prob (float): probabilitiy of the outcome
-            probs (dict[str, float]): holds the outcomes and probabilitiy results
+            outcome_prob (float): probability of the outcome
+            probs (dict[str, float]): holds the outcomes and probability results
             outcome_bitstring (str): target outcome to measure which reduces measurements, None
                 if not targeting a specific target
         """
@@ -694,7 +694,7 @@ class StabilizerState(QuantumState):
             if outcome[i] == "X":
                 # Retrieve the qubit for the current measurement
                 qubit = qubits[(len(qubits) - i - 1)]
-                # Determine if the probabilitiy is deterministic
+                # Determine if the probability is deterministic
                 if not any(ret.clifford.stab_x[:, qubit]):
                     single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
                     if outcome_bitstring is None or (

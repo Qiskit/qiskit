@@ -83,8 +83,8 @@ def raise_if_dagcircuit_invalid(dag):
     ]
     if edges_outside_wires:
         raise DAGCircuitError(
-            "multi_graph contains one or more edges ({}) "
-            "not found in DAGCircuit.wires ({}).".format(edges_outside_wires, dag.wires)
+            f"multi_graph contains one or more edges ({edges_outside_wires}) "
+            f"not found in DAGCircuit.wires ({dag.wires})."
         )
 
     # Every wire should have exactly one input node and one output node.
@@ -134,9 +134,7 @@ def raise_if_dagcircuit_invalid(dag):
         all_bits = node_qubits | node_clbits | node_cond_bits
 
         assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
-        assert out_wires == all_bits, "Out-edge wires {} != node bits {}".format(
-            out_wires, all_bits
-        )
+        assert out_wires == all_bits, f"Out-edge wires {out_wires} != node bits {all_bits}"
 
 
 class TestDagRegisters(QiskitTestCase):
@@ -855,7 +853,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
-        # Ordering between Reset and out[q1] is indeterminant.
+        # Ordering between Reset and out[q1] is indeterminate.
 
         successor1 = next(successor_cnot)
         successor2 = next(successor_cnot)
@@ -904,7 +902,7 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertIsInstance(cnot_node.op, CXGate)
 
         predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
-        # Ordering between Reset and in[q1] is indeterminant.
+        # Ordering between Reset and in[q1] is indeterminate.
 
         predecessor1 = next(predecessor_cnot)
         predecessor2 = next(predecessor_cnot)
@@ -1613,7 +1611,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
         qc.h(0)
         qc.measure(0, 0)
         # The depth of an if-else is the path through the longest block (regardless of the
-        # condition).  The size is the sum of both blocks (mostly for optimisation-target purposes).
+        # condition).  The size is the sum of both blocks (mostly for optimization-target purposes).
         with qc.if_test((qc.clbits[0], True)) as else_:
             qc.x(1)
             qc.cx(2, 3)
@@ -2422,11 +2420,11 @@ class TestDagSubstitute(QiskitTestCase):
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
-        # The `propagate_condition=True` argument (and behaviour of `substitute_node_with_dag`
+        # The `propagate_condition=True` argument (and behavior of `substitute_node_with_dag`
         # before the parameter was added) treats the replacement DAG as implementing only the
         # un-controlled operation.  The original contract considers it an error to replace a node
         # with an operation that may modify one of the condition bits in case this affects
-        # subsequent operations, so when `propagate_condition=True`, this error behaviour is
+        # subsequent operations, so when `propagate_condition=True`, this error behavior is
         # maintained.
 
         instr = Instruction("opaque", 1, 1, [])
@@ -2904,6 +2902,22 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(expected_dag, dag)
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
         self.assertIsInstance(new_node.op, XGate)
+
+    def test_invalid_replacement_size(self):
+        """Test inserting an operation on a wrong number of qubits raises."""
+
+        # two X gates, normal circuit
+        qc = QuantumCircuit(2)
+        qc.x(range(2))
+
+        # mutilate the DAG
+        dag = circuit_to_dag(qc)
+        to_replace = list(dag.op_nodes())
+        new_node = XGate()
+        idx_map = {node.qargs[0]: i for i, node in enumerate(to_replace)}
+
+        with self.assertRaises(DAGCircuitError):
+            dag.replace_block_with_op(to_replace, new_node, idx_map)
 
     def test_replace_control_flow_block(self):
         """Test that we can replace a block of control-flow nodes with a single one."""
@@ -3475,6 +3489,103 @@ class TestDagCausalCone(QiskitTestCase):
         # Expected:
         expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
 
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_more_barriers(self):
+        """Test causal cone for circuit with barriers. This example shows
+        why barriers may need to be examined multiple times."""
+
+        # q0_0: ──■────────░────────────────────────
+        #       ┌─┴─┐      ░
+        # q0_1: ┤ X ├──────░───■────────────────────
+        #       ├───┤      ░ ┌─┴─┐┌───┐┌───┐┌───┐
+        # q0_2: ┤ H ├──────░─┤ X ├┤ H ├┤ H ├┤ H ├─X─
+        #       ├───┤┌───┐ ░ └───┘└───┘└───┘└───┘ │
+        # q0_3: ┤ H ├┤ X ├─░──────────────────────X─
+        #       ├───┤└─┬─┘ ░
+        # q0_4: ┤ X ├──■───░────────────────────────
+        #       └─┬─┘      ░
+        # q0_5: ──■────────░────────────────────────
+
+        qreg = QuantumRegister(6)
+        qc = QuantumCircuit(qreg)
+        qc.cx(0, 1)
+        qc.h(2)
+        qc.cx(5, 4)
+        qc.h(3)
+        qc.cx(4, 3)
+        qc.barrier()
+        qc.cx(1, 2)
+
+        qc.h(2)
+        qc.h(2)
+        qc.h(2)
+        qc.swap(2, 3)
+
+        dag = circuit_to_dag(qc)
+
+        result = dag.quantum_causal_cone(qreg[2])
+        expected = {qreg[0], qreg[1], qreg[2], qreg[3], qreg[4], qreg[5]}
+
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_measure(self):
+        """Test causal cone with measures."""
+
+        #         ┌───┐ ░ ┌─┐
+        #    q_0: ┤ H ├─░─┤M├────────────
+        #         ├───┤ ░ └╥┘┌─┐
+        #    q_1: ┤ H ├─░──╫─┤M├─────────
+        #         ├───┤ ░  ║ └╥┘┌─┐
+        #    q_2: ┤ H ├─░──╫──╫─┤M├──────
+        #         ├───┤ ░  ║  ║ └╥┘┌─┐
+        #    q_3: ┤ H ├─░──╫──╫──╫─┤M├───
+        #         ├───┤ ░  ║  ║  ║ └╥┘┌─┐
+        #    q_4: ┤ H ├─░──╫──╫──╫──╫─┤M├
+        #         └───┘ ░  ║  ║  ║  ║ └╥┘
+        #    c: 5/═════════╬══╬══╬══╬══╬═
+        #                  ║  ║  ║  ║  ║
+        # meas: 5/═════════╩══╩══╩══╩══╩═
+        #                  0  1  2  3  4
+
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        circuit = QuantumCircuit(qreg, creg)
+        for i in range(5):
+            circuit.h(i)
+        circuit.measure_all()
+
+        dag = circuit_to_dag(circuit)
+
+        result = dag.quantum_causal_cone(dag.qubits[1])
+        expected = {qreg[1]}
+        self.assertEqual(result, expected)
+
+    def test_reconvergent_paths(self):
+        """Test circuit with reconvergent paths."""
+
+        # q0_0: ──■─────────■─────────■─────────■─────────■─────────■───────
+        #       ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     ┌─┴─┐     ┌─┴─┐
+        # q0_1: ┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──
+        #       └───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+        # q0_2: ──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├──■──┤ X ├
+        #       ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐└───┘
+        # q0_3: ┤ X ├─────┤ X ├─────┤ X ├─────┤ X ├─────┤ X ├─────┤ X ├─────
+        #       └───┘     └───┘     └───┘     └───┘     └───┘     └───┘
+        # q0_4: ────────────────────────────────────────────────────────────
+
+        qreg = QuantumRegister(5)
+        circuit = QuantumCircuit(qreg)
+
+        for _ in range(6):
+            circuit.cx(0, 1)
+            circuit.cx(2, 3)
+            circuit.cx(1, 2)
+
+        dag = circuit_to_dag(circuit)
+
+        result = dag.quantum_causal_cone(dag.qubits[1])
+        expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
         self.assertEqual(result, expected)
 
 

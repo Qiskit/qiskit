@@ -398,7 +398,7 @@ class TestDensityMatrix(QiskitTestCase):
             target = {}
             for i in range(2):
                 for j in range(3):
-                    key = "{1}{0}|{1}{0}".format(i, j)
+                    key = f"{j}{i}|{j}{i}"
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, rho.to_dict())
 
@@ -407,7 +407,7 @@ class TestDensityMatrix(QiskitTestCase):
             target = {}
             for i in range(2):
                 for j in range(11):
-                    key = "{1},{0}|{1},{0}".format(i, j)
+                    key = f"{j},{i}|{j},{i}"
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
 
