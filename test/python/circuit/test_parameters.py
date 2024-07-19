@@ -53,7 +53,7 @@ def raise_if_parameter_table_invalid(circuit):
         for parameter in param.parameters
         if isinstance(param, ParameterExpression)
     }
-    table_parameters = set(circuit._data.get_params_unsorted())
+    table_parameters = set(circuit._data.unsorted_parameters())
 
     if circuit_parameters != table_parameters:
         raise CircuitError(
@@ -66,7 +66,7 @@ def raise_if_parameter_table_invalid(circuit):
     circuit_instructions = [instr.operation for instr in circuit._data]
 
     for parameter in table_parameters:
-        instr_list = circuit._data._get_param(parameter.uuid.int)
+        instr_list = circuit._data._raw_parameter_table_entry(parameter)
         for instr_index, param_index in instr_list:
             instr = circuit.data[instr_index].operation
             if instr not in circuit_instructions:
@@ -93,8 +93,8 @@ def raise_if_parameter_table_invalid(circuit):
                 parameters = param.parameters
 
                 for parameter in parameters:
-                    if (instr_index, param_index) not in circuit._data._get_param(
-                        parameter.uuid.int
+                    if (instr_index, param_index) not in circuit._data._raw_parameter_table_entry(
+                        parameter
                     ):
                         raise CircuitError(
                             "Found parameterized instruction not "
@@ -183,8 +183,9 @@ class TestParameters(QiskitTestCase):
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
         self.assertEqual(qc._data.num_params(), 1)
-        self.assertIs(theta, next(iter(qc._data.get_params_unsorted())))
-        self.assertEqual(rxg, qc.data[next(iter(qc._data._get_param(theta.uuid.int)))[0]].operation)
+        self.assertIs(theta, next(iter(qc._data.unsorted_parameters())))
+        ((instruction_index, _),) = list(qc._data._raw_parameter_table_entry(theta))
+        self.assertEqual(rxg, qc.data[instruction_index].operation)
 
     def test_parameters_property_by_index(self):
         """Test getting parameters by index"""
@@ -580,12 +581,12 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, 0)
         qc.ry(phi, 0)
 
-        self.assertEqual(qc._data._get_entry_count(theta), 1)
-        self.assertEqual(qc._data._get_entry_count(phi), 1)
+        self.assertEqual(len(qc._data._raw_parameter_table_entry(theta)), 1)
+        self.assertEqual(len(qc._data._raw_parameter_table_entry(phi)), 1)
 
         qc.assign_parameters({theta: -phi}, inplace=True)
 
-        self.assertEqual(qc._data._get_entry_count(phi), 2)
+        self.assertEqual(len(qc._data._raw_parameter_table_entry(phi)), 2)
 
     def test_expression_partial_binding_zero(self):
         """Verify that binding remains possible even if a previous partial bind
