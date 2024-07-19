@@ -364,7 +364,7 @@ def _apply_sabre_result(
         empty.add_clbits(block.clbits)
         for creg in block.cregs:
             empty.add_creg(creg)
-        empty._global_phase = block.global_phase
+        empty.global_phase = block.global_phase
         return empty
 
     def apply_swaps(dest_dag, swaps, layout):
