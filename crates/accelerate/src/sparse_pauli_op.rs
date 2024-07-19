@@ -23,6 +23,7 @@ use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
+use qiskit_circuit::util::{c64, C_ONE, C_ZERO};
 use rayon::prelude::*;
 
 use crate::rayon_ext::*;
@@ -141,7 +142,9 @@ impl ZXPaulis {
         phases: &Bound<PyArray1<u8>>,
         coeffs: &Bound<PyArray1<Complex64>>,
     ) -> PyResult<Self> {
-        let &[num_ops, num_qubits] = x.shape() else { unreachable!("PyArray2 must be 2D") };
+        let &[num_ops, num_qubits] = x.shape() else {
+            unreachable!("PyArray2 must be 2D")
+        };
         if z.shape() != [num_ops, num_qubits] {
             return Err(PyValueError::new_err(format!(
                 "'x' and 'z' have different shapes: {:?} and {:?}",
@@ -255,9 +258,9 @@ impl<'py> ZXPaulisView<'py> {
                 let ys = (xs & zs).count_ones();
                 match (phase as u32 + ys) % 4 {
                     0 => coeff,
-                    1 => Complex64::new(coeff.im, -coeff.re),
-                    2 => Complex64::new(-coeff.re, -coeff.im),
-                    3 => Complex64::new(-coeff.im, coeff.re),
+                    1 => c64(coeff.im, -coeff.re),
+                    2 => c64(-coeff.re, -coeff.im),
+                    3 => c64(-coeff.im, coeff.re),
                     _ => unreachable!(),
                 }
             })
@@ -309,10 +312,10 @@ impl MatrixCompressedPaulis {
             .zip(self.z_like.drain(..))
             .zip(self.coeffs.drain(..))
         {
-            *hash_table.entry(key).or_insert(Complex64::new(0.0, 0.0)) += coeff;
+            *hash_table.entry(key).or_insert(C_ZERO) += coeff;
         }
         for ((x, z), coeff) in hash_table {
-            if coeff == Complex64::new(0.0, 0.0) {
+            if coeff.is_zero() {
                 continue;
             }
             self.x_like.push(x);
@@ -345,7 +348,7 @@ pub fn decompose_dense(
     let mut coeffs = vec![];
     if num_qubits > 0 {
         decompose_dense_inner(
-            Complex64::new(1.0, 0.0),
+            C_ONE,
             num_qubits,
             &[],
             operator.as_array(),
@@ -419,7 +422,7 @@ fn decompose_dense_inner(
 ) {
     if num_qubits == 0 {
         // It would be safe to `return` here, but if it's unreachable then LLVM is allowed to
-        // optimise out this branch entirely in release mode, which is good for a ~2% speedup.
+        // optimize out this branch entirely in release mode, which is good for a ~2% speedup.
         unreachable!("should not call this with an empty operator")
     }
     // Base recursion case.
@@ -527,10 +530,10 @@ fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec
         out
     };
     let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-        // Doing the initialisation here means that when we're in parallel contexts, we do the
+        // Doing the initialization here means that when we're in parallel contexts, we do the
         // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
         // contexts, but I don't understand that. ---Jake
-        row.fill(Complex64::new(0.0, 0.0));
+        row.fill(C_ZERO);
         for ((&x_like, &z_like), &coeff) in paulis
             .x_like
             .iter()
@@ -665,7 +668,7 @@ macro_rules! impl_to_matrix_sparse {
                     ((i_row as $uint_ty) ^ (paulis.x_like[a] as $uint_ty))
                         .cmp(&((i_row as $uint_ty) ^ (paulis.x_like[b] as $uint_ty)))
                 });
-                let mut running = Complex64::new(0.0, 0.0);
+                let mut running = C_ZERO;
                 let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
                 for (x_like, z_like, coeff) in order
                     .iter()
@@ -719,7 +722,7 @@ macro_rules! impl_to_matrix_sparse {
 
             // The parallel overhead from splitting a subtask is fairly high (allocating and
             // potentially growing a couple of vecs), so we're trading off some of Rayon's ability
-            // to keep threads busy by subdivision with minimising overhead; we're setting the
+            // to keep threads busy by subdivision with minimizing overhead; we're setting the
             // chunk size such that the iterator will have as many elements as there are threads.
             let num_threads = rayon::current_num_threads();
             let chunk_size = (side + num_threads - 1) / num_threads;
@@ -736,7 +739,7 @@ macro_rules! impl_to_matrix_sparse {
                     // Since we compressed the Paulis by summing equal elements, we're
                     // lower-bounded on the number of elements per row by this value, up to
                     // cancellations.  This should be a reasonable trade-off between sometimes
-                    // expandin the vector and overallocation.
+                    // expanding the vector and overallocation.
                     let mut values =
                         Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
@@ -746,7 +749,7 @@ macro_rules! impl_to_matrix_sparse {
                             (i_row as $uint_ty ^ paulis.x_like[a] as $uint_ty)
                                 .cmp(&(i_row as $uint_ty ^ paulis.x_like[b] as $uint_ty))
                         });
-                        let mut running = Complex64::new(0.0, 0.0);
+                        let mut running = C_ZERO;
                         let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
                         for (x_like, z_like, coeff) in order
                             .iter()
@@ -842,11 +845,11 @@ mod tests {
             // Deliberately using multiples of small powers of two so the floating-point addition
             // of them is associative.
             coeffs: vec![
-                Complex64::new(0.25, 0.5),
-                Complex64::new(0.125, 0.25),
-                Complex64::new(0.375, 0.125),
-                Complex64::new(-0.375, 0.0625),
-                Complex64::new(-0.5, -0.25),
+                c64(0.25, 0.5),
+                c64(0.125, 0.25),
+                c64(0.375, 0.125),
+                c64(-0.375, 0.0625),
+                c64(-0.5, -0.25),
             ],
         }
     }

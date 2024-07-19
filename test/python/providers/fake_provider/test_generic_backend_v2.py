@@ -35,6 +35,36 @@ class TestGenericBackendV2(QiskitTestCase):
         with self.assertRaises(QiskitError):
             GenericBackendV2(num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"])
 
+    def test_cx_1Q(self):
+        """Test failing with a backend with single qubit but with a two-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=1, basis_gates=["cx", "id"])
+
+    def test_ccx_2Q(self):
+        """Test failing with a backend with two qubits but with a three-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=2, basis_gates=["ccx", "id"])
+
+    def test_calibration_no_noise_info(self):
+        """Test failing with a backend with calibration and no noise info"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(
+                num_qubits=2,
+                basis_gates=["ccx", "id"],
+                calibrate_instructions=True,
+                noise_info=False,
+            )
+
+    def test_no_noise(self):
+        """Test no noise info when parameter is false"""
+        backend = GenericBackendV2(num_qubits=2, noise_info=False)
+        self.assertEqual(backend.target.qubit_properties, None)
+
+    def test_no_pulse_channels(self):
+        """Test no/empty pulse channels when parameter is false"""
+        backend = GenericBackendV2(num_qubits=2, pulse_channels=False)
+        self.assertTrue(len(backend.channels_map) == 0)
+
     def test_operation_names(self):
         """Test that target basis gates include "delay", "measure" and "reset" even
         if not provided by user."""

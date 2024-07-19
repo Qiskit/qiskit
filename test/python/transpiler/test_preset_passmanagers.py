@@ -71,7 +71,7 @@ def mock_get_passmanager_stage(
     elif stage_name == "layout":
         return PassManager([])
     else:
-        raise Exception("Failure, unexpected stage plugin combo for test")
+        raise RuntimeError("Failure, unexpected stage plugin combo for test")
 
 
 def emptycircuit():
@@ -1110,7 +1110,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         self.assertIn("swap", resulting_basis)
 
     # Skipping optimization level 3 because the swap gates get absorbed into
-    # a unitary block as part of the KAK decompostion optimization passes and
+    # a unitary block as part of the KAK decomposition optimization passes and
     # optimized away.
     @combine(
         level=[0, 1, 2],
@@ -1505,7 +1505,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=2022_10_04,
         )
-        # Tests of the complete validity of a circuit are mostly done at the indiviual pass level;
+        # Tests of the complete validity of a circuit are mostly done at the individual pass level;
         # here we're just checking that various passes do appear to have run.
         self.assertIsInstance(transpiled, QuantumCircuit)
         # Assert layout ran.

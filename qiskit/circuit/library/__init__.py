@@ -129,35 +129,19 @@ For example:
 Standard Directives
 ===================
 
-..
-    This summary table deliberately does not generate toctree entries; these directives are "owned"
-    by ``qiskit.circuit``.
-
 Directives are operations to the quantum stack that are meant to be interpreted by the backend or
 the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
-..
-    This summary table deliberately does not generate toctree entries; these directives are "owned"
-    by ``qiskit.circuit``.
-
-.. autosummary::
-
-   Barrier
+* :class:`qiskit.circuit.Barrier`
 
 Standard Operations
 ===================
 
 Operations are non-reversible changes in the quantum state of the circuit.
 
-..
-    This summary table deliberately does not generate toctree entries; these directives are "owned"
-    by ``qiskit.circuit``.
-
-.. autosummary::
-
-   Measure
-   Reset
+* :class:`qiskit.circuit.Measure`
+* :class:`qiskit.circuit.Reset`
 
 Generalized Gates
 =================
@@ -242,6 +226,7 @@ the computational basis and the Fourier basis.
    :template: autosummary/class_no_inherited_members.rst
 
    QFT
+   QFTGate
 
 Arithmetic Circuits
 ===================
@@ -539,7 +524,7 @@ from .boolean_logic import (
     XOR,
     InnerProduct,
 )
-from .basis_change import QFT
+from .basis_change import QFT, QFTGate
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,

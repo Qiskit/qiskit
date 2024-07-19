@@ -143,7 +143,7 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     phase.extend(phase_stab)
     phase = np.array(phase, dtype=int)
 
-    A = cliff.symplectic_matrix.astype(int)
+    A = cliff.symplectic_matrix.astype(bool, copy=False)
     Ainv = calc_inverse_matrix(A)
 
     # By carefully writing how X, Y, Z gates affect each qubit, all we need to compute
@@ -166,7 +166,7 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
 
 
 def synth_stabilizer_depth_lnn(stab: StabilizerState) -> QuantumCircuit:
-    """Synthesis of an n-qubit stabilizer state for linear-nearest neighbour connectivity,
+    """Synthesis of an n-qubit stabilizer state for linear-nearest neighbor connectivity,
     in 2-qubit depth :math:`2n+2` and two distinct CX layers, using :class:`.CXGate`\\ s and phase gates
     (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
