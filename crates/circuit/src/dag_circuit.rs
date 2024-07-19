@@ -1195,7 +1195,12 @@ def _format(operand):
 
         let bit_iter = match self.clbits.map_bits(clbits) {
             Ok(bit_iter) => bit_iter,
-            Err(_) => return Err(DAGCircuitError::new_err(format!("clbits not in circuit: {:?}", clbits))),
+            Err(_) => {
+                return Err(DAGCircuitError::new_err(format!(
+                    "clbits not in circuit: {:?}",
+                    clbits
+                )))
+            }
         };
         let clbits: IndexSet<Clbit> = bit_iter.collect();
         let mut busy_bits = Vec::new();
@@ -2882,11 +2887,19 @@ def _format(operand):
     #[pyo3(signature = (node, op, inplace=false, propagate_condition=true))]
     fn substitute_node(
         &mut self,
-        node: PyRefMut<DAGOpNode>,
+        node: &Bound<PyAny>,
         op: &Bound<PyAny>,
         inplace: bool,
         propagate_condition: bool,
     ) -> PyResult<Py<PyAny>> {
+        let node: PyRefMut<DAGOpNode> = match node.downcast() {
+            Ok(node) => node.borrow_mut(),
+            Err(_) => {
+                return Err(DAGCircuitError::new_err(format!(
+                    "node can't be converted into a DAGOpNode"
+                )))
+            }
+        };
         let py = op.py();
         // Extract information from node that is going to be replaced
         let old_packed = match self.dag.node_weight(node.as_ref().node.unwrap()) {
@@ -5152,11 +5165,11 @@ impl DAGCircuit {
         if let Some(previous) = self.vars_info.get(&var_name) {
             if var.eq(previous.var.clone_ref(py))? {
                 return Err(DAGCircuitError::new_err(
-                    "var is already present in circuit",
+                    "already present in the circuit",
                 ));
             }
             return Err(DAGCircuitError::new_err(
-                "Can not add var as its name shadows an existing var",
+                "cannot add var as its name shadows an existing var",
             ));
         }
         let in_node = NodeType::VarIn(var.clone().unbind());
