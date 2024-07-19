@@ -76,12 +76,12 @@ fn cx_cost3(clifford: &Clifford) -> usize {
         let mut mask = arr1(&[false, false, false, false, false, false]);
         mask[q2] = true;
         mask[q2 + 3] = true;
-        let xs = clifford.tableau.slice(s![q1, 0..6]).to_owned();
-        let zs = clifford.tableau.slice(s![q1 + 3, 0..6]).to_owned();
-        let ys = xs.clone() ^ zs.clone();
-        let is_loc_x = (xs.clone() & mask.clone()) == xs;
-        let is_loc_z = (zs.clone() & mask.clone()) == zs;
-        let is_loc_y = (ys.clone() & mask.clone()) == ys;
+        let xs = clifford.tableau.slice(s![q1, 0..6]);
+        let zs = clifford.tableau.slice(s![q1 + 3, 0..6]);
+        let ys = &xs ^ &zs;
+        let is_loc_x = (&xs & &mask) == xs;
+        let is_loc_z = (&zs & &mask) == zs;
+        let is_loc_y = (&ys & &mask) == ys;
         r1[[q1, q2]] = if is_loc_x || is_loc_z || is_loc_y {
             1
         } else {
