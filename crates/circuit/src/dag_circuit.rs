@@ -438,9 +438,15 @@ impl IntoPy<Py<PyAny>> for PyVariableMapper {
 #[derive(Clone, Debug)]
 struct BitLocations {
     #[pyo3(get)]
-    index: Py<PyAny>,
+    pub index: usize,
     #[pyo3(get)]
     registers: Py<PyList>,
+}
+
+impl BitLocations {
+    fn set_index(&mut self, index: usize) {
+        self.index = index
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -912,7 +918,11 @@ def _format(operand):
             )));
         }
 
-        let clbits: IndexSet<Clbit> = self.clbits.map_bits(clbits)?.collect();
+        let bit_iter = match self.clbits.map_bits(clbits) {
+            Ok(bit_iter) => bit_iter,
+            Err(_) => return Err(DAGCircuitError::new_err(format!("clbits not in circuit: {:?}", clbits))),
+        };
+        let clbits: IndexSet<Clbit> = bit_iter.collect();
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
             if !self.is_wire_idle(&Wire::Clbit(*bit))? {
@@ -951,12 +961,13 @@ def _format(operand):
         // Update bit locations.
         let bit_locations = self.clbit_locations.bind(py);
         for (i, bit) in self.clbits.bits().iter().enumerate() {
+
+            let raw_loc = bit_locations.get_item(bit)?.unwrap();
+            let loc = raw_loc.downcast::<BitLocations>().unwrap();
+            loc.borrow_mut().set_index(i);
             bit_locations.set_item(
                 bit,
-                bit_locations
-                    .get_item(bit)?
-                    .unwrap()
-                    .call_method1(intern!(py, "_replace"), (i,))?,
+                loc,
             )?;
         }
         Ok(())
@@ -1084,12 +1095,12 @@ def _format(operand):
         // Update bit locations.
         let bit_locations = self.qubit_locations.bind(py);
         for (i, bit) in self.qubits.bits().iter().enumerate() {
+            let raw_loc = bit_locations.get_item(bit)?.unwrap();
+            let loc = raw_loc.downcast::<BitLocations>().unwrap();
+            loc.borrow_mut().set_index(i);
             bit_locations.set_item(
                 bit,
-                bit_locations
-                    .get_item(bit)?
-                    .unwrap()
-                    .call_method1(intern!(py, "_replace"), (i,))?,
+                loc,
             )?;
         }
         Ok(())
@@ -4482,7 +4493,7 @@ impl DAGCircuit {
             Py::new(
                 py,
                 BitLocations {
-                    index: (self.qubits.len() - 1).into_py(py),
+                    index: (self.qubits.len() - 1),
                     registers: PyList::empty_bound(py).unbind(),
                 },
             )?,
@@ -4498,7 +4509,7 @@ impl DAGCircuit {
             Py::new(
                 py,
                 BitLocations {
-                    index: (self.clbits.len() - 1).into_py(py),
+                    index: (self.clbits.len() - 1),
                     registers: PyList::empty_bound(py).unbind(),
                 },
             )?,
