@@ -168,8 +168,8 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
-from qiskit.circuit.library import LinearFunction
+from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary, Barrier, Delay, Reset
+from qiskit.circuit.library import LinearFunction, IGate
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -339,6 +339,21 @@ class HighLevelSynthesis(TransformationPass):
     abstract mathematical objects and annotated operations, without descending into the gate
     ``definitions``. This is consistent with the older behavior of the pass, allowing to synthesize
     some higher-level objects using plugins and leaving the other gates untouched.
+
+    The high-level-synthesis passes information about available auxiliary qubits, and whether their
+    state is clean (defined as :math:`|0\rangle`) or dirty (unknown state) to the synthesis routine
+    via the respective arguments ``"num_clean_ancillas"`` and ``"num_dirty_ancillas"``.
+    If ``is_zero_initialized`` is ``True`` (default), idle qubits are assumed to be in the
+    :math:`|0\rangle` state. When appending a synthesized block using auxiliary qubits onto the
+    circuit, we first use the clean auxiliary qubits.
+
+    .. note::
+
+        Synthesis methods are assumed to maintain the state of the auxiliary qubits.
+        Concretely this means that clean auxiliary qubits must still be in the :math:`|0\rangle`
+        state after the synthesized block, while dirty auxiliary qubits are re-used only
+        as dirty qubits.
+
     """
 
     def __init__(
@@ -372,7 +387,8 @@ class HighLevelSynthesis(TransformationPass):
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
             is_zero_initialized: Indicates whether the qubits are initially in the state
-                :math:`|0\rangle`.
+                :math:`|0\rangle`. This allows the high-level-synthesis to use clean auxiliary qubits
+                (i.e. in the zero state) to synthesize an operation.
         """
         super().__init__()
 
@@ -416,7 +432,7 @@ class HighLevelSynthesis(TransformationPass):
         """
         return self._run_inner(dag, self.is_zero_initialized)
 
-    def _run_inner(self, dag: DAGCircuit, is_zero_initialized=False) -> DAGCircuit:
+    def _run_inner(self, dag: DAGCircuit, is_zero_initialized: bool = False) -> DAGCircuit:
         """Runs high-level-synthesis on a dag. The flag ``is_zero_initialized``
         represents whether the qubits are initially ``0``. Note that this method
         calls itself recursively.
@@ -434,12 +450,18 @@ class HighLevelSynthesis(TransformationPass):
             clean_ancillas = []
 
         for node in dag.topological_op_nodes():
+            # Reduce clean ancillas after appending the current block. Some instructions do
+            # not require this (e.g. Barrier, IGate or Delay) and some have special handling
+            # (e.g. Reset adds new clean ancillas).
+            reduce_clean_ancillas = True
+
             if isinstance(node.op, ControlFlowOp):
                 node.op = control_flow.map_blocks(self._run_inner, node.op)
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
             elif getattr(node.op, "_directive", False):
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                reduce_clean_ancillas = False  # directives do not affect the clean qubits
 
             elif dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
@@ -467,8 +489,17 @@ class HighLevelSynthesis(TransformationPass):
                     num_dirty_ancillas=len(dirty_ancillas_available),
                 )
 
-                if not modified:
+                if modified is False:
                     new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+
+                    # no need to update the clean qubits, these are no-ops
+                    if isinstance(node.op, (Barrier, IGate, Delay)):
+                        reduce_clean_ancillas = False
+
+                    # if we encountered a reset, the ancillas is clean
+                    if isinstance(node.op, Reset):
+                        clean_ancillas += node.qargs
+                        reduce_clean_ancillas = False
 
                 else:
                     if isinstance(decomposition, QuantumCircuit):
@@ -478,7 +509,7 @@ class HighLevelSynthesis(TransformationPass):
                         # Compute the qubits on which to apply the decomposition
                         # (including auxiliary qubits).
                         num_ancillas_used = decomposition.num_qubits() - len(node.qargs)
-                        if not use_ancillas or num_ancillas_used == 0:
+                        if num_ancillas_used == 0:
                             extended_qargs = node.qargs
                         elif num_ancillas_used <= len(clean_ancillas_available):
                             extended_qargs = (
@@ -520,7 +551,8 @@ class HighLevelSynthesis(TransformationPass):
                         new_dag.apply_operation_back(decomposition, node.qargs, node.cargs)
 
             # update the list of clean ancilla qubits
-            clean_ancillas = [q for q in clean_ancillas if q not in node.qargs]
+            if reduce_clean_ancillas:
+                clean_ancillas = [q for q in clean_ancillas if q not in node.qargs]
 
         return new_dag
 
@@ -678,8 +710,8 @@ class HighLevelSynthesis(TransformationPass):
                 plugin_method = plugin_specifier
 
             # Set the number of available clean and dirty auxiliary qubits via plugin args.
-            plugin_args["_num_clean_ancillas"] = num_clean_ancillas
-            plugin_args["_num_dirty_ancillas"] = num_dirty_ancillas
+            plugin_args["num_clean_ancillas"] = num_clean_ancillas
+            plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
 
             decomposition = plugin_method.run(
                 op,
