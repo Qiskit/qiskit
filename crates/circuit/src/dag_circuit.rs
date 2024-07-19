@@ -12,7 +12,9 @@
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::convert_py_to_operation_type;
-use crate::circuit_instruction::{operation_type_to_py, PackedInstruction};
+use crate::circuit_instruction::{
+    operation_type_to_py, ExtraInstructionAttributes, PackedInstruction,
+};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
@@ -2873,12 +2875,12 @@ def _format(operand):
                     for (source_wire, target_wire) in bound_wires.iter() {
                         if source_wire.is_instance(self.circuit_module.qubit.bind(py))? {
                             qubit_wire_map.insert(
-                                self.qubits.find(&source_wire).unwrap(),
+                                input_dag.qubits.find(&source_wire).unwrap(),
                                 self.qubits.find(&target_wire).unwrap(),
                             );
                         } else if source_wire.is_instance(self.circuit_module.clbit.bind(py))? {
                             clbit_wire_map.insert(
-                                self.clbits.find(&source_wire).unwrap(),
+                                input_dag.clbits.find(&source_wire).unwrap(),
                                 self.clbits.find(&target_wire).unwrap(),
                             );
                         } else {
@@ -2907,7 +2909,116 @@ def _format(operand):
                 .as_ref()
                 .and_then(|attrs| attrs.condition.as_ref())
             {
-                todo!()
+                let mut in_dag = input_dag.copy_empty_like(py, "alike")?;
+                // The remapping of `condition` below is still using the old code that assumes a 2-tuple.
+                // This is because this remapping code only makes sense in the case of non-control-flow
+                // operations being replaced.  These can only have the 2-tuple conditions, and the
+                // ability to set a condition at an individual node level will be deprecated and removed
+                // in favour of the new-style conditional blocks.  The extra logic in here to add
+                // additional wires into the map as necessary would hugely complicate matters if we tried
+                // to abstract it out into the `VariableMapper` used elsewhere.
+                let locals = PyDict::new_bound(py);
+                let wire_map = PyDict::new_bound(py);
+                locals.set_item("op_condition", condition)?;
+                for (source_qubit, target_qubit) in &qubit_wire_map {
+                    wire_map.set_item(
+                        in_dag.qubits.bits()[source_qubit.0 as usize].clone_ref(py),
+                        self.qubits.bits()[target_qubit.0 as usize].clone_ref(py),
+                    )?
+                }
+                for (source_clbit, target_clbit) in &clbit_wire_map {
+                    wire_map.set_item(
+                        in_dag.clbits.bits()[source_clbit.0 as usize].clone_ref(py),
+                        self.qubits.bits()[target_clbit.0 as usize].clone_ref(py),
+                    )?
+                }
+                wire_map.update(var_map.bind(py).as_mapping())?;
+                locals.set_item("wire_map", wire_map)?;
+                locals.set_item("Clbit", self.circuit_module.clbit.clone_ref(py))?;
+                locals.set_item(
+                    "ClassicalRegister",
+                    self.circuit_module.classical_register.clone_ref(py),
+                )?;
+                locals.set_item("in_dag", in_dag.into_py(py))?;
+
+                py.run_bound(
+                    r#"
+reverse_wire_map = {b: a for a, b in wire_map.items()}
+target, value = op_condition
+if isinstance(target, Clbit):
+    new_target = reverse_wire_map.get(target, Clbit())
+    if new_target not in wire_map:
+        in_dag.add_clbits([new_target])
+        wire_map[new_target], reverse_wire_map[target] = target, new_target
+    target_cargs = {new_target}
+else:  # ClassicalRegister
+    mapped_bits = [reverse_wire_map.get(bit, Clbit()) for bit in target]
+    for ours, theirs in zip(target, mapped_bits):
+        # Update to any new dummy bits we just created to the wire maps.
+        wire_map[theirs], reverse_wire_map[ours] = ours, theirs
+    new_target = ClassicalRegister(bits=mapped_bits)
+    in_dag.add_creg(new_target)
+    target_cargs = set(new_target)
+new_condition = (new_target, value)
+"#,
+                    None,
+                    Some(&locals),
+                )?;
+                let binding = locals.get_item("target_cargs")?.unwrap();
+                let target_cargs = binding.downcast::<PySet>()?;
+                let new_condition = locals.get_item("new_condition")?.unwrap();
+                let binding = locals.get_item("in_dag")?.unwrap();
+                let mut in_dag: DAGCircuit = binding.extract()?;
+                for in_node_index in input_dag.topological_op_nodes()? {
+                    let in_node = &input_dag.dag[in_node_index];
+                    if let NodeType::Operation(inst) = in_node {
+                        if inst
+                            .extra_attrs
+                            .as_ref()
+                            .and_then(|attrs| attrs.condition.as_ref())
+                            .is_some()
+                        {
+                            return Err(DAGCircuitError::new_err(
+                                "cannot propagate a condition to an element that already has one",
+                            ));
+                        }
+                        let cargs = input_dag.cargs_cache.intern(inst.clbits_id);
+                        let cargs_bits: Vec<PyObject> = input_dag
+                            .clbits
+                            .map_indices(cargs)
+                            .map(|x| x.clone_ref(py))
+                            .collect();
+                        if !target_cargs
+                            .call_method1(intern!(py, "intersection"), (cargs_bits,))?
+                            .downcast::<PySet>()?
+                            .is_empty()
+                        {
+                            return Err(DAGCircuitError::new_err("cannot propagate a condition to an element that acts on those bits"));
+                        }
+                        let mut new_inst = inst.clone();
+                        if new_condition.is_truthy()? {
+                            if let Some(ref mut attrs) = new_inst.extra_attrs {
+                                attrs.condition = Some(new_condition.clone().unbind());
+                            } else {
+                                new_inst.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
+                                    condition: Some(new_condition.clone().unbind()),
+                                    label: None,
+                                    duration: None,
+                                    unit: None,
+                                }));
+                            }
+                        }
+                        in_dag.push_back(py, new_inst)?;
+                    }
+                }
+                self.substitute_node_with_subgraph(
+                    py,
+                    node_index,
+                    &in_dag,
+                    qubit_wire_map,
+                    clbit_wire_map,
+                    var_map,
+                )?
             } else {
                 self.substitute_node_with_subgraph(
                     py,
