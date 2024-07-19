@@ -338,10 +338,10 @@ type KTIType = HashMap<Key, NodeIndex>;
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
-    _graph: GraphType,
+    pub graph: GraphType,
     key_to_node_index: KTIType,
     rule_id: usize,
-    graph: Option<PyObject>,
+    _graph: Option<PyObject>,
 }
 
 #[pymethods]
@@ -356,17 +356,17 @@ impl EquivalenceLibrary {
     fn new(base: Option<&EquivalenceLibrary>) -> Self {
         if let Some(base) = base {
             Self {
-                _graph: base._graph.clone(),
+                graph: base.graph.clone(),
                 key_to_node_index: base.key_to_node_index.clone(),
                 rule_id: base.rule_id,
-                graph: None,
+                _graph: None,
             }
         } else {
             Self {
-                _graph: GraphType::new(),
+                graph: GraphType::new(),
                 key_to_node_index: KTIType::new(),
                 rule_id: 0_usize,
-                graph: None,
+                _graph: None,
             }
         }
     }
@@ -429,22 +429,22 @@ impl EquivalenceLibrary {
         };
         let node_index = self.set_default_node(key);
 
-        if let Some(graph_ind) = self._graph.node_weight_mut(node_index) {
+        if let Some(graph_ind) = self.graph.node_weight_mut(node_index) {
             graph_ind.equivs.clear();
         }
 
         let edges: Vec<EdgeIndex> = self
-            ._graph
+            .graph
             .edges_directed(node_index, rustworkx_core::petgraph::Direction::Incoming)
             .map(|x| x.id())
             .collect();
         for edge in edges {
-            self._graph.remove_edge(edge);
+            self.graph.remove_edge(edge);
         }
         for equiv in entry {
             self.add_equivalence(py, &gate, equiv)?
         }
-        self.graph = None;
+        self._graph = None;
         Ok(())
     }
 
@@ -485,12 +485,12 @@ impl EquivalenceLibrary {
 
     #[getter]
     fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
-        if let Some(graph) = &self.graph {
+        if let Some(graph) = &self._graph {
             Ok(graph.clone_ref(py))
         } else {
-            self.graph = Some(to_pygraph(py, &self._graph)?);
+            self._graph = Some(to_pygraph(py, &self.graph)?);
             Ok(self
-                .graph
+                ._graph
                 .as_ref()
                 .map(|graph| graph.clone_ref(py))
                 .unwrap())
@@ -500,7 +500,7 @@ impl EquivalenceLibrary {
     /// Get all the equivalences for the given key
     pub fn _get_equivalences(&self, key: &Key) -> Vec<Equivalence> {
         if let Some(key_in) = self.key_to_node_index.get(key) {
-            self._graph[*key_in].equivs.clone()
+            self.graph[*key_in].equivs.clone()
         } else {
             vec![]
         }
@@ -529,11 +529,11 @@ impl EquivalenceLibrary {
         }
         ret.set_item("key_to_node_index", key_to_usize_node)?;
         let graph_nodes: Bound<PyList> = PyList::empty_bound(slf.py());
-        for weight in slf._graph.node_weights() {
+        for weight in slf.graph.node_weights() {
             graph_nodes.append(weight.clone().into_py(slf.py()))?;
         }
         ret.set_item("graph_nodes", graph_nodes.unbind())?;
-        let edges = slf._graph.edge_references().map(|edge| {
+        let edges = slf.graph.edge_references().map(|edge| {
             (
                 edge.source().index(),
                 edge.target().index(),
@@ -554,13 +554,13 @@ impl EquivalenceLibrary {
         let graph_nodes: &Bound<PyList> = graph_nodes_ref.downcast()?;
         let graph_edge_ref: Bound<PyAny> = state.get_item("graph_edges")?.unwrap();
         let graph_edges: &Bound<PyList> = graph_edge_ref.downcast()?;
-        slf._graph = GraphType::new();
+        slf.graph = GraphType::new();
         for node_weight in graph_nodes {
-            slf._graph.add_node(node_weight.extract()?);
+            slf.graph.add_node(node_weight.extract()?);
         }
         for edge in graph_edges {
             let (source_node, target_node, edge_weight) = edge.extract()?;
-            slf._graph.add_edge(
+            slf.graph.add_edge(
                 NodeIndex::new(source_node),
                 NodeIndex::new(target_node),
                 edge_weight,
@@ -573,7 +573,7 @@ impl EquivalenceLibrary {
             .into_iter()
             .map(|(key, val)| (key, NodeIndex::new(val)))
             .collect();
-        slf.graph = None;
+        slf._graph = None;
         Ok(())
     }
 }
@@ -603,7 +603,7 @@ impl EquivalenceLibrary {
         };
 
         let target = self.set_default_node(key);
-        if let Some(node) = self._graph.node_weight_mut(target) {
+        if let Some(node) = self.graph.node_weight_mut(target) {
             node.equivs.push(equiv.clone());
         }
         let sources: HashSet<Key> =
@@ -624,10 +624,10 @@ impl EquivalenceLibrary {
             )
         }));
         for edge in edges {
-            self._graph.add_edge(edge.0, edge.1, edge.2);
+            self.graph.add_edge(edge.0, edge.1, edge.2);
         }
         self.rule_id += 1;
-        self.graph = None;
+        self._graph = None;
         Ok(())
     }
 
@@ -658,7 +658,7 @@ impl EquivalenceLibrary {
         if let Some(value) = self.key_to_node_index.get(&key) {
             *value
         } else {
-            let node = self._graph.add_node(NodeData {
+            let node = self.graph.add_node(NodeData {
                 key: key.clone(),
                 equivs: vec![],
             });
