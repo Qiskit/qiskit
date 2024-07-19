@@ -255,7 +255,7 @@ def _apply_a2(circ):
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
     ccirc = transpile(
-        circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0, is_zero_initialized=False
+        circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0, qubits_initially_zero=False
     )
     ind2q = []
     # collect 2q instrs

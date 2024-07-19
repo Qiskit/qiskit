@@ -343,7 +343,7 @@ class HighLevelSynthesis(TransformationPass):
     The high-level-synthesis passes information about available auxiliary qubits, and whether their
     state is clean (defined as :math:`|0\rangle`) or dirty (unknown state) to the synthesis routine
     via the respective arguments ``"num_clean_ancillas"`` and ``"num_dirty_ancillas"``.
-    If ``is_zero_initialized`` is ``True`` (default), idle qubits are assumed to be in the
+    If ``qubits_initially_zero`` is ``True`` (default), idle qubits are assumed to be in the
     :math:`|0\rangle` state. When appending a synthesized block using auxiliary qubits onto the
     circuit, we first use the clean auxiliary qubits.
 
@@ -365,7 +365,7 @@ class HighLevelSynthesis(TransformationPass):
         equivalence_library: Optional[EquivalenceLibrary] = None,
         basis_gates: Optional[List[str]] = None,
         min_qubits: int = 0,
-        is_zero_initialized: bool = True,
+        qubits_initially_zero: bool = True,
     ):
         r"""
         HighLevelSynthesis initializer.
@@ -386,7 +386,7 @@ class HighLevelSynthesis(TransformationPass):
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
-            is_zero_initialized: Indicates whether the qubits are initially in the state
+            qubits_initially_zero: Indicates whether the qubits are initially in the state
                 :math:`|0\rangle`. This allows the high-level-synthesis to use clean auxiliary qubits
                 (i.e. in the zero state) to synthesize an operation.
         """
@@ -403,7 +403,7 @@ class HighLevelSynthesis(TransformationPass):
         self._coupling_map = coupling_map
         self._target = target
         self._use_qubit_indices = use_qubit_indices
-        self.is_zero_initialized = is_zero_initialized
+        self.qubits_initially_zero = qubits_initially_zero
         if target is not None:
             self._coupling_map = self._target.build_coupling_map()
         self._equiv_lib = equivalence_library
@@ -430,10 +430,10 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
         """
-        return self._run_inner(dag, self.is_zero_initialized)
+        return self._run_inner(dag, self.qubits_initially_zero)
 
-    def _run_inner(self, dag: DAGCircuit, is_zero_initialized: bool = False) -> DAGCircuit:
-        """Runs high-level-synthesis on a dag. The flag ``is_zero_initialized``
+    def _run_inner(self, dag: DAGCircuit, qubits_initially_zero: bool = False) -> DAGCircuit:
+        """Runs high-level-synthesis on a dag. The flag ``qubits_initially_zero``
         represents whether the qubits are initially ``0``. Note that this method
         calls itself recursively.
         """
@@ -444,7 +444,7 @@ class HighLevelSynthesis(TransformationPass):
         use_ancillas = self._coupling_map is None
 
         # Starting set of clean auxiliary qubits
-        if use_ancillas and is_zero_initialized:
+        if use_ancillas and qubits_initially_zero:
             clean_ancillas = dag.qubits
         else:
             clean_ancillas = []
@@ -599,7 +599,7 @@ class HighLevelSynthesis(TransformationPass):
             # This forces us to run the pass recursively, similar to the code that unwraps the
             # definitions.
             dag = circuit_to_dag(decomposition, copy_operations=False)
-            dag = self._run_inner(dag, is_zero_initialized=False)
+            dag = self._run_inner(dag, qubits_initially_zero=False)
             return dag, True
 
         # Handle annotated operations
@@ -643,7 +643,7 @@ class HighLevelSynthesis(TransformationPass):
             raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op}.")
 
         dag = circuit_to_dag(definition, copy_operations=False)
-        dag = self._run_inner(dag, is_zero_initialized=False)
+        dag = self._run_inner(dag, qubits_initially_zero=False)
         return dag, True
 
     def _synthesize_op_using_plugins(
