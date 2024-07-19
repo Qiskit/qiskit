@@ -1558,6 +1558,15 @@ def _format(operand):
         Ok(target_dag)
     }
 
+    fn _apply_op_node_back(&mut self, py: Python, node: &Bound<PyAny>) -> PyResult<()> {
+        if let NodeType::Operation(inst) = self.pack_into(py, node)? {
+            self.push_back(py, inst)?;
+            Ok(())
+        } else {
+            Err(PyTypeError::new_err("Invalid node type input"))
+        }
+    }
+
     /// Apply an operation to the output of the circuit.
     ///
     /// Args:
