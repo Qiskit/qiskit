@@ -1241,7 +1241,7 @@ def _format(operand):
             )));
         }
 
-        let bit_iter = match self.clbits.map_bits(clbits) {
+        let bit_iter = match self.clbits.map_bits(clbits.iter()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
@@ -1307,14 +1307,17 @@ def _format(operand):
     fn remove_cregs(&mut self, py: Python, cregs: &Bound<PyTuple>) -> PyResult<()> {
         let mut non_regs = Vec::new();
         let mut unknown_regs = Vec::new();
+        let self_bound_cregs = self.cregs.bind(py);
         for reg in cregs.iter() {
             if !reg.is_instance(self.circuit_module.classical_register.bind(py))? {
                 non_regs.push(reg);
-            } else if !self
-                .cregs
-                .bind(py)
-                .contains(&reg.getattr(intern!(py, "name"))?)?
+            } else if let Some(existing_creg) =
+                self_bound_cregs.get_item(&reg.getattr(intern!(py, "name"))?)?
             {
+                if !existing_creg.eq(&reg)? {
+                    unknown_regs.push(reg);
+                }
+            } else {
                 unknown_regs.push(reg);
             }
         }
@@ -1379,7 +1382,16 @@ def _format(operand):
             )));
         }
 
-        let qubits: IndexSet<Qubit> = self.qubits.map_bits(qubits)?.collect();
+        let bit_iter = match self.qubits.map_bits(qubits.iter()) {
+            Ok(bit_iter) => bit_iter,
+            Err(_) => {
+                return Err(DAGCircuitError::new_err(format!(
+                    "qubits not in circuit: {:?}",
+                    qubits
+                )))
+            }
+        };
+        let qubits: IndexSet<Qubit> = bit_iter.collect();
 
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
@@ -1437,14 +1449,17 @@ def _format(operand):
     fn remove_qregs(&mut self, py: Python, qregs: &Bound<PyTuple>) -> PyResult<()> {
         let mut non_regs = Vec::new();
         let mut unknown_regs = Vec::new();
+        let self_bound_qregs = self.qregs.bind(py);
         for reg in qregs.iter() {
             if !reg.is_instance(self.circuit_module.quantum_register.bind(py))? {
                 non_regs.push(reg);
-            } else if !self
-                .qregs
-                .bind(py)
-                .contains(&reg.getattr(intern!(py, "name"))?)?
+            } else if let Some(existing_qreg) =
+                self_bound_qregs.get_item(&reg.getattr(intern!(py, "name"))?)?
             {
+                if !existing_qreg.eq(&reg)? {
+                    unknown_regs.push(reg);
+                }
+            } else {
                 unknown_regs.push(reg);
             }
         }
