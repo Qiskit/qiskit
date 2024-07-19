@@ -16,6 +16,7 @@ Fake backend abstract class for mock backends.
 
 import json
 import os
+import warnings
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
@@ -61,7 +62,10 @@ class FakeQasmBackend(FakeBackend):
             raise QiskitError("No properties file has been defined")
         props = self._load_json(self.props_filename)
         decode_backend_properties(props)
-        self._properties = BackendProperties.from_dict(props)
+        with warnings.catch_warnings():
+            # This raises BackendProperties internally
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            self._properties = BackendProperties.from_dict(props)
 
     def _load_json(self, filename):
         with open(os.path.join(self.dirname, filename)) as f_json:

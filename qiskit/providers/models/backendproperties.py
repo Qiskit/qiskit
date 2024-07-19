@@ -257,6 +257,7 @@ class BackendProperties:
             qubits.append(nduvs)
         gates = [GateProperties.from_dict(x) for x in in_data.pop("gates")]
         general = [Nduv.from_dict(x) for x in in_data.pop("general")]
+
         return cls(
             backend_name, backend_version, last_update_date, qubits, gates, general, **in_data
         )

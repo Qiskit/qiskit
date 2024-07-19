@@ -58,6 +58,7 @@ Stage Generator Functions
 .. currentmodule:: qiskit.transpiler.preset_passmanagers
 """
 import copy
+import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -363,7 +364,10 @@ def generate_preset_pass_manager(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = target_to_backend_properties(target)
+            with warnings.catch_warnings():
+                # The function target_to_backend_properties is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                _properties = target_to_backend_properties(target)
 
     pm_options = {
         "target": target,

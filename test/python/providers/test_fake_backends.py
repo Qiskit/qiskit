@@ -604,9 +604,9 @@ class TestFakeBackends(QiskitTestCase):
         """Test backend with broken gate config can be converted only with properties data."""
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake5QV1()
-        backend_v1.configuration().gates = [
-            GateConfig(name="NotValidGate", parameters=[], qasm_def="not_valid_gate")
-        ]
+            backend_v1.configuration().gates = [
+                GateConfig(name="NotValidGate", parameters=[], qasm_def="not_valid_gate")
+            ]
         backend_v2 = BackendV2Converter(
             backend=backend_v1,
             filter_faulty=True,
@@ -691,7 +691,8 @@ class TestFakeBackends(QiskitTestCase):
             if tuple(gate["qubits"]) in invalid_cx_edges:
                 gate["parameters"].append(non_operational_gate)
 
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(62, 67):
             self.assertIn((i,), v2_backend.target.qargs)
@@ -710,17 +711,19 @@ class TestFakeBackends(QiskitTestCase):
     def test_faulty_full_path_transpile_connected_cmap(self, opt_level):
         with self.assertWarns(DeprecationWarning):
             backend = Fake5QV1()
+            props = backend.properties().to_dict()
+
         non_operational_gate = {
             "date": datetime.datetime.now(datetime.timezone.utc),
             "name": "operational",
             "unit": "",
             "value": 0,
         }
-        props = backend.properties().to_dict()
         for gate in props["gates"]:
             if tuple(sorted(gate["qubits"])) == (0, 1):
                 gate["parameters"].append(non_operational_gate)
-        backend._properties = BackendProperties.from_dict(props)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         qc = QuantumCircuit(5)
         for x, y in itertools.product(range(5), range(5)):
