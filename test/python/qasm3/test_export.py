@@ -575,6 +575,39 @@ PauliEvolution_1(_t_2_) q[0], q[1];
         exporter = Exporter(includes=[], basis_gates=("rz", "h", "cx"))
         self.assertEqual(exporter.dumps(qc), expected_qasm)
 
+    def test_standard_parameterized_gate_called_multiple_times_first_instance_float(self):
+        """Test that a parameterized gate is called correctly even if the first instance of it is
+        not generic."""
+        x, y = Parameter("x"), Parameter("y")
+        qc = QuantumCircuit(2)
+        qc.rzx(0.5, 0, 1)
+        qc.rzx(x, 0, 1)
+        qc.rzx(y, 0, 1)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                "input float[64] x;",
+                "input float[64] y;",
+                "gate rzx(p0) _gate_q_0, _gate_q_1 {",
+                "  h _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "  rz(p0) _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "  h _gate_q_1;",
+                "}",
+                "qubit[2] q;",
+                "rzx(0.5) q[0], q[1];",
+                "rzx(x) q[0], q[1];",
+                "rzx(y) q[0], q[1];",
+                "",
+            ]
+        )
+
+        # Set the includes and basis gates to ensure that this gate is unknown.
+        exporter = Exporter(includes=[], basis_gates=("rz", "h", "cx"))
+        self.assertEqual(exporter.dumps(qc), expected_qasm)
+
     def test_gate_qasm_with_ctrl_state(self):
         """Test with open controlled gate that has ctrl_state"""
         qc = QuantumCircuit(2)
