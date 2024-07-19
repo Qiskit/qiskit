@@ -158,7 +158,7 @@ pub fn create_swap_layer(
 
     for j in (starting_point..num_qubits - 1).step_by(2) {
         if pattern[j] > pattern[j + 1] {
-            gates.push((j, (j + 1)));
+            gates.push((j, j + 1));
             pattern.swap(j, j + 1);
         }
     }
