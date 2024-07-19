@@ -1482,6 +1482,28 @@ if (c[0]) {
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_custom_gate_with_hw_qubit_name(self):
+        """Test that the name of a custom gate that is an OQ3 hardware qubit identifer is properly
+        escaped when translated to OQ3."""
+        mygate_circ = QuantumCircuit(1, name="$1")
+        mygate_circ.x(0)
+        mygate = mygate_circ.to_gate()
+        qc = QuantumCircuit(1)
+        qc.append(mygate, [0])
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate __1 _gate_q_0 {",
+                "  x _gate_q_0;",
+                "}",
+                "qubit[1] q;",
+                "__1 q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
     def test_registers_have_escaped_names(self):
         """Test that both types of register are emitted with safely escaped names if they begin with
         invalid names. Regression test of gh-9658."""

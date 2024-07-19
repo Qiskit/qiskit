@@ -120,7 +120,8 @@ _RESERVED_KEYWORDS = frozenset(
 # This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
 # handle all Unicode character classes, and this should be close enough for users who aren't
 # actively _trying_ to break us (fingers crossed).
-_VALID_IDENTIFIER = re.compile(r"(\$[\d]+|[\w][\w\d]*)", flags=re.U)
+_VALID_DECLARABLE_IDENTIFIER = re.compile(r"([\w][\w\d]*)", flags=re.U)
+_VALID_HARDWARE_QUBIT = re.compile(r"\$[\d]+", flags=re.U)
 _BAD_IDENTIFIER_CHARACTERS = re.compile(r"[^\w\d]", flags=re.U)
 
 
@@ -332,14 +333,15 @@ class SymbolTable:
         name_allowed = (
             (lambda name: not self.symbol_defined(name)) if unique else self.can_shadow_symbol
         )
+        valid_identifier = _VALID_DECLARABLE_IDENTIFIER
         if allow_rename:
-            if not _VALID_IDENTIFIER.fullmatch(name):
+            if not valid_identifier.fullmatch(name):
                 name = "_" + _BAD_IDENTIFIER_CHARACTERS.sub("_", name)
             base = name
             while not name_allowed(name):
                 name = f"{base}_{next(self._counter)}"
             return name
-        if not _VALID_IDENTIFIER.fullmatch(name):
+        if not valid_identifier.fullmatch(name):
             raise QASM3ExporterError(f"cannot use '{name}' as a name; it is not a valid identifier")
         if name in _RESERVED_KEYWORDS:
             raise QASM3ExporterError(f"cannot use the keyword '{name}' as a variable name")
@@ -364,7 +366,8 @@ class SymbolTable:
         variable: object,
         *,
         allow_rename: bool,
-        global_: bool = False,
+        force_global: bool = False,
+        allow_hardware_qubit: bool = False,
     ) -> ast.Identifier:
         """Register a variable in the symbol table for the given scope, returning the name that
         should be used to refer to the variable.  The same name will be returned by subsequent calls
@@ -377,14 +380,23 @@ class SymbolTable:
                 it.
             allow_rename: whether to allow the name to be mutated to escape it and/or make it safe
                 to define (avoiding keywords, subject to shadowing rules, etc).
-            global_: force this declaration to be in the global scope.
+            force_global: force this declaration to be in the global scope.
+            allow_hardware_qubit: whether to allow hardware qubits to pass through as identifiers.
+                Hardware qubits are a dollar sign followed by a non-negative integer, and cannot be
+                declared, so are not suitable identifiers for most objects.
         """
-        scope_index = 0 if global_ else -1
-        # We still need to do this escaping and shadow checking if `global_`, because we don't want
-        # a previous variable declared in the currently active scope to shadow the global.  This
-        # kind of logic would be cleaner if we made the naming choices later, after AST generation
-        # (e.g. by using only indices as the identifiers until we're ready to output the program).
-        name = self.escaped_declarable_name(name, allow_rename=allow_rename, unique=global_)
+        scope_index = 0 if force_global else -1
+        # We still need to do this escaping and shadow checking if `force_global`, because we don't
+        # want a previous variable declared in the currently active scope to shadow the global.
+        # This logic would be cleaner if we made the naming choices later, after AST generation
+        # (e.g. by using only indices as the identifiers until we're outputting the program).
+        if allow_hardware_qubit and _VALID_HARDWARE_QUBIT.fullmatch(name):
+            if self.symbol_defined(name):  # pragma: no cover
+                raise QASM3ExporterError(f"internal error: cannot redeclare hardware qubit {name}")
+        else:
+            name = self.escaped_declarable_name(
+                name, allow_rename=allow_rename, unique=force_global
+            )
         identifier = ast.Identifier(name)
         self.variables[scope_index][name] = variable
         if variable is not None:
@@ -415,7 +427,7 @@ class SymbolTable:
         "basis gate" that assumes that all calling signatures are valid and that all gates of this
         name are exactly compatible, which is somewhat dangerous."""
         # Validate the name is usable.
-        name = self.escaped_declarable_name(name, allow_rename=False)
+        name = self.escaped_declarable_name(name, allow_rename=False, unique=False)
         ident = ast.Identifier(name)
         if gate is None:
             self.gates[name] = GateDefinition(None, None)
@@ -438,7 +450,7 @@ class SymbolTable:
     ) -> ast.Identifier:
         """Register the given gate in the symbol table, using the given components to build up the
         full AST definition."""
-        name = self.escaped_declarable_name(name, allow_rename=True)
+        name = self.escaped_declarable_name(name, allow_rename=True, unique=False)
         ident = ast.Identifier(name)
         self.gates[name] = GateDefinition(
             source, ast.QuantumGateDefinition(ident, tuple(params), tuple(qubits), body)
@@ -829,7 +841,9 @@ class QASM3Builder:
             # We're referring to physical qubits.  These can't be declared in OQ3, but we need to
             # track the bit -> expression mapping in our symbol table.
             for i, bit in enumerate(circuit.qubits):
-                self.symbols.register_variable(f"${i}", bit, allow_rename=False)
+                self.symbols.register_variable(
+                    f"${i}", bit, allow_rename=False, allow_hardware_qubit=True
+                )
             return []
         if any(len(circuit.find_bit(q).registers) > 1 for q in circuit.qubits):
             # There are overlapping registers, so we need to use aliases to emit the structure.
@@ -986,7 +1000,7 @@ class QASM3Builder:
         """Build a :obj:`.SwitchCaseOp` into a :class:`.ast.SwitchStatement`."""
         real_target = self.build_expression(expr.lift(instruction.operation.target))
         target = self.symbols.register_variable(
-            "switch_dummy", None, allow_rename=True, global_=True
+            "switch_dummy", None, allow_rename=True, force_global=True
         )
         self._global_classical_forward_declarations.append(
             ast.ClassicalDeclaration(ast.IntType(), target, None)
