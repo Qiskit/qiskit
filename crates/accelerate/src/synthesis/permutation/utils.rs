@@ -148,7 +148,7 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
 
 /// Implements a single swap layer, consisting of conditional swaps between each
 /// neighboring couple. The starting_point is the first qubit to use (either 0 or 1
-///     for even or odd layers respectively). Mutates the permutation pattern ``pattern``.
+/// for even or odd layers respectively). Mutates the permutation pattern ``pattern``.
 pub fn create_swap_layer(
     pattern: &mut ArrayViewMut1<usize>,
     starting_point: usize,

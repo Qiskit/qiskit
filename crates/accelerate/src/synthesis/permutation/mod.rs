@@ -83,7 +83,7 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
 }
 
 /// Synthesize a permutation circuit for a linear nearest-neighbor
-///     architecture using the Kutin, Moulton, Smithline method.
+/// architecture using the Kutin, Moulton, Smithline method.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 pub fn _synth_permutation_depth_lnn_kms(
