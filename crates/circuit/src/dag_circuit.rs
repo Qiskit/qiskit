@@ -544,6 +544,54 @@ impl DAGCircuit {
         })
     }
 
+    #[getter]
+    fn input_map(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let out_dict = PyDict::new_bound(py);
+        for (qubit, index) in self.qubit_input_map.iter() {
+            out_dict.set_item(
+                self.qubits.bits()[qubit.0 as usize].clone_ref(py),
+                self.get_node(py, *index)?,
+            )?;
+        }
+        for (clbit, index) in self.clbit_input_map.iter() {
+            out_dict.set_item(
+                self.clbits.bits()[clbit.0 as usize].clone_ref(py),
+                self.get_node(py, *index)?,
+            )?;
+        }
+        for (var, index) in self.var_input_map.dict.bind(py).iter() {
+            out_dict.set_item(
+                var,
+                self.get_node(py, NodeIndex::new(index.extract::<usize>()?))?,
+            )?;
+        }
+        Ok(out_dict.unbind())
+    }
+
+    #[getter]
+    fn output_map(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let out_dict = PyDict::new_bound(py);
+        for (qubit, index) in self.qubit_output_map.iter() {
+            out_dict.set_item(
+                self.qubits.bits()[qubit.0 as usize].clone_ref(py),
+                self.get_node(py, *index)?,
+            )?;
+        }
+        for (clbit, index) in self.clbit_output_map.iter() {
+            out_dict.set_item(
+                self.clbits.bits()[clbit.0 as usize].clone_ref(py),
+                self.get_node(py, *index)?,
+            )?;
+        }
+        for (var, index) in self.var_output_map.dict.bind(py).iter() {
+            out_dict.set_item(
+                var,
+                self.get_node(py, NodeIndex::new(index.extract::<usize>()?))?,
+            )?;
+        }
+        Ok(out_dict.unbind())
+    }
+
     fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
         let out_dict = PyDict::new_bound(py);
         out_dict.set_item("name", self.name.as_ref().map(|x| x.clone_ref(py)))?;
@@ -4197,6 +4245,16 @@ def _format(operand):
             .unbind())
     }
 
+    fn iter_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        let out_set = PySet::empty_bound(py)?;
+        for var_type_set in &self.vars_by_type {
+            for var in var_type_set.bind(py).iter() {
+                out_set.add(var)?;
+            }
+        }
+        Ok(out_set.into_any().iter()?.unbind())
+    }
+
     fn _has_edge(&self, source: usize, target: usize) -> bool {
         self.dag
             .contains_edge(NodeIndex::new(source), NodeIndex::new(target))
@@ -5164,9 +5222,7 @@ impl DAGCircuit {
         let var_name: String = var.getattr("name")?.extract::<String>()?;
         if let Some(previous) = self.vars_info.get(&var_name) {
             if var.eq(previous.var.clone_ref(py))? {
-                return Err(DAGCircuitError::new_err(
-                    "already present in the circuit",
-                ));
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
             }
             return Err(DAGCircuitError::new_err(
                 "cannot add var as its name shadows an existing var",
