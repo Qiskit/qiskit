@@ -3937,7 +3937,6 @@ new_condition = (new_target, value)
             layer_list.append(layer_dict)?;
         }
         Ok(layer_list.into_any().iter()?.into())
-        // todo!()
     }
 
     /// Yield a layer for all gates of this circuit.
@@ -4967,11 +4966,10 @@ impl DAGCircuit {
     fn nodes_on_wire(&self, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
-            Wire::Qubit(qubit) => self.qubit_input_map.get(qubit),
-            Wire::Clbit(clbit) => self.clbit_input_map.get(clbit),
-            Wire::Var(_) => todo!(),
-        }
-        .cloned();
+            Wire::Qubit(qubit) => self.qubit_input_map.get(qubit).cloned(),
+            Wire::Clbit(clbit) => self.clbit_input_map.get(clbit).cloned(),
+            Wire::Var(var) => self.var_input_map.get(var),
+        };
 
         while let Some(node) = current_node {
             if only_ops {
