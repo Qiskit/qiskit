@@ -1548,7 +1548,8 @@ def _format(operand):
     ///
     /// Returns:
     ///     DAGCircuit: An empty copy of self.
-    fn copy_empty_like(&self, py: Python) -> PyResult<Self> {
+    #[pyo3(signature = (*, vars_mode="alike"))]
+    fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
         let mut target_dag = DAGCircuit::new(py)?;
         target_dag.name = self.name.as_ref().map(|n| n.clone_ref(py));
         target_dag.global_phase = self.global_phase.clone();
@@ -1570,6 +1571,51 @@ def _format(operand):
         for reg in self.cregs.bind(py).values() {
             target_dag.add_creg(py, &reg)?;
         }
+        if vars_mode == "alike" {
+            for var in self.vars_by_type[DAGVarType::INPUT as usize]
+                .bind(py)
+                .iter()
+            {
+                target_dag.add_var(py, &var, DAGVarType::INPUT)?;
+            }
+            for var in self.vars_by_type[DAGVarType::CAPTURE as usize]
+                .bind(py)
+                .iter()
+            {
+                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+            }
+            for var in self.vars_by_type[DAGVarType::DECLARE as usize]
+                .bind(py)
+                .iter()
+            {
+                target_dag.add_var(py, &var, DAGVarType::DECLARE)?;
+            }
+        } else if vars_mode == "captures" {
+            for var in self.vars_by_type[DAGVarType::INPUT as usize]
+                .bind(py)
+                .iter()
+            {
+                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+            }
+            for var in self.vars_by_type[DAGVarType::CAPTURE as usize]
+                .bind(py)
+                .iter()
+            {
+                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+            }
+            for var in self.vars_by_type[DAGVarType::DECLARE as usize]
+                .bind(py)
+                .iter()
+            {
+                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+            }
+        } else if vars_mode != "drop" {
+            return Err(PyValueError::new_err(format!(
+                "unknown vars_mode: '{}'",
+                vars_mode
+            )));
+        }
+
         Ok(target_dag)
     }
 
@@ -3073,13 +3119,18 @@ def _format(operand):
     /// Each :class:`~.DAGCircuit` instance returned by this method will contain the same number of
     /// clbits as ``self``. The global phase information in ``self`` will not be maintained
     /// in the subcircuits returned by this method.
-    #[pyo3(signature = (remove_idle_qubits=false))]
-    fn separable_circuits(&self, py: Python, remove_idle_qubits: bool) -> PyResult<Py<PyList>> {
+    #[pyo3(signature = (remove_idle_qubits=false, *, vars_mode="alike"))]
+    fn separable_circuits(
+        &self,
+        py: Python,
+        remove_idle_qubits: bool,
+        vars_mode: &str,
+    ) -> PyResult<Py<PyList>> {
         let connected_components = core_connected_components(&self.dag);
         let dags = PyList::empty_bound(py);
 
         for comp_nodes in connected_components.iter() {
-            let mut new_dag = self.copy_empty_like(py)?;
+            let mut new_dag = self.copy_empty_like(py, vars_mode)?;
             new_dag.global_phase = Param::Float(0.);
 
             // A map from nodes in the this DAGCircuit to nodes in the new dag. Used for adding edges
@@ -3714,7 +3765,8 @@ def _format(operand):
     /// TODO: Gates that use the same cbits will end up in different
     /// layers as this is currently implemented. This may not be
     /// the desired behavior.
-    fn layers(&self, py: Python) -> PyResult<Py<PyIterator>> {
+    #[pyo3(signature = (*, vars_mode="captures"))]
+    fn layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty_bound(py);
         let mut graph_layers = self.multigraph_layers();
         if graph_layers.next().is_none() {
@@ -3745,7 +3797,7 @@ def _format(operand):
                 return Ok(PyIterator::from_bound_object(&layer_list)?.into());
             }
 
-            let mut new_layer = self.copy_empty_like(py)?;
+            let mut new_layer = self.copy_empty_like(py, vars_mode)?;
 
             for (node, _) in op_nodes {
                 new_layer.push_back(py, node.clone())?;
@@ -3781,14 +3833,15 @@ def _format(operand):
     ///
     /// A serial layer is a circuit with one gate. The layers have the
     /// same structure as in layers().
-    fn serial_layers(&self, py: Python) -> PyResult<Py<PyIterator>> {
+    #[pyo3(signature = (*, vars_mode="captures"))]
+    fn serial_layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty_bound(py);
         for next_node in self.topological_op_nodes()? {
             let retrieved_node: &PackedInstruction = match self.dag.node_weight(next_node) {
                 Some(NodeType::Operation(node)) => node,
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
-            let mut new_layer = self.copy_empty_like(py)?;
+            let mut new_layer = self.copy_empty_like(py, vars_mode)?;
 
             // Save the support of the operation we add to the layer
             let support_list = PyList::empty_bound(py);
