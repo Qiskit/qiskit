@@ -396,7 +396,7 @@ impl DAGOpNode {
 #[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGInNode {
     #[pyo3(get)]
-    wire: PyObject,
+    pub wire: PyObject,
     #[pyo3(get)]
     sort_key: PyObject,
 }
@@ -448,7 +448,7 @@ impl DAGInNode {
 #[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGOutNode {
     #[pyo3(get)]
-    wire: PyObject,
+    pub wire: PyObject,
     #[pyo3(get)]
     sort_key: PyObject,
 }
