@@ -1792,7 +1792,7 @@ class TestTranspile(QiskitTestCase):
             )
 
     def test_approximation_degree(self):
-        """Test more approximation gives lower-cost circuit."""
+        """Test more approximation can give lower-cost circuit."""
         circuit = QuantumCircuit(2)
         circuit.swap(0, 1)
         circuit.h(0)
@@ -1802,6 +1802,7 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.1,
             seed_transpiler=42,
+            optimization_level=1,
         )
         circ_90 = transpile(
             circuit,
@@ -1809,6 +1810,7 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.9,
             seed_transpiler=42,
+            optimization_level=1,
         )
         self.assertLess(circ_10.depth(), circ_90.depth())
 
