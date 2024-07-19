@@ -13,7 +13,7 @@
 Circuit synthesis for a QFT circuit.
 """
 
-from typing import Optional
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
@@ -24,17 +24,35 @@ def synth_qft_full(
     approximation_degree: int = 0,
     insert_barriers: bool = False,
     inverse: bool = False,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> QuantumCircuit:
-    """Construct a QFT circuit using all-to-all connectivity.
+    """Construct a circuit for the Quantum Fourier Transform using all-to-all connectivity.
+
+    .. note::
+
+        With the default value of ``do_swaps = True``, this synthesis algorithm creates a
+        circuit that faithfully implements the QFT operation. This circuit contains a sequence
+        of swap gates at the end, corresponding to reversing the order of its output qubits.
+        In some applications this reversal permutation can be avoided. Setting ``do_swaps = False``
+        creates a circuit without this reversal permutation, at the expense that this circuit
+        implements the "QFT-with-reversal" instead of QFT. Alternatively, the
+        :class:`~.ElidePermutations` transpiler pass is able to remove these swap gates.
 
     Args:
-        num_qubits: The number of qubits on which the QFT acts.
-        do_swaps: Whether to include the final swaps in the QFT.
+        num_qubits: The number of qubits on which the Quantum Fourier Transform acts.
+        do_swaps: Whether to synthesize the "QFT" or the "QFT-with-reversal" operation.
         approximation_degree: The degree of approximation (0 for no approximation).
-        insert_barriers: If True, barriers are inserted as visualization improvement.
-        inverse: If True, the inverse Fourier transform is constructed.
+            It is possible to implement the QFT approximately by ignoring
+            controlled-phase rotations with the angle beneath a threshold. This is discussed
+            in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+            https://arxiv.org/abs/quant-ph/0403071.
+        insert_barriers: If ``True``, barriers are inserted for improved visualization.
+        inverse: If ``True``, the inverse Quantum Fourier Transform is constructed.
         name: The name of the circuit.
+
+    Returns:
+        A circuit implementing the QFT operation.
+
     """
 
     circuit = QuantumCircuit(num_qubits, name=name)

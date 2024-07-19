@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new class :class:`~qiskit.circuit.library.QftGate` for
+    Added a new class :class:`~qiskit.circuit.library.QFTGate` for
     natively representing Quantum Fourier Transforms (QFTs). The older way
     of representing QFTs via quantum circuits, see
     :class:`~qiskit.circuit.library.QFT`, remains for backward compatibility.
@@ -15,8 +15,8 @@ features:
     assuming a fully-connected architecture.
   - |
     Added two high-level-synthesis plugins for synthesizing a
-    :class:`~qiskit.circuit.library.QftGate`.
-    The class :class:`.QftSynthesisFull` is based on :func:`.synth_qft_full` and synthesizes
+    :class:`~qiskit.circuit.library.QFTGate`.
+    The class :class:`.QFTSynthesisFull` is based on :func:`.synth_qft_full` and synthesizes
     a QFT gate assuming all-to-all connectivity.
-    The class :class:`.QftSynthesisLine` is based on :func:`.synth_qft_line` and synthesizes
+    The class :class:`.QFTSynthesisLine` is based on :func:`.synth_qft_line` and synthesizes
     a QFT gate assuming linear nearest neighbor connectivity.

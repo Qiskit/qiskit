@@ -188,11 +188,12 @@ class Instruction(Operation):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            try:
+            if isinstance(self_param, numpy.ndarray):
+                if numpy.array_equal(self_param, other_param):
+                    continue
+            else:
                 if self_param == other_param:
                     continue
-            except ValueError:
-                pass
 
             try:
                 self_asarray = numpy.asarray(self_param)

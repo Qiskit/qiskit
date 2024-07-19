@@ -227,6 +227,7 @@ the computational basis and the Fourier basis.
    :template: autosummary/class_no_inherited_members.rst
 
    QFT
+   QFTGate
 
 Arithmetic Circuits
 ===================
@@ -525,7 +526,7 @@ from .boolean_logic import (
     XOR,
     InnerProduct,
 )
-from .basis_change import QFT
+from .basis_change import QFT, QFTGate
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
