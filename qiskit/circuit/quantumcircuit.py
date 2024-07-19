@@ -1403,6 +1403,7 @@ class QuantumCircuit:
     @classmethod
     @deprecate_func(
         since=1.2,
+        removal_timeline="in qiskit 2.0",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -1420,6 +1421,7 @@ class QuantumCircuit:
     @classmethod
     @deprecate_func(
         since=1.2,
+        removal_timeline="in qiskit 2.0",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2291,6 +2293,7 @@ class QuantumCircuit:
     @staticmethod
     @deprecate_func(
         since=1.2,
+        removal_timeline="in qiskit 2.0",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2311,6 +2314,7 @@ class QuantumCircuit:
 
     @deprecate_func(
         since=1.2,
+        removal_timeline="in qiskit 2.0",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2345,6 +2349,7 @@ class QuantumCircuit:
 
     @deprecate_func(
         since=1.2,
+        removal_timeline="in qiskit 2.0",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
