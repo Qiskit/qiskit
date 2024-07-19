@@ -150,9 +150,9 @@ impl Display for Equivalence {
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
-    key: Key,
+    pub key: Key,
     #[pyo3(get)]
-    equivs: Vec<Equivalence>,
+    pub equivs: Vec<Equivalence>,
 }
 
 #[pymethods]
