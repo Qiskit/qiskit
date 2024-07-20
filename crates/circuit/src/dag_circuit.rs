@@ -512,7 +512,7 @@ impl DAGCircuit {
     pub fn new(py: Python<'_>) -> PyResult<Self> {
         Ok(DAGCircuit {
             name: None,
-            metadata: None,
+            metadata: Some(PyDict::new_bound(py).unbind().into()),
             calibrations: HashMap::new(),
             dag: StableDiGraph::default(),
             qregs: PyDict::new_bound(py).unbind(),
@@ -723,7 +723,7 @@ impl DAGCircuit {
         let binding = dict_state.get_item("clbits")?.unwrap();
         let clbits_raw = binding.downcast::<PyList>().unwrap();
         for bit in clbits_raw.iter() {
-            self.qubits.add(py, &bit, false)?;
+            self.clbits.add(py, &bit, false)?;
         }
         let binding = dict_state.get_item("qubit_input_map")?.unwrap();
         let qubit_index_map_raw = binding.downcast::<PyDict>().unwrap();
@@ -827,6 +827,10 @@ impl DAGCircuit {
             }
         }
         Ok(())
+    }
+
+    pub fn _get_node(&self, py: Python, index: usize) -> PyResult<PyObject> {
+        self.get_node(py, NodeIndex::new(index))
     }
 
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
@@ -5003,7 +5007,7 @@ impl DAGCircuit {
                 self.clbit_input_map.shift_remove(&clbit),
                 self.clbit_output_map.shift_remove(&clbit),
             ),
-            Wire::Var(_) => todo!(),
+            Wire::Var(var) => todo!(),
         };
 
         self.dag.remove_node(in_node.unwrap());
