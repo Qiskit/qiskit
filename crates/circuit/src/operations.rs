@@ -51,7 +51,7 @@ impl OperationType {
             OperationType::Gate(op) => op.gate.bind(py),
             OperationType::Operation(op) => op.operation.bind(py),
         };
-        return py_op.is_instance(py_type);
+        py_op.is_instance(py_type)
     }
 }
 

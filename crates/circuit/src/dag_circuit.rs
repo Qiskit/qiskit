@@ -32,8 +32,7 @@ use indexmap::{IndexMap, IndexSet};
 use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{
-    IntoPyDict, PyDict, PyFrozenSet, PyInt, PyIterator, PyList, PySequence, PySet, PyString,
-    PyTuple, PyType,
+    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
 };
 use pyo3::{intern, PyObject, PyResult};
 
@@ -101,7 +100,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         // First any outgoing edges
-        while let Some(node) = self.neighbors.next() {
+        for node in self.neighbors.by_ref() {
             if !self.seen.contains(&node) {
                 self.seen.insert(node.clone());
                 return Some(node);
@@ -491,9 +490,9 @@ impl BitLocations {
 
 #[derive(Copy, Clone, Debug)]
 enum DAGVarType {
-    INPUT = 0,
-    CAPTURE = 1,
-    DECLARE = 2,
+    Input = 0,
+    Capture = 1,
+    Declare = 2,
 }
 
 #[derive(Clone, Debug)]
@@ -702,9 +701,9 @@ impl DAGCircuit {
             let info = DAGVarInfo {
                 var: val_tuple.get_item(0)?.unbind(),
                 type_: match val_tuple.get_item(1)?.extract::<u8>()? {
-                    0 => DAGVarType::INPUT,
-                    1 => DAGVarType::CAPTURE,
-                    2 => DAGVarType::DECLARE,
+                    0 => DAGVarType::Input,
+                    1 => DAGVarType::Capture,
+                    2 => DAGVarType::Declare,
                     _ => return Err(PyValueError::new_err("Invalid var type")),
                 },
                 in_node: NodeIndex::new(val_tuple.get_item(2)?.extract()?),
@@ -1558,7 +1557,7 @@ def _format(operand):
         target_dag.name = self.name.as_ref().map(|n| n.clone_ref(py));
         target_dag.global_phase = self.global_phase.clone();
         target_dag.duration = self.duration.as_ref().map(|d| d.clone_ref(py));
-        target_dag.unit = self.unit.clone();
+        target_dag.unit.clone_from(&self.unit);
         target_dag.metadata = self.metadata.as_ref().map(|m| m.clone_ref(py));
         target_dag.qargs_cache = self.qargs_cache.clone();
         target_dag.cargs_cache = self.cargs_cache.clone();
@@ -1576,42 +1575,42 @@ def _format(operand):
             target_dag.add_creg(py, &reg)?;
         }
         if vars_mode == "alike" {
-            for var in self.vars_by_type[DAGVarType::INPUT as usize]
+            for var in self.vars_by_type[DAGVarType::Input as usize]
                 .bind(py)
                 .iter()
             {
-                target_dag.add_var(py, &var, DAGVarType::INPUT)?;
+                target_dag.add_var(py, &var, DAGVarType::Input)?;
             }
-            for var in self.vars_by_type[DAGVarType::CAPTURE as usize]
+            for var in self.vars_by_type[DAGVarType::Capture as usize]
                 .bind(py)
                 .iter()
             {
-                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+                target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type[DAGVarType::DECLARE as usize]
+            for var in self.vars_by_type[DAGVarType::Declare as usize]
                 .bind(py)
                 .iter()
             {
-                target_dag.add_var(py, &var, DAGVarType::DECLARE)?;
+                target_dag.add_var(py, &var, DAGVarType::Declare)?;
             }
         } else if vars_mode == "captures" {
-            for var in self.vars_by_type[DAGVarType::INPUT as usize]
+            for var in self.vars_by_type[DAGVarType::Input as usize]
                 .bind(py)
                 .iter()
             {
-                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+                target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type[DAGVarType::CAPTURE as usize]
+            for var in self.vars_by_type[DAGVarType::Capture as usize]
                 .bind(py)
                 .iter()
             {
-                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+                target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
-            for var in self.vars_by_type[DAGVarType::DECLARE as usize]
+            for var in self.vars_by_type[DAGVarType::Declare as usize]
                 .bind(py)
                 .iter()
             {
-                target_dag.add_var(py, &var, DAGVarType::CAPTURE)?;
+                target_dag.add_var(py, &var, DAGVarType::Capture)?;
             }
         } else if vars_mode != "drop" {
             return Err(PyValueError::new_err(format!(
@@ -1987,7 +1986,7 @@ def _format(operand):
         for (gate, cals) in other.calibrations.iter() {
             dag.calibrations[gate]
                 .bind(py)
-                .update(&cals.bind(py).as_mapping())?;
+                .update(cals.bind(py).as_mapping())?;
         }
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
@@ -2233,8 +2232,7 @@ def _format(operand):
         }
 
         let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
-        for node_index in
-            self.op_nodes_by_py_type(py, CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
+        for node_index in self.op_nodes_by_py_type(CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
         {
             let inner = if let NodeType::Operation(node) = &self.dag[node_index] {
                 if let OperationType::Instruction(inst) = &node.op {
@@ -2305,7 +2303,7 @@ def _format(operand):
             let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
 
             for node_index in
-                self.op_nodes_by_py_type(py, CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
+                self.op_nodes_by_py_type(CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
             {
                 if let NodeType::Operation(node) = &self.dag[node_index] {
                     if let OperationType::Instruction(inst) = &node.op {
@@ -2355,13 +2353,10 @@ def _format(operand):
                 None => return Err(DAGCircuitError::new_err("not a DAG")),
             }
         };
-        if depth_plus_one == 0 {
-            Ok(0)
-        } else if depth_plus_one > 0 {
-            Ok(depth_plus_one - 1)
-        } else {
-            // Correctly computed longest path is non-negative
-            unreachable!()
+        match depth_plus_one.cmp(&0) {
+            Ordering::Equal => Ok(0),
+            Ordering::Greater => Ok(depth_plus_one - 1),
+            Ordering::Less => unreachable!(),
         }
     }
 
@@ -2564,13 +2559,13 @@ def _format(operand):
                             }
                             if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
                                 let node1_qargs =
-                                    node1_qargs.into_iter().copied().collect::<HashSet<Qubit>>();
+                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
                                 let node2_qargs =
-                                    node2_qargs.into_iter().copied().collect::<HashSet<Qubit>>();
+                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
                                 let node1_cargs =
-                                    node1_cargs.into_iter().copied().collect::<HashSet<Clbit>>();
+                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
                                 let node2_cargs =
-                                    node2_cargs.into_iter().copied().collect::<HashSet<Clbit>>();
+                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
                                 if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
                                     return Ok(false);
                                 }
@@ -2582,11 +2577,7 @@ def _format(operand):
                                 let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
                                 let n2 = self.unpack_into(py, NodeIndex::new(0), n2)?;
                                 let name = op1.name();
-                                if name == "if_else" {
-                                    return condition_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract();
-                                } else if name == "while_loop" {
+                                if name == "if_else" || name == "while_loop" {
                                     return condition_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
                                         .extract();
@@ -3108,7 +3099,7 @@ def _format(operand):
                 .as_ref()
                 .and_then(|attrs| attrs.condition.as_ref())
             {
-                let mut in_dag = input_dag.copy_empty_like(py, "alike")?;
+                let in_dag = input_dag.copy_empty_like(py, "alike")?;
                 // The remapping of `condition` below is still using the old code that assumes a 2-tuple.
                 // This is because this remapping code only makes sense in the case of non-control-flow
                 // operations being replaced.  These can only have the 2-tuple conditions, and the
@@ -3323,9 +3314,9 @@ new_condition = (new_target, value)
         let node: PyRefMut<DAGOpNode> = match node.downcast() {
             Ok(node) => node.borrow_mut(),
             Err(_) => {
-                return Err(DAGCircuitError::new_err(format!(
-                    "node can't be converted into a DAGOpNode"
-                )))
+                return Err(DAGCircuitError::new_err(
+                    "node can't be converted into a DAGOpNode",
+                ))
             }
         };
         let py = op.py();
@@ -3383,11 +3374,7 @@ new_condition = (new_target, value)
         // Is there a better method to do it?
         let new_node = self
             .dag
-            .contract_nodes(
-                Some(node.as_ref().node.unwrap()).into_iter(),
-                new_weight,
-                false,
-            )
+            .contract_nodes(Some(node.as_ref().node.unwrap()), new_weight, false)
             .unwrap();
 
         // Update self.op_names
@@ -3975,10 +3962,7 @@ new_condition = (new_target, value)
         let ancestors: Vec<_> = core_ancestors(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
-                    && match self.dag.node_weight(*next) {
-                        Some(NodeType::Operation(_)) => true,
-                        _ => false,
-                    }
+                    && matches!(self.dag.node_weight(*next), Some(NodeType::Operation(_)))
             })
             .collect();
         for a in ancestors {
@@ -3992,10 +3976,7 @@ new_condition = (new_target, value)
         let descendants: Vec<_> = core_descendants(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
-                    && match self.dag.node_weight(*next) {
-                        Some(NodeType::Operation(_)) => true,
-                        _ => false,
-                    }
+                    && matches!(self.dag.node_weight(*next), Some(NodeType::Operation(_)))
             })
             .collect();
         for d in descendants {
@@ -4009,10 +3990,7 @@ new_condition = (new_target, value)
         let ancestors: HashSet<_> = core_ancestors(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
-                    && match self.dag.node_weight(*next) {
-                        Some(NodeType::Operation(_)) => true,
-                        _ => false,
-                    }
+                    && matches!(self.dag.node_weight(*next), Some(NodeType::Operation(_)))
             })
             .collect();
         let non_ancestors: Vec<_> = self
@@ -4031,10 +4009,7 @@ new_condition = (new_target, value)
         let descendants: HashSet<_> = core_descendants(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
-                    && match self.dag.node_weight(*next) {
-                        Some(NodeType::Operation(_)) => true,
-                        _ => false,
-                    }
+                    && matches!(self.dag.node_weight(*next), Some(NodeType::Operation(_)))
             })
             .collect();
         let non_descendants: Vec<_> = self
@@ -4092,10 +4067,7 @@ new_condition = (new_target, value)
             // Get the op nodes from the layer, removing any input and output nodes.
             let mut op_nodes: Vec<(&PackedInstruction, &NodeIndex)> = graph_layer
                 .iter()
-                .filter_map(|node| match self.dag.node_weight(*node) {
-                    Some(dag_node) => Some((dag_node, node)),
-                    None => None,
-                })
+                .filter_map(|node| self.dag.node_weight(*node).map(|dag_node| (dag_node, node)))
                 .filter_map(|(node, index)| match node {
                     NodeType::Operation(oper) => Some((oper, index)),
                     _ => None,
@@ -4448,7 +4420,7 @@ new_condition = (new_target, value)
                     processed_non_directive_nodes.insert(cur_index);
 
                     for pred_index in self.quantum_predecessors(cur_index) {
-                        if let NodeType::Operation(pred_packed) =
+                        if let NodeType::Operation(_pred_packed) =
                             self.dag.node_weight(pred_index).unwrap()
                         {
                             queue.push_back(pred_index);
@@ -4483,7 +4455,7 @@ new_condition = (new_target, value)
 
     /// Return a dictionary of circuit properties.
     fn properties(&self, py: Python) -> PyResult<HashMap<&str, usize>> {
-        let mut summary = HashMap::from_iter([
+        Ok(HashMap::from_iter([
             ("size", self.size(py, false)?),
             ("depth", self.depth(py, false)?),
             ("width", self.width()),
@@ -4491,8 +4463,7 @@ new_condition = (new_target, value)
             ("bits", self.num_clbits()),
             ("factors", self.num_tensor_factors()),
             //          ("operations", self.count_ops(true)?),
-        ]);
-        Ok(summary)
+        ]))
     }
 
     /// Draws the dag circuit.
@@ -4539,7 +4510,7 @@ new_condition = (new_target, value)
     }
 
     fn add_input_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type[DAGVarType::CAPTURE as usize]
+        if !self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
             .is_empty()
         {
@@ -4547,11 +4518,11 @@ new_condition = (new_target, value)
                 "cannot add inputs to a circuit with captures",
             ));
         }
-        self.add_var(py, var, DAGVarType::INPUT)
+        self.add_var(py, var, DAGVarType::Input)
     }
 
     fn add_captured_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
-        if !self.vars_by_type[DAGVarType::INPUT as usize]
+        if !self.vars_by_type[DAGVarType::Input as usize]
             .bind(py)
             .is_empty()
         {
@@ -4559,11 +4530,11 @@ new_condition = (new_target, value)
                 "cannot add captures to a circuit with inputs",
             ));
         }
-        self.add_var(py, var, DAGVarType::CAPTURE)
+        self.add_var(py, var, DAGVarType::Capture)
     }
 
     fn add_declared_var(&mut self, var: &Bound<PyAny>) -> PyResult<()> {
-        self.add_var(var.py(), var, DAGVarType::DECLARE)
+        self.add_var(var.py(), var, DAGVarType::Declare)
     }
 
     #[getter]
@@ -4573,19 +4544,19 @@ new_condition = (new_target, value)
 
     #[getter]
     fn num_input_vars(&self, py: Python) -> usize {
-        self.vars_by_type[DAGVarType::INPUT as usize].bind(py).len()
+        self.vars_by_type[DAGVarType::Input as usize].bind(py).len()
     }
 
     #[getter]
     fn num_captured_vars(&self, py: Python) -> usize {
-        self.vars_by_type[DAGVarType::CAPTURE as usize]
+        self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
             .len()
     }
 
     #[getter]
     fn num_declared_vars(&self, py: Python) -> usize {
-        self.vars_by_type[DAGVarType::DECLARE as usize]
+        self.vars_by_type[DAGVarType::Declare as usize]
             .bind(py)
             .len()
     }
@@ -4604,8 +4575,8 @@ new_condition = (new_target, value)
         }
     }
 
-    fn iter_input_vars<'py>(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        Ok(self.vars_by_type[DAGVarType::INPUT as usize]
+    fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        Ok(self.vars_by_type[DAGVarType::Input as usize]
             .bind(py)
             .clone()
             .into_any()
@@ -4613,8 +4584,8 @@ new_condition = (new_target, value)
             .unbind())
     }
 
-    fn iter_captured_vars<'py>(&self, py: Python<'py>) -> PyResult<Py<PyIterator>> {
-        Ok(self.vars_by_type[DAGVarType::CAPTURE as usize]
+    fn iter_captured_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        Ok(self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
             .clone()
             .into_any()
@@ -4622,8 +4593,8 @@ new_condition = (new_target, value)
             .unbind())
     }
 
-    fn iter_declared_vars<'py>(&self, py: Python<'py>) -> PyResult<Py<PyIterator>> {
-        Ok(self.vars_by_type[DAGVarType::DECLARE as usize]
+    fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
+        Ok(self.vars_by_type[DAGVarType::Declare as usize]
             .bind(py)
             .clone()
             .into_any()
@@ -4790,14 +4761,7 @@ impl DAGCircuit {
                 }
                 (clbits.into_iter().collect(), Some(additional_vars))
             } else {
-                (
-                    self.cargs_cache
-                        .intern(instr.clbits_id)
-                        .iter()
-                        .copied()
-                        .collect(),
-                    None,
-                )
+                (self.cargs_cache.intern(instr.clbits_id).to_vec(), None)
             }
         };
 
@@ -4862,14 +4826,7 @@ impl DAGCircuit {
                 }
                 (clbits.into_iter().collect(), Some(additional_vars))
             } else {
-                (
-                    self.cargs_cache
-                        .intern(inst.clbits_id)
-                        .iter()
-                        .copied()
-                        .collect(),
-                    None,
-                )
+                (self.cargs_cache.intern(inst.clbits_id).to_vec(), None)
             }
         };
 
@@ -4941,7 +4898,7 @@ impl DAGCircuit {
         // of the qargs and cargs interner IDs of the node.
         let key = |node: NodeIndex| -> PyResult<String> {
             let node = self.get_node(py, node)?;
-            Ok(key.call1((node,))?.extract()?)
+            key.call1((node,))?.extract()
         };
         Ok(
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
@@ -5051,7 +5008,7 @@ impl DAGCircuit {
                 } else {
                     for bit in self
                         .control_flow_module
-                        .condition_resources(&condition)?
+                        .condition_resources(condition)?
                         .clbits
                         .bind(py)
                     {
@@ -5271,30 +5228,30 @@ impl DAGCircuit {
         }
 
         match self.dag.remove_node(index) {
-            Some(NodeType::Operation(packed)) => Python::with_gil(|py| {
+            Some(NodeType::Operation(packed)) => {
                 let op_name = packed.op.name().to_string();
                 self.decrement_op(op_name);
-            }),
+            }
             _ => panic!("Must be called with valid operation node!"),
         }
     }
 
     /// Returns an iterator of the ancestors indices of a node.
-    pub fn ancestors<'a>(&'a self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + 'a {
+    pub fn ancestors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
         core_ancestors(&self.dag, node).filter(move |next| next != &node)
     }
 
     /// Returns an iterator of the descendants of a node as DAGOpNodes and DAGOutNodes.
-    pub fn descendants<'a>(&'a self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + 'a {
+    pub fn descendants(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
         core_descendants(&self.dag, node).filter(move |next| next != &node)
     }
 
     /// Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
     /// and [DAGNode] is its successors in  BFS order.
-    pub fn bfs_successors<'a>(
-        &'a self,
+    pub fn bfs_successors(
+        &self,
         node: NodeIndex,
-    ) -> impl Iterator<Item = (NodeIndex, Vec<NodeIndex>)> + 'a {
+    ) -> impl Iterator<Item = (NodeIndex, Vec<NodeIndex>)> + '_ {
         core_bfs_successors(&self.dag, node).filter(move |(_, others)| !others.is_empty())
     }
 
@@ -5425,7 +5382,6 @@ impl DAGCircuit {
 
     pub fn op_nodes_by_py_type<'a>(
         &'a self,
-        py: Python,
         op: &'a Bound<PyType>,
         include_directives: bool,
     ) -> impl Iterator<Item = NodeIndex> + 'a {
@@ -5447,7 +5403,7 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over a list layers of the `DAGCircuit``.
-    pub fn multigraph_layers<'a>(&'a self) -> impl Iterator<Item = Vec<NodeIndex>> + 'a {
+    pub fn multigraph_layers(&self) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let first_layer = self.qubit_input_map.values().copied().collect();
         // A DAG is by definition acyclical, therefore unwrapping the layer should never fail.
         layers(&self.dag, first_layer).map(|layer| match layer {
@@ -5463,12 +5419,8 @@ impl DAGCircuit {
 
         let next_layer = graph_layers.next();
         match next_layer {
-            Some(layer) => Box::new(layer.into_iter().filter_map(|node| {
-                if matches!(self.dag.node_weight(node).unwrap(), NodeType::Operation(_)) {
-                    Some(node)
-                } else {
-                    None
-                }
+            Some(layer) => Box::new(layer.into_iter().filter(|node| {
+                matches!(self.dag.node_weight(*node).unwrap(), NodeType::Operation(_))
             })),
             None => Box::new(vec![].into_iter()),
         }
@@ -5499,7 +5451,7 @@ impl DAGCircuit {
                         Wire::Clbit(clbit) => !clbit_map.contains_key(clbit),
                         Wire::Var(_) => todo!(),
                     }),
-                _ => return false,
+                _ => false,
             }
         };
         let reverse_qubit_map: HashMap<Qubit, Qubit> =
@@ -5550,9 +5502,8 @@ impl DAGCircuit {
                     Wire::Clbit(clbit) => other.clbit_output_map.get(&reverse_clbit_map[&clbit]),
                     Wire::Var(_) => todo!(),
                 };
-                let old_index = wire_output_id
-                    .map(|x| other.dag.neighbors_directed(*x, Incoming).next())
-                    .flatten();
+                let old_index =
+                    wire_output_id.and_then(|x| other.dag.neighbors_directed(*x, Incoming).next());
                 let source_out = match old_index {
                     Some(old_index) => match out_map.get(&old_index) {
                         Some(new_index) => *new_index,
@@ -5572,9 +5523,8 @@ impl DAGCircuit {
                     Wire::Clbit(clbit) => other.clbit_input_map.get(&reverse_clbit_map[&clbit]),
                     Wire::Var(_) => todo!(),
                 };
-                let old_index = wire_input_id
-                    .map(|x| other.dag.neighbors_directed(*x, Outgoing).next())
-                    .flatten();
+                let old_index =
+                    wire_input_id.and_then(|x| other.dag.neighbors_directed(*x, Outgoing).next());
                 let target_out = match old_index {
                     Some(old_index) => match out_map.get(&old_index) {
                         Some(new_index) => *new_index,

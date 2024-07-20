@@ -71,7 +71,7 @@ impl DAGNode {
     }
 
     fn __setstate__(&mut self, index: Option<usize>) {
-        self.node = index.map(|index| NodeIndex::new(index));
+        self.node = index.map(NodeIndex::new);
     }
 
     fn __lt__(&self, other: &DAGNode) -> bool {
@@ -179,7 +179,7 @@ impl DAGOpNode {
         let base = PyClassInitializer::from(DAGNode { node: None });
         let sub = base.add_subclass(DAGOpNode {
             instruction,
-            sort_key: sort_key,
+            sort_key,
         });
         Ok(Py::new(py, sub)?.to_object(py))
     }
@@ -200,7 +200,7 @@ impl DAGOpNode {
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
         let (index, sort_key): (Option<usize>, PyObject) = state.extract()?;
-        slf.as_mut().node = index.map(|index| NodeIndex::new(index));
+        slf.as_mut().node = index.map(NodeIndex::new);
         slf.sort_key = sort_key;
         Ok(())
     }
@@ -433,7 +433,7 @@ impl DAGInNode {
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
         let (index, sort_key): (Option<usize>, PyObject) = state.extract()?;
-        slf.as_mut().node = index.map(|index| NodeIndex::new(index));
+        slf.as_mut().node = index.map(NodeIndex::new);
         slf.sort_key = sort_key;
         Ok(())
     }
@@ -485,7 +485,7 @@ impl DAGOutNode {
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
         let (index, sort_key): (Option<usize>, PyObject) = state.extract()?;
-        slf.as_mut().node = index.map(|index| NodeIndex::new(index));
+        slf.as_mut().node = index.map(NodeIndex::new);
         slf.sort_key = sort_key;
         Ok(())
     }

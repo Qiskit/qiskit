@@ -77,9 +77,9 @@ where
 static ATTRS_TO_ESCAPE: [&str; 2] = ["label", "tooltip"];
 
 /// Convert an attr map to an output string
-fn attr_map_to_string<'a, T: ToPyObject>(
+fn attr_map_to_string<T: ToPyObject>(
     py: Python,
-    attrs: Option<&'a PyObject>,
+    attrs: Option<&PyObject>,
     weight: T,
 ) -> PyResult<String> {
     if attrs.is_none() {
