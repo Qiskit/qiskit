@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
 use crate::bit_data::BitData;
 use crate::circuit_instruction::convert_py_to_operation_type;
 use crate::circuit_instruction::{
@@ -19,22 +18,24 @@ use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports::{
-    CIRCUIT_TO_DAG, CLASSICAL_REGISTER, CLBIT, CONTROL_FLOW_OP, DAG_NODE, DAG_TO_CIRCUIT, EXPR,
-    ITER_VARS, STORE_OP, SWITCH_CASE_OP, VARIABLE_MAPPER,
+    CIRCUIT_TO_DAG, CLASSICAL_REGISTER, CLBIT, CONDITION_OP_CHECK, CONTROL_FLOW_OP, DAG_TO_CIRCUIT,
+    EXPR, FOR_LOOP_OP_CHECK, ITER_VARS, LEGACY_CONDITION_CHECK, STORE_OP, SWITCH_CASE_OP,
+    SWITCH_CASE_OP_CHECK, VARIABLE_MAPPER,
 };
 use crate::interner::{Index, IndexedInterner, Interner};
 use crate::operations::{Operation, OperationType, Param};
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
+use approx::relative_eq;
 use hashbrown::{hash_map, HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{
-    IntoPyDict, PyDict, PyFloat, PyFrozenSet, PyInt, PyIterator, PyList, PySequence, PySet,
-    PyString, PyTuple, PyType,
+    IntoPyDict, PyDict, PyFrozenSet, PyInt, PyIterator, PyList, PySequence, PySet, PyString,
+    PyTuple, PyType,
 };
-use pyo3::{intern, PyObject, PyResult, PyVisit};
+use pyo3::{intern, PyObject, PyResult};
 
 use rustworkx_core::connectivity::connected_components as core_connected_components;
 use rustworkx_core::dag_algo::layers;
@@ -53,14 +54,18 @@ use rustworkx_core::traversal::{
     ancestors as core_ancestors, bfs_successors as core_bfs_successors,
     descendants as core_descendants,
 };
-use std::cell::RefCell;
+
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
 use std::hash::Hash;
 
+#[cfg(feature = "cache_pygates")]
+use std::cell::RefCell;
+
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
+static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 trait IntoUnique {
     type Output;
@@ -322,7 +327,6 @@ pub struct DAGCircuit {
 struct PyControlFlowModule {
     condition_resources: Py<PyAny>,
     node_resources: Py<PyAny>,
-    control_flow_op_names: Py<PyFrozenSet>,
 }
 
 #[derive(Clone, Debug)]
@@ -337,10 +341,6 @@ impl PyControlFlowModule {
         Ok(PyControlFlowModule {
             condition_resources: module.getattr("condition_resources")?.unbind(),
             node_resources: module.getattr("node_resources")?.unbind(),
-            control_flow_op_names: module
-                .getattr("CONTROL_FLOW_OP_NAMES")?
-                .downcast_into_exact()?
-                .unbind(),
         })
     }
 
@@ -378,7 +378,6 @@ struct PyCircuitModule {
     operation: Py<PyAny>,
     store: Py<PyAny>,
     gate: Py<PyAny>,
-    parameter_expression: Py<PyAny>,
     variable_mapper: Py<PyAny>,
 }
 
@@ -398,7 +397,6 @@ impl PyCircuitModule {
             operation: module.getattr("Operation")?.unbind(),
             store: module.getattr("Store")?.unbind(),
             gate: module.getattr("Gate")?.unbind(),
-            parameter_expression: module.getattr("ParameterExpression")?.unbind(),
             variable_mapper: module
                 .getattr("_classical_resource_map")?
                 .getattr("VariableMapper")?
@@ -2499,16 +2497,213 @@ def _format(operand):
         }
 
         // Check for VF2 isomorphic match.
-        let semantic_eq = DAG_NODE.get_bound(py).getattr(intern!(py, "semantic_eq"))?;
+        let legacy_condition_eq = LEGACY_CONDITION_CHECK.get_bound(py);
+        let condition_op_check = CONDITION_OP_CHECK.get_bound(py);
+        let switch_case_op_check = SWITCH_CASE_OP_CHECK.get_bound(py);
+        let for_loop_op_check = FOR_LOOP_OP_CHECK.get_bound(py);
         let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
-            // Note: we pretend that the node IDs are 0, since we know that semantic_eq
-            // doesn't use node IDs in its comparison. We should eventually port
-            // semantic_eq to Rust to entirely skip conversion to Python DAGNodes.
-            let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
-            let n2 = self.unpack_into(py, NodeIndex::new(0), n2)?;
-            Ok(semantic_eq
-                .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                .extract()?)
+            match [n1, n2] {
+                [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
+                    let node1_qargs = self.qargs_cache.intern(inst1.qubits_id);
+                    let node2_qargs = other.qargs_cache.intern(inst2.qubits_id);
+                    let node1_cargs = self.cargs_cache.intern(inst1.clbits_id);
+                    let node2_cargs = other.cargs_cache.intern(inst2.clbits_id);
+
+                    match [&inst1.op, &inst2.op] {
+                        [OperationType::Standard(op1), OperationType::Standard(op2)] => {
+                            if op1 != op2 {
+                                Ok(false)
+                            } else {
+                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                    return Ok(false);
+                                }
+                                let conditions_eq = if let Some(cond1) = inst1
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                {
+                                    if let Some(cond2) = inst2
+                                        .extra_attrs
+                                        .as_ref()
+                                        .and_then(|attrs| attrs.condition.as_ref())
+                                    {
+                                        legacy_condition_eq
+                                            .call1((
+                                                cond1,
+                                                cond2,
+                                                &self_bit_indices,
+                                                &other_bit_indices,
+                                            ))?
+                                            .extract::<bool>()?
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    inst2
+                                        .extra_attrs
+                                        .as_ref()
+                                        .and_then(|attrs| attrs.condition.as_ref())
+                                        .is_none()
+                                };
+                                Ok(conditions_eq && inst1.params.iter().zip(inst2.params.iter()).any(|(a, b)| {
+                                    match [a, b] {
+                                        [Param::Float(float_a), Param::Float(float_b)] => !relative_eq!(float_a, float_b, max_relative = 1e-10),
+                                        [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => param_a.bind(py).eq(param_b).unwrap(),
+                                        _ => false,
+                                    }
+                                }))
+                            }
+                        }
+                        [OperationType::Instruction(op1), OperationType::Instruction(op2)] => {
+                            if op1.name() != op2.name()
+                                || op1.num_qubits() != op2.num_qubits()
+                                || op2.num_clbits() != op2.num_clbits()
+                                || op1.num_params() != op2.num_params()
+                            {
+                                return Ok(false);
+                            }
+                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
+                                let node1_qargs =
+                                    node1_qargs.into_iter().copied().collect::<HashSet<Qubit>>();
+                                let node2_qargs =
+                                    node2_qargs.into_iter().copied().collect::<HashSet<Qubit>>();
+                                let node1_cargs =
+                                    node1_cargs.into_iter().copied().collect::<HashSet<Clbit>>();
+                                let node2_cargs =
+                                    node2_cargs.into_iter().copied().collect::<HashSet<Clbit>>();
+                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                    return Ok(false);
+                                }
+                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+
+                            if op1.control_flow() && op2.control_flow() {
+                                let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
+                                let n2 = self.unpack_into(py, NodeIndex::new(0), n2)?;
+                                let name = op1.name();
+                                if name == "if_else" {
+                                    return condition_op_check
+                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
+                                        .extract();
+                                } else if name == "while_loop" {
+                                    return condition_op_check
+                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
+                                        .extract();
+                                } else if name == "switch_case" {
+                                    return switch_case_op_check
+                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
+                                        .extract();
+                                } else if name == "for_loop" {
+                                    return for_loop_op_check
+                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
+                                        .extract();
+                                } else {
+                                    return Err(PyRuntimeError::new_err(format!(
+                                        "unhandled control-flow operation: {}",
+                                        name
+                                    )));
+                                }
+                            }
+
+                            let conditions_eq = if let Some(cond1) = inst1
+                                .extra_attrs
+                                .as_ref()
+                                .and_then(|attrs| attrs.condition.as_ref())
+                            {
+                                if let Some(cond2) = inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                {
+                                    legacy_condition_eq
+                                        .call1((
+                                            cond1,
+                                            cond2,
+                                            &self_bit_indices,
+                                            &other_bit_indices,
+                                        ))?
+                                        .extract::<bool>()?
+                                } else {
+                                    false
+                                }
+                            } else {
+                                inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                    .is_none()
+                            };
+                            Ok(conditions_eq && op1.instruction.bind(py).eq(&op2.instruction)?)
+                        }
+                        [OperationType::Gate(op1), OperationType::Gate(op2)] => {
+                            if op1.name() != op2.name()
+                                || op1.num_qubits() != op2.num_qubits()
+                                || op2.num_clbits() != op2.num_clbits()
+                                || op1.num_params() != op2.num_params()
+                            {
+                                return Ok(false);
+                            }
+
+                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+
+                            let conditions_eq = if let Some(cond1) = inst1
+                                .extra_attrs
+                                .as_ref()
+                                .and_then(|attrs| attrs.condition.as_ref())
+                            {
+                                if let Some(cond2) = inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                {
+                                    legacy_condition_eq
+                                        .call1((
+                                            cond1,
+                                            cond2,
+                                            &self_bit_indices,
+                                            &other_bit_indices,
+                                        ))?
+                                        .extract::<bool>()?
+                                } else {
+                                    false
+                                }
+                            } else {
+                                inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                    .is_none()
+                            };
+                            Ok(conditions_eq && op1.gate.bind(py).eq(&op2.gate)?)
+                        }
+                        [OperationType::Operation(op1), OperationType::Operation(op2)] => {
+                            if op1.name() != op2.name()
+                                || op1.num_qubits() != op2.num_qubits()
+                                || op2.num_clbits() != op2.num_clbits()
+                                || op1.num_params() != op2.num_params()
+                            {
+                                return Ok(false);
+                            }
+
+                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+                            op1.operation.bind(py).eq(&op2.operation)
+                        }
+                        _ => Ok(false),
+                    }
+                }
+                [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => Ok(bit1 == bit2),
+                [NodeType::ClbitIn(bit1), NodeType::ClbitIn(bit2)] => Ok(bit1 == bit2),
+                [NodeType::QubitOut(bit1), NodeType::QubitOut(bit2)] => Ok(bit1 == bit2),
+                [NodeType::ClbitOut(bit1), NodeType::ClbitOut(bit2)] => Ok(bit1 == bit2),
+                [NodeType::VarIn(var1), NodeType::VarIn(var2)] => var1.bind(py).eq(var2),
+                [NodeType::VarOut(var1), NodeType::VarOut(var2)] => var1.bind(py).eq(var2),
+                _ => Ok(false),
+            }
         };
 
         isomorphism::vf2::is_isomorphic(

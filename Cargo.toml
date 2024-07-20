@@ -22,6 +22,7 @@ numpy = "0.21.0"
 smallvec = "1.13"
 thiserror = "1.0"
 rustworkx-core = "0.15"
+approx = "0.5"
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python

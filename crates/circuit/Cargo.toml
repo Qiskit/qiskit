@@ -17,6 +17,7 @@ num-complex.workspace = true
 ndarray.workspace = true
 numpy.workspace = true
 thiserror.workspace = true
+approx.workspace = true
 
 [dependencies.pyo3]
 workspace = true

@@ -93,6 +93,14 @@ pub static CIRCUIT_TO_DAG: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
 pub static DAG_TO_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "dag_to_circuit");
+pub static LEGACY_CONDITION_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_legacy_condition_eq");
+pub static CONDITION_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_condition_op_eq");
+pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_switch_case_eq");
+pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

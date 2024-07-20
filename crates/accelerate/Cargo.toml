@@ -38,7 +38,7 @@ workspace = true
 features = ["rayon", "approx-0_5"]
 
 [dependencies.approx]
-version = "0.5"
+workspace = true
 features = ["num-complex"]
 
 [dependencies.hashbrown]

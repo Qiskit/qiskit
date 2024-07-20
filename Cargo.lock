@@ -1188,6 +1188,7 @@ name = "qiskit-circuit"
 version = "1.2.0"
 dependencies = [
  "ahash 0.8.11",
+ "approx",
  "hashbrown 0.14.5",
  "indexmap",
  "ndarray",
