@@ -298,7 +298,7 @@ class HLSConfig:
 
 
 class HighLevelSynthesis(TransformationPass):
-    """Synthesize higher-level objects and unroll custom definitions.
+    r"""Synthesize higher-level objects and unroll custom definitions.
 
     The input to this pass is a DAG that may contain higher-level objects,
     including abstract mathematical objects (e.g., objects of type :class:`.LinearFunction`),
