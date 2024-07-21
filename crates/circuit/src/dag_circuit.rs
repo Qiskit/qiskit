@@ -4634,6 +4634,35 @@ new_condition = (new_target, value)
         self.dag
             .contains_edge(NodeIndex::new(source), NodeIndex::new(target))
     }
+
+    fn _is_dag(&self) -> bool {
+        match rustworkx_core::petgraph::algo::toposort(&self.dag, None) {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+
+    fn _in_wires(&self, node_index: usize) -> Vec<&PyObject> {
+        self.dag
+            .edges_directed(NodeIndex::new(node_index), Incoming)
+            .map(|wire| match wire.weight() {
+                Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
+                Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                Wire::Var(var) => var,
+            })
+            .collect()
+    }
+
+    fn _out_wires(&self, node_index: usize) -> Vec<&PyObject> {
+        self.dag
+            .edges_directed(NodeIndex::new(node_index), Incoming)
+            .map(|wire| match wire.weight() {
+                Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
+                Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                Wire::Var(var) => var,
+            })
+            .collect()
+    }
 }
 
 impl DAGCircuit {

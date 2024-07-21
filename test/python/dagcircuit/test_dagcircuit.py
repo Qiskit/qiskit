@@ -55,14 +55,12 @@ def raise_if_dagcircuit_invalid(dag):
        DAGCircuitError: if DAGCircuit._multi_graph is inconsistent.
     """
 
-    multi_graph = dag._multi_graph
-
-    if not rx.is_directed_acyclic_graph(multi_graph):
+    if not dag._is_dag():
         raise DAGCircuitError("multi_graph is not a DAG.")
 
     # Every node should be of type in, out, or op.
     # All input/output nodes should be present in input_map/output_map.
-    for node in dag._multi_graph.nodes():
+    for node in dag.nodes():
         if isinstance(node, DAGInNode):
             assert node is dag.input_map[node.wire]
         elif isinstance(node, DAGOutNode):
@@ -112,18 +110,18 @@ def raise_if_dagcircuit_invalid(dag):
     # Wires can only terminate at input/output nodes.
     op_counts = Counter()
     for op_node in dag.op_nodes():
-        assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
+        assert sum(1 for _ in dag.predecssors(op_node)) == sum(1 for _ in dag.successors(op_node))
         op_counts[op_node.name] += 1
     # The _op_names attribute should match the counted op names
-    assert op_counts == dag._op_names
+    assert op_counts == dag.count_ops()
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
         in_edges = dag._multi_graph.in_edges(node._node_id)
         out_edges = dag._multi_graph.out_edges(node._node_id)
 
-        in_wires = {data for src, dest, data in in_edges}
-        out_wires = {data for src, dest, data in out_edges}
+        in_wires = set(dag.in_wires(node._node_id))
+        out_wires = set(dag.out_wires(node._node_id))
 
         node_cond_bits = set(
             node.op.condition[0][:] if getattr(node.op, "condition", None) is not None else []
