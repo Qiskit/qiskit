@@ -264,6 +264,5 @@ class Instruction(ABC):
 
     def __repr__(self) -> str:
         operands = ", ".join(str(op) for op in self.operands)
-        return "{}({}{})".format(
-            self.__class__.__name__, operands, f", name='{self.name}'" if self.name else ""
-        )
+        name_repr = f", name='{self.name}'" if self.name else ""
+        return f"{self.__class__.__name__}({operands}{name_repr})"

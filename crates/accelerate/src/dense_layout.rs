@@ -197,7 +197,7 @@ pub fn best_subset_inner(
         SubsetResult {
             count: 0,
             map: Vec::new(),
-            error: std::f64::INFINITY,
+            error: f64::INFINITY,
             subgraph: Vec::new(),
         }
     };

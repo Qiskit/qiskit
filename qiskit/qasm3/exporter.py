@@ -252,6 +252,9 @@ class GlobalNamespace:
     def __setitem__(self, name_str, instruction):
         self._data[name_str] = instruction.base_class
         self._data[id(instruction)] = name_str
+        ctrl_state = str(getattr(instruction, "ctrl_state", ""))
+
+        self._data[f"{instruction.name}_{ctrl_state}_{instruction.params}"] = name_str
 
     def __getitem__(self, key):
         if isinstance(key, Instruction):
@@ -262,7 +265,9 @@ class GlobalNamespace:
                 pass
             # Built-in gates.
             if key.name not in self._data:
-                raise KeyError(key)
+                # Registerd qiskit standard gate without stgates.inc
+                ctrl_state = str(getattr(key, "ctrl_state", ""))
+                return self._data[f"{key.name}_{ctrl_state}_{key.params}"]
             return key.name
         return self._data[key]
 
@@ -462,7 +467,7 @@ class QASM3Builder:
             self.build_gate_definition(instruction) for instruction in gates_to_declare
         ]
 
-        # Early IBM runtime paramterisation uses unbound `Parameter` instances as `input` variables,
+        # Early IBM runtime parametrization uses unbound `Parameter` instances as `input` variables,
         # not the explicit realtime `Var` variables, so we need this explicit scan.
         self.hoist_global_parameter_declarations()
         # Qiskit's clbits and classical registers need to get mapped to implicit OQ3 variables, but
@@ -676,7 +681,7 @@ class QASM3Builder:
         doesn't involve the declaration of *new* bits or registers in inner scopes; only the
         :class:`.expr.Var` mechanism allows that.
 
-        The behaviour of this function depends on the setting ``allow_aliasing``. If this
+        The behavior of this function depends on the setting ``allow_aliasing``. If this
         is ``True``, then the output will be in the same form as the output of
         :meth:`.build_classical_declarations`, with the registers being aliases.  If ``False``, it
         will instead return a :obj:`.ast.ClassicalDeclaration` for each classical register, and one
@@ -837,7 +842,7 @@ class QASM3Builder:
                     statements.append(self.build_if_statement(instruction))
                 elif isinstance(instruction.operation, SwitchCaseOp):
                     statements.extend(self.build_switch_statement(instruction))
-                else:  # pragma: no cover
+                else:
                     raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
                 continue
             # Build the node, ignoring any condition.
@@ -937,7 +942,7 @@ class QASM3Builder:
                 ),
             ]
 
-        # Handle the stabilised syntax.
+        # Handle the stabilized syntax.
         cases = []
         default = None
         for values, block in instruction.operation.cases_specifier():
@@ -1102,7 +1107,8 @@ def _infer_variable_declaration(
         # _should_ be an intrinsic part of the parameter, or somewhere publicly accessible, but
         # Terra doesn't have those concepts yet.  We can only try and guess at the type by looking
         # at all the places it's used in the circuit.
-        for instruction, index in circuit._parameter_table[parameter]:
+        for instr_index, index in circuit._data._get_param(parameter.uuid.int):
+            instruction = circuit.data[instr_index].operation
             if isinstance(instruction, ForLoopOp):
                 # The parameters of ForLoopOp are (indexset, loop_parameter, body).
                 if index == 1:
@@ -1130,7 +1136,7 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
-    raise RuntimeError(f"unhandled expr type '{type_}'")  # pragma: no cover
+    raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
 class _ExprBuilder(expr.ExprVisitor[ast.Expression]):

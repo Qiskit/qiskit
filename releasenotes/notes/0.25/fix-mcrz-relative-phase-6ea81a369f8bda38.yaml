@@ -4,4 +4,4 @@ fixes:
     Fixed the gate decomposition of multi-controlled Z rotation gates added via
     :meth:`.QuantumCircuit.mcrz`. Previously, this method implemented a multi-controlled
     phase gate, which has a relative phase difference  to the Z rotation. To obtain the
-    previous `.QuantumCircuit.mcrz` behaviour, use `.QuantumCircuit.mcp`.
+    previous `.QuantumCircuit.mcrz` behavior, use `.QuantumCircuit.mcp`.

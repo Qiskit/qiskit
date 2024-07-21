@@ -217,7 +217,7 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(split_blocks), 3)
 
     def test_collect_and_split_gates_from_dagdependency(self):
-        """Test collecting and splitting blocks from DAGDependecy."""
+        """Test collecting and splitting blocks from DAGDependency."""
         qc = QuantumCircuit(6)
         qc.cx(0, 1)
         qc.cx(3, 5)

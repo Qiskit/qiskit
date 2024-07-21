@@ -162,7 +162,7 @@ class NLocal(BlueprintCircuit):
         self._bounds: list[tuple[float | None, float | None]] | None = None
         self._flatten = flatten
 
-        # During the build, if a subclass hasn't overridden our parametrisation methods, we can use
+        # During the build, if a subclass hasn't overridden our parametrization methods, we can use
         # a newer fast-path method to parametrise the rotation and entanglement blocks if internally
         # those are just simple stdlib gates that have been promoted to circuits.  We don't
         # precalculate the fast-path layers themselves because there's far too much that can be
@@ -441,9 +441,8 @@ class NLocal(BlueprintCircuit):
         ):
             raise ValueError(
                 "The length of ordered parameters must be equal to the number of "
-                "settable parameters in the circuit ({}), but is {}".format(
-                    self.num_parameters_settable, len(parameters)
-                )
+                f"settable parameters in the circuit ({self.num_parameters_settable}),"
+                f" but is {len(parameters)}"
             )
         self._ordered_parameters = parameters
         self._invalidate()
@@ -1094,7 +1093,7 @@ def _stdlib_gate_from_simple_block(block: QuantumCircuit) -> _StdlibGateResult |
         return None
     instruction = block.data[0]
     # If the single instruction isn't a standard-library gate that spans the full width of the block
-    # in the correct order, we're not simple.  If the gate isn't fully parametrised with pure,
+    # in the correct order, we're not simple.  If the gate isn't fully parametrized with pure,
     # unique `Parameter` instances (expressions are too complex) that are in order, we're not
     # simple.
     if (
