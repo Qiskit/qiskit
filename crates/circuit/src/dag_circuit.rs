@@ -243,6 +243,18 @@ impl _VarIndexMap {
                 .unwrap()
         })
     }
+
+    pub fn remove(&mut self, key: &PyObject) -> Option<NodeIndex> {
+        Python::with_gil(|py| -> Option<NodeIndex> {
+            let bound_dict = self.dict.bind(py);
+            let res = bound_dict
+                .get_item(key.clone_ref(py))
+                .unwrap()
+                .map(|v| NodeIndex::new(v.extract().unwrap()));
+            let _del_result = bound_dict.del_item(key);
+            res
+        })
+    }
 }
 
 /// Quantum circuit as a directed acyclic graph.
@@ -3793,9 +3805,15 @@ new_condition = (new_target, value)
     }
 
     /// Returns the longest path in the dag as a list of DAGOpNodes, DAGInNodes, and DAGOutNodes.
-    fn longest_path(&self, py: Python) {
-        // return [self._multi_graph[x] for x in rx.dag_longest_path(self._multi_graph)]
-        todo!()
+    fn longest_path(&self, py: Python) -> PyResult<Vec<PyObject>> {
+        let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
+        match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
+            Some(res) => res.0,
+            None => return Err(DAGCircuitError::new_err("not a DAG")),
+        }
+        .into_iter()
+        .map(|node_index| self.get_node(py, node_index))
+        .collect()
     }
 
     /// Returns iterator of the successors of a node as DAGOpNodes and DAGOutNodes."""
@@ -4349,18 +4367,25 @@ new_condition = (new_target, value)
     /// Count the occurrences of operation names on the longest path.
     ///
     /// Returns a dictionary of counts keyed on the operation name.
-    fn count_ops_longest_path(&self) -> PyResult<usize> {
-        // op_dict = {}
-        // path = self.longest_path()
-        // path = path[1:-1]  # remove qubits at beginning and end of path
-        // for node in path:
-        //     name = node.op.name
-        //     if name not in op_dict:
-        //         op_dict[name] = 1
-        //     else:
-        //         op_dict[name] += 1
-        // return op_dict
-        todo!()
+    fn count_ops_longest_path(&self) -> PyResult<HashMap<&str, usize>> {
+        let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
+        let longest_path =
+            match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
+                Some(res) => res.0,
+                None => return Err(DAGCircuitError::new_err("not a DAG")),
+            };
+        // Allocate for worst case where all operations are unique
+        let mut op_counts: HashMap<&str, usize> = HashMap::with_capacity(longest_path.len() - 2);
+        for node_index in &longest_path[1..longest_path.len() - 1] {
+            if let NodeType::Operation(ref packed) = self.dag[*node_index] {
+                let name = packed.op.name();
+                op_counts
+                    .entry(name)
+                    .and_modify(|count| *count += 1)
+                    .or_insert(1);
+            }
+        }
+        Ok(op_counts)
     }
 
     /// Returns causal cone of a qubit.
@@ -5159,9 +5184,11 @@ impl DAGCircuit {
                 self.clbit_input_map.shift_remove(&clbit),
                 self.clbit_output_map.shift_remove(&clbit),
             ),
-            Wire::Var(var) => todo!(),
+            Wire::Var(var) => (
+                self.var_input_map.remove(&var),
+                self.var_output_map.remove(&var),
+            ),
         };
-
         self.dag.remove_node(in_node.unwrap());
         self.dag.remove_node(out_node.unwrap());
         Ok(())
