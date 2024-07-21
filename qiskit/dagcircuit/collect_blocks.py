@@ -38,7 +38,7 @@ class Block(ABC):
     """
 
     @abstractmethod
-    def append_node(self, node):
+    def append_node(self, node: DAGOpNode | DAGDepNode) -> bool:
         """
         Tries to add the given node to this block.
 
@@ -51,11 +51,11 @@ class Block(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def size(self):
+    def size(self) -> int:
         """
         This method should return the size of the block.
 
-        This option is used when filtering blocks collected by
+        This method is used when filtering blocks collected by
         ``collect_all_matching_blocks`` based on their size
         as specified by the ``min_block_size`` argument.
         The size of the block depends on the specific implementation
@@ -65,7 +65,7 @@ class Block(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_nodes(self):
+    def get_nodes(self) -> list[DAGOpNode] | list[DAGDepNode] | None:
         """
         This method should return the list of nodes in this block if possible,
         and ``None`` if not.
@@ -78,7 +78,7 @@ class Block(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def reverse(self):
+    def reverse(self) -> Block | None:
         """
         This method should return the block with nodes in the reversed order if possible,
         and ``None`` if not.
@@ -92,7 +92,7 @@ class Block(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def split(self, split_blocks: bool, split_layers: bool):
+    def split(self, split_blocks: bool, split_layers: bool) -> list[Block]:
         """
         This method should return the list of blocks obtained by splitting
         the current block if possible, and ``None`` otherwise.
@@ -116,28 +116,38 @@ class Block(ABC):
 class DefaultBlock(Block):
     """Block class suitable for a large number of basic collection strategies."""
 
-    def __init__(self, nodes=None):
+    def __init__(self, nodes: list[DAGOpNode] | list[DAGDepNode] | None = None):
         self.nodes = [] if nodes is None else nodes
 
-    def append_node(self, node):
+    def append_node(self, node: DAGOpNode | DAGDepNode) -> bool:
         """Always adds the node to this block."""
         self.nodes.append(node)
         return True
 
-    def size(self):
+    def size(self) -> int:
         """Returns the number of nodes in this block."""
         return len(self.nodes)
 
-    def get_nodes(self):
+    def get_nodes(self) -> list[DAGOpNode] | list[DAGDepNode]:
         """Returns the list of nodes in this block."""
         return self.nodes
 
-    def reverse(self):
+    def reverse(self) -> DefaultBlock:
         """Returns the block with nodes in the reversed order."""
         return DefaultBlock(self.nodes[::-1])
 
-    def split(self, split_blocks: bool, split_layers: bool) -> list:
-        """Splits the block into sub-blocks."""
+    def split(self, split_blocks: bool, split_layers: bool) -> list[DefaultBlock]:
+        """
+        Splits the block into sub-blocks.
+
+        Args:
+            split_blocks (bool): specifies to split the block into sub-blocks
+                over disconnected qubit subsets.
+            split_layers (bool): specifies to split the blocks into layers
+                of non-overlapping instructions (in other words, into depth-1
+                sub-blocks).
+
+        """
 
         output_blocks = [self]
 
