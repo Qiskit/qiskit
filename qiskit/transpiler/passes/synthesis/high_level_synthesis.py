@@ -473,20 +473,18 @@ class HighLevelSynthesis(TransformationPass):
 
                 if use_ancillas:
                     clean_ancillas_available = [q for q in clean_ancillas if q not in node.qargs]
-                    dirty_ancillas_available = [
-                        q
-                        for q in dag.qubits
-                        if q not in node.qargs and q not in clean_ancillas_available
-                    ]
+                    num_dirty_ancillas_available = (
+                        dag.num_qubits() - len(node.qargs) - len(clean_ancillas_available)
+                    )
                 else:
                     clean_ancillas_available = []
-                    dirty_ancillas_available = []
+                    num_dirty_ancillas_available = 0
 
                 decomposition, modified = self._recursively_handle_op(
                     node.op,
                     node_qubits,
                     num_clean_ancillas=len(clean_ancillas_available),
-                    num_dirty_ancillas=len(dirty_ancillas_available),
+                    num_dirty_ancillas=num_dirty_ancillas_available,
                 )
 
                 if modified is False:
@@ -516,6 +514,11 @@ class HighLevelSynthesis(TransformationPass):
                                 list(node.qargs) + clean_ancillas_available[0:num_ancillas_used]
                             )
                         else:
+                            dirty_ancillas_available = [
+                                q
+                                for q in dag.qubits
+                                if q not in node.qargs and q not in clean_ancillas_available
+                            ]
                             extended_qargs = (
                                 list(node.qargs)
                                 + clean_ancillas_available
