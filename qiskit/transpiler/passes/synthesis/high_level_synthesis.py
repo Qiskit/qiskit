@@ -343,7 +343,7 @@ class HighLevelSynthesis(TransformationPass):
     The high-level-synthesis passes information about available auxiliary qubits, and whether their
     state is clean (defined as :math:`|0\rangle`) or dirty (unknown state) to the synthesis routine
     via the respective arguments ``"num_clean_ancillas"`` and ``"num_dirty_ancillas"``.
-    If ``qubits_initially_zero`` is ``True`` (default), idle qubits are assumed to be in the
+    If ``qubits_initially_zero`` is ``True`` (default), the qubits are assumed to be in the
     :math:`|0\rangle` state. When appending a synthesized block using auxiliary qubits onto the
     circuit, we first use the clean auxiliary qubits.
 
@@ -496,7 +496,7 @@ class HighLevelSynthesis(TransformationPass):
                     if isinstance(node.op, (Barrier, IGate, Delay)):
                         reduce_clean_ancillas = False
 
-                    # if we encountered a reset, the ancillas is clean
+                    # if we encountered a Reset, the reset qubits are clean
                     if isinstance(node.op, Reset):
                         clean_ancillas += node.qargs
                         reduce_clean_ancillas = False
