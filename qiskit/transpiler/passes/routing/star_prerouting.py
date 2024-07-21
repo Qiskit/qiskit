@@ -11,18 +11,17 @@
 # that they have been altered from the originals.
 
 """Search for star connectivity patterns and replace them with."""
-from typing import Union, List, Tuple
+from typing import Iterable, Union, Optional, List, Tuple
 from math import floor, log10
 
 from qiskit.circuit import Barrier
 from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
-from qiskit.dagcircuit.collect_blocks import Block, BlockCollector
 from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library import SwapGate
 
 
-class StarBlock(Block):
+class StarBlock:
     """Defines blocks representing star-shaped pieces of a circuit."""
 
     def __init__(self, nodes=None, center=None, num2q=0):
@@ -30,12 +29,16 @@ class StarBlock(Block):
         self.num2q = num2q
         self.nodes = [] if nodes is None else nodes
 
+    def get_nodes(self):
+        """Returns the list of nodes used in the block."""
+        return self.nodes
+
     def append_node(self, node):
         """
-        If node can be added to this block while keeping the block star-shaped,
-        adds the node and returns ``True``. Otherwise, does not add the node
-        and returns ``False``.
+        If node can be added to block while keeping the block star-shaped, and
+        return True. Otherwise, does not add node to block and returns False.
         """
+
         added = False
 
         if len(node.qargs) == 1:
@@ -67,30 +70,9 @@ class StarBlock(Block):
 
     def size(self):
         """
-        Returns the size of the block as measured by the number of
-        two-qubits gates in this block.
+        Returns the number of two-qubit quantum gates in this block.
         """
         return self.num2q
-
-    def get_nodes(self):
-        """Returns the list of nodes used in the block."""
-        return self.nodes
-
-    def split(self, split_blocks, split_layers):
-        """
-        In theory, this method can be used to split a star-shaped
-        block into star-shaped sub-blocks. For now, this does not
-        do anything and simply returns the list consisting of this
-        very block.
-        """
-        return [self]
-
-    def reverse(self):
-        """
-        Reversing a star-shaped block means reversing the nodes
-        while keeping the same center.
-        """
-        return StarBlock(nodes=self.nodes[::-1], center=self.center, num2q=self.num2q)
 
 
 class StarPreRouting(TransformationPass):
@@ -121,6 +103,146 @@ class StarPreRouting(TransformationPass):
     2023 IEEE International Conference on Quantum Computing and Engineering (QCE),
     Bellevue, WA, USA, 2023, pp. 1020-1032, doi: 10.1109/QCE57702.2023.00116.
     """
+
+    def __init__(self):
+        """StarPreRouting"""
+
+        self._pending_nodes: Optional[list[Union[DAGOpNode, DAGDepNode]]] = None
+        self._in_degree: Optional[dict[Union[DAGOpNode, DAGDepNode], int]] = None
+        super().__init__()
+
+    def _setup_in_degrees(self, dag):
+        """For an efficient implementation, for every node we keep the number of its
+        unprocessed immediate predecessors (called ``_in_degree``). This ``_in_degree``
+        is set up at the start and updated throughout the algorithm.
+        A node is leaf (or input) node iff its ``_in_degree`` is 0.
+        When a node is (marked as) collected, the ``_in_degree`` of each of its immediate
+        successor is updated by subtracting 1.
+        Additionally, ``_pending_nodes`` explicitly keeps the list of nodes whose
+        ``_in_degree`` is 0.
+        """
+        self._pending_nodes = []
+        self._in_degree = {}
+        for node in self._op_nodes(dag):
+            deg = len(self._direct_preds(dag, node))
+            self._in_degree[node] = deg
+            if deg == 0:
+                self._pending_nodes.append(node)
+
+    def _op_nodes(self, dag) -> Iterable[Union[DAGOpNode, DAGDepNode]]:
+        """Returns DAG nodes."""
+        if not isinstance(dag, DAGDependency):
+            return dag.op_nodes()
+        else:
+            return dag.get_nodes()
+
+    def _direct_preds(self, dag, node):
+        """Returns direct predecessors of a node. This function takes into account the
+        direction of collecting blocks, that is node's predecessors when collecting
+        backwards are the direct successors of a node in the DAG.
+        """
+        if not isinstance(dag, DAGDependency):
+            return [pred for pred in dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+        else:
+            return [dag.get_node(pred_id) for pred_id in dag.direct_predecessors(node.node_id)]
+
+    def _direct_succs(self, dag, node):
+        """Returns direct successors of a node. This function takes into account the
+        direction of collecting blocks, that is node's successors when collecting
+        backwards are the direct predecessors of a node in the DAG.
+        """
+        if not isinstance(dag, DAGDependency):
+            return [succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)]
+        else:
+            return [dag.get_node(succ_id) for succ_id in dag.direct_successors(node.node_id)]
+
+    def _have_uncollected_nodes(self):
+        """Returns whether there are uncollected (pending) nodes"""
+        return len(self._pending_nodes) > 0
+
+    def collect_matching_block(self, dag, filter_fn):
+        """Iteratively collects the largest block of input nodes (that is, nodes with
+        ``_in_degree`` equal to 0) that match a given filtering function.
+        Examples of this include collecting blocks of swap gates,
+        blocks of linear gates (CXs and SWAPs), blocks of Clifford gates, blocks of single-qubit gates,
+        blocks of two-qubit gates, etc.  Here 'iteratively' means that once a node is collected,
+        the ``_in_degree`` of each of its immediate successor is decreased by 1, allowing more nodes
+        to become input and to be eligible for collecting into the current block.
+        Returns the block of collected nodes.
+        """
+        unprocessed_pending_nodes = self._pending_nodes
+        self._pending_nodes = []
+
+        current_block = StarBlock()
+
+        # Iteratively process unprocessed_pending_nodes:
+        # - any node that does not match filter_fn is added to pending_nodes
+        # - any node that match filter_fn is added to the current_block,
+        #   and some of its successors may be moved to unprocessed_pending_nodes.
+        while unprocessed_pending_nodes:
+            new_pending_nodes = []
+            for node in unprocessed_pending_nodes:
+                added = filter_fn(node) and current_block.append_node(node)
+                if added:
+                    # update the _in_degree of node's successors
+                    for suc in self._direct_succs(dag, node):
+                        self._in_degree[suc] -= 1
+                        if self._in_degree[suc] == 0:
+                            new_pending_nodes.append(suc)
+                else:
+                    self._pending_nodes.append(node)
+            unprocessed_pending_nodes = new_pending_nodes
+
+        return current_block
+
+    def collect_all_matching_blocks(
+        self,
+        dag,
+        min_block_size=2,
+    ):
+        """Collects all blocks that match a given filtering function filter_fn.
+        This iteratively finds the largest block that does not match filter_fn,
+        then the largest block that matches filter_fn, and so on, until no more uncollected
+        nodes remain. Intuitively, finding larger blocks of non-matching nodes helps to
+        find larger blocks of matching nodes later on. The option ``min_block_size``
+        specifies the minimum number of gates in the block for the block to be collected.
+
+        By default, blocks are collected in the direction from the inputs towards the outputs
+        of the circuit. The option ``collect_from_back`` allows to change this direction,
+        that is collect blocks from the outputs towards the inputs of the circuit.
+
+        Returns the list of matching blocks only.
+        """
+
+        def filter_fn(node):
+            """Specifies which nodes can be collected into star blocks."""
+            return (
+                len(node.qargs) <= 2
+                and len(node.cargs) == 0
+                and getattr(node.op, "condition", None) is None
+                and not isinstance(node.op, Barrier)
+            )
+
+        def not_filter_fn(node):
+            """Returns the opposite of filter_fn."""
+            return not filter_fn(node)
+
+        # Note: the collection direction must be specified before setting in-degrees
+        self._setup_in_degrees(dag)
+
+        # Iteratively collect non-matching and matching blocks.
+        matching_blocks: list[StarBlock] = []
+        processing_order = []
+        while self._have_uncollected_nodes():
+            self.collect_matching_block(dag, filter_fn=not_filter_fn)
+            matching_block = self.collect_matching_block(dag, filter_fn=filter_fn)
+            if matching_block.size() >= min_block_size:
+                matching_blocks.append(matching_block)
+            processing_order.append(matching_block)
+
+        processing_order = [n for p in processing_order for n in p.nodes]
+
+        return matching_blocks, processing_order
 
     def run(self, dag):
         # Extract StarBlocks from DAGCircuit / DAGDependency / DAGDependencyV2
@@ -166,26 +288,10 @@ class StarPreRouting(TransformationPass):
             List[StarBlock]: a list of star blocks in the given dag
             Union[List[DAGOpNode], List[DAGDepNode]]: a list of operations specifying processing order
         """
-
-        def filter_fn(node):
-            """Specifies which nodes can be collected into star blocks."""
-            return (
-                len(node.qargs) <= 2
-                and len(node.cargs) == 0
-                and getattr(node.op, "condition", None) is None
-                and not isinstance(node.op, Barrier)
-            )
-
-        block_collector = BlockCollector(dag)
-        matching_blocks = block_collector.collect_all_matching_blocks(
-            filter_fn=filter_fn,
-            block_class=StarBlock,
-            output_nodes=False,
-            min_block_size=min_block_size,
+        blocks, processing_order = self.collect_all_matching_blocks(
+            dag, min_block_size=min_block_size
         )
-        processing_order = [n for p in matching_blocks for n in p.nodes]
-
-        return matching_blocks, processing_order
+        return blocks, processing_order
 
     def star_preroute(self, dag, blocks, processing_order):
         """Returns star blocks in dag and the processing order of nodes within these star blocks
