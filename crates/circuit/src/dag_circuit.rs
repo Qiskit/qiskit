@@ -1038,38 +1038,31 @@ def _format(operand):
     /// Return True if the dag has a calibration defined for the node operation. In this
     /// case, the operation does not need to be translated to the device basis.
     fn has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
-        let node = node.as_ref().node.unwrap();
-        if let Some(NodeType::Operation(packed)) = self.dag.node_weight(node) {
-            let op_name = packed.op.name().to_string();
-            if !self.calibrations.contains_key(&op_name) {
-                return Ok(false);
-            }
-            let mut params = Vec::new();
-            for p in &packed.params {
-                if let Param::ParameterExpression(exp) = p {
-                    let exp = exp.bind(py);
-                    if !exp.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                        let as_py_float = exp.call_method0(intern!(py, "__float__"))?;
-                        params.push(as_py_float.unbind());
-                        continue;
-                    }
-                }
-                params.push(p.to_object(py));
-            }
-            let qubits: Vec<BitType> = self
-                .qargs_cache
-                .intern(packed.qubits_id)
-                .iter()
-                .cloned()
-                .map(|b| b.into())
-                .collect();
-            let params = PyTuple::new_bound(py, params);
-            self.calibrations[&op_name]
-                .bind(py)
-                .contains((qubits, params).to_object(py))
-        } else {
-            Ok(false)
+        let op_name = node.instruction.operation.name();
+        if !self.calibrations.contains_key(op_name) {
+            return Ok(false);
         }
+        let mut params = Vec::new();
+        for p in &node.instruction.params {
+            if let Param::ParameterExpression(exp) = p {
+                let exp = exp.bind(py);
+                if !exp.getattr(intern!(py, "parameters"))?.is_truthy()? {
+                    let as_py_float = exp.call_method0(intern!(py, "__float__"))?;
+                    params.push(as_py_float.unbind());
+                    continue;
+                }
+            }
+            params.push(p.to_object(py));
+        }
+        let qubits: Vec<BitType> = self
+            .qubits
+            .map_bits(node.instruction.qubits.bind(py).iter())?
+            .map(|bit| bit.0)
+            .collect();
+        let params = PyTuple::new_bound(py, params);
+        self.calibrations[op_name]
+            .bind(py)
+            .contains((qubits, params).to_object(py))
     }
 
     /// Remove all operation nodes with the given name.
