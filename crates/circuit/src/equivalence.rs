@@ -273,22 +273,17 @@ pub struct CircuitRep {
     object: PyObject,
     pub num_qubits: usize,
     pub num_clbits: usize,
-    data: Py<CircuitData>,
+    pub data: CircuitData,
 }
 
 impl CircuitRep {
-    /// Allows access to the circuit's data through a Python reference.
-    pub fn data<'py>(&'py self, py: Python<'py>) -> PyRef<'py, CircuitData> {
-        self.data.borrow(py)
-    }
-
     /// Performs a shallow cloning of the structure by using `clone_ref()`.
     pub fn py_clone(&self, py: Python) -> Self {
         Self {
             object: self.object.clone_ref(py),
             num_qubits: self.num_qubits,
             num_clbits: self.num_clbits,
-            data: self.data.clone_ref(py),
+            data: self.data.clone(),
         }
     }
 }
@@ -298,14 +293,14 @@ impl FromPyObject<'_> for CircuitRep {
         if ob.is_instance(QUANTUMCIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
             let data_downcast: Bound<CircuitData> = data.downcast_into()?;
-            let data_borrow: PyRef<CircuitData> = data_downcast.borrow();
-            let num_qubits: usize = data_borrow.num_qubits();
-            let num_clbits: usize = data_borrow.num_clbits();
+            let data_extract: CircuitData = data_downcast.extract()?;
+            let num_qubits: usize = data_extract.num_qubits();
+            let num_clbits: usize = data_extract.num_clbits();
             Ok(Self {
                 object: ob.into_py(ob.py()),
                 num_qubits,
                 num_clbits,
-                data: data_downcast.unbind(),
+                data: data_extract,
             })
         } else {
             Err(PyTypeError::new_err(
@@ -420,7 +415,7 @@ impl EquivalenceLibrary {
     fn set_entry(&mut self, py: Python, gate: GateOper, entry: Vec<CircuitRep>) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(&gate, equiv)?;
-            raise_if_param_mismatch(py, &gate.params, equiv.data(py).get_params_unsorted(py)?)?;
+            raise_if_param_mismatch(py, &gate.params, equiv.data.get_params_unsorted(py)?)?;
         }
 
         let key = Key {
@@ -590,7 +585,7 @@ impl EquivalenceLibrary {
         raise_if_param_mismatch(
             py,
             &gate.params,
-            equivalent_circuit.data(py).get_params_unsorted(py)?,
+            equivalent_circuit.data.get_params_unsorted(py)?,
         )?;
 
         let key: Key = Key {
@@ -607,7 +602,7 @@ impl EquivalenceLibrary {
             node.equivs.push(equiv.clone());
         }
         let sources: HashSet<Key> =
-            HashSet::from_iter(equivalent_circuit.data(py).iter().map(|inst| Key {
+            HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
                 name: inst.op.name().to_string(),
                 num_qubits: inst.op.num_qubits(),
             }));
