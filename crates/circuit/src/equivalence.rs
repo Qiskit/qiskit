@@ -323,7 +323,7 @@ impl ToPyObject for CircuitRep {
 }
 
 // Custom Types
-type GraphType = StableDiGraph<NodeData, EdgeData>;
+type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
 type KTIType = HashMap<Key, NodeIndex>;
 
 #[pyclass(
@@ -619,7 +619,7 @@ impl EquivalenceLibrary {
             )
         }));
         for edge in edges {
-            self.graph.add_edge(edge.0, edge.1, edge.2);
+            self.graph.add_edge(edge.0, edge.1, Some(edge.2));
         }
         self.rule_id += 1;
         self._graph = None;
