@@ -404,9 +404,9 @@ def _assemble_circuits(
 @deprecate_func(
     since="1.2",
     removal_timeline="in the 2.0 release",
-    additional_msg="The function assemble_circuits is being deprecated "
-    "as they are not necessary for BackendV2. If user still need Qobj, that probably "
-    "means that they are using a backend based on the deprecated BackendV1 class.",
+    additional_msg="The `Qobj` class and related functionality are part of the deprecated `BackendV1` "
+    "workflow,  and no longer necessary for `BackendV2`. If a user workflow requires `Qobj` it likely relies "
+    "on deprecated functionality and should be updated to use `BackendV2`.",
 )
 def assemble_circuits(
     circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
