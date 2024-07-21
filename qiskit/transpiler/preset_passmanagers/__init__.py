@@ -101,7 +101,7 @@ def generate_preset_pass_manager(
     init_method=None,
     optimization_method=None,
     dt=None,
-    is_zero_initialized=True,
+    qubits_initially_zero=True,
     *,
     _skip_target=False,
 ):
@@ -275,7 +275,7 @@ def generate_preset_pass_manager(
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"optimization"`` for the
             ``stage_name`` argument.
-        is_zero_initialized (bool): Indicates whether the input circuit is
+        qubits_initially_zero (bool): Indicates whether the input circuit is
                 zero-initialized.
 
     Returns:
@@ -388,7 +388,7 @@ def generate_preset_pass_manager(
         "hls_config": hls_config,
         "init_method": init_method,
         "optimization_method": optimization_method,
-        "is_zero_initialized": is_zero_initialized,
+        "qubits_initially_zero": qubits_initially_zero,
     }
 
     if backend is not None:
