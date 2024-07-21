@@ -445,9 +445,9 @@ class HighLevelSynthesis(TransformationPass):
 
         # Starting set of clean auxiliary qubits
         if use_ancillas and qubits_initially_zero:
-            clean_ancillas = dag.qubits
+            clean_ancillas = set(dag.qubits)
         else:
-            clean_ancillas = []
+            clean_ancillas = set()
 
         for node in dag.topological_op_nodes():
             # Reduce clean ancillas after appending the current block. Some instructions do
@@ -472,18 +472,20 @@ class HighLevelSynthesis(TransformationPass):
                 )
 
                 if use_ancillas:
-                    clean_ancillas_available = [q for q in clean_ancillas if q not in node.qargs]
+                    clean_ancillas_wo_node = clean_ancillas.difference(set(node.qargs))
+                    num_clean_ancillas_available = len(clean_ancillas_wo_node)
                     num_dirty_ancillas_available = (
-                        dag.num_qubits() - len(node.qargs) - len(clean_ancillas_available)
+                        dag.num_qubits() - len(node.qargs) - num_clean_ancillas_available
                     )
                 else:
-                    clean_ancillas_available = []
+                    clean_ancillas_wo_node = set()
+                    num_clean_ancillas_available = 0
                     num_dirty_ancillas_available = 0
 
                 decomposition, modified = self._recursively_handle_op(
                     node.op,
                     node_qubits,
-                    num_clean_ancillas=len(clean_ancillas_available),
+                    num_clean_ancillas=num_clean_ancillas_available,
                     num_dirty_ancillas=num_dirty_ancillas_available,
                 )
 
@@ -496,7 +498,7 @@ class HighLevelSynthesis(TransformationPass):
 
                     # if we encountered a Reset, the reset qubits are clean
                     if isinstance(node.op, Reset):
-                        clean_ancillas += node.qargs
+                        clean_ancillas = clean_ancillas.union(set(node.qargs))
                         reduce_clean_ancillas = False
 
                 else:
@@ -509,11 +511,13 @@ class HighLevelSynthesis(TransformationPass):
                         num_ancillas_used = decomposition.num_qubits() - len(node.qargs)
                         if num_ancillas_used == 0:
                             extended_qargs = node.qargs
-                        elif num_ancillas_used <= len(clean_ancillas_available):
+                        elif num_ancillas_used <= num_clean_ancillas_available:
+                            clean_ancillas_available = list(clean_ancillas_wo_node)
                             extended_qargs = (
                                 list(node.qargs) + clean_ancillas_available[0:num_ancillas_used]
                             )
                         else:
+                            clean_ancillas_available = list(clean_ancillas_wo_node)
                             dirty_ancillas_available = [
                                 q
                                 for q in dag.qubits
@@ -555,7 +559,7 @@ class HighLevelSynthesis(TransformationPass):
 
             # update the list of clean ancilla qubits
             if reduce_clean_ancillas:
-                clean_ancillas = [q for q in clean_ancillas if q not in node.qargs]
+                clean_ancillas = clean_ancillas.difference(set(node.qargs))
 
         return new_dag
 
