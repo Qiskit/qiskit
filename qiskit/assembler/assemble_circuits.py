@@ -316,7 +316,11 @@ def _configure_experiment_los(
 def _assemble_circuits(
     circuits: List[QuantumCircuit], run_config: RunConfig, qobj_id: int, qobj_header: QobjHeader
 ) -> QasmQobj:
-    experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
+    with warnings.catch_warnings():
+        # Still constructs Qobj, that is deprecated. The message is hard to trace to a module,
+        # because concurrency is hard.
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
     experiments = []
     pulse_library = {}
     for exp, lib in experiments_and_pulse_libs:
