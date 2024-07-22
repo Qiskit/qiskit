@@ -18,7 +18,7 @@ import io
 import re
 from collections.abc import Iterator, Iterable, Callable, Sequence
 from functools import wraps
-from typing import Any, List, Union, TypeVar
+from typing import Union, List, Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
