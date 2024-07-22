@@ -14,6 +14,7 @@
 from __future__ import annotations
 from typing import Optional, List, Tuple, Union, Iterable
 
+import qiskit.circuit
 from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
@@ -162,7 +163,7 @@ class InstructionDurations:
 
     def get(
         self,
-        inst: str | Instruction,
+        inst: str | qiskit.circuit.Instruction,
         qubits: int | list[int],
         unit: str = "dt",
         parameters: list[float] | None = None,
