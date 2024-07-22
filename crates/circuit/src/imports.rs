@@ -57,6 +57,7 @@ impl ImportOnceCell {
 }
 
 pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
+pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
