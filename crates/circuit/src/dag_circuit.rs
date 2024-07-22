@@ -2045,9 +2045,8 @@ def _format(operand):
                         || !dag.qubit_output_map.contains_key(&bit_in_dag.unwrap())
                     {
                         return Err(DAGCircuitError::new_err(format!(
-                            "wire {}[{}] not in self",
-                            m_wire.getattr("name")?,
-                            m_wire.getattr("index")?
+                            "wire {} not in self",
+                            m_wire,
                         )));
                     }
                     // TODO: Python code has check here if node.wire is in other._wires. Why?
@@ -2060,9 +2059,8 @@ def _format(operand):
                         || !dag.clbit_output_map.contains_key(&bit_in_dag.unwrap())
                     {
                         return Err(DAGCircuitError::new_err(format!(
-                            "wire {}[{}] not in self",
-                            m_wire.getattr("name")?,
-                            m_wire.getattr("index")?
+                            "wire {} not in self",
+                            m_wire,
                         )));
                     }
                     // TODO: Python code has check here if node.wire is in other._wires. Why?
