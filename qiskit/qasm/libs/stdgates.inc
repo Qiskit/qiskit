@@ -1,7 +1,7 @@
 // OpenQASM 3.0 standard gate library
 //
-// Vendored from the OpenQASM 3.0 project at
-// https://github.com/openqasm/openqasm.git@4ca1d793833b24a1.
+// Vendored from the OpenQASM 3.0 project at commit 4ca1d793833b24a1 of
+// https://github.com/openqasm/openqasm.
 //
 // Used under the terms of its Apache-2.0 license.
 // Copyright 2017-2024 OpenQASM Contributors.
