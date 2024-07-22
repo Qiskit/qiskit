@@ -860,9 +860,9 @@ impl DAGCircuit {
     // bad there) so we continue to support setting the qubits list directly. This adds some guard rails
     // to ensure we can't corrupt things too horribly
     #[setter]
-    pub fn set_qubits(&mut self, py: Python, qubits: &Bound<PySequence>) -> PyResult<()> {
+    pub fn set_qubits(&mut self, py: Python, qubits: Vec<Bound<PyAny>>) -> PyResult<()> {
         let current_qubits = self.qubits.cached().bind(py);
-        if qubits.len()? != current_qubits.len() {
+        if qubits.len() != current_qubits.len() {
             return Err(DAGCircuitError::new_err(
                 "New qubits don't match the length of old qubits",
             ));
@@ -1081,9 +1081,8 @@ def _format(operand):
     }
 
     /// Add individual qubit wires.
-    fn add_qubits(&mut self, py: Python, qubits: &Bound<PySequence>) -> PyResult<()> {
-        let bits: Vec<Bound<PyAny>> = qubits.extract()?;
-        for bit in bits.iter() {
+    fn add_qubits(&mut self, py: Python, qubits: Vec<Bound<PyAny>>) -> PyResult<()> {
+        for bit in qubits.iter() {
             if !bit.is_instance(self.circuit_module.qubit.bind(py))? {
                 return Err(DAGCircuitError::new_err("not a Qubit instance."));
             }
@@ -1093,7 +1092,7 @@ def _format(operand):
             }
         }
 
-        for bit in bits.iter() {
+        for bit in qubits.iter() {
             self.add_qubit_unchecked(py, bit)?;
         }
         Ok(())
