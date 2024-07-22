@@ -64,9 +64,9 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// This lets us store the enum discriminant in the low data bits, and then type-pun a suitable
 /// bitmask on the contained value back into proper data.
 ///
-/// Explicity, this is logical memory layout of `PackedOperation` on a 64-bit system, written out as
-/// a binary integer.  `x` marks padding bits with undefined values, `S` is the bits that make up a
-/// `StandardGate`, and `P` is bits that make up part of a pointer.
+/// Explicitly, this is logical memory layout of `PackedOperation` on a 64-bit system, written out
+/// as a binary integer.  `x` marks padding bits with undefined values, `S` is the bits that make up
+/// a `StandardGate`, and `P` is bits that make up part of a pointer.
 ///
 /// ```text
 /// Standard gate:
@@ -135,7 +135,8 @@ impl PackedOperation {
     /// **Panics** if the object represents a standard gate; see `try_pointer`.
     #[inline]
     fn pointer(&self) -> NonNull<()> {
-        self.try_pointer().unwrap()
+        self.try_pointer()
+            .expect("the caller is responsible for knowing the correct type")
     }
 
     /// Get the contained pointer to the `PyGate`/`PyInstruction`/`PyOperation` that this object
@@ -163,7 +164,8 @@ impl PackedOperation {
     /// `try_standard_gate`.
     #[inline]
     pub fn standard_gate(&self) -> StandardGate {
-        self.try_standard_gate().unwrap()
+        self.try_standard_gate()
+            .expect("the caller is responsible for knowing the correct type")
     }
 
     /// Get the contained `StandardGate`, if any.
