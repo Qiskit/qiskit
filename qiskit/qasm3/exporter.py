@@ -246,12 +246,17 @@ _BUILTIN_GATES = {
 
 
 @dataclasses.dataclass
-class GateDefinition:
+class GateInfo:
     """Symbol-table information on a gate."""
 
-    source: Gate | None
-    """The definition source of the gate.  This can be ``None`` if the gate was an overridden "basis
-    gate" for this export."""
+    canonical: Gate | None
+    """The canonical object for the gate.  This is a Qiskit object that is not necessarily equal to
+    any usage, but is the canonical form in terms of its parameter usage, such as a standard-library
+    gate being defined in terms of the `_FIXED_PARAMETERS` objects.  A call-site gate whose
+    canonical form equals this can use the corresponding symbol as the callee.
+
+    This can be ``None`` if the gate was an overridden "basis gate" for this export, so no canonical
+    form is known."""
     node: ast.QuantumGateDefinition | None
     """An AST node containing the gate definition.  This can be ``None`` if the gate came from an
     included file, or is an overridden "basis gate" of the export."""
@@ -261,7 +266,7 @@ class SymbolTable:
     """Track Qiskit objects and the OQ3 identifiers used to refer to them."""
 
     def __init__(self):
-        self.gates: collections.OrderedDict[str, GateDefinition | None] = {}
+        self.gates: collections.OrderedDict[str, GateInfo | None] = {}
         """Mapping of the symbol name to the "definition source" of the gate, which provides its
         signature and decomposition.  The definition source can be `None` if the user set the gate
         as a custom "basis gate".
@@ -430,14 +435,14 @@ class SymbolTable:
         name = self.escaped_declarable_name(name, allow_rename=False, unique=False)
         ident = ast.Identifier(name)
         if gate is None:
-            self.gates[name] = GateDefinition(None, None)
+            self.gates[name] = GateInfo(None, None)
         else:
-            source = _gate_definition_source(gate)
-            self.gates[name] = GateDefinition(source, None)
-            if (standard_gate := getattr(source, "_standard_gate")) is not None:
+            canonical = _gate_canonical_form(gate)
+            self.gates[name] = GateInfo(canonical, None)
+            if (standard_gate := getattr(canonical, "_standard_gate")) is not None:
                 self.standard_gate_idents[standard_gate] = ident
             else:
-                self.user_gate_idents[id(source)] = ident
+                self.user_gate_idents[id(canonical)] = ident
         return ident
 
     def register_gate(
@@ -452,7 +457,7 @@ class SymbolTable:
         full AST definition."""
         name = self.escaped_declarable_name(name, allow_rename=True, unique=False)
         ident = ast.Identifier(name)
-        self.gates[name] = GateDefinition(
+        self.gates[name] = GateInfo(
             source, ast.QuantumGateDefinition(ident, tuple(params), tuple(qubits), body)
         )
         # Add the gate object with a magic lookup keep to the objects dictionary so we can retrieve
@@ -466,27 +471,28 @@ class SymbolTable:
 
     def get_gate(self, gate: Gate) -> ast.Identifier | None:
         """Lookup the identifier for a given `Gate`, if it exists."""
-        source = _gate_definition_source(gate)
-        # `our_defn.source` means a basis gate that we should assume is always valid.
+        canonical = _gate_canonical_form(gate)
+        # `our_defn.canonical is None` means a basis gate that we should assume is always valid.
         if (our_defn := self.gates.get(gate.name)) is not None and (
-            our_defn.source is None or our_defn.source == source
+            our_defn.canonical is None or our_defn.canonical == canonical
         ):
             return ast.Identifier(gate.name)
-        if (standard_gate := getattr(source, "_standard_gate")) is not None:
+        if (standard_gate := getattr(canonical, "_standard_gate")) is not None:
             if (our_ident := self.standard_gate_idents.get(standard_gate)) is None:
                 return None
-            return our_ident if self.gates[our_ident.string].source == source else None
+            return our_ident if self.gates[our_ident.string].canonical == canonical else None
         # No need to check equality if we're looking up by `id`; we must have the same object.
-        return self.user_gate_idents.get(id(source))
+        return self.user_gate_idents.get(id(canonical))
 
 
-def _gate_definition_source(gate: Gate) -> Gate:
-    """Get the "definition source" of a gate.
+def _gate_canonical_form(gate: Gate) -> Gate:
+    """Get the canonical form of a gate.
 
     This is the gate object that should be used to provide the OpenQASM 3 definition of a gate (but
     not the call site; that's the input object).  This lets us return a re-parametrised gate in
     terms of general parameters, in cases where we can be sure that that is valid.  This is
-    currently only  Qiskit standard gates.
+    currently only Qiskit standard gates.  This lets multiple call-site gates match the same symbol,
+    in the case of parametric gates.
 
     The definition source provides the number of qubits, the parameter signature and the body of the
     `gate` statement.  It does not provide the name of the symbol being defined."""
@@ -693,8 +699,8 @@ class QASM3Builder:
             return self.symbols.register_gate(gate.name, gate, (), (control, target), body)
         if gate.definition is None:
             raise QASM3ExporterError(f"failed to export gate '{gate.name}' that has no definition")
-        source = _gate_definition_source(gate)
-        with self.new_context(source.definition):
+        canonical = _gate_canonical_form(gate)
+        with self.new_context(canonical.definition):
             defn = self.scope.circuit
             # If `defn.num_parameters == 0` but `gate.params` is non-empty, we are likely in the
             # case where the gate's circuit definition is fully bound (so we can't detect its inputs
@@ -734,7 +740,7 @@ class QASM3Builder:
         # We register the gate only after building its body so that any gates we needed for that in
         # turn are registered in the correct order.  Gates can't be recursive in OQ3, so there's no
         # problem with delaying this.
-        return self.symbols.register_gate(source.name, source, params, qubits, body)
+        return self.symbols.register_gate(canonical.name, canonical, params, qubits, body)
 
     def assert_global_scope(self):
         """Raise an error if we are not in the global scope, as a defensive measure."""
