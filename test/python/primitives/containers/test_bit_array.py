@@ -738,7 +738,7 @@ class BitArrayTestCase(QiskitTestCase):
                 ("basic", [0, 1], [0, 0]),
                 ("multibyte", [0, 9], [0, 1]),
                 ("repeated", [5, 5, 5], [0, 0, 0]),
-                ("contradict", [5, 5, 5], [0, 0, 0]),
+                ("contradict", [5, 5, 5], [1, 0, 0]),
                 ("unsorted", [5, 0, 9, 3], [1, 0, 1, 0]),
                 ("negative", [-5, 1, -2, -10], [1, 0, 1, 0]),
                 ("negcontradict", [4, -6], [1, 0]),
