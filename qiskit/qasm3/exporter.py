@@ -682,7 +682,7 @@ class QASM3Builder:
         This recurses through gate-definition statements."""
         if issubclass(gate.base_class, library.CXGate) and gate.ctrl_state == 1:
             # CX gets super duper special treatment because it's the base of Qiskit's definition
-            # tree, but isn't an OQ3 built-in (it was in OQ2).  We use `isinstance` because we
+            # tree, but isn't an OQ3 built-in (it was in OQ2).  We use `issubclass` because we
             # haven't fully fixed what the name/class distinction is (there's a test from the
             # original OQ3 exporter that tries a naming collision with 'cx').
             control, target = ast.Identifier("c"), ast.Identifier("t")
