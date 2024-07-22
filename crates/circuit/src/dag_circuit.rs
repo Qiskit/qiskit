@@ -1989,9 +1989,15 @@ def _format(operand):
         dag.global_phase = dag.global_phase.add(&other.global_phase, py);
 
         for (gate, cals) in other.calibrations.iter() {
-            dag.calibrations[gate]
-                .bind(py)
-                .update(cals.bind(py).as_mapping())?;
+            let calibrations = match dag.calibrations.get(gate) {
+                Some(calibrations) => calibrations,
+                None => {
+                    dag.calibrations
+                        .insert(gate.clone(), PyDict::new_bound(py).unbind());
+                    &dag.calibrations[gate]
+                }
+            };
+            calibrations.bind(py).update(cals.bind(py).as_mapping())?;
         }
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
