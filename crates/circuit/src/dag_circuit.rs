@@ -3169,26 +3169,24 @@ def _format(operand):
             let pred = self
                 .dag
                 .edges_directed(node_index, Incoming)
-                .filter(|edge| {
+                .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
                         contracted_var.eq(var).unwrap()
                     } else {
                         false
                     }
                 })
-                .next()
                 .unwrap();
             let succ = self
                 .dag
                 .edges_directed(node_index, Outgoing)
-                .filter(|edge| {
+                .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
                         contracted_var.eq(var).unwrap()
                     } else {
                         false
                     }
                 })
-                .next()
                 .unwrap();
             self.dag.add_edge(
                 pred.source(),
@@ -3391,7 +3389,7 @@ new_condition = (new_target, value)
                             &mut self.dag[*new_node_index]
                         {
                             match &mut new_inst.extra_attrs {
-                                Some(attrs) => attrs.condition = new_condition.clone(),
+                                Some(attrs) => attrs.condition.clone_from(&new_condition),
                                 None => {
                                     new_inst.extra_attrs =
                                         Some(Box::new(ExtraInstructionAttributes {
@@ -4778,10 +4776,7 @@ new_condition = (new_target, value)
     }
 
     fn _is_dag(&self) -> bool {
-        match rustworkx_core::petgraph::algo::toposort(&self.dag, None) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        rustworkx_core::petgraph::algo::toposort(&self.dag, None).is_ok()
     }
 
     fn _in_wires(&self, node_index: usize) -> Vec<&PyObject> {
@@ -5643,26 +5638,24 @@ impl DAGCircuit {
                 let pred = self
                     .dag
                     .edges_directed(node, Incoming)
-                    .filter(|edge| {
+                    .find(|edge| {
                         if let Wire::Qubit(bit) = edge.weight() {
                             bit == self_wire
                         } else {
                             false
                         }
                     })
-                    .next()
                     .unwrap();
                 let succ = self
                     .dag
                     .edges_directed(node, Outgoing)
-                    .filter(|edge| {
+                    .find(|edge| {
                         if let Wire::Qubit(bit) = edge.weight() {
                             bit == self_wire
                         } else {
                             false
                         }
                     })
-                    .next()
                     .unwrap();
                 self.dag
                     .add_edge(pred.source(), succ.target(), Wire::Qubit(*self_wire));
@@ -5675,26 +5668,24 @@ impl DAGCircuit {
                 let pred = self
                     .dag
                     .edges_directed(node, Incoming)
-                    .filter(|edge| {
+                    .find(|edge| {
                         if let Wire::Clbit(bit) = edge.weight() {
                             bit == self_wire
                         } else {
                             false
                         }
                     })
-                    .next()
                     .unwrap();
                 let succ = self
                     .dag
                     .edges_directed(node, Outgoing)
-                    .filter(|edge| {
+                    .find(|edge| {
                         if let Wire::Clbit(bit) = edge.weight() {
                             bit == self_wire
                         } else {
                             false
                         }
                     })
-                    .next()
                     .unwrap();
                 self.dag
                     .add_edge(pred.source(), succ.target(), Wire::Clbit(*self_wire));
@@ -5735,13 +5726,13 @@ impl DAGCircuit {
                 let new_qubit_indices: Vec<Qubit> = other
                     .qargs_cache
                     .intern(new_inst.qubits_id)
-                    .into_iter()
+                    .iter()
                     .map(|old_qubit| qubit_map[old_qubit])
                     .collect();
                 let new_clbit_indices: Vec<Clbit> = other
                     .cargs_cache
                     .intern(new_inst.clbits_id)
-                    .into_iter()
+                    .iter()
                     .map(|old_clbit| clbit_map[old_clbit])
                     .collect();
                 new_inst.qubits_id = Interner::intern(&mut self.qargs_cache, new_qubit_indices)?;
@@ -5782,11 +5773,11 @@ impl DAGCircuit {
                 Wire::Qubit(qubit) => other
                     .qubit_input_map
                     .get(&reverse_qubit_map[&qubit])
-                    .map(|x| *x),
+                    .copied(),
                 Wire::Clbit(clbit) => other
                     .clbit_input_map
                     .get(&reverse_clbit_map[&clbit])
-                    .map(|x| *x),
+                    .copied(),
                 Wire::Var(ref var) => {
                     let index = &reverse_var_map.get_item(var)?.unwrap().unbind();
                     other.var_input_map.get(index)
@@ -5818,11 +5809,11 @@ impl DAGCircuit {
                 Wire::Qubit(qubit) => other
                     .qubit_output_map
                     .get(&reverse_qubit_map[&qubit])
-                    .map(|x| *x),
+                    .copied(),
                 Wire::Clbit(clbit) => other
                     .clbit_output_map
                     .get(&reverse_clbit_map[&clbit])
-                    .map(|x| *x),
+                    .copied(),
                 Wire::Var(ref var) => {
                     let index = &reverse_var_map.get_item(var)?.unwrap().unbind();
                     other.var_output_map.get(index)
