@@ -230,7 +230,7 @@ class AnnotatedOperation(Operation):
         if hasattr(self.base_op, "params"):
             self.base_op.params = value
         else:
-            raise NotImplementedError(
+            raise AttributeError(
                 f"Cannot set attribute ``params`` on the base operation {self.base_op}."
             )
 
@@ -239,9 +239,7 @@ class AnnotatedOperation(Operation):
         if hasattr(self.base_op, "validate_parameter"):
             return self.base_op.validate_parameter(parameter)
 
-        raise NotImplementedError(
-            f"Cannot set validate parameters on the base operation {self.base_op}."
-        )
+        raise AttributeError(f"Cannot validate parameters on the base operation {self.base_op}.")
 
 
 def _canonicalize_modifiers(modifiers):
