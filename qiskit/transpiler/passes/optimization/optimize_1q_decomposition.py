@@ -243,9 +243,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                     for gate, angles in best_circuit_sequence:
                         op = CircuitInstruction(gate, qubits=qubit, params=angles)
                         node = DAGOpNode.from_instruction(op, dag=dag)
-                        node._node_id = dag._multi_graph.add_node(node)
-                        dag._increment_op(gate.name)
-                        dag._multi_graph.insert_node_on_in_edges(node._node_id, first_node_id)
+                        dag._insert_1q_on_incoming_qubit(node, first_node_id)
                     dag.global_phase += best_circuit_sequence.global_phase
                     # Delete the other nodes in the run
                     for current_node in run:

@@ -3028,10 +3028,6 @@ def _format(operand):
             NodeType::Operation(op) => op.clone(),
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
-        let topo_nodes: Vec<&NodeType> = input_dag
-            .topological_op_nodes()?
-            .map(|x| &input_dag.dag[x])
-            .collect();
 
         let build_wire_map = |wires: &Bound<PyList>| -> PyResult<(
             HashMap<Qubit, Qubit>,
@@ -4800,6 +4796,31 @@ new_condition = (new_target, value)
             })
             .collect()
     }
+
+    fn _insert_1q_on_incoming_qubit(
+        &mut self,
+        py: Python,
+        node: &Bound<PyAny>,
+        old_index: usize,
+    ) -> PyResult<()> {
+        if let NodeType::Operation(inst) = self.pack_into(py, node)? {
+            self.increment_op(inst.op.name().to_string());
+            let new_index = self.dag.add_node(NodeType::Operation(inst));
+            let old_index: NodeIndex = NodeIndex::new(old_index);
+            let edges: Vec<(NodeIndex, EdgeIndex, Wire)> = self
+                .dag
+                .edges_directed(old_index, Incoming)
+                .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
+                .collect();
+            for (source, edge_index, weight) in edges {
+                self.dag.add_edge(source, new_index, weight);
+                self.dag.remove_edge(edge_index);
+            }
+            Ok(())
+        } else {
+            Err(PyTypeError::new_err("Invalid node type input"))
+        }
+    }
 }
 
 impl DAGCircuit {
@@ -5000,7 +5021,7 @@ impl DAGCircuit {
     /// [DAGCircuit::copy_empty_like].
     fn push_front(&mut self, py: Python, inst: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = inst.op.name();
-        let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
+        let (all_cbits, _vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &inst) {
                 let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_cache.intern(inst.clbits_id).iter().cloned());
