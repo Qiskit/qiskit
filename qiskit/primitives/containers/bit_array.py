@@ -230,7 +230,7 @@ class BitArray(ShapedMixin):
         Args:
             counts: One or more counts-like mappings with the same number of shots.
             num_bits: The desired number of bits per shot. If unset, the biggest value found sets
-                this value.
+                this value, with a minimum of one bit.
 
         Returns:
             A new bit array with shape ``()`` for single input counts, or ``(N,)`` for an iterable
@@ -274,7 +274,7 @@ class BitArray(ShapedMixin):
         Args:
             samples: A list of bitstrings, a list of integers, or a list of hexstrings.
             num_bits: The desired number of bits per sample. If unset, the biggest sample provided
-                is used to determine this value.
+                is used to determine this value, with a minimum of one bit.
 
         Returns:
             A new bit array.
@@ -297,6 +297,9 @@ class BitArray(ShapedMixin):
             # we are forced to prematurely look at every iterand in this case
             ints = list(ints)
             num_bits = max(map(int.bit_length, ints))
+            # convention: if the only value is 0, represent with one bit:
+            if num_bits == 0:
+                num_bits = 1
 
         num_bytes = _min_num_bytes(num_bits)
         data = b"".join(val.to_bytes(num_bytes, "big") for val in ints)
