@@ -2040,9 +2040,9 @@ def _format(operand):
                 NodeType::QubitIn(q) => {
                     let bit = other.qubits.get(*q).unwrap().bind(py);
                     let m_wire = edge_map.get_item(bit)?.unwrap_or_else(|| bit.clone());
-                    let bit_in_dag = dag.qubits.find(bit);
-                    if bit_in_dag.is_none()
-                        || !dag.qubit_output_map.contains_key(&bit_in_dag.unwrap())
+                    let wire_in_dag = dag.qubits.find(&m_wire);
+                    if wire_in_dag.is_none()
+                        || !dag.qubit_output_map.contains_key(&wire_in_dag.unwrap())
                     {
                         return Err(DAGCircuitError::new_err(format!(
                             "wire {} not in self",
@@ -2054,9 +2054,9 @@ def _format(operand):
                 NodeType::ClbitIn(c) => {
                     let bit = other.clbits.get(*c).unwrap().bind(py);
                     let m_wire = edge_map.get_item(bit)?.unwrap_or_else(|| bit.clone());
-                    let bit_in_dag = dag.clbits.find(bit);
-                    if bit_in_dag.is_none()
-                        || !dag.clbit_output_map.contains_key(&bit_in_dag.unwrap())
+                    let wire_in_dag = dag.clbits.find(&m_wire);
+                    if wire_in_dag.is_none()
+                        || !dag.clbit_output_map.contains_key(&wire_in_dag.unwrap())
                     {
                         return Err(DAGCircuitError::new_err(format!(
                             "wire {} not in self",
