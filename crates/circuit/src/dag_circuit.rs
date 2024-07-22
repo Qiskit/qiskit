@@ -2431,6 +2431,14 @@ def _format(operand):
             }
         }
 
+        // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
+        // equal in our mind if they use the exact same UUID vars.
+        for (our_vars, their_vars) in self.vars_by_type.iter().zip(&other.vars_by_type) {
+            if !our_vars.bind(py).eq(their_vars)? {
+                return Ok(false);
+            }
+        }
+
         let self_bit_indices = {
             let indices = self
                 .qubits
