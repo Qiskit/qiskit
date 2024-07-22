@@ -409,6 +409,16 @@ impl StandardGate {
     pub fn get_name(&self) -> &str {
         self.name()
     }
+
+    pub fn __eq__(&self, other: &Bound<PyAny>) -> Py<PyAny> {
+        let py = other.py();
+        let Ok(other) = other.extract::<Self>() else { return py.NotImplemented() };
+        (*self == other).into_py(py)
+    }
+
+    pub fn __hash__(&self) -> isize {
+        *self as isize
+    }
 }
 
 // This must be kept up-to-date with `StandardGate` when adding or removing

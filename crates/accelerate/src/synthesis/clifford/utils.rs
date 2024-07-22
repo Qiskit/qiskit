@@ -29,6 +29,7 @@ pub struct SymplecticMatrix {
 /// Currently this class is internal to the synthesis library and
 /// has a very different functionality from Qiskit's python-based
 /// Clifford class.
+#[derive(Clone)]
 pub struct Clifford {
     /// Number of qubits.
     pub num_qubits: usize,
@@ -184,6 +185,26 @@ impl Clifford {
         azip!((p in &mut p, &x0 in &x0, &z0 in &z0, &x1 in &x1, &z1 in &z1) *p ^= (x1 ^ z0 ^ true) & z1 & x0);
         azip!((x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
         azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
+    }
+
+    /// Modifies the tableau in-place by appending W-gate.
+    /// This is equivalent to an Sdg gate followed by an H gate.
+    pub fn append_v(&mut self, qubit: usize) {
+        let (mut x, mut z) = self
+            .tableau
+            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
+
+        azip!((x in &mut x, z in &mut z) (*x, *z) = (*x ^ *z, *x));
+    }
+
+    /// Modifies the tableau in-place by appending V-gate.
+    /// This is equivalent to two V gates.
+    pub fn append_w(&mut self, qubit: usize) {
+        let (mut x, mut z) = self
+            .tableau
+            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
+
+        azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x ^ *z));
     }
 
     /// Creates a Clifford from a given sequence of Clifford gates.
