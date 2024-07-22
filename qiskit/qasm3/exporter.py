@@ -439,8 +439,8 @@ class SymbolTable:
         else:
             canonical = _gate_canonical_form(gate)
             self.gates[name] = GateInfo(canonical, None)
-            if (standard_gate := getattr(canonical, "_standard_gate")) is not None:
-                self.standard_gate_idents[standard_gate] = ident
+            if canonical._standard_gate is not None:
+                self.standard_gate_idents[canonical._standard_gate] = ident
             else:
                 self.user_gate_idents[id(canonical)] = ident
         return ident
@@ -463,8 +463,8 @@ class SymbolTable:
         # Add the gate object with a magic lookup keep to the objects dictionary so we can retrieve
         # it later.  Standard gates are not guaranteed to have stable IDs (they're preferentially
         # not even created in Python space), but user gates are.
-        if (standard_gate := getattr(source, "_standard_gate")) is not None:
-            self.standard_gate_idents[standard_gate] = ident
+        if source._standard_gate is not None:
+            self.standard_gate_idents[source._standard_gate] = ident
         else:
             self.user_gate_idents[id(source)] = ident
         return ident
@@ -477,8 +477,8 @@ class SymbolTable:
             our_defn.canonical is None or our_defn.canonical == canonical
         ):
             return ast.Identifier(gate.name)
-        if (standard_gate := getattr(canonical, "_standard_gate")) is not None:
-            if (our_ident := self.standard_gate_idents.get(standard_gate)) is None:
+        if canonical._standard_gate is not None:
+            if (our_ident := self.standard_gate_idents.get(canonical._standard_gate)) is None:
                 return None
             return our_ident if self.gates[our_ident.string].canonical == canonical else None
         # No need to check equality if we're looking up by `id`; we must have the same object.
