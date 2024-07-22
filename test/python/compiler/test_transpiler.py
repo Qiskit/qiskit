@@ -1345,7 +1345,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [1], q0_x180)
 
         transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42
+            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42, optimization_level=1
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})

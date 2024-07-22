@@ -391,7 +391,7 @@ class TestBackendEstimator(QiskitTestCase):
             op = SparsePauliOp("IZI")
             backend.set_options(seed_simulator=15)
             estimator = BackendEstimator(backend)
-            estimator.set_transpile_options(seed_transpiler=15)
+            estimator.set_transpile_options(seed_transpiler=15, optimization_level=1)
             value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
                 ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
