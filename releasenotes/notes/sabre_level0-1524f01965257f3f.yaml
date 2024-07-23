@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    The default `routing_method` for optimization level 0 was changed from ``stochastic`` to ``sabre``.
+    The pass :class:`.SabreSwap` fully supersedes :class:`.StochasticSwap` and the latter will be deprecated in a future release.
