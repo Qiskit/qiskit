@@ -53,6 +53,43 @@ impl OperationType {
         };
         py_op.is_instance(py_type)
     }
+
+    pub fn eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match [self, other] {
+            [OperationType::Standard(op1), OperationType::Standard(op2)] => Ok(op1 == op2),
+            [OperationType::Instruction(op1), OperationType::Instruction(op2)] => {
+                if op1.name() != op2.name()
+                    || op1.num_qubits() != op2.num_qubits()
+                    || op2.num_clbits() != op2.num_clbits()
+                    || op1.num_params() != op2.num_params()
+                {
+                    return Ok(false);
+                }
+                op1.instruction.bind(py).eq(&op2.instruction)
+            }
+            [OperationType::Gate(op1), OperationType::Gate(op2)] => {
+                if op1.name() != op2.name()
+                    || op1.num_qubits() != op2.num_qubits()
+                    || op2.num_clbits() != op2.num_clbits()
+                    || op1.num_params() != op2.num_params()
+                {
+                    return Ok(false);
+                }
+                op1.gate.bind(py).eq(&op2.gate)
+            }
+            [OperationType::Operation(op1), OperationType::Operation(op2)] => {
+                if op1.name() != op2.name()
+                    || op1.num_qubits() != op2.num_qubits()
+                    || op2.num_clbits() != op2.num_clbits()
+                    || op1.num_params() != op2.num_params()
+                {
+                    return Ok(false);
+                }
+                op1.operation.bind(py).eq(&op2.operation)
+            }
+            _ => Ok(false),
+        }
+    }
 }
 
 impl IntoPy<PyObject> for OperationType {

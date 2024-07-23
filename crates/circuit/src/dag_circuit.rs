@@ -29,6 +29,7 @@ use crate::{BitType, Clbit, Qubit, TupleLikeArg};
 use approx::relative_eq;
 use hashbrown::{hash_map, HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{
@@ -58,57 +59,12 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
-use std::hash::Hash;
 
 #[cfg(feature = "cache_pygates")]
 use std::cell::RefCell;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
-
-trait IntoUnique {
-    type Output;
-    fn unique(self) -> Self::Output;
-}
-
-struct UniqueIterator<I, N: Hash + Eq> {
-    neighbors: I,
-    seen: HashSet<N>,
-}
-
-impl<I> IntoUnique for I
-where
-    I: Iterator,
-    I::Item: Hash + Eq + Clone,
-{
-    type Output = UniqueIterator<I, I::Item>;
-
-    fn unique(self) -> Self::Output {
-        UniqueIterator {
-            neighbors: self,
-            seen: HashSet::new(),
-        }
-    }
-}
-
-impl<I> Iterator for UniqueIterator<I, I::Item>
-where
-    I: Iterator,
-    I::Item: Hash + Eq + Clone,
-{
-    type Item = I::Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // First any outgoing edges
-        for node in self.neighbors.by_ref() {
-            if !self.seen.contains(&node) {
-                self.seen.insert(node.clone());
-                return Some(node);
-            }
-        }
-        None
-    }
-}
 
 #[derive(Clone, Debug)]
 pub(crate) enum NodeType {
@@ -2515,65 +2471,57 @@ def _format(operand):
         let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
             match [n1, n2] {
                 [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
+                    if !inst1.op.eq(py, &inst2.op)? {
+                        return Ok(false);
+                    }
                     let node1_qargs = self.qargs_cache.intern(inst1.qubits_id);
                     let node2_qargs = other.qargs_cache.intern(inst2.qubits_id);
                     let node1_cargs = self.cargs_cache.intern(inst1.clbits_id);
                     let node2_cargs = other.cargs_cache.intern(inst2.clbits_id);
 
                     match [&inst1.op, &inst2.op] {
-                        [OperationType::Standard(op1), OperationType::Standard(op2)] => {
-                            if op1 != op2 {
-                                Ok(false)
-                            } else {
-                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                    return Ok(false);
-                                }
-                                let conditions_eq = if let Some(cond1) = inst1
+                        [OperationType::Standard(_op1), OperationType::Standard(_op2)] => {
+                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+                            let conditions_eq = if let Some(cond1) = inst1
+                                .extra_attrs
+                                .as_ref()
+                                .and_then(|attrs| attrs.condition.as_ref())
+                            {
+                                if let Some(cond2) = inst2
                                     .extra_attrs
                                     .as_ref()
                                     .and_then(|attrs| attrs.condition.as_ref())
                                 {
-                                    if let Some(cond2) = inst2
-                                        .extra_attrs
-                                        .as_ref()
-                                        .and_then(|attrs| attrs.condition.as_ref())
-                                    {
-                                        legacy_condition_eq
-                                            .call1((
-                                                cond1,
-                                                cond2,
-                                                &self_bit_indices,
-                                                &other_bit_indices,
-                                            ))?
-                                            .extract::<bool>()?
-                                    } else {
-                                        false
-                                    }
+                                    legacy_condition_eq
+                                        .call1((
+                                            cond1,
+                                            cond2,
+                                            &self_bit_indices,
+                                            &other_bit_indices,
+                                        ))?
+                                        .extract::<bool>()?
                                 } else {
-                                    inst2
-                                        .extra_attrs
-                                        .as_ref()
-                                        .and_then(|attrs| attrs.condition.as_ref())
-                                        .is_none()
-                                };
-                                let params_eq = inst1.params.iter().zip(inst2.params.iter()).all(|(a, b)| {
-                                    match [a, b] {
-                                        [Param::Float(float_a), Param::Float(float_b)] => relative_eq!(float_a, float_b, max_relative = 1e-10),
-                                        [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => param_a.bind(py).eq(param_b).unwrap(),
-                                        _ => false,
-                                    }
-                                });
-                                Ok(conditions_eq && params_eq)
-                            }
+                                    false
+                                }
+                            } else {
+                                inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                    .is_none()
+                            };
+                            let params_eq = inst1.params.iter().zip(inst2.params.iter()).all(|(a, b)| {
+                                match [a, b] {
+                                    [Param::Float(float_a), Param::Float(float_b)] => relative_eq!(float_a, float_b, max_relative = 1e-10),
+                                    [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => param_a.bind(py).eq(param_b).unwrap(),
+                                    _ => false,
+                                }
+                            });
+                            Ok(conditions_eq && params_eq)
                         }
                         [OperationType::Instruction(op1), OperationType::Instruction(op2)] => {
-                            if op1.name() != op2.name()
-                                || op1.num_qubits() != op2.num_qubits()
-                                || op2.num_clbits() != op2.num_clbits()
-                                || op1.num_params() != op2.num_params()
-                            {
-                                return Ok(false);
-                            }
                             if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
                                 let node1_qargs =
                                     node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
@@ -2642,17 +2590,9 @@ def _format(operand):
                                     .and_then(|attrs| attrs.condition.as_ref())
                                     .is_none()
                             };
-                            Ok(conditions_eq && op1.instruction.bind(py).eq(&op2.instruction)?)
+                            Ok(conditions_eq)
                         }
-                        [OperationType::Gate(op1), OperationType::Gate(op2)] => {
-                            if op1.name() != op2.name()
-                                || op1.num_qubits() != op2.num_qubits()
-                                || op2.num_clbits() != op2.num_clbits()
-                                || op1.num_params() != op2.num_params()
-                            {
-                                return Ok(false);
-                            }
-
+                        [OperationType::Gate(_op1), OperationType::Gate(_op2)] => {
                             if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
                                 return Ok(false);
                             }
@@ -2685,21 +2625,10 @@ def _format(operand):
                                     .and_then(|attrs| attrs.condition.as_ref())
                                     .is_none()
                             };
-                            Ok(conditions_eq && op1.gate.bind(py).eq(&op2.gate)?)
+                            Ok(conditions_eq)
                         }
-                        [OperationType::Operation(op1), OperationType::Operation(op2)] => {
-                            if op1.name() != op2.name()
-                                || op1.num_qubits() != op2.num_qubits()
-                                || op2.num_clbits() != op2.num_clbits()
-                                || op1.num_params() != op2.num_params()
-                            {
-                                return Ok(false);
-                            }
-
-                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-                            op1.operation.bind(py).eq(&op2.operation)
+                        [OperationType::Operation(_op1), OperationType::Operation(_op2)] => {
+                            Ok(node1_qargs != node2_qargs || node1_cargs != node2_cargs)
                         }
                         _ => Ok(false),
                     }
@@ -4099,7 +4028,11 @@ new_condition = (new_target, value)
     /// Add edges from predecessors to successors.
     #[pyo3(name = "remove_op_node")]
     fn py_remove_op_node(&mut self, node: PyRef<DAGOpNode>) -> PyResult<()> {
-        self.remove_op_node(node.as_ref().node.unwrap());
+        let index = node.as_ref().node.unwrap();
+        if self.dag.node_weight(index).is_none() {
+            return Err(DAGCircuitError::new_err("Node not in DAG"));
+        }
+        self.remove_op_node(index);
         Ok(())
     }
 

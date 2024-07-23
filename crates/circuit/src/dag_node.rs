@@ -17,6 +17,12 @@ use crate::circuit_instruction::{
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, OperationType, Param};
 use crate::TupleLikeArg;
+
+use ahash::AHasher;
+use std::hash::Hasher;
+
+use approx::relative_eq;
+
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
@@ -164,6 +170,59 @@ impl DAGOpNode {
                 DAGNode { node: None },
             ),
         )
+    }
+
+    fn __hash__(slf: PyRef<'_, Self>, py: Python) -> PyResult<u64> {
+        let super_ = slf.as_ref();
+        let mut hasher = AHasher::default();
+        hasher.write_isize(super_.py_nid());
+        hasher.write(slf.instruction.operation.name().as_bytes());
+        Ok(hasher.finish())
+    }
+
+    fn __eq__(slf: PyRef<Self>, py: Python, other: &Bound<PyAny>) -> PyResult<bool> {
+        match other.downcast::<Self>() {
+            Ok(other) => {
+                let borrowed_other = other.borrow();
+                let other_super = borrowed_other.as_ref();
+                let super_ = slf.as_ref();
+
+                if super_.py_nid() != other_super.py_nid() {
+                    return Ok(false);
+                }
+                if !slf
+                    .instruction
+                    .operation
+                    .eq(py, &borrowed_other.instruction.operation)?
+                {
+                    return Ok(false);
+                }
+                let params_eq = if let OperationType::Standard(_op) = slf.instruction.operation {
+                    slf.instruction.params.iter().zip(borrowed_other.instruction.params.iter()).all(|(a, b)| {
+                       match [a, b] {
+                           [Param::Float(float_a), Param::Float(float_b)] => relative_eq!(float_a, float_b, max_relative = 1e-10),
+                           [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => param_a.bind(py).eq(param_b).unwrap(),
+                           _ => false,
+                       }
+                   })
+                } else {
+                    true
+                };
+
+                Ok(params_eq
+                    && slf
+                        .instruction
+                        .qubits
+                        .bind(py)
+                        .eq(borrowed_other.instruction.qubits.clone_ref(py))?
+                    && slf
+                        .instruction
+                        .clbits
+                        .bind(py)
+                        .eq(borrowed_other.instruction.clbits.clone_ref(py))?)
+            }
+            Err(_) => Ok(false),
+        }
     }
 
     #[staticmethod]
@@ -438,6 +497,27 @@ impl DAGInNode {
         Ok(())
     }
 
+    fn __hash__(slf: PyRef<'_, Self>, py: Python) -> PyResult<u64> {
+        let super_ = slf.as_ref();
+        let mut hasher = AHasher::default();
+        hasher.write_isize(super_.py_nid());
+        hasher.write_isize(slf.wire.bind(py).hash()?);
+        Ok(hasher.finish())
+    }
+
+    fn __eq__(slf: PyRef<Self>, py: Python, other: &Bound<PyAny>) -> PyResult<bool> {
+        match other.downcast::<Self>() {
+            Ok(other) => {
+                let borrowed_other = other.borrow();
+                let other_super = borrowed_other.as_ref();
+                let super_ = slf.as_ref();
+                Ok(super_.py_nid() == other_super.py_nid()
+                    && slf.wire.bind(py).eq(borrowed_other.wire.clone_ref(py))?)
+            }
+            Err(_) => Ok(false),
+        }
+    }
+
     /// Returns a representation of the DAGInNode
     fn __repr__(&self, py: Python) -> PyResult<String> {
         Ok(format!("DAGInNode(wire={})", self.wire.bind(py).repr()?))
@@ -490,8 +570,29 @@ impl DAGOutNode {
         Ok(())
     }
 
+    fn __hash__(slf: PyRef<'_, Self>, py: Python) -> PyResult<u64> {
+        let super_ = slf.as_ref();
+        let mut hasher = AHasher::default();
+        hasher.write_isize(super_.py_nid());
+        hasher.write_isize(slf.wire.bind(py).hash()?);
+        Ok(hasher.finish())
+    }
+
     /// Returns a representation of the DAGOutNode
     fn __repr__(&self, py: Python) -> PyResult<String> {
         Ok(format!("DAGOutNode(wire={})", self.wire.bind(py).repr()?))
+    }
+
+    fn __eq__(slf: PyRef<Self>, py: Python, other: &Bound<PyAny>) -> PyResult<bool> {
+        match other.downcast::<Self>() {
+            Ok(other) => {
+                let borrowed_other = other.borrow();
+                let other_super = borrowed_other.as_ref();
+                let super_ = slf.as_ref();
+                Ok(super_.py_nid() == other_super.py_nid()
+                    && slf.wire.bind(py).eq(borrowed_other.wire.clone_ref(py))?)
+            }
+            Err(_) => Ok(false),
+        }
     }
 }

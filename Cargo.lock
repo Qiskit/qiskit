@@ -1191,6 +1191,7 @@ dependencies = [
  "approx",
  "hashbrown 0.14.5",
  "indexmap",
+ "itertools 0.13.0",
  "ndarray",
  "num-complex",
  "numpy",
