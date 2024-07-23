@@ -275,11 +275,8 @@ class TestSabreSwap(QiskitTestCase):
 
         # Assert that the same keys are produced by a simulation - this is a test that the inserted
         # swaps route the qubits correctly.
-        with warnings.catch_warnings():
-            # TODO remove Aer stops using Provider Qiskit class
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            if not optionals.HAS_AER:
-                return
+        if not optionals.HAS_AER:
+            return
 
         from qiskit_aer import Aer
 
