@@ -46,10 +46,7 @@ class FakeBackendsTest(QiskitTestCase):
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
-        with warnings.catch_warnings():
-            # TODO remove this catch once Aer stops using QobjDictField
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
+        raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
 
