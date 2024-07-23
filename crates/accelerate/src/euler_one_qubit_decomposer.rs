@@ -743,7 +743,7 @@ pub fn compute_error_list(
         .iter()
         .map(|node| {
             (
-                node.instruction.operation.name().to_string(),
+                node.instruction.op().name().to_string(),
                 smallvec![], // Params not needed in this path
             )
         })
@@ -988,11 +988,10 @@ pub fn optimize_1q_gates_decomposition(
                 .iter()
                 .map(|node| {
                     if let Some(err_map) = error_map {
-                        error *=
-                            compute_error_term(node.instruction.operation.name(), err_map, qubit)
+                        error *= compute_error_term(node.instruction.op().name(), err_map, qubit)
                     }
                     node.instruction
-                        .operation
+                        .op()
                         .matrix(&node.instruction.params)
                         .expect("No matrix defined for operation")
                 })
@@ -1046,24 +1045,16 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
 
 #[pyfunction]
 pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
-    let op_node = node.downcast::<DAGOpNode>();
-    match op_node {
-        Ok(bound_node) => {
-            let node = bound_node.borrow();
-            node.instruction.operation.num_qubits() == 1
-                && node.instruction.operation.num_clbits() == 0
-                && node
-                    .instruction
-                    .operation
-                    .matrix(&node.instruction.params)
-                    .is_some()
-                && match &node.instruction.extra_attrs {
-                    None => true,
-                    Some(attrs) => attrs.condition.is_none(),
-                }
+    let Ok(node) = node.downcast::<DAGOpNode>() else { return false };
+    let node = node.borrow();
+    let op = node.instruction.op();
+    op.num_qubits() == 1
+        && op.num_clbits() == 0
+        && op.matrix(&node.instruction.params).is_some()
+        && match &node.instruction.extra_attrs {
+            None => true,
+            Some(attrs) => attrs.condition.is_none(),
         }
-        Err(_) => false,
-    }
 }
 
 #[pymodule]

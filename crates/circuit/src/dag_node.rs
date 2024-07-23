@@ -10,17 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::circuit_instruction::{
-    convert_py_to_operation_type, operation_type_to_py, CircuitInstruction,
-    ExtraInstructionAttributes,
-};
+#[cfg(feature = "cache_pygates")]
+use std::cell::RefCell;
+
+use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::Operation;
+
 use numpy::IntoPyArray;
+
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
 use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
-use smallvec::smallvec;
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
@@ -73,19 +74,13 @@ pub struct DAGOpNode {
 
 #[pymethods]
 impl DAGOpNode {
-    #[allow(clippy::too_many_arguments)]
     #[new]
-    #[pyo3(signature = (op, qargs=None, cargs=None, params=smallvec![], label=None, duration=None, unit=None, condition=None, dag=None))]
+    #[pyo3(signature = (op, qargs=None, cargs=None, *, dag=None))]
     fn new(
         py: Python,
-        op: crate::circuit_instruction::OperationInput,
+        op: &Bound<PyAny>,
         qargs: Option<&Bound<PySequence>>,
         cargs: Option<&Bound<PySequence>>,
-        params: smallvec::SmallVec<[crate::operations::Param; 3]>,
-        label: Option<String>,
-        duration: Option<PyObject>,
-        unit: Option<String>,
-        condition: Option<PyObject>,
         dag: Option<&Bound<PyAny>>,
     ) -> PyResult<(Self, DAGNode)> {
         let qargs =
@@ -120,30 +115,29 @@ impl DAGOpNode {
             }
             None => qargs.str()?.into_any(),
         };
-
-        let mut instruction = CircuitInstruction::py_new(
-            py, op, None, None, params, label, duration, unit, condition,
-        )?;
-        instruction.qubits = qargs.into();
-        instruction.clbits = cargs.into();
-
         Ok((
             DAGOpNode {
-                instruction,
+                instruction: CircuitInstruction::py_new(
+                    op,
+                    Some(qargs.into_any()),
+                    Some(cargs.into_any()),
+                )?,
                 sort_key: sort_key.unbind(),
             },
             DAGNode { _node_id: -1 },
         ))
     }
 
+    #[pyo3(signature = (instruction, /, *, dag=None, deepcopy=false))]
     #[staticmethod]
     fn from_instruction(
         py: Python,
-        instruction: CircuitInstruction,
+        mut instruction: CircuitInstruction,
         dag: Option<&Bound<PyAny>>,
+        deepcopy: bool,
     ) -> PyResult<PyObject> {
-        let qargs = instruction.qubits.clone_ref(py).into_bound(py);
-        let cargs = instruction.clbits.clone_ref(py).into_bound(py);
+        let qargs = instruction.qubits.bind(py);
+        let cargs = instruction.clbits.bind(py);
 
         let sort_key = match dag {
             Some(dag) => {
@@ -172,6 +166,13 @@ impl DAGOpNode {
             }
             None => qargs.str()?.into_any(),
         };
+        if deepcopy {
+            instruction.operation = instruction.operation.py_deepcopy(py, None)?;
+            #[cfg(feature = "cache_pygates")]
+            {
+                *instruction.py_op.borrow_mut() = None;
+            }
+        }
         let base = PyClassInitializer::from(DAGNode { _node_id: -1 });
         let sub = base.add_subclass(DAGOpNode {
             instruction,
@@ -180,12 +181,13 @@ impl DAGOpNode {
         Ok(Py::new(py, sub)?.to_object(py))
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
+    fn __reduce__(slf: PyRef<Self>) -> PyResult<PyObject> {
+        let py = slf.py();
         let state = (slf.as_ref()._node_id, &slf.sort_key);
         Ok((
             py.get_type_bound::<Self>(),
             (
-                operation_type_to_py(py, &slf.instruction)?,
+                slf.instruction.get_operation(py)?,
                 &slf.instruction.qubits,
                 &slf.instruction.clbits,
             ),
@@ -201,42 +203,56 @@ impl DAGOpNode {
         Ok(())
     }
 
+    /// Get a `CircuitInstruction` that represents the same information as this `DAGOpNode`.  If
+    /// `deepcopy`, any internal Python objects are deep-copied.
+    ///
+    /// Note: this ought to be a temporary method, while the DAG/QuantumCircuit converters still go
+    /// via Python space; this still involves copy-out and copy-in of the data, whereas doing it all
+    /// within Rust space could directly re-pack the instruction from a `DAGOpNode` to a
+    /// `PackedInstruction` with no intermediate copy.
+    #[pyo3(signature = (/, *, deepcopy=false))]
+    fn _to_circuit_instruction(&self, py: Python, deepcopy: bool) -> PyResult<CircuitInstruction> {
+        Ok(CircuitInstruction {
+            operation: if deepcopy {
+                self.instruction.operation.py_deepcopy(py, None)?
+            } else {
+                self.instruction.operation.clone()
+            },
+            qubits: self.instruction.qubits.clone_ref(py),
+            clbits: self.instruction.clbits.clone_ref(py),
+            params: self.instruction.params.clone(),
+            extra_attrs: self.instruction.extra_attrs.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: RefCell::new(None),
+        })
+    }
+
     #[getter]
     fn get_op(&self, py: Python) -> PyResult<PyObject> {
-        operation_type_to_py(py, &self.instruction)
+        self.instruction.get_operation(py)
     }
 
     #[setter]
-    fn set_op(&mut self, py: Python, op: PyObject) -> PyResult<()> {
-        let res = convert_py_to_operation_type(py, op)?;
+    fn set_op(&mut self, op: &Bound<PyAny>) -> PyResult<()> {
+        let res = op.extract::<OperationFromPython>()?;
         self.instruction.operation = res.operation;
         self.instruction.params = res.params;
-        let extra_attrs = if res.label.is_some()
-            || res.duration.is_some()
-            || res.unit.is_some()
-            || res.condition.is_some()
+        self.instruction.extra_attrs = res.extra_attrs;
+        #[cfg(feature = "cache_pygates")]
         {
-            Some(Box::new(ExtraInstructionAttributes {
-                label: res.label,
-                duration: res.duration,
-                unit: res.unit,
-                condition: res.condition,
-            }))
-        } else {
-            None
-        };
-        self.instruction.extra_attrs = extra_attrs;
+            *self.instruction.py_op.borrow_mut() = Some(op.into_py(op.py()));
+        }
         Ok(())
     }
 
     #[getter]
     fn num_qubits(&self) -> u32 {
-        self.instruction.operation.num_qubits()
+        self.instruction.op().num_qubits()
     }
 
     #[getter]
     fn num_clbits(&self) -> u32 {
-        self.instruction.operation.num_clbits()
+        self.instruction.op().num_clbits()
     }
 
     #[getter]
@@ -261,8 +277,8 @@ impl DAGOpNode {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self) -> &str {
-        self.instruction.operation.name()
+    fn get_name(&self, py: Python) -> Py<PyString> {
+        self.instruction.op().name().into_py(py)
     }
 
     #[getter]
@@ -281,7 +297,7 @@ impl DAGOpNode {
 
     #[getter]
     fn matrix(&self, py: Python) -> Option<PyObject> {
-        let matrix = self.instruction.operation.matrix(&self.instruction.params);
+        let matrix = self.instruction.op().matrix(&self.instruction.params);
         matrix.map(|mat| mat.into_pyarray_bound(py).into())
     }
 
@@ -317,6 +333,11 @@ impl DAGOpNode {
             .and_then(|attrs| attrs.unit.as_deref())
     }
 
+    #[getter]
+    pub fn is_standard_gate(&self) -> bool {
+        self.instruction.is_standard_gate()
+    }
+
     #[setter]
     fn set_label(&mut self, val: Option<String>) {
         match self.instruction.extra_attrs.as_mut() {
@@ -347,11 +368,9 @@ impl DAGOpNode {
 
     #[getter]
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
-        let definition = self
-            .instruction
-            .operation
-            .definition(&self.instruction.params);
-        definition
+        self.instruction
+            .op()
+            .definition(&self.instruction.params)
             .map(|data| {
                 QUANTUM_CIRCUIT
                     .get_bound(py)
@@ -363,25 +382,17 @@ impl DAGOpNode {
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
     fn set_name(&mut self, py: Python, new_name: PyObject) -> PyResult<()> {
-        let op = operation_type_to_py(py, &self.instruction)?;
-        op.bind(py).setattr(intern!(py, "name"), new_name)?;
-        let res = convert_py_to_operation_type(py, op)?;
-        self.instruction.operation = res.operation;
+        let op = self.instruction.get_operation_mut(py)?.into_bound(py);
+        op.setattr(intern!(py, "name"), new_name)?;
+        self.instruction.operation = op.extract::<OperationFromPython>()?.operation;
         Ok(())
-    }
-
-    #[getter]
-    fn _raw_op(&self, py: Python) -> PyObject {
-        self.instruction.operation.clone().into_py(py)
     }
 
     /// Returns a representation of the DAGOpNode
     fn __repr__(&self, py: Python) -> PyResult<String> {
         Ok(format!(
             "DAGOpNode(op={}, qargs={}, cargs={})",
-            operation_type_to_py(py, &self.instruction)?
-                .bind(py)
-                .repr()?,
+            self.instruction.get_operation(py)?.bind(py).repr()?,
             self.instruction.qubits.bind(py).repr()?,
             self.instruction.clbits.bind(py).repr()?
         ))

@@ -23,11 +23,11 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use smallvec::SmallVec;
 
 use qiskit_circuit::bit_data::BitData;
-use qiskit_circuit::circuit_instruction::{operation_type_to_py, CircuitInstruction};
+use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::operations::{Operation, OperationType};
+use qiskit_circuit::operations::{Operation, OperationRef};
 
 use crate::QiskitError;
 
@@ -35,21 +35,20 @@ fn get_matrix_from_inst<'py>(
     py: Python<'py>,
     inst: &'py CircuitInstruction,
 ) -> PyResult<Array2<Complex64>> {
-    match inst.operation.matrix(&inst.params) {
-        Some(mat) => Ok(mat),
-        None => match inst.operation {
-            OperationType::Standard(_) => Err(QiskitError::new_err(
-                "Parameterized gates can't be consolidated",
-            )),
-            OperationType::Gate(_) => Ok(QI_OPERATOR
-                .get_bound(py)
-                .call1((operation_type_to_py(py, inst)?,))?
-                .getattr(intern!(py, "data"))?
-                .extract::<PyReadonlyArray2<Complex64>>()?
-                .as_array()
-                .to_owned()),
-            _ => unreachable!("Only called for unitary ops"),
-        },
+    if let Some(mat) = inst.op().matrix(&inst.params) {
+        Ok(mat)
+    } else if inst.operation.try_standard_gate().is_some() {
+        Err(QiskitError::new_err(
+            "Parameterized gates can't be consolidated",
+        ))
+    } else {
+        Ok(QI_OPERATOR
+            .get_bound(py)
+            .call1((inst.get_operation(py)?,))?
+            .getattr(intern!(py, "data"))?
+            .extract::<PyReadonlyArray2<Complex64>>()?
+            .as_array()
+            .to_owned())
     }
 }
 
@@ -127,34 +126,20 @@ pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
 
 #[pyfunction]
 pub fn collect_2q_blocks_filter(node: &Bound<PyAny>) -> Option<bool> {
-    match node.downcast::<DAGOpNode>() {
-        Ok(bound_node) => {
-            let node = bound_node.borrow();
-            match &node.instruction.operation {
-                OperationType::Standard(gate) => Some(
-                    gate.num_qubits() <= 2
-                        && node
-                            .instruction
-                            .extra_attrs
-                            .as_ref()
-                            .and_then(|attrs| attrs.condition.as_ref())
-                            .is_none()
-                        && !node.is_parameterized(),
-                ),
-                OperationType::Gate(gate) => Some(
-                    gate.num_qubits() <= 2
-                        && node
-                            .instruction
-                            .extra_attrs
-                            .as_ref()
-                            .and_then(|attrs| attrs.condition.as_ref())
-                            .is_none()
-                        && !node.is_parameterized(),
-                ),
-                _ => Some(false),
-            }
-        }
-        Err(_) => None,
+    let Ok(node) = node.downcast::<DAGOpNode>() else { return None };
+    let node = node.borrow();
+    match node.instruction.op() {
+        gate @ (OperationRef::Standard(_) | OperationRef::Gate(_)) => Some(
+            gate.num_qubits() <= 2
+                && node
+                    .instruction
+                    .extra_attrs
+                    .as_ref()
+                    .and_then(|attrs| attrs.condition.as_ref())
+                    .is_none()
+                && !node.is_parameterized(),
+        ),
+        _ => Some(false),
     }
 }
 
