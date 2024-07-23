@@ -431,6 +431,17 @@ class GenericBackendV2(BackendV2):
             self._target.add_instruction(BreakLoopOp, name="break")
             self._target.add_instruction(ContinueLoopOp, name="continue")
 
+    # Function to generate a coupling map for 3-qubit or 4-qubit gates from
+    # the given coupling map.
+    def _multi_qubit_gate_coupling_map(self, coupling_map, n_qubits):
+        multi_qubit_coupling_map = []
+        for e1 in coupling_map:
+            for e2 in coupling_map:
+                e3 = set(e1 + e2)
+                if len(e3) == n_qubits and list(e3) not in multi_qubit_coupling_map:
+                    multi_qubit_coupling_map.extend(itertools.permutations(list(e3), n_qubits))
+        return multi_qubit_coupling_map
+
     def _add_noisy_instruction_to_target(
         self,
         instruction: Instruction,
@@ -453,9 +464,11 @@ class GenericBackendV2(BackendV2):
         elif instruction.num_qubits == 2:
             qarg_set = self._coupling_map
         elif instruction.num_qubits > 2:
-            qarg_set = list(itertools.permutations(range(self.num_qubits), instruction.num_qubits))
-        # In all the list(get_standard_gate_name_mapping()) only 'global_phase' gate
-        # returns 0 for global_phase.num_qubits and so we will handle this case
+            qarg_set = self._multi_qubit_gate_coupling_map(
+                self._coupling_map, instruction.num_qubits
+            )
+        # Among all the gates in list(get_standard_gate_name_mapping()) only 'global_phase'
+        # gate returns 0 for `global_phase.num_qubits` and so we will handle this case
         # like we handle control flow operations i.e by just adding them to the target
         else:
             self._target.add_instruction(instruction, name="global_phase")

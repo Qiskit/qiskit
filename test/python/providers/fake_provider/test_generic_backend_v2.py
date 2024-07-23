@@ -172,7 +172,14 @@ class TestGenericBackendV2(QiskitTestCase):
         control_flow=True option"""
 
         std_gates = list(get_standard_gate_name_mapping())
-        ctrlflow = ["if_else", "while_loop", "for_loop", "switch_case", "break_loop", "continue_loop"]
+        ctrlflow = [
+            "if_else",
+            "while_loop",
+            "for_loop",
+            "switch_case",
+            "break_loop",
+            "continue_loop",
+        ]
 
         basis_gates = std_gates + ctrlflow
 
