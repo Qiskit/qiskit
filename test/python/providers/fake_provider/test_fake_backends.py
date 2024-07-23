@@ -61,10 +61,6 @@ class FakeBackendsTest(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
-        with warnings.catch_warnings():
-            with warnings.catch_warnings():
-                # TODO remove this catch once Aer stops using QobjDictField
-                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-                res = backend.run(qc, shots=1000).result().get_counts()
+        res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})
