@@ -13,7 +13,6 @@
 """ Test of GenericBackendV2 backend"""
 
 import math
-import warnings
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2

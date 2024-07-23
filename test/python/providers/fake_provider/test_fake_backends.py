@@ -13,7 +13,6 @@
 """Test of generated fake backends."""
 import math
 import unittest
-import warnings
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
