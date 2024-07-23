@@ -681,7 +681,7 @@ You might need to re-run this command if Qiskit has issued a new release since t
 
 Sometimes, you might get errors about "names not existing" or "failed to import" during the docs build, even when the test suite passes.
 This can mean that Sphinx's cache has become invalidated, but hasn't been successfully cleared.
-Use the command
+Use the command:
 ```
 tox -e docs-clean
 ```
