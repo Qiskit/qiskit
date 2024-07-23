@@ -1022,8 +1022,7 @@ class TestParameters(QiskitTestCase):
         )
 
     def test_binding_parameterized_circuits_built_in_multiproc(self):
-        """Verify subcircuits built in a subprocess can still be bound.
-        REMOVE this test once assemble is REMOVED"""
+        """Verify subcircuits built in a subprocess can still be bound."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
 
         num_processes = 4
