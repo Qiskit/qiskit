@@ -55,6 +55,7 @@ from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
 from qiskit._accelerate.euler_one_qubit_decomposer import collect_1q_runs_filter
+from qiskit._accelerate.convert_2q_block_matrix import collect_2q_blocks_filter
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
@@ -718,11 +719,17 @@ class DAGCircuit:
 
         return target_dag
 
-    def _apply_op_node_back(self, node: DAGOpNode):
+    def _apply_op_node_back(self, node: DAGOpNode, *, check: bool = False):
         additional = ()
         if _may_have_additional_wires(node):
             # This is the slow path; most of the time, this won't happen.
-            additional = set(_additional_wires(node)).difference(node.cargs)
+            additional = set(_additional_wires(node.op)).difference(node.cargs)
+
+        if check:
+            self._check_condition(node.name, node.condition)
+            self._check_wires(node.qargs, self.output_map)
+            self._check_wires(node.cargs, self.output_map)
+            self._check_wires(additional, self.output_map)
 
         node._node_id = self._multi_graph.add_node(node)
         self._increment_op(node.name)
@@ -738,6 +745,7 @@ class DAGCircuit:
                 for bit in bits
             ],
         )
+        return node
 
     def apply_operation_back(
         self,
@@ -765,32 +773,9 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        qargs = tuple(qargs)
-        cargs = tuple(cargs)
-        additional = ()
-
-        if _may_have_additional_wires(op):
-            # This is the slow path; most of the time, this won't happen.
-            additional = set(_additional_wires(op)).difference(cargs)
-
-        if check:
-            self._check_condition(op.name, getattr(op, "condition", None))
-            self._check_wires(qargs, self.output_map)
-            self._check_wires(cargs, self.output_map)
-            self._check_wires(additional, self.output_map)
-
-        node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
-        node._node_id = self._multi_graph.add_node(node)
-        self._increment_op(op.name)
-
-        # Add new in-edges from predecessors of the output nodes to the
-        # operation node while deleting the old in-edges of the output nodes
-        # and adding new edges from the operation node to each output node
-        self._multi_graph.insert_node_on_in_edges_multiple(
-            node._node_id,
-            [self.output_map[bit]._node_id for bits in (qargs, cargs, additional) for bit in bits],
+        return self._apply_op_node_back(
+            DAGOpNode(op=op, qargs=tuple(qargs), cargs=tuple(cargs), dag=self), check=check
         )
-        return node
 
     def apply_operation_front(
         self,
@@ -821,26 +806,30 @@ class DAGCircuit:
         cargs = tuple(cargs)
         additional = ()
 
-        if _may_have_additional_wires(op):
+        node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
+        if _may_have_additional_wires(node):
             # This is the slow path; most of the time, this won't happen.
-            additional = set(_additional_wires(op)).difference(cargs)
+            additional = set(_additional_wires(node.op)).difference(cargs)
 
         if check:
-            self._check_condition(op.name, getattr(op, "condition", None))
-            self._check_wires(qargs, self.output_map)
-            self._check_wires(cargs, self.output_map)
+            self._check_condition(node.name, node.condition)
+            self._check_wires(node.qargs, self.output_map)
+            self._check_wires(node.cargs, self.output_map)
             self._check_wires(additional, self.output_map)
 
-        node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
         node._node_id = self._multi_graph.add_node(node)
-        self._increment_op(op.name)
+        self._increment_op(node.name)
 
         # Add new out-edges to successors of the input nodes from the
         # operation node while deleting the old out-edges of the input nodes
         # and adding new edges to the operation node from each input node
         self._multi_graph.insert_node_on_out_edges_multiple(
             node._node_id,
-            [self.input_map[bit]._node_id for bits in (qargs, cargs, additional) for bit in bits],
+            [
+                self.input_map[bit]._node_id
+                for bits in (node.qargs, node.cargs, additional)
+                for bit in bits
+            ],
         )
         return node
 
@@ -1348,9 +1337,9 @@ class DAGCircuit:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            if (condition := getattr(nd.op, "condition", None)) is not None:
+            if (condition := getattr(nd, "condition", None)) is not None:
                 block_cargs.update(condition_resources(condition).clbits)
-            elif isinstance(nd.op, SwitchCaseOp):
+            elif nd.name in CONTROL_FLOW_OP_NAMES and isinstance(nd.op, SwitchCaseOp):
                 if isinstance(nd.op.target, Clbit):
                     block_cargs.add(nd.op.target)
                 elif isinstance(nd.op.target, ClassicalRegister):
@@ -1432,7 +1421,7 @@ class DAGCircuit:
             node_wire_order = list(node.qargs) + list(node.cargs)
             # If we're not propagating it, the number of wires in the input DAG should include the
             # condition as well.
-            if not propagate_condition and _may_have_additional_wires(node.op):
+            if not propagate_condition and _may_have_additional_wires(node):
                 node_wire_order += [
                     wire for wire in _additional_wires(node.op) if wire not in node_cargs
                 ]
@@ -1454,7 +1443,7 @@ class DAGCircuit:
                 raise DAGCircuitError(
                     f"bit mapping invalid: {input_dag_wire} and {our_wire} are different bit types"
                 )
-        if _may_have_additional_wires(node.op):
+        if _may_have_additional_wires(node):
             node_vars = {var for var in _additional_wires(node.op) if isinstance(var, expr.Var)}
         else:
             node_vars = set()
@@ -1985,9 +1974,7 @@ class DAGCircuit:
                 "node type was wrongly provided."
             )
 
-        self._multi_graph.remove_node_retain_edges(
-            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
-        )
+        self._multi_graph.remove_node_retain_edges_by_id(node._node_id)
         self._decrement_op(node.name)
 
     def remove_ancestors_of(self, node):
@@ -2158,28 +2145,13 @@ class DAGCircuit:
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 
-        to_qid = {}
-        for i, qubit in enumerate(self.qubits):
-            to_qid[qubit] = i
-
-        def filter_fn(node):
-            if isinstance(node, DAGOpNode):
-                return (
-                    isinstance(node.op, Gate)
-                    and len(node.qargs) <= 2
-                    and not getattr(node.op, "condition", None)
-                    and not node.op.is_parameterized()
-                )
-            else:
-                return None
-
         def color_fn(edge):
             if isinstance(edge, Qubit):
-                return to_qid[edge]
+                return self.find_bit(edge).index
             else:
                 return None
 
-        return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
+        return rx.collect_bicolor_runs(self._multi_graph, collect_2q_blocks_filter, color_fn)
 
     def nodes_on_wire(self, wire, only_ops=False):
         """
@@ -2376,24 +2348,25 @@ class _DAGVarInfo:
         self.out_node = out_node
 
 
-def _may_have_additional_wires(operation) -> bool:
-    """Return whether a given :class:`.Operation` may contain references to additional wires
-    locations within itself.  If this is ``False``, it doesn't necessarily mean that the operation
-    _will_ access memory inherently, but a ``True`` return guarantees that it won't.
+def _may_have_additional_wires(node) -> bool:
+    """Return whether a given :class:`.DAGOpNode` may contain references to additional wires
+    locations within its :class:`.Operation`.  If this is ``True``, it doesn't necessarily mean
+    that the operation _will_ access memory inherently, but a ``False`` return guarantees that it
+    won't.
 
     The memory might be classical bits or classical variables, such as a control-flow operation or a
     store.
 
     Args:
-        operation (qiskit.circuit.Operation): the operation to check.
+        operation (qiskit.dagcircuit.DAGOpNode): the operation to check.
     """
     # This is separate to `_additional_wires` because most of the time there won't be any extra
     # wires beyond the explicit `qargs` and `cargs` so we want a fast path to be able to skip
     # creating and testing a generator for emptiness.
     #
     # If updating this, you most likely also need to update `_additional_wires`.
-    return getattr(operation, "condition", None) is not None or isinstance(
-        operation, (ControlFlowOp, Store)
+    return node.condition is not None or (
+        not node.is_standard_gate and isinstance(node.op, (ControlFlowOp, Store))
     )
 
 
