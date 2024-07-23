@@ -272,7 +272,7 @@ class PulseDefaults:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
         schema = {
-            "pulse_library": PulseLibraryItem,  # The class PulseLibraryItem` is deprecated
+            "pulse_library": PulseLibraryItem,  # The class PulseLibraryItem is deprecated
             "cmd_def": Command,
             "meas_kernel": MeasurementKernel,
             "discriminator": Discriminator,
