@@ -4496,6 +4496,9 @@ new_condition = (new_target, value)
     ///
     /// Returns a dictionary of counts keyed on the operation name.
     fn count_ops_longest_path(&self) -> PyResult<HashMap<&str, usize>> {
+        if self.dag.node_count() == 0 {
+            return Ok(HashMap::new());
+        }
         let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
         let longest_path =
             match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
