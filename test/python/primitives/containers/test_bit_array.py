@@ -762,7 +762,7 @@ class BitArrayTestCase(QiskitTestCase):
                     if name in ["contradict", "negcontradict"]:
                         self.assertEqual(len(answer), 0)
                     else:
-                        self.assertGreater(len(answer), 0)                    
+                        self.assertGreater(len(answer), 0)
                     np.testing.assert_equal(postselected_bools, answer)
 
             error_cases = [
