@@ -378,7 +378,9 @@ impl Drop for PackedOperation {
         fn drop_pointer_as<T>(slf: &mut PackedOperation) {
             // This should only ever be called when the pointer is valid, but this is defensive just
             // to 100% ensure that our `Drop` implementation doesn't panic.
-            let Some(pointer) = slf.try_pointer() else { return };
+            let Some(pointer) = slf.try_pointer() else {
+                return;
+            };
             // SAFETY: `PackedOperation` asserts ownership over its contents, and the contained
             // pointer can only be null if we were already dropped.  We set our discriminant to mark
             // ourselves as plain old data immediately just as a defensive measure.
