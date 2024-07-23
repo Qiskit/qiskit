@@ -54,6 +54,8 @@ import qiskit._numpy_compat
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
 sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
+sys.modules["qiskit._accelerate.basis"] = _accelerate.basis
+sys.modules["qiskit._accelerate.basis.basis_translator"] = _accelerate.basis.basis_translator
 sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
 sys.modules["qiskit._accelerate.equivalence"] = _accelerate.equivalence
