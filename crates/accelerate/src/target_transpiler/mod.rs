@@ -32,6 +32,7 @@ use pyo3::{
 };
 
 use qiskit_circuit::circuit_instruction::convert_py_to_operation_type;
+
 use qiskit_circuit::operations::{Operation, OperationType, Param};
 use smallvec::SmallVec;
 
@@ -54,6 +55,8 @@ type GateMap = IndexMap<String, PropsMap, RandomState>;
 type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
 
+/// Represents a Qiskit `Gate` object or a Variadic instruction.
+/// Keeps a reference to its Python instance for caching purposes.
 #[derive(Debug, Clone, FromPyObject)]
 pub(crate) enum TargetOperation {
     Normal(NormalOperation),
@@ -96,6 +99,8 @@ impl TargetOperation {
     }
 }
 
+/// Represents a Qiskit `Gate` object, keeps a reference to its Python
+/// instance for caching purposes.
 #[derive(Debug, Clone)]
 pub(crate) struct NormalOperation {
     pub operation: OperationType,
@@ -133,6 +138,10 @@ constraints of a particular backend.
 The intent of this struct is to contain data that can be representable and
 accessible through both Rust and Python, so it can be used for rust-based
 transpiler processes.
+
+This structure contains duplicates of every element in the Python counterpart of
+`gate_map`. Which improves access for Python while sacrificing a small amount of
+memory.
  */
 #[pyclass(
     mapping,
@@ -1251,3 +1260,5 @@ pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Target>()?;
     Ok(())
 }
+
+// TODO: Add rust-based unit testing.

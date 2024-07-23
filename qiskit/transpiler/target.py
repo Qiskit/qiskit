@@ -746,9 +746,7 @@ class Target(BaseTarget):
             for qarg, properties in qarg_map.items():
                 if qarg is None:
                     if self.operation_from_name(gate).num_qubits == 2:
-                        self._coupling_graph = (
-                            None  # pylint: disable=attribute-defined-outside-init
-                        )
+                        self._coupling_graph = None
                         return
                     continue
                 if len(qarg) == 1:
@@ -893,12 +891,10 @@ class Target(BaseTarget):
                 prop_str_pieces = [f"\t\t{qarg}:\n"]
                 duration = getattr(props, "duration", None)
                 if duration is not None:
-                    prop_str_pieces.append(
-                        f"\t\t\tDuration: {duration if duration > 0 else 0} sec.\n"
-                    )
+                    prop_str_pieces.append(f"\t\t\tDuration: {duration:g} sec.\n")
                 error = getattr(props, "error", None)
                 if error is not None:
-                    prop_str_pieces.append(f"\t\t\tError Rate: {error if error > 0 else 0}\n")
+                    prop_str_pieces.append(f"\t\t\tError Rate: {error:g}\n")
                 schedule = getattr(props, "_calibration", None)
                 if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
