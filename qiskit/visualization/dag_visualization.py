@@ -212,7 +212,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             e["label"] = label
             return e
 
-    image_type = None
+    image_type = "png"
     if filename:
         if "." not in filename:
             raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
