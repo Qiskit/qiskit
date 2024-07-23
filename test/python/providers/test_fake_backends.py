@@ -132,16 +132,13 @@ class TestFakeBackends(QiskitTestCase):
             self.skipTest(
                 f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
-        with warnings.catch_warnings():
-            # TODO remove this catch once Aer stops using QobjDictField
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            job = backend.run(
-                transpile(
-                    self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
-                ),
-                seed_simulator=42,
-            )
-            result = job.result()
+        job = backend.run(
+            transpile(
+                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+            ),
+            seed_simulator=42,
+        )
+        result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
