@@ -2050,7 +2050,13 @@ def _format(operand):
                         PyTuple::new_bound(py, mapped)
                     };
 
+                    // We explicitly create a mutable py_op here since we might
+                    // update the condition.
                     let mut py_op = op.unpack_py_op(py)?.into_bound(py);
+                    if py_op.getattr(intern!(py, "mutable"))?.extract::<bool>()? {
+                        py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
+                    }
+
                     if let Some(condition) = op.condition() {
                         // TODO: do we need to check for condition.is_none()?
                         let condition = variable_mapper.map_condition(condition.bind(py), true)?;
