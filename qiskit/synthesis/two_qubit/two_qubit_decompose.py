@@ -656,7 +656,9 @@ class TwoQubitBasisDecomposer:
                 if gate is None:
                     dag.apply_operation_back(self.gate, tuple(q[x] for x in qubits), check=False)
                 else:
-                    op = CircuitInstruction.from_standard(gate, qubits=tuple(q[x] for x in qubits), params=params)
+                    op = CircuitInstruction.from_standard(
+                        gate, qubits=tuple(q[x] for x in qubits), params=params
+                    )
                     node = DAGOpNode.from_instruction(op, dag=dag)
                     dag._apply_op_node_back(node)
             return dag

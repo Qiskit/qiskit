@@ -429,7 +429,9 @@ impl CircuitInstruction {
             if other.is_instance_of::<PyTuple>() {
                 return Ok(Some(self_._legacy_format(py)?.eq(other)?));
             }
-            let Ok(other) = other.downcast::<CircuitInstruction>() else { return Ok(None) };
+            let Ok(other) = other.downcast::<CircuitInstruction>() else {
+                return Ok(None);
+            };
             let other = other.try_borrow()?;
 
             Ok(Some(
@@ -508,7 +510,10 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
                 .and_then(|standard| standard.extract::<StandardGate>())
-                .ok() else { break 'standard };
+                .ok()
+            else {
+                break 'standard;
+            };
 
             // If the instruction is a controlled gate with a not-all-ones control state, it doesn't
             // fit our definition of standard.  We abuse the fact that we know our standard-gate
@@ -581,7 +586,9 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
 
 /// Convert a sequence-like Python object to a tuple.
 fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyTuple>> {
-    let Some(seq) = seq else { return Ok(PyTuple::empty_bound(py)) };
+    let Some(seq) = seq else {
+        return Ok(PyTuple::empty_bound(py));
+    };
     if seq.is_instance_of::<PyTuple>() {
         Ok(seq.downcast_into_exact::<PyTuple>()?)
     } else if seq.is_instance_of::<PyList>() {
