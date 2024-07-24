@@ -21,6 +21,6 @@ features_transpiler:
     local CPUs available the results would different when running between
     different computers.
 
-    It is not recommended you use this option if your local computer has
-    less than 20 CPUs as this will result in potentially degraded results
-    compared to the default.
+    If the default number of trials for a given optimization level is higher
+    than the number of local CPUs it will use the optimization level default
+    which is higher.

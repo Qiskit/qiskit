@@ -403,11 +403,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
             pass_manager_config.initial_layout,
         )
         if optimization_level == 0:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 5
-
+            trial_count = _get_trial_count(5)
             routing_pass = SabreSwap(
                 coupling_map_routing,
                 heuristic="basic",
@@ -422,11 +418,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 5
-
+            trial_count = _get_trial_count(5)
             routing_pass = SabreSwap(
                 coupling_map_routing,
                 heuristic="decay",
@@ -445,10 +437,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 2:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 20
+            trial_count = _get_trial_count(20)
 
             routing_pass = SabreSwap(
                 coupling_map_routing,
@@ -467,10 +456,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 20
+            trial_count = _get_trial_count(20)
             routing_pass = SabreSwap(
                 coupling_map_routing,
                 heuristic="decay",
@@ -763,10 +749,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             )
             layout.append(ConditionalController(choose_layout_1, condition=_layout_not_perfect))
 
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 5
+            trial_count = _get_trial_count(5)
 
             choose_layout_2 = SabreLayout(
                 coupling_map,
@@ -800,10 +783,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
             )
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 20
+
+            trial_count = _get_trial_count(20)
 
             choose_layout_1 = SabreLayout(
                 coupling_map,
@@ -837,10 +818,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
             )
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 20
+
+            trial_count = _get_trial_count(20)
 
             choose_layout_1 = SabreLayout(
                 coupling_map,
@@ -943,10 +922,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
         layout = PassManager()
         layout.append(_given_layout)
         if optimization_level == 0:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 5
+            trial_count = _get_trial_count(5)
 
             layout_pass = SabreLayout(
                 coupling_map,
@@ -958,10 +934,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
         elif optimization_level == 1:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 5
+            trial_count = _get_trial_count(5)
 
             layout_pass = SabreLayout(
                 coupling_map,
@@ -973,10 +946,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
         elif optimization_level == 2:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 20
+            trial_count = _get_trial_count(20)
 
             layout_pass = SabreLayout(
                 coupling_map,
@@ -988,10 +958,7 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
         elif optimization_level == 3:
-            if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-                trial_count = CPU_COUNT
-            else:
-                trial_count = 20
+            trial_count = _get_trial_count(20)
 
             layout_pass = SabreLayout(
                 coupling_map,
@@ -1018,3 +985,9 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
         embed = common.generate_embed_passmanager(coupling_map)
         layout.append(ConditionalController(embed.to_flow_controller(), condition=_swap_mapped))
         return layout
+
+
+def _get_trial_count(default_trials=5):
+    if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
+        return max(CPU_COUNT, default_trials)
+    return default_trials
