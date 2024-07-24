@@ -398,8 +398,6 @@ impl Specialization {
     }
 }
 
-type WeylCircuitSequence = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
-
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
@@ -430,56 +428,57 @@ impl TwoQubitWeylDecomposition {
     fn weyl_gate(
         &self,
         simplify: bool,
-        sequence: &mut WeylCircuitSequence,
+        sequence: &mut CircuitData,
         atol: f64,
         global_phase: &mut f64,
-    ) {
+    ) -> PyResult<()> {
         match self.specialization {
             Specialization::MirrorControlledEquiv => {
-                sequence.push((
+                sequence.push_standard_gate(
                     StandardGate::SwapGate,
                     SmallVec::new(),
                     smallvec![Qubit(0), Qubit(1)],
-                ));
-                sequence.push((
+                )?;
+                sequence.push_standard_gate(
                     StandardGate::RZZGate,
                     smallvec![Param::Float((PI4 - self.c) * 2.)],
                     smallvec![Qubit(0), Qubit(1)],
-                ));
+                )?;
                 *global_phase += PI4
             }
             Specialization::SWAPEquiv => {
-                sequence.push((
+                sequence.push_standard_gate(
                     StandardGate::SwapGate,
                     SmallVec::new(),
                     smallvec![Qubit(0), Qubit(1)],
-                ));
+                )?;
                 *global_phase -= 3. * PI / 4.
             }
             _ => {
                 if !simplify || self.a.abs() > atol {
-                    sequence.push((
+                    sequence.push_standard_gate(
                         StandardGate::RXXGate,
                         smallvec![Param::Float(-self.a * 2.)],
                         smallvec![Qubit(0), Qubit(1)],
-                    ));
+                    )?;
                 }
                 if !simplify || self.b.abs() > atol {
-                    sequence.push((
+                    sequence.push_standard_gate(
                         StandardGate::RYYGate,
                         smallvec![Param::Float(-self.b * 2.)],
                         smallvec![Qubit(0), Qubit(1)],
-                    ));
+                    )?;
                 }
                 if !simplify || self.c.abs() > atol {
-                    sequence.push((
+                    sequence.push_standard_gate(
                         StandardGate::RZZGate,
                         smallvec![Param::Float(-self.c * 2.)],
                         smallvec![Qubit(0), Qubit(1)],
-                    ));
+                    )?;
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -1059,7 +1058,7 @@ impl TwoQubitWeylDecomposition {
         };
         let target_1q_basis_list: Vec<EulerBasis> = vec![euler_basis];
 
-        let mut gate_sequence: WeylCircuitSequence = Vec::with_capacity(21);
+        let mut gate_sequence = CircuitData::with_capacity(py, 2, 21, Param::Float(0.))?;
         let mut global_phase: f64 = self.global_phase;
 
         let c2r = unitary_to_gate_sequence_inner(
@@ -1072,11 +1071,11 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c2r.gates {
-            gate_sequence.push((
+            gate_sequence.push_standard_gate(
                 gate.0,
                 gate.1.into_iter().map(Param::Float).collect(),
                 smallvec![Qubit(0)],
-            ))
+            )?
         }
         global_phase += c2r.global_phase;
         let c2l = unitary_to_gate_sequence_inner(
@@ -1089,11 +1088,11 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c2l.gates {
-            gate_sequence.push((
+            gate_sequence.push_standard_gate(
                 gate.0,
                 gate.1.into_iter().map(Param::Float).collect(),
                 smallvec![Qubit(1)],
-            ))
+            )?
         }
         global_phase += c2l.global_phase;
         self.weyl_gate(
@@ -1101,7 +1100,7 @@ impl TwoQubitWeylDecomposition {
             &mut gate_sequence,
             atol.unwrap_or(ANGLE_ZERO_EPSILON),
             &mut global_phase,
-        );
+        )?;
         let c1r = unitary_to_gate_sequence_inner(
             self.K1r.view(),
             &target_1q_basis_list,
@@ -1112,11 +1111,11 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c1r.gates {
-            gate_sequence.push((
+            gate_sequence.push_standard_gate(
                 gate.0,
                 gate.1.into_iter().map(Param::Float).collect(),
                 smallvec![Qubit(0)],
-            ))
+            )?
         }
         global_phase += c2r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
@@ -1129,13 +1128,14 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c1l.gates {
-            gate_sequence.push((
+            gate_sequence.push_standard_gate(
                 gate.0,
                 gate.1.into_iter().map(Param::Float).collect(),
                 smallvec![Qubit(1)],
-            ))
+            )?
         }
-        CircuitData::from_standard_gates(py, 2, gate_sequence, Param::Float(global_phase))
+        gate_sequence.global_phase = Param::Float(global_phase);
+        Ok(gate_sequence)
     }
 }
 
