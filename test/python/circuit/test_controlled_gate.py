@@ -774,7 +774,7 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
-        self.assertEqual(type(qc[0].operation), explicit[num_ctrl_qubits])
+        self.assertEqual(qc[0].operation.base_class, explicit[num_ctrl_qubits])
 
     @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):
