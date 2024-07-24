@@ -245,8 +245,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = BackendSampler(backend=backend)
         with self.subTest("one circuit"):
-            with self.assertWarns(DeprecationWarning):
-                result = sampler.run([qc], shots=1000).result()
+            result = sampler.run([qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 1)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -254,8 +253,7 @@ class TestBackendSampler(QiskitTestCase):
             self.assertEqual(len(result.metadata), 1)
 
         with self.subTest("two circuits"):
-            with self.assertWarns(DeprecationWarning):
-                result = sampler.run([qc, qc], shots=1000).result()
+            result = sampler.run([qc, qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 2)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -277,15 +275,13 @@ class TestBackendSampler(QiskitTestCase):
             target = sampler.run([qc] * k, params_list).result()
 
         with self.subTest("ndarrary"):
-            with self.assertWarns(DeprecationWarning):
-                result = sampler.run([qc] * k, params_array).result()
+            result = sampler.run([qc] * k, params_array).result()
             self.assertEqual(len(result.metadata), k)
             for i in range(k):
                 self.assertDictAlmostEqual(result.quasi_dists[i], target.quasi_dists[i], delta=0.1)
 
         with self.subTest("list of ndarray"):
-            with self.assertWarns(DeprecationWarning):
-                result = sampler.run([qc] * k, params_list_array).result()
+            result = sampler.run([qc] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             for i in range(k):
                 self.assertDictAlmostEqual(result.quasi_dists[i], target.quasi_dists[i], delta=0.1)
@@ -387,11 +383,9 @@ class TestBackendSampler(QiskitTestCase):
             sampler = BackendSampler(backend=Fake7QPulseV1())
             result = sampler.run([qc]).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
-        with self.assertWarns(DeprecationWarning):
-            result2 = sampler.run([qc2]).result()
+        result2 = sampler.run([qc2]).result()
         self.assertDictAlmostEqual(result2.quasi_dists[0], {1: 1}, 0.1)
-        with self.assertWarns(DeprecationWarning):
-            result3 = sampler.run([qc, qc2]).result()
+        result3 = sampler.run([qc, qc2]).result()
         self.assertDictAlmostEqual(result3.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result3.quasi_dists[1], {1: 1}, 0.1)
 
