@@ -31,9 +31,9 @@ use pyo3::{
     types::{PyDict, PyList, PySet, PyTuple},
 };
 
-use qiskit_circuit::circuit_instruction::convert_py_to_operation_type;
-
-use qiskit_circuit::operations::{Operation, OperationType, Param};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
@@ -84,7 +84,7 @@ impl ToPyObject for TargetOperation {
 impl TargetOperation {
     fn num_qubits(&self) -> u32 {
         match &self {
-            Self::Normal(normal) => normal.operation.num_qubits(),
+            Self::Normal(normal) => normal.operation.view().num_qubits(),
             Self::Variadic(_) => {
                 unreachable!("'num_qubits' property is reserved for normal operations only.")
             }
@@ -103,14 +103,14 @@ impl TargetOperation {
 /// instance for caching purposes.
 #[derive(Debug, Clone)]
 pub(crate) struct NormalOperation {
-    pub operation: OperationType,
+    pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
     op_object: PyObject,
 }
 
 impl<'py> FromPyObject<'py> for NormalOperation {
     fn extract(ob: &'py PyAny) -> PyResult<Self> {
-        let operation = convert_py_to_operation_type(ob.py(), ob.into())?;
+        let operation: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
