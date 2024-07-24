@@ -17,7 +17,7 @@ import copy
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.coupling import CouplingMap
 
 
 class SwapStrategy:
