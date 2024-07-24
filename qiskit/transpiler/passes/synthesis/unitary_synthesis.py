@@ -42,7 +42,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 )
 from qiskit.quantum_info import Operator
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Gate, Parameter, CircuitInstruction
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -561,22 +561,23 @@ class UnitarySynthesis(TransformationPass):
                     qubits = node.qargs
                     user_gate_node = DAGOpNode(gate)
                     for (
-                        op_name,
+                        gate,
                         params,
                         qargs,
                     ) in node_list:
-                        if op_name == "USER_GATE":
-                            node = DAGOpNode(
-                                user_gate_node._raw_op,
-                                params=user_gate_node.params,
-                                qargs=tuple(qubits[x] for x in qargs),
+                        if gate is None:
+                            node = DAGOpNode.from_instruction(
+                                user_gate_node._to_circuit_instruction().replace(
+                                    params=user_gate_node.params,
+                                    qubits=tuple(qubits[x] for x in qargs),
+                                ),
                                 dag=out_dag,
                             )
                         else:
-                            node = DAGOpNode(
-                                GATE_NAME_MAP[op_name],
-                                params=params,
-                                qargs=tuple(qubits[x] for x in qargs),
+                            node = DAGOpNode.from_instruction(
+                                CircuitInstruction.from_standard(
+                                    gate, tuple(qubits[x] for x in qargs), params
+                                ),
                                 dag=out_dag,
                             )
                         out_dag._apply_op_node_back(node)
@@ -1007,8 +1008,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
-        for op_name, _params, qubits in synth_circ:
-            if op_name in {"USER_GATE", "cx"}:
+        for gate, _params, qubits in synth_circ:
+            if gate is None or gate == CXGate._standard_gate:
                 synth_direction = qubits
         if synth_direction is not None and synth_direction != preferred_direction:
             # TODO: Avoid using a dag to correct the synthesis direction
@@ -1043,6 +1044,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         flip_bits = out_dag.qubits[::-1]
         for node in synth_circ.topological_op_nodes():
             qubits = tuple(flip_bits[synth_circ.find_bit(x).index] for x in node.qargs)
-            node = DAGOpNode(node._raw_op, qargs=qubits, params=node.params)
+            node = DAGOpNode.from_instruction(
+                node._to_circuit_instruction().replace(qubits=qubits, params=node.params)
+            )
             out_dag._apply_op_node_back(node)
         return out_dag

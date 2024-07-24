@@ -52,7 +52,7 @@ class TestRustGateEquivalence(QiskitTestCase):
             with self.subTest(name=name):
                 qc = QuantumCircuit(standard_gate.num_qubits)
                 qc._append(
-                    CircuitInstruction(standard_gate, qubits=qc.qubits, params=gate_class.params)
+                    CircuitInstruction.from_standard(standard_gate, qc.qubits, gate_class.params)
                 )
                 self.assertEqual(qc.data[0].operation.base_class, gate_class.base_class)
                 self.assertEqual(qc.data[0].operation, gate_class)
