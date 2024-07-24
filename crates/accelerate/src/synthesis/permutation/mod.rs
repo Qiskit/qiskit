@@ -59,10 +59,67 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
     )
 }
 
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+    let inverted = utils::invert(&pattern.as_array());
+    let view = inverted.view();
+    let num_qubits = view.len();
+    let cycles = utils::pattern_to_cycles(&view);
+    let swaps = utils::decompose_cycles(&cycles);
+
+    CircuitData::from_standard_gates(
+        py,
+        num_qubits as u32,
+        swaps.iter().map(|(i, j)| {
+            (
+                StandardGate::SwapGate,
+                smallvec![],
+                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            )
+        }),
+        Param::Float(0.0),
+    )
+}
+
+/// Synthesize a permutation circuit for a linear nearest-neighbor
+/// architecture using the Kutin, Moulton, Smithline method.
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+pub fn _synth_permutation_depth_lnn_kms(
+    py: Python,
+    pattern: PyArrayLike1<i64>,
+) -> PyResult<CircuitData> {
+    let mut inverted = utils::invert(&pattern.as_array());
+    let mut view = inverted.view_mut();
+    let num_qubits = view.len();
+    let mut swap_layers: Vec<(usize, usize)> = Vec::new();
+
+    for i in 0..num_qubits {
+        let swap_layer: Vec<(usize, usize)> = utils::create_swap_layer(&mut view, i % 2);
+        swap_layers.extend(swap_layer);
+    }
+
+    CircuitData::from_standard_gates(
+        py,
+        num_qubits as u32,
+        swap_layers.iter().map(|(i, j)| {
+            (
+                StandardGate::SwapGate,
+                smallvec![],
+                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+            )
+        }),
+        Param::Float(0.0),
+    )
+}
+
 #[pymodule]
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
+    m.add_function(wrap_pyfunction!(_synth_permutation_acg, m)?)?;
+    m.add_function(wrap_pyfunction!(_synth_permutation_depth_lnn_kms, m)?)?;
     Ok(())
 }

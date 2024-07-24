@@ -57,6 +57,23 @@ class CommutationChecker:
         self._cache_miss = 0
         self._cache_hit = 0
 
+    def commute_nodes(
+        self,
+        op1,
+        op2,
+        max_num_qubits: int = 3,
+    ) -> bool:
+        """Checks if two DAGOpNodes commute."""
+        qargs1 = op1.qargs
+        cargs1 = op2.cargs
+        if not op1.is_standard_gate:
+            op1 = op1.op
+        qargs2 = op2.qargs
+        cargs2 = op2.cargs
+        if not op2.is_standard_gate:
+            op2 = op2.op
+        return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
+
     def commute(
         self,
         op1: Operation,
@@ -255,9 +272,15 @@ def is_commutation_skipped(op, qargs, max_num_qubits):
     if getattr(op, "is_parameterized", False) and op.is_parameterized():
         return True
 
+    from qiskit.dagcircuit.dagnode import DAGOpNode
+
     # we can proceed if op has defined: to_operator, to_matrix and __array__, or if its definition can be
     # recursively resolved by operations that have a matrix. We check this by constructing an Operator.
-    if (hasattr(op, "to_matrix") and hasattr(op, "__array__")) or hasattr(op, "to_operator"):
+    if (
+        isinstance(op, DAGOpNode)
+        or (hasattr(op, "to_matrix") and hasattr(op, "__array__"))
+        or hasattr(op, "to_operator")
+    ):
         return False
 
     return False
@@ -408,6 +431,15 @@ def _commute_matmul(
 
     first_qarg = tuple(qarg[q] for q in first_qargs)
     second_qarg = tuple(qarg[q] for q in second_qargs)
+
+    from qiskit.dagcircuit.dagnode import DAGOpNode
+
+    # If we have a DAGOpNode here we've received a StandardGate definition from
+    # rust and we can manually pull the matrix to use for the Operators
+    if isinstance(first_ops, DAGOpNode):
+        first_ops = first_ops.matrix
+    if isinstance(second_op, DAGOpNode):
+        second_op = second_op.matrix
 
     # try to generate an Operator out of op, if this succeeds we can determine commutativity, otherwise
     # return false

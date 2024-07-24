@@ -16,6 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
+from ddt import ddt, data
 
 from qiskit.circuit import (
     QuantumCircuit,
@@ -40,19 +41,21 @@ from qiskit.circuit.library import (
     UGate,
     CU3Gate,
     CU1Gate,
+    QFTGate,
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-from qiskit.transpiler.passes.synthesis.plugin import (
-    HighLevelSynthesisPlugin,
-    HighLevelSynthesisPluginManager,
-)
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes.basis import BasisTranslator
+from qiskit.transpiler.passes.synthesis.plugin import (
+    HighLevelSynthesisPlugin,
+    HighLevelSynthesisPluginManager,
+    high_level_synthesis_plugin_names,
+)
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -534,22 +537,22 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 1})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 22)
-            self.assertEqual(qct.depth(), 20)
+            self.assertEqual(qct.size(), 30)
+            self.assertEqual(qct.depth(), 27)
 
         with self.subTest("section_size_2"):
             hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 2})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 23)
-            self.assertEqual(qct.depth(), 19)
+            self.assertEqual(qct.size(), 27)
+            self.assertEqual(qct.depth(), 23)
 
         with self.subTest("section_size_3"):
             hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 3})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 23)
-            self.assertEqual(qct.depth(), 17)
+            self.assertEqual(qct.size(), 29)
+            self.assertEqual(qct.depth(), 23)
 
     def test_invert_and_transpose(self):
         """Test that the plugin takes the use_inverted and use_transposed arguments into account."""
@@ -623,7 +626,7 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
 
         # The seed is chosen so that we get different best circuits depending on whether we
         # want to minimize size or depth.
-        mat = random_invertible_binary_matrix(7, seed=37)
+        mat = random_invertible_binary_matrix(7, seed=38)
         qc = QuantumCircuit(7)
         qc.append(LinearFunction(mat), [0, 1, 2, 3, 4, 5, 6])
 
@@ -641,8 +644,8 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             )
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 20)
-            self.assertEqual(qct.depth(), 15)
+            self.assertEqual(qct.size(), 23)
+            self.assertEqual(qct.depth(), 19)
 
         with self.subTest("depth_fn"):
             # We want to minimize the "depth" (aka the number of layers) in the circuit
@@ -658,8 +661,8 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             )
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
-            self.assertEqual(qct.size(), 23)
-            self.assertEqual(qct.depth(), 12)
+            self.assertEqual(qct.size(), 24)
+            self.assertEqual(qct.depth(), 13)
 
 
 class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
@@ -2096,6 +2099,42 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         expected.store(b, a)
 
         self.assertEqual(pass_(qc), expected)
+
+
+@ddt
+class TestQFTSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for QFTGate."""
+
+    def test_supported_names(self):
+        """Test that there is a default synthesis plugin for QFTGates."""
+        supported_plugin_names = high_level_synthesis_plugin_names("qft")
+        self.assertIn("default", supported_plugin_names)
+
+    @data("line", "full")
+    def test_qft_plugins_qft(self, qft_plugin_name):
+        """Test QFTSynthesisLine plugin for circuits with QFTGates."""
+        qc = QuantumCircuit(4)
+        qc.append(QFTGate(3), [0, 1, 2])
+        qc.cx(1, 3)
+        qc.append(QFTGate(3).inverse(), [0, 1, 2])
+        hls_config = HLSConfig(qft=[qft_plugin_name])
+        basis_gates = ["cx", "u"]
+        qct = transpile(qc, hls_config=hls_config, basis_gates=basis_gates)
+        self.assertEqual(Operator(qc), Operator(qct))
+        ops = set(qct.count_ops().keys())
+        self.assertEqual(ops, {"u", "cx"})
+
+    @data("line", "full")
+    def test_qft_line_plugin_annotated_qft(self, qft_plugin_name):
+        """Test QFTSynthesisLine plugin for circuits with annotated QFTGates."""
+        qc = QuantumCircuit(4)
+        qc.append(QFTGate(3).inverse(annotated=True).control(annotated=True), [0, 1, 2, 3])
+        hls_config = HLSConfig(qft=[qft_plugin_name])
+        basis_gates = ["cx", "u"]
+        qct = transpile(qc, hls_config=hls_config, basis_gates=basis_gates)
+        self.assertEqual(Operator(qc), Operator(qct))
+        ops = set(qct.count_ops().keys())
+        self.assertEqual(ops, {"u", "cx"})
 
 
 if __name__ == "__main__":

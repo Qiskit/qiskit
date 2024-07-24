@@ -48,6 +48,8 @@ QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
 """
 
 import os
+import warnings
+
 from test.utils.base import dicts_almost_equal
 
 from math import pi
@@ -258,9 +260,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         last_gate = self.qc.data[-1]
 
         # Conditional instructions are not supported
-        assume(isinstance(last_gate[0], Gate))
+        assume(isinstance(last_gate.operation, Gate))
 
-        last_gate[0].c_if(creg, val)
+        last_gate.operation.c_if(creg, val)
 
     # Properties to check
 
@@ -269,7 +271,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         """After each circuit operation, it should be possible to build QASM."""
         qasm2.dumps(self.qc)
 
-    @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
+    @precondition(lambda self: any(isinstance(d.operation, Measure) for d in self.qc.data))
     @rule(kwargs=transpiler_conf())
     def equivalent_transpile(self, kwargs):
         """Simulate, transpile and simulate the present circuit. Verify that the
@@ -292,7 +294,16 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         # Note that there's no transpilation here, which is why the gates are limited to only ones
         # that Aer supports natively.
-        aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
+        with warnings.catch_warnings():
+            # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+            # of Aer.
+            warnings.filterwarnings(
+                "default",
+                category=DeprecationWarning,
+                module="qiskit_aer",
+                message="Treating CircuitInstruction as an iterable",
+            )
+            aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
 
         try:
             xpiled_qc = transpile(self.qc, **kwargs)
