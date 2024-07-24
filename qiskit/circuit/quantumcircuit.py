@@ -2372,7 +2372,7 @@ class QuantumCircuit:
         into a list of classical bits.
 
         Args:
-            clbit_representation : Representation to expand.
+            clbit_representation: Representation to expand.
 
         Returns:
             A list of tuples where each tuple is a classical bit.
