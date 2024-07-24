@@ -1733,14 +1733,15 @@ impl TwoQubitBasisDecomposer {
         let target_decomposed =
             TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
         let traces = self.traces(&target_decomposed);
-        let best_nbasis = traces
-            .into_iter()
-            .enumerate()
-            .map(|(idx, trace)| (idx, trace.trace_to_fid() * basis_fidelity.powi(idx as i32)))
-            .min_by(|(_idx1, fid1), (_idx2, fid2)| fid2.partial_cmp(fid1).unwrap())
-            .unwrap()
-            .0;
-        let best_nbasis = _num_basis_uses.unwrap_or(best_nbasis as u8);
+        let best_nbasis = _num_basis_uses.unwrap_or_else(|| {
+            traces
+                .into_iter()
+                .enumerate()
+                .map(|(idx, trace)| (idx, trace.trace_to_fid() * basis_fidelity.powi(idx as i32)))
+                .min_by(|(_idx1, fid1), (_idx2, fid2)| fid2.partial_cmp(fid1).unwrap())
+                .unwrap()
+                .0 as u8
+        });
         let decomposition = match best_nbasis {
             0 => decomp0_inner(&target_decomposed),
             1 => self.decomp1_inner(&target_decomposed),
