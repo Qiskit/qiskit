@@ -2324,10 +2324,10 @@ class QuantumCircuit:
         into a list of qubits.
 
         Args:
-            qubit_representation (Object): representation to expand
+            qubit_representation: Representation to expand.
 
         Returns:
-            List(Qubit): the resolved instances of the qubits.
+            The resolved instances of the qubits.
         """
 
         return self._qbit_argument_conversion(qubit_representation)
