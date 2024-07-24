@@ -303,7 +303,18 @@ class SabreLayout(TransformationPass):
         # `ApplyLayout` transpiler pass (which usually does this step), because we're about to apply
         # the layout and routing together as part of resolving the Sabre result.
         physical_qubits = QuantumRegister(self.coupling_map.size(), "q")
-        mapped_dag = DAGCircuit()
+        num_nodes = 2 * (len(physical_qubits) + dag.num_clbits() + dag.num_vars)
+        num_edges = 0
+        for component in components:
+            component_dag = component.dag
+            size = len(component_dag._multi_graph) - 2 * len(component_dag._wires)
+            num_nodes += size
+            num_edges += component_dag._multi_graph.num_edges()
+
+        mapped_dag = DAGCircuit(
+            _node_count_hint=num_nodes,
+            _edge_count_hint=num_edges,
+        )
         mapped_dag.add_qreg(physical_qubits)
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():

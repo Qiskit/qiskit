@@ -73,7 +73,7 @@ class DAGCircuit:
 
     # pylint: disable=invalid-name
 
-    def __init__(self):
+    def __init__(self, _node_count_hint=0, _edge_count_hint=0):
         """Create an empty circuit."""
 
         # Circuit name.  Generally, this corresponds to the name
@@ -113,7 +113,9 @@ class DAGCircuit:
         # Input nodes have out-degree 1 and output nodes have in-degree 1.
         # Edges carry wire labels and each operation has
         # corresponding in- and out-edges with the same wire labels.
-        self._multi_graph = rx.PyDAG()
+        self._multi_graph = rx.PyDAG(
+            node_count_hint=_node_count_hint, edge_count_hint=_edge_count_hint
+        )
 
         # Map of qreg/creg name to Register object.
         self.qregs = OrderedDict()
@@ -686,7 +688,10 @@ class DAGCircuit:
         Returns:
             DAGCircuit: An empty copy of self.
         """
-        target_dag = DAGCircuit()
+        target_dag = DAGCircuit(
+            _node_count_hint=self._multi_graph.num_nodes(),
+            _edge_count_hint=self._multi_graph.num_edges(),
+        )
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
         target_dag.duration = self.duration

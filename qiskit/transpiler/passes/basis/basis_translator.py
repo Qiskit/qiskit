@@ -615,7 +615,10 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
         placeholder_gate = Gate(gate_name, gate_num_qubits, list(placeholder_params))
         placeholder_gate.params = list(placeholder_params)
 
-        dag = DAGCircuit()
+        dag = DAGCircuit(
+            _node_count_hint=gate_num_qubits * 2,
+            _edge_count_hint=gate_num_qubits,
+        )
         qr = QuantumRegister(gate_num_qubits)
         dag.add_qreg(qr)
         dag.apply_operation_back(placeholder_gate, qr, (), check=False)

@@ -52,13 +52,20 @@ class ApplyLayout(TransformationPass):
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance."
             )
-        if len(layout) != (1 + max(layout.get_physical_bits())):
+        layout_qubits = len(layout)
+        if layout_qubits != (1 + max(layout.get_physical_bits())):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         post_layout = self.property_set["post_layout"]
-        q = QuantumRegister(len(layout), "q")
+        q = QuantumRegister(layout_qubits, "q")
 
-        new_dag = DAGCircuit()
+        dag_qubits = dag.num_qubits()
+        node_count = dag._multi_graph.num_nodes() + 2 * (layout_qubits - dag_qubits)
+        edge_count = dag._multi_graph.num_edges() + layout_qubits - dag_qubits
+        new_dag = DAGCircuit(
+            _node_count_hint=node_count,
+            _edge_count_hint=edge_count,
+        )
         new_dag.add_qreg(q)
         for var in dag.iter_input_vars():
             new_dag.add_input_var(var)

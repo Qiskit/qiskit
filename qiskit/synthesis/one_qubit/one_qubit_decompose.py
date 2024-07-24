@@ -163,7 +163,10 @@ class OneQubitEulerDecomposer:
 
         from qiskit.dagcircuit import dagcircuit
 
-        dag = dagcircuit.DAGCircuit()
+        dag = dagcircuit.DAGCircuit(
+            _node_count_hint=len(gates) + 2,
+            _edge_count_hint=len(gates) + 1,
+        )
         dag.global_phase = global_phase
         dag.add_qubits(qr)
         for gate_entry in gates:
