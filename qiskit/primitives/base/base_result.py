@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Primitive result abstract base class
+Primitive V1 result abstract base class
 """
 
 from __future__ import annotations
@@ -19,7 +19,6 @@ from abc import ABC
 from collections.abc import Sequence
 from dataclasses import fields
 from typing import Any, Dict
-from warnings import warn
 
 from numpy import ndarray
 
@@ -28,7 +27,7 @@ ExperimentData = Dict[str, Any]
 
 class _BasePrimitiveResult(ABC):
     """
-    Base class for deprecated Primitive result methods.
+    Base class for deprecated Primitive V1 result methods.
     """
 
     def __post_init__(self) -> None:
@@ -43,14 +42,6 @@ class _BasePrimitiveResult(ABC):
             TypeError: If one of the data fields is not a Sequence or ``numpy.ndarray``.
             ValueError: Inconsistent number of experiments across data fields.
         """
-        warn(
-            "The class ``BasePrimitiveResult`` is deprecated as of qiskit 1.2. "
-            "It will be removed no earlier than 3 months after the release date. "
-            "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers`` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
         num_experiments = None
         for value in self._field_values:  # type: Sequence
             if num_experiments is None:

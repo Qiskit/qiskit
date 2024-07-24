@@ -7,14 +7,10 @@ deprecations_primitives:
 
     * :class:`.BaseEstimatorV1`, use :class:`.BaseEstimatorV2` instead,
     * :class:`.BaseSamplerV1`, use :class:`.BaseSamplerV2` instead,
-    * :class:`.BasePrimitive`, use :class:`.BaseEstimatorV2` or :class:`.BaseSamplerV2` instead.
     * :class:`.Estimator`, use :class:`.StatevectorEstimator` instead,
     * :class:`.Sampler`, use :class:`.StatevectorSampler` instead,
     * :class:`.BackendEstimator`, use :class:`.BackendEstimatorV2` instead,
     * :class:`.BackendSampler`, use :class:`.BackendSamplerV2` instead,
-    * :class:`.BasePrimitiveResult`, use :class:`.PrimitiveResult` instead,
-    * :class:`.EstimatorResult`, use :class:`.PrimitiveResult` instead,
-    * :class:`.SamplerResult`, use :class:`.PrimitiveResult` instead.
 
 
     In addition, the following utility functions are deprecated:

@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Sampler result class
+Sampler V1 result class
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-from warnings import warn
 
 from qiskit.result import QuasiDistribution
 
@@ -26,7 +25,7 @@ from .base_result import _BasePrimitiveResult
 
 @dataclass(frozen=True)
 class SamplerResult(_BasePrimitiveResult):
-    """Result of Sampler.
+    """Result of Sampler V1.
 
     .. code-block:: python
 
@@ -44,12 +43,3 @@ class SamplerResult(_BasePrimitiveResult):
 
     quasi_dists: list[QuasiDistribution]
     metadata: list[dict[str, Any]]
-
-    def __post_init__(self) -> None:
-        warn(
-            "The class ``SamplerResult`` is deprecated as of qiskit 1.2. "
-            "It will be removed no earlier than 3 months after the release date. "
-            "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers`` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )

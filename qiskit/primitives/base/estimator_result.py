@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator result class
+Estimator V1 result class
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
-from warnings import warn
 
 from .base_result import _BasePrimitiveResult
 
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class EstimatorResult(_BasePrimitiveResult):
-    """Result of Estimator.
+    """Result of Estimator V1.
 
     .. code-block:: python
 
@@ -45,12 +44,3 @@ class EstimatorResult(_BasePrimitiveResult):
 
     values: "np.ndarray[Any, np.dtype[np.float64]]"
     metadata: list[dict[str, Any]]
-
-    def __post_init__(self) -> None:
-        warn(
-            "The class ``EstimatorResult`` is deprecated as of qiskit 1.2. "
-            "It will be removed no earlier than 3 months after the release date. "
-            "Use ``PrimitiveResult`` class in ``qiskit.primitives.containers`` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
