@@ -97,7 +97,6 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
 
     __hash__ = None
 
-    @deprecate_func(since="1.2", additional_msg="Use BaseSamplerV2 instead.")
     def __init__(
         self,
         *,
@@ -152,7 +151,23 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseSampler must implement `_run` method.")
 
 
-BaseSampler = BaseSamplerV1
+class BaseSampler(BaseSamplerV1[T]):
+    """DEPRECATED. Type alias of Sampler V1 base class
+
+    See :class:`.BaseSamplerV1` for details.
+    """
+
+    @deprecate_func(since="1.2", additional_msg="Use BaseSamplerV2 instead.")
+    def __init__(
+        self,
+        *,
+        options: dict | None = None,
+    ):
+        """
+        Args:
+            options: Default options.
+        """
+        super().__init__(options=options)
 
 
 class BaseSamplerV2(ABC):
