@@ -23,7 +23,9 @@ use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
-use hashbrown::{HashMap, HashSet};
+
+use ahash::RandomState;
+use indexmap::{IndexMap, IndexSet};
 use pyo3::types::{PyDict, PyList, PySet, PyString};
 use pyo3::{prelude::*, types::IntoPyDict};
 
@@ -325,7 +327,7 @@ impl ToPyObject for CircuitRep {
 
 // Custom Types
 type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
-type KTIType = HashMap<Key, NodeIndex>;
+type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 
 #[pyclass(
     subclass,
@@ -360,7 +362,7 @@ impl EquivalenceLibrary {
         } else {
             Self {
                 graph: GraphType::new(),
-                key_to_node_index: KTIType::new(),
+                key_to_node_index: KTIType::default(),
                 rule_id: 0_usize,
                 _graph: None,
             }
@@ -566,7 +568,7 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<HashMap<Key, usize>>()?
+            .extract::<IndexMap<Key, usize>>()?
             .into_iter()
             .map(|(key, val)| (key, NodeIndex::new(val)))
             .collect();
@@ -603,8 +605,8 @@ impl EquivalenceLibrary {
         if let Some(node) = self.graph.node_weight_mut(target) {
             node.equivs.push(equiv.clone());
         }
-        let sources: HashSet<Key> =
-            HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
+        let sources: IndexSet<Key, RandomState> =
+            IndexSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
                 name: inst.op.view().name().to_string(),
                 num_qubits: inst.op.view().num_qubits(),
             }));

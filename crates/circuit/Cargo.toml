@@ -18,6 +18,8 @@ ndarray.workspace = true
 numpy.workspace = true
 rustworkx-core = "0.14.2"
 thiserror.workspace = true
+indexmap.workspace = true
+ahash = "0.8.11"
 
 [dependencies.pyo3]
 workspace = true
