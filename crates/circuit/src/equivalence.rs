@@ -33,10 +33,11 @@ use rustworkx_core::petgraph::{
 };
 
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::convert_py_to_operation_type;
+use crate::circuit_instruction::OperationFromPython;
 use crate::imports::ImportOnceCell;
 use crate::operations::Param;
-use crate::operations::{Operation, OperationType};
+use crate::operations::{Operation, OperationRef};
+use crate::packed_instruction::PackedOperation;
 
 mod exceptions {
     use pyo3::import_exception_bound;
@@ -252,13 +253,13 @@ impl Display for EdgeData {
 /// Enum that helps extract the Operation and Parameters on a Gate.
 #[derive(Debug, Clone)]
 pub struct GateOper {
-    operation: OperationType,
+    operation: PackedOperation,
     params: SmallVec<[Param; 3]>,
 }
 
 impl<'py> FromPyObject<'py> for GateOper {
     fn extract(ob: &'py PyAny) -> PyResult<Self> {
-        let op_struct = convert_py_to_operation_type(ob.py(), ob.into())?;
+        let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
             params: op_struct.params,
@@ -417,10 +418,10 @@ impl EquivalenceLibrary {
             raise_if_shape_mismatch(&gate, equiv)?;
             raise_if_param_mismatch(py, &gate.params, equiv.data.get_params_unsorted(py)?)?;
         }
-
+        let op_ref: OperationRef = gate.operation.view();
         let key = Key {
-            name: gate.operation.name().to_string(),
-            num_qubits: gate.operation.num_qubits(),
+            name: op_ref.name().to_string(),
+            num_qubits: op_ref.num_qubits(),
         };
         let node_index = self.set_default_node(key);
 
@@ -461,9 +462,10 @@ impl EquivalenceLibrary {
     ///         ordering of the StandardEquivalenceLibrary will not generally be
     ///         consistent across Qiskit versions.
     fn get_entry(&self, py: Python, gate: GateOper) -> PyResult<Py<PyList>> {
+        let op_ref = gate.operation.view();
         let key = Key {
-            name: gate.operation.name().to_string(),
-            num_qubits: gate.operation.num_qubits(),
+            name: op_ref.name().to_string(),
+            num_qubits: op_ref.num_qubits(),
         };
         let query_params = gate.params;
 
@@ -587,10 +589,10 @@ impl EquivalenceLibrary {
             &gate.params,
             equivalent_circuit.data.get_params_unsorted(py)?,
         )?;
-
+        let op_ref = gate.operation.view();
         let key: Key = Key {
-            name: gate.operation.name().to_string(),
-            num_qubits: gate.operation.num_qubits(),
+            name: op_ref.name().to_string(),
+            num_qubits: op_ref.num_qubits(),
         };
         let equiv = Equivalence {
             params: gate.params.clone(),
@@ -603,8 +605,8 @@ impl EquivalenceLibrary {
         }
         let sources: HashSet<Key> =
             HashSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
-                name: inst.op.name().to_string(),
-                num_qubits: inst.op.num_qubits(),
+                name: inst.op.view().name().to_string(),
+                num_qubits: inst.op.view().num_qubits(),
             }));
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (
@@ -636,10 +638,10 @@ impl EquivalenceLibrary {
     /// # Returns:
     /// `bool`: `true` if gate has a known decomposition in the library.
     ///         `false` otherwise.
-    pub fn has_entry(&self, operation: &OperationType) -> bool {
+    pub fn has_entry(&self, operation: &PackedOperation) -> bool {
         let key = Key {
-            name: operation.name().to_string(),
-            num_qubits: operation.num_qubits(),
+            name: operation.view().name().to_string(),
+            num_qubits: operation.view().num_qubits(),
         };
         self.key_to_node_index.contains_key(&key)
     }
@@ -697,15 +699,16 @@ fn raise_if_param_mismatch(
 }
 
 fn raise_if_shape_mismatch(gate: &GateOper, circuit: &CircuitRep) -> PyResult<()> {
-    if gate.operation.num_qubits() != circuit.num_qubits as u32
-        || gate.operation.num_clbits() != circuit.num_clbits as u32
+    let op_ref = gate.operation.view();
+    if op_ref.num_qubits() != circuit.num_qubits as u32
+        || op_ref.num_clbits() != circuit.num_clbits as u32
     {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different shapes. Gate: {} qubits and {} clbits. \
             Circuit: {} qubits and {} clbits.",
-            gate.operation.num_qubits(),
-            gate.operation.num_clbits(),
+            op_ref.num_qubits(),
+            op_ref.num_clbits(),
             circuit.num_qubits,
             circuit.num_clbits
         )));
