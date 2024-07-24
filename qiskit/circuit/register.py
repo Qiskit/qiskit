@@ -205,16 +205,7 @@ class Register:
             return True
 
         res = False
-        if (
-            type(self) is type(other)
-            and self._repr == other._repr
-            # and all(
-            #    # For new-style bits, check bitwise equality.
-            #    sbit == obit
-            #    for sbit, obit in zip(self, other)
-            #    if None in (sbit._register, sbit._index, obit._register, obit._index)
-            # )
-        ):
+        if type(self) is type(other) and self._repr == other._repr:
             res = True
         return res
 
