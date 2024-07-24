@@ -192,8 +192,13 @@ where
     where
         I: IntoIterator<Item = T>,
     {
-        for index in indices {
-            let index = <BitType as From<T>>::from(index) as usize;
+        let mut indices_sorted: Vec<usize> = indices
+            .into_iter()
+            .map(|i| <BitType as From<T>>::from(i) as usize)
+            .collect();
+        indices_sorted.sort();
+
+        for index in indices_sorted.into_iter().rev() {
             self.cached.bind(py).del_item(index)?;
             let bit = self.bits.remove(index);
             self.indices.remove(&BitAsKey::new(bit.bind(py)));
