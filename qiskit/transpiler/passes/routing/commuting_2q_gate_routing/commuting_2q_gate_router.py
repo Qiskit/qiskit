@@ -17,8 +17,9 @@ from collections import defaultdict
 from qiskit.circuit import Gate, QuantumCircuit, Qubit
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.transpiler import TransformationPass, Layout, TranspilerError
-
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.swap_strategy import SwapStrategy
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,

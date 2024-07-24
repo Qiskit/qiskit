@@ -15,10 +15,10 @@ from typing import Iterable, Union, Optional, List, Tuple
 from math import floor, log10
 
 from qiskit.circuit import Barrier
-from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
-from qiskit.transpiler import Layout
-from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library import SwapGate
+from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.layout import Layout
 
 
 class StarBlock:

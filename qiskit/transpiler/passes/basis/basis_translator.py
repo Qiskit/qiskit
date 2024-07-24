@@ -36,7 +36,6 @@ from qiskit.circuit.equivalence import Key, NodeData, Equivalence
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit._accelerate.circuit import StandardGate
 
 logger = logging.getLogger(__name__)
 
@@ -310,16 +309,12 @@ class BasisTranslator(TransformationPass):
             parameter_map = dict(zip(target_params, node.params))
             bound_target_dag = target_dag.copy_empty_like()
             for inner_node in target_dag.topological_op_nodes():
-                new_op = inner_node._raw_op
-                if not isinstance(inner_node._raw_op, StandardGate):
-                    new_op = inner_node.op.copy()
-                new_node = DAGOpNode(
-                    new_op,
-                    qargs=inner_node.qargs,
-                    cargs=inner_node.cargs,
-                    params=inner_node.params,
+                new_node = DAGOpNode.from_instruction(
+                    inner_node._to_circuit_instruction(),
                     dag=bound_target_dag,
                 )
+                if not new_node.is_standard_gate:
+                    new_node.op = new_node.op.copy()
                 if any(isinstance(x, ParameterExpression) for x in inner_node.params):
                     new_params = []
                     for param in new_node.params:
@@ -337,8 +332,8 @@ class BasisTranslator(TransformationPass):
                                 new_value = new_value.numeric()
                             new_params.append(new_value)
                     new_node.params = new_params
-                    if not isinstance(new_op, StandardGate):
-                        new_op.params = new_params
+                    if not new_node.is_standard_gate:
+                        new_node.op.params = new_params
                 bound_target_dag._apply_op_node_back(new_node)
             if isinstance(target_dag.global_phase, ParameterExpression):
                 old_phase = target_dag.global_phase
