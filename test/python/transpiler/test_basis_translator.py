@@ -1255,7 +1255,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         target = backend.target
         pm = generate_preset_pass_manager(optimization_level=1, target=target, seed_transpiler=134)
         cqc = pm.run(qc)
-        self.assertEqual(Operator(qc), Operator(cqc))
+        self.assertEqual(Operator(qc), Operator.from_circuit(cqc))
 
     def test_fractional_gate_in_basis_from_custom_target(self):
         """Test transpiling with RZZ in basis of custom target."""
@@ -1272,4 +1272,4 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         )
         pm = generate_preset_pass_manager(optimization_level=1, target=target, seed_transpiler=134)
         cqc = pm.run(qc)
-        self.assertEqual(Operator(qc), Operator(cqc))
+        self.assertEqual(Operator(qc), Operator.from_circuit(cqc))
