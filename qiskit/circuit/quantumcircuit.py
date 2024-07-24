@@ -1403,7 +1403,7 @@ class QuantumCircuit:
     @classmethod
     @deprecate_func(
         since=1.2,
-        removal_timeline="in qiskit 2.0",
+        removal_timeline="in the 2.0 release",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -1421,7 +1421,7 @@ class QuantumCircuit:
     @classmethod
     @deprecate_func(
         since=1.2,
-        removal_timeline="in qiskit 2.0",
+        removal_timeline="in the 2.0 release",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2293,7 +2293,7 @@ class QuantumCircuit:
     @staticmethod
     @deprecate_func(
         since=1.2,
-        removal_timeline="in qiskit 2.0",
+        removal_timeline="in the 2.0 release",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2314,7 +2314,7 @@ class QuantumCircuit:
 
     @deprecate_func(
         since=1.2,
-        removal_timeline="in qiskit 2.0",
+        removal_timeline="in the 2.0 release",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2338,10 +2338,10 @@ class QuantumCircuit:
         into a list of qubits.
 
         Args:
-            qubit_representation (Object): representation to expand
+            qubit_representation: Representation to expand.
 
         Returns:
-            List(Qubit): the resolved instances of the qubits.
+            The resolved instances of the qubits.
         """
         return _bit_argument_conversion(
             qubit_representation, self.qubits, self._qubit_indices, Qubit
@@ -2349,7 +2349,7 @@ class QuantumCircuit:
 
     @deprecate_func(
         since=1.2,
-        removal_timeline="in qiskit 2.0",
+        removal_timeline="in the 2.0 release",
         additional_msg="This method is only used as an internal helper "
         "and will be removed with no replacement.",
     )
@@ -2359,10 +2359,10 @@ class QuantumCircuit:
         into a list of classical bits.
 
         Args:
-            clbit_representation (Object): representation to expand
+            clbit_representation : Representation to expand.
 
         Returns:
-            List(tuple): Where each tuple is a classical bit.
+            A list of tuples where each tuple is a classical bit.
         """
         return self._cbit_argument_conversion(clbit_representation)
 
@@ -2372,10 +2372,10 @@ class QuantumCircuit:
         into a list of classical bits.
 
         Args:
-            clbit_representation (Object): representation to expand
+            clbit_representation : Representation to expand.
 
         Returns:
-            List(tuple): Where each tuple is a classical bit.
+            A list of tuples where each tuple is a classical bit.
         """
         return _bit_argument_conversion(
             clbit_representation, self.clbits, self._clbit_indices, Clbit
