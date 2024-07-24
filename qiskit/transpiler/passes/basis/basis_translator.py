@@ -37,6 +37,8 @@ from qiskit.circuit.equivalence import Key, NodeData, Equivalence
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.basis.basis_translator import basis_search
 
 logger = logging.getLogger(__name__)
 
