@@ -96,7 +96,7 @@ from qiskit.transpiler.target import (
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, MUMBAI_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, MUMBAI_CMAP, TOKYO_CMAP
 
 
 class CustomCX(Gate):
@@ -2103,54 +2103,7 @@ class TestTranspile(QiskitTestCase):
 
         backend = GenericBackendV2(
             num_qubits=20,
-            coupling_map=[
-                [0, 1],
-                [1, 0],
-                [1, 2],
-                [1, 6],
-                [2, 1],
-                [2, 3],
-                [3, 2],
-                [3, 4],
-                [3, 8],
-                [4, 3],
-                [5, 6],
-                [5, 10],
-                [6, 1],
-                [6, 5],
-                [6, 7],
-                [7, 6],
-                [7, 8],
-                [7, 12],
-                [8, 3],
-                [8, 7],
-                [8, 9],
-                [9, 8],
-                [9, 14],
-                [10, 5],
-                [10, 11],
-                [11, 10],
-                [11, 12],
-                [11, 16],
-                [12, 7],
-                [12, 11],
-                [12, 13],
-                [13, 12],
-                [13, 14],
-                [13, 18],
-                [14, 9],
-                [14, 13],
-                [15, 16],
-                [16, 11],
-                [16, 15],
-                [16, 17],
-                [17, 16],
-                [17, 18],
-                [18, 13],
-                [18, 17],
-                [18, 19],
-                [19, 18],
-            ],
+            coupling_map=TOKYO_CMAP,
             basis_gates=["id", "u1", "u2", "u3", "cx"],
         )
         transpiled = transpile(
