@@ -3913,15 +3913,16 @@ new_condition = (new_target, value)
     /// Returns:
     ///     list[DAGOpNode]: the list of DAGOpNodes that represent gates.
     fn gate_nodes(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
-        let mut nodes = Vec::new();
-        for (node, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
-                if let OperationRef::Gate(_) = packed.op.view() {
-                    nodes.push(self.unpack_into(py, node, weight)?);
+        self.dag.node_references().filter_map(|(node, weight)| {
+            match weight {
+                NodeType::Operation(ref packed) => match packed.op.view() {
+                    OperationRef::Gate(_) | OperationRef::Standard(_) => Some(self.unpack_into(py, node, weight)),
+                    _ => None
                 }
+                _ => None,
             }
-        }
-        Ok(nodes)
+        })
+        .collect()
     }
 
     /// Get the set of "op" nodes with the given name.
