@@ -481,7 +481,8 @@ class TestInstructionParam(QiskitTestCase):
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
 
-        qobj = assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc)
         params = qobj.experiments[0].instructions[0].params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
