@@ -172,12 +172,7 @@ def build_average_error_map(target, properties, coupling_map):
             if count > 0:
                 if len(qargs) == 1:
                     qargs = (qargs[0], qargs[0])
-                if len(qargs) == 2:
-                    avg_map.add_error(qargs, qarg_error / count)
-                if len(qargs) > 2:
-                    qarg_values = list(itertools.permutations(qargs, 2))
-                    for value in qarg_values:
-                        avg_map.add_error(value, qarg_error / count)
+                avg_map.add_error(qargs, qarg_error / count)
                 built = True
     elif properties is not None:
         errors = defaultdict(list)

@@ -15,6 +15,7 @@
 import math
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library import get_standard_gate_name_mapping
 from qiskit.transpiler import CouplingMap
@@ -187,3 +188,25 @@ class TestGenericBackendV2(QiskitTestCase):
         op_names = backend.operation_names
 
         self.assertEqual(op_names, basis_gates)
+
+    def test_genericbackendv2_transpile(self):
+        """Test if a circuit can be transpiled for different optimization_level
+         using the GenericBackendV2 which has 3 and 4-qubit gates in its `basis_gates`"""
+        gates = ['delay', 'x', 'reset', 'sx', 'rz', 'ecr', 'rcccx', 'ccx', 'switch_case', 'for_loop', 'id', 'measure', 'if_else']
+
+        backend = GenericBackendV2(4, basis_gates=gates)
+
+        qc = QuantumCircuit(4)
+        qc.h([0, 2])
+        qc.cx(2, 3)
+        qc.ccx(1, 2, 3)
+        qc.rcccx(0, 1, 2, 3)
+
+        for op_lvl in [0, 1, 2, 3]:
+            pm = generate_preset_pass_manager(backend=backend, optimization_level=op_lvl, seed_transpiler=10)
+            pm.layout = None
+            pm.routing = None
+
+            qc_pm = pm.run(qc)
+            check = all(gates_t in gates for gates_t in list(dict(qc_pm.count_ops()).keys()))
+            self.assertTrue(check)
