@@ -1123,9 +1123,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        with self.assertWarns(DeprecationWarning):
-            job = estimator.run(transpiled_psi, permuted_op, thetas)
-            res = job.result().values
+        job = estimator.run(transpiled_psi, permuted_op, thetas)
+        res = job.result().values
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:

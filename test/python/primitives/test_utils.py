@@ -33,8 +33,7 @@ class TestMapping(QiskitTestCase):
         """Just measures"""
         qc = QuantumCircuit(5)
         qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            self.assertDictEqual(final_measurement_mapping(qc), {0: 0, 1: 1, 2: 2, 3: 3, 4: 4})
+        self.assertDictEqual(final_measurement_mapping(qc), {0: 0, 1: 1, 2: 2, 3: 3, 4: 4})
 
     def test_simple2_circ(self):
         """Meas followed by Hadamards"""
@@ -56,8 +55,7 @@ class TestMapping(QiskitTestCase):
         qc.measure(range(2, 4), range(2, 4))
         qc.barrier(range(5))
         qc.measure(1, 4)
-        with self.assertWarns(DeprecationWarning):
-            self.assertDictEqual(final_measurement_mapping(qc), {2: 2, 3: 3, 1: 4})
+        self.assertDictEqual(final_measurement_mapping(qc), {2: 2, 3: 3, 1: 4})
 
     def test_multi_creg(self):
         """Test multiple qregs"""
@@ -73,8 +71,7 @@ class TestMapping(QiskitTestCase):
         qc.measure(range(2, 4), range(2, 4))
         qc.barrier(range(5))
         qc.measure(1, 4)
-        with self.assertWarns(DeprecationWarning):
-            self.assertDictEqual(final_measurement_mapping(qc), {2: 2, 3: 3, 1: 4})
+        self.assertDictEqual(final_measurement_mapping(qc), {2: 2, 3: 3, 1: 4})
 
     def test_mapping_w_delays(self):
         """Check that measurements followed by delays get in the mapping"""
@@ -84,6 +81,5 @@ class TestMapping(QiskitTestCase):
         qc.measure(1, 0)
         qc.barrier()
 
-        with self.assertWarns(DeprecationWarning):
-            maps = final_measurement_mapping(qc)
+        maps = final_measurement_mapping(qc)
         self.assertDictEqual(maps, {1: 0, 0: 1})
