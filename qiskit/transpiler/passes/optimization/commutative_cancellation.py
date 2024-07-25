@@ -16,10 +16,12 @@ from collections import defaultdict
 import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
 from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGOutNode
+from qiskit.circuit.commutation_library import CommutationChecker, StandardGateCommutations
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
@@ -61,7 +63,18 @@ class CommutativeCancellation(TransformationPass):
             self.basis = set(target.operation_names)
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
-        self.requires.append(CommutationAnalysis())
+
+        self._z_rotations = ["p", "z", "u1", "rz", "t", "s"]
+        self._x_rotations = ["x", "rx"]  # sx too?
+        self._gates = ["cx", "cy", "cz", "h", "y"]  # Now the gates supported are hard-coded
+
+        # build a commutation checker restricted to the gates we cancel -- the others we
+        # do not have to investigate, which allows to save time
+        commutation_checker = CommutationChecker(
+            StandardGateCommutations, gates=self._gates + self._z_rotations + self._x_rotations
+        )
+
+        self.requires.append(CommutationAnalysis(commutation_checker))
 
     def run(self, dag):
         """Run the CommutativeCancellation pass on `dag`.
@@ -103,9 +116,11 @@ class CommutativeCancellation(TransformationPass):
                     continue
                 for node in com_set:
                     num_qargs = len(node.qargs)
+                    if any(isinstance(p, ParameterExpression) for p in node.params):
+                        continue  # no support for cancellation of parameterized gates
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ["p", "z", "u1", "rz", "t", "s"]:
+                    if num_qargs == 1 and node.name in self._z_rotations:
                         cancellation_sets[("z_rotation", wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ["rx", "x"]:
                         cancellation_sets[("x_rotation", wire, com_set_idx)].append(node)

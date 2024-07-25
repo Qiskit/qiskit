@@ -27,9 +27,11 @@ class CommutationAnalysis(AnalysisPass):
     are grouped into a set of gates that commute.
     """
 
-    def __init__(self):
+    def __init__(self, commutation_checker=None):
         super().__init__()
-        self.comm_checker = scc
+        if commutation_checker is None:
+            commutation_checker = scc
+        self.comm_checker = commutation_checker
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
