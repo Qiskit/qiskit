@@ -31,7 +31,7 @@ from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
 
 
-class BackendSampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
+class BackendSamplerV1(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
     """A :class:`~.BaseSamplerV1` implementation that provides an interface for
     leveraging the sampler interface from any backend.
 
@@ -47,13 +47,6 @@ class BackendSampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    @deprecate_func(
-        since="1.2",
-        additional_msg="The preferred replacement is "
-        ":class:`.BackendSamplerV2`. However, "
-        ":class:`.BackendSamplerV1` is a drop-in replacement "
-        "for `BackendSampler`, which is an alias.",
-    )
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -219,3 +212,54 @@ class BackendSampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job._submit()
         return job
+
+
+class BackendSampler(BackendSamplerV1):
+    """A :class:`~.BaseSamplerV1` implementation that provides an interface for
+    leveraging the sampler interface from any backend.
+
+    This class provides a sampler interface from any backend and doesn't do
+    any measurement mitigation, it just computes the probability distribution
+    from the counts. It facilitates using backends that do not provide a
+    native :class:`~.BaseSamplerV1` implementation in places that work with
+    :class:`~.BaseSamplerV1`.
+    However, if you're using a provider that has a native implementation of
+    :class:`~.BaseSamplerV1` or :class:`~.BaseSamplerV2`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
+    """
+
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.BackendSamplerV2`. However, "
+        ":class:`.BackendSamplerV1` is a drop-in replacement "
+        "for `BackendSampler`, which is an alias.",
+    )
+    def __init__(
+        self,
+        backend: BackendV1 | BackendV2,
+        options: dict | None = None,
+        bound_pass_manager: PassManager | None = None,
+        skip_transpilation: bool = False,
+    ):
+        """Initialize a new BackendSampler
+
+        Args:
+            backend: Required: the backend to run the sampler primitive on
+            options: Default options.
+            bound_pass_manager: An optional pass manager to run after
+                parameter binding.
+            skip_transpilation: If this is set to True the internal compilation
+                of the input circuits is skipped and the circuit objects
+                will be directly executed when this objected is called.
+        Raises:
+            ValueError: If backend is not provided
+        """
+        super().__init__(
+            backend=backend,
+            options=options,
+            bound_pass_manager=bound_pass_manager,
+            skip_transpilation=skip_transpilation,
+        )

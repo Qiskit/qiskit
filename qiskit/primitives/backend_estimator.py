@@ -89,7 +89,7 @@ def _prepare_counts(results: list[Result]):
     return counts
 
 
-class BackendEstimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
+class BackendEstimatorV1(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
@@ -414,6 +414,60 @@ class BackendEstimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
             if not isinstance(output, list):
                 output = [output]
             return output
+
+
+class BackendEstimator(BackendEstimatorV1):
+    """Evaluates expectation value using Pauli rotation gates.
+
+    The :class:`~.BackendEstimator` class is a generic implementation of the
+    :class:`~.BaseEstimatorV1` interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
+    facilitates using backends that do not provide a native
+    :class:`~.BaseEstimatorV1` implementation in places that work with
+    :class:`~.BaseEstimatorV1`. However,
+    if you're using a provider that has a native implementation of
+    :class:`~.BaseEstimatorV1` or :class:`~.BaseEstimatorV2`, it is a better
+    choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
+    """
+
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.BackendEstimatorV2`. However, "
+        ":class:`.BackendEstimatorV1` is a drop-in replacement "
+        "for `BackendEstimatorV2`, which is an alias.",
+    )
+    def __init__(
+        self,
+        backend: BackendV1 | BackendV2,
+        options: dict | None = None,
+        abelian_grouping: bool = True,
+        bound_pass_manager: PassManager | None = None,
+        skip_transpilation: bool = False,
+    ):
+        """Initialize a new BackendEstimator instance
+
+        Args:
+            backend: Required: the backend to run the primitive on
+            options: Default options.
+            abelian_grouping: Whether the observable should be grouped into
+                commuting
+            bound_pass_manager: An optional pass manager to run after
+                parameter binding.
+            skip_transpilation: If this is set to True the internal compilation
+                of the input circuits is skipped and the circuit objects
+                will be directly executed when this object is called.
+        """
+        super().__init__(
+            backend=backend,
+            options=options,
+            abelian_grouping=abelian_grouping,
+            bound_pass_manager=bound_pass_manager,
+            skip_transpilation=skip_transpilation,
+        )
 
 
 def _paulis2inds(paulis: PauliList) -> list[int]:
