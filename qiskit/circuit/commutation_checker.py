@@ -20,17 +20,31 @@ from qiskit import QiskitError
 from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.library import XGate, YGate, ZGate
+from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 from qiskit.quantum_info.operators import Operator
 
 _skipped_op_names = {"measure", "reset", "delay", "initialize"}
 _no_cache_op_names = {"annotated"}
+
+_rotation_gates = {
+    "rx": XGate(),
+    "ry": YGate(),
+    "rz": ZGate(),
+    "rxx": PauliGate("XX"),
+    "ryy": PauliGate("YY"),
+    "rzz": PauliGate("ZZ"),
+    "rzx": PauliGate("XZ"),
+}
 
 
 @lru_cache(maxsize=None)
 def _identity_op(num_qubits):
     """Cached identity matrix"""
     return Operator(
-        np.eye(2**num_qubits), input_dims=(2,) * num_qubits, output_dims=(2,) * num_qubits
+        np.eye(2**num_qubits),
+        input_dims=(2,) * num_qubits,
+        output_dims=(2,) * num_qubits,
     )
 
 
@@ -42,7 +56,9 @@ class CommutationChecker:
     evicting from the cache less useful entries, etc.
     """
 
-    def __init__(self, standard_gate_commutations: dict = None, cache_max_entries: int = 10**6):
+    def __init__(
+        self, standard_gate_commutations: dict = None, cache_max_entries: int = 10**6
+    ):
         super().__init__()
         if standard_gate_commutations is None:
             self._standard_commutations = {}
@@ -103,6 +119,20 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
+        # The rotation gates commute like their respective generators.
+        if (
+            op1.name in _rotation_gates
+            and getattr(op1, "is_parameterized", False)
+            and op1.is_parameterized()
+        ):
+            op1 = _rotation_gates[op1.name]
+        if (
+            op2.name in _rotation_gates
+            and getattr(op2, "is_parameterized", False)
+            and op2.is_parameterized()
+        ):
+            op2 = _rotation_gates[op2.name]
+
         structural_commutation = _commutation_precheck(
             op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits
         )
@@ -116,7 +146,9 @@ class CommutationChecker:
         first_op, first_qargs, _ = first_op_tuple
         second_op, second_qargs, _ = second_op_tuple
 
-        skip_cache = first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
+        skip_cache = (
+            first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
+        )
 
         if skip_cache:
             return _commute_matmul(first_op, first_qargs, second_op, second_qargs)
@@ -140,10 +172,13 @@ class CommutationChecker:
         first_params = getattr(first_op, "params", [])
         second_params = getattr(second_op, "params", [])
         if len(first_params) > 0 or len(second_params) > 0:
-            self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
-                _get_relative_placement(first_qargs, second_qargs), {}
-            )[
-                (_hashable_parameters(first_params), _hashable_parameters(second_params))
+            self._cached_commutations.setdefault(
+                (first_op.name, second_op.name), {}
+            ).setdefault(_get_relative_placement(first_qargs, second_qargs), {})[
+                (
+                    _hashable_parameters(first_params),
+                    _hashable_parameters(second_params),
+                )
             ] = is_commuting
         else:
             self._cached_commutations.setdefault((first_op.name, second_op.name), {})[
@@ -309,7 +344,9 @@ def _commutation_precheck(
     return None
 
 
-def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit]) -> tuple:
+def _get_relative_placement(
+    first_qargs: List[Qubit], second_qargs: List[Qubit]
+) -> tuple:
     """Determines the relative qubit placement of two gates. Note: this is NOT symmetric.
 
     Args:
@@ -336,11 +373,18 @@ def _persistent_id(op_name: str) -> int:
     Return:
         The integer id of the input string.
     """
-    return int.from_bytes(bytes(op_name, encoding="utf-8"), byteorder="big", signed=True)
+    return int.from_bytes(
+        bytes(op_name, encoding="utf-8"), byteorder="big", signed=True
+    )
 
 
 def _order_operations(
-    op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
+    op1: Operation,
+    qargs1: List,
+    cargs1: List,
+    op2: Operation,
+    qargs2: List,
+    cargs2: List,
 ):
     """Orders two operations in a canonical way that is persistent over
     @different python versions and executions
@@ -357,7 +401,9 @@ def _order_operations(
     op1_tuple = (op1, qargs1, cargs1)
     op2_tuple = (op2, qargs2, cargs2)
     least_qubits_op, most_qubits_op = (
-        (op1_tuple, op2_tuple) if op1.num_qubits < op2.num_qubits else (op2_tuple, op1_tuple)
+        (op1_tuple, op2_tuple)
+        if op1.num_qubits < op2.num_qubits
+        else (op2_tuple, op1_tuple)
     )
     # prefer operation with the least number of qubits as first key as this results in shorter keys
     if op1.num_qubits != op2.num_qubits:
@@ -409,7 +455,10 @@ def _query_commutation(
             first_params = getattr(first_op, "params", [])
             second_params = getattr(second_op, "params", [])
             return commutation_after_placement.get(
-                (_hashable_parameters(first_params), _hashable_parameters(second_params)),
+                (
+                    _hashable_parameters(first_params),
+                    _hashable_parameters(second_params),
+                ),
                 None,
             )
         else:
@@ -445,10 +494,14 @@ def _commute_matmul(
     # return false
     try:
         operator_1 = Operator(
-            first_ops, input_dims=(2,) * len(first_qarg), output_dims=(2,) * len(first_qarg)
+            first_ops,
+            input_dims=(2,) * len(first_qarg),
+            output_dims=(2,) * len(first_qarg),
         )
         operator_2 = Operator(
-            second_op, input_dims=(2,) * len(second_qarg), output_dims=(2,) * len(second_qarg)
+            second_op,
+            input_dims=(2,) * len(second_qarg),
+            output_dims=(2,) * len(second_qarg),
         )
     except QiskitError:
         return False
