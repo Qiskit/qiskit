@@ -191,8 +191,22 @@ class TestGenericBackendV2(QiskitTestCase):
 
     def test_genericbackendv2_transpile(self):
         """Test if a circuit can be transpiled for different optimization_level
-         using the GenericBackendV2 which has 3 and 4-qubit gates in its `basis_gates`"""
-        gates = ['delay', 'x', 'reset', 'sx', 'rz', 'ecr', 'rcccx', 'ccx', 'switch_case', 'for_loop', 'id', 'measure', 'if_else']
+        using the GenericBackendV2 which has 3 and 4-qubit gates in its `basis_gates`"""
+        gates = [
+            "delay",
+            "x",
+            "reset",
+            "sx",
+            "rz",
+            "ecr",
+            "rcccx",
+            "ccx",
+            "switch_case",
+            "for_loop",
+            "id",
+            "measure",
+            "if_else",
+        ]
 
         backend = GenericBackendV2(4, basis_gates=gates)
 
@@ -203,7 +217,9 @@ class TestGenericBackendV2(QiskitTestCase):
         qc.rcccx(0, 1, 2, 3)
 
         for op_lvl in [0, 1, 2, 3]:
-            pm = generate_preset_pass_manager(backend=backend, optimization_level=op_lvl, seed_transpiler=10)
+            pm = generate_preset_pass_manager(
+                backend=backend, optimization_level=op_lvl, seed_transpiler=10
+            )
             pm.layout = None
             pm.routing = None
 

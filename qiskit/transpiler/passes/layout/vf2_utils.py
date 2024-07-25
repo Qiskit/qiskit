@@ -15,7 +15,6 @@
 from collections import defaultdict
 import statistics
 import random
-import itertools
 
 import numpy as np
 from rustworkx import PyDiGraph, PyGraph, connected_components
