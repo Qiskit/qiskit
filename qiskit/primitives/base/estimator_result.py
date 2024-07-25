@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator result class
+Estimator V1 result class
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class EstimatorResult(_BasePrimitiveResult):
-    """Result of Estimator.
+    """Result of Estimator V1.
 
     .. code-block:: python
 
