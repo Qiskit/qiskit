@@ -17,6 +17,7 @@ pub mod dag_node;
 pub mod gate_matrix;
 pub mod imports;
 pub mod operations;
+pub mod packed_instruction;
 pub mod parameter_table;
 pub mod slice;
 pub mod util;
@@ -64,8 +65,5 @@ pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<operations::StandardGate>()?;
-    m.add_class::<operations::PyInstruction>()?;
-    m.add_class::<operations::PyGate>()?;
-    m.add_class::<operations::PyOperation>()?;
     Ok(())
 }
