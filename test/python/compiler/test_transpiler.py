@@ -96,7 +96,7 @@ from qiskit.transpiler.target import (
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, MUMBAI_CMAP
 
 
 class CustomCX(Gate):
@@ -1513,7 +1513,13 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+        backend_v2 = GenericBackendV2(
+            num_qubits=27,
+            calibrate_instructions=True,
+            control_flow=True,
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
         # the original timing constraints are granularity = min_length = 16
         timing_constraints = TimingConstraints(granularity=32, min_length=64)
         error_msgs = {
