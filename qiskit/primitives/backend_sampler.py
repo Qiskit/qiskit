@@ -32,14 +32,14 @@ from .utils import _circuit_key
 
 
 class BackendSampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
-    """A :class:`~.BaseSamplerV2` implementation that provides an interface for
+    """A :class:`~.BaseSamplerV1` implementation that provides an interface for
     leveraging the sampler interface from any backend.
 
     This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
     from the counts. It facilitates using backends that do not provide a
-    native :class:`~.BaseSamplerV2` implementation in places that work with
-    :class:`~.BaseSamplerV2`.
+    native :class:`~.BaseSamplerV1` implementation in places that work with
+    :class:`~.BaseSamplerV1`.
     However, if you're using a provider that has a native implementation of
     :class:`~.BaseSamplerV1` or :class:`~.BaseSamplerV2`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be
