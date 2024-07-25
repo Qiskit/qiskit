@@ -1,0 +1,26 @@
+---
+deprecations_primitives:
+  - |
+    Primitives V1 is now deprecated and will be removed in no less than 3 months from the release date.
+
+    The following Primitives V1 classes are deprecated:
+
+    * :class:`.BaseEstimator`, use :class:`.BaseEstimatorV2` instead,
+    * :class:`.BaseSampler`, use :class:`.BaseSamplerV2` instead,
+    * :class:`.Estimator`, use :class:`.StatevectorEstimator` instead,
+    * :class:`.Sampler`, use :class:`.StatevectorSampler` instead,
+    * :class:`.BackendEstimator`, use :class:`.BackendEstimatorV2` instead,
+    * :class:`.BackendSampler`, use :class:`.BackendSamplerV2` instead,
+
+
+    In addition, the following utility functions are deprecated:
+
+    * :func:`.init_circuit`, to initialize a circuit from a :class:`.Statevector`,
+      use :meth:`.QuantumCircuit.initialize` instead,
+    * :func:`.init_observable`, use the constructor of :class:`.SparsePauliOp` instead,
+    * :func:`.final_measurement_mapping`, use :meth:`.QuantumCircuit.layout` and
+      :meth:`.SparsePauliOp.apply_layout` to adjust an operator for a layout.
+      Otherwise, use ``mthree.utils.final_measurement_mapping``.
+      See `Mthree Utility functions <https://qiskit-extensions.github.io/mthree/apidocs/utils.html>`__
+      for details.
+
