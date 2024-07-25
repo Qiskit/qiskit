@@ -94,10 +94,9 @@ class TestBackendEstimator(QiskitTestCase):
 
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        with self.assertWarns(DeprecationWarning):
-            job = estimator.run([psi1], [hamiltonian1], [theta1])
-            result = job.result()
-            self.assertIsInstance(result, EstimatorResult)
+        job = estimator.run([psi1], [hamiltonian1], [theta1])
+        result = job.result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.5, atol=0.2)
 
         # Objects can be passed instead of indices.
@@ -135,9 +134,9 @@ class TestBackendEstimator(QiskitTestCase):
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         with self.assertWarns(DeprecationWarning):
             est = BackendEstimator(backend=backend)
-            est.set_options(seed_simulator=123)
-            result = est.run([circuit], [self.observable]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        est.set_options(seed_simulator=123)
+        result = est.run([circuit], [self.observable]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
 
     @combine(backend=BACKENDS, creg=[True, False])
@@ -321,8 +320,7 @@ class TestBackendEstimator(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             estimator = BackendEstimator(backend=backend)
         with patch.object(backend, "run") as run_mock:
-            with self.assertWarns(DeprecationWarning):
-                estimator.run([qc] * k, [op] * k, params_list).result()
+            estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_v1(self):
@@ -340,8 +338,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend=backend)
         estimator.set_options(seed_simulator=123)
         with patch.object(backend, "run") as run_mock:
-            with self.assertWarns(DeprecationWarning):
-                estimator.run([qc] * k, [op] * k, params_list).result()
+            estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
     def test_no_max_circuits(self):
