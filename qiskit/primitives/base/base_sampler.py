@@ -21,7 +21,6 @@ from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
-from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.primitive_result import PrimitiveResult
 from ..containers.sampler_pub import SamplerPubLike
@@ -151,25 +150,6 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseSampler must implement `_run` method.")
 
 
-class BaseSampler(BaseSamplerV1[T]):
-    """DEPRECATED. Type alias of Sampler V1 base class
-
-    See :class:`.BaseSamplerV1` for details.
-    """
-
-    @deprecate_func(since="1.2", additional_msg="Use BaseSamplerV2 instead.")
-    def __init__(
-        self,
-        *,
-        options: dict | None = None,
-    ):
-        """
-        Args:
-            options: Default options.
-        """
-        super().__init__(options=options)
-
-
 class BaseSamplerV2(ABC):
     r"""Sampler V2 base class.
 
@@ -195,3 +175,21 @@ class BaseSamplerV2(ABC):
         Returns:
             The job object of Sampler's result.
         """
+
+
+# Deprecation warning for importing BaseSampler directly
+
+
+def __getattr__(name):
+    if name == "BaseSampler":
+        import warnings
+
+        warnings.warn(
+            "BaseSampler class is deprecated as of Qiskit 1.2"
+            " and will be removed no earlier than 3 months after the release date. "
+            " Use BaseSamplerV2 instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return BaseSamplerV1
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
