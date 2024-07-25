@@ -20,10 +20,7 @@ import ddt
 
 from qiskit.circuit.library import QFT
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.converters import (
-    circuit_to_dag,
-    dag_to_circuit,
-)
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import VF2Layout, ApplyLayout, SabreSwap, SabreLayout
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
