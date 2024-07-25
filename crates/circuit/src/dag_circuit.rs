@@ -3575,18 +3575,16 @@ new_condition = (new_target, value)
             py_op: RefCell::new(Some(op.clone().unbind())),
         });
 
-        // Use self.dag.contract_nodes to replace a single node with an Operation
-        // Is there a better method to do it?
-        let new_node = self
-            .dag
-            .contract_nodes(Some(node.as_ref().node.unwrap()), new_weight, false)
-            .unwrap();
+        let node_index = node.as_ref().node.unwrap();
+        if let Some(weight) = self.dag.node_weight_mut(node_index) {
+            *weight = new_weight;
+        }
 
         // Update self.op_names
         self.decrement_op(old_packed.op.name().to_string());
         self.increment_op(new_op.operation.name().to_string());
 
-        Ok(self.get_node(py, new_node)?)
+        Ok(self.get_node(py, node_index)?)
     }
 
     /// Decompose the circuit into sets of qubits with no gates connecting them.
