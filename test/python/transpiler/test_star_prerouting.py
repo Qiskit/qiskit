@@ -15,6 +15,7 @@
 """Test the StarPreRouting pass"""
 
 import unittest
+
 from test import QiskitTestCase
 import ddt
 
