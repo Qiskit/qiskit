@@ -2413,6 +2413,26 @@ class TestPostTranspileIntegration(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_qasm3_output(self, optimization_level):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+        )
+
+        transpiled = transpile(
+            self._regular_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_17,
+        )
+        # TODO: There's not a huge amount we can sensibly test for the output here until we can
+        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
+        # itself doesn't throw an error, though.
+        self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
+
+    @data(0, 1, 2, 3)
+    def test_qasm3_output_v1(self, optimization_level):
+        """Test that the output of a transpiled circuit can be dumped into OpenQASM 3 (backend V1)."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
 
