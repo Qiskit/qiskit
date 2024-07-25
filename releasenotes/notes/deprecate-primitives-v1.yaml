@@ -5,8 +5,8 @@ deprecations_primitives:
 
     The following Primitives V1 classes are deprecated:
 
-    * :class:`.BaseEstimatorV1`, use :class:`.BaseEstimatorV2` instead,
-    * :class:`.BaseSamplerV1`, use :class:`.BaseSamplerV2` instead,
+    * :class:`.BaseEstimator`, use :class:`.BaseEstimatorV2` instead,
+    * :class:`.BaseSampler`, use :class:`.BaseSamplerV2` instead,
     * :class:`.Estimator`, use :class:`.StatevectorEstimator` instead,
     * :class:`.Sampler`, use :class:`.StatevectorSampler` instead,
     * :class:`.BackendEstimator`, use :class:`.BackendEstimatorV2` instead,

@@ -186,7 +186,7 @@ def __getattr__(name):
 
         warnings.warn(
             "BaseSampler class is deprecated as of Qiskit 1.2"
-            " and will be removed no earlier than 3 months after the release date. "
+            " and will be removed no earlier than 3 months after the release date."
             " Use BaseSamplerV2 instead",
             DeprecationWarning,
             stacklevel=2,
