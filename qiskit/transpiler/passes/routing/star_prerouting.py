@@ -17,8 +17,8 @@ from math import floor, log10
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister, Barrier
 from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
-from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 
 from qiskit._accelerate import star_prerouting

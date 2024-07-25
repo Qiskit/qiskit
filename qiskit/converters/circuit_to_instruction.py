@@ -142,7 +142,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     data = target._data.copy()
     data.replace_bits(qubits=qreg, clbits=creg)
-    data.map_ops(fix_condition)
+    data.map_nonstandard_ops(fix_condition)
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
     qc._data = data

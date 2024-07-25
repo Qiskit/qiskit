@@ -23,6 +23,7 @@ from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.utils.deprecation import deprecate_func
 
 from .backend_estimator import _prepare_counts, _run_circuits
 from .base import BaseSampler, SamplerResult
@@ -46,6 +47,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     precludes doing any provider- or backend-specific optimizations.
     """
 
+    @deprecate_func(since="1.2", additional_msg="Use BackendSamplerV2 instead.")
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
