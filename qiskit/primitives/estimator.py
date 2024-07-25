@@ -26,7 +26,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseEstimator, EstimatorResult
+from .base import BaseEstimatorV1, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -36,9 +36,9 @@ from .utils import (
 )
 
 
-class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
+class Estimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
     """
-    Reference implementation of :class:`BaseEstimator`.
+    Reference implementation of :class:`BaseEstimatorV1`.
 
     :Run Options:
 
@@ -52,7 +52,13 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
           this option is ignored.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use StatevectorEstimator instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.EstimatorV2`. However, "
+        ":class:`.EstimatorV1` is a drop-in replacement "
+        "for `Estimator`, which is an alias.",
+    )
     def __init__(self, *, options: dict | None = None):
         """
         Args:

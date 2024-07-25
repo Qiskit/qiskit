@@ -194,7 +194,13 @@ class BaseEstimator(BaseEstimatorV1[T]):
     See :class:`.BaseEstimatorV1` for details.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use BaseEstimatorV2 instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.BaseEstimatorV2`. However, "
+        ":class:`.BaseEstimatorV1` is a drop-in replacement "
+        "for `BaseEstimator`, which is an alias.",
+    )
     def __init__(
         self,
         *,

@@ -26,7 +26,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseSampler, SamplerResult
+from .base import BaseSamplerV1, SamplerResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -36,7 +36,7 @@ from .utils import (
 )
 
 
-class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
+class Sampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
     """
     Sampler class.
 
@@ -53,7 +53,13 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
           option is ignored.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use StatevectorSampler instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.SamplerV2`. However, "
+        ":class:`.SamplerV1` is a drop-in replacement "
+        "for `Sampler`, which is an alias.",
+    )
     def __init__(self, *, options: dict | None = None):
         """
         Args:

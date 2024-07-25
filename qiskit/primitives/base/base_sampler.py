@@ -157,7 +157,13 @@ class BaseSampler(BaseSamplerV1[T]):
     See :class:`.BaseSamplerV1` for details.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use BaseSamplerV2 instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.BaseSamplerV2`. However, "
+        ":class:`.BaseSamplerV1` is a drop-in replacement "
+        "for `BaseSampler`, which is an alias.",
+    )
     def __init__(
         self,
         *,

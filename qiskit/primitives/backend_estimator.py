@@ -37,7 +37,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseEstimator, EstimatorResult
+from .base import BaseEstimatorV1, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
@@ -89,23 +89,30 @@ def _prepare_counts(results: list[Result]):
     return counts
 
 
-class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
+class BackendEstimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
-    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
+    :class:`~.BaseEstimatorV1` interface that is used to wrap a :class:`~.BackendV2`
     (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
     facilitates using backends that do not provide a native
-    :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`. However,
+    :class:`~.BaseEstimatorV1` implementation in places that work with
+    :class:`~.BaseEstimatorV1`. However,
     if you're using a provider that has a native implementation of
-    :class:`~.BaseEstimator`, it is a better choice to leverage that native
+    :class:`~.BaseEstimatorV1` or :class:`~.BaseEstimatorV2`, it is a better
+    choice to leverage that native
     implementation as it will likely include additional optimizations and be
     a more efficient implementation. The generic nature of this class
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use BackendEstimatorV2 instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The preferred replacement is "
+        ":class:`.BackendEstimatorV2`. However, "
+        ":class:`.BackendEstimatorV1` is a drop-in replacement "
+        "for `BackendEstimatorV2`, which is an alias.",
+    )
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
