@@ -13,190 +13,20 @@
 use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{
-    get_std_gate_class, CONTROL_FLOW_OP, DEEPCOPY, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT,
-};
+use crate::circuit_instruction::ExtraInstructionAttributes;
+use crate::imports::get_std_gate_class;
+use crate::imports::{CONTROL_FLOW_OP, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, Qubit};
 
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
+use smallvec::smallvec;
+
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+use pyo3::types::{IntoPyDict, PyTuple};
 use pyo3::{intern, IntoPy, Python};
-use smallvec::smallvec;
-
-/// Valid types for an operation field in a CircuitInstruction
-///
-/// These are basically the types allowed in a QuantumCircuit
-#[derive(FromPyObject, Clone, Debug)]
-pub enum OperationType {
-    Standard(StandardGate),
-    Instruction(PyInstruction),
-    Gate(PyGate),
-    Operation(PyOperation),
-}
-
-impl OperationType {
-    pub fn is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
-        let py = py_type.py();
-        let py_op = match self {
-            OperationType::Standard(op) => {
-                let raw_class = get_std_gate_class(py, *op)?;
-                let our_class: &Bound<PyType> = raw_class.downcast_bound(py)?;
-                return our_class.is_subclass(py_type);
-            }
-            OperationType::Instruction(op) => op.instruction.bind(py),
-            OperationType::Gate(op) => op.gate.bind(py),
-            OperationType::Operation(op) => op.operation.bind(py),
-        };
-        py_op.is_instance(py_type)
-    }
-
-    pub fn eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match [self, other] {
-            [OperationType::Standard(op1), OperationType::Standard(op2)] => Ok(op1 == op2),
-            [OperationType::Instruction(op1), OperationType::Instruction(op2)] => {
-                if op1.name() != op2.name()
-                    || op1.num_qubits() != op2.num_qubits()
-                    || op2.num_clbits() != op2.num_clbits()
-                    || op1.num_params() != op2.num_params()
-                {
-                    return Ok(false);
-                }
-                op1.instruction.bind(py).eq(&op2.instruction)
-            }
-            [OperationType::Gate(op1), OperationType::Gate(op2)] => {
-                if op1.name() != op2.name()
-                    || op1.num_qubits() != op2.num_qubits()
-                    || op2.num_clbits() != op2.num_clbits()
-                    || op1.num_params() != op2.num_params()
-                {
-                    return Ok(false);
-                }
-                op1.gate.bind(py).eq(&op2.gate)
-            }
-            [OperationType::Operation(op1), OperationType::Operation(op2)] => {
-                if op1.name() != op2.name()
-                    || op1.num_qubits() != op2.num_qubits()
-                    || op2.num_clbits() != op2.num_clbits()
-                    || op1.num_params() != op2.num_params()
-                {
-                    return Ok(false);
-                }
-                op1.operation.bind(py).eq(&op2.operation)
-            }
-            _ => Ok(false),
-        }
-    }
-}
-
-impl IntoPy<PyObject> for OperationType {
-    fn into_py(self, py: Python) -> PyObject {
-        match self {
-            Self::Standard(gate) => gate.into_py(py),
-            Self::Instruction(inst) => inst.into_py(py),
-            Self::Gate(gate) => gate.into_py(py),
-            Self::Operation(op) => op.into_py(py),
-        }
-    }
-}
-
-impl Operation for OperationType {
-    fn name(&self) -> &str {
-        match self {
-            Self::Standard(op) => op.name(),
-            Self::Gate(op) => op.name(),
-            Self::Instruction(op) => op.name(),
-            Self::Operation(op) => op.name(),
-        }
-    }
-
-    fn num_qubits(&self) -> u32 {
-        match self {
-            Self::Standard(op) => op.num_qubits(),
-            Self::Gate(op) => op.num_qubits(),
-            Self::Instruction(op) => op.num_qubits(),
-            Self::Operation(op) => op.num_qubits(),
-        }
-    }
-    fn num_clbits(&self) -> u32 {
-        match self {
-            Self::Standard(op) => op.num_clbits(),
-            Self::Gate(op) => op.num_clbits(),
-            Self::Instruction(op) => op.num_clbits(),
-            Self::Operation(op) => op.num_clbits(),
-        }
-    }
-
-    fn num_params(&self) -> u32 {
-        match self {
-            Self::Standard(op) => op.num_params(),
-            Self::Gate(op) => op.num_params(),
-            Self::Instruction(op) => op.num_params(),
-            Self::Operation(op) => op.num_params(),
-        }
-    }
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        match self {
-            Self::Standard(op) => op.matrix(params),
-            Self::Gate(op) => op.matrix(params),
-            Self::Instruction(op) => op.matrix(params),
-            Self::Operation(op) => op.matrix(params),
-        }
-    }
-
-    fn control_flow(&self) -> bool {
-        match self {
-            Self::Standard(op) => op.control_flow(),
-            Self::Gate(op) => op.control_flow(),
-            Self::Instruction(op) => op.control_flow(),
-            Self::Operation(op) => op.control_flow(),
-        }
-    }
-
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        match self {
-            Self::Standard(op) => op.definition(params),
-            Self::Gate(op) => op.definition(params),
-            Self::Instruction(op) => op.definition(params),
-            Self::Operation(op) => op.definition(params),
-        }
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
-        match self {
-            Self::Standard(op) => op.standard_gate(),
-            Self::Gate(op) => op.standard_gate(),
-            Self::Instruction(op) => op.standard_gate(),
-            Self::Operation(op) => op.standard_gate(),
-        }
-    }
-
-    fn directive(&self) -> bool {
-        match self {
-            Self::Standard(op) => op.directive(),
-            Self::Gate(op) => op.directive(),
-            Self::Instruction(op) => op.directive(),
-            Self::Operation(op) => op.directive(),
-        }
-    }
-}
-
-/// Trait for generic circuit operations these define the common attributes
-/// needed for something to be addable to the circuit struct
-pub trait Operation {
-    fn name(&self) -> &str;
-    fn num_qubits(&self) -> u32;
-    fn num_clbits(&self) -> u32;
-    fn num_params(&self) -> u32;
-    fn control_flow(&self) -> bool;
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
-    fn definition(&self, params: &[Param]) -> Option<CircuitData>;
-    fn standard_gate(&self) -> Option<StandardGate>;
-    fn directive(&self) -> bool;
-}
 
 #[derive(Clone, Debug)]
 pub enum Param {
@@ -205,44 +35,8 @@ pub enum Param {
     Obj(PyObject),
 }
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(
-            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
-                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
-            {
-                Param::ParameterExpression(b.clone().unbind())
-            } else if let Ok(val) = b.extract::<f64>() {
-                Param::Float(val)
-            } else {
-                Param::Obj(b.clone().unbind())
-            },
-        )
-    }
-}
-
-impl IntoPy<PyObject> for Param {
-    fn into_py(self, py: Python) -> PyObject {
-        match &self {
-            Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.clone_ref(py),
-            Self::Obj(val) => val.clone_ref(py),
-        }
-    }
-}
-
-impl ToPyObject for Param {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            Self::Float(val) => val.to_object(py),
-            Self::ParameterExpression(val) => val.clone_ref(py),
-            Self::Obj(val) => val.clone_ref(py),
-        }
-    }
-}
-
 impl Param {
-    pub fn add(&self, other: &Param, py: Python) -> Param {
+    pub fn add(&self, py: Python, other: &Param) -> Param {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Param::Float(a + b),
             [Self::Float(a), Self::ParameterExpression(b)] => Param::ParameterExpression(
@@ -281,7 +75,153 @@ impl Param {
     }
 }
 
+impl<'py> FromPyObject<'py> for Param {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        Ok(
+            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
+                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
+            {
+                Param::ParameterExpression(b.clone().unbind())
+            } else if let Ok(val) = b.extract::<f64>() {
+                Param::Float(val)
+            } else {
+                Param::Obj(b.clone().unbind())
+            },
+        )
+    }
+}
+
+impl IntoPy<PyObject> for Param {
+    fn into_py(self, py: Python) -> PyObject {
+        match &self {
+            Self::Float(val) => val.to_object(py),
+            Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::Obj(val) => val.clone_ref(py),
+        }
+    }
+}
+
+impl ToPyObject for Param {
+    fn to_object(&self, py: Python) -> PyObject {
+        match self {
+            Self::Float(val) => val.to_object(py),
+            Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::Obj(val) => val.clone_ref(py),
+        }
+    }
+}
+
+/// Trait for generic circuit operations these define the common attributes
+/// needed for something to be addable to the circuit struct
+pub trait Operation {
+    fn name(&self) -> &str;
+    fn num_qubits(&self) -> u32;
+    fn num_clbits(&self) -> u32;
+    fn num_params(&self) -> u32;
+    fn control_flow(&self) -> bool;
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
+    fn definition(&self, params: &[Param]) -> Option<CircuitData>;
+    fn standard_gate(&self) -> Option<StandardGate>;
+    fn directive(&self) -> bool;
+}
+
+/// Unpacked view object onto a `PackedOperation`.  This is the return value of
+/// `PackedInstruction::op`, and in turn is a view object onto a `PackedOperation`.
+///
+/// This is the main way that we interact immutably with general circuit operations from Rust space.
+pub enum OperationRef<'a> {
+    Standard(StandardGate),
+    Gate(&'a PyGate),
+    Instruction(&'a PyInstruction),
+    Operation(&'a PyOperation),
+}
+
+impl<'a> Operation for OperationRef<'a> {
+    #[inline]
+    fn name(&self) -> &str {
+        match self {
+            Self::Standard(standard) => standard.name(),
+            Self::Gate(gate) => gate.name(),
+            Self::Instruction(instruction) => instruction.name(),
+            Self::Operation(operation) => operation.name(),
+        }
+    }
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        match self {
+            Self::Standard(standard) => standard.num_qubits(),
+            Self::Gate(gate) => gate.num_qubits(),
+            Self::Instruction(instruction) => instruction.num_qubits(),
+            Self::Operation(operation) => operation.num_qubits(),
+        }
+    }
+    #[inline]
+    fn num_clbits(&self) -> u32 {
+        match self {
+            Self::Standard(standard) => standard.num_clbits(),
+            Self::Gate(gate) => gate.num_clbits(),
+            Self::Instruction(instruction) => instruction.num_clbits(),
+            Self::Operation(operation) => operation.num_clbits(),
+        }
+    }
+    #[inline]
+    fn num_params(&self) -> u32 {
+        match self {
+            Self::Standard(standard) => standard.num_params(),
+            Self::Gate(gate) => gate.num_params(),
+            Self::Instruction(instruction) => instruction.num_params(),
+            Self::Operation(operation) => operation.num_params(),
+        }
+    }
+    #[inline]
+    fn control_flow(&self) -> bool {
+        match self {
+            Self::Standard(standard) => standard.control_flow(),
+            Self::Gate(gate) => gate.control_flow(),
+            Self::Instruction(instruction) => instruction.control_flow(),
+            Self::Operation(operation) => operation.control_flow(),
+        }
+    }
+    #[inline]
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+        match self {
+            Self::Standard(standard) => standard.matrix(params),
+            Self::Gate(gate) => gate.matrix(params),
+            Self::Instruction(instruction) => instruction.matrix(params),
+            Self::Operation(operation) => operation.matrix(params),
+        }
+    }
+    #[inline]
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        match self {
+            Self::Standard(standard) => standard.definition(params),
+            Self::Gate(gate) => gate.definition(params),
+            Self::Instruction(instruction) => instruction.definition(params),
+            Self::Operation(operation) => operation.definition(params),
+        }
+    }
+    #[inline]
+    fn standard_gate(&self) -> Option<StandardGate> {
+        match self {
+            Self::Standard(standard) => standard.standard_gate(),
+            Self::Gate(gate) => gate.standard_gate(),
+            Self::Instruction(instruction) => instruction.standard_gate(),
+            Self::Operation(operation) => operation.standard_gate(),
+        }
+    }
+    #[inline]
+    fn directive(&self) -> bool {
+        match self {
+            Self::Standard(standard) => standard.directive(),
+            Self::Gate(gate) => gate.directive(),
+            Self::Instruction(instruction) => instruction.directive(),
+            Self::Operation(operation) => operation.directive(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+#[repr(u8)]
 #[pyclass(module = "qiskit._accelerate.circuit")]
 pub enum StandardGate {
     GlobalPhaseGate = 0,
@@ -338,9 +278,18 @@ pub enum StandardGate {
     RC3XGate = 51,
 }
 
+unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
+    type Bits = u8;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits < 53
+    }
+}
+unsafe impl ::bytemuck::NoUninit for StandardGate {}
+
 impl ToPyObject for StandardGate {
-    fn to_object(&self, py: Python) -> PyObject {
-        self.into_py(py)
+    fn to_object(&self, py: Python) -> Py<PyAny> {
+        (*self).into_py(py)
     }
 }
 
@@ -360,6 +309,15 @@ static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     1, 1, 1, 0, 0, 0, 4, 1, 3, 1, // 30-39
     1, 1, 1, 2, 2, 0, 0, 0, 0, 0, // 40-49
     0, 0, // 50-51
+];
+
+static STANDARD_GATE_NUM_CTRL_QUBITS: [u32; STANDARD_GATE_SIZE] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-9
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10-19
+    0, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 20-29
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, // 30-39
+    0, 0, 0, 0, 0, 2, 2, 1, 0, 3, // 40-49
+    3, 0, // 50-51
 ];
 
 static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
@@ -417,6 +375,41 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "rcccx",        // 51 ("rc3x")
 ];
 
+impl StandardGate {
+    pub fn create_py_op(
+        &self,
+        py: Python,
+        params: Option<&[Param]>,
+        extra_attrs: Option<&ExtraInstructionAttributes>,
+    ) -> PyResult<Py<PyAny>> {
+        let gate_class = get_std_gate_class(py, *self)?;
+        let args = match params.unwrap_or(&[]) {
+            &[] => PyTuple::empty_bound(py),
+            params => PyTuple::new_bound(py, params),
+        };
+        if let Some(extra) = extra_attrs {
+            let kwargs = [
+                ("label", extra.label.to_object(py)),
+                ("unit", extra.unit.to_object(py)),
+                ("duration", extra.duration.to_object(py)),
+            ]
+            .into_py_dict_bound(py);
+            let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
+            if let Some(ref condition) = extra.condition {
+                out = out.call_method0(py, "to_mutable")?;
+                out.setattr(py, "condition", condition)?;
+            }
+            Ok(out)
+        } else {
+            gate_class.call_bound(py, args, None)
+        }
+    }
+
+    pub fn num_ctrl_qubits(&self) -> u32 {
+        STANDARD_GATE_NUM_CTRL_QUBITS[*self as usize]
+    }
+}
+
 #[pymethods]
 impl StandardGate {
     pub fn copy(&self) -> Self {
@@ -455,6 +448,18 @@ impl StandardGate {
     #[getter]
     pub fn get_name(&self) -> &str {
         self.name()
+    }
+
+    pub fn __eq__(&self, other: &Bound<PyAny>) -> Py<PyAny> {
+        let py = other.py();
+        let Ok(other) = other.extract::<Self>() else {
+            return py.NotImplemented();
+        };
+        (*self == other).into_py(py)
+    }
+
+    pub fn __hash__(&self) -> isize {
+        *self as isize
     }
 }
 
@@ -2044,37 +2049,14 @@ fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
 
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
-#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
+// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
+#[repr(align(8))]
 pub struct PyInstruction {
     pub qubits: u32,
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
     pub instruction: PyObject,
-}
-
-#[pymethods]
-impl PyInstruction {
-    #[new]
-    fn new(op_name: String, qubits: u32, clbits: u32, params: u32, instruction: PyObject) -> Self {
-        PyInstruction {
-            qubits,
-            clbits,
-            params,
-            op_name,
-            instruction,
-        }
-    }
-
-    fn __deepcopy__(&self, py: Python, _memo: PyObject) -> PyResult<Self> {
-        Ok(PyInstruction {
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-            instruction: DEEPCOPY.get_bound(py).call1((&self.instruction,))?.unbind(),
-        })
-    }
 }
 
 impl Operation for PyInstruction {
@@ -2138,37 +2120,14 @@ impl Operation for PyInstruction {
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
 #[derive(Clone, Debug)]
-#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
+// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
+#[repr(align(8))]
 pub struct PyGate {
     pub qubits: u32,
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
     pub gate: PyObject,
-}
-
-#[pymethods]
-impl PyGate {
-    #[new]
-    fn new(op_name: String, qubits: u32, clbits: u32, params: u32, gate: PyObject) -> Self {
-        PyGate {
-            qubits,
-            clbits,
-            params,
-            op_name,
-            gate,
-        }
-    }
-
-    fn __deepcopy__(&self, py: Python, _memo: PyObject) -> PyResult<Self> {
-        Ok(PyGate {
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-            gate: DEEPCOPY.get_bound(py).call1((&self.gate,))?.unbind(),
-        })
-    }
 }
 
 impl Operation for PyGate {
@@ -2240,37 +2199,14 @@ impl Operation for PyGate {
 
 /// This class is used to wrap a Python side Operation that is not in the standard library
 #[derive(Clone, Debug)]
-#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
+// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
+#[repr(align(8))]
 pub struct PyOperation {
     pub qubits: u32,
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
     pub operation: PyObject,
-}
-
-#[pymethods]
-impl PyOperation {
-    #[new]
-    fn new(op_name: String, qubits: u32, clbits: u32, params: u32, operation: PyObject) -> Self {
-        PyOperation {
-            qubits,
-            clbits,
-            params,
-            op_name,
-            operation,
-        }
-    }
-
-    fn __deepcopy__(&self, py: Python, _memo: PyObject) -> PyResult<Self> {
-        Ok(PyOperation {
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-            operation: DEEPCOPY.get_bound(py).call1((&self.operation,))?.unbind(),
-        })
-    }
 }
 
 impl Operation for PyOperation {

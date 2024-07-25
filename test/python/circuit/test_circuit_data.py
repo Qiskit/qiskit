@@ -184,7 +184,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(len(visited_ops), len(data_list))
         self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
 
-    def test_map_ops(self):
+    def test_map_nonstandard_ops(self):
         """Test all operations are replaced."""
         qr = QuantumRegister(5)
 
@@ -203,7 +203,7 @@ class TestQuantumCircuitData(QiskitTestCase):
             CircuitInstruction(CustomXGate(), [qr[4]], []),
         ]
         data = CircuitData(qubits=list(qr), data=data_list)
-        data.map_ops(lambda op: op.to_mutable())
+        data.map_nonstandard_ops(lambda op: op.to_mutable())
         self.assertTrue(all(inst.operation.mutable for inst in data))
 
     def test_replace_bits(self):

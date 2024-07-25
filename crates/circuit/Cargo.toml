@@ -13,6 +13,7 @@ doctest = false
 rayon = "1.10"
 ahash = "0.8.11"
 rustworkx-core.workspace = true
+bytemuck.workspace = true
 num-complex.workspace = true
 ndarray.workspace = true
 numpy.workspace = true

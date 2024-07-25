@@ -42,6 +42,8 @@ from .visualization import QiskitVisualizationTestCase, path_to_diagram_referenc
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
     """Qiskit pass manager drawer tests."""
 
+    maxDiff = None
+
     def setUp(self):
         super().setUp()
         coupling = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]]

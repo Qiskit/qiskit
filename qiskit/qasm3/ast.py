@@ -456,39 +456,23 @@ class SubroutineBlock(ProgramBlock):
     pass
 
 
-class QuantumArgument(QuantumDeclaration):
-    """
-    quantumArgument
-        : 'qreg' Identifier designator? | 'qubit' designator? Identifier
-    """
-
-
-class QuantumGateSignature(ASTNode):
-    """
-    quantumGateSignature
-        : quantumGateName ( LPAREN identifierList? RPAREN )? identifierList
-    """
-
-    def __init__(
-        self,
-        name: Identifier,
-        qargList: List[Identifier],
-        params: Optional[List[Expression]] = None,
-    ):
-        self.name = name
-        self.qargList = qargList
-        self.params = params
-
-
 class QuantumGateDefinition(Statement):
     """
     quantumGateDefinition
         : 'gate' quantumGateSignature quantumBlock
     """
 
-    def __init__(self, quantumGateSignature: QuantumGateSignature, quantumBlock: QuantumBlock):
-        self.quantumGateSignature = quantumGateSignature
-        self.quantumBlock = quantumBlock
+    def __init__(
+        self,
+        name: Identifier,
+        params: Tuple[Identifier, ...],
+        qubits: Tuple[Identifier, ...],
+        body: QuantumBlock,
+    ):
+        self.name = name
+        self.params = params
+        self.qubits = qubits
+        self.body = body
 
 
 class SubroutineDefinition(Statement):

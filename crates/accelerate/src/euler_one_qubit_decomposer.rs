@@ -1046,24 +1046,15 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
 
 #[pyfunction]
 pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
-    let op_node = node.downcast::<DAGOpNode>();
-    match op_node {
-        Ok(bound_node) => {
-            let node = bound_node.borrow();
-            node.instruction.operation.num_qubits() == 1
-                && node.instruction.operation.num_clbits() == 0
-                && node
-                    .instruction
-                    .operation
-                    .matrix(&node.instruction.params)
-                    .is_some()
-                && match &node.instruction.extra_attrs {
-                    None => true,
-                    Some(attrs) => attrs.condition.is_none(),
-                }
-        }
-        Err(_) => false,
-    }
+    let Ok(node) = node.downcast::<DAGOpNode>() else {
+        return false;
+    };
+    let node = node.borrow();
+    let op = &node.instruction.operation;
+    op.num_qubits() == 1
+        && op.num_clbits() == 0
+        && op.matrix(&node.instruction.params).is_some()
+        && node.instruction.condition().is_none()
 }
 
 #[pymodule]

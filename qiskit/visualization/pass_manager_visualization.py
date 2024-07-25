@@ -176,7 +176,7 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         stage = getattr(pass_manager, st)
 
         if stage is not None:
-            stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
+            stagegraph = pydot.Cluster(str(st), fontname="helvetica", label=str(st), labeljust="l")
             for controller_group in stage.to_flow_controller().tasks:
                 subgraph, component_id, prev_node = draw_subgraph(
                     controller_group, component_id, style, prev_node, idx
@@ -201,7 +201,7 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
         label += f"{controller_group.__class__.__name__}"
 
     # create the subgraph for this controller
-    subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
+    subgraph = pydot.Cluster(str(component_id), fontname="helvetica", label=label, labeljust="l")
     component_id += 1
 
     if isinstance(controller_group, BaseController):
@@ -233,19 +233,19 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
             # TODO recursively inject subgraph into subgraph
             node = pydot.Node(
                 str(component_id),
-                label="Nested flow controller",
                 color="k",
-                shape="rectangle",
                 fontname="helvetica",
+                label="Nested flow controller",
+                shape="rectangle",
             )
         else:
             # label is the name of the pass
             node = pydot.Node(
                 str(component_id),
-                label=str(type(task).__name__),
                 color=_get_node_color(task, style),
-                shape="rectangle",
                 fontname="helvetica",
+                label=str(type(task).__name__),
+                shape="rectangle",
             )
 
         subgraph.add_node(node)
@@ -268,12 +268,12 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
 
             input_node = pydot.Node(
                 component_id,
-                label=arg,
                 color="black",
-                shape="ellipse",
-                fontsize=10,
-                style=nd_style,
                 fontname="helvetica",
+                fontsize=10,
+                label=arg,
+                shape="ellipse",
+                style=nd_style,
             )
             subgraph.add_node(input_node)
             component_id += 1
