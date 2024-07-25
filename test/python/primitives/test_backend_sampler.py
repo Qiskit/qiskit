@@ -113,10 +113,11 @@ class TestBackendSampler(QiskitTestCase):
     def test_sampler_run(self, backend):
         """Test Sampler.run()."""
         bell = self._circuit[1]
-        sampler = BackendSampler(backend=backend)
-        job = sampler.run(circuits=[bell], shots=1000)
-        result = job.result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            job = sampler.run(circuits=[bell], shots=1000)
+            result = job.result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)
         self.assertEqual(result.quasi_dists[0].stddev_upper_bound, math.sqrt(1 / 1000))
         self._compare_probs(result.quasi_dists, self._target[1])
@@ -127,8 +128,9 @@ class TestBackendSampler(QiskitTestCase):
         # executes three Bell circuits
         # Argument `parameters` is optional.
         bell = self._circuit[1]
-        sampler = BackendSampler(backend=backend)
-        result = sampler.run([bell, bell, bell]).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            result = sampler.run([bell, bell, bell]).result()
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
@@ -142,8 +144,9 @@ class TestBackendSampler(QiskitTestCase):
         pqc2 = self._pqc2
         theta1, theta2, theta3 = self._theta
 
-        sampler = BackendSampler(backend=backend)
-        result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
 
         # result of pqc(theta1)
         prob1 = {
@@ -181,9 +184,10 @@ class TestBackendSampler(QiskitTestCase):
         qc2.x(0)
         qc2.measure_all()
 
-        sampler = BackendSampler(backend=backend)
-        result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            result = sampler.run([qc, qc2]).result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
@@ -204,9 +208,10 @@ class TestBackendSampler(QiskitTestCase):
         qc3.x([0, 1])
         qc3.measure_all()
 
-        sampler = BackendSampler(backend=backend)
-        result = sampler.run([qc0, qc1, qc2, qc3]).result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            result = sampler.run([qc0, qc1, qc2, qc3]).result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
@@ -222,13 +227,14 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
 
-        sampler = BackendSampler(backend=backend)
-        with self.assertRaises(ValueError):
-            sampler.run([qc1], [[1e2]]).result()
-        with self.assertRaises(ValueError):
-            sampler.run([qc2], [[]]).result()
-        with self.assertRaises(ValueError):
-            sampler.run([qc2], [[1e2]]).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            with self.assertRaises(ValueError):
+                sampler.run([qc1], [[1e2]]).result()
+            with self.assertRaises(ValueError):
+                sampler.run([qc2], [[]]).result()
+            with self.assertRaises(ValueError):
+                sampler.run([qc2], [[1e2]]).result()
 
     @combine(backend=BACKENDS)
     def test_run_empty_parameter(self, backend):
@@ -236,7 +242,8 @@ class TestBackendSampler(QiskitTestCase):
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
-        sampler = BackendSampler(backend=backend)
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
         with self.subTest("one circuit"):
             result = sampler.run([qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 1)
@@ -263,8 +270,9 @@ class TestBackendSampler(QiskitTestCase):
         params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        sampler = BackendSampler(backend=backend)
-        target = sampler.run([qc] * k, params_list).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            target = sampler.run([qc] * k, params_list).result()
 
         with self.subTest("ndarrary"):
             result = sampler.run([qc] * k, params_array).result()
@@ -282,19 +290,21 @@ class TestBackendSampler(QiskitTestCase):
     def test_run_with_shots_option(self, backend):
         """test with shots option."""
         params, target = self._generate_params_target([1])
-        sampler = BackendSampler(backend=backend)
-        result = sampler.run(
-            circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            result = sampler.run(
+                circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
+            ).result()
         self._compare_probs(result.quasi_dists, target)
 
     @combine(backend=BACKENDS)
     def test_primitive_job_status_done(self, backend):
         """test primitive job's status"""
         bell = self._circuit[1]
-        sampler = BackendSampler(backend=backend)
-        job = sampler.run(circuits=[bell])
-        _ = job.result()
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            job = sampler.run(circuits=[bell])
+            _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_primitive_job_size_limit_backend_v2(self):
@@ -330,9 +340,10 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=backend)
-        result = sampler.run([qc, qc2]).result()
-        self.assertIsInstance(result, SamplerResult)
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=backend)
+            result = sampler.run([qc, qc2]).result()
+            self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
@@ -353,10 +364,10 @@ class TestBackendSampler(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend = Aer.get_backend("aer_simulator")
-        sampler = BackendSampler(backend, skip_transpilation=True)
-        sampler.set_options(seed_simulator=15)
-        sampler.set_transpile_options(seed_transpiler=15)
-        result = sampler.run(qc).result()
+            sampler = BackendSampler(backend, skip_transpilation=True)
+            sampler.set_options(seed_simulator=15)
+            sampler.set_transpile_options(seed_transpiler=15)
+            result = sampler.run(qc).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
 
     def test_sequential_run(self):
@@ -390,9 +401,10 @@ class TestBackendSampler(QiskitTestCase):
         # We need a noise-free backend here (shot noise is fine) to ensure that
         # the only bit string measured is "0001". With device noise, it could happen that
         # strings with a leading 1 are measured and then the truncation cannot be tested.
-        sampler = BackendSampler(backend=BasicSimulator())
+        with self.assertWarns(DeprecationWarning):
+            sampler = BackendSampler(backend=BasicSimulator())
 
-        result = sampler.run(qc).result()
+            result = sampler.run(qc).result()
         probs = result.quasi_dists[0].binary_probabilities()
 
         self.assertIn("0001", probs.keys())
