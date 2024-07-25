@@ -200,8 +200,7 @@ class TestSampler(QiskitTestCase):
                 with self.subTest(f"{circuit.name} w/ {val}"):
                     with self.assertWarns(DeprecationWarning):
                         sampler = Sampler()
-                    with self.assertWarns(DeprecationWarning):
-                        result = sampler.run(circuit, val).result()
+                    result = sampler.run(circuit, val).result()
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
@@ -222,8 +221,7 @@ class TestSampler(QiskitTestCase):
                 with self.subTest(f"{circuit.name} w/ {val}"):
                     with self.assertWarns(DeprecationWarning):
                         sampler = Sampler()
-                    with self.assertWarns(DeprecationWarning):
-                        result = sampler.run(circuit, val).result()
+                    result = sampler.run(circuit, val).result()
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
@@ -241,8 +239,7 @@ class TestSampler(QiskitTestCase):
                 with self.subTest(f"{circuit.name} w/ {val}"):
                     with self.assertWarns(DeprecationWarning):
                         sampler = Sampler()
-                    with self.assertWarns(DeprecationWarning):
-                        result = sampler.run(circuit, val).result()
+                    result = sampler.run(circuit, val).result()
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
@@ -319,8 +316,7 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler()
         with self.subTest("one circuit"):
-            with self.assertWarns(DeprecationWarning):
-                result = sampler.run([qc], shots=1000).result()
+            result = sampler.run([qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 1)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -417,8 +413,7 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(sampler.options.get("seed"), 15)
         with self.subTest("run"):
             params, target = self._generate_params_target([1])
-            with self.assertWarns(DeprecationWarning):
-                result = sampler.run([self._pqc], parameter_values=params).result()
+            result = sampler.run([self._pqc], parameter_values=params).result()
             self._compare_probs(result.quasi_dists, target)
             self.assertEqual(result.quasi_dists[0].shots, 1024)
 

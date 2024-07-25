@@ -77,26 +77,21 @@ class TestEstimator(QiskitTestCase):
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
         # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
-        with self.assertWarns(DeprecationWarning):
-            result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
+        result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
         np.testing.assert_allclose(result2.values, [2.97797666])
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        with self.assertWarns(DeprecationWarning):
-            result3 = estimator.run(
-                [psi1, psi1], [hamiltonian2, hamiltonian3], [theta1] * 2
-            ).result()
+        result3 = estimator.run([psi1, psi1], [hamiltonian2, hamiltonian3], [theta1] * 2).result()
         np.testing.assert_allclose(result3.values, [-0.551653, 0.07535239])
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        with self.assertWarns(DeprecationWarning):
-            result4 = estimator.run(
-                [psi1, psi2, psi1],
-                [hamiltonian1, hamiltonian2, hamiltonian3],
-                [theta1, theta2, theta3],
-            ).result()
+        result4 = estimator.run(
+            [psi1, psi2, psi1],
+            [hamiltonian1, hamiltonian2, hamiltonian3],
+            [theta1, theta2, theta3],
+        ).result()
         np.testing.assert_allclose(result4.values, [1.55555728, 0.17849238, -1.08766318])
 
     def test_estiamtor_run_no_params(self):
@@ -121,8 +116,7 @@ class TestEstimator(QiskitTestCase):
             target = [-1]
             for val in param_vals:
                 self.subTest(f"{val}")
-                with self.assertWarns(DeprecationWarning):
-                    result = est.run(qc, op, val).result()
+                result = est.run(qc, op, val).result()
                 np.testing.assert_allclose(result.values, target)
                 self.assertEqual(len(result.metadata), 1)
 
@@ -141,8 +135,7 @@ class TestEstimator(QiskitTestCase):
             target = [-1]
             for val in param_vals:
                 self.subTest(f"{val}")
-                with self.assertWarns(DeprecationWarning):
-                    result = est.run(qc, op, val).result()
+                result = est.run(qc, op, val).result()
                 np.testing.assert_allclose(result.values, target)
                 self.assertEqual(len(result.metadata), 1)
 
@@ -159,8 +152,7 @@ class TestEstimator(QiskitTestCase):
             target = [1.5555572817900956]
             for val in param_vals:
                 self.subTest(f"{val}")
-                with self.assertWarns(DeprecationWarning):
-                    result = est.run(qc, op, val).result()
+                result = est.run(qc, op, val).result()
                 np.testing.assert_allclose(result.values, target)
                 self.assertEqual(len(result.metadata), 1)
 
@@ -179,19 +171,16 @@ class TestEstimator(QiskitTestCase):
             self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc], [op2], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc2], [op], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc2], [op], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc2], [op2], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc2], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1])
 
     def test_run_2qubits(self):
@@ -210,29 +199,24 @@ class TestEstimator(QiskitTestCase):
             self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc2], [op], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc2], [op], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc], [op2], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc2], [op2], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc2], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc], [op3], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc], [op3], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        with self.assertWarns(DeprecationWarning):
-            result = est.run([qc2], [op3], [[]]).result()
-            self.assertIsInstance(result, EstimatorResult)
+        result = est.run([qc2], [op3], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1])
 
     def test_run_errors(self):
@@ -270,14 +254,12 @@ class TestEstimator(QiskitTestCase):
             target = estimator.run([qc] * k, [op] * k, params_list).result()
 
         with self.subTest("ndarrary"):
-            with self.assertWarns(DeprecationWarning):
-                result = estimator.run([qc] * k, [op] * k, params_array).result()
+            result = estimator.run([qc] * k, [op] * k, params_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
         with self.subTest("list of ndarray"):
-            with self.assertWarns(DeprecationWarning):
-                result = estimator.run([qc] * k, [op] * k, params_list_array).result()
+            result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
@@ -326,13 +308,12 @@ class TestEstimator(QiskitTestCase):
             self.assertEqual(estimator.options.get("shots"), 1024)
             self.assertEqual(estimator.options.get("seed"), 15)
         with self.subTest("run"):
-            with self.assertWarns(DeprecationWarning):
-                result = estimator.run(
-                    [self.ansatz],
-                    [self.observable],
-                    parameter_values=[[0, 1, 1, 2, 3, 5]],
-                ).result()
-                self.assertIsInstance(result, EstimatorResult)
+            result = estimator.run(
+                [self.ansatz],
+                [self.observable],
+                parameter_values=[[0, 1, 1, 2, 3, 5]],
+            ).result()
+            self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641])
 
     def test_negative_variance(self):
@@ -380,8 +361,7 @@ class TestObservableValidation(QiskitTestCase):
     @unpack
     def test_validate_observables(self, observables, expected):
         """Test observables standardization."""
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(validation._validate_observables(observables), expected)
+        self.assertEqual(validation._validate_observables(observables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):

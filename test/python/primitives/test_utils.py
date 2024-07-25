@@ -27,8 +27,7 @@ class TestMapping(QiskitTestCase):
     def test_empty_circ(self):
         """Empty circuit has no mapping"""
         qc = QuantumCircuit()
-        with self.assertWarns(DeprecationWarning):
-            self.assertDictEqual(final_measurement_mapping(qc), {})
+        self.assertDictEqual(final_measurement_mapping(qc), {})
 
     def test_sime_circ(self):
         """Just measures"""
@@ -42,8 +41,7 @@ class TestMapping(QiskitTestCase):
         qc = QuantumCircuit(5)
         qc.measure_all()
         qc.h(range(5))
-        with self.assertWarns(DeprecationWarning):
-            self.assertDictEqual(final_measurement_mapping(qc), {})
+        self.assertDictEqual(final_measurement_mapping(qc), {})
 
     def test_multi_qreg(self):
         """Test multiple qregs"""
