@@ -335,7 +335,7 @@ class StarPreRouting(TransformationPass):
         }
 
         def tie_breaker_key(node):
-            return processing_order_index_map.get(node, node.sort_key)
+            return processing_order_index_map.get(node, node.sort_key or '')
 
         for node in dag.topological_op_nodes(key=tie_breaker_key):
             block_id = node_to_block_id.get(node, None)

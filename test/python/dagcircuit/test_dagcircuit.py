@@ -62,9 +62,9 @@ def raise_if_dagcircuit_invalid(dag):
     # All input/output nodes should be present in input_map/output_map.
     for node in dag.nodes():
         if isinstance(node, DAGInNode):
-            assert node is dag.input_map[node.wire]
+            assert node == dag.input_map[node.wire]
         elif isinstance(node, DAGOutNode):
-            assert node is dag.output_map[node.wire]
+            assert node == dag.output_map[node.wire]
         elif isinstance(node, DAGOpNode):
             continue
         else:

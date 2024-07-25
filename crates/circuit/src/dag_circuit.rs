@@ -2938,7 +2938,7 @@ def _format(operand):
     ) -> PyResult<Py<PyDict>> {
         let (node_index, bound_node) = match node.downcast::<DAGOpNode>() {
             Ok(bound_node) => (bound_node.borrow().as_ref().node.unwrap(), bound_node),
-            Err(_) => return Err(DAGCircuitError::new_err("expected node")),
+            Err(_) => return Err(DAGCircuitError::new_err("expected node DAGOpNode")),
         };
 
         let node = match &self.dag[node_index] {
@@ -4014,7 +4014,11 @@ new_condition = (new_target, value)
     ///
     /// Add edges from predecessors to successors.
     #[pyo3(name = "remove_op_node")]
-    fn py_remove_op_node(&mut self, node: PyRef<DAGOpNode>) -> PyResult<()> {
+    fn py_remove_op_node(&mut self, node: &Bound<PyAny>) -> PyResult<()> {
+        let node: PyRef<DAGOpNode> = match node.downcast::<DAGOpNode>() {
+            Ok(node) => node.borrow(),
+            Err(_) => return Err(DAGCircuitError::new_err("Node not an DAGOpNode")),
+        };
         let index = node.as_ref().node.unwrap();
         if self.dag.node_weight(index).is_none() {
             return Err(DAGCircuitError::new_err("Node not in DAG"));
