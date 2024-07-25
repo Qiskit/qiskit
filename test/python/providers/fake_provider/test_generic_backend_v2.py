@@ -15,7 +15,9 @@
 import math
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.circuit.library import get_standard_gate_name_mapping
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -164,3 +166,63 @@ class TestGenericBackendV2(QiskitTestCase):
                     if inst not in ["delay", "reset"]:
                         self.assertGreaterEqual(duration, expected_durations[inst][0])
                         self.assertLessEqual(duration, expected_durations[inst][1])
+
+    def test_all_stdgates_and_ctrlflow(self):
+        """Test that the Generic BackendV2 can be constructed from any kind of
+        standard gate and control flow operations without using the
+        control_flow=True option"""
+
+        std_gates = list(get_standard_gate_name_mapping())
+        ctrlflow = [
+            "if_else",
+            "while_loop",
+            "for_loop",
+            "switch_case",
+            "break_loop",
+            "continue_loop",
+        ]
+
+        basis_gates = std_gates + ctrlflow
+
+        backend = GenericBackendV2(num_qubits=5, basis_gates=basis_gates, control_flow=False)
+        op_names = backend.operation_names
+
+        self.assertEqual(op_names, basis_gates)
+
+    def test_genericbackendv2_transpile(self):
+        """Test if a circuit can be transpiled for different optimization_level
+        using the GenericBackendV2 which has 3 and 4-qubit gates in its `basis_gates`"""
+        gates = [
+            "delay",
+            "x",
+            "reset",
+            "sx",
+            "rz",
+            "ecr",
+            "rcccx",
+            "ccx",
+            "switch_case",
+            "for_loop",
+            "id",
+            "measure",
+            "if_else",
+        ]
+
+        backend = GenericBackendV2(4, basis_gates=gates)
+
+        qc = QuantumCircuit(4)
+        qc.h([0, 2])
+        qc.cx(2, 3)
+        qc.ccx(1, 2, 3)
+        qc.rcccx(0, 1, 2, 3)
+
+        for op_lvl in [0, 1, 2, 3]:
+            pm = generate_preset_pass_manager(
+                backend=backend, optimization_level=op_lvl, seed_transpiler=10
+            )
+            pm.layout = None
+            pm.routing = None
+
+            qc_pm = pm.run(qc)
+            check = all(gates_t in gates for gates_t in list(dict(qc_pm.count_ops()).keys()))
+            self.assertTrue(check)
