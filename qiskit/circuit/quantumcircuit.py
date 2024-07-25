@@ -1693,7 +1693,7 @@ class QuantumCircuit:
             label (str): An optional label to give the controlled operation for visualization.
             ctrl_state (str or int): The control state in decimal or as a bitstring
                 (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:

@@ -1,12 +1,13 @@
 ---
 features_circuits:
   - |
-    Add support for :meth:`.AnnotatedOperation.params`, which enables
+    Added support for :meth:`.AnnotatedOperation.params` and
+    :meth:`.AnnotatedOperation.validate_parameter`, which enable
     circuit-level parameter handling (such as binding parameters) for
     annotated operations.
 fixes:
   - |
-    Fix a series of issues when controlling parameterized standard gates.
+    Fixed a series of issues when controlling parameterized standard gates.
     The controlled version of some gates (e.g. :class:`.RXXGate` or
     :class:`.RYGate` for more than 1 control) cannot be synthesized if
     they contain unbound parameters. Previously, calling ``.control()`` but

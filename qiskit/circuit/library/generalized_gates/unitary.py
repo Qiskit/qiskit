@@ -174,7 +174,7 @@ class UnitaryGate(Gate):
             label: Optional gate label.
             ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
                 If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:

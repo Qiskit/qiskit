@@ -91,10 +91,10 @@ class RXGate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate. If ``None``, this is set to ``False``, unless the
-                gate contains free parameters and has more than one control qubit,
-                in which case it cannot yet be synthesized.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
