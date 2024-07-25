@@ -328,6 +328,7 @@ def _apply_sabre_result(
     initial_layout,
     physical_qubits,
     circuit_to_dag_dict,
+    apply_swap_first=True,
 ):
     """Apply the ``SabreResult`` to ``out_dag``, mutating it in place.  This function in effect
     performs the :class:`.ApplyLayout` transpiler pass with ``initial_layout`` and the Sabre routing
@@ -350,6 +351,9 @@ def _apply_sabre_result(
         circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
             (as returned by :func:`id`) of a control-flow block :class:`.QuantumCircuit` to a
             :class:`.DAGCircuit` that represents the same thing.
+        apply_swap_first (bool): a flag indicating whether to apply swaps before operations.
+            In SabreSwap, the swap map reflects applying the swap before applying the node, while
+            in StarPrerouting, the swap map reflects applying the swap after applying the node.
     """
 
     # The swap gate is a singleton instance, so we don't need to waste time reconstructing it each
@@ -381,19 +385,36 @@ def _apply_sabre_result(
         swap_map, node_order, node_block_results = result
         for node_id in node_order:
             node = source_dag._multi_graph[node_id]
-            if node_id in swap_map:
-                apply_swaps(dest_dag, swap_map[node_id], layout)
-            if not isinstance(node.op, ControlFlowOp):
-                dest_dag.apply_operation_back(
-                    node.op,
-                    [
-                        physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
-                        for q in node.qargs
-                    ],
-                    node.cargs,
-                    check=False,
-                )
-                continue
+
+            if apply_swap_first:
+                if node_id in swap_map:
+                    apply_swaps(dest_dag, swap_map[node_id], layout)
+                if not isinstance(node.op, ControlFlowOp):
+                    dest_dag.apply_operation_back(
+                        node.op,
+                        [
+                            physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
+                            for q in node.qargs
+                        ],
+                        node.cargs,
+                        check=False,
+                    )
+                    continue
+            else:
+                if not isinstance(node.op, ControlFlowOp):
+                    dest_dag.apply_operation_back(
+                        node.op,
+                        [
+                            physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
+                            for q in node.qargs
+                        ],
+                        node.cargs,
+                        check=False,
+                    )
+                if node_id in swap_map:
+                    apply_swaps(dest_dag, swap_map[node_id], layout)
+                if not isinstance(node.op, ControlFlowOp):
+                    continue
 
             # At this point, we have to handle a control-flow node.
             block_results = node_block_results[node_id]

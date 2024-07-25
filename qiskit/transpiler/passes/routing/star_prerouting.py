@@ -346,6 +346,7 @@ class StarPreRouting(TransformationPass):
             initial_layout,
             dag.qubits,
             circuit_to_dag_dict,
+            apply_swap_first=False,
         )
 
         return res_dag, qubit_mapping

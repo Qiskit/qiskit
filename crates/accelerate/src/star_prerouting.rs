@@ -48,7 +48,7 @@ fn star_preroute(
 ) -> (SwapMap, PyObject, NodeBlockResults, PyObject) {
     let mut qubit_mapping: Vec<usize> = (0..dag.num_qubits).collect();
     let mut processed_block_ids: HashSet<usize> = HashSet::new();
-    let last_2q_gate = processing_order.iter().rev().find(|node| node.1.len() > 1);
+    let last_2q_gate = processing_order.iter().rev().find(|node| node.1.len() == 2);
     let mut is_first_star = true;
 
     // Structures for SabreResult
@@ -57,9 +57,17 @@ fn star_preroute(
     let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
     let node_block_results: HashMap<usize, Vec<BlockResult>> = HashMap::new();
 
+    // Create a HashMap to store the node-to-block mapping
+    let mut node_to_block: HashMap<usize, usize> = HashMap::new();
+    for (block_id, block) in blocks.iter().enumerate() {
+        for node in &block.1 {
+            node_to_block.insert(node.0, block_id);
+        }
+    }
+
     // Process each node in the given processing order
     for node in processing_order.iter() {
-        if let Some(block_id) = find_block_id(&blocks, node) {
+        if let Some(&block_id) = node_to_block.get(&node.0) {
             // Skip if the block has already been processed
             if !processed_block_ids.insert(block_id) {
                 continue;
@@ -96,26 +104,6 @@ fn star_preroute(
     final_res
 }
 
-/// Finds the block ID for a given node.
-///
-/// Args:
-///
-/// * `blocks` - A vector of blocks to search for the node.
-/// * `node` - The node for which the block ID needs to be found.
-///
-/// Returns:
-///
-/// An option containing the block ID if the node is part of a block, otherwise None.
-fn find_block_id(blocks: &[Block], node: &Nodes) -> Option<usize> {
-    blocks.iter().enumerate().find_map(|(i, block)| {
-        if block.1.iter().any(|n| n.0 == node.0) {
-            Some(i)
-        } else {
-            None
-        }
-    })
-}
-
 /// Processes a star block, applying operations and handling swaps.
 ///
 /// Args:
@@ -148,7 +136,7 @@ fn process_block<'a>(
     let mut swap_source = false;
 
     // Process each node in the block
-    for (i, inner_node) in sequence.iter().enumerate() {
+    for inner_node in sequence.iter() {
         // Apply operation directly if it's a single-qubit operation or the same as previous qargs
         if inner_node.1.len() == 1 || prev_qargs == Some(&inner_node.1) {
             gate_order.push(inner_node.0);
@@ -168,9 +156,7 @@ fn process_block<'a>(
 
         if inner_node != last_2q_gate.unwrap() && inner_node.1.len() == 2 {
             // Use the node ID of the next node in the sequence to match how SABRE applies swaps
-            if let Some(next_node) = sequence.get(i + 1) {
-                apply_swap(qubit_mapping, &inner_node.1, next_node.0, out_map);
-            }
+            apply_swap(qubit_mapping, &inner_node.1, inner_node.0, out_map);
         }
 
         prev_qargs = Some(&inner_node.1);
@@ -184,12 +170,12 @@ fn process_block<'a>(
 ///
 /// * `qubit_mapping` - A mutable reference to the qubit mapping vector.
 /// * `qargs` - A slice containing the qubit indices for the swap operation.
-/// * `next_node_id` - The ID of the next node in the sequence.
+/// * `node_id` - The ID of the node in the sequence.
 /// * `out_map` - A mutable reference to the output map.
 fn apply_swap(
     qubit_mapping: &mut [usize],
     qargs: &[VirtualQubit],
-    next_node_id: usize,
+    node_id: usize,
     out_map: &mut HashMap<usize, Vec<[PhysicalQubit; 2]>>,
 ) {
     if qargs.len() == 2 {
@@ -199,7 +185,7 @@ fn apply_swap(
         // Update the `qubit_mapping` and `out_map` to reflect the swap operation
         qubit_mapping.swap(idx0, idx1);
         out_map.insert(
-            next_node_id,
+            node_id,
             vec![[
                 PhysicalQubit::new(qubit_mapping[idx0].try_into().unwrap()),
                 PhysicalQubit::new(qubit_mapping[idx1].try_into().unwrap()),
