@@ -1193,6 +1193,10 @@ def _format(operand):
     /// Any registers with references to at least one of the specified bits will
     /// also be removed.
     ///
+    /// .. warning::
+    ///     This method is rather slow, since it must iterate over the entire
+    ///     DAG to fix-up bit indices.
+    ///
     /// Args:
     ///     clbits (List[Clbit]): The bits to remove.
     ///
@@ -1256,8 +1260,71 @@ def _format(operand):
             self.remove_idle_wire(Wire::Clbit(*bit))?;
         }
 
-        // Update bit data.
+        // Copy the current clbit mapping so we can use it while remapping
+        // wires used on edges and in operation cargs.
+        let old_clbits = self.clbits.clone();
+
+        // Remove the clbit indices, which will invalidate our mapping of Clbit to
+        // Python bits throughout the entire DAG.
         self.clbits.remove_indices(py, clbits)?;
+
+        // Update input/output maps to use new Clbits.
+        self.clbit_input_map = self
+            .clbit_input_map
+            .drain(..)
+            .map(|(k, v)| {
+                (
+                    self.clbits
+                        .find(old_clbits.get(k).unwrap().bind(py))
+                        .unwrap(),
+                    v,
+                )
+            })
+            .collect();
+        self.clbit_output_map = self
+            .clbit_output_map
+            .drain(..)
+            .map(|(k, v)| {
+                (
+                    self.clbits
+                        .find(old_clbits.get(k).unwrap().bind(py))
+                        .unwrap(),
+                    v,
+                )
+            })
+            .collect();
+
+        // Update edges to use the new Clbits.
+        for edge_weight in self.dag.edge_weights_mut() {
+            if let Wire::Clbit(c) = edge_weight {
+                *c = self
+                    .clbits
+                    .find(old_clbits.get(*c).unwrap().bind(py))
+                    .unwrap();
+            }
+        }
+
+        // Update operation cargs to use the new Clbits.
+        for node_weight in self.dag.node_weights_mut() {
+            match node_weight {
+                NodeType::Operation(op) => {
+                    let cargs = self.cargs_cache.intern(op.clbits);
+                    let carg_bits = old_clbits
+                        .map_indices(&cargs[..])
+                        .map(|b| b.bind(py).clone());
+                    let mapped_cargs = self.clbits.map_bits(carg_bits)?.collect();
+                    let clbits = Interner::intern(&mut self.cargs_cache, mapped_cargs)?;
+                    op.clbits = clbits;
+                }
+                NodeType::ClbitIn(c) | NodeType::ClbitOut(c) => {
+                    *c = self
+                        .clbits
+                        .find(old_clbits.get(*c).unwrap().bind(py))
+                        .unwrap();
+                }
+                _ => (),
+            }
+        }
 
         // Update bit locations.
         let bit_locations = self.clbit_locations.bind(py);
@@ -1334,6 +1401,10 @@ def _format(operand):
     /// Any registers with references to at least one of the specified bits will
     /// also be removed.
     ///
+    /// .. warning::
+    ///     This method is rather slow, since it must iterate over the entire
+    ///     DAG to fix-up bit indices.
+    ///
     /// Args:
     ///     qubits (List[~qiskit.circuit.Qubit]): The bits to remove.
     ///
@@ -1398,8 +1469,71 @@ def _format(operand):
             self.remove_idle_wire(Wire::Qubit(*bit))?;
         }
 
-        // Update bit data.
+        // Copy the current qubit mapping so we can use it while remapping
+        // wires used on edges and in operation qargs.
+        let old_qubits = self.qubits.clone();
+
+        // Remove the qubit indices, which will invalidate our mapping of Qubit to
+        // Python bits throughout the entire DAG.
         self.qubits.remove_indices(py, qubits)?;
+
+        // Update input/output maps to use new Qubits.
+        self.qubit_input_map = self
+            .qubit_input_map
+            .drain(..)
+            .map(|(k, v)| {
+                (
+                    self.qubits
+                        .find(old_qubits.get(k).unwrap().bind(py))
+                        .unwrap(),
+                    v,
+                )
+            })
+            .collect();
+        self.qubit_output_map = self
+            .qubit_output_map
+            .drain(..)
+            .map(|(k, v)| {
+                (
+                    self.qubits
+                        .find(old_qubits.get(k).unwrap().bind(py))
+                        .unwrap(),
+                    v,
+                )
+            })
+            .collect();
+
+        // Update edges to use the new Qubits.
+        for edge_weight in self.dag.edge_weights_mut() {
+            if let Wire::Qubit(b) = edge_weight {
+                *b = self
+                    .qubits
+                    .find(old_qubits.get(*b).unwrap().bind(py))
+                    .unwrap();
+            }
+        }
+
+        // Update operation qargs to use the new Qubits.
+        for node_weight in self.dag.node_weights_mut() {
+            match node_weight {
+                NodeType::Operation(op) => {
+                    let qargs = self.qargs_cache.intern(op.qubits);
+                    let qarg_bits = old_qubits
+                        .map_indices(&qargs[..])
+                        .map(|b| b.bind(py).clone());
+                    let mapped_qargs = self.qubits.map_bits(qarg_bits)?.collect();
+                    let qubits = Interner::intern(&mut self.qargs_cache, mapped_qargs)?;
+                    op.qubits = qubits;
+                }
+                NodeType::QubitIn(q) | NodeType::QubitOut(q) => {
+                    *q = self
+                        .qubits
+                        .find(old_qubits.get(*q).unwrap().bind(py))
+                        .unwrap();
+                }
+                _ => (),
+            }
+        }
 
         // Update bit locations.
         let bit_locations = self.qubit_locations.bind(py);
