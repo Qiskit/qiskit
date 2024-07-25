@@ -2385,7 +2385,11 @@ def _format(operand):
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn depth(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        let depth_plus_one = if recurse {
+        if self.qubits.is_empty() {
+            return Ok(0);
+        }
+
+        Ok(if recurse {
             let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
             let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
 
@@ -2439,12 +2443,7 @@ def _format(operand):
                 Some(res) => res.1,
                 None => return Err(DAGCircuitError::new_err("not a DAG")),
             }
-        };
-        match depth_plus_one.cmp(&0) {
-            Ordering::Equal => Ok(0),
-            Ordering::Greater => Ok(depth_plus_one - 1),
-            Ordering::Less => unreachable!(),
-        }
+        } - 1)
     }
 
     /// Return the total number of qubits + clbits used by the circuit.
@@ -3168,7 +3167,12 @@ def _format(operand):
                     (qubit_wire_map, clbit_wire_map, var_map.unbind())
                 }
                 Err(_) => {
-                    let wires: Bound<PyList> = wires.extract()?;
+                    let wires: &Bound<PyList> = match wires.downcast::<PyList>() {
+                        Ok(bound_list) => bound_list,
+                        // If someone passes a sequence instead of an exact list (tuple is
+                        // occasionally used) cast that to a list and then use it.
+                        Err(_) => &BUILTIN_LIST.get_bound(py).call1((wires,))?.extract()?,
+                    };
                     build_wire_map(&wires)?
                 }
             },
@@ -3461,7 +3465,6 @@ new_condition = (new_target, value)
                 self.increment_op(inst.op.name().to_string());
             }
         }
-        self.decrement_op(node.op.name().to_string());
         let out_dict = PyDict::new_bound(py);
         for (old_index, new_index) in node_map {
             out_dict.set_item(old_index.index(), self.get_node(py, new_index)?)?;
@@ -3652,6 +3655,7 @@ new_condition = (new_target, value)
                         }
                         NodeType::Operation(pi) => {
                             let new_node = new_dag.dag.add_node(NodeType::Operation(pi.clone()));
+                            new_dag.increment_op(pi.op.name().to_string());
                             node_map.insert(*node, new_node);
                             non_classical = true;
                         }
@@ -3911,16 +3915,18 @@ new_condition = (new_target, value)
     /// Returns:
     ///     list[DAGOpNode]: the list of DAGOpNodes that represent gates.
     fn gate_nodes(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
-        self.dag.node_references().filter_map(|(node, weight)| {
-            match weight {
+        self.dag
+            .node_references()
+            .filter_map(|(node, weight)| match weight {
                 NodeType::Operation(ref packed) => match packed.op.view() {
-                    OperationRef::Gate(_) | OperationRef::Standard(_) => Some(self.unpack_into(py, node, weight)),
-                    _ => None
-                }
+                    OperationRef::Gate(_) | OperationRef::Standard(_) => {
+                        Some(self.unpack_into(py, node, weight))
+                    }
+                    _ => None,
+                },
                 _ => None,
-            }
-        })
-        .collect()
+            })
+            .collect()
     }
 
     /// Get the set of "op" nodes with the given name.
@@ -4948,7 +4954,10 @@ impl DAGCircuit {
     }
 
     fn increment_op(&mut self, op: String) {
-        self.op_names.entry(op).and_modify(|count| *count += 1).or_insert(1);
+        self.op_names
+            .entry(op)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
     }
 
     fn decrement_op(&mut self, op: String) {
@@ -5814,6 +5823,7 @@ impl DAGCircuit {
                     .collect();
                 new_inst.qubits = Interner::intern(&mut self.qargs_cache, new_qubit_indices)?;
                 new_inst.clbits = Interner::intern(&mut self.cargs_cache, new_clbit_indices)?;
+                self.increment_op(new_inst.op.name().to_string());
             }
             let new_index = self.dag.add_node(new_node);
             out_map.insert(old_index, new_index);
@@ -5913,6 +5923,9 @@ impl DAGCircuit {
             self.dag.add_edge(source_out, target, weight);
         }
         // Remove node
+        if let NodeType::Operation(inst) = &self.dag[node] {
+            self.decrement_op(inst.op.name().to_string());
+        }
         self.dag.remove_node(node);
         Ok(out_map)
     }
