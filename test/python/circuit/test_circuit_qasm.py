@@ -17,11 +17,11 @@ from math import pi
 import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
 from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, PermutationGate
 from qiskit.qasm2.exceptions import QASM2Error as QasmError
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
@@ -167,7 +167,7 @@ measure qr[1] -> cr[1];"""
         my_gate_inst2_id = id(circuit.data[-1].operation)
         circuit.append(my_gate_inst3, [qr[0]])
         my_gate_inst3_id = id(circuit.data[-1].operation)
-
+        # pylint: disable-next=consider-using-f-string
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 gate my_gate q0 {{ h q0; }}
@@ -265,11 +265,6 @@ c3sqrtx q[0],q[1],q[2],q[3];"""
         self.assertEqual(qasm, expected)
         parsed = QuantumCircuit.from_qasm_str(qasm)
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
-
-    def test_c3sxgate_qasm_deprecation_warning(self):
-        """Test deprecation warning for C3SXGate."""
-        with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-            C3SXGate().qasm()
 
     def test_cczgate_qasm(self):
         """Test that CCZ dumps definition as a non-qelib1 gate."""
@@ -399,12 +394,14 @@ custom q\[0\];""",
 
         # qasm output doesn't support parameterized gate yet.
         # param0 for "gate mcuq(param0) is not used inside the definition
-        expected_qasm = """OPENQASM 2.0;
+        pattern = r"""OPENQASM 2.0;
 include "qelib1.inc";
-gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
-qreg q[4];
-mcx q[0],q[1],q[2],q[3];"""
-        self.assertEqual(dumps(qc), expected_qasm)
+gate mcx q0,q1,q2,q3 { h q3; p\(pi/8\) q0; p\(pi/8\) q1; p\(pi/8\) q2; p\(pi/8\) q3; cx q0,q1; p\(-pi/8\) q1; cx q0,q1; cx q1,q2; p\(-pi/8\) q2; cx q0,q2; p\(pi/8\) q2; cx q1,q2; p\(-pi/8\) q2; cx q0,q2; cx q2,q3; p\(-pi/8\) q3; cx q1,q3; p\(pi/8\) q3; cx q2,q3; p\(-pi/8\) q3; cx q0,q3; p\(pi/8\) q3; cx q2,q3; p\(-pi/8\) q3; cx q1,q3; p\(pi/8\) q3; cx q2,q3; p\(-pi/8\) q3; cx q0,q3; h q3; }
+gate (?P<mcx_id>mcx_[0-9]*) q0,q1,q2,q3 { mcx q0,q1,q2,q3; }
+qreg q\[4\];
+(?P=mcx_id) q\[0\],q\[1\],q\[2\],q\[3\];"""
+        expected_qasm = re.compile(pattern, re.MULTILINE)
+        self.assertRegex(dumps(qc), expected_qasm)
 
     def test_circuit_qasm_with_mcx_gate_variants(self):
         """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
@@ -415,20 +412,22 @@ mcx q[0],q[1],q[2],q[3];"""
         qc.append(cl.MCXGrayCode(n), range(n + 1))
         qc.append(cl.MCXRecursive(n), range(n + 2))
         qc.append(cl.MCXVChain(n), range(2 * n - 1))
+        mcx_vchain_id = id(qc.data[-1].operation)
 
         # qasm output doesn't support parameterized gate yet.
         # param0 for "gate mcuq(param0) is not used inside the definition
-        expected_qasm = """OPENQASM 2.0;
+        expected_qasm = f"""OPENQASM 2.0;
 include "qelib1.inc";
-gate mcu1(param0) q0,q1,q2,q3,q4,q5 { cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }
-gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }
-gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
-gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; }
-gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
+gate mcu1(param0) q0,q1,q2,q3,q4,q5 {{ cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }}
+gate mcx_gray q0,q1,q2,q3,q4,q5 {{ h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }}
+gate mcx q0,q1,q2,q3 {{ h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }}
+gate mcx_vchain q0,q1,q2,q3,q4 {{ mcx q0,q1,q2,q3; }}
+gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 {{ mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; }}
+gate mcx_vchain_{mcx_vchain_id} q0,q1,q2,q3,q4,q5,q6,q7,q8 {{ rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }}
 qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
-mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
+mcx_vchain_{mcx_vchain_id} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
 
         self.assertEqual(dumps(qc), expected_qasm)
 

@@ -15,14 +15,13 @@
 
 import unittest
 from test import combine
-from ddt import ddt
+from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import QFT
-from qiskit.synthesis.qft import synth_qft_line
+from qiskit.synthesis.qft import synth_qft_line, synth_qft_full
 from qiskit.quantum_info import Operator
-
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -56,6 +55,53 @@ class TestQFTLNN(QiskitTestCase):
         # Check that the output circuit has LNN connectivity
         with self.subTest(msg="synthesized QFT circuit do not have LNN connectivity"):
             self.assertTrue(check_lnn_connectivity(qft_lnn))
+
+
+@ddt
+class TestQFTFull(QiskitTestCase):
+    """Tests for QFT synthesis using all-to-all connectivity."""
+
+    @data(2, 3, 4, 5, 6)
+    def test_synthesis_default(self, num_qubits):
+        """Assert that the original and synthesized QFT circuits are the same."""
+        original = QFT(num_qubits)
+        synthesized = synth_qft_full(num_qubits)
+        self.assertEqual(Operator(original), Operator(synthesized))
+
+    @combine(num_qubits=[5, 6, 7, 8], do_swaps=[False, True])
+    def test_synthesis_do_swaps(self, num_qubits, do_swaps):
+        """Assert that the original and synthesized QFT circuits are the same."""
+        original = QFT(num_qubits, do_swaps=do_swaps)
+        synthesized = synth_qft_full(num_qubits, do_swaps=do_swaps)
+        self.assertEqual(Operator(original), Operator(synthesized))
+
+    @combine(num_qubits=[5, 6, 7, 8], approximation_degree=[0, 1, 2, 3])
+    def test_synthesis_arpproximate(self, num_qubits, approximation_degree):
+        """Assert that the original and synthesized QFT circuits are the same."""
+        original = QFT(num_qubits, approximation_degree=approximation_degree)
+        synthesized = synth_qft_full(num_qubits, approximation_degree=approximation_degree)
+        self.assertEqual(Operator(original), Operator(synthesized))
+
+    @combine(num_qubits=[5, 6, 7, 8], inverse=[False, True])
+    def test_synthesis_inverse(self, num_qubits, inverse):
+        """Assert that the original and synthesized QFT circuits are the same."""
+        original = QFT(num_qubits, inverse=inverse)
+        synthesized = synth_qft_full(num_qubits, inverse=inverse)
+        self.assertEqual(Operator(original), Operator(synthesized))
+
+    @combine(num_qubits=[5, 6, 7, 8], insert_barriers=[False, True])
+    def test_synthesis_insert_barriers(self, num_qubits, insert_barriers):
+        """Assert that the original and synthesized QFT circuits are the same."""
+        original = QFT(num_qubits, insert_barriers=insert_barriers)
+        synthesized = synth_qft_full(num_qubits, insert_barriers=insert_barriers)
+        self.assertEqual(Operator(original), Operator(synthesized))
+
+    @data(5, 6, 7, 8)
+    def test_synthesis_name(self, num_qubits):
+        """Assert that the original and synthesized QFT circuits are the same."""
+        original = QFT(num_qubits, name="SomeRandomName")
+        synthesized = synth_qft_full(num_qubits, name="SomeRandomName")
+        self.assertEqual(original.name, synthesized.name)
 
 
 if __name__ == "__main__":

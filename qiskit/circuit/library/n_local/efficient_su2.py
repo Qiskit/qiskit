@@ -83,12 +83,14 @@ class EfficientSU2(TwoLocal):
     def __init__(
         self,
         num_qubits: int | None = None,
-        su2_gates: str
-        | type
-        | qiskit.circuit.Instruction
-        | QuantumCircuit
-        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
-        | None = None,
+        su2_gates: (
+            str
+            | type
+            | qiskit.circuit.Instruction
+            | QuantumCircuit
+            | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+            | None
+        ) = None,
         entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
@@ -108,11 +110,11 @@ class EfficientSU2(TwoLocal):
                 If only one gate is provided, the same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
-            entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                , 'reverse_linear', 'circular' or 'sca'), a list of integer-pairs specifying the indices
-                of qubits entangled with one another, or a callable returning such a list provided with
-                the index of the entanglement layer.
-                Default to 'reverse_linear' entanglement.
+            entanglement: Specifies the entanglement structure. Can be a string
+                ('full', 'linear', 'reverse_linear', 'pairwise', 'circular', or 'sca'),
+                a list of integer-pairs specifying the indices of qubits entangled with one another,
+                or a callable returning such a list provided with the index of the entanglement layer.
+                Defaults to 'reverse_linear' entanglement.
                 Note that 'reverse_linear' entanglement provides the same unitary as 'full'
                 with fewer entangling gates.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more

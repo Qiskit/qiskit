@@ -56,7 +56,7 @@ class HiddenLinearFunction(QuantumCircuit):
         .. plot::
 
            from qiskit.circuit.library import HiddenLinearFunction
-           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+           from qiskit.visualization.library import _generate_circuit_library_visualization
            A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
            circuit = HiddenLinearFunction(A)
            _generate_circuit_library_visualization(circuit)
@@ -82,7 +82,7 @@ class HiddenLinearFunction(QuantumCircuit):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
         num_qubits = len(adjacency_matrix)
-        circuit = QuantumCircuit(num_qubits, name="hlf: %s" % adjacency_matrix)
+        circuit = QuantumCircuit(num_qubits, name=f"hlf: {adjacency_matrix}")
 
         circuit.h(range(num_qubits))
         for i in range(num_qubits):

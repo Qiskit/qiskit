@@ -20,9 +20,10 @@ from ddt import ddt, data, unpack
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
+from qiskit.synthesis.evolution.product_formula import cnot_chain, diagonalizing_clifford
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
@@ -130,7 +131,7 @@ class TestEvolutionGate(QiskitTestCase):
             expected.ry(2 * p_4 * time, 0)
             expected.rx(p_4 * time, 0)
 
-        self.assertEqual(evo_gate.definition.decompose(), expected)
+        self.assertEqual(evo_gate.definition, expected)
 
     @data(
         (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),
@@ -155,23 +156,35 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_qdrift_evolution(self):
         """Test QDrift on an example."""
-        op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
+        op = 0.1 * (Z ^ Z) - 3.2 * (X ^ I) - 1.0 * (I ^ X) + 0.2 * (X ^ X)
         reps = 20
-        qdrift = PauliEvolutionGate(
-            op, time=0.5 / reps, synthesis=QDrift(reps=reps, seed=self.seed)
-        ).definition
-        exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
+        time = 0.12
+        num_samples = 300
+        qdrift_energy = []
 
         def energy(evo):
             return Statevector(evo).expectation_value(op.to_matrix())
 
-        self.assertAlmostEqual(energy(exact), energy(qdrift), places=2)
+        for i in range(num_samples):
+            qdrift = PauliEvolutionGate(
+                op, time=time, synthesis=QDrift(reps=reps, seed=self.seed + i)
+            ).definition
 
-    def test_passing_grouped_paulis(self):
+            qdrift_energy.append(energy(qdrift))
+
+        exact = scipy.linalg.expm(-1j * time * op.to_matrix()).dot(np.eye(4)[0, :])
+
+        self.assertAlmostEqual(energy(exact), np.average(qdrift_energy), places=2)
+
+    @data(True, False)
+    def test_passing_grouped_paulis(self, wrap):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
-        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
-        decomposed = evo_gate.definition.decompose()
+        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter(wrap=wrap))
+        if wrap:
+            decomposed = evo_gate.definition.decompose()
+        else:
+            decomposed = evo_gate.definition
         self.assertEqual(decomposed.count_ops()["rz"], 4)
         self.assertEqual(decomposed.count_ops()["rzz"], 1)
         self.assertEqual(decomposed.count_ops()["rxx"], 1)
@@ -318,6 +331,38 @@ class TestEvolutionGate(QiskitTestCase):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
+
+    def test_atomic_evolution(self):
+        """Test a custom atomic_evolution."""
+
+        def atomic_evolution(pauli, time):
+            cliff = diagonalizing_clifford(pauli)
+            chain = cnot_chain(pauli)
+
+            target = None
+            for i, pauli_i in enumerate(reversed(pauli.to_label())):
+                if pauli_i != "I":
+                    target = i
+                    break
+
+            definition = QuantumCircuit(pauli.num_qubits)
+            definition.compose(cliff, inplace=True)
+            definition.compose(chain, inplace=True)
+            definition.rz(2 * time, target)
+            definition.compose(chain.inverse(), inplace=True)
+            definition.compose(cliff.inverse(), inplace=True)
+
+            return definition
+
+        op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
+        time = 0.123
+        reps = 4
+        with self.assertWarns(PendingDeprecationWarning):
+            evo_gate = PauliEvolutionGate(
+                op, time, synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution)
+            )
+        decomposed = evo_gate.definition.decompose()
+        self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
 
 if __name__ == "__main__":

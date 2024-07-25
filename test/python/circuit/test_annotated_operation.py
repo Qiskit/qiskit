@@ -15,7 +15,6 @@
 import unittest
 
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     ControlModifier,
@@ -25,9 +24,10 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit.library import SGate, SdgGate
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestAnnotatedOperationlass(QiskitTestCase):
+class TestAnnotatedOperationClass(QiskitTestCase):
     """Testing qiskit.circuit.AnnotatedOperation"""
 
     def test_create_gate_with_modifier(self):

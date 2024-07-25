@@ -15,6 +15,7 @@
 from typing import Optional
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0], [0, 1]])
@@ -45,16 +46,30 @@ class IGate(SingletonGate):
              └───┘
     """
 
+    _standard_gate = StandardGate.IGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Identity gate."""
         super().__init__("id", 1, [], label=label, duration=duration, unit=unit)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
-    def inverse(self):
-        """Invert this gate."""
+    def inverse(self, annotated: bool = False):
+        """Returne the inverse gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            IGate: inverse gate (self-inverse).
+        ."""
         return IGate()  # self-inverse
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return IGate()
+
+    def __eq__(self, other):
+        return isinstance(other, IGate)

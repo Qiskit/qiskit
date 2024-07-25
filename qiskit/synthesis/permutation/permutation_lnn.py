@@ -12,22 +12,23 @@
 
 """Depth-efficient synthesis algorithm for Permutation gates."""
 
+from __future__ import annotations
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from .permutation_utils import _inverse_pattern
+from qiskit._accelerate.synthesis.permutation import _synth_permutation_depth_lnn_kms
 
 
-def synth_permutation_depth_lnn_kms(pattern):
+def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
     """Synthesize a permutation circuit for a linear nearest-neighbor
     architecture using the Kutin, Moulton, Smithline method.
 
-    This is the permutation synthesis algorithm from
-    https://arxiv.org/abs/quant-ph/0701194, Chapter 6.
+    This is the permutation synthesis algorithm from [1], section 6.
     It synthesizes any permutation of n qubits over linear nearest-neighbor
-    architecture using SWAP gates with depth at most n and size at most
-    n(n-1)/2 (where both depth and size are measured with respect to SWAPs).
+    architecture using SWAP gates with depth at most :math:`n` and size at most
+    :math:`n(n-1)/2` (where both depth and size are measured with respect to SWAPs).
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern, describing
+        pattern: Permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
             permutation. That is, ``pattern[k] = m`` when the permutation maps
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
@@ -35,7 +36,12 @@ def synth_permutation_depth_lnn_kms(pattern):
             position ``1``, etc.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
+
+    References:
+        1. Samuel A. Kutin, David Petrie Moulton and Lawren M. Smithline.
+           *Computation at a distance.*,
+           `arXiv:quant-ph/0701194v1 <https://arxiv.org/abs/quant-ph/0701194>`_
     """
 
     # In Qiskit, the permutation pattern [2, 4, 3, 0, 1] means that
@@ -43,26 +49,4 @@ def synth_permutation_depth_lnn_kms(pattern):
     # In the permutation synthesis code below the notation is opposite:
     # [2, 4, 3, 0, 1] means that 0 maps to 2, 1 to 3, 2 to 3, 3 to 0, and 4 to 1.
     # This is why we invert the pattern.
-    cur_pattern = _inverse_pattern(pattern)
-
-    num_qubits = len(cur_pattern)
-    qc = QuantumCircuit(num_qubits)
-
-    # add conditional odd-even swap layers
-    for i in range(num_qubits):
-        _create_swap_layer(qc, cur_pattern, i % 2)
-
-    return qc
-
-
-def _create_swap_layer(qc, pattern, starting_point):
-    """Implements a single swap layer, consisting of conditional swaps between each
-    neighboring couple. The starting_point is the first qubit to use (either 0 or 1
-    for even or odd layers respectively). Mutates both the quantum circuit ``qc``
-    and the permutation pattern ``pattern``.
-    """
-    num_qubits = len(pattern)
-    for j in range(starting_point, num_qubits - 1, 2):
-        if pattern[j] > pattern[j + 1]:
-            qc.swap(j, j + 1)
-            pattern[j], pattern[j + 1] = pattern[j + 1], pattern[j]
+    return QuantumCircuit._from_circuit_data(_synth_permutation_depth_lnn_kms(pattern))

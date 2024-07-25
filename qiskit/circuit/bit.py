@@ -21,7 +21,6 @@ class Bit:
     .. note::
         This class should not be instantiated directly. This is just a superclass
         for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
-
     """
 
     _register = None

@@ -18,9 +18,9 @@ import uuid
 
 import ddt
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -51,6 +51,21 @@ class TestExprProperties(QiskitTestCase):
             expr.Value(True, types.Bool()),
             types.Bool(),
         ),
+        expr.Index(
+            expr.Var.new("a", types.Uint(3)),
+            expr.Binary(
+                expr.Binary.Op.SHIFT_LEFT,
+                expr.Binary(
+                    expr.Binary.Op.SHIFT_RIGHT,
+                    expr.Var.new("b", types.Uint(3)),
+                    expr.Value(1, types.Uint(1)),
+                    types.Uint(3),
+                ),
+                expr.Value(1, types.Uint(1)),
+                types.Uint(3),
+            ),
+            types.Bool(),
+        ),
     )
     def test_expr_can_be_cloned(self, obj):
         """Test that various ways of cloning an `Expr` object are valid and produce equal output."""
@@ -70,7 +85,7 @@ class TestExprProperties(QiskitTestCase):
         self.assertNotEqual(var_a_bool, expr.Var.new("a", types.Bool()))
 
         # Manually constructing the same object with the same UUID should cause it compare equal,
-        # though, for serialisation ease.
+        # though, for serialization ease.
         self.assertEqual(var_a_bool, expr.Var(var_a_bool.var, types.Bool(), name="a"))
 
         # This is a badly constructed variable because it's using a different type to refer to the

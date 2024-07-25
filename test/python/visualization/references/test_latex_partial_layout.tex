@@ -4,12 +4,12 @@
 \usepackage{graphicx}
 
 \begin{document}
-\scalebox{1.0}{
+\scalebox{1.0}{{$\mathrm{global\,phase:\,} \mathrm{\frac{\pi}{4}}$}
 \Qcircuit @C=1.0em @R=0.2em @!R { \\
-	 	\nghost{{q}_{2}\;\mapsto\;{0} :  } & \lstick{{q}_{2}\;\mapsto\;{0} :  } & \qw & \qw & \qw\\
-	 	\nghost{{q}_{0}\;\mapsto\;{1} :  } & \lstick{{q}_{0}\;\mapsto\;{1} :  } & \qw & \qw & \qw\\
-	 	\nghost{{q}_{1}\;\mapsto\;{2} :  } & \lstick{{q}_{1}\;\mapsto\;{2} :  } & \gate{\mathrm{U_2}\,(\mathrm{0,\pi})} & \qw & \qw\\
-	 	\nghost{{ancilla}_{0}\;\mapsto\;{3} :  } & \lstick{{ancilla}_{0}\;\mapsto\;{3} :  } & \qw & \qw & \qw\\
-	 	\nghost{{ancilla}_{1}\;\mapsto\;{4} :  } & \lstick{{ancilla}_{1}\;\mapsto\;{4} :  } & \qw & \qw & \qw\\
+	 	\nghost{{q}_{2}\;\mapsto\;{0} :  } & \lstick{{q}_{2}\;\mapsto\;{0} :  } & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{0}\;\mapsto\;{1} :  } & \lstick{{q}_{0}\;\mapsto\;{1} :  } & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{1}\;\mapsto\;{2} :  } & \lstick{{q}_{1}\;\mapsto\;{2} :  } & \gate{\mathrm{R_Z}\,(\mathrm{\frac{\pi}{2}})} & \gate{\mathrm{\sqrt{X}}} & \gate{\mathrm{R_Z}\,(\mathrm{\frac{\pi}{2}})} & \qw & \qw\\
+	 	\nghost{{ancilla}_{0}\;\mapsto\;{3} :  } & \lstick{{ancilla}_{0}\;\mapsto\;{3} :  } & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{ancilla}_{1}\;\mapsto\;{4} :  } & \lstick{{ancilla}_{1}\;\mapsto\;{4} :  } & \qw & \qw & \qw & \qw & \qw\\
 \\ }}
 \end{document}

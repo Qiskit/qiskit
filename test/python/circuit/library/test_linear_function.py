@@ -16,16 +16,14 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Clifford
-
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction, PermutationGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-
 from qiskit.quantum_info.operators import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def random_linear_circuit(
@@ -39,7 +37,6 @@ def random_linear_circuit(
     clifford=False,
     recursion_depth=0,
 ):
-
     """Generate a pseudo random linear circuit."""
 
     if num_qubits == 0:
@@ -89,7 +86,8 @@ def random_linear_circuit(
         elif name == "linear":
             nqargs = rng.choice(range(1, num_qubits + 1))
             qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
-            mat = random_invertible_binary_matrix(nqargs, seed=rng)
+            seed = rng.integers(100000, size=1, dtype=np.uint64)[0]
+            mat = random_invertible_binary_matrix(nqargs, seed=seed)
             circ.append(LinearFunction(mat), qargs)
         elif name == "permutation":
             nqargs = rng.choice(range(1, num_qubits + 1))
@@ -143,10 +141,11 @@ class TestLinearFunctions(QiskitTestCase):
         and then synthesizing this linear function to a quantum circuit."""
         rng = np.random.default_rng(1234)
 
-        for _ in range(10):
-            for num_gates in [0, 5, 5 * num_qubits]:
+        for num_gates in [0, 5, 5 * num_qubits]:
+            seeds = rng.integers(100000, size=10, dtype=np.uint64)
+            for seed in seeds:
                 # create a random linear circuit
-                linear_circuit = random_linear_circuit(num_qubits, num_gates, seed=rng)
+                linear_circuit = random_linear_circuit(num_qubits, num_gates, seed=seed)
                 self.assertIsInstance(linear_circuit, QuantumCircuit)
 
                 # convert it to a linear function
@@ -171,10 +170,11 @@ class TestLinearFunctions(QiskitTestCase):
         """Test correctness of first synthesizing a linear circuit from a linear function,
         and then converting this linear circuit to a linear function."""
         rng = np.random.default_rng(5678)
+        seeds = rng.integers(100000, size=10, dtype=np.uint64)
 
-        for _ in range(10):
+        for seed in seeds:
             # create a random invertible binary matrix
-            binary_matrix = random_invertible_binary_matrix(num_qubits, seed=rng)
+            binary_matrix = random_invertible_binary_matrix(num_qubits, seed=seed)
 
             # create a linear function with this matrix
             linear_function = LinearFunction(binary_matrix, validate_input=True)

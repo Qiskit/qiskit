@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,13 +16,13 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble
-
+from qiskit import QuantumCircuit, assemble
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
-from qiskit.extensions.quantum_initializer import DiagonalGate
+from qiskit.circuit.library.generalized_gates import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDiagonalGate(QiskitTestCase):
@@ -44,16 +44,14 @@ class TestDiagonalGate(QiskitTestCase):
             with self.subTest(phases=phases):
                 diag = [np.exp(1j * ph) for ph in phases]
                 num_qubits = int(np.log2(len(diag)))
-                q = QuantumRegister(num_qubits)
-                qc = QuantumCircuit(q)
-                with self.assertWarns(PendingDeprecationWarning):
-                    qc.diagonal(diag, q[0:num_qubits])
+                qc = QuantumCircuit(num_qubits)
+                gate = DiagonalGate(diag)
+                qc.append(gate, qc.qubits)
+
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
                 # Simulate the decomposed gate
-                simulator = BasicAer.get_backend("unitary_simulator")
-                result = execute(qc, simulator).result()
-                unitary = result.get_unitary(qc)
+                unitary = Operator(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
                 self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=False))
 
@@ -62,27 +60,28 @@ class TestDiagonalGate(QiskitTestCase):
         from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
         with self.assertRaises(QiskitError):
-            with self.assertWarns(PendingDeprecationWarning):
-                DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
+            DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
 
     def test_npcomplex_params_conversion(self):
         """Verify diagonal gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.diagonal(diag.tolist(), [0])
+        gate = DiagonalGate(diag)
+        qc.append(gate, [0])
 
         params = qc.data[0].operation.params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
 
-        qobj = assemble(qc)
-        params = qobj.experiments[0].instructions[0].params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
+        with self.assertWarns(DeprecationWarning):
+            # REMOVE this assertion (not the full test) once ASSEMBLE is removed.
+            qobj = assemble(qc)
+            params = qobj.experiments[0].instructions[0].params
+            self.assertTrue(
+                all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
+            )
 
 
 def _get_diag_gate_matrix(diag):

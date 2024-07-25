@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.providers.fake_provider import Fake5QV1
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -246,12 +246,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         # check for other barrier like commands
         circuit.h(q[1])
-
-        # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
-
-        with self.assertWarns(DeprecationWarning):
-            circuit.snapshot("sn 1")
 
         # check the barriers plot properly when plot_barriers= True
         circuit_drawer(circuit, filename=filename1, output="latex_source", plot_barriers=True)
@@ -490,7 +484,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=FakeTenerife(),
+            backend=Fake5QV1(),
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,

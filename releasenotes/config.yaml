@@ -4,3 +4,219 @@ default_branch: main
 collapse_pre_releases: true
 pre_release_tag_re: (?P<pre_release>(?:[ab]|rc|pre)+\d*)$
 unreleased_version_title: Unreleased Notes Preview
+sections:
+  - [features, New Features]
+  - [features_algorithms, Algorithms Features]
+  - [features_circuits, Circuits Features]
+  - [features_primitives, Primitives Features]
+  - [features_providers, Providers Features]
+  - [features_pulse, Pulse Features]
+  - [features_qasm, OpenQASM Features]
+  - [features_qpy, QPY Features]
+  - [features_quantum_info, Quantum Information Features]
+  - [features_synthesis, Synthesis Features]
+  - [features_transpiler, Transpiler Features]
+  - [features_visualization, Visualization Features]
+  - [features_misc, Misc. Features]
+  - [issues, Known Issues]
+  - [upgrade, Upgrade Notes]
+  - [upgrade_algorithms, Algorithms Upgrade Notes]
+  - [upgrade_circuits, Circuits Upgrade Notes]
+  - [upgrade_primitives, Primitives Upgrade Notes]
+  - [upgrade_providers, Providers Upgrade Notes]
+  - [upgrade_pulse, Pulse Upgrade Notes]
+  - [upgrade_qasm, OpenQASM Upgrade Notes]
+  - [upgrade_qpy, QPY Upgrade Notes]
+  - [upgrade_quantum_info, Quantum Information Upgrade Notes]
+  - [upgrade_synthesis, Synthesis Upgrade Notes]
+  - [upgrade_transpiler, Transpiler Upgrade Notes]
+  - [upgrade_visualization, Visualization Upgrade Notes]
+  - [upgrade_misc, Misc. Upgrade Notes]
+  - [deprecations, Deprecation Notes]
+  - [deprecations_algorithms, Algorithms Deprecations]
+  - [deprecations_circuits, Circuits Deprecations]
+  - [deprecations_primitives, Primitives Deprecations]
+  - [deprecations_providers, Providers Deprecations]
+  - [deprecations_pulse, Pulse Deprecations]
+  - [deprecations_qasm, OpenQASM Deprecations]
+  - [deprecations_qpy, QPY Deprecations]
+  - [deprecations_quantum_info, Quantum Information Deprecations]
+  - [deprecations_synthesis, Synthesis Deprecations]
+  - [deprecations_transpiler, Transpiler Deprecations]
+  - [deprecations_visualization, Visualization Deprecations]
+  - [deprecations_misc, Misc. Deprecations]
+  - [critical, Critical Issues]
+  - [security, Security Issues]
+  - [fixes, Bug Fixes]
+  - [other, Other Notes]
+template: |
+  ---
+  prelude: >
+      Replace this text with content to appear at the top of the section for this
+      release. All of the prelude content is merged together and then rendered
+      separately from the items listed in other parts of the file, so the text
+      needs to be worded so that both the prelude and the other items make sense
+      when read independently. This may mean repeating some details. Not every
+      release note requires a prelude. Usually only notes describing major
+      features or adding release theme details should have a prelude.
+  features:
+    - |
+      List new features here, or remove this section.  All of the list items in
+      this section are combined when the release notes are rendered, so the text
+      needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details. If the feature note is contained within one of the modules
+      listed below you should use the appropriate subsection instead.
+  features_circuits:
+    - |
+      New features related to the qiskit.circuit module.
+  features_primitives:
+    - |
+      New features related to the qiskit.primitives module.
+  features_providers:
+    - |
+      New features related to the qiskit.providers module.
+  features_pulse:
+    - |
+      New features related to the qiskit.pulse module.
+  features_qasm:
+    - |
+      New features related to the qiskit.qasm2 or qiskit.qasm3 modules.
+  features_qpy:
+    - |
+      New features related to the qiskit.qpy module.
+  features_quantum_info:
+    - |
+      New features related to the qiskit.quantum_info module.
+  features_synthesis:
+    - |
+      New features related to the qiskit.synthesis module.
+  features_transpiler:
+    - |
+      New features related to the qiskit.transpiler and qiskit.dagcircuit
+      modules.
+  features_visualization:
+    - |
+      New features related to the qiskit.visualization module.
+  features_misc:
+    - |
+      New miscellaneous features.
+  issues:
+    - |
+      List known issues here, or remove this section.  All of the list items in
+      this section are combined when the release notes are rendered, so the text
+      needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details.
+  upgrade:
+    - |
+      List upgrade notes here, or remove this section.  All of the list items in
+      this section are combined when the release notes are rendered, so the text
+      needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details. If the upgrade note is contained within one of the modules
+      listed below you should use the appropriate subsection instead.
+  upgrade_circuits:
+    - |
+      Notes with upgrade impact related to the qiskit.circuit module.
+  upgrade_primitives:
+    - |
+      Notes with upgrade impact related to the qiskit.primitives module.
+  upgrade_providers:
+    - |
+      Notes with upgrade impact related to the qiskit.providers module.
+  upgrade_pulse:
+    - |
+      Notes with upgrade impact related to the qiskit.pulse module.
+  upgrade_qasm:
+    - |
+      Notes with upgrade impact related to the qiskit.qasm2 or qiskit.qasm3
+      modules.
+  upgrade_qpy:
+    - |
+      Notes with upgrade impact related to the qiskit.qpy module.
+  upgrade_quantum_info:
+    - |
+      Notes with upgrade impact related to the qiskit.quantum_info module.
+  upgrade_synthesis:
+    - |
+      Notes with upgrade impact related to the qiskit.synthesis module.
+  upgrade_transpiler:
+    - |
+      Notes with upgrade impact related to the qiskit.transpiler and
+      qiskit.dagcircuit modules.
+  upgrade_visualization:
+    - |
+      Notes with upgrade impact related to the qiskit.visualization module.
+  upgrade_misc:
+    - |
+      Miscellaneous notes about potential upgrade impact.
+  deprecations:
+    - |
+      List deprecations notes here, or remove this section.  All of the list
+      items in this section are combined when the release notes are rendered, so
+      the text needs to be worded so that it does not depend on any information
+      only available in another section, such as the prelude. This may mean
+      repeating some details.
+  deprecations_circuits:
+    - |
+      Deprecations related to the qiskit.circuit module.
+  deprecations_primitives:
+    - |
+      Deprecations related to the qiskit.primitives module.
+  deprecations_providers:
+    - |
+      Deprecations related to the qiskit.providers module.
+  deprecations_pulse:
+    - |
+      Deprecations related to the qiskit.pulse module.
+  deprecations_qasm:
+    - |
+      Deprecations related to the qiskit.qasm2 or qiskit.qasm3 modules.
+  deprecations_qpy:
+    - |
+      Deprecations related to the qiskit.qpy module.
+  deprecations_quantum_info:
+    - |
+      Deprecations related to the qiskit.quantum_info module.
+  deprecations_synthesis:
+    - |
+      Deprecations related to the qiskit.synthesis module.
+  deprecations_transpiler:
+    - |
+      Deprecations related to the qiskit.transpiler and qiskit.dagcircuit
+      modules.
+  deprecations_visualization:
+    - |
+      Deprecations related to the qiskit.visualization module.
+  deprecations_misc:
+    - |
+      New miscellaneous features.
+  critical:
+    - |
+      Add critical notes here, or remove this section.  All of the list items in
+      this section are combined when the release notes are rendered, so the text
+      needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details.
+  security:
+    - |
+      Add security notes here, or remove this section.  All of the list items in
+      this section are combined when the release notes are rendered, so the text
+      needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details.
+  fixes:
+    - |
+      Add normal bug fixes here, or remove this section.  All of the list items
+      in this section are combined when the release notes are rendered, so the
+      text needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details.
+  other:
+    - |
+      Add other notes here, or remove this section.  All of the list items in
+      this section are combined when the release notes are rendered, so the text
+      needs to be worded so that it does not depend on any information only
+      available in another section, such as the prelude. This may mean repeating
+      some details.

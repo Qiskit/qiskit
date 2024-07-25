@@ -47,7 +47,7 @@ class GR(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import GR
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
        _generate_circuit_library_visualization(circuit)
@@ -101,7 +101,7 @@ class GRX(GR):
     .. plot::
 
         from qiskit.circuit.library import GRX
-        from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+        from qiskit.visualization.library import _generate_circuit_library_visualization
         import numpy as np
         circuit = GRX(num_qubits=3, theta=np.pi/4)
         _generate_circuit_library_visualization(circuit)
@@ -149,7 +149,7 @@ class GRY(GR):
     .. plot::
 
        from qiskit.circuit.library import GRY
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GRY(num_qubits=3, theta=np.pi/4)
        _generate_circuit_library_visualization(circuit)
@@ -197,7 +197,7 @@ class GRZ(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import GRZ
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GRZ(num_qubits=3, phi=np.pi/2)
        _generate_circuit_library_visualization(circuit)

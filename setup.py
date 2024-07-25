@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"The Qiskit Terra setup file."
+"The Qiskit setup file."
 
 import os
 from setuptools import setup
@@ -22,7 +22,7 @@ from setuptools_rust import Binding, RustExtension
 #
 #   python setup.py build_rust --inplace --release
 #
-# to make optimised Rust components even for editable releases, which would otherwise be quite
+# to make optimized Rust components even for editable releases, which would otherwise be quite
 # unergonomic to do otherwise.
 
 
@@ -30,20 +30,26 @@ from setuptools_rust import Binding, RustExtension
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
+# If QISKIT_NO_CACHE_GATES is set then don't enable any features while building
+#
+# TODO: before final release we should reverse this by default once the default transpiler pass
+# is all in rust (default to no caching and make caching an opt-in feature). This is opt-out
+# right now to avoid the runtime overhead until we are leveraging the rust gates infrastructure.
+if os.getenv("QISKIT_NO_CACHE_GATES") == "1":
+    features = []
+else:
+    features = ["cache_pygates"]
+
+
 setup(
     rust_extensions=[
         RustExtension(
             "qiskit._accelerate",
-            "crates/accelerate/Cargo.toml",
+            "crates/pyext/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
-        ),
-        RustExtension(
-            "qiskit._qasm2",
-            "crates/qasm2/Cargo.toml",
-            binding=Binding.PyO3,
-            debug=rust_debug,
-        ),
+            features=features,
+        )
     ],
     options={"bdist_wheel": {"py_limited_api": "cp38"}},
 )

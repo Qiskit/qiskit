@@ -16,7 +16,6 @@ A collection of useful quantum information functions for operators.
 
 from __future__ import annotations
 import logging
-import warnings
 import numpy as np
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -76,7 +75,7 @@ def process_fidelity(
         require_tp (bool): check if input and target channels are
                            trace-preserving and if non-TP log warning
                            containing negative eigenvalues of partial
-                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           Choi-matrix :math:`Tr_{\text{out}}[\mathcal{E}] - I`
                            [Default: True].
 
     Returns:
@@ -94,7 +93,7 @@ def process_fidelity(
         if channel.dim != target.dim:
             raise QiskitError(
                 "Input quantum channel and target unitary must have the same "
-                "dimensions ({} != {}).".format(channel.dim, target.dim)
+                f"dimensions ({channel.dim} != {target.dim})."
             )
 
     # Validate complete-positivity and trace-preserving
@@ -154,10 +153,12 @@ def average_gate_fidelity(
     The average gate fidelity :math:`F_{\text{ave}}` is given by
 
     .. math::
+        \begin{aligned}
         F_{\text{ave}}(\mathcal{E}, U)
             &= \int d\psi \langle\psi|U^\dagger
                 \mathcal{E}(|\psi\rangle\!\langle\psi|)U|\psi\rangle \\
             &= \frac{d F_{\text{pro}}(\mathcal{E}, U) + 1}{d + 1}
+        \end{aligned}
 
     where :math:`F_{\text{pro}}(\mathcal{E}, U)` is the
     :meth:`~qiskit.quantum_info.process_fidelity` of the input quantum
@@ -175,7 +176,7 @@ def average_gate_fidelity(
         require_tp (bool): check if input and target channels are
                            trace-preserving and if non-TP log warning
                            containing negative eigenvalues of partial
-                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           Choi-matrix :math:`Tr_{\text{out}}[\mathcal{E}] - I`
                            [Default: True].
 
     Returns:
@@ -232,7 +233,7 @@ def gate_error(
         require_tp (bool): check if input and target channels are
                            trace-preserving and if non-TP log warning
                            containing negative eigenvalues of partial
-                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           Choi-matrix :math:`Tr_{\text{out}}[\mathcal{E}] - I`
                            [Default: True].
 
     Returns:
@@ -315,7 +316,7 @@ def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> 
     iden = sparse.eye(dim_out)
 
     # Watrous uses row-vec convention for his Choi matrix while we use
-    # col-vec. It turns out row-vec convention is requried for CVXPY too
+    # col-vec. It turns out row-vec convention is required for CVXPY too
     # since the cvxpy.kron function must have a constant as its first argument.
     c_r = cvxpy.bmat([[cvxpy.kron(iden, r0_r), x_r], [x_r.T, cvxpy.kron(iden, r1_r)]])
     c_i = cvxpy.bmat([[cvxpy.kron(iden, r0_i), x_i], [-x_i.T, cvxpy.kron(iden, r1_i)]])
@@ -386,16 +387,10 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
         return Operator(obj)
     if hasattr(obj, "to_operator"):
         return obj.to_operator()
-
-    warnings.warn(
-        "Passing in a list or Numpy array to `{}` `{}` argument is "
-        "deprecated as of 0.17.0 since the matrix representation cannot be inferred "
-        "unambiguously. Use a Gate or BaseOperator subclass (eg. Operator, "
-        "SuperOp, Choi) object instead.".format(func_name, arg_name),
-        DeprecationWarning,
+    raise TypeError(
+        f"invalid type supplied to {arg_name} of {func_name}."
+        f" A {fallback_class.__name__} is best."
     )
-    warnings.warn(f"Treating array input as a {fallback_class.__name__} object")
-    return fallback_class(obj)
 
 
 def _cp_condition(channel):

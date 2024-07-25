@@ -1,0 +1,12 @@
+---
+upgrade_synthesis:
+  - |
+    The following deprecated functions previously in :mod:`qiskit.quantum_info`
+    have been removed. These functions were marked as deprecated in the
+    Qiskit 0.40.0 release in 2023-01.
+
+      * ``decompose_clifford``: you should use the
+        :func:`.qiskit.synthesis.synth_clifford_full` function instead.
+      * ``decompose_cnotdihedral``: you should use the
+        :func:`.qiskit.synthesis.synth_cnotdihedral_full` function instead.
+

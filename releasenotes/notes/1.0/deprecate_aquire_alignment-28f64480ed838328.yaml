@@ -1,0 +1,6 @@
+---
+upgrade_transpiler:
+  - |
+    The deprecated method ``Target.aquire_alignment`` has been removed. It was marked as deprecated in
+    Qiskit 0.43 (released 2023-05). The method
+    :meth:`.Target.acquire_alignment` should be used instead.

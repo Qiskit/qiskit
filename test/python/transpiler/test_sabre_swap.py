@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,6 +15,7 @@
 import unittest
 
 import itertools
+
 import ddt
 import numpy.random
 
@@ -24,13 +25,15 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MUMBAI_CMAP
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
@@ -239,7 +242,7 @@ class TestSabreSwap(QiskitTestCase):
         self.assertIsInstance(second_measure.operation, Measure)
         # Assert that the first measure is on the same qubit that the HGate was applied to, and the
         # second measurement is on a different qubit (though we don't care which exactly - that
-        # depends a little on the randomisation of the pass).
+        # depends a little on the randomization of the pass).
         self.assertEqual(last_h.qubits, first_measure.qubits)
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
@@ -274,7 +277,7 @@ class TestSabreSwap(QiskitTestCase):
         if not optionals.HAS_AER:
             return
 
-        from qiskit import Aer
+        from qiskit_aer import Aer
 
         sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()
@@ -1324,10 +1327,11 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = FakeMumbai()
+        cls.backend = Fake27QPulseV1()
+        cls.backend.configuration().coupling_map = MUMBAI_CMAP
+        cls.backend.configuration().basis_gates += ["for_loop", "while_loop", "if_else"]
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
-        cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
 
     def assert_valid_circuit(self, transpiled):
         """Assert circuit complies with constraints of backend."""
@@ -1342,7 +1346,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
                 qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
                 if not isinstance(instruction.operation, ControlFlowOp):
                     if len(qargs) > 2 or len(qargs) < 0:
-                        raise Exception("Invalid number of qargs for instruction")
+                        raise RuntimeError("Invalid number of qargs for instruction")
                     if len(qargs) == 2:
                         self.assertIn(qargs, self.coupling_edge_set)
                     else:
@@ -1385,7 +1389,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="sabre",
             layout_method="sabre",
             seed_transpiler=12342,
-            target=FakeMumbaiV2().target,
+            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP).target,
         )
         self.assert_valid_circuit(tqc)
 

@@ -12,26 +12,31 @@
 
 use std::env;
 
-use pyo3::prelude::*;
-use pyo3::wrap_pymodule;
-use pyo3::Python;
+use pyo3::import_exception;
 
-mod convert_2q_block_matrix;
-mod dense_layout;
-mod edge_collections;
-mod error_map;
-mod euler_one_qubit_decomposer;
-mod nlayout;
-mod optimize_1q_gates;
-mod pauli_exp_val;
-mod quantum_circuit;
-mod results;
-mod sabre_layout;
-mod sabre_swap;
-mod sampled_exp_val;
-mod sparse_pauli_op;
-mod stochastic_swap;
-mod vf2_layout;
+pub mod convert_2q_block_matrix;
+pub mod dense_layout;
+pub mod edge_collections;
+pub mod error_map;
+pub mod euler_one_qubit_decomposer;
+pub mod isometry;
+pub mod nlayout;
+pub mod optimize_1q_gates;
+pub mod pauli_exp_val;
+pub mod results;
+pub mod sabre;
+pub mod sampled_exp_val;
+pub mod sparse_pauli_op;
+pub mod stochastic_swap;
+pub mod synthesis;
+pub mod two_qubit_decompose;
+pub mod uc_gate;
+pub mod utils;
+pub mod vf2_layout;
+
+mod rayon_ext;
+#[cfg(test)]
+mod test;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
@@ -46,26 +51,4 @@ pub fn getenv_use_multiple_threads() -> bool {
     !parallel_context || force_threads
 }
 
-#[pymodule]
-fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(nlayout::nlayout))?;
-    m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
-    m.add_wrapped(wrap_pymodule!(sabre_swap::sabre_swap))?;
-    m.add_wrapped(wrap_pymodule!(pauli_exp_val::pauli_expval))?;
-    m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
-    m.add_wrapped(wrap_pymodule!(quantum_circuit::quantum_circuit))?;
-    m.add_wrapped(wrap_pymodule!(error_map::error_map))?;
-    m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
-    m.add_wrapped(wrap_pymodule!(results::results))?;
-    m.add_wrapped(wrap_pymodule!(optimize_1q_gates::optimize_1q_gates))?;
-    m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
-    m.add_wrapped(wrap_pymodule!(sabre_layout::sabre_layout))?;
-    m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
-    m.add_wrapped(wrap_pymodule!(
-        euler_one_qubit_decomposer::euler_one_qubit_decomposer
-    ))?;
-    m.add_wrapped(wrap_pymodule!(
-        convert_2q_block_matrix::convert_2q_block_matrix
-    ))?;
-    Ok(())
-}
+import_exception!(qiskit.exceptions, QiskitError);

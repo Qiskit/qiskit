@@ -32,7 +32,7 @@ class AND(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import AND
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = AND(5)
        _generate_circuit_library_visualization(circuit)
 
@@ -43,7 +43,7 @@ class AND(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import AND
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = AND(5, flags=[-1, 0, 0, 1, 1])
        _generate_circuit_library_visualization(circuit)
 

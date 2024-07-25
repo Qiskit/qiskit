@@ -14,8 +14,11 @@
 
 import itertools
 
-from qiskit.transpiler import CouplingMap, Target, AnalysisPass, TranspilerError
+from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
+from qiskit.transpiler.target import Target
 from qiskit._accelerate.error_map import ErrorMap
 
 
@@ -141,7 +144,7 @@ class SabrePreLayout(AnalysisPass):
         augmented_coupling_map.graph = self.coupling_map.graph.copy()
         augmented_error_map = ErrorMap(nq)
 
-        for (x, y) in itertools.combinations(self.coupling_map.graph.node_indices(), 2):
+        for x, y in itertools.combinations(self.coupling_map.graph.node_indices(), 2):
             d = self.coupling_map.distance(x, y)
             if 1 < d <= distance:
                 error_rate = 1 - ((1 - self.error_rate) ** d)
@@ -179,7 +182,7 @@ class SabrePreLayout(AnalysisPass):
         """
         # compute the set of edges in the original coupling map
         real_edges = []
-        for (x, y) in itertools.combinations(self.coupling_map.graph.node_indices(), 2):
+        for x, y in itertools.combinations(self.coupling_map.graph.node_indices(), 2):
             d = self.coupling_map.distance(x, y)
             if d == 1:
                 real_edges.append((x, y))

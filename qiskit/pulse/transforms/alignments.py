@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """A collection of passes to reallocate the timeslots of instructions according to context."""
-
+from __future__ import annotations
 import abc
-from typing import Callable, Union, Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 
@@ -75,7 +75,7 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Check equality of two transforms."""
         if type(self) is not type(other):
             return False
@@ -187,7 +187,7 @@ class AlignRight(AlignmentKind):
         return aligned
 
     @staticmethod
-    def _push_right_prepend(this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
+    def _push_right_prepend(this: Schedule, other: ScheduleComponent) -> Schedule:
         """Return ``this`` with ``other`` inserted at the latest possible time
         such that ``other`` ends before it overlaps with any of ``this``.
 
@@ -263,7 +263,7 @@ class AlignEquispaced(AlignmentKind):
     This alignment is convenient to create dynamical decoupling sequences such as PDD.
     """
 
-    def __init__(self, duration: Union[int, ParameterExpression]):
+    def __init__(self, duration: int | ParameterExpression):
         """Create new equispaced context.
 
         Args:
@@ -348,7 +348,7 @@ class AlignFunc(AlignmentKind):
 
     """
 
-    def __init__(self, duration: Union[int, ParameterExpression], func: Callable):
+    def __init__(self, duration: int | ParameterExpression, func: Callable):
         """Create new equispaced context.
 
         Args:
@@ -398,9 +398,7 @@ class AlignFunc(AlignmentKind):
             _t_center = self.duration * self.func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
-                raise PulseError(
-                    "Invalid schedule position t=%d is specified at index=%d" % (_t0, ind)
-                )
+                raise PulseError(f"Invalid schedule position t={_t0} is specified at index={ind}")
             aligned.insert(_t0, child, inplace=True)
 
         return aligned

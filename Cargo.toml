@@ -3,15 +3,38 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "1.0.0"
+version = "1.2.0"
 edition = "2021"
-rust-version = "1.64"  # Keep in sync with README.md and rust-toolchain.toml.
+rust-version = "1.70"  # Keep in sync with README.md and rust-toolchain.toml.
 license = "Apache-2.0"
 
+# Shared dependencies that can be inherited.  This just helps a little with
+# making sure our crates don't directly depend on different versions of things,
+# although we can't help it if our transitive dependencies pull in more.
+#
+# Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
-# This doesn't set `extension-module` as a shared feature because we need to be able to disable it
-# during Rust-only testing (see # https://github.com/PyO3/pyo3/issues/340).
-pyo3 = { version = "0.20.0", features = ["abi3-py38"] }
+bytemuck = "1.16"
+indexmap.version = "2.2.6"
+hashbrown.version = "0.14.0"
+num-complex = "0.4"
+ndarray = "^0.15.6"
+numpy = "0.21.0"
+smallvec = "1.13"
+thiserror = "1.0"
+
+# Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
+# actual C extension (the feature disables linking in `libpython`, which is forbidden in Python
+# distributions).  We only activate that feature when building the C extension module; we still need
+# it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
+# https://pyo3.rs/main/features#extension-module for more.
+pyo3 = { version = "0.21.2", features = ["abi3-py38"] }
+
+# These are our own crates.
+qiskit-accelerate = { path = "crates/accelerate" }
+qiskit-circuit = { path = "crates/circuit" }
+qiskit-qasm2 = { path = "crates/qasm2" }
+qiskit-qasm3 = { path = "crates/qasm3" }
 
 [profile.release]
 lto = 'fat'

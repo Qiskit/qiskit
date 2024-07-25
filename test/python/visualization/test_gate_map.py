@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,11 +16,12 @@ import unittest
 from io import BytesIO
 from ddt import ddt, data
 from qiskit.providers.fake_provider import (
-    FakeProvider,
-    FakeKolkata,
-    FakeWashington,
-    FakeKolkataV2,
-    FakeWashingtonV2,
+    Fake5QV1,
+    Fake20QV1,
+    Fake7QPulseV1,
+    Fake27QPulseV1,
+    Fake127QPulseV1,
+    GenericBackendV2,
 )
 from qiskit.visualization import (
     plot_gate_map,
@@ -44,28 +45,23 @@ if optionals.HAS_PIL:
 @unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
 @unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 class TestGateMap(QiskitVisualizationTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """visual tests for plot_gate_map"""
 
-    backends = list(
-        filter(
-            lambda x: not x.configuration().simulator
-            and x.configuration().num_qubits in range(5, 21),
-            FakeProvider().backends(),
-        )
-    )
+    backends = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1()]
 
     @data(*backends)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_gate_map(self, backend):
-        """tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
+        """tests plotting of gate map of a device (20 qubit, 7 qubit, and 5 qubit)"""
         n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
         fig = plot_gate_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
         plt.close(fig)
 
     @data(*backends)
@@ -87,7 +83,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -112,13 +108,13 @@ class TestGateMap(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SEABORN, "Seaborn not installed")
     def test_plot_error_map_backend_v1(self):
         """Test plotting error map with fake backend v1."""
-        backend = FakeKolkata()
-        img_ref = path_to_diagram_reference("kolkata_error.png")
+        backend = Fake27QPulseV1()
+        img_ref = path_to_diagram_reference("fake_27_q_error.png")
         fig = plot_error_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -126,13 +122,16 @@ class TestGateMap(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SEABORN, "Seaborn not installed")
     def test_plot_error_map_backend_v2(self):
         """Test plotting error map with fake backend v2."""
-        backend = FakeKolkataV2()
-        img_ref = path_to_diagram_reference("kolkata_v2_error.png")
+        backend = GenericBackendV2(
+            num_qubits=27,
+            coupling_map=Fake27QPulseV1().configuration().coupling_map,
+        )
+        img_ref = path_to_diagram_reference("fake_27_q_v2_error.png")
         fig = plot_error_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -140,13 +139,13 @@ class TestGateMap(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SEABORN, "Seaborn not installed")
     def test_plot_error_map_over_100_qubit(self):
         """Test plotting error map with large fake backend."""
-        backend = FakeWashington()
-        img_ref = path_to_diagram_reference("washington_error.png")
+        backend = Fake127QPulseV1()
+        img_ref = path_to_diagram_reference("fake_127_q_error.png")
         fig = plot_error_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -154,8 +153,11 @@ class TestGateMap(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SEABORN, "Seaborn not installed")
     def test_plot_error_map_over_100_qubit_backend_v2(self):
         """Test plotting error map with large fake backendv2."""
-        backend = FakeWashingtonV2()
-        img_ref = path_to_diagram_reference("washington_v2_error.png")
+        backend = GenericBackendV2(
+            num_qubits=127,
+            coupling_map=Fake127QPulseV1().configuration().coupling_map,
+        )
+        img_ref = path_to_diagram_reference("fake_127_q_v2_error.png")
         fig = plot_error_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    A bug has been fixed in :func:`.convert_durations_to_dt` where the function would blindly apply
+    a conversion from seconds to ``dt`` on circuit durations, independently of the original units of the attribute.
+    This could lead to wrong orders of magnitude in the reported circuit durations.

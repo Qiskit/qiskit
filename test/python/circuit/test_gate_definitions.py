@@ -20,9 +20,8 @@ from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
-
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate,
@@ -64,10 +63,11 @@ from qiskit.circuit.library import (
     RVGate,
     XXMinusYYGate,
 )
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 from .gate_utils import _get_free_params
 
@@ -261,7 +261,12 @@ class TestGateEquivalenceEqual(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
     yields the same matrix as the hardcoded matrix definition."""
 
-    class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+    class_list = (
+        SingletonGate.__subclasses__()
+        + SingletonControlledGate.__subclasses__()
+        + Gate.__subclasses__()
+        + ControlledGate.__subclasses__()
+    )
     exclude = {
         "ControlledGate",
         "DiagonalGate",
@@ -278,6 +283,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "ClassicalFunction",
         "ClassicalElement",
         "StatePreparation",
+        "UniformSuperpositionGate",
         "LinearFunction",
         "PermutationGate",
         "Commuting2qBlock",
@@ -288,7 +294,9 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_DefinedGate",
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
+        "QFTGate",
     }
+
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
     # to a "natural" comprehension or functional iterable definition:
     #   https://docs.python.org/3/reference/executionmodel.html#resolution-of-names
@@ -313,7 +321,11 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             with self.subTest(msg=gate.name + "_" + str(ieq)):
                 op1 = Operator(gate)
                 op2 = Operator(equivalency)
-                self.assertEqual(op1, op2)
+                msg = (
+                    f"Equivalence entry from '{gate.name}' to:\n"
+                    f"{str(equivalency.draw('text'))}\nfailed"
+                )
+                self.assertEqual(op1, op2, msg)
 
 
 @ddt

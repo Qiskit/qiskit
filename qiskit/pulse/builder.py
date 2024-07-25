@@ -63,7 +63,7 @@ a pulse:
 .. plot::
    :include-source:
 
-   from qiskit import execute, pulse
+   from qiskit import pulse
 
    d0 = pulse.DriveChannel(0)
 
@@ -74,8 +74,8 @@ a pulse:
 
 The builder initializes a :class:`.pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
-schedule will survive after the context is exited and can be executed like a
-normal Qiskit schedule using ``qiskit.execute(pulse_prog, backend)``.
+schedule will survive after the context is exited and can be used like a
+normal Qiskit schedule.
 
 Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
@@ -97,9 +97,9 @@ automatically lowered to be run as a pulse program:
    from qiskit.circuit import QuantumCircuit
 
    from qiskit import pulse
-   from qiskit.providers.fake_provider import FakePerth
+   from qiskit.providers.fake_provider import GenericBackendV2
 
-   backend = FakePerth()
+   backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True)
 
    d2 = pulse.DriveChannel(2)
 
@@ -250,9 +250,9 @@ Methods to return the correct channels for the respective qubit indices.
 .. code-block::
 
     from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as drive_sched:
         d0 = pulse.drive_channel(0)
@@ -277,9 +277,9 @@ Pulse instructions are available within the builder interface. Here's an example
    :include-source:
 
     from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as drive_sched:
         d0 = pulse.drive_channel(0)
@@ -355,9 +355,9 @@ Macros help you add more complex functionality to your pulse program.
 .. code-block::
 
     from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as measure_sched:
         mem_slot = pulse.measure(0)
@@ -382,9 +382,9 @@ how the program is built.
 
     from qiskit import pulse
 
-    from qiskit.providers.fake_provider import FakeArmonk
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeArmonk()
+    backend = GenericBackendV2(num_qubits=2, calibrate_instructions=True)
 
     with pulse.build(backend) as u3_sched:
         print('Number of qubits in backend: {}'.format(pulse.num_qubits()))
@@ -409,25 +409,17 @@ how the program is built.
 .. autofunction:: samples_to_seconds
 .. autofunction:: seconds_to_samples
 """
+from __future__ import annotations
 import contextvars
 import functools
 import itertools
+import sys
 import uuid
 import warnings
+from collections.abc import Generator, Callable, Iterable
 from contextlib import contextmanager
 from functools import singledispatchmethod
-from typing import (
-    Callable,
-    ContextManager,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    TypeVar,
-    Union,
-    NewType,
-)
+from typing import TypeVar, ContextManager, TypedDict, Union, Optional, Dict
 
 import numpy as np
 
@@ -446,12 +438,18 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 
+
+if sys.version_info >= (3, 12):
+    from typing import Unpack
+else:
+    from typing_extensions import Unpack
+
 #: contextvars.ContextVar[BuilderContext]: active builder
-BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
+BUILDER_CONTEXTVAR: contextvars.ContextVar["_PulseBuilder"] = contextvars.ContextVar("backend")
 
 T = TypeVar("T")
 
-StorageLocation = NewType("StorageLocation", Union[chans.MemorySlot, chans.RegisterSlot])
+StorageLocation = Union[chans.MemorySlot, chans.RegisterSlot]
 
 
 def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
@@ -482,9 +480,9 @@ class _PulseBuilder:
     def __init__(
         self,
         backend=None,
-        block: Optional[ScheduleBlock] = None,
-        name: Optional[str] = None,
-        default_alignment: Union[str, AlignmentKind] = "left",
+        block: ScheduleBlock | None = None,
+        name: str | None = None,
+        default_alignment: str | AlignmentKind = "left",
     ):
         """Initialize the builder context.
 
@@ -510,11 +508,11 @@ class _PulseBuilder:
         #: Backend: Backend instance for context builder.
         self._backend = backend
 
-        #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
-        self._backend_ctx_token = None
+        # Token for this ``_PulseBuilder``'s ``ContextVar``.
+        self._backend_ctx_token: contextvars.Token[_PulseBuilder] | None = None
 
-        #: List[ScheduleBlock]: Stack of context.
-        self._context_stack = []
+        # Stack of context.
+        self._context_stack: list[ScheduleBlock] = []
 
         #: str: Name of the output program
         self._name = name
@@ -533,7 +531,10 @@ class _PulseBuilder:
             self._context_stack.append(root_block)
 
         # Set default alignment context
-        alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
+        if isinstance(default_alignment, AlignmentKind):  # AlignmentKind instance
+            alignment = default_alignment
+        else:  # str identifier
+            alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
         if not isinstance(alignment, AlignmentKind):
             raise exceptions.PulseError(
                 f"Given `default_alignment` {repr(default_alignment)} is "
@@ -629,7 +630,7 @@ class _PulseBuilder:
         inst = instructions.Reference(name, *extra_keys)
         self.append_instruction(inst)
 
-    def append_subroutine(self, subroutine: Union[Schedule, ScheduleBlock]):
+    def append_subroutine(self, subroutine: Schedule | ScheduleBlock):
         """Append a :class:`ScheduleBlock` to the builder's context schedule.
 
         This operation doesn't create a reference. Subroutine is directly
@@ -656,9 +657,9 @@ class _PulseBuilder:
     @singledispatchmethod
     def call_subroutine(
         self,
-        subroutine: Union[Schedule, ScheduleBlock],
-        name: Optional[str] = None,
-        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        subroutine: Schedule | ScheduleBlock,
+        name: str | None = None,
+        value_dict: dict[ParameterExpression, ParameterValueType] | None = None,
         **kw_params: ParameterValueType,
     ):
         """Call a schedule or circuit defined outside of the current scope.
@@ -726,7 +727,7 @@ class _PulseBuilder:
 
         if name is None:
             # Add unique string, not to accidentally override existing reference entry.
-            keys = (target_block.name, uuid.uuid4().hex)
+            keys: tuple[str, ...] = (target_block.name, uuid.uuid4().hex)
         else:
             keys = (name,)
 
@@ -775,9 +776,9 @@ class _PulseBuilder:
 
 def build(
     backend=None,
-    schedule: Optional[ScheduleBlock] = None,
-    name: Optional[str] = None,
-    default_alignment: Optional[Union[str, AlignmentKind]] = "left",
+    schedule: ScheduleBlock | None = None,
+    name: str | None = None,
+    default_alignment: str | AlignmentKind | None = "left",
 ) -> ContextManager[ScheduleBlock]:
     """Create a context manager for launching the imperative pulse builder DSL.
 
@@ -785,7 +786,7 @@ def build(
 
     .. code-block::
 
-        from qiskit import execute, pulse
+        from qiskit import transpile, pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -802,7 +803,7 @@ def build(
 
     .. code-block:: python
 
-        qiskit.execute(pulse_prog, backend)
+        backend.run(transpile(pulse_prog, backend))
 
     Args:
         backend (Backend): A Qiskit backend. If not supplied certain
@@ -864,7 +865,7 @@ def active_backend():
     return builder
 
 
-def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
+def append_schedule(schedule: Schedule | ScheduleBlock):
     """Call a schedule by appending to the active builder's context block.
 
     Args:
@@ -922,7 +923,7 @@ def num_qubits() -> int:
     return active_backend().configuration().n_qubits
 
 
-def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarray]:
+def seconds_to_samples(seconds: float | np.ndarray) -> int | np.ndarray:
     """Obtain the number of samples that will elapse in ``seconds`` on the
     active backend.
 
@@ -940,7 +941,7 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     return int(seconds / dt)
 
 
-def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarray]:
+def samples_to_seconds(samples: int | np.ndarray) -> float | np.ndarray:
     """Obtain the time in seconds that will elapse for the input number of
     samples on the active backend.
 
@@ -953,7 +954,7 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
     return samples * _active_builder().get_dt()
 
 
-def qubit_channels(qubit: int) -> Set[chans.Channel]:
+def qubit_channels(qubit: int) -> set[chans.Channel]:
     """Returns the set of channels associated with a qubit.
 
     Examples:
@@ -1006,7 +1007,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
-def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[chans.Channel]:
+def _qubits_to_channels(*channels_or_qubits: int | chans.Channel) -> set[chans.Channel]:
     """Returns the unique channels of the input qubits."""
     channels = set()
     for channel_or_qubit in channels_or_qubits:
@@ -1025,7 +1026,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
 
 
 @contextmanager
-def align_left() -> ContextManager[None]:
+def align_left() -> Generator[None, None, None]:
     """Left alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as early as possible
@@ -1063,7 +1064,7 @@ def align_left() -> ContextManager[None]:
 
 
 @contextmanager
-def align_right() -> AlignmentKind:
+def align_right() -> Generator[None, None, None]:
     """Right alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled as late as possible
@@ -1101,7 +1102,7 @@ def align_right() -> AlignmentKind:
 
 
 @contextmanager
-def align_sequential() -> AlignmentKind:
+def align_sequential() -> Generator[None, None, None]:
     """Sequential alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled sequentially in time
@@ -1139,7 +1140,7 @@ def align_sequential() -> AlignmentKind:
 
 
 @contextmanager
-def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind:
+def align_equispaced(duration: int | ParameterExpression) -> Generator[None, None, None]:
     """Equispaced alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled with the same interval spacing such that
@@ -1192,8 +1193,8 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
 
 @contextmanager
 def align_func(
-    duration: Union[int, ParameterExpression], func: Callable[[int], float]
-) -> AlignmentKind:
+    duration: int | ParameterExpression, func: Callable[[int], float]
+) -> Generator[None, None, None]:
     """Callback defined alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled at the location specified by
@@ -1253,7 +1254,7 @@ def align_func(
 
 
 @contextmanager
-def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]:
+def general_transforms(alignment_context: AlignmentKind) -> Generator[None, None, None]:
     """Arbitrary alignment transformation defined by a subclass instance of
     :class:`~qiskit.pulse.transforms.alignments.AlignmentKind`.
 
@@ -1279,7 +1280,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
 
 
 @contextmanager
-def phase_offset(phase: float, *channels: chans.PulseChannel) -> ContextManager[None]:
+def phase_offset(phase: float, *channels: chans.PulseChannel) -> Generator[None, None, None]:
     """Shift the phase of input channels on entry into context and undo on exit.
 
     Examples:
@@ -1317,7 +1318,7 @@ def phase_offset(phase: float, *channels: chans.PulseChannel) -> ContextManager[
 @contextmanager
 def frequency_offset(
     frequency: float, *channels: chans.PulseChannel, compensate_phase: bool = False
-) -> ContextManager[None]:
+) -> Generator[None, None, None]:
     """Shift the frequency of inputs channels on entry into context and undo on exit.
 
     Examples:
@@ -1447,7 +1448,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
     return active_backend().configuration().acquire(qubit)
 
 
-def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
+def control_channels(*qubits: Iterable[int]) -> list[chans.ControlChannel]:
     """Return ``ControlChannel`` for ``qubit`` on the active builder backend.
 
     Return the secondary drive channel for the given qubit -- typically
@@ -1481,7 +1482,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
 
 
 # Base Instructions
-def delay(duration: int, channel: chans.Channel, name: Optional[str] = None):
+def delay(duration: int, channel: chans.Channel, name: str | None = None):
     """Delay on a ``channel`` for a ``duration``.
 
     Examples:
@@ -1503,9 +1504,7 @@ def delay(duration: int, channel: chans.Channel, name: Optional[str] = None):
     append_instruction(instructions.Delay(duration, channel, name=name))
 
 
-def play(
-    pulse: Union[library.Pulse, np.ndarray], channel: chans.PulseChannel, name: Optional[str] = None
-):
+def play(pulse: library.Pulse | np.ndarray, channel: chans.PulseChannel, name: str | None = None):
     """Play a ``pulse`` on a ``channel``.
 
     Examples:
@@ -1530,11 +1529,19 @@ def play(
     append_instruction(instructions.Play(pulse, channel, name=name))
 
 
+class _MetaDataType(TypedDict, total=False):
+    kernel: configuration.Kernel
+    discriminator: configuration.Discriminator
+    mem_slot: chans.MemorySlot
+    reg_slot: chans.RegisterSlot
+    name: str
+
+
 def acquire(
     duration: int,
-    qubit_or_channel: Union[int, chans.AcquireChannel],
+    qubit_or_channel: int | chans.AcquireChannel,
     register: StorageLocation,
-    **metadata: Union[configuration.Kernel, configuration.Discriminator],
+    **metadata: Unpack[_MetaDataType],
 ):
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``.
@@ -1583,7 +1590,7 @@ def acquire(
         raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
 
 
-def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):
+def set_frequency(frequency: float, channel: chans.PulseChannel, name: str | None = None):
     """Set the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1605,7 +1612,7 @@ def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[
     append_instruction(instructions.SetFrequency(frequency, channel, name=name))
 
 
-def shift_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):
+def shift_frequency(frequency: float, channel: chans.PulseChannel, name: str | None = None):
     """Shift the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1628,7 +1635,7 @@ def shift_frequency(frequency: float, channel: chans.PulseChannel, name: Optiona
     append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
 
 
-def set_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = None):
+def set_phase(phase: float, channel: chans.PulseChannel, name: str | None = None):
     """Set the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1653,7 +1660,7 @@ def set_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = N
     append_instruction(instructions.SetPhase(phase, channel, name=name))
 
 
-def shift_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = None):
+def shift_phase(phase: float, channel: chans.PulseChannel, name: str | None = None):
     """Shift the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1697,9 +1704,9 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 
 
 def call(
-    target: Optional[Union[Schedule, ScheduleBlock]],
-    name: Optional[str] = None,
-    value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
+    target: Schedule | ScheduleBlock | None,
+    name: str | None = None,
+    value_dict: dict[ParameterValueType, ParameterValueType] | None = None,
     **kw_params: ParameterValueType,
 ):
     """Call the subroutine within the currently active builder context with arbitrary
@@ -1723,9 +1730,9 @@ def call(
         .. code-block::
 
             from qiskit import circuit, pulse
-            from qiskit.providers.fake_provider import FakeBogotaV2
+            from qiskit.providers.fake_provider import GenericBackendV2
 
-            backend = FakeBogotaV2()
+            backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True)
 
             with pulse.build() as x_sched:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
@@ -1916,7 +1923,7 @@ def reference(name: str, *extra_keys: str):
 
 
 # Directives
-def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] = None):
+def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     """Barrier directive for a set of channels and qubits.
 
     This directive prevents the compiler from moving instructions across
@@ -2046,9 +2053,9 @@ def macro(func: Callable):
 
 
 def measure(
-    qubits: Union[List[int], int],
-    registers: Union[List[StorageLocation], StorageLocation] = None,
-) -> Union[List[StorageLocation], StorageLocation]:
+    qubits: list[int] | int,
+    registers: list[StorageLocation] | StorageLocation = None,
+) -> list[StorageLocation] | StorageLocation:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
@@ -2133,7 +2140,7 @@ def measure(
         return registers
 
 
-def measure_all() -> List[chans.MemorySlot]:
+def measure_all() -> list[chans.MemorySlot]:
     r"""Measure all qubits within the currently active builder context.
 
     A simple macro function to measure all of the qubits in the device at the
@@ -2176,8 +2183,8 @@ def measure_all() -> List[chans.MemorySlot]:
     return registers
 
 
-def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
-    r"""Insert delays on all of the :class:`channels.Channel`\s that correspond
+def delay_qubits(duration: int, *qubits: int):
+    r"""Insert delays on all the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.
 
     Examples:

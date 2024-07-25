@@ -12,13 +12,13 @@
 
 
 """Objects to represent the information at a node in the DAGCircuit."""
+from __future__ import annotations
 
-import itertools
+import typing
 import uuid
-from typing import Iterable
 
+import qiskit._accelerate.circuit
 from qiskit.circuit import (
-    Qubit,
     Clbit,
     ClassicalRegister,
     ControlFlowOp,
@@ -27,11 +27,21 @@ from qiskit.circuit import (
     SwitchCaseOp,
     ForLoopOp,
     Parameter,
+    QuantumCircuit,
 )
 from qiskit.circuit.classical import expr
 
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2):
+
+DAGNode = qiskit._accelerate.circuit.DAGNode
+DAGOpNode = qiskit._accelerate.circuit.DAGOpNode
+DAGInNode = qiskit._accelerate.circuit.DAGInNode
+DAGOutNode = qiskit._accelerate.circuit.DAGOutNode
+
+
+def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2) -> bool:
     if cond1 is cond2 is None:
         return True
     elif None in (cond1, cond2):
@@ -49,7 +59,7 @@ def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2):
     return False
 
 
-def _circuit_to_dag(circuit, node_qargs, node_cargs, bit_indices):
+def _circuit_to_dag(circuit: QuantumCircuit, node_qargs, node_cargs, bit_indices) -> DAGCircuit:
     """Get a :class:`.DAGCircuit` of the given :class:`.QuantumCircuit`.  The bits in the output
     will be ordered in a canonical order based on their indices in the outer DAG, as defined by the
     ``bit_indices`` mapping and the ``node_{q,c}args`` arguments."""
@@ -167,156 +177,65 @@ _SEMANTIC_EQ_CONTROL_FLOW = {
 _SEMANTIC_EQ_SYMMETRIC = frozenset({"barrier", "swap", "break_loop", "continue_loop"})
 
 
-class DAGNode:
-    """Parent class for DAGOpNode, DAGInNode, and DAGOutNode."""
+# Note: called from dag_node.rs.
+def _semantic_eq(node1, node2, bit_indices1, bit_indices2):
+    """
+    Check if DAG nodes are considered equivalent, e.g., as a node_match for
+    :func:`rustworkx.is_isomorphic_node_match`.
 
-    __slots__ = ["_node_id"]
+    Args:
+        node1 (DAGOpNode, DAGInNode, DAGOutNode): A node to compare.
+        node2 (DAGOpNode, DAGInNode, DAGOutNode): The other node to compare.
+        bit_indices1 (dict): Dictionary mapping Bit instances to their index
+            within the circuit containing node1
+        bit_indices2 (dict): Dictionary mapping Bit instances to their index
+            within the circuit containing node2
 
-    def __init__(self, nid=-1):
-        """Create a node"""
-        self._node_id = nid
-
-    def __lt__(self, other):
-        return self._node_id < other._node_id
-
-    def __gt__(self, other):
-        return self._node_id > other._node_id
-
-    def __str__(self):
-        # TODO is this used anywhere other than in DAG drawing?
-        # needs to be unique as it is what pydot uses to distinguish nodes
-        return str(id(self))
-
-    @staticmethod
-    def semantic_eq(node1, node2, bit_indices1, bit_indices2):
-        """
-        Check if DAG nodes are considered equivalent, e.g., as a node_match for
-        :func:`rustworkx.is_isomorphic_node_match`.
-
-        Args:
-            node1 (DAGOpNode, DAGInNode, DAGOutNode): A node to compare.
-            node2 (DAGOpNode, DAGInNode, DAGOutNode): The other node to compare.
-            bit_indices1 (dict): Dictionary mapping Bit instances to their index
-                within the circuit containing node1
-            bit_indices2 (dict): Dictionary mapping Bit instances to their index
-                within the circuit containing node2
-
-        Return:
-            Bool: If node1 == node2
-        """
-        if not isinstance(node1, DAGOpNode) or not isinstance(node1, DAGOpNode):
-            return type(node1) is type(node2) and bit_indices1.get(node1.wire) == bit_indices2.get(
-                node2.wire
-            )
-        if isinstance(node1.op, ControlFlowOp) and isinstance(node2.op, ControlFlowOp):
-            # While control-flow operations aren't represented natively in the DAG, we have to do
-            # some unpleasant dispatching and very manual handling.  Once they have more first-class
-            # support we'll still be dispatching, but it'll look more appropriate (like the dispatch
-            # based on `DAGOpNode`/`DAGInNode`/`DAGOutNode` that already exists) and less like we're
-            # duplicating code from the `ControlFlowOp` classes.
-            if type(node1.op) is not type(node2.op):
-                return False
-            comparer = _SEMANTIC_EQ_CONTROL_FLOW.get(type(node1.op))
-            if comparer is None:  # pragma: no cover
-                raise RuntimeError(f"unhandled control-flow operation: {type(node1.op)}")
-            return comparer(node1, node2, bit_indices1, bit_indices2)
-
-        node1_qargs = [bit_indices1[qarg] for qarg in node1.qargs]
-        node1_cargs = [bit_indices1[carg] for carg in node1.cargs]
-
-        node2_qargs = [bit_indices2[qarg] for qarg in node2.qargs]
-        node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
-
-        # For barriers, qarg order is not significant so compare as sets
-        if node1.op.name == node2.op.name and node1.name in _SEMANTIC_EQ_SYMMETRIC:
-            node1_qargs = set(node1_qargs)
-            node1_cargs = set(node1_cargs)
-            node2_qargs = set(node2_qargs)
-            node2_cargs = set(node2_cargs)
-
-        return (
-            node1_qargs == node2_qargs
-            and node1_cargs == node2_cargs
-            and _legacy_condition_eq(
-                getattr(node1.op, "condition", None),
-                getattr(node2.op, "condition", None),
-                bit_indices1,
-                bit_indices2,
-            )
-            and node1.op == node2.op
+    Return:
+        Bool: If node1 == node2
+    """
+    if not isinstance(node1, DAGOpNode) or not isinstance(node1, DAGOpNode):
+        return type(node1) is type(node2) and bit_indices1.get(node1.wire) == bit_indices2.get(
+            node2.wire
         )
+    if isinstance(node1.op, ControlFlowOp) and isinstance(node2.op, ControlFlowOp):
+        # While control-flow operations aren't represented natively in the DAG, we have to do
+        # some unpleasant dispatching and very manual handling.  Once they have more first-class
+        # support we'll still be dispatching, but it'll look more appropriate (like the dispatch
+        # based on `DAGOpNode`/`DAGInNode`/`DAGOutNode` that already exists) and less like we're
+        # duplicating code from the `ControlFlowOp` classes.
+        if type(node1.op) is not type(node2.op):
+            return False
+        comparer = _SEMANTIC_EQ_CONTROL_FLOW.get(type(node1.op))
+        if comparer is None:  # pragma: no cover
+            raise RuntimeError(f"unhandled control-flow operation: {type(node1.op)}")
+        return comparer(node1, node2, bit_indices1, bit_indices2)
+
+    node1_qargs = [bit_indices1[qarg] for qarg in node1.qargs]
+    node1_cargs = [bit_indices1[carg] for carg in node1.cargs]
+
+    node2_qargs = [bit_indices2[qarg] for qarg in node2.qargs]
+    node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
+
+    # For barriers, qarg order is not significant so compare as sets
+    if node1.op.name == node2.op.name and node1.name in _SEMANTIC_EQ_SYMMETRIC:
+        node1_qargs = set(node1_qargs)
+        node1_cargs = set(node1_cargs)
+        node2_qargs = set(node2_qargs)
+        node2_cargs = set(node2_cargs)
+
+    return (
+        node1_qargs == node2_qargs
+        and node1_cargs == node2_cargs
+        and _legacy_condition_eq(
+            getattr(node1.op, "condition", None),
+            getattr(node2.op, "condition", None),
+            bit_indices1,
+            bit_indices2,
+        )
+        and node1.op == node2.op
+    )
 
 
-class DAGOpNode(DAGNode):
-    """Object to represent an Instruction at a node in the DAGCircuit."""
-
-    __slots__ = ["op", "qargs", "cargs", "sort_key"]
-
-    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None):
-        """Create an Instruction node"""
-        super().__init__()
-        self.op = op
-        self.qargs = tuple(qargs)
-        self.cargs = tuple(cargs)
-        if dag is not None:
-            cache_key = (self.qargs, self.cargs)
-            key = dag._key_cache.get(cache_key, None)
-            if key is not None:
-                self.sort_key = key
-            else:
-                self.sort_key = ",".join(
-                    f"{dag.find_bit(q).index:04d}" for q in itertools.chain(*cache_key)
-                )
-                dag._key_cache[cache_key] = self.sort_key
-        else:
-            self.sort_key = str(self.qargs)
-
-    @property
-    def name(self):
-        """Returns the Instruction name corresponding to the op for this node"""
-        return self.op.name
-
-    @name.setter
-    def name(self, new_name):
-        """Sets the Instruction name corresponding to the op for this node"""
-        self.op.name = new_name
-
-    def __repr__(self):
-        """Returns a representation of the DAGOpNode"""
-        return f"DAGOpNode(op={self.op}, qargs={self.qargs}, cargs={self.cargs})"
-
-
-class DAGInNode(DAGNode):
-    """Object to represent an incoming wire node in the DAGCircuit."""
-
-    __slots__ = ["wire", "sort_key"]
-
-    def __init__(self, wire):
-        """Create an incoming node"""
-        super().__init__()
-        self.wire = wire
-        # TODO sort_key which is used in dagcircuit.topological_nodes
-        # only works as str([]) for DAGInNodes. Need to figure out why.
-        self.sort_key = str([])
-
-    def __repr__(self):
-        """Returns a representation of the DAGInNode"""
-        return f"DAGInNode(wire={self.wire})"
-
-
-class DAGOutNode(DAGNode):
-    """Object to represent an outgoing wire node in the DAGCircuit."""
-
-    __slots__ = ["wire", "sort_key"]
-
-    def __init__(self, wire):
-        """Create an outgoing node"""
-        super().__init__()
-        self.wire = wire
-        # TODO sort_key which is used in dagcircuit.topological_nodes
-        # only works as str([]) for DAGOutNodes. Need to figure out why.
-        self.sort_key = str([])
-
-    def __repr__(self):
-        """Returns a representation of the DAGOutNode"""
-        return f"DAGOutNode(wire={self.wire})"
+# Bind semantic_eq from Python to Rust implementation
+DAGNode.semantic_eq = staticmethod(_semantic_eq)

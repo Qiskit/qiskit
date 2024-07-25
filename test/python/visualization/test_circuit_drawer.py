@@ -12,16 +12,20 @@
 
 # pylint: disable=missing-docstring
 
-import unittest
 import os
+import pathlib
+import re
+import shutil
+import tempfile
+import unittest
+import warnings
 from unittest.mock import patch
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.test import QiskitTestCase
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
 from qiskit.utils import optionals
-from qiskit import visualization
-from qiskit.visualization.circuit import text
+from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib import figure
@@ -48,6 +52,39 @@ class TestCircuitDrawer(QiskitTestCase):
             circuit = QuantumCircuit()
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
+    def test_mpl_config_with_path(self):
+        # pylint: disable=possibly-used-before-assignment
+        # It's too easy to get too nested in a test with many context managers.
+        tempdir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
+        self.addCleanup(tempdir.cleanup)
+
+        clifford_style = pathlib.Path(styles.__file__).parent / "clifford.json"
+        shutil.copyfile(clifford_style, pathlib.Path(tempdir.name) / "my_clifford.json")
+
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+
+        def config(style_name):
+            return {
+                "circuit_drawer": "mpl",
+                "circuit_mpl_style": style_name,
+                "circuit_mpl_style_path": [tempdir.name],
+            }
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message="Style JSON file.*not found")
+
+            # Test that a non-standard style can be loaded by name.
+            with patch("qiskit.user_config.get_config", return_value=config("my_clifford")):
+                self.assertIsInstance(visualization.circuit_drawer(circuit), figure.Figure)
+
+            # Test that a non-existent style issues a warning, but still draws something.
+            with patch("qiskit.user_config.get_config", return_value=config("NONEXISTENT")):
+                with self.assertWarnsRegex(UserWarning, "Style JSON file.*not found"):
+                    fig = visualization.circuit_drawer(circuit)
+                self.assertIsInstance(fig, figure.Figure)
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_user_config_default_output(self):
@@ -92,6 +129,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @_latex_drawer_condition
     def test_latex_output_file_correct_format(self):
+        # pylint: disable=possibly-used-before-assignment
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
             filename = "file.gif"
@@ -100,7 +138,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 if filename.endswith("jpg"):
                     self.assertIn(im.format.lower(), "jpeg")
                 else:
-                    self.assertIn(im.format.lower(), filename.split(".")[-1])
+                    self.assertIn(im.format.lower(), filename.rsplit(".", maxsplit=1)[-1])
             os.remove(filename)
 
     def test_wire_order(self):
@@ -202,6 +240,24 @@ class TestCircuitDrawer(QiskitTestCase):
         )
         result = visualization.circuit_drawer(circuit, output="text", reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
+
+    def test_warning_for_bad_justify_argument(self):
+        """Test that the correct DeprecationWarning is raised when the justify parameter is badly input,
+        for both of the public interfaces."""
+        circuit = QuantumCircuit()
+        bad_arg = "bad"
+        error_message = re.escape(
+            f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {bad_arg}, to a "
+            "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of qiskit 1.2.0. Starting no "
+            "earlier than 3 months after the release date, invalid arguments will error.",
+        )
+
+        with self.assertWarnsRegex(DeprecationWarning, error_message):
+            visualization.circuit_drawer(circuit, justify=bad_arg)
+
+        with self.assertWarnsRegex(DeprecationWarning, error_message):
+            circuit.draw(justify=bad_arg)
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc for LaTeX conversion")
     def test_no_explict_cregbundle(self):

@@ -12,6 +12,8 @@
 
 """Annotated Operations."""
 
+from __future__ import annotations
+
 import dataclasses
 from typing import Union, List
 
@@ -95,7 +97,10 @@ class AnnotatedOperation(Operation):
         inverted and then controlled by 2 qubits.
         """
         self.base_op = base_op
+        """The base operation that the modifiers in this annotated operation applies to."""
         self.modifiers = modifiers if isinstance(modifiers, List) else [modifiers]
+        """Ordered sequence of the modifiers to apply to :attr:`base_op`.  The modifiers are applied
+        in order from lowest index to highest index."""
 
     @property
     def name(self):
@@ -149,6 +154,70 @@ class AnnotatedOperation(Operation):
             else:
                 raise CircuitError(f"Unknown modifier {modifier}.")
         return operator
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool = True,
+    ) -> AnnotatedOperation:
+        """
+        Return the controlled version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
+            label: ignored (used for consistency with other control methods)
+            ctrl_state: The control state in decimal or as a bitstring
+                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+            annotated: ignored (used for consistency with other control methods)
+
+        Returns:
+            Controlled version of the given operation.
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(
+            ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+        )
+        return AnnotatedOperation(self.base_op, extended_modifiers)
+
+    def inverse(self, annotated: bool = True):
+        """
+        Return the inverse version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            annotated: ignored (used for consistency with other inverse methods)
+
+        Returns:
+            Inverse version of the given operation.
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(InverseModifier())
+        return AnnotatedOperation(self.base_op, extended_modifiers)
+
+    def power(self, exponent: float, annotated: bool = False):
+        """
+        Raise this gate to the power of ``exponent``.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            exponent: the power to raise the gate to
+            annotated: ignored (used for consistency with other power methods)
+
+        Returns:
+            An operation implementing ``gate^exponent``
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(PowerModifier(exponent))
+        return AnnotatedOperation(self.base_op, extended_modifiers)
 
 
 def _canonicalize_modifiers(modifiers):

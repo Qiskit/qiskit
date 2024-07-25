@@ -30,8 +30,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -448,7 +447,9 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             representation to satisfy PadDynamicalDecoupling's check.
             """
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None, copy=None):
+                if copy is False:
+                    raise ValueError("cannot produce matrix without calculation")
                 return np.eye(2, dtype=dtype)
 
         # A gate with one unbound and one bound parameter to leave in the final

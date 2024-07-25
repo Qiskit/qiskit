@@ -11,15 +11,23 @@
 # that they have been altered from the originals.
 
 """Internal format of calibration data in target."""
+from __future__ import annotations
 import inspect
+import warnings
 from abc import ABCMeta, abstractmethod
+from collections.abc import Sequence, Callable
 from enum import IntEnum
-from typing import Callable, List, Union, Optional, Sequence, Any
+from typing import Any
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
+from qiskit.exceptions import QiskitError
+
+
+IncompletePulseQobj = object()
+"""A None-like constant that represents the PulseQobj is incomplete."""
 
 
 class CalibrationPublisher(IntEnum):
@@ -79,7 +87,7 @@ class CalibrationEntry(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
+    def get_schedule(self, *args, **kwargs) -> Schedule | ScheduleBlock:
         """Generate schedule from entry definition.
 
         If the pulse program is templated with :class:`.Parameter` objects,
@@ -114,7 +122,7 @@ class ScheduleDef(CalibrationEntry):
 
     """
 
-    def __init__(self, arguments: Optional[Sequence[str]] = None):
+    def __init__(self, arguments: Sequence[str] | None = None):
         """Define an empty entry.
 
         Args:
@@ -129,9 +137,9 @@ class ScheduleDef(CalibrationEntry):
             arguments = list(arguments)
         self._user_arguments = arguments
 
-        self._definition = None
-        self._signature = None
-        self._user_provided = None
+        self._definition: Callable | Schedule | None = None
+        self._signature: inspect.Signature | None = None
+        self._user_provided: bool | None = None
 
     @property
     def user_provided(self) -> bool:
@@ -168,7 +176,7 @@ class ScheduleDef(CalibrationEntry):
 
     def define(
         self,
-        definition: Union[Schedule, ScheduleBlock],
+        definition: Schedule | ScheduleBlock,
         user_provided: bool = True,
     ):
         self._definition = definition
@@ -178,7 +186,7 @@ class ScheduleDef(CalibrationEntry):
     def get_signature(self) -> inspect.Signature:
         return self._signature
 
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
+    def get_schedule(self, *args, **kwargs) -> Schedule | ScheduleBlock:
         if not args and not kwargs:
             out = self._definition
         else:
@@ -252,7 +260,7 @@ class CallableDef(CalibrationEntry):
     def get_signature(self) -> inspect.Signature:
         return self._signature
 
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
+    def get_schedule(self, *args, **kwargs) -> Schedule | ScheduleBlock:
         try:
             # Python function doesn't allow partial bind, but default value can exist.
             to_bind = self._signature.bind(*args, **kwargs)
@@ -294,9 +302,9 @@ class PulseQobjDef(ScheduleDef):
 
     def __init__(
         self,
-        arguments: Optional[Sequence[str]] = None,
-        converter: Optional[QobjToInstructionConverter] = None,
-        name: Optional[str] = None,
+        arguments: Sequence[str] | None = None,
+        converter: QobjToInstructionConverter | None = None,
+        name: str | None = None,
     ):
         """Define an empty entry.
 
@@ -309,20 +317,29 @@ class PulseQobjDef(ScheduleDef):
 
         self._converter = converter or QobjToInstructionConverter(pulse_library=[])
         self._name = name
-        self._source = None
+        self._source: list[PulseQobjInstruction] | None = None
 
     def _build_schedule(self):
         """Build pulse schedule from cmd-def sequence."""
         schedule = Schedule(name=self._name)
-        for qobj_inst in self._source:
-            for qiskit_inst in self._converter._get_sequences(qobj_inst):
-                schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
-        self._definition = schedule
-        self._parse_argument()
+        try:
+            for qobj_inst in self._source:
+                for qiskit_inst in self._converter._get_sequences(qobj_inst):
+                    schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
+            self._definition = schedule
+            self._parse_argument()
+        except QiskitError as ex:
+            # When the play waveform data is missing in pulse_lib we cannot build schedule.
+            # Instead of raising an error, get_schedule should return None.
+            warnings.warn(
+                f"Pulse calibration cannot be built and the entry is ignored: {ex.message}.",
+                UserWarning,
+            )
+            self._definition = IncompletePulseQobj
 
     def define(
         self,
-        definition: List[PulseQobjInstruction],
+        definition: list[PulseQobjInstruction],
         user_provided: bool = False,
     ):
         # This doesn't generate signature immediately, because of lazy schedule build.
@@ -334,9 +351,11 @@ class PulseQobjDef(ScheduleDef):
             self._build_schedule()
         return super().get_signature()
 
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
+    def get_schedule(self, *args, **kwargs) -> Schedule | ScheduleBlock | None:
         if self._definition is None:
             self._build_schedule()
+        if self._definition is IncompletePulseQobj:
+            return None
         return super().get_schedule(*args, **kwargs)
 
     def __eq__(self, other):
@@ -354,4 +373,6 @@ class PulseQobjDef(ScheduleDef):
         if self._definition is None:
             # Avoid parsing schedule for pretty print.
             return "PulseQobj"
+        if self._definition is IncompletePulseQobj:
+            return "None"
         return super().__str__()

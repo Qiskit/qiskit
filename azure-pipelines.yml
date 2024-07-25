@@ -16,6 +16,12 @@ pr:
     include:
       - '*'
 
+# A schedule only runs on branches that match include rules from _both_ `main`
+# and the branch itself.  On `main`, we blanket include all branches that might
+# want to be enabled, then particular branches can override it to exclude
+# themselves by removing themselves from the trigger list.  For example, old
+# stable branches can remove `stable/*` from their copy of this file once they
+# reach their end-of-life.
 schedules:
   - cron: "20 6 * * *"
     displayName: "Complete matrix test"
@@ -82,9 +88,13 @@ parameters:
 #   - push to a pull request (`PullRequest`)
 # For `IndividualCI` (push/merge to a branch/tag on Qiskit/qiskit-terra), you
 # need to examine `variables['Build.SourceBranch']` to determine whether it's a
-# branch or a tag.
+# branch or a tag, and if a branch, then whether it's in the merge queue or a
+# push to a "real" branch.
 stages:
   # Nightly cron job.
+  #
+  # For this to run on a branch, the `schedules` trigger  up at the top of this
+  # file needs to match on _both_ `main` and the branch itself.
   - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
     - stage: "Nightly"
       displayName: "Nightly complete matrix tests"
@@ -93,7 +103,6 @@ stages:
           - template: ".azure/test-linux.yml"
             parameters:
               pythonVersion: ${{ version }}
-              testQPY: false
               testImages: false
               testRust: false
               installOptionals: true
@@ -123,10 +132,10 @@ stages:
                 id: 7864
                 comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
 
-  # Full PR suite.  This also needs to apply to the merge queue, which appears
-  # as a push event.  The queue won't get cron triggered because the schedule
-  # trigger doesn't have it as a target.
-  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.SourceBranch'], 'gh-readonly-queue')) }}:
+  # Full PR suite.  PRs need to pass this pipeline in order to be moved to the
+  # merge queue, where they'll use the next rule as the branch-protection rule
+  # for the final merge to the base branch.
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
     # The preliminary stage should be small in both total runtime (including
     # provisioning) and resources required.  About half of PR commits result in
     # a CI failure, and over 90% of these are in linting, documention or a test
@@ -135,13 +144,9 @@ stages:
     - stage: "Lint_Docs_Prelim_Tests"
       displayName: "Preliminary tests"
       jobs:
-        - template: ".azure/lint-linux.yml"
+        - template: ".azure/lint_docs_qpy-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-
-        - template: ".azure/docs-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.documentationPythonVersion }}
 
         - template: ".azure/test-linux.yml"
           parameters:
@@ -153,13 +158,12 @@ stages:
             # to fail fast in the first CI stage.
             installOptionals: true
             testRust: true
-            testQPY: true
             testImages: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
-    # versions of Python. It's very rare for a failure to be specific to an intermediate version of
-    # Python, so we just catch those in the cron-job pipeline to reduce the
-    # amount of resources used.
+    # versions of Python. It's very rare for a failure to be specific to an
+    # intermediate version of Python, so we just catch those in the cron-job
+    # pipeline to reduce the amount of resources used.
     - stage: "Tests"
       displayName: "Main tests"
       dependsOn: "Lint_Docs_Prelim_Tests"
@@ -168,7 +172,6 @@ stages:
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             testRust: false
-            testQPY: false
             testImages: false
             installFromSdist: true
             installOptionals: false
@@ -193,6 +196,46 @@ stages:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             installOptionals: false
 
+  # Merge queue.  A PR that reaches here has already passed the more rigorous PR
+  # suite, so is very likely to pass.  The main reasons for failures here are
+  # flaky VMs timing out (which we can't do much about), or a merge conflict
+  # with another PR that is also in the merge queue.
+  #
+  # There's no reason to have multiple stages in this case, because we're
+  # expecting it to pass.  Having more than one stage frustrates parallel
+  # throughput in low-contention cases, and guarantees a longer critical path.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), contains(variables['Build.SourceBranch'], 'gh-readonly-queue')) }}:
+    - stage: "Merge_Queue"
+      displayName: "Merge queue"
+      jobs:
+        - template: ".azure/lint_docs_qpy-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
+            testRust: true
+            testImages: true
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
+            testRust: false
+            testImages: false
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
+
   # Push to main or the stable branches.  The triggering branches also need to
   # be in the triggers at the top of this file.
   - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/stable/'))) }}:
@@ -202,6 +245,5 @@ stages:
           parameters:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
             testRust: true
-            testQPY: true
             testImages: true
             installOptionals: false

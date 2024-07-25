@@ -17,15 +17,15 @@ import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
-from qiskit.circuit.library import UnitaryGate
-from qiskit.test import QiskitTestCase
+from qiskit.circuit.library import UnitaryGate, CXGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnitaryGate(QiskitTestCase):
@@ -103,7 +103,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni2q = UnitaryGate(matrix)
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
-        passman.append(CXCancellation())
+        passman.append(InverseCancellation([CXGate()]))
         qc2 = passman.run(qc)
         # test of qasm output
         self.log.info(dumps(qc2))
@@ -168,7 +168,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni = UnitaryGate(matrix)
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, "unitary")
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
@@ -178,7 +179,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
 
-            def default(self, obj):
+            def default(self, obj):  # pylint:disable=arguments-renamed
                 if isinstance(obj, numpy.ndarray):
                     return obj.tolist()
                 if isinstance(obj, complex):
@@ -197,7 +198,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         matrix = numpy.kron(sigmax, sigmay)
         uni = UnitaryGate(matrix, label="xy")
         qc.append(uni, [qr[0], qr[1]])
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[0]
         self.assertEqual(instr.name, "unitary")
         self.assertEqual(instr.label, "xy")

@@ -16,25 +16,22 @@ from __future__ import annotations
 import inspect
 import io
 import re
-import warnings
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
-from typing import Union, List, Any
+from typing import Union, List, Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.passmanager import BasePassManager
-from qiskit.passmanager.base_tasks import Task, BaseController
-from qiskit.passmanager.flow_controllers import FlowController
+from qiskit.passmanager.base_tasks import Task
+from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .layout import TranspileLayout
-from .runningpassmanager import RunningPassManager
+from .layout import TranspileLayout, Layout
 
-_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
+_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
 
 
 class PassManager(BasePassManager):
@@ -52,9 +49,6 @@ class PassManager(BasePassManager):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        # For backward compatibility.
-        self._pass_sets = []
-
         super().__init__(
             tasks=passes,
             max_iteration=max_iteration,
@@ -75,6 +69,7 @@ class PassManager(BasePassManager):
     ) -> QuantumCircuit:
         out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
 
+        self._finalize_layouts(passmanager_ir)
         out_name = kwargs.get("output_name", None)
         if out_name is not None:
             out_program.name = out_name
@@ -102,147 +97,83 @@ class PassManager(BasePassManager):
 
         return out_program
 
-    @deprecate_arg(
-        name="max_iteration",
-        since="0.25",
-        additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
-        package_name="qiskit-terra",
-    )
-    def append(
+    def _finalize_layouts(self, dag):
+        if (virtual_permutation_layout := self.property_set["virtual_permutation_layout"]) is None:
+            return
+
+        self.property_set.pop("virtual_permutation_layout")
+
+        # virtual_permutation_layout is usually created before extending the layout with ancillas,
+        # so we extend the permutation to be identity on ancilla qubits
+        original_qubit_indices = self.property_set.get("original_qubit_indices", None)
+        for oq in original_qubit_indices:
+            if oq not in virtual_permutation_layout:
+                virtual_permutation_layout[oq] = original_qubit_indices[oq]
+
+        t_qubits = dag.qubits
+
+        if (t_initial_layout := self.property_set.get("layout", None)) is None:
+            t_initial_layout = Layout(dict(enumerate(t_qubits)))
+
+        if (t_final_layout := self.property_set.get("final_layout", None)) is None:
+            t_final_layout = Layout(dict(enumerate(t_qubits)))
+
+        # Ordered list of original qubits
+        original_qubits_reverse = {v: k for k, v in original_qubit_indices.items()}
+        original_qubits = []
+        # pylint: disable-next=consider-using-enumerate
+        for i in range(len(original_qubits_reverse)):
+            original_qubits.append(original_qubits_reverse[i])
+
+        virtual_permutation_layout_inv = virtual_permutation_layout.inverse(
+            original_qubits, original_qubits
+        )
+
+        t_initial_layout_inv = t_initial_layout.inverse(original_qubits, t_qubits)
+
+        # ToDo: this can possibly be made simpler
+        new_final_layout = t_initial_layout_inv
+        new_final_layout = new_final_layout.compose(virtual_permutation_layout_inv, original_qubits)
+        new_final_layout = new_final_layout.compose(t_initial_layout, original_qubits)
+        new_final_layout = new_final_layout.compose(t_final_layout, t_qubits)
+
+        self.property_set["layout"] = t_initial_layout
+        self.property_set["final_layout"] = new_final_layout
+
+    def append(  # pylint:disable=arguments-renamed
         self,
         passes: Task | list[Task],
-        max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
 
         Args:
-            passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
-                passes that are controlled by the same flow controller. If a single pass is
-                provided, the pass set will only have that pass a single element.
-                It is also possible to append a :class:`.BaseFlowController` instance and
-                the rest of the parameter will be ignored.
-            max_iteration: max number of iterations of passes.
-            flow_controller_conditions: Dictionary of control flow plugins.
-                Following built-in controllers are available by default:
-
-                * do_while: The passes repeat until the callable returns False.  Corresponds to
-                  :class:`.DoWhileController`.
-                * condition: The passes run only if the callable returns True.  Corresponds to
-                  :class:`.ConditionalController`.
-
-                In general, you have more control simply by creating the controller you want and
-                passing it to :meth:`append`.
+            passes: A set of transpiler passes to be added to schedule.
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        if max_iteration:
-            self.max_iteration = max_iteration
+        super().append(tasks=passes)
 
-        # Backward compatibility as of Terra 0.25
-        if isinstance(passes, Task):
-            passes = [passes]
-        self._pass_sets.append(
-            {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        )
-        if flow_controller_conditions:
-            passes = _legacy_build_flow_controller(
-                passes,
-                options={"max_iteration": self.max_iteration},
-                **flow_controller_conditions,
-            )
-
-        super().append(passes)
-
-    @deprecate_arg(
-        name="max_iteration",
-        since="0.25",
-        additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
-        package_name="qiskit-terra",
-    )
-    def replace(
+    def replace(  # pylint:disable=arguments-renamed
         self,
         index: int,
         passes: Task | list[Task],
-        max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
 
         Args:
             index: Pass index to replace, based on the position in passes().
             passes: A pass set to be added to the pass manager schedule.
-            max_iteration: max number of iterations of passes.
-            flow_controller_conditions: Dictionary of control flow plugins.
-                See :meth:`qiskit.transpiler.PassManager.append` for details.
         """
-        if max_iteration:
-            self.max_iteration = max_iteration
-
-        # Backward compatibility as of Terra 0.25
-        if isinstance(passes, Task):
-            passes = [passes]
-        try:
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
-        if flow_controller_conditions:
-            passes = _legacy_build_flow_controller(
-                passes,
-                options={"max_iteration": self.max_iteration},
-                **flow_controller_conditions,
-            )
-
-        super().replace(index, passes)
-
-    def remove(self, index: int) -> None:
-        super().remove(index)
-
-        # Backward compatibility as of Terra 0.25
-        del self._pass_sets[index]
-
-    def __getitem__(self, index):
-        new_passmanager = super().__getitem__(index)
-
-        # Backward compatibility as of Terra 0.25
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
-        return new_passmanager
-
-    def __add__(self, other):
-        new_passmanager = super().__add__(other)
-
-        # Backward compatibility as of Terra 0.25
-        if isinstance(other, self.__class__):
-            new_passmanager._pass_sets = self._pass_sets
-            new_passmanager._pass_sets += other._pass_sets
-
-        # When other is not identical type, _pass_sets is also evaluated by self.append.
-        return new_passmanager
-
-    def to_flow_controller(self) -> RunningPassManager:
-        # For backward compatibility.
-        # This method will be resolved to the base class and return FlowControllerLinear
-        flatten_tasks = list(self._flatten_tasks(self._tasks))
-        return RunningPassManager(flatten_tasks)
+        super().replace(index, tasks=passes)
 
     # pylint: disable=arguments-differ
-    def run(
+    def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable = None,
+        num_processes: int = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -281,6 +212,10 @@ class PassManager(BasePassManager):
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+            num_processes: The maximum number of parallel processes to launch if parallel
+                execution is enabled. This argument overrides ``num_processes`` in the user
+                configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
+                to ``None`` the system default or local user configuration will be used.
 
         Returns:
             The transformed circuit(s).
@@ -292,6 +227,7 @@ class PassManager(BasePassManager):
             in_programs=circuits,
             callback=callback,
             output_name=output_name,
+            num_processes=num_processes,
         )
 
     def draw(self, filename=None, style=None, raw=False):
@@ -319,22 +255,6 @@ class PassManager(BasePassManager):
         from qiskit.visualization import pass_manager_drawer
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
-
-    def passes(self) -> list[dict[str, BasePass]]:
-        """Return a list structure of the appended passes and its options.
-
-        Returns:
-            A list of pass sets, as defined in ``append()``.
-        """
-        ret = []
-        for pass_set in self._pass_sets:
-            item = {"passes": pass_set["passes"]}
-            if pass_set["flow_controllers"]:
-                item["flow_controllers"] = set(pass_set["flow_controllers"].keys())
-            else:
-                item["flow_controllers"] = {}
-            ret.append(item)
-        return ret
 
 
 class StagedPassManager(PassManager):
@@ -418,7 +338,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        # Set through parent class since `__setattr__` requires `expanded_stages` to be defined
         super().__setattr__("_stages", tuple(stages))
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
@@ -462,12 +382,10 @@ class StagedPassManager(PassManager):
 
     def _update_passmanager(self) -> None:
         self._tasks = []
-        self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
                 self._tasks += pm._tasks
-                self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
         if value == self and attr in self.expanded_stages:
@@ -479,8 +397,6 @@ class StagedPassManager(PassManager):
     def append(
         self,
         passes: Task | list[Task],
-        max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         raise NotImplementedError
 
@@ -488,8 +404,6 @@ class StagedPassManager(PassManager):
         self,
         index: int,
         passes: BasePass | list[BasePass],
-        max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         raise NotImplementedError
 
@@ -504,10 +418,6 @@ class StagedPassManager(PassManager):
         # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
         new_passmanager._tasks = self._tasks[index]
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
         return new_passmanager
 
     def __len__(self):
@@ -520,18 +430,19 @@ class StagedPassManager(PassManager):
     def __add__(self, other):
         raise NotImplementedError
 
-    def passes(self) -> list[dict[str, BasePass]]:
-        self._update_passmanager()
-        return super().passes()
-
     def run(
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
+        num_processes: int = None,
     ) -> _CircuitsT:
         self._update_passmanager()
-        return super().run(circuits, output_name, callback)
+        return super().run(circuits, output_name, callback, num_processes=num_processes)
+
+    def to_flow_controller(self) -> FlowControllerLinear:
+        self._update_passmanager()
+        return super().to_flow_controller()
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the staged pass manager."""
@@ -577,41 +488,3 @@ def _legacy_style_callback(callback: Callable):
         )
 
     return _wrapped_callable
-
-
-def _legacy_build_flow_controller(
-    tasks: list[Task],
-    options: dict[str, Any],
-    **flow_controller_conditions,
-) -> BaseController:
-    """A legacy method to build flow controller with keyword arguments.
-
-    Args:
-        tasks: A list of tasks fed into custom flow controllers.
-        options: Option for flow controllers.
-        flow_controller_conditions: Callables keyed on the alias of the flow controller.
-
-    Returns:
-        A built controller.
-    """
-    warnings.warn(
-        "Building a flow controller with keyword arguments is going to be deprecated. "
-        "Custom controllers must be explicitly instantiated and appended to the task list.",
-        PendingDeprecationWarning,
-        stacklevel=3,
-    )
-    if isinstance(tasks, Task):
-        tasks = [tasks]
-    if any(not isinstance(t, Task) for t in tasks):
-        raise TypeError("Added tasks are not all valid pass manager task types.")
-    # Alias in higher hierarchy becomes outer controller.
-    for alias in FlowController.hierarchy[::-1]:
-        if alias not in flow_controller_conditions:
-            continue
-        class_type = FlowController.registered_controllers[alias]
-        init_kwargs = {
-            "options": options,
-            alias: flow_controller_conditions.pop(alias),
-        }
-        tasks = class_type(tasks, **init_kwargs)
-    return tasks

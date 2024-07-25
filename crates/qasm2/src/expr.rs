@@ -104,7 +104,7 @@ impl From<TokenType> for Op {
     }
 }
 
-/// An atom of the operator-precendence expression parsing.  This is a stripped-down version of the
+/// An atom of the operator-precedence expression parsing.  This is a stripped-down version of the
 /// [Token] and [TokenType] used in the main parser.  We can use a data enum here because we do not
 /// need all the expressive flexibility in expecting and accepting many different token types as
 /// we do in the main parser; it does not significantly harm legibility to simply do
@@ -233,7 +233,7 @@ fn binary_power(op: Op) -> (u8, u8) {
 /// A subparser used to do the operator-precedence part of the parsing for individual parameter
 /// expressions.  The main parser creates a new instance of this struct for each expression it
 /// expects, and the instance lives only as long as is required to parse that expression, because
-/// it takes temporary resposibility for the [TokenStream] that backs the main parser.
+/// it takes temporary responsibility for the [TokenStream] that backs the main parser.
 pub struct ExprParser<'a> {
     pub tokens: &'a mut Vec<TokenStream>,
     pub context: &'a mut TokenContext,
@@ -424,7 +424,7 @@ impl<'a> ExprParser<'a> {
             // going to have to acquire the GIL and call the Python object the user gave us right
             // now.  We need to explicitly handle any exceptions that might occur from that.
             Python::with_gil(|py| {
-                let args = PyTuple::new(
+                let args = PyTuple::new_bound(
                     py,
                     exprs.iter().map(|x| {
                         if let Expr::Constant(val) = x {
@@ -501,8 +501,13 @@ impl<'a> ExprParser<'a> {
             | TokenType::Sin
             | TokenType::Sqrt
             | TokenType::Tan => Ok(Some(Atom::Function(token.ttype.into()))),
-            TokenType::Real => Ok(Some(Atom::Const(token.real(self.context)))),
-            TokenType::Integer => Ok(Some(Atom::Const(token.int(self.context) as f64))),
+            // This deliberately parses an _integer_ token as a float, since all OpenQASM 2.0
+            // integers can be interpreted as floats, and doing that allows us to gracefully handle
+            // cases where a huge float would overflow a `usize`.  Never mind that in such a case,
+            // there's almost certainly precision loss from the floating-point representing
+            // having insufficient mantissa digits to faithfully represent the angle mod 2pi;
+            // that's not our fault in the parser.
+            TokenType::Real | TokenType::Integer => Ok(Some(Atom::Const(token.real(self.context)))),
             TokenType::Pi => Ok(Some(Atom::Const(f64::consts::PI))),
             TokenType::Id => {
                 let id = token.text(self.context);
@@ -698,6 +703,11 @@ impl<'a> ExprParser<'a> {
 
     /// Parse a single expression completely. This is the only public entry point to the
     /// operator-precedence parser.
+    ///
+    /// .. note::
+    ///
+    ///     This evaluates in a floating-point context, including evaluating integer tokens, since
+    ///     the only places that expressions are valid in OpenQASM 2 is during gate applications.
     pub fn parse_expression(&mut self, cause: &Token) -> PyResult<Expr> {
         self.eval_expression(0, cause)
     }

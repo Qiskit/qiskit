@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """A collection of functions that filter instructions in a pulse program."""
-
+from __future__ import annotations
 import abc
 from functools import singledispatch
-from typing import Callable, List, Union, Iterable, Optional, Tuple, Any
+from collections.abc import Iterable
+from typing import Callable, Any, List
 
 import numpy as np
 
@@ -26,7 +27,10 @@ from qiskit.pulse.exceptions import PulseError
 
 @singledispatch
 def filter_instructions(
-    sched, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
+    sched,
+    filters: List[Callable[..., bool]],
+    negate: bool = False,
+    recurse_subroutines: bool = True,
 ):
     """A catch-TypeError function which will only get called if none of the other decorated
     functions, namely handle_schedule() and handle_scheduleblock(), handle the type passed.
@@ -38,7 +42,10 @@ def filter_instructions(
 
 @filter_instructions.register
 def handle_schedule(
-    sched: Schedule, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
+    sched: Schedule,
+    filters: List[Callable[..., bool]],
+    negate: bool = False,
+    recurse_subroutines: bool = True,
 ) -> Schedule:
     """A filtering function that takes a schedule and returns a schedule consisting of
     filtered instructions.
@@ -79,7 +86,7 @@ def handle_schedule(
 @filter_instructions.register
 def handle_scheduleblock(
     sched_blk: ScheduleBlock,
-    filters: List[Callable],
+    filters: List[Callable[..., bool]],
     negate: bool = False,
     recurse_subroutines: bool = True,
 ) -> ScheduleBlock:
@@ -129,11 +136,11 @@ def handle_scheduleblock(
 
 
 def composite_filter(
-    channels: Optional[Union[Iterable[Channel], Channel]] = None,
-    instruction_types: Optional[Union[Iterable[abc.ABCMeta], abc.ABCMeta]] = None,
-    time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-    intervals: Optional[Iterable[Interval]] = None,
-) -> List[Callable]:
+    channels: Iterable[Channel] | Channel | None = None,
+    instruction_types: Iterable[abc.ABCMeta] | abc.ABCMeta | None = None,
+    time_ranges: Iterable[tuple[int, int]] | None = None,
+    intervals: Iterable[Interval] | None = None,
+) -> list[Callable]:
     """A helper function to generate a list of filter functions based on
     typical elements to be filtered.
 
@@ -163,7 +170,7 @@ def composite_filter(
     return filters
 
 
-def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
+def with_channels(channels: Iterable[Channel] | Channel) -> Callable:
     """Channel filter generator.
 
     Args:
@@ -210,7 +217,7 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
     return channel_filter
 
 
-def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> Callable:
+def with_instruction_types(types: Iterable[abc.ABCMeta] | abc.ABCMeta) -> Callable:
     """Instruction type filter generator.
 
     Args:
@@ -257,7 +264,7 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
     return instruction_filter
 
 
-def with_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
+def with_intervals(ranges: Iterable[Interval] | Interval) -> Callable:
     """Interval filter generator.
 
     Args:
@@ -286,7 +293,7 @@ def with_intervals(ranges: Union[Iterable[Interval], Interval]) -> Callable:
     return interval_filter
 
 
-def _if_scalar_cast_to_list(to_list: Any) -> List[Any]:
+def _if_scalar_cast_to_list(to_list: Any) -> list[Any]:
     """A helper function to create python list of input arguments.
 
     Args:

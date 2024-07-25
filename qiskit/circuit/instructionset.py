@@ -86,22 +86,32 @@ class InstructionSet:
         Updates to the instruction set will modify the specified sequence in place."""
         self._instructions.append((data, pos))
 
-    def inverse(self):
-        """Invert all instructions."""
+    def inverse(self, annotated: bool = False):
+        """Invert all instructions.
+
+        .. note::
+            It is preferable to take the inverse *before* appending the gate(s) to the circuit.
+        """
         for i, instruction in enumerate(self._instructions):
             if isinstance(instruction, CircuitInstruction):
                 self._instructions[i] = instruction.replace(
-                    operation=instruction.operation.inverse()
+                    operation=instruction.operation.inverse(annotated=annotated)
                 )
             else:
                 data, idx = instruction
                 instruction = data[idx]
-                data[idx] = instruction.replace(operation=instruction.operation.inverse())
+                data[idx] = instruction.replace(
+                    operation=instruction.operation.inverse(annotated=annotated)
+                )
         return self
 
     def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
+
+        .. note::
+            You should prefer to use the :meth:`.QuantumCircuit.if_test` builder interface, rather
+            than using this method.
 
         .. note::
 
@@ -122,27 +132,6 @@ class InstructionSet:
         Raises:
             CircuitError: if the passed classical resource is invalid, or otherwise not resolvable
                 to a concrete resource that these instructions are permitted to access.
-
-        Example:
-            .. plot::
-               :include-source:
-
-               from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-
-               qr = QuantumRegister(2)
-               cr = ClassicalRegister(2)
-               qc = QuantumCircuit(qr, cr)
-               qc.h(range(2))
-               qc.measure(range(2), range(2))
-
-               # apply x gate if the classical register has the value 2 (10 in binary)
-               qc.x(0).c_if(cr, 2)
-
-               # apply y gate if bit 0 is set to 1
-               qc.y(1).c_if(0, 1)
-
-               qc.draw('mpl')
-
         """
         if self._requester is None and not isinstance(classical, (Clbit, ClassicalRegister)):
             raise CircuitError(
@@ -151,13 +140,10 @@ class InstructionSet:
             )
         if self._requester is not None:
             classical = self._requester(classical)
-        for instruction in self._instructions:
+        for idx, instruction in enumerate(self._instructions):
             if isinstance(instruction, CircuitInstruction):
                 updated = instruction.operation.c_if(classical, val)
-                if updated is not instruction.operation:
-                    raise CircuitError(
-                        "SingletonGate instances can only be added to InstructionSet via _add_ref"
-                    )
+                self._instructions[idx] = instruction.replace(operation=updated)
             else:
                 data, idx = instruction
                 instruction = data[idx]

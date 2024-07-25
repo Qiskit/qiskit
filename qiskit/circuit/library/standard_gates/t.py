@@ -21,6 +21,7 @@ from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
@@ -55,6 +56,8 @@ class TGate(SingletonGate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.TGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new T gate."""
         super().__init__("t", 1, [], label=label, duration=duration, unit=unit)
@@ -78,13 +81,25 @@ class TGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse T gate (i.e. Tdg)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse T gate (i.e. Tdg).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.TdgGate`.
+
+        Returns:
+            TdgGate: inverse of :class:`.TGate`
+        """
         return TdgGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TGate)
 
 
 @with_gate_array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]])
@@ -118,6 +133,8 @@ class TdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.TdgGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Tdg gate."""
         super().__init__("tdg", 1, [], label=label, duration=duration, unit=unit)
@@ -141,10 +158,22 @@ class TdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse Tdg gate (i.e. T)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse Tdg gate (i.e. T).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.TGate`.
+
+        Returns:
+            TGate: inverse of :class:`.TdgGate`
+        """
         return TGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(-0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TdgGate)

@@ -14,8 +14,9 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
-from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
+
 import numpy as np
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
@@ -34,12 +35,15 @@ from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+    random_clifford_circuit,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
-    """Create a simple pass manager that runs a template optimisation with a single transformation.
+    """Create a simple pass manager that runs a template optimization with a single transformation.
     It turns ``RX(pi/2).RY(parameter).RX(-pi/2)`` into the equivalent virtual ``RZ`` rotation, where
     if ``parameter`` is given, it will be the instance used in the template."""
     if parameter is None:
@@ -344,6 +348,43 @@ class TestTemplateMatching(QiskitTestCase):
         # however these are equivalent if the operators are the same
         self.assertTrue(Operator(circuit_in).equiv(circuit_out))
 
+    def test_output_symbolic_library_equal(self):
+        """Test that the template matcher returns parameter expressions that use the same symbolic
+        library as the default; it should not coerce everything to Sympy when playing with the
+        `ParameterExpression` internals."""
+
+        a, b = Parameter("a"), Parameter("b")
+
+        template = QuantumCircuit(1)
+        template.p(a, 0)
+        template.p(-a, 0)
+        template.rz(a, 0)
+        template.rz(-a, 0)
+
+        circuit = QuantumCircuit(1)
+        circuit.p(-b, 0)
+        circuit.p(b, 0)
+
+        pass_ = TemplateOptimization(template_list=[template], user_cost_dict={"p": 100, "rz": 1})
+        out = pass_(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.rz(-b, 0)
+        expected.rz(b, 0)
+        self.assertEqual(out, expected)
+
+        def symbolic_library(expr):
+            """Get the symbolic library of the expression - 'sympy' or 'symengine'."""
+            return type(expr._symbol_expr).__module__.split(".")[0]
+
+        out_exprs = [expr for instruction in out.data for expr in instruction.operation.params]
+        self.assertEqual(
+            [symbolic_library(b)] * len(out_exprs), [symbolic_library(expr) for expr in out_exprs]
+        )
+
+        # Assert that the result still works with parametric assignment.
+        self.assertEqual(out.assign_parameters({b: 1.5}), expected.assign_parameters({b: 1.5}))
+
     def test_optimizer_does_not_replace_unbound_partial_match(self):
         """
         Test that partial matches with parameters will not raise errors.
@@ -368,7 +409,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # The template optimisation should not have replaced anything, because
+        # The template optimization should not have replaced anything, because
         # that would require it to leave dummy parameters in place without
         # binding them.
         self.assertEqual(circuit_in, circuit_out)
@@ -739,6 +780,7 @@ class TestTemplateMatching(QiskitTestCase):
             clifford_3_1(),
         ]
         pm = PassManager(TemplateOptimization(template_list=template_list))
+        scc.clear_cached_commutations()
         for seed in range(10):
             qc = random_clifford_circuit(
                 num_qubits=5,
@@ -748,6 +790,8 @@ class TestTemplateMatching(QiskitTestCase):
             )
             qc_opt = pm.run(qc)
             self.assertTrue(Operator(qc) == Operator(qc_opt))
+        # All of these gates are in the commutation library, i.e. the cache should not be used
+        self.assertEqual(scc.num_cached_entries(), 0)
 
 
 if __name__ == "__main__":

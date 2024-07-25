@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,20 +14,22 @@
 
 import itertools as it
 import unittest
-from test import combine
+from test import QiskitTestCase, combine
 
 import numpy as np
+import rustworkx as rx
+import scipy.sparse
 from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
-from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
-from qiskit.test import QiskitTestCase
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.library import EfficientSU2
-from qiskit.primitives import BackendEstimator
-from qiskit.providers.fake_provider import FakeNairobiV2
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler.transpiler import transpile
+from qiskit.primitives import BackendEstimator
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
+from qiskit.utils import optionals
 
 
 def pauli_mat(label):
@@ -179,7 +181,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
 
     def test_from_index_list_parameters(self):
-        """Test from_list method specifying the Paulis via indices with paramteres."""
+        """Test from_list method specifying the Paulis via indices with parameters."""
         expected_labels = ["XXZ", "IXI", "YIZ", "III"]
         paulis = ["XXZ", "X", "YZ", ""]
         indices = [[2, 1, 0], [1], [2, 0], []]
@@ -257,6 +259,36 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
         np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
+
+    def test_to_matrix_zero(self):
+        """Test `to_matrix` with a zero operator."""
+        num_qubits = 4
+        zero_numpy = np.zeros((2**num_qubits, 2**num_qubits), dtype=np.complex128)
+        zero = SparsePauliOp.from_list([], num_qubits=num_qubits)
+
+        zero_dense = zero.to_matrix(sparse=False)
+        np.testing.assert_array_equal(zero_dense, zero_numpy)
+
+        zero_sparse = zero.to_matrix(sparse=True)
+        self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
+        np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
+
+    def test_to_matrix_parallel_vs_serial(self):
+        """Parallel execution should produce the same results as serial execution up to
+        floating-point associativity effects."""
+        # Using powers-of-two coefficients to make floating-point arithmetic associative so we can
+        # do bit-for-bit assertions.  Choose labels that have at least few overlapping locations.
+        labels = ["XZIXYX", "YIIYXY", "ZZZIIZ", "IIIIII"]
+        coeffs = [0.25, 0.125j, 0.5 - 0.25j, -0.125 + 0.5j]
+        op = SparsePauliOp(labels, coeffs)
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=True, force_serial=False).toarray(),
+            op.to_matrix(sparse=True, force_serial=True).toarray(),
+        )
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=False, force_serial=False),
+            op.to_matrix(sparse=False, force_serial=True),
+        )
 
     def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
@@ -937,6 +969,42 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertTrue(spp_op1.equiv(spp_op2))
 
     @combine(parameterized=[True, False], qubit_wise=[True, False])
+    def test_noncommutation_graph(self, parameterized, qubit_wise):
+        """Test noncommutation graph"""
+
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
+
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "iYX", "ZX", "-iZY", "XZ", "YZ"]
+        np.random.shuffle(input_labels)
+        if parameterized:
+            coeffs = np.array(ParameterVector("a", len(input_labels)))
+        else:
+            coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
+        sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
+        graph = sparse_pauli_list.noncommutation_graph(qubit_wise)
+
+        expected = rx.PyGraph()
+        expected.add_nodes_from(range(len(input_labels)))
+        edges = [
+            (ia, ib)
+            for (ia, a), (ib, b) in it.combinations(enumerate(input_labels), 2)
+            if not commutes(Pauli(a), Pauli(b), qubit_wise)
+        ]
+        expected.add_edges_from_no_data(edges)
+
+        self.assertTrue(rx.is_isomorphic(graph, expected))
+
+    @combine(parameterized=[True, False], qubit_wise=[True, False])
     def test_group_commuting(self, parameterized, qubit_wise):
         """Test general grouping commuting operators"""
 
@@ -960,7 +1028,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
         sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
         groups = sparse_pauli_list.group_commuting(qubit_wise)
-        # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
+        # checking that every input Pauli in sparse_pauli_list is in a group in the output
         output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # checking that every coeffs are grouped according to sparse_pauli_list group
@@ -988,7 +1056,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             )
 
     def test_dot_real(self):
-        """Test dot for real coefficiets."""
+        """Test dot for real coefficients."""
         x = SparsePauliOp("X", np.array([1]))
         y = SparsePauliOp("Y", np.array([1]))
         iz = SparsePauliOp("Z", 1j)
@@ -1033,7 +1101,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test the apply_layout method with a transpiler layout."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=7)
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
         permuted_op = op.apply_layout(transpiled_psi.layout)
         identity_op = SparsePauliOp("I" * 7)
@@ -1048,7 +1116,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test using the apply_layout method with an estimator workflow."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
         estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
@@ -1056,7 +1124,10 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         permuted_op = op.apply_layout(transpiled_psi.layout)
         job = estimator.run(transpiled_psi, permuted_op, thetas)
         res = job.result().values
-        np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
+        if optionals.HAS_AER:
+            np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
+        else:
+            np.testing.assert_allclose(res, [1.660156], rtol=0.5, atol=0.2)
 
     def test_apply_layout_invalid_qubits_list(self):
         """Test that apply_layout with an invalid qubit count raises."""
@@ -1106,6 +1177,34 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=None, num_qubits=1)
+
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
+    @combine(layout=[None, []])
+    def test_apply_layout_zero_qubit(self, layout):
+        """Test apply_layout with a zero-qubit operator"""
+        with self.subTest("default"):
+            op = SparsePauliOp("")
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII"), res)
+        with self.subTest("coeff"):
+            op = SparsePauliOp("", 2)
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII", 2), res)
+        with self.subTest("multiple ops"):
+            op = SparsePauliOp.from_list([("", 1), ("", 2)])
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RXGate(Gate):
@@ -41,14 +42,16 @@ class RXGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        RX(\theta) = \exp\left(-i \th X\right) =
+        RX(\theta) = \exp\left(-i \rotationangle X\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & -i\sin\left(\th\right) \\
-                -i\sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) \\
+                -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.RXGate
 
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
@@ -77,41 +80,65 @@ class RXGate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-RX gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RX gate.
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RXGate` with an inverted parameter value.
+
+        Returns:
+            RXGate: inverse gate.
         """
         return RXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RXGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RXGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class CRXGate(ControlledGate):
@@ -133,15 +160,15 @@ class CRXGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & \cos\left(\th\right) & 0 & -i\sin\left(\th\right) \\
+                0 & \cos\left(\rotationangle\right) & 0 & -i\sin\left(\rotationangle\right) \\
                 0 & 0 & 1 & 0 \\
-                0 & -i\sin\left(\th\right) & 0 & \cos\left(\th\right)
+                0 & -i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -160,17 +187,19 @@ class CRXGate(ControlledGate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             CRX(\theta)\ q_1, q_0 =
             |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos\left(\th\right)   & -i\sin\left(\th\right) \\
-                    0 & 0 & -i\sin\left(\th\right) & \cos\left(\th\right)
+                    0 & 0 & \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) \\
+                    0 & 0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
                 \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CRXGate
 
     def __init__(
         self,
@@ -227,12 +256,24 @@ class CRXGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse CRX gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse CRX gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRXGate` with an inverted parameter value.
+
+        Returns:
+            CRXGate: inverse gate.
+        """
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)
@@ -244,3 +285,8 @@ class CRXGate(ControlledGate):
             return numpy.array(
                 [[cos, 0, -isin, 0], [0, 1, 0, 0], [-isin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRXGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

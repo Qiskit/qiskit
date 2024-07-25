@@ -23,7 +23,6 @@ import stevedore
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes.synthesis.plugin import (
@@ -32,6 +31,7 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     unitary_synthesis_plugin_names,
 )
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import DefaultUnitarySynthesis
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class _MockExtensionManager:
@@ -71,7 +71,7 @@ class ControllableSynthesis(UnitarySynthesisPlugin):
     """A dummy synthesis plugin, which can have its ``supports_`` properties changed to test
     different parts of the synthesis plugin interface.  By default, it accepts all keyword arguments
     and accepts all number of qubits, but if its run method is called, it just returns ``None`` to
-    indicate that the gate should not be synthesised."""
+    indicate that the gate should not be synthesized."""
 
     min_qubits = None
     max_qubits = None
@@ -153,7 +153,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         # We need to mock out DefaultUnitarySynthesis.run, except it will actually get called as an
         # instance method, so we can't just wrap the method defined on the class, but instead we
         # need to wrap a method that has been bound to a particular instance.  This is slightly
-        # frgaile, because we're likely wrapping a _different_ instance, but since there are no
+        # fragile, because we're likely wrapping a _different_ instance, but since there are no
         # arguments to __init__, and no internal state, it should be ok.  It doesn't matter if we
         # dodged the patching of the manager class that happens elsewhere in this test suite,
         # because we're always accessing something that the patch would delegate to the inner

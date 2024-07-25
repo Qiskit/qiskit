@@ -20,9 +20,9 @@ import pathlib
 import pickle
 import shutil
 import tempfile
-import unittest
 
 import ddt
+import numpy as np
 
 import qiskit.qasm2
 from qiskit import qpy
@@ -35,7 +35,8 @@ from qiskit.circuit import (
     Qubit,
     library as lib,
 )
-from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import gate_builder
 
@@ -657,8 +658,6 @@ class TestGateDefinition(QiskitTestCase):
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
 
-    # See https://github.com/Qiskit/qiskit-terra/issues/8941
-    @unittest.expectedFailure
     def test_qpy_double_call_roundtrip(self):
         program = """
             include "qelib1.inc";
@@ -908,6 +907,30 @@ class TestMeasure(QiskitTestCase):
             ClassicalRegister(1, "cond"),
         )
         self.assertEqual(parsed, qc)
+
+    def test_has_to_matrix(self):
+        program = """
+            OPENQASM 2.0;
+            include "qelib1.inc";
+            qreg qr[1];
+            gate my_gate(a) q {
+                rz(a) q;
+                rx(pi / 2) q;
+                rz(-a) q;
+            }
+            my_gate(1.0) qr[0];
+        """
+        parsed = qiskit.qasm2.loads(program)
+        expected = (
+            lib.RZGate(-1.0).to_matrix()
+            @ lib.RXGate(math.pi / 2).to_matrix()
+            @ lib.RZGate(1.0).to_matrix()
+        )
+        defined_gate = parsed.data[0].operation
+        self.assertEqual(defined_gate.name, "my_gate")
+        np.testing.assert_allclose(defined_gate.to_matrix(), expected, atol=1e-14, rtol=0)
+        # Also test that the standard `Operator` method on the whole circuit still works.
+        np.testing.assert_allclose(Operator(parsed), expected, atol=1e-14, rtol=0)
 
 
 class TestReset(QiskitTestCase):

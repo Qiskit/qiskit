@@ -13,7 +13,7 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 from qiskit.circuit.classical import types
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestTypesOrdering(QiskitTestCase):

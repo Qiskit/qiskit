@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test cases for the pulse scheduler passes."""
 
+import numpy as np
 from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate, Parameter
@@ -20,7 +21,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import (
     Schedule,
     DriveChannel,
-    Delay,
     AcquireChannel,
     Acquire,
     MeasureChannel,
@@ -28,12 +28,17 @@ from qiskit.pulse import (
     Gaussian,
     GaussianSquare,
     Play,
+    Waveform,
     transforms,
 )
 from qiskit.pulse import build, macros, play, InstructionScheduleMap
-
-from qiskit.providers.fake_provider import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q, FakePerth
-from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import (
+    FakeBackend,
+    FakeOpenPulse2Q,
+    FakeOpenPulse3Q,
+    GenericBackendV2,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBasicSchedule(QiskitTestCase):
@@ -236,6 +241,7 @@ class TestBasicSchedule(QiskitTestCase):
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
+    #
     def test_3q_schedule(self):
         """Test a schedule that was recommended by David McKay :D"""
 
@@ -503,8 +509,11 @@ class TestBasicScheduleV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakePerth()
+        self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True)
         self.inst_map = self.backend.instruction_schedule_map
+        # self.pulse_2_samples is the pulse sequence used to calibrate "measure" in
+        # GenericBackendV2. See class construction for more details.
+        self.pulse_2_samples = np.linspace(0, 1.0, 32, dtype=np.complex128)
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""
@@ -532,54 +541,41 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc.measure(q, c)
 
         sched = schedule(circuits=qc, backend=self.backend, method="alap")
+
         # Since, the method of scheduling chosen here is 'as_late_as_possible'
         # so all the π/2 pulse here should be right shifted.
         #
         # Calculations:
-        #   Duration of the π/2 pulse for FakePerth backend is 160dt
-        #   first π/2 pulse on q0 should start at 160dt because of 'as_late_as_possible'.
+        #   Duration of the π/2 pulse for GenericBackendV2 backend is 16dt
+        #   first π/2 pulse on q0 should start at 16dt because of 'as_late_as_possible'.
         #   first π/2 pulse on q1 should start 0dt.
-        #   second π/2 pulse on q1 should start with a delay of 160dt.
+        #   second π/2 pulse on q1 should start with a delay of 16dt.
         #   cx pulse( pulse on drive channel, control channel) should start with a delay
-        #   of 160dt+160dt.
-        #   measure pulse should start with a delay of 160dt+160dt+1760dt(1760dt for cx gate).
+        #   of 16dt+16dt.
+        #   measure pulse should start with a delay of 16dt+16dt+64dt(64dt for cx gate).
         expected = Schedule(
             (0, self.inst_map.get("sx", [1])),
-            (0 + 160, self.inst_map.get("sx", [0])),  # Right shifted because of alap.
-            (0 + 160, self.inst_map.get("sx", [1])),
-            (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (0 + 16, self.inst_map.get("sx", [0])),  # Right shifted because of alap.
+            (0 + 16, self.inst_map.get("sx", [1])),
+            (0 + 16 + 16, self.inst_map.get("cx", [0, 1])),
             (
-                0 + 160 + 160 + 1760,
+                0 + 16 + 16 + 64,
                 Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.24000000000000002,
-                        angle=-0.24730169436555283,
-                        name="M_m0",
-                    ),
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
                     MeasureChannel(0),
-                    name="M_m0",
+                    name="pulse_2",
                 ),
             ),
             (
-                0 + 160 + 160 + 1760,
+                0 + 16 + 16 + 64,
                 Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.32,
-                        angle=-1.9900962136758156,
-                        name="M_m1",
-                    ),
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
                     MeasureChannel(1),
-                    name="M_m1",
+                    name="pulse_2",
                 ),
             ),
+            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
+            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -615,7 +611,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         sched = schedule(qc, self.backend, method="alap")
         # If there wasn't a barrier the π/2 pulse on q1 would have started from 0dt, but since,
         # there is a barrier so the π/2 pulse on q1 should start with a delay of 160dt.
-        expected = Schedule((0, self.inst_map.get("sx", [0])), (160, self.inst_map.get("sx", [1])))
+        expected = Schedule((0, self.inst_map.get("sx", [0])), (16, self.inst_map.get("sx", [1])))
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual, expected)
 
@@ -683,50 +679,36 @@ class TestBasicScheduleV2(QiskitTestCase):
         # so all the π/2 pulse here should be left shifted.
         #
         # Calculations:
-        #   Duration of the π/2 pulse for FakePerth backend is 160dt
+        #   Duration of the π/2 pulse for FakePerth backend is 16dt
         #   first π/2 pulse on q0 should start at 0dt because of 'as_soon_as_possible'.
         #   first π/2 pulse on q1 should start 0dt.
-        #   second π/2 pulse on q1 should start with a delay of 160dt.
+        #   second π/2 pulse on q1 should start with a delay of 16dt.
         #   cx pulse( pulse on drive channel, control channel) should start with a delay
-        #   of 160dt+160dt.
-        #   measure pulse should start with a delay of 160dt+160dt+1760dt(1760dt for cx gate).
+        #   of 16dt+16dt.
+        #   measure pulse should start with a delay of 16dt+16dt+64dt(64dt for cx gate).
         expected = Schedule(
             (0, self.inst_map.get("sx", [1])),
             (0, self.inst_map.get("sx", [0])),  # Left shifted because of asap.
-            (0 + 160, self.inst_map.get("sx", [1])),
-            (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (0 + 16, self.inst_map.get("sx", [1])),
+            (0 + 16 + 16, self.inst_map.get("cx", [0, 1])),
             (
-                0 + 160 + 160 + 1760,
+                0 + 16 + 16 + 64,
                 Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.24000000000000002,
-                        angle=-0.24730169436555283,
-                        name="M_m0",
-                    ),
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
                     MeasureChannel(0),
-                    name="M_m0",
+                    name="pulse_2",
                 ),
             ),
             (
-                0 + 160 + 160 + 1760,
+                0 + 16 + 16 + 64,
                 Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.32,
-                        angle=-1.9900962136758156,
-                        name="M_m1",
-                    ),
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
                     MeasureChannel(1),
-                    name="M_m1",
+                    name="pulse_2",
                 ),
             ),
+            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
+            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -747,10 +729,10 @@ class TestBasicScheduleV2(QiskitTestCase):
         # This is ShiftPhase for the cx operation.
         self.assertEqual(insts[0][0], 0)
 
-        # It takes 9 pulse operations on DriveChannel and ControlChannel to do a
+        # It takes 4 pulse operations on DriveChannel and ControlChannel to do a
         # cx operation on this backend.
-        # 1760dt is duration of cx operation on this backend.
-        self.assertEqual(insts[9][0], 1760)
+        # 64dt is duration of cx operation on this backend.
+        self.assertEqual(insts[4][0], 64)
 
         qc = QuantumCircuit(q, c)
         qc.cx(q[0], q[1])
@@ -758,10 +740,9 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc.measure(q, c)
         sched = schedule(qc, self.backend, method="as_late_as_possible")
 
-        # 1760dt for cx operation + 160dt for sx operation + 1472dt for measure on both qubits.
-        # Total: 3392dt.
-        # So, the delay in MeasureChannel0 and 1 starts from 3392dt.
-        self.assertEqual(sched.instructions[-1][0], 3392)
+        # 64dt for cx operation + 16dt for sx operation
+        # So, the pulses in MeasureChannel0 and 1 starts from 80dt.
+        self.assertEqual(sched.instructions[-1][0], 80)
 
     def test_inst_map_schedules_unaltered(self):
         """Test that forward scheduling doesn't change relative timing with a command."""
@@ -777,13 +758,8 @@ class TestBasicScheduleV2(QiskitTestCase):
         insts = sched1.instructions
         self.assertEqual(insts[0][0], 0)  # ShiftPhase at DriveChannel(0) no dt required.
         self.assertEqual(insts[1][0], 0)  # ShiftPhase at ControlChannel(1) no dt required.
-        self.assertEqual(insts[2][0], 0)  # Pulse Ym_d0 of duration 160dt.
-        self.assertEqual(insts[3][0], 0)  # Pulse X90p_d1 of duration 160dt.
-        self.assertEqual(insts[4][0], 160)  # Pusle CR90p_d1_u0 of duration 720dt.
-        self.assertEqual(insts[5][0], 160)  # Pulse CR90p_u0 of duration 720dt.
-        self.assertEqual(insts[6][0], 880)  # Pulse Xp_d0 of duratoin 160dt.
-        self.assertEqual(insts[7][0], 1040)  # Pulse CR90m_d1_u0 of duration 720dt.
-        self.assertEqual(insts[8][0], 1040)  # Pulse CR90m_u0 of duration 720dt.
+        self.assertEqual(insts[2][0], 0)  # Pulse pulse_2 of duration 32dt.
+        self.assertEqual(insts[3][0], 0)  # Pulse pulse_3 of duration 160dt.
 
     def test_measure_combined(self):
         """
@@ -800,72 +776,36 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
+
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
 
         expected_sched = Schedule(
-            # This is the Schedule to implement sx gate.
+            # This is the schedule to implement sx gate.
             (0, self.inst_map.get("sx", [0])),
             # This is the schedule to implement cx gate
-            (0 + 160, self.inst_map.get("cx", [0, 1])),
-            # Getting ready the to take classical data in MemorySlot(0) for qubit:0
-            (0 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            # Since, the method of Scheduling is 'as_soon_as_possilbe' so again for
-            # qubit:1 getting ready the to take classical data in MemorySlot(1)
-            (0 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
-            # Playing pulse on MeasureChannel(0) to read qubit:0 to MemoryChannel(0)
+            (0 + 16, self.inst_map.get("cx", [0, 1])),
+            # This is the schedule for the measurements on qubits 0 and 1 (combined)
             (
-                0 + 160 + 1760,
-                Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.24000000000000002,
-                        angle=-0.24730169436555283,
-                        name="M_m0",
-                    ),
-                    MeasureChannel(0),
-                    name="M_m0",
+                0 + 16 + 64,
+                self.inst_map.get("measure", [0]).filter(
+                    channels=[MeasureChannel(0), MeasureChannel(1)]
                 ),
             ),
-            # Playing pulse on MeasureChannel(1) to read qubit:1 to MemoryChannel(1)
             (
-                0 + 160 + 1760,
-                Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.32,
-                        angle=-1.9900962136758156,
-                        name="M_m1",
-                    ),
-                    MeasureChannel(1),
-                    name="M_m1",
+                0 + 16 + 64,
+                self.inst_map.get("measure", [0]).filter(
+                    channels=[AcquireChannel(0), AcquireChannel(1)]
                 ),
             ),
-            # Time for MeasureChannel(0) to relax
-            (0 + 160 + 1760 + 1472, Delay(1568, MeasureChannel(0))),
-            # Time for MeasureChannel(1) to relax
-            (0 + 160 + 1760 + 1472, Delay(1568, MeasureChannel(1))),
-            # The below schedules would be for the additional measure(1, 1) instruction added.
-            (0 + 160 + 1760 + 1472 + 1568, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            # This is the schedule for the second measurement on qubit 1
             (
-                0 + 160 + 1760 + 1472 + 1568,
-                Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.32,
-                        angle=-1.9900962136758156,
-                        name="M_m1",
-                    ),
-                    MeasureChannel(1),
-                    name="M_m1",
-                ),
+                0 + 16 + 64 + 1792,
+                self.inst_map.get("measure", [1]).filter(channels=[MeasureChannel(1)]),
             ),
-            (0 + 160 + 1760 + 1472 + 1568 + 1472, Delay(1568, MeasureChannel(1))),
+            (
+                0 + 16 + 64 + 1792,
+                self.inst_map.get("measure", [1]).filter(channels=[AcquireChannel(1)]),
+            ),
         )
         self.assertEqual(sched.instructions, expected_sched.instructions)
 
@@ -895,10 +835,10 @@ class TestBasicScheduleV2(QiskitTestCase):
         expected = Schedule(
             (0, self.inst_map.get("cx", [0, 1])),
             (0, self.inst_map.get("sx", [2])),
-            (0 + 1760, self.inst_map.get("sx", [0])),
-            (0 + 1760, self.inst_map.get("x", [1])),
-            (0 + 1760 + 160, self.inst_map.get("cx", [1, 2])),
-            (0 + 1760 + 1760, self.inst_map.get("sx", [2])),
+            (0 + 64, self.inst_map.get("sx", [0])),
+            (0 + 64, self.inst_map.get("x", [1])),
+            (0 + 64 + 16, self.inst_map.get("cx", [1, 2])),
+            (0 + 64 + 16 + 64, self.inst_map.get("sx", [2])),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -950,10 +890,10 @@ class TestBasicScheduleV2(QiskitTestCase):
         expected = Schedule(
             (0, self.inst_map.get("sx", [0])),
             (0, self.inst_map.get("sx", [1])),
-            (0 + 160, self.inst_map.get("x", [0])),
-            (0 + 160, self.inst_map.get("x", [1])),
-            (0 + 160 + 160, self.inst_map.get("sx", [0])),
-            (0 + 160 + 160, self.inst_map.get("sx", [1])),
+            (0 + 16, self.inst_map.get("x", [0])),
+            (0 + 16, self.inst_map.get("x", [1])),
+            (0 + 16 + 16, self.inst_map.get("sx", [0])),
+            (0 + 16 + 16, self.inst_map.get("sx", [1])),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -975,10 +915,10 @@ class TestBasicScheduleV2(QiskitTestCase):
         expected = Schedule(
             (0, self.inst_map.get("sx", [0])),
             (0, self.inst_map.get("sx", [1])),
-            (0 + 160, self.inst_map.get("x", [0])),
-            (0 + 160, self.inst_map.get("x", [1])),
-            (0 + 160 + 160, self.inst_map.get("sx", [0])),
-            (0 + 160 + 160, self.inst_map.get("sx", [1])),
+            (0 + 16, self.inst_map.get("x", [0])),
+            (0 + 16, self.inst_map.get("x", [1])),
+            (0 + 16 + 16, self.inst_map.get("sx", [0])),
+            (0 + 16 + 16, self.inst_map.get("sx", [1])),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -1036,7 +976,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc.add_calibration("measure", [0], meas_sched)
 
         sched = schedule(qc, self.backend)
-        expected = Schedule(self.inst_map.get("sx", [0]), (160, meas_sched))
+        expected = Schedule(self.inst_map.get("sx", [0]), (16, meas_sched))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_subset_calibrated_measurements(self):
@@ -1146,29 +1086,33 @@ class TestBasicScheduleV2(QiskitTestCase):
         is actually Schedule for just qubit_0"""
         sched_from_backend = self.backend.instruction_schedule_map.get("measure", [0])
         expected_sched = Schedule(
-            (0, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
-            (0, Acquire(1472, AcquireChannel(2), MemorySlot(2))),
-            (0, Acquire(1472, AcquireChannel(3), MemorySlot(3))),
-            (0, Acquire(1472, AcquireChannel(4), MemorySlot(4))),
-            (0, Acquire(1472, AcquireChannel(5), MemorySlot(5))),
-            (0, Acquire(1472, AcquireChannel(6), MemorySlot(6))),
             (
                 0,
                 Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.24000000000000002,
-                        angle=-0.24730169436555283,
-                        name="M_m0",
-                    ),
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
                     MeasureChannel(0),
-                    name="M_m0",
+                    name="pulse_2",
                 ),
             ),
-            (1472, Delay(1568, MeasureChannel(0))),
+            (
+                0,
+                Play(
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
+                    MeasureChannel(1),
+                    name="pulse_2",
+                ),
+            ),
+            (
+                0,
+                Play(
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
+                    MeasureChannel(2),
+                    name="pulse_2",
+                ),
+            ),
+            (0, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
+            (0, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
+            (0, Acquire(1792, AcquireChannel(2), MemorySlot(2))),
             name="measure",
         )
         self.assertEqual(sched_from_backend, expected_sched)

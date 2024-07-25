@@ -14,7 +14,7 @@
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.primitives.utils import final_measurement_mapping
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestMapping(QiskitTestCase):

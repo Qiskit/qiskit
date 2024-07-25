@@ -10,13 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """A collection of functions to convert ScheduleBlock to DAG representation."""
+from __future__ import annotations
+
+import typing
 
 import rustworkx as rx
 
+
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import UnassignedReferenceError
 
+if typing.TYPE_CHECKING:
+    from qiskit.pulse import ScheduleBlock  # pylint: disable=cyclic-import
 
-def block_to_dag(block) -> rx.PyDAG:
+
+def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     """Convert schedule block instruction into DAG.
 
     ``ScheduleBlock`` can be represented as a DAG as needed.
@@ -71,7 +79,7 @@ def _sequential_allocation(block) -> rx.PyDAG:
     """A helper function to create a DAG of a sequential alignment context."""
     dag = rx.PyDAG()
 
-    edges = []
+    edges: list[tuple[int, int]] = []
     prev_id = None
     for elm in block.blocks:
         node_id = dag.add_node(elm)
@@ -86,8 +94,8 @@ def _parallel_allocation(block) -> rx.PyDAG:
     """A helper function to create a DAG of a parallel alignment context."""
     dag = rx.PyDAG()
 
-    slots = {}
-    edges = set()
+    slots: dict[Channel, int] = {}
+    edges: set[tuple[int, int]] = set()
     prev_reference = None
     for elm in block.blocks:
         node_id = dag.add_node(elm)

@@ -13,6 +13,7 @@
 # pylint: disable=redefined-builtin
 
 """Object to represent the information at a node in the DAGCircuit."""
+from __future__ import annotations
 
 from qiskit.exceptions import QiskitError
 
@@ -49,15 +50,15 @@ class DAGDepNode:
         name=None,
         qargs=(),
         cargs=(),
-        successors=None,
-        predecessors=None,
+        successors: list[int] | None = None,
+        predecessors: list[int] | None = None,
         reachable=None,
-        matchedwith=None,
-        successorstovisit=None,
-        isblocked=None,
-        qindices=None,
-        cindices=None,
-        nid=-1,
+        matchedwith: list[int] | None = None,
+        successorstovisit: list[int] | None = None,
+        isblocked: bool | None = None,
+        qindices: list[int] | None = None,
+        cindices: list[int] | None = None,
+        nid: int = -1,
     ):
 
         self.type = type
@@ -66,21 +67,23 @@ class DAGDepNode:
         self._qargs = tuple(qargs) if qargs is not None else ()
         self.cargs = tuple(cargs) if cargs is not None else ()
         self.node_id = nid
-        self.sort_key = str(self._qargs)
-        self.successors = successors if successors is not None else []
-        self.predecessors = predecessors if predecessors is not None else []
+        self.sort_key: str = str(self._qargs)
+        self.successors: list[int] = successors if successors is not None else []
+        self.predecessors: list[int] = predecessors if predecessors is not None else []
         self.reachable = reachable
-        self.matchedwith = matchedwith if matchedwith is not None else []
-        self.isblocked = isblocked
-        self.successorstovisit = successorstovisit if successorstovisit is not None else []
-        self.qindices = qindices if qindices is not None else []
-        self.cindices = cindices if cindices is not None else []
+        self.matchedwith: list[int] = matchedwith if matchedwith is not None else []
+        self.isblocked: bool = isblocked
+        self.successorstovisit: list[int] = (
+            successorstovisit if successorstovisit is not None else []
+        )
+        self.qindices: list[int] = qindices if qindices is not None else []
+        self.cindices: list[int] = cindices if cindices is not None else []
 
     @property
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
         if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
+            raise QiskitError(f"The node {str(self)} is not an op node")
         return self._op
 
     @op.setter

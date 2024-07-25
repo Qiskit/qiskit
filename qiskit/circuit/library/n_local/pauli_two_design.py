@@ -75,6 +75,16 @@ class PauliTwoDesign(TwoLocal):
         insert_barriers: bool = False,
         name: str = "PauliTwoDesign",
     ):
+        """
+        Args:
+            num_qubits: The number of qubits of the Pauli Two-Design circuit.
+            reps: Specifies how often a block consisting of a rotation layer and entanglement
+                layer is repeated.
+            seed: The seed for randomly choosing the axes of the Pauli rotations.
+            insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
+                no barriers are inserted. Defaults to ``False``.
+
+        """
         from qiskit.circuit.library import RYGate  # pylint: disable=cyclic-import
 
         # store a random number generator
@@ -108,7 +118,7 @@ class PauliTwoDesign(TwoLocal):
         qubits = range(self.num_qubits)
 
         # if no gates for this layer were generated, generate them
-        if i not in self._gates.keys():
+        if i not in self._gates:
             self._gates[i] = list(self._rng.choice(["rx", "ry", "rz"], self.num_qubits))
         # if not enough gates exist, add more
         elif len(self._gates[i]) < self.num_qubits:

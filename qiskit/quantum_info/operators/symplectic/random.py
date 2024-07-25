@@ -14,6 +14,7 @@ Random symplectic operator functions
 """
 
 from __future__ import annotations
+import math
 
 import numpy as np
 from numpy.random import default_rng
@@ -80,7 +81,7 @@ def random_pauli_list(
     z = rng.integers(2, size=(size, num_qubits)).astype(bool)
     x = rng.integers(2, size=(size, num_qubits)).astype(bool)
     if phase:
-        _phase = rng.integers(4, size=(size))
+        _phase = rng.integers(4, size=size)
         return PauliList.from_symplectic(z, x, _phase)
     return PauliList.from_symplectic(z, x)
 
@@ -162,7 +163,7 @@ def _sample_qmallows(n, rng=None):
     if rng is None:
         rng = np.random.default_rng()
 
-    # Hadmard layer
+    # Hadamard layer
     had = np.zeros(n, dtype=bool)
 
     # Permutation layer
@@ -173,7 +174,7 @@ def _sample_qmallows(n, rng=None):
         m = n - i
         eps = 4 ** (-m)
         r = rng.uniform(0, 1)
-        index = -int(np.ceil(np.log2(r + (1 - r) * eps)))
+        index = -math.ceil(math.log2(r + (1 - r) * eps))
         had[i] = index < m
         if index < m:
             k = index

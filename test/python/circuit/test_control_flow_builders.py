@@ -33,8 +33,8 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
 
 
 class SentinelException(Exception):
@@ -1438,7 +1438,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         These are the deepest tests, hitting all parts of the deferred builder scopes.  We test
         ``if``, ``if/else`` and ``switch`` paths at various levels of the scoping to try and account
-        for as many weird edge cases with the deferred behaviour as possible.  We try to make sure,
+        for as many weird edge cases with the deferred behavior as possible.  We try to make sure,
         particularly in the most complicated examples, that there are resources added before and
         after every single scope, to try and catch all possibilities of where resources may be
         missed.
@@ -2943,7 +2943,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
 
     def test_global_phase_of_blocks(self):
-        """It should be possible to set a global phase of a scope independantly of the containing
+        """It should be possible to set a global phase of a scope independently of the containing
         scope and other sibling scopes."""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
@@ -3245,6 +3245,48 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         self.assertEqual(base, expected)
 
+    def test_rebuild_captures_variables_in_blocks(self):
+        """Test that when the separate blocks of a statement cause it to require a full rebuild of
+        the circuit objects during builder resolution, the variables are all moved over
+        correctly."""
+
+        a = expr.Var.new("🐍🐍🐍", types.Uint(8))
+
+        qc = QuantumCircuit(3, 1, inputs=[a])
+        qc.measure(0, 0)
+        b_outer = qc.add_var("b", False)
+        with qc.switch(a) as case:
+            with case(0):
+                qc.cx(1, 2)
+                qc.store(b_outer, True)
+            with case(1):
+                qc.store(qc.clbits[0], False)
+            with case(2):
+                # Explicit shadowing.
+                b_inner = qc.add_var("b", True)
+            with case(3):
+                qc.store(a, expr.lift(1, a.type))
+            with case(case.DEFAULT):
+                qc.cx(2, 1)
+
+        # (inputs, captures, declares) for each block of the `switch`.
+        expected = [
+            ([], [b_outer], []),
+            ([], [], []),
+            ([], [], [b_inner]),
+            ([], [a], []),
+            ([], [], []),
+        ]
+        actual = [
+            (
+                list(block.iter_input_vars()),
+                list(block.iter_captured_vars()),
+                list(block.iter_declared_vars()),
+            )
+            for block in qc.data[-1].operation.blocks
+        ]
+        self.assertEqual(expected, actual)
+
 
 @ddt.ddt
 class TestControlFlowBuildersFailurePaths(QiskitTestCase):
@@ -3293,7 +3335,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
     def test_for_rejects_reentry(self):
         """Test that the ``for``-loop context manager rejects attempts to re-enter it.  Since it
         holds some forms of state during execution (the loop variable, which may be generated), we
-        can't safely re-enter it and get the expected behaviour."""
+        can't safely re-enter it and get the expected behavior."""
 
         for_manager = QuantumCircuit(2, 2).for_loop(range(2))
         with for_manager:
@@ -3542,7 +3584,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             # As a side-effect of how the lazy building of 'if' statements works, we actually
             # *could* add a condition to the gate after the 'if' block as long as we were still
             # within the 'for' loop.  It should actually manage the resource correctly as well, but
-            # it's "undefined behaviour" than something we specifically want to forbid or allow.
+            # it's "undefined behavior" than something we specifically want to forbid or allow.
             test = QuantumCircuit(bits)
             with test.for_loop(range(2)):
                 with test.if_test(cond):

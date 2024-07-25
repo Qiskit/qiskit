@@ -25,8 +25,9 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
-from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 logger = logging.getLogger(__name__)
 
@@ -397,7 +398,7 @@ class TestDensityMatrix(QiskitTestCase):
             target = {}
             for i in range(2):
                 for j in range(3):
-                    key = "{1}{0}|{1}{0}".format(i, j)
+                    key = f"{j}{i}|{j}{i}"
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, rho.to_dict())
 
@@ -406,7 +407,7 @@ class TestDensityMatrix(QiskitTestCase):
             target = {}
             for i in range(2):
                 for j in range(11):
-                    key = "{1},{0}|{1},{0}".format(i, j)
+                    key = f"{j},{i}|{j},{i}"
                     target[key] = 2 * j + i + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
 

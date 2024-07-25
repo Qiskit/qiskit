@@ -15,7 +15,6 @@
 """Test Qiskit's Instruction class."""
 
 import unittest.mock
-
 import numpy as np
 
 from qiskit.circuit import (
@@ -30,11 +29,12 @@ from qiskit.circuit import (
     Clbit,
     IfElseOp,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, TGate
+from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, SdgGate, TGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.classical import expr
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructions(QiskitTestCase):
@@ -117,6 +117,12 @@ class TestInstructions(QiskitTestCase):
         self.assertFalse(
             Instruction("u", 1, 0, [0.4, phi]).soft_compare(Instruction("v", 1, 0, [theta, phi]))
         )
+
+        # Test that when names are the same but number of qubits differ we get False
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 2, 0, [])))
+
+        # Test that when names are the same but number of clbits differ we get False
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 1, 1, [])))
 
         # Test cutoff precision.
         self.assertFalse(
@@ -417,17 +423,15 @@ class TestInstructions(QiskitTestCase):
         ins1 = Instruction("test_instruction", 3, 5, [0, 1, 2, 3])
         self.assertEqual(
             repr(ins1),
-            "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-                ins1.name, ins1.num_qubits, ins1.num_clbits, ins1.params
-            ),
+            f"Instruction(name='{ins1.name}', num_qubits={ins1.num_qubits}, "
+            f"num_clbits={ins1.num_clbits}, params={ins1.params})",
         )
 
         ins2 = random_circuit(num_qubits=4, depth=4, measure=True).to_instruction()
         self.assertEqual(
             repr(ins2),
-            "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-                ins2.name, ins2.num_qubits, ins2.num_clbits, ins2.params
-            ),
+            f"Instruction(name='{ins2.name}', num_qubits={ins2.num_qubits}, "
+            f"num_clbits={ins2.num_clbits}, params={ins2.params})",
         )
 
     def test_instruction_condition_bits(self):
@@ -562,7 +566,7 @@ class TestInstructions(QiskitTestCase):
             case(1.0, r"Unknown classical resource specifier: .*")
 
     def test_instructionset_c_if_with_no_requester(self):
-        """Test that using a raw :obj:`.InstructionSet` with no classical-resource resoluer accepts
+        """Test that using a raw :obj:`.InstructionSet` with no classical-resource resolver accepts
         arbitrary :obj:`.Clbit` and `:obj:`.ClassicalRegister` instances, but rejects integers."""
 
         with self.subTest("accepts arbitrary register"):
@@ -571,14 +575,14 @@ class TestInstructions(QiskitTestCase):
             instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
             instructions.c_if(register, 0)
-            self.assertIs(instruction.condition[0], register)
+            self.assertIs(instructions[0].operation.condition[0], register)
         with self.subTest("accepts arbitrary bit"):
             instruction = RZGate(0)
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             bit = Clbit()
             instructions.c_if(bit, 0)
-            self.assertIs(instruction.condition[0], bit)
+            self.assertIs(instructions[0].operation.condition[0], bit)
         with self.subTest("rejects index"):
             instruction = RZGate(0)
             instructions = InstructionSet()
@@ -611,7 +615,7 @@ class TestInstructions(QiskitTestCase):
             bit = Clbit()
             instructions.c_if(bit, 0)
             dummy_requester.assert_called_once_with(bit)
-            self.assertIs(instruction.condition[0], sentinel_bit)
+            self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
         with self.subTest("calls requester with index"):
             dummy_requester.reset_mock()
             instruction = RZGate(0)
@@ -620,7 +624,7 @@ class TestInstructions(QiskitTestCase):
             index = 0
             instructions.c_if(index, 0)
             dummy_requester.assert_called_once_with(index)
-            self.assertIs(instruction.condition[0], sentinel_bit)
+            self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
         with self.subTest("calls requester with register"):
             dummy_requester.reset_mock()
             instruction = RZGate(0)
@@ -629,7 +633,7 @@ class TestInstructions(QiskitTestCase):
             register = ClassicalRegister(2)
             instructions.c_if(register, 0)
             dummy_requester.assert_called_once_with(register)
-            self.assertIs(instruction.condition[0], sentinel_register)
+            self.assertIs(instructions[0].operation.condition[0], sentinel_register)
         with self.subTest("calls requester only once when broadcast"):
             dummy_requester.reset_mock()
             instruction_list = [RZGate(0), RZGate(0), RZGate(0)]
@@ -640,7 +644,7 @@ class TestInstructions(QiskitTestCase):
             instructions.c_if(register, 0)
             dummy_requester.assert_called_once_with(register)
             for instruction in instruction_list:
-                self.assertIs(instruction.condition[0], sentinel_register)
+                self.assertIs(instructions[0].operation.condition[0], sentinel_register)
 
     def test_label_type_enforcement(self):
         """Test instruction label type enforcement."""
@@ -655,14 +659,35 @@ class TestInstructions(QiskitTestCase):
                 instruction = RZGate(0)
                 instruction.label = 0
 
-    def test_deprecation_warnings_qasm_methods(self):
-        """Test deprecation warnings for qasm methods."""
-        with self.subTest("built in gates"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                HGate().qasm()
-        with self.subTest("User constructed Instruction"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                Instruction("v", 1, 0, [0.4, 0.5, 0.5]).qasm()
+
+class TestInverseAnnotatedGate(QiskitTestCase):
+    """Tests for inverse gates and the AnnotatedOperation class."""
+
+    def test_inverse_cx(self):
+        """Test creation of inverse CX gate"""
+        gate = CXGate().inverse(annotated=False)
+        self.assertIsInstance(gate, CXGate)
+        gate = CXGate().inverse(annotated=True)
+        self.assertIsInstance(gate, CXGate)
+
+    def test_inverse_s(self):
+        """Test creation of inverse S gate"""
+        gate = SGate().inverse(annotated=False)
+        self.assertIsInstance(gate, SdgGate)
+        gate = SGate().inverse(annotated=True)
+        self.assertIsInstance(gate, SdgGate)
+
+    def test_inverse_custom(self):
+        """Test creation of inverse custom gate"""
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.h(0)
+        gate = circ.to_instruction()
+        self.assertIsInstance(gate, Instruction)
+        inverse_gate = gate.inverse(annotated=False)
+        self.assertIsInstance(inverse_gate, Instruction)
+        inverse_gate = gate.inverse(annotated=True)
+        self.assertIsInstance(inverse_gate, AnnotatedOperation)
 
 
 if __name__ == "__main__":

@@ -30,20 +30,21 @@ instruction occuring in parallel over multiple signal *channels*.
    Schedule
    ScheduleBlock
 """
-
+from __future__ import annotations
 import abc
 import copy
 import functools
 import itertools
 import multiprocessing as mp
-import re
 import sys
 import warnings
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
+from collections.abc import Callable, Iterable
+from typing import List, Tuple, Union, Dict, Any, Sequence
 
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -52,6 +53,7 @@ from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
+from qiskit.utils import deprecate_arg
 
 
 Interval = Tuple[int, int]
@@ -103,7 +105,7 @@ class Schedule:
     A :obj:`.PulseError` is immediately raised when the overlap constraint is violated.
 
     In the schedule representation, we cannot parametrize the duration of instructions.
-    Thus we need to create a new schedule object for each duration.
+    Thus, we need to create a new schedule object for each duration.
     To parametrize an instruction's duration, the :class:`~qiskit.pulse.ScheduleBlock`
     representation may be used instead.
 
@@ -120,9 +122,9 @@ class Schedule:
 
     def __init__(
         self,
-        *schedules: Union["ScheduleComponent", Tuple[int, "ScheduleComponent"]],
-        name: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        *schedules: "ScheduleComponent" | tuple[int, "ScheduleComponent"],
+        name: str | None = None,
+        metadata: dict | None = None,
     ):
         """Create an empty schedule.
 
@@ -154,8 +156,8 @@ class Schedule:
         self._duration = 0
 
         # These attributes are populated by ``_mutable_insert``
-        self._timeslots = {}
-        self._children = []
+        self._timeslots: TimeSlots = {}
+        self._children: list[tuple[int, "ScheduleComponent"]] = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -165,7 +167,7 @@ class Schedule:
             self._mutable_insert(time, sched)
 
     @classmethod
-    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "Schedule":
+    def initialize_from(cls, other_program: Any, name: str | None = None) -> "Schedule":
         """Create new schedule object with metadata of another schedule object.
 
         Args:
@@ -199,7 +201,7 @@ class Schedule:
         return self._name
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """The user provided metadata associated with the schedule.
 
         User provided ``dict`` of metadata for the schedule.
@@ -239,18 +241,18 @@ class Schedule:
         return self.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> tuple[Channel, ...]:
         """Returns channels that this schedule uses."""
         return tuple(self._timeslots.keys())
 
     @property
-    def children(self) -> Tuple[Tuple[int, "ScheduleComponent"], ...]:
+    def children(self) -> tuple[tuple[int, "ScheduleComponent"], ...]:
         """Return the child schedule components of this ``Schedule`` in the
         order they were added to the schedule.
 
         Notes:
             Nested schedules are returned as-is. If you want to collect only instructions,
-            use py:meth:`~Schedule.instructions` instead.
+            use :py:meth:`~Schedule.instructions` instead.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
@@ -260,7 +262,7 @@ class Schedule:
         return tuple(self._children)
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, Instruction]]:
+    def instructions(self) -> tuple[tuple[int, Instruction], ...]:
         """Get the time-ordered instructions from self."""
 
         def key(time_inst_pair):
@@ -270,7 +272,7 @@ class Schedule:
         return tuple(sorted(self._instructions(), key=key))
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set[Parameter]:
         """Parameters which determine the schedule behavior."""
         return self._parameter_manager.parameters
 
@@ -322,7 +324,7 @@ class Schedule:
         for insert_time, child_sched in self.children:
             yield from child_sched._instructions(time + insert_time)
 
-    def shift(self, time: int, name: Optional[str] = None, inplace: bool = False) -> "Schedule":
+    def shift(self, time: int, name: str | None = None, inplace: bool = False) -> "Schedule":
         """Return a schedule shifted forward by ``time``.
 
         Args:
@@ -335,7 +337,7 @@ class Schedule:
             return self._mutable_shift(time)
         return self._immutable_shift(time, name=name)
 
-    def _immutable_shift(self, time: int, name: Optional[str] = None) -> "Schedule":
+    def _immutable_shift(self, time: int, name: str | None = None) -> "Schedule":
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -374,7 +376,7 @@ class Schedule:
         self,
         start_time: int,
         schedule: "ScheduleComponent",
-        name: Optional[str] = None,
+        name: str | None = None,
         inplace: bool = False,
     ) -> "Schedule":
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
@@ -406,7 +408,7 @@ class Schedule:
         self,
         start_time: int,
         schedule: "ScheduleComponent",
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> "Schedule":
         """Return a new schedule with ``schedule`` inserted into ``self`` at ``start_time``.
         Args:
@@ -420,7 +422,7 @@ class Schedule:
         return new_sched
 
     def append(
-        self, schedule: "ScheduleComponent", name: Optional[str] = None, inplace: bool = False
+        self, schedule: "ScheduleComponent", name: str | None = None, inplace: bool = False
     ) -> "Schedule":
         r"""Return a new schedule with ``schedule`` inserted at the maximum time over
         all channels shared between ``self`` and ``schedule``.
@@ -443,10 +445,10 @@ class Schedule:
     def filter(
         self,
         *filter_funcs: Callable,
-        channels: Optional[Iterable[Channel]] = None,
-        instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
-        time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-        intervals: Optional[Iterable[Interval]] = None,
+        channels: Iterable[Channel] | None = None,
+        instruction_types: Iterable[abc.ABCMeta] | abc.ABCMeta = None,
+        time_ranges: Iterable[tuple[int, int]] | None = None,
+        intervals: Iterable[Interval] | None = None,
         check_subroutine: bool = True,
     ) -> "Schedule":
         """Return a new ``Schedule`` with only the instructions from this ``Schedule`` which pass
@@ -480,15 +482,15 @@ class Schedule:
     def exclude(
         self,
         *filter_funcs: Callable,
-        channels: Optional[Iterable[Channel]] = None,
-        instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
-        time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-        intervals: Optional[Iterable[Interval]] = None,
+        channels: Iterable[Channel] | None = None,
+        instruction_types: Iterable[abc.ABCMeta] | abc.ABCMeta = None,
+        time_ranges: Iterable[tuple[int, int]] | None = None,
+        intervals: Iterable[Interval] | None = None,
         check_subroutine: bool = True,
     ) -> "Schedule":
         """Return a ``Schedule`` with only the instructions from this Schedule *failing*
         at least one of the provided filters.
-        This method is the complement of py:meth:`~self.filter`, so that::
+        This method is the complement of :py:meth:`~Schedule.filter`, so that::
 
             self.filter(args) | self.exclude(args) == self
 
@@ -551,17 +553,10 @@ class Schedule:
                     self._timeslots[channel].insert(index, interval)
                 except PulseError as ex:
                     raise PulseError(
-                        "Schedule(name='{new}') cannot be inserted into Schedule(name='{old}') at "
-                        "time {time} because its instruction on channel {ch} scheduled from time "
-                        "{t0} to {tf} overlaps with an existing instruction."
-                        "".format(
-                            new=schedule.name or "",
-                            old=self.name or "",
-                            time=time,
-                            ch=channel,
-                            t0=interval[0],
-                            tf=interval[1],
-                        )
+                        f"Schedule(name='{schedule.name or ''}') cannot be inserted into "
+                        f"Schedule(name='{self.name or ''}') at "
+                        f"time {time} because its instruction on channel {channel} scheduled from time "
+                        f"{interval[0]} to {interval[1]} overlaps with an existing instruction."
                     ) from ex
 
         _check_nonnegative_timeslot(self._timeslots)
@@ -596,10 +591,8 @@ class Schedule:
                         continue
 
                 raise PulseError(
-                    "Cannot find interval ({t0}, {tf}) to remove from "
-                    "channel {ch} in Schedule(name='{name}').".format(
-                        ch=channel, t0=interval[0], tf=interval[1], name=schedule.name
-                    )
+                    f"Cannot find interval ({interval[0]}, {interval[1]}) to remove from "
+                    f"channel {channel} in Schedule(name='{schedule.name}')."
                 )
 
             if not channel_timeslots:
@@ -711,13 +704,19 @@ class Schedule:
         return self._parameter_manager.is_parameterized()
 
     def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType], inplace: bool = True
+        self,
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
+        inplace: bool = True,
     ) -> "Schedule":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -729,7 +728,7 @@ class Schedule:
 
         return self._parameter_manager.assign_parameters(pulse_program=self, value_dict=value_dict)
 
-    def get_parameters(self, parameter_name: str) -> List[Parameter]:
+    def get_parameters(self, parameter_name: str) -> list[Parameter]:
         """Get parameter object bound to this schedule by string name.
 
         Because different ``Parameter`` objects can have the same name,
@@ -759,7 +758,7 @@ class Schedule:
         """Return a new schedule which is shifted forward by ``time``."""
         return self.shift(time)
 
-    def __eq__(self, other: "ScheduleComponent") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Test if two Schedule are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -878,83 +877,53 @@ class ScheduleBlock:
     Appended reference directives are resolved when the main program is executed.
     Subroutines must be assigned through :meth:`assign_references` before execution.
 
-    .. rubric:: Program Scoping
-
-    When you call a subroutine from another subroutine, or append a schedule block
-    to another schedule block, the management of references and parameters
-    can be a hard task. Schedule block offers a convenient feature to help with this
-    by automatically scoping the parameters and subroutines.
+    One way to reference a subroutine in a schedule is to use the pulse
+    builder's :func:`~qiskit.pulse.builder.reference`  function to declare an
+    unassigned reference.  In this example, the program is called with the
+    reference key "grand_child".  You can call a subroutine without specifying
+    a substantial program.
 
     .. code-block::
 
         from qiskit import pulse
         from qiskit.circuit.parameter import Parameter
 
-        amp1 = Parameter("amp")
+        amp1 = Parameter("amp1")
+        amp2 = Parameter("amp2")
 
-        with pulse.build() as sched1:
+        with pulse.build() as sched_inner:
             pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
 
-        print(sched1.scoped_parameters())
-
-    .. parsed-literal::
-
-       (Parameter(root::amp),)
-
-    The :meth:`~ScheduleBlock.scoped_parameters` method returns all :class:`~.Parameter`
-    objects defined in the schedule block. The parameter name is updated to reflect
-    its scope information, i.e. where it is defined.
-    The outer scope is called "root". Since the "amp" parameter is directly used
-    in the current builder context, it is prefixed with "root".
-    Note that the :class:`Parameter` object returned by :meth:`~ScheduleBlock.scoped_parameters`
-    preserves the hidden `UUID`_ key, and thus the scoped name doesn't break references
-    to the original :class:`Parameter`.
-
-    You may want to call this program from another program.
-    In this example, the program is called with the reference key "grand_child".
-    You can call a subroutine without specifying a substantial program
-    (like ``sched1`` above which we will assign later).
-
-    .. code-block::
-
-        amp2 = Parameter("amp")
-
-        with pulse.build() as sched2:
+        with pulse.build() as sched_outer:
             with pulse.align_right():
                 pulse.reference("grand_child")
                 pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(0))
 
-        print(sched2.scoped_parameters())
-
-    .. parsed-literal::
-
-       (Parameter(root::amp),)
-
-    This only returns "root::amp" because the "grand_child" reference is unknown.
-    Now you assign the actual pulse program to this reference.
+    Now you assign the inner pulse program to this reference.
 
     .. code-block::
 
-        sched2.assign_references({("grand_child", ): sched1})
-        print(sched2.scoped_parameters())
+        sched_outer.assign_references({("grand_child", ): sched_inner})
+        print(sched_outer.parameters)
 
     .. parsed-literal::
 
-       (Parameter(root::amp), Parameter(root::grand_child::amp))
+       {Parameter(amp1), Parameter(amp2)}
 
-    Now you get two parameters "root::amp" and "root::grand_child::amp".
-    The second parameter name indicates it is defined within the referred program "grand_child".
+    The outer program now has the parameter ``amp2`` from the inner program,
+    indicating that the inner program's data has been made available to the
+    outer program.
     The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
 
     .. code-block::
 
-        print(sched2.references)
+        print(sched_outer.references)
 
     .. parsed-literal::
 
        ReferenceManager:
-         - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp,...
+         - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp1,...
 
     Finally, you may want to call this program from another program.
     Here we try a different approach to define subroutine. Namely, we call
@@ -962,37 +931,20 @@ class ScheduleBlock:
 
     .. code-block::
 
-        amp3 = Parameter("amp")
+        amp3 = Parameter("amp3")
 
         with pulse.build() as main:
             pulse.play(pulse.Constant(300, amp3), pulse.DriveChannel(0))
-            pulse.call(sched2, name="child")
+            pulse.call(sched_outer, name="child")
 
-        print(main.scoped_parameters())
+        print(main.parameters)
 
     .. parsed-literal::
 
-       (Parameter(root::amp), Parameter(root::child::amp), Parameter(root::child::grand_child::amp))
+       {Parameter(amp1), Parameter(amp2), Parameter(amp3}
 
     This implicitly creates a reference named "child" within
-    the root program and assigns ``sched2`` to it.
-    You get three parameters "root::amp", "root::child::amp", and "root::child::grand_child::amp".
-    As you can see, each parameter name reflects the layer of calls from the root program.
-    If you know the scope of a parameter, you can directly get the parameter object
-    using :meth:`ScheduleBlock.search_parameters` as follows.
-
-    .. code-block::
-
-        main.search_parameters("root::child::grand_child::amp")
-
-    You can use a regular expression to specify the scope.
-    The following returns the parameters defined within the scope of "ground_child"
-    regardless of its parent scope. This is sometimes convenient if you
-    want to extract parameters from a deeply nested program.
-
-    .. code-block::
-
-        main.search_parameters("\\S::grand_child::amp")
+    the root program and assigns ``sched_outer`` to it.
 
     Note that the root program is only aware of its direct references.
 
@@ -1014,10 +966,8 @@ class ScheduleBlock:
 
         main.references[("child", )].references[("grand_child", )]
 
-    Note that :attr:`ScheduleBlock.parameters` and :meth:`ScheduleBlock.scoped_parameters()`
-    still collect all parameters also from the subroutine once it's assigned.
-
-    .. _UUID: https://docs.python.org/3/library/uuid.html#module-uuid
+    Note that :attr:`ScheduleBlock.parameters` still collects all parameters
+    also from the subroutine once it's assigned.
     """
 
     __slots__ = (
@@ -1037,7 +987,7 @@ class ScheduleBlock:
     instances_counter = itertools.count()
 
     def __init__(
-        self, name: Optional[str] = None, metadata: Optional[dict] = None, alignment_context=None
+        self, name: str | None = None, metadata: dict | None = None, alignment_context=None
     ):
         """Create an empty schedule block.
 
@@ -1067,13 +1017,13 @@ class ScheduleBlock:
         # The nested schedule block objects should not have _reference_manager and
         # should refer to the one of the root program.
         # This also means referenced program should be assigned to the root program, not to child.
-        self._parent = None
+        self._parent: ScheduleBlock | None = None
 
         self._name = name
         self._parameter_manager = ParameterManager()
         self._reference_manager = ReferenceManager()
         self._alignment_context = alignment_context or AlignLeft()
-        self._blocks = []
+        self._blocks: list["BlockComponent"] = []
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)
@@ -1083,7 +1033,7 @@ class ScheduleBlock:
         self._metadata = metadata or {}
 
     @classmethod
-    def initialize_from(cls, other_program: Any, name: Optional[str] = None) -> "ScheduleBlock":
+    def initialize_from(cls, other_program: Any, name: str | None = None) -> "ScheduleBlock":
         """Create new schedule object with metadata of another schedule object.
 
         Args:
@@ -1122,7 +1072,7 @@ class ScheduleBlock:
         return self._name
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """The user provided metadata associated with the schedule.
 
         User provided ``dict`` of metadata for the schedule.
@@ -1173,9 +1123,9 @@ class ScheduleBlock:
         return self.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> tuple[Channel, ...]:
         """Returns channels that this schedule block uses."""
-        chans = set()
+        chans: set[Channel] = set()
         for elm in self.blocks:
             if isinstance(elm, Reference):
                 raise UnassignedReferenceError(
@@ -1187,12 +1137,12 @@ class ScheduleBlock:
 
     @property
     @_require_schedule_conversion
-    def instructions(self) -> Tuple[Tuple[int, Instruction]]:
+    def instructions(self) -> tuple[tuple[int, Instruction]]:
         """Get the time-ordered instructions from self."""
         return self.instructions
 
     @property
-    def blocks(self) -> Tuple["BlockComponent", ...]:
+    def blocks(self) -> tuple["BlockComponent", ...]:
         """Get the block elements added to self.
 
         .. note::
@@ -1212,7 +1162,7 @@ class ScheduleBlock:
         return tuple(blocks)
 
     @property
-    def parameters(self) -> Set[Parameter]:
+    def parameters(self) -> set[Parameter]:
         """Return unassigned parameters with raw names."""
         # Need new object not to mutate parameter_manager.parameters
         out_params = set()
@@ -1224,25 +1174,6 @@ class ScheduleBlock:
             out_params |= subroutine.parameters
 
         return out_params
-
-    def scoped_parameters(self) -> Tuple[Parameter]:
-        """Return unassigned parameters with scoped names.
-
-        .. note::
-
-            If a parameter is defined within a nested scope,
-            it is prefixed with all parent-scope names with the delimiter string,
-            which is "::". If a reference key of the scope consists of
-            multiple key strings, it will be represented by a single string joined with ",".
-            For example, "root::xgate,q0::amp" for the parameter "amp" defined in the
-            reference specified by the key strings ("xgate", "q0").
-        """
-        return tuple(
-            sorted(
-                _collect_scoped_parameters(self, current_scope="root").values(),
-                key=lambda p: p.name,
-            )
-        )
 
     @property
     def references(self) -> ReferenceManager:
@@ -1261,7 +1192,7 @@ class ScheduleBlock:
         return self.ch_duration(*channels)
 
     def append(
-        self, block: "BlockComponent", name: Optional[str] = None, inplace: bool = True
+        self, block: "BlockComponent", name: str | None = None, inplace: bool = True
     ) -> "ScheduleBlock":
         """Return a new schedule block with ``block`` appended to the context block.
         The execution time is automatically assigned when the block is converted into schedule.
@@ -1323,9 +1254,9 @@ class ScheduleBlock:
 
     def filter(
         self,
-        *filter_funcs: List[Callable],
-        channels: Optional[Iterable[Channel]] = None,
-        instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
+        *filter_funcs: Callable[..., bool],
+        channels: Iterable[Channel] | None = None,
+        instruction_types: Iterable[abc.ABCMeta] | abc.ABCMeta = None,
         check_subroutine: bool = True,
     ):
         """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
@@ -1362,14 +1293,14 @@ class ScheduleBlock:
 
     def exclude(
         self,
-        *filter_funcs: List[Callable],
-        channels: Optional[Iterable[Channel]] = None,
-        instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
+        *filter_funcs: Callable[..., bool],
+        channels: Iterable[Channel] | None = None,
+        instruction_types: Iterable[abc.ABCMeta] | abc.ABCMeta = None,
         check_subroutine: bool = True,
     ):
         """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
         *failing* at least one of the provided filters.
-        This method is the complement of py:meth:`~self.filter`, so that::
+        This method is the complement of :py:meth:`~ScheduleBlock.filter`, so that::
 
             self.filter(args) + self.exclude(args) == self in terms of instructions included.
 
@@ -1476,14 +1407,18 @@ class ScheduleBlock:
 
     def assign_parameters(
         self,
-        value_dict: Dict[ParameterExpression, ParameterValueType],
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1511,7 +1446,7 @@ class ScheduleBlock:
 
     def assign_references(
         self,
-        subroutine_dict: Dict[Union[str, Tuple[str, ...]], "ScheduleBlock"],
+        subroutine_dict: dict[str | tuple[str, ...], "ScheduleBlock"],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign schedules to references.
@@ -1589,7 +1524,7 @@ class ScheduleBlock:
 
         return self
 
-    def get_parameters(self, parameter_name: str) -> List[Parameter]:
+    def get_parameters(self, parameter_name: str) -> list[Parameter]:
         """Get parameter object bound to this schedule by string name.
 
         Note that we can define different parameter objects with the same name,
@@ -1623,48 +1558,11 @@ class ScheduleBlock:
         matched = [p for p in self.parameters if p.name == parameter_name]
         return matched
 
-    def search_parameters(self, parameter_regex: str) -> List[Parameter]:
-        """Search parameter with regular expression.
-
-        This method looks for the scope-aware parameters.
-        For example,
-
-        .. code-block:: python
-
-            from qiskit import pulse, circuit
-
-            amp1 = circuit.Parameter("amp")
-            amp2 = circuit.Parameter("amp")
-
-            with pulse.build() as sub_prog:
-                pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
-
-            with pulse.build() as main_prog:
-                pulse.call(sub_prog, name="sub")
-                pulse.play(pulse.Constant(100, amp2), pulse.DriveChannel(0))
-
-            main_prog.search_parameters("root::sub::amp")
-
-        This finds ``amp1`` with scoped name "root::sub::amp".
-
-        Args:
-            parameter_regex: Regular expression for scoped parameter name.
-
-        Returns:
-            Parameter objects that have corresponding name.
-        """
-        pattern = re.compile(parameter_regex)
-
-        return sorted(
-            _collect_scoped_parameters(self, current_scope="root", filter_regex=pattern).values(),
-            key=lambda p: p.name,
-        )
-
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
         return len(self.blocks)
 
-    def __eq__(self, other: "ScheduleBlock") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Test if two ScheduleBlocks are equal.
 
         Equality is checked by verifying there is an equal instruction at every time
@@ -1708,8 +1606,9 @@ class ScheduleBlock:
         blocks = ", ".join([repr(instr) for instr in self.blocks[:50]])
         if len(self.blocks) > 25:
             blocks += ", ..."
-        return '{}({}, name="{}", transform={})'.format(
-            self.__class__.__name__, blocks, name, repr(self.alignment_context)
+        return (
+            f'{self.__class__.__name__}({blocks}, name="{name}",'
+            f" transform={repr(self.alignment_context)})"
         )
 
     def __add__(self, other: "BlockComponent") -> "ScheduleBlock":
@@ -1739,20 +1638,22 @@ def _common_method(*classes):
     return decorator
 
 
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
-    style: Optional[Dict[str, Any]] = None,
+    style: dict[str, Any] | None = None,
     backend=None,  # importing backend causes cyclic import
-    time_range: Optional[Tuple[int, int]] = None,
+    time_range: tuple[int, int] | None = None,
     time_unit: str = "dt",
-    disable_channels: Optional[List[Channel]] = None,
+    disable_channels: list[Channel] | None = None,
     show_snapshot: bool = True,
     show_framechange: bool = True,
     show_waveform_info: bool = True,
-    show_barrier: bool = True,
+    plot_barrier: bool = True,
     plotter: str = "mpl2d",
-    axis: Optional[Any] = None,
+    axis: Any | None = None,
+    show_barrier: bool = True,
 ):
     """Plot the schedule.
 
@@ -1764,16 +1665,16 @@ def draw(
             preset stylesheets.
         backend (Optional[BaseBackend]): Backend object to play the input pulse program.
             If provided, the plotter may use to make the visualization hardware aware.
-        time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
-        time_unit: The unit of specified time range either `dt` or `ns`.
-            The unit of `ns` is available only when `backend` object is provided.
+        time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
+        time_unit: The unit of specified time range either ``dt`` or ``ns``.
+            The unit of `ns` is available only when ``backend`` object is provided.
         disable_channels: A control property to show specific pulse channel.
             Pulse channel instances provided as a list are not shown in the output image.
         show_snapshot: Show snapshot instructions.
         show_framechange: Show frame change instructions. The frame change represents
             instructions that modulate phase or frequency of pulse channels.
         show_waveform_info: Show additional information about waveforms such as their name.
-        show_barrier: Show barrier lines.
+        plot_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
@@ -1786,6 +1687,7 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
+        show_barrier: DEPRECATED. Show barrier lines.
 
     Returns:
         Visualization output data.
@@ -1795,6 +1697,7 @@ def draw(
     # pylint: disable=cyclic-import
     from qiskit.visualization import pulse_drawer
 
+    del show_barrier
     return pulse_drawer(
         program=self,
         style=style,
@@ -1805,13 +1708,13 @@ def draw(
         show_snapshot=show_snapshot,
         show_framechange=show_framechange,
         show_waveform_info=show_waveform_info,
-        show_barrier=show_barrier,
+        plot_barrier=plot_barrier,
         plotter=plotter,
         axis=axis,
     )
 
 
-def _interval_index(intervals: List[Interval], interval: Interval) -> int:
+def _interval_index(intervals: list[Interval], interval: Interval) -> int:
     """Find the index of an interval.
 
     Args:
@@ -1831,7 +1734,7 @@ def _interval_index(intervals: List[Interval], interval: Interval) -> int:
     return index
 
 
-def _locate_interval_index(intervals: List[Interval], interval: Interval, index: int = 0) -> int:
+def _locate_interval_index(intervals: list[Interval], interval: Interval, index: int = 0) -> int:
     """Using binary search on start times, find an interval.
 
     Args:
@@ -1854,7 +1757,7 @@ def _locate_interval_index(intervals: List[Interval], interval: Interval, index:
         return _locate_interval_index(intervals[mid_idx:], interval, index=index + mid_idx)
 
 
-def _find_insertion_index(intervals: List[Interval], new_interval: Interval) -> int:
+def _find_insertion_index(intervals: list[Interval], new_interval: Interval) -> int:
     """Using binary search on start times, return the index into `intervals` where the new interval
     belongs, or raise an error if the new interval overlaps with any existing ones.
     Args:
@@ -1919,7 +1822,7 @@ def _get_timeslots(schedule: "ScheduleComponent") -> TimeSlots:
     return timeslots
 
 
-def _get_references(block_elms: List["BlockComponent"]) -> Set[Reference]:
+def _get_references(block_elms: list["BlockComponent"]) -> set[Reference]:
     """Recursively get reference instructions in the current scope.
 
     Args:
@@ -1935,56 +1838,6 @@ def _get_references(block_elms: List["BlockComponent"]) -> Set[Reference]:
         elif isinstance(elm, Reference):
             references.add(elm)
     return references
-
-
-def _collect_scoped_parameters(
-    schedule: ScheduleBlock,
-    current_scope: str,
-    filter_regex: Optional[re.Pattern] = None,
-) -> Dict[Tuple[str, int], Parameter]:
-    """A helper function to collect parameters from all references in scope-aware fashion.
-
-    Parameter object is renamed with attached scope information but its UUID is remained.
-    This means object is treated identically on the assignment logic.
-    This function returns a dictionary of all parameters existing in the target program
-    including its reference, which is keyed on the unique identifier consisting of
-    scoped parameter name and parameter object UUID.
-
-    This logic prevents parameter clash in the different scope.
-    For example, when two parameter objects with the same UUID exist in different references,
-    both of them appear in the output dictionary, even though they are technically the same object.
-    This feature is particularly convenient to search parameter object with associated scope.
-
-    Args:
-        schedule: Schedule to get parameters.
-        current_scope: Name of scope where schedule exist.
-        filter_regex: Optional. Compiled regex to sort parameter by name.
-
-    Returns:
-        A dictionary of scoped parameter objects.
-    """
-    parameters_out = {}
-    for param in schedule._parameter_manager.parameters:
-        new_name = f"{current_scope}{Reference.scope_delimiter}{param.name}"
-
-        if filter_regex and not re.search(filter_regex, new_name):
-            continue
-        scoped_param = Parameter(new_name, uuid=getattr(param, "_uuid"))
-
-        unique_key = new_name, hash(param)
-        parameters_out[unique_key] = scoped_param
-
-    for sub_namespace, subroutine in schedule.references.items():
-        if subroutine is None:
-            continue
-        composite_key = Reference.key_delimiter.join(sub_namespace)
-        full_path = f"{current_scope}{Reference.scope_delimiter}{composite_key}"
-        sub_parameters = _collect_scoped_parameters(
-            subroutine, current_scope=full_path, filter_regex=filter_regex
-        )
-        parameters_out.update(sub_parameters)
-
-    return parameters_out
 
 
 # These type aliases are defined at the bottom of the file, because as of 2022-01-18 they are

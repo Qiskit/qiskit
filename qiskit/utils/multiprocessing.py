@@ -14,8 +14,7 @@
 
 import multiprocessing as mp
 import platform
-
-import psutil
+import os
 
 
 def local_hardware_info():
@@ -27,13 +26,22 @@ def local_hardware_info():
     Returns:
         dict: The hardware information.
     """
+
+    if hasattr(os, "sched_getaffinity"):
+        num_cpus = len(os.sched_getaffinity(0))
+    else:
+        num_cpus = os.cpu_count()
+    if num_cpus is None:
+        num_cpus = 1
+    else:
+        num_cpus = int(num_cpus / 2) or 1
+
     results = {
         "python_compiler": platform.python_compiler(),
         "python_build": ", ".join(platform.python_build()),
         "python_version": platform.python_version(),
         "os": platform.system(),
-        "memory": psutil.virtual_memory().total / (1024**3),
-        "cpus": psutil.cpu_count(logical=False) or 1,
+        "cpus": num_cpus,
     }
     return results
 

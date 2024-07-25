@@ -15,11 +15,12 @@
 """Test delay instruction for quantum circuits."""
 
 import numpy as np
+
 from qiskit.circuit import Delay
 from qiskit.circuit import Parameter, ParameterVector
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test.base import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDelayClass(QiskitTestCase):
@@ -80,6 +81,17 @@ class TestDelayClass(QiskitTestCase):
         expected.delay(200, 1)
         expected.delay(300, 1)
         expected.delay(300, 2)
+        self.assertEqual(qc, expected)
+
+    def test_delay_set(self):
+        """Test that a set argument to `delay` works."""
+        qc = QuantumCircuit(5)
+        qc.delay(8, {0, 1, 3, 4})
+        expected = QuantumCircuit(5)
+        expected.delay(8, 0)
+        expected.delay(8, 1)
+        expected.delay(8, 3)
+        expected.delay(8, 4)
         self.assertEqual(qc, expected)
 
     def test_to_matrix_return_identity_matrix(self):

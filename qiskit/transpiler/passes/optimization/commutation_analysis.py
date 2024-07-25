@@ -14,9 +14,9 @@
 
 from collections import defaultdict
 
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class CommutationAnalysis(AnalysisPass):
@@ -29,7 +29,7 @@ class CommutationAnalysis(AnalysisPass):
 
     def __init__(self):
         super().__init__()
-        self.comm_checker = CommutationChecker()
+        self.comm_checker = scc
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -47,16 +47,16 @@ class CommutationAnalysis(AnalysisPass):
         # self.property_set['commutation_set'][wire][(node, wire)] will give the
         # commutation set that contains node.
 
-        for wire in dag.wires:
+        for wire in dag.qubits:
             self.property_set["commutation_set"][wire] = []
 
         # Add edges to the dictionary for each qubit
         for node in dag.topological_op_nodes():
-            for (_, _, edge_wire) in dag.edges(node):
+            for _, _, edge_wire in dag.edges(node):
                 self.property_set["commutation_set"][(node, edge_wire)] = -1
 
         # Construct the commutation set
-        for wire in dag.wires:
+        for wire in dag.qubits:
 
             for current_gate in dag.nodes_on_wire(wire):
 
@@ -72,14 +72,7 @@ class CommutationAnalysis(AnalysisPass):
                         does_commute = (
                             isinstance(current_gate, DAGOpNode)
                             and isinstance(prev_gate, DAGOpNode)
-                            and self.comm_checker.commute(
-                                current_gate.op,
-                                current_gate.qargs,
-                                current_gate.cargs,
-                                prev_gate.op,
-                                prev_gate.qargs,
-                                prev_gate.cargs,
-                            )
+                            and self.comm_checker.commute_nodes(current_gate, prev_gate)
                         )
                         if not does_commute:
                             break

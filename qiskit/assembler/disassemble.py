@@ -23,6 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.utils import deprecate_func
 
 # A ``CircuitModule`` is a representation of a circuit execution on the backend.
 # It is currently a list of quantum circuits to execute, a run Qobj dictionary
@@ -36,21 +37,15 @@ CircuitModule = NewType(
 # and a header dictionary.
 PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
 
-# Prevent the disassembler from accessing deprecated circuit methods. This can happen for
-# gates where the name of the gate matches a circuit method (e.g. Isometry.name is "isometry")
-# and the circuit attribute is also QuantumCircuit.isometry
-_DEPRECATED_CIRCUIT_METHODS = {
-    "isometry",
-    "snapshot",
-    "ucrx",
-    "ucry",
-    "ucrz",
-    "squ",
-    "diagonal",
-    "hamiltonian",
-}
 
-
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+    "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+    "workflow requires `Qobj` it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
+)
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
 
@@ -123,7 +118,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib):
         config = (tuple(gate["qubits"]), tuple(gate["params"]))
         cal = {
             config: pulse.Schedule(
-                name="{} {} {}".format(gate["name"], str(gate["params"]), str(gate["qubits"]))
+                name=f"{gate['name']} {str(gate['params'])} {str(gate['qubits'])}"
             )
         }
         for instruction in gate["instructions"]:
@@ -179,9 +174,7 @@ def _experiments_to_circuits(qobj):
                     clbits.append(creg_dict[clbit_label[0]][clbit_label[1]])
             except Exception:  # pylint: disable=broad-except
                 pass
-            # TODO remove the check that name is not in the deprecated circuit methods
-            # once the methods have been removed
-            if hasattr(circuit, name) and name not in _DEPRECATED_CIRCUIT_METHODS:
+            if hasattr(circuit, name):
                 instr_method = getattr(circuit, name)
                 if i.name == "initialize":
                     _inst = instr_method(params, qubits)
@@ -247,13 +240,12 @@ def _experiments_to_circuits(qobj):
         pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, "pulse_library") else []
         # The dict update method did not work here; could investigate in the future
         if hasattr(qobj.config, "calibrations"):
-            circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib)
-            )
+            circuit.calibrations = {
+                **circuit.calibrations,
+                **_qobj_to_circuit_cals(qobj, pulse_lib),
+            }
         if hasattr(exp.config, "calibrations"):
-            circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)
-            )
+            circuit.calibrations = {**circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)}
         circuits.append(circuit)
     return circuits
 

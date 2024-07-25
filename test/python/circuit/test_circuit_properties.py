@@ -14,12 +14,13 @@
 
 import unittest
 import numpy as np
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Clbit
-from qiskit.circuit.library import RXGate, RYGate
-from qiskit.test import QiskitTestCase
+from qiskit.circuit.classical import expr, types
+from qiskit.circuit.library import RXGate, RYGate, GlobalPhaseGate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions.simulator import Snapshot
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -561,80 +562,6 @@ class TestCircuitProperties(QiskitTestCase):
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
 
-    def test_circuit_depth_snap1(self):
-        """Test circuit depth for snapshots #1."""
-
-        #      ┌───┐      ░
-        # q_0: ┤ H ├──■───░───────────
-        #      └───┘┌─┴─┐ ░
-        # q_1: ─────┤ X ├─░───────────
-        #           └───┘ ░ ┌───┐
-        # q_2: ───────────░─┤ H ├──■──
-        #                 ░ └───┘┌─┴─┐
-        # q_3: ───────────░──────┤ X ├
-        #                 ░      └───┘
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        circ = QuantumCircuit(q, c)
-        circ.h(0)
-        circ.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap", num_qubits=4), [0, 1, 2, 3])
-        circ.h(2)
-        circ.cx(2, 3)
-        self.assertEqual(circ.depth(), 4)
-
-    def test_circuit_depth_snap2(self):
-        """Test circuit depth for snapshots #2."""
-
-        #      ┌───┐ ░       ░       ░
-        # q_0: ┤ H ├─░───■───░───────░──────
-        #      └───┘ ░ ┌─┴─┐ ░       ░
-        # q_1: ──────░─┤ X ├─░───────░──────
-        #            ░ └───┘ ░ ┌───┐ ░
-        # q_2: ──────░───────░─┤ H ├─░───■──
-        #            ░       ░ └───┘ ░ ┌─┴─┐
-        # q_3: ──────░───────░───────░─┤ X ├
-        #            ░       ░       ░ └───┘
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        circ = QuantumCircuit(q, c)
-        circ.h(0)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
-        circ.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
-        circ.h(2)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap2", num_qubits=4), [0, 1, 2, 3])
-        circ.cx(2, 3)
-        self.assertEqual(circ.depth(), 4)
-
-    def test_circuit_depth_snap3(self):
-        """Test circuit depth for snapshots #3."""
-
-        #      ┌───┐      ░  ░
-        # q_0: ┤ H ├──■───░──░───────────
-        #      └───┘┌─┴─┐ ░  ░
-        # q_1: ─────┤ X ├─░──░───────────
-        #           └───┘ ░  ░ ┌───┐
-        # q_2: ───────────░──░─┤ H ├──■──
-        #                 ░  ░ └───┘┌─┴─┐
-        # q_3: ───────────░──░──────┤ X ├
-        #                 ░  ░      └───┘
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        circ = QuantumCircuit(q, c)
-        circ.h(0)
-        circ.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
-            circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
-        circ.h(2)
-        circ.cx(2, 3)
-        self.assertEqual(circ.depth(), 4)
-
     def test_circuit_depth_2qubit(self):
         """Test finding depth of two-qubit gates only."""
 
@@ -712,6 +639,58 @@ class TestCircuitProperties(QiskitTestCase):
         circ.measure(1, 0)
         self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x.qubits), 3)
 
+    def test_circuit_depth_0_operands(self):
+        """Test that the depth can be found even with zero-bit operands."""
+        qc = QuantumCircuit(2, 2)
+        qc.append(GlobalPhaseGate(0.0), [], [])
+        qc.append(GlobalPhaseGate(0.0), [], [])
+        qc.append(GlobalPhaseGate(0.0), [], [])
+        self.assertEqual(qc.depth(), 0)
+        qc.measure([0, 1], [0, 1])
+        self.assertEqual(qc.depth(), 1)
+
+    def test_circuit_depth_expr_condition(self):
+        """Test that circuit depth respects `Expr` conditions in `IfElseOp`."""
+        # Note that the "depth" of control-flow operations is not well defined, so the assertions
+        # here are quite weak.  We're mostly aiming to match legacy behaviour of `c_if` for cases
+        # where there's a single instruction within the conditional.
+        qc = QuantumCircuit(2, 2)
+        a = qc.add_input("a", types.Bool())
+        with qc.if_test(a):
+            qc.x(0)
+        with qc.if_test(expr.logic_and(a, qc.clbits[0])):
+            qc.x(1)
+        self.assertEqual(qc.depth(), 2)
+        qc.measure([0, 1], [0, 1])
+        self.assertEqual(qc.depth(), 3)
+
+    def test_circuit_depth_expr_store(self):
+        """Test that circuit depth respects `Store`."""
+        qc = QuantumCircuit(3, 3)
+        a = qc.add_input("a", types.Bool())
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        # Note that `Store` is a "directive", so doesn't increase the depth by default, but does
+        # cause qubits 0,1; clbits 0,1 and 'a' to all be depth 3 at this point.
+        qc.store(a, qc.clbits[0])
+        qc.store(a, expr.logic_and(a, qc.clbits[1]))
+        # ... so this use of 'a' should make it depth 4.
+        with qc.if_test(a):
+            qc.x(2)
+        self.assertEqual(qc.depth(), 4)
+
+    def test_circuit_depth_switch(self):
+        """Test that circuit depth respects the `target` of `SwitchCaseOp`."""
+        qc = QuantumCircuit(QuantumRegister(3, "q"), ClassicalRegister(3, "c"))
+        a = qc.add_input("a", types.Uint(3))
+
+        with qc.switch(expr.bit_and(a, qc.cregs[0])) as case:
+            with case(case.DEFAULT):
+                qc.x(0)
+        qc.measure(1, 0)
+        self.assertEqual(qc.depth(), 2)
+
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""
         size = 4
@@ -744,21 +723,6 @@ class TestCircuitProperties(QiskitTestCase):
         qc.rz(0.1, q[1])
         qc.rzz(0.1, q[1], q[2])
         self.assertEqual(qc.size(lambda x: x.operation.num_qubits == 2), 2)
-
-    def test_circuit_size_ignores_barriers_snapshots(self):
-        """Circuit.size should not count barriers or snapshots."""
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c)
-
-        qc.h(q[0])
-        qc.cx(q[0], q[1])
-        self.assertEqual(qc.size(), 2)
-        qc.barrier(q)
-        self.assertEqual(qc.size(), 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.append(Snapshot("snapshot_label", num_qubits=4), [0, 1, 2, 3])
-        self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):
         """Test circuit count ops."""
@@ -1322,13 +1286,6 @@ class TestCircuitProperties(QiskitTestCase):
         with self.assertRaises(TypeError):
             qc.metadata = 1
 
-    def test_metdata_deprectation(self):
-        """Test that setting metadata to None emits a deprecation warning."""
-        qc = QuantumCircuit(1)
-        with self.assertWarns(DeprecationWarning):
-            qc.metadata = None
-        self.assertEqual(qc.metadata, {})
-
     def test_scheduling(self):
         """Test cannot return schedule information without scheduling."""
         qc = QuantumCircuit(2)
@@ -1336,8 +1293,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(0, 1)
 
         with self.assertRaises(AttributeError):
-            # pylint: disable=pointless-statement
-            qc.op_start_times
+            _ = qc.op_start_times
 
 
 if __name__ == "__main__":

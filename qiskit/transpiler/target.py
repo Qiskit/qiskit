@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -44,7 +44,6 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
@@ -242,12 +241,6 @@ class Target(Mapping):
         "concurrent_measurements",
     )
 
-    @deprecate_arg(
-        "aquire_alignment",
-        new_alias="acquire_alignment",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
     def __init__(
         self,
         description=None,
@@ -368,8 +361,9 @@ class Target(Mapping):
         supports.
 
         Args:
-            instruction (qiskit.circuit.Instruction): The operation object to add to the map. If it's
-                parameterized any value of the parameter can be set. Optionally for variable width
+            instruction (Union[qiskit.circuit.Instruction, Type[qiskit.circuit.Instruction]]):
+                The operation object to add to the map. If it's parameterized any value
+                of the parameter can be set. Optionally for variable width
                 instructions (such as control flow operations such as :class:`~.ForLoop` or
                 :class:`~MCXGate`) you can specify the class. If the class is specified than the
                 ``name`` argument must be specified. When a class is used the gate is treated as global
@@ -417,7 +411,7 @@ class Target(Mapping):
         if properties is None:
             properties = {None: None}
         if instruction_name in self._gate_map:
-            raise AttributeError("Instruction %s is already in the target" % instruction_name)
+            raise AttributeError(f"Instruction {instruction_name} is already in the target")
         self._gate_name_map[instruction_name] = instruction
         if is_class:
             qargs_val = {None: None}
@@ -432,7 +426,9 @@ class Target(Mapping):
                         f"of qubits in the properties dictionary: {qarg}"
                     )
                 if qarg is not None:
-                    self.num_qubits = max(self.num_qubits, max(qarg) + 1)
+                    self.num_qubits = max(
+                        self.num_qubits if self.num_qubits is not None else 0, max(qarg) + 1
+                    )
                 qargs_val[qarg] = properties[qarg]
                 self._qarg_gate_map[qarg].add(instruction_name)
         self._gate_map[instruction_name] = qargs_val
@@ -702,6 +698,9 @@ class Target(Mapping):
         Raises:
             KeyError: If ``qargs`` is not in target
         """
+        # if num_qubits == 0, we will return globally defined operations
+        if self.num_qubits == 0 or self.num_qubits is None:
+            qargs = None
         if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
             raise KeyError(f"{qargs} not in target.")
         res = self._qarg_gate_map.get(qargs, set())
@@ -784,6 +783,9 @@ class Target(Mapping):
                     return False
             return True
 
+        # Handle case where num_qubits is None by always checking globally supported operations
+        if self.num_qubits is None:
+            qargs = None
         # Case a list if passed in by mistake
         if qargs is not None:
             qargs = tuple(qargs)
@@ -814,7 +816,7 @@ class Target(Mapping):
                     if qargs in self._gate_map[op_name]:
                         return True
                     if self._gate_map[op_name] is None or None in self._gate_map[op_name]:
-                        return self._gate_name_map[op_name].num_qubits == len(qargs) and all(
+                        return obj.num_qubits == len(qargs) and all(
                             x < self.num_qubits for x in qargs
                         )
             return False
@@ -890,7 +892,7 @@ class Target(Mapping):
             return False
         if qargs not in self._gate_map[operation_name]:
             return False
-        return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
+        return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
     def get_calibration(
         self,
@@ -940,7 +942,9 @@ class Target(Mapping):
         is globally defined.
         """
         return [
-            (self._gate_name_map[op], qarg) for op in self._gate_map for qarg in self._gate_map[op]
+            (self._gate_name_map[op], qarg)
+            for op, qargs in self._gate_map.items()
+            for qarg in qargs
         ]
 
     def instruction_properties(self, index):
@@ -979,13 +983,14 @@ class Target(Mapping):
             InstructionProperties: The instruction properties for the specified instruction tuple
         """
         instruction_properties = [
-            inst_props for op in self._gate_map for _, inst_props in self._gate_map[op].items()
+            inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
         ]
         return instruction_properties[index]
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
-        self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
+        if self.num_qubits is not None:
+            self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
         for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
@@ -1057,7 +1062,7 @@ class Target(Mapping):
             for qargs, properties in self._gate_map[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(
-                        "Specified two_q_gate: %s is not a 2 qubit instruction" % two_q_gate
+                        f"Specified two_q_gate: {two_q_gate} is not a 2 qubit instruction"
                     )
                 coupling_graph.add_edge(*qargs, {two_q_gate: properties})
             cmap = CouplingMap()
@@ -1142,28 +1147,6 @@ class Target(Mapping):
         else:
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
-
-    @property
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self):
-        """Alias of deprecated name. This will be removed."""
-        return self.acquire_alignment
-
-    @aquire_alignment.setter
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self, new_value: int):
-        """Alias of deprecated name. This will be removed."""
-        self.acquire_alignment = new_value
 
     def __iter__(self):
         return iter(self._gate_map)
@@ -1502,7 +1485,9 @@ def target_to_backend_properties(target: Target):
                         }
                     )
         else:
-            qubit_props: dict[int, Any] = {x: None for x in range(target.num_qubits)}
+            qubit_props: dict[int, Any] = {}
+            if target.num_qubits is not None:
+                qubit_props = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
                 if qargs is None:
                     continue

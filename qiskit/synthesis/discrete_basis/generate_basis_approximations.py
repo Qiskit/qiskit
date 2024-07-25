@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2022.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -121,7 +121,7 @@ def _process_node(node: Node, basis: list[str], sequences: list[GateSequence]):
 def generate_basic_approximations(
     basis_gates: list[str | Gate], depth: int, filename: str | None = None
 ) -> list[GateSequence]:
-    """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
+    """Generates a list of :class:`GateSequence`\\ s with the gates in ``basis_gates``.
 
     Args:
         basis_gates: The gates from which to create the sequences of gates.
@@ -129,7 +129,7 @@ def generate_basic_approximations(
         filename: If provided, the basic approximations are stored in this file.
 
     Returns:
-        List of ``GateSequences`` using the gates in ``basic_gates``.
+        List of :class:`GateSequence`\\ s using the gates in ``basis_gates``.
 
     Raises:
         ValueError: If ``basis_gates`` contains an invalid gate identifier.
@@ -137,7 +137,7 @@ def generate_basic_approximations(
     basis = []
     for gate in basis_gates:
         if isinstance(gate, str):
-            if gate not in _1q_gates.keys():
+            if gate not in _1q_gates:
                 raise ValueError(f"Invalid gate identifier: {gate}")
             basis.append(gate)
         else:  # gate is a qiskit.circuit.Gate
@@ -156,7 +156,7 @@ def generate_basic_approximations(
         data = {}
         for sequence in sequences:
             gatestring = sequence.name
-            data[gatestring] = sequence.product
+            data[gatestring] = (sequence.product, sequence.global_phase)
 
         np.save(filename, data)
 

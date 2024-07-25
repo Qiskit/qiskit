@@ -15,13 +15,14 @@ from __future__ import annotations
 from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
-from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _X_ARRAY = [[0, 1], [1, 0]]
+_SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
 
 
 @with_gate_array(_X_ARRAY)
@@ -71,6 +72,8 @@ class XGate(SingletonGate):
         |1\rangle \rightarrow |0\rangle
     """
 
+    _standard_gate = StandardGate.XGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
         super().__init__("x", 1, [], label=label, duration=duration, unit=unit)
@@ -98,31 +101,55 @@ class XGate(SingletonGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-X gate.
 
         One control returns a CX gate. Two controls returns a CCX gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            _base_label=self.label,
-        )
+        if not annotated:
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
         return gate
 
-    def inverse(self):
-        r"""Return inverted X gate (itself)."""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted X gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            XGate: inverse gate (self-inverse).
+        """
         return XGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, XGate)
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=1)
@@ -189,6 +216,8 @@ class CXGate(SingletonControlledGate):
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
+    _standard_gate = StandardGate.CXGate
+
     def __init__(
         self,
         label: Optional[str] = None,
@@ -219,31 +248,55 @@ class CXGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a controlled-X gate with more control lines.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 1,
-            label=label,
-            ctrl_state=new_ctrl_state,
-            _base_label=self.label,
-        )
+        if not annotated:
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits + 1,
+                label=label,
+                ctrl_state=new_ctrl_state,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
         return gate
 
-    def inverse(self):
-        """Return inverted CX gate (itself)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverted CX gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CXGate: inverse gate (self-inverse).
+        """
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
@@ -314,6 +367,8 @@ class CCXGate(SingletonControlledGate):
                 \end{pmatrix}
 
     """
+
+    _standard_gate = StandardGate.CCXGate
 
     def __init__(
         self,
@@ -389,31 +444,55 @@ class CCXGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 2,
-            label=label,
-            ctrl_state=new_ctrl_state,
-            _base_label=self.label,
-        )
+        if not annotated:
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits + 2,
+                label=label,
+                ctrl_state=new_ctrl_state,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
         return gate
 
-    def inverse(self):
-        """Return an inverted CCX gate (also a CCX)."""
+    def inverse(self, annotated: bool = False):
+        """Return an inverted CCX gate (also a CCX).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CCXGate: inverse gate (self-inverse).
+        """
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CCXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_gate_array(
@@ -443,6 +522,8 @@ class RCCXGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
+
+    _standard_gate = StandardGate.RCCXGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new simplified CCX gate."""
@@ -487,7 +568,11 @@ class RCCXGate(SingletonGate):
 
         self.definition = qc
 
+    def __eq__(self, other):
+        return isinstance(other, RCCXGate)
 
+
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
 class C3SXGate(SingletonControlledGate):
     """The 3-qubit controlled sqrt-X gate.
 
@@ -496,6 +581,8 @@ class C3SXGate(SingletonControlledGate):
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
+
+    _standard_gate = StandardGate.C3SXGate
 
     def __init__(
         self,
@@ -509,9 +596,9 @@ class C3SXGate(SingletonControlledGate):
         """Create a new 3-qubit controlled sqrt-X gate.
 
         Args:
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
         """
         from .sx import SXGate
 
@@ -590,23 +677,8 @@ class C3SXGate(SingletonControlledGate):
 
         self.definition = qc
 
-    @deprecate_func(since="0.25.0", package_name="qiskit-terra")
-    def qasm(self):
-        # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
-        # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
-        # mapping itself, but right now that's not possible without a complete rewrite of the OQ2
-        # exporter code (low priority), or we would need to modify 'qelib1.inc' which would be
-        # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
-        # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
-        old_name = self.name
-        if not self.mutable:
-            copy_self = self.to_mutable()
-            copy_self.name = "c3sqrtx"
-            return copy_self.qasm()
-        try:
-            return super().qasm()
-        finally:
-            self.name = old_name
+    def __eq__(self, other):
+        return isinstance(other, C3SXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
@@ -615,6 +687,8 @@ class C3XGate(SingletonControlledGate):
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
+
+    _standard_gate = StandardGate.C3XGate
 
     def __init__(
         self,
@@ -718,30 +792,55 @@ class C3XGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        return MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 3,
-            label=label,
-            ctrl_state=new_ctrl_state,
-            _base_label=self.label,
-        )
+        if not annotated:
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits + 3,
+                label=label,
+                ctrl_state=new_ctrl_state,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
-        """Invert this gate. The C4X is its own inverse."""
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The C3X is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            C3XGate: inverse gate (self-inverse).
+        """
         return C3XGate(ctrl_state=self.ctrl_state)
+
+    def __eq__(self, other):
+        return isinstance(other, C3XGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_gate_array(
@@ -777,6 +876,8 @@ class RC3XGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
+
+    _standard_gate = StandardGate.RC3XGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new RC3X gate."""
@@ -839,6 +940,9 @@ class RC3XGate(SingletonGate):
 
         self.definition = qc
 
+    def __eq__(self, other):
+        return isinstance(other, RC3XGate)
+
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=4, cached_states=(15,))
 class C4XGate(SingletonControlledGate):
@@ -848,8 +952,8 @@ class C4XGate(SingletonControlledGate):
     of the relative phase version of c3x, the rc3x [2].
 
     References:
-        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
-        [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
+        1. Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+        2. Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
     def __init__(
@@ -878,7 +982,7 @@ class C4XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3sqrtx a,b,c,d
@@ -934,30 +1038,55 @@ class C4XGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        return MCXGate(
-            num_ctrl_qubits=num_ctrl_qubits + 4,
-            label=label,
-            ctrl_state=new_ctrl_state,
-            _base_label=self.label,
-        )
+        if not annotated:
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits + 4,
+                label=label,
+                ctrl_state=new_ctrl_state,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
-        """Invert this gate. The C4X is its own inverse."""
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The C4X is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            C4XGate: inverse gate (self-inverse).
+        """
         return C4XGate(ctrl_state=self.ctrl_state)
+
+    def __eq__(self, other):
+        return isinstance(other, C4XGate) and self.ctrl_state == other.ctrl_state
 
 
 class MCXGate(ControlledGate):
@@ -983,7 +1112,7 @@ class MCXGate(ControlledGate):
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
-        # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
+        # the C3XGate and C4XGate are handled in the gate definition.
         explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
@@ -1024,8 +1153,18 @@ class MCXGate(ControlledGate):
             base_gate=XGate(label=_base_label),
         )
 
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXGate: inverse gate (self-inverse).
+        """
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     @staticmethod
@@ -1044,14 +1183,25 @@ class MCXGate(ControlledGate):
         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
-        """The standard definition used the Gray code implementation."""
+        """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
-        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
-        self.definition = qc
+        if self.num_qubits == 4:
+            qc._append(C3XGate(), q[:], [])
+            self.definition = qc
+        elif self.num_qubits == 5:
+            qc._append(C4XGate(), q[:], [])
+            self.definition = qc
+        else:
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            qc.h(q_target)
+            qc.mcp(numpy.pi, q_controls, q_target)
+            qc.h(q_target)
+            self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
@@ -1063,27 +1213,32 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a multi-controlled-X gate with more control lines.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
+        if not annotated and ctrl_state is None:
             # use __class__ so this works for derived classes
-            return self.__class__(
+            gate = self.__class__(
                 self.num_ctrl_qubits + num_ctrl_qubits,
                 label=label,
                 ctrl_state=ctrl_state,
                 _base_label=self.label,
             )
-        return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        return gate
 
 
 class MCXGrayCode(MCXGate):
@@ -1133,8 +1288,18 @@ class MCXGrayCode(MCXGate):
     ):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
 
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXGrayCode: inverse gate (self-inverse).
+        """
         return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
@@ -1155,9 +1320,14 @@ class MCXGrayCode(MCXGate):
 class MCXRecursive(MCXGate):
     """Implement the multi-controlled X gate using recursion.
 
-    Using a single ancilla qubit, the multi-controlled X gate is recursively split onto
-    four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
-    for these we have a concrete implementation that do not require ancillas.
+    Using a single clean ancilla qubit, the multi-controlled X gate is split into
+    four sub-registers, each one of them uses the V-chain method.
+
+    The method is based on Lemma 9 of [2], first shown in Lemma 7.3 of [1].
+
+    References:
+        1. Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+        2. Iten et al., 2015. https://arxiv.org/abs/1501.06911
     """
 
     def __init__(
@@ -1185,8 +1355,18 @@ class MCXRecursive(MCXGate):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXRecursive: inverse gate (self-inverse).
+        """
         return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
@@ -1203,32 +1383,35 @@ class MCXRecursive(MCXGate):
             qc._append(C4XGate(), q[:], [])
             self.definition = qc
         else:
-            for instr, qargs, cargs in self._recurse(q[:-1], q_ancilla=q[-1]):
-                qc._append(instr, qargs, cargs)
+            num_ctrl_qubits = len(q) - 1
+            q_ancilla = q[-1]
+            q_target = q[-2]
+            middle = ceil(num_ctrl_qubits / 2)
+            first_half = [*q[:middle]]
+            second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+
             self.definition = qc
-
-    def _recurse(self, q, q_ancilla=None):
-        # recursion stop
-        if len(q) == 4:
-            return [(C3XGate(), q[:], [])]
-        if len(q) == 5:
-            return [(C4XGate(), q[:], [])]
-        if len(q) < 4:
-            raise AttributeError("Something went wrong in the recursion, have less than 4 qubits.")
-
-        # recurse
-        num_ctrl_qubits = len(q) - 1
-        middle = ceil(num_ctrl_qubits / 2)
-        first_half = [*q[:middle], q_ancilla]
-        second_half = [*q[middle:num_ctrl_qubits], q_ancilla, q[num_ctrl_qubits]]
-
-        rule = []
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-
-        return rule
 
 
 class MCXVChain(MCXGate):
@@ -1244,6 +1427,8 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
+        relative_phase: bool = False,  # pylint: disable=unused-argument
+        action_only: bool = False,  # pylint: disable=unused-argument
     ):
         """Create a new MCX instance.
 
@@ -1269,7 +1454,24 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
+        relative_phase: bool = False,
+        action_only: bool = False,
     ):
+        """
+        Args:
+            dirty_ancillas: when set to ``True``, the method applies an optimized multicontrolled-X gate
+                up to a relative phase using dirty ancillary qubits with the properties of lemmas 7 and 8
+                from arXiv:1501.06911, with at most 8*k - 6 CNOT gates.
+                For k within the range {1, ..., ceil(n/2)}. And for n representing the total number of
+                qubits.
+            relative_phase: when set to ``True``, the method applies the optimized multicontrolled-X gate
+                up to a relative phase, in a way that, by lemma 7 of arXiv:1501.06911, the relative
+                phases of the ``action part`` cancel out with the phases of the ``reset part``.
+
+            action_only: when set to ``True``, the method applies only the action part of lemma 8
+                from arXiv:1501.06911.
+
+        """
         super().__init__(
             num_ctrl_qubits,
             label=label,
@@ -1280,13 +1482,28 @@ class MCXVChain(MCXGate):
             unit=unit,
         )
         self._dirty_ancillas = dirty_ancillas
+        self._relative_phase = relative_phase
+        self._action_only = action_only
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
 
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The MCX is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            MCXVChain: inverse gate (self-inverse).
+        """
         return MCXVChain(
             num_ctrl_qubits=self.num_ctrl_qubits,
             dirty_ancillas=self._dirty_ancillas,
             ctrl_state=self.ctrl_state,
+            relative_phase=self._relative_phase,
+            action_only=self._action_only,
         )
 
     @staticmethod
@@ -1298,8 +1515,6 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
-        from .u2 import U2Gate
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
@@ -1307,64 +1522,83 @@ class MCXVChain(MCXGate):
         q_target = q[self.num_ctrl_qubits]
         q_ancillas = q[self.num_ctrl_qubits + 1 :]
 
-        definition = []
-
         if self._dirty_ancillas:
-            i = self.num_ctrl_qubits - 3
-            ancilla_pre_rule = [
-                (U2Gate(0, numpy.pi), [q_target], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            ]
-            for inst in ancilla_pre_rule:
-                definition.append(inst)
+            if self.num_ctrl_qubits < 3:
+                qc.mcx(q_controls, q_target)
+            elif not self._relative_phase and self.num_ctrl_qubits == 3:
+                qc._append(C3XGate(), [*q_controls, q_target], [])
+            else:
+                num_ancillas = self.num_ctrl_qubits - 2
+                targets = [q_target] + q_ancillas[:num_ancillas][::-1]
+
+                for j in range(2):
+                    for i in range(self.num_ctrl_qubits):  # action part
+                        if i < self.num_ctrl_qubits - 2:
+                            if targets[i] != q_target or self._relative_phase:
+                                # gate cancelling
+
+                                # cancel rightmost gates of action part
+                                # with leftmost gates of reset part
+                                if self._relative_phase and targets[i] == q_target and j == 1:
+                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
+                                    qc.t(targets[i])
+                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                                    qc.tdg(targets[i])
+                                    qc.h(targets[i])
+                                else:
+                                    qc.h(targets[i])
+                                    qc.t(targets[i])
+                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                                    qc.tdg(targets[i])
+                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
+                            else:
+                                controls = [
+                                    q_controls[self.num_ctrl_qubits - i - 1],
+                                    q_ancillas[num_ancillas - i - 1],
+                                ]
+
+                                qc.ccx(controls[0], controls[1], targets[i])
+                        else:
+                            # implements an optimized toffoli operation
+                            # up to a diagonal gate, akin to lemma 6 of arXiv:1501.06911
+                            qc.h(targets[i])
+                            qc.t(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
+                            qc.tdg(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                            qc.t(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
+                            qc.tdg(targets[i])
+                            qc.h(targets[i])
+
+                            break
+
+                    for i in range(num_ancillas - 1):  # reset part
+                        qc.cx(q_ancillas[i], q_ancillas[i + 1])
+                        qc.t(q_ancillas[i + 1])
+                        qc.cx(q_controls[2 + i], q_ancillas[i + 1])
+                        qc.tdg(q_ancillas[i + 1])
+                        qc.h(q_ancillas[i + 1])
+
+                    if self._action_only:
+                        qc.ccx(q_controls[-1], q_ancillas[-1], q_target)
+
+                        break
+        else:
+            qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
+            i = 0
+            for j in range(2, self.num_ctrl_qubits - 1):
+                qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
+
+                i += 1
+
+            qc.ccx(q_controls[-1], q_ancillas[i], q_target)
 
             for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
-                )
+                qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
+
                 i -= 1
 
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
-        i = 0
-        for j in range(2, self.num_ctrl_qubits - 1):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
-            i += 1
+            qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
 
-        if self._dirty_ancillas:
-            ancilla_post_rule = [
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U2Gate(0, numpy.pi), [q_target], []),
-            ]
-            for inst in ancilla_post_rule:
-                definition.append(inst)
-        else:
-            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
-
-        for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
-            i -= 1
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
-
-        if self._dirty_ancillas:
-            for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
-                )
-
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
         self.definition = qc

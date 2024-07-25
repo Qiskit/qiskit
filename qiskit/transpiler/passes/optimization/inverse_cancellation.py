@@ -53,8 +53,8 @@ class InverseCancellation(TransformationPass):
                     )
             else:
                 raise TranspilerError(
-                    "InverseCancellation pass does not take input type {}. Input must be"
-                    " a Gate.".format(type(gates))
+                    f"InverseCancellation pass does not take input type {type(gates)}. Input must be"
+                    " a Gate."
                 )
 
         self.self_inverse_gates = []
@@ -111,19 +111,18 @@ class InverseCancellation(TransformationPass):
             for gate_cancel_run in gate_runs:
                 partitions = []
                 chunk = []
-                for i in range(len(gate_cancel_run) - 1):
-                    if gate_cancel_run[i].op == gate:
-                        chunk.append(gate_cancel_run[i])
+                max_index = len(gate_cancel_run) - 1
+                for i, cancel_gate in enumerate(gate_cancel_run):
+                    if cancel_gate.op == gate:
+                        chunk.append(cancel_gate)
                     else:
                         if chunk:
                             partitions.append(chunk)
                             chunk = []
                         continue
-                    if gate_cancel_run[i].qargs != gate_cancel_run[i + 1].qargs:
+                    if i == max_index or cancel_gate.qargs != gate_cancel_run[i + 1].qargs:
                         partitions.append(chunk)
                         chunk = []
-                chunk.append(gate_cancel_run[-1])
-                partitions.append(chunk)
                 # Remove an even number of gates from each chunk
                 for chunk in partitions:
                     if len(chunk) % 2 == 0:

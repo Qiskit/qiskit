@@ -50,9 +50,11 @@ as the data amount scales.
 Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
+from __future__ import annotations
 from copy import copy
-from typing import List, Dict, Set, Any, Union
+from typing import Any, Mapping, Sequence
 
+from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import instructions, channels
@@ -60,7 +62,11 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import SymbolicPulse, Waveform
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import (
+    format_parameter_value,
+    _validate_parameter_vector,
+    _validate_parameter_value,
+)
 
 
 class NodeVisitor:
@@ -125,7 +131,7 @@ class ParameterSetter(NodeVisitor):
     and assign values to operands of nodes found.
     """
 
-    def __init__(self, param_map: Dict[ParameterExpression, ParameterValueType]):
+    def __init__(self, param_map: dict[ParameterExpression, ParameterValueType]):
         self._param_map = param_map
 
     # Top layer: Assign parameters to programs
@@ -160,24 +166,6 @@ class ParameterSetter(NodeVisitor):
         return node
 
     # Mid layer: Assign parameters to instructions
-
-    def visit_Call(self, node: instructions.Call):
-        """Assign parameters to ``Call`` instruction.
-
-        .. note:: ``Call`` instruction has a special parameter handling logic.
-            This instruction separately keeps program, i.e. parametrized schedule,
-            and bound parameters until execution. The parameter assignment operation doesn't
-            immediately override its operand data.
-        """
-        if node.is_parameterized():
-            new_table = copy(node.arguments)
-
-            for parameter, value in new_table.items():
-                if isinstance(value, ParameterExpression):
-                    new_table[parameter] = self._assign_parameter_expression(value)
-            node.arguments = new_table
-
-        return node
 
     def visit_Instruction(self, node: instructions.Instruction):
         """Assign parameters to general pulse instruction.
@@ -219,7 +207,8 @@ class ParameterSetter(NodeVisitor):
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
                     node._params[name] = new_val
-            node.validate_parameters()
+            if not node.disable_validation:
+                node.validate_parameters()
 
         return node
 
@@ -246,7 +235,7 @@ class ParameterSetter(NodeVisitor):
         new_value = format_parameter_value(new_value)
         return new_value
 
-    def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
+    def _update_parameter_manager(self, node: Schedule | ScheduleBlock):
         """A helper function to update parameter manager of pulse program."""
         if not hasattr(node, "_parameter_manager"):
             raise PulseError(f"Node type {node.__class__.__name__} has no parameter manager.")
@@ -298,14 +287,6 @@ class ParameterGetter(NodeVisitor):
 
     # Mid layer: Get parameters from instructions
 
-    def visit_Call(self, node: instructions.Call):
-        """Get parameters from ``Call`` instruction.
-
-        .. note:: ``Call`` instruction has a special parameter handling logic.
-            This instruction separately keeps parameters and program.
-        """
-        self.parameters |= node.parameters
-
     def visit_Instruction(self, node: instructions.Instruction):
         """Get parameters from general pulse instruction.
 
@@ -355,7 +336,7 @@ class ParameterManager:
         self._parameters = set()
 
     @property
-    def parameters(self) -> Set[Parameter]:
+    def parameters(self) -> set[Parameter]:
         """Parameters which determine the schedule behavior."""
         return self._parameters
 
@@ -367,7 +348,7 @@ class ParameterManager:
         """Return True iff the instruction is parameterized."""
         return bool(self.parameters)
 
-    def get_parameters(self, parameter_name: str) -> List[Parameter]:
+    def get_parameters(self, parameter_name: str) -> list[Parameter]:
         """Get parameter object bound to this schedule by string name.
 
         Because different ``Parameter`` objects can have the same name,
@@ -384,7 +365,10 @@ class ParameterManager:
     def assign_parameters(
         self,
         pulse_program: Any,
-        value_dict: Dict[ParameterExpression, ParameterValueType],
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
     ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
 
@@ -396,7 +380,10 @@ class ParameterManager:
         Returns:
             Updated program data.
         """
-        valid_map = {k: value_dict[k] for k in value_dict.keys() & self._parameters}
+        unrolled_value_dict = self._unroll_param_dict(value_dict)
+        valid_map = {
+            k: unrolled_value_dict[k] for k in unrolled_value_dict.keys() & self._parameters
+        }
         if valid_map:
             visitor = ParameterSetter(param_map=valid_map)
             return visitor.visit(pulse_program)
@@ -411,3 +398,48 @@ class ParameterManager:
         visitor = ParameterGetter()
         visitor.visit(new_node)
         self._parameters |= visitor.parameters
+
+    def _unroll_param_dict(
+        self,
+        parameter_binds: Mapping[
+            Parameter | ParameterVector | str, ParameterValueType | Sequence[ParameterValueType]
+        ],
+    ) -> Mapping[Parameter, ParameterValueType]:
+        """
+        Unroll parameter dictionary to a map from parameter to value.
+
+        Args:
+            parameter_binds: A dictionary from parameter to value or a list of values.
+
+        Returns:
+            A dictionary from parameter to value.
+        """
+        out = {}
+        param_name_dict = {param.name: [] for param in self.parameters}
+        for param in self.parameters:
+            param_name_dict[param.name].append(param)
+        param_vec_dict = {
+            param.vector.name: param.vector
+            for param in self.parameters
+            if isinstance(param, ParameterVectorElement)
+        }
+        for name in param_vec_dict.keys():
+            if name in param_name_dict:
+                param_name_dict[name].append(param_vec_dict[name])
+            else:
+                param_name_dict[name] = [param_vec_dict[name]]
+
+        for parameter, value in parameter_binds.items():
+            if isinstance(parameter, ParameterVector):
+                _validate_parameter_vector(parameter, value)
+                out.update(zip(parameter, value))
+            elif isinstance(parameter, str):
+                for param in param_name_dict[parameter]:
+                    is_vec = _validate_parameter_value(param, value)
+                    if is_vec:
+                        out.update(zip(param, value))
+                    else:
+                        out[param] = value
+            else:
+                out[parameter] = value
+        return out
