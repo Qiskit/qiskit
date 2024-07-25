@@ -28,27 +28,16 @@ from itertools import product
 from functools import partial
 import numpy as np
 
-from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.transpiler import CouplingMap, Target
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.synthesis.one_qubit import one_qubit_decompose
-from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _possible_decomposers
-from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
-from qiskit.synthesis.two_qubit.two_qubit_decompose import (
-    TwoQubitBasisDecomposer,
-    TwoQubitWeylDecomposition,
-)
-from qiskit.quantum_info import Operator
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit import Gate, Parameter, CircuitInstruction
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
     CZGate,
     RXXGate,
     RZXGate,
+    RZZGate,
     ECRGate,
     RXGate,
     SXGate,
@@ -62,13 +51,26 @@ from qiskit.circuit.library.standard_gates import (
     RYGate,
     RGate,
 )
-from qiskit.transpiler.passes.synthesis import plugin
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.exceptions import QiskitError
+from qiskit.providers.models import BackendProperties
+from qiskit.quantum_info import Operator
+from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
+    TwoQubitBasisDecomposer,
+    TwoQubitWeylDecomposition,
+)
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
     Optimize1qGatesDecomposition,
+    _possible_decomposers,
 )
-from qiskit.providers.models import BackendProperties
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-from qiskit.exceptions import QiskitError
+from qiskit.transpiler.passes.synthesis import plugin
+from qiskit.transpiler.target import Target
 
 
 GATE_NAME_MAP = {
@@ -780,6 +782,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 op = RXXGate(pi / 2)
             elif isinstance(op, RZXGate) and isinstance(op.params[0], Parameter):
                 op = RZXGate(pi / 4)
+            elif isinstance(op, RZZGate) and isinstance(op.params[0], Parameter):
+                op = RZZGate(pi / 2)
             return op
 
         try:
