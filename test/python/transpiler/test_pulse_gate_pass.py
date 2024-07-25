@@ -130,6 +130,7 @@ class TestPulseGate(QiskitTestCase):
             num_qubits=5,
             coupling_map=BOGOTA_CMAP,
             calibrate_instructions=backend_pulse.defaults().instruction_schedule_map,
+            seed=42,
         ).target
 
         target["sx"][(0,)].calibration = self.custom_sx_q0
@@ -156,7 +157,6 @@ class TestPulseGate(QiskitTestCase):
         """Test providing instruction schedule map."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-
         instmap = backend.defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
         instmap.add("sx", (1,), self.custom_sx_q1)
