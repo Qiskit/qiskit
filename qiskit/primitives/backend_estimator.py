@@ -106,13 +106,6 @@ class BackendEstimatorV1(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    @deprecate_func(
-        since="1.2",
-        additional_msg="The preferred replacement is "
-        ":class:`.BackendEstimatorV2`. However, "
-        ":class:`.BackendEstimatorV1` is a drop-in replacement "
-        "for `BackendEstimatorV2`, which is an alias.",
-    )
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
