@@ -51,7 +51,7 @@ pub static QUANTUMCIRCUIT: ImportOnceCell =
 
 // Custom Structs
 
-#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -66,10 +66,6 @@ impl Key {
     #[pyo3(signature = (name, num_qubits))]
     fn new(name: String, num_qubits: u32) -> Self {
         Self { name, num_qubits }
-    }
-
-    fn __eq__(&self, other: &Self) -> bool {
-        self.eq(other)
     }
 
     fn __hash__(&self) -> u64 {
@@ -88,6 +84,26 @@ impl Key {
             slf.num_qubits,
         )
     }
+
+    // Ord methods for Python
+    fn __lt__(&self, other: &Self) -> bool {
+        self.lt(other)
+    }
+    fn __le__(&self, other: &Self) -> bool {
+        self.le(other)
+    }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.eq(other)
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.ne(other)
+    }
+    fn __ge__(&self, other: &Self) -> bool {
+        self.ge(other)
+    }
+    fn __gt__(&self, other: &Self) -> bool {
+        self.gt(other)
+    }
 }
 
 impl Display for Key {
@@ -100,7 +116,7 @@ impl Display for Key {
     }
 }
 
-#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
     #[pyo3(get)]
@@ -149,7 +165,7 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
@@ -193,7 +209,7 @@ impl Display for NodeData {
     }
 }
 
-#[pyclass(sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
 #[derive(Debug, Clone)]
 pub struct EdgeData {
     #[pyo3(get)]
@@ -506,12 +522,12 @@ impl EquivalenceLibrary {
     }
 
     #[pyo3(name = "keys")]
-    fn py_keys(slf: PyRef<Self>) -> PyResult<Bound<PySet>> {
-        let py_set = PySet::empty_bound(slf.py())?;
+    fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
+        let py_dict = PyDict::new_bound(slf.py());
         for key in slf.keys() {
-            py_set.add(key.clone().into_py(slf.py()))?;
+            py_dict.set_item(key.clone().into_py(slf.py()), slf.py().None())?;
         }
-        Ok(py_set)
+        Ok(py_dict.as_any().call_method0("keys")?.into())
     }
 
     #[pyo3(name = "node_index")]

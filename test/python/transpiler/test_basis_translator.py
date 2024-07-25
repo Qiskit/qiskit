@@ -976,9 +976,9 @@ class TestBasisExamples(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
         expected.u(0, 0, -pi / 2, qr[0])
-        expected.u(-pi / 2, -pi / 2, pi / 2, qr[1])
+        expected.u(pi, 0, 0, qr[0])
+        expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
         expected.ecr(0, 1)
-        expected.u(pi, 0, pi, qr[0])
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
