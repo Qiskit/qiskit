@@ -1048,7 +1048,10 @@ def _format(operand):
             }
 
             if self.qubits.find(bit).is_some() {
-                return Err(DAGCircuitError::new_err(format!("duplicate qubits {}", bit)));
+                return Err(DAGCircuitError::new_err(format!(
+                    "duplicate qubits {}",
+                    bit
+                )));
             }
         }
 
@@ -1067,7 +1070,10 @@ def _format(operand):
             }
 
             if self.clbits.find(bit).is_some() {
-                return Err(DAGCircuitError::new_err(format!("duplicate clbits {}", bit)));
+                return Err(DAGCircuitError::new_err(format!(
+                    "duplicate clbits {}",
+                    bit
+                )));
             }
         }
 
