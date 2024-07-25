@@ -237,9 +237,7 @@ class TestCommutationChecker(QiskitTestCase):
 
         res = scc.commute(RZGate(np.pi / 2), [1], [], XGate(), [1], [])
         self.assertFalse(res)
-        self.assertEqual(scc.num_cached_entries(), 3)
-        self.assertEqual(scc._cache_miss, 3)
-        self.assertEqual(scc._cache_hit, 1)
+        self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_gates_with_parameters(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
@@ -255,21 +253,10 @@ class TestCommutationChecker(QiskitTestCase):
     def test_parameterized_gates(self):
         """Check commutativity between parameterized gates, both with free and with
         bound parameters."""
-        # gate that has parameters but is not considered parameterized
         rz_gate = RZGate(np.pi / 2)
-        self.assertEqual(len(rz_gate.params), 1)
-        self.assertFalse(rz_gate.is_parameterized())
-
-        # gate that has parameters and is considered parameterized
         rz_gate_theta = RZGate(Parameter("Theta"))
         rz_gate_phi = RZGate(Parameter("Phi"))
-        self.assertEqual(len(rz_gate_theta.params), 1)
-        self.assertTrue(rz_gate_theta.is_parameterized())
-
-        # gate that has no parameters and is not considered parameterized
         cx_gate = CXGate()
-        self.assertEqual(len(cx_gate.params), 0)
-        self.assertFalse(cx_gate.is_parameterized())
 
         # We should detect that these gates commute
         res = scc.commute(rz_gate, [0], [], cx_gate, [0, 1], [])
@@ -291,16 +278,12 @@ class TestCommutationChecker(QiskitTestCase):
         res = scc.commute(rz_gate_theta, [2], [], cx_gate, [1, 3], [])
         self.assertTrue(res)
 
-        # However, for now commutativity checker should return False when checking
-        # commutativity between a parameterized gate and some other gate, when
-        # the two gates are over intersecting qubit subsets.
-        # This check should be changed if commutativity checker is extended to
-        # handle parameterized gates better.
+        # We should also detect commutation with parameterized gates
         res = scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], [])
-        self.assertFalse(res)
+        self.assertTrue(res)
 
         res = scc.commute(rz_gate_theta, [0], [], rz_gate, [0], [])
-        self.assertFalse(res)
+        self.assertTrue(res)
 
     def test_measure(self):
         """Check commutativity involving measures."""
