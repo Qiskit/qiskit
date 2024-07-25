@@ -21,7 +21,7 @@ use crate::imports::{
     CONTROL_FLOW_OP, DAG_TO_CIRCUIT, EXPR, FOR_LOOP_OP_CHECK, ITER_VARS, LEGACY_CONDITION_CHECK,
     STORE_OP, SWITCH_CASE_OP, SWITCH_CASE_OP_CHECK, VARIABLE_MAPPER,
 };
-use crate::interner::{Index, IndexedInterner, Interner};
+use crate::interner::{IndexedInterner, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::rustworkx_core_vnext::isomorphism;
@@ -77,16 +77,6 @@ pub(crate) enum NodeType {
     VarIn(PyObject),
     VarOut(PyObject),
     Operation(PackedInstruction),
-}
-
-impl NodeType {
-    #[inline]
-    pub fn key(&self) -> (Option<Index>, Option<Index>) {
-        match self {
-            NodeType::Operation(packed) => (Some(packed.qubits), Some(packed.clbits)),
-            _ => (None, None),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -5128,8 +5118,18 @@ impl DAGCircuit {
     }
 
     fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
-        let key = |node: NodeIndex| -> Result<(Option<Index>, Option<Index>), Infallible> {
-            Ok(self.dag.node_weight(node).unwrap().key())
+        let key = |node: NodeIndex| -> Result<(Option<&[Qubit]>, Option<&[Clbit]>), Infallible> {
+            Ok(match &self.dag[node] {
+                NodeType::Operation(packed) => (
+                    Some(self.qargs_cache.intern(packed.qubits).as_slice()),
+                    Some(self.cargs_cache.intern(packed.clbits).as_slice()),
+                ),
+                NodeType::QubitIn(qubit) => (Some(std::slice::from_ref(qubit)), None),
+                NodeType::ClbitIn(clbit) => (None, Some(std::slice::from_ref(clbit))),
+                NodeType::QubitOut(qubit) => (Some(std::slice::from_ref(qubit)), None),
+                NodeType::ClbitOut(clbit) => (None, Some(std::slice::from_ref(clbit))),
+                _ => (None, None),
+            })
         };
         let nodes =
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
