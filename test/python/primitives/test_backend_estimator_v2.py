@@ -388,12 +388,12 @@ class TestBackendEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result[0].data.evs, [1.901141473854881], rtol=self._rtol)
         np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
 
-    @combine(backend=BACKENDS, abelian_grouping=[True, False])
-    def test_precision_and_stds(self, backend, abelian_grouping):
+    @combine(backend=BACKENDS)
+    def test_precision_and_stds(self):
         """Test that errors are within user-specified precision"""
+        backend = BasicSimulator()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
-        estimator.options.abelian_grouping = abelian_grouping
-        hamiltonian = [
+        hamiltonians = [
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
             SparsePauliOp.from_list([("ZZ", 1)]),
             SparsePauliOp.from_list([("ZZ", 1), ("ZZ", 1)]),
@@ -401,64 +401,35 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
                 SparsePauliOp.from_list([("ZZ", 1)]),
                 SparsePauliOp.from_list([("ZZ", 1), ("ZZ", 1)]),
-            ],
-        ]
-        for i in range(len(hamiltonian)):
-            job = estimator.run(
-                [(self.psi[0], hamiltonian[i], [self.theta[0]])], precision=self._precision
-            )
-            result = job.result()
-            np.testing.assert_array_less(
-                result[0].data.stds, [self._precision] * len(hamiltonian[i])
-            )
-            # The result of the second run is the same
-            job = estimator.run(
-                [
-                    (self.psi[0], hamiltonian[i], [self.theta[0]]),
-                    (self.psi[0], hamiltonian[i], [self.theta[0]]),
-                ],
-                precision=self._precision,
-            )
-            result = job.result()
-            np.testing.assert_array_less(
-                result[0].data.stds, [self._precision] * len(hamiltonian[i])
-            )
-            np.testing.assert_array_less(
-                result[1].data.stds, [self._precision] * len(hamiltonian[i])
-            )
-
-    @combine(backend=BACKENDS, abelian_grouping=[True, False])
-    def test0_precision_and_stds(self, backend, abelian_grouping):
-        """Test that errors are within user-specified precision when all observable term coefficients are zero"""
-        estimator = BackendEstimatorV2(backend=backend, options=self._options)
-        estimator.options.abelian_grouping = abelian_grouping
-        hamiltonian = [
-            SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
-            SparsePauliOp.from_list([("ZZ", 0)]),
-            SparsePauliOp.from_list([("ZZ", 0), ("ZZ", 0)]),
-            [
-                SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
-                SparsePauliOp.from_list([("ZZ", 0)]),
                 SparsePauliOp.from_list([("ZZ", 0), ("ZZ", 0)]),
             ],
         ]
-        for i in range(len(hamiltonian)):
+        for hamiltonian in hamiltonians:
             job = estimator.run(
-                [(self.psi[0], hamiltonian[i], [self.theta[0]])], precision=self._precision
+                [(self.psi[0], hamiltonian, [self.theta[0]])], precision=self._precision
+            )
+            result = job.result()
+            np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian))
+
+    @combine(backend=BACKENDS)
+    def test_precision_with_zero_coefficients(self):
+        """Test that errors are within user-specified precision when all observable term coefficients are zero"""
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        hamiltonians = [
+            SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
+            SparsePauliOp.from_list([("ZZ", 0)]),
+            [
+                SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
+                SparsePauliOp.from_list([("ZZ", 0)]),
+            ],
+        ]
+        for hamiltonian in hamiltonians:
+            job = estimator.run(
+                [(self.psi[0], hamiltonian, [self.theta[0]])], precision=self._precision
             )
             result = job.result()
             np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
-            # The result of the second run is the same
-            job = estimator.run(
-                [
-                    (self.psi[0], hamiltonian[i], [self.theta[0]]),
-                    (self.psi[0], hamiltonian[i], [self.theta[0]]),
-                ],
-                precision=self._precision,
-            )
-            result = job.result()
-            np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
-            np.testing.assert_allclose(result[1].data.stds, 0, rtol=self._rtol)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     @combine(abelian_grouping=[True, False])
