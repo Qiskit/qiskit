@@ -37,6 +37,7 @@ from qiskit.circuit.library.standard_gates import (
     CZGate,
     RXXGate,
     RZXGate,
+    RZZGate,
     ECRGate,
     RXGate,
     SXGate,
@@ -781,6 +782,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 op = RXXGate(pi / 2)
             elif isinstance(op, RZXGate) and isinstance(op.params[0], Parameter):
                 op = RZXGate(pi / 4)
+            elif isinstance(op, RZZGate) and isinstance(op.params[0], Parameter):
+                op = RZZGate(pi / 2)
             return op
 
         try:

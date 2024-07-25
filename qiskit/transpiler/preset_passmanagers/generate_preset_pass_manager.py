@@ -18,10 +18,12 @@ import copy
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, target_to_backend_properties
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -319,6 +321,10 @@ def generate_preset_pass_manager(
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
 
+    # Parse non-target dependent pm options
+    initial_layout = _parse_initial_layout(initial_layout)
+    approximation_degree = _parse_approximation_degree(approximation_degree)
+
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,
@@ -470,3 +476,24 @@ def _parse_timing_constraints(backend, timing_constraints):
     elif backend is not None:
         timing_constraints = backend.target.timing_constraints()
     return timing_constraints
+
+
+def _parse_initial_layout(initial_layout):
+    # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
+    # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
+    if initial_layout is None or isinstance(initial_layout, Layout):
+        return initial_layout
+    if isinstance(initial_layout, dict):
+        return Layout(initial_layout)
+    initial_layout = list(initial_layout)
+    if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
+        return Layout.from_qubit_list(initial_layout)
+    return initial_layout
+
+
+def _parse_approximation_degree(approximation_degree):
+    if approximation_degree is None:
+        return None
+    if approximation_degree < 0.0 or approximation_degree > 1.0:
+        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
+    return approximation_degree
