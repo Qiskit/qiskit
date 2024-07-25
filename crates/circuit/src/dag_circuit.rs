@@ -4948,20 +4948,13 @@ impl DAGCircuit {
     }
 
     fn increment_op(&mut self, op: String) {
-        match self.op_names.entry(op) {
-            hash_map::Entry::Occupied(mut o) => {
-                *o.get_mut() += 1;
-            }
-            hash_map::Entry::Vacant(v) => {
-                v.insert(1);
-            }
-        }
+        self.op_names.entry(op).and_modify(|count| *count += 1).or_insert(1);
     }
 
     fn decrement_op(&mut self, op: String) {
         match self.op_names.entry(op) {
             hash_map::Entry::Occupied(mut o) => {
-                if *o.get() > 0usize {
+                if *o.get() > 1usize {
                     *o.get_mut() -= 1;
                 } else {
                     o.remove();
