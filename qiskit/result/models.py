@@ -13,6 +13,7 @@
 """Schema and helper models for schema-conformant Results."""
 
 import copy
+import warnings
 
 from qiskit.qobj.utils import MeasReturnType, MeasLevel
 from qiskit.qobj import QobjExperimentHeader
@@ -223,7 +224,10 @@ class ExperimentResult:
         in_data = copy.copy(data)
         data_obj = ExperimentResultData.from_dict(in_data.pop("data"))
         if "header" in in_data:
-            in_data["header"] = QobjExperimentHeader.from_dict(in_data.pop("header"))
+            with warnings.catch_warnings():
+                # The class QobjExperimentHeader is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                in_data["header"] = QobjExperimentHeader.from_dict(in_data.pop("header"))
         shots = in_data.pop("shots")
         success = in_data.pop("success")
 
