@@ -154,7 +154,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         out_dag.global_phase = best_synth_circuit.global_phase
 
         for gate_name, angles in best_synth_circuit:
-            op = CircuitInstruction(gate_name, qubits=qubits, params=angles)
+            op = CircuitInstruction.from_standard(gate_name, qubits, angles)
             out_dag.apply_operation_back(op.operation, qubits, check=False)
         return out_dag
 
@@ -241,7 +241,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                     first_node_id = run[0]._node_id
                     qubit = run[0].qargs
                     for gate, angles in best_circuit_sequence:
-                        op = CircuitInstruction(gate, qubits=qubit, params=angles)
+                        op = CircuitInstruction.from_standard(gate, qubit, angles)
                         node = DAGOpNode.from_instruction(op, dag=dag)
                         node._node_id = dag._multi_graph.add_node(node)
                         dag._increment_op(gate.name)

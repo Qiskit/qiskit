@@ -34,6 +34,7 @@ The circuit itself keeps this context.
 from __future__ import annotations
 
 import copy
+import warnings
 from itertools import zip_longest
 import math
 from typing import List, Type
@@ -47,7 +48,7 @@ from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-
+from qiskit.utils import deprecate_func
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -188,11 +189,12 @@ class Instruction(Operation):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            try:
+            if isinstance(self_param, numpy.ndarray):
+                if numpy.array_equal(self_param, other_param):
+                    continue
+            else:
                 if self_param == other_param:
                     continue
-            except ValueError:
-                pass
 
             try:
                 self_asarray = numpy.asarray(self_param)
@@ -358,9 +360,23 @@ class Instruction(Operation):
         """Set the time unit of duration."""
         self._unit = unit
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        return self._assemble()
+
+    def _assemble(self):
+        with warnings.catch_warnings():
+            # The class QasmQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]

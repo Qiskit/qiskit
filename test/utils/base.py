@@ -123,36 +123,32 @@ class QiskitTestCase(BaseTestCase):
         # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
         # of Aer.
         warnings.filterwarnings(
-            "default",
+            "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
             message="Treating CircuitInstruction as an iterable is deprecated",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
-        allow_DeprecationWarning_modules = [
-            "test.python.pulse.test_builder",
-            "test.python.pulse.test_block",
-            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
-            "qiskit.quantum_info.operators.pauli",
-            "pybobyqa",
-            "numba",
-            "qiskit.utils.measurement_error_mitigation",
-            "qiskit.circuit.library.standard_gates.x",
-            "qiskit.pulse.schedule",
-            "qiskit.pulse.instructions.instruction",
-            "qiskit.pulse.instructions.play",
-            "qiskit.pulse.library.parametric_pulses",
-            "qiskit.quantum_info.operators.symplectic.pauli",
-        ]
-        for mod in allow_DeprecationWarning_modules:
-            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*The `Qobj` class and related functionality.*",
+            module=r"qiskit_aer",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
+            module="qiskit_aer",
+        )
+
         allow_DeprecationWarning_message = [
-            r"elementwise comparison failed.*",
-            r"The jsonschema validation included in qiskit-terra.*",
-            r"The DerivativeBase.parameter_expression_grad method.*",
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
-            # Caused by internal scikit-learn scipy usage
-            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)

@@ -793,7 +793,8 @@ class TestParameters(QiskitTestCase):
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
             circs.append(qc_aer.assign_parameters({theta: theta_i}))
-        qobj = assemble(circs)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
             res = float(qobj.experiments[index].instructions[0].params[0])
             self.assertTrue(math.isclose(res, theta_i), f"{res} != {theta_i}")
@@ -980,8 +981,9 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(hash(x1), hash(x1_expr))
         self.assertEqual(hash(x2), hash(x2_expr))
 
-    def test_binding_parameterized_circuits_built_in_multiproc(self):
-        """Verify subcircuits built in a subprocess can still be bound."""
+    def test_binding_parameterized_circuits_built_in_multiproc_(self):
+        """Verify subcircuits built in a subprocess can still be bound.
+        REMOVE this test once assemble is REMOVED"""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
 
         num_processes = 4
@@ -1001,11 +1003,12 @@ class TestParameters(QiskitTestCase):
 
         parameter_values = [{x: 1.0 for x in parameters}]
 
-        qobj = assemble(
-            circuit,
-            backend=BasicSimulator(),
-            parameter_binds=parameter_values,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                circuit,
+                backend=BasicSimulator(),
+                parameter_binds=parameter_values,
+            )
 
         self.assertEqual(len(qobj.experiments), 1)
         self.assertEqual(len(qobj.experiments[0].instructions), 4)
@@ -1015,6 +1018,39 @@ class TestParameters(QiskitTestCase):
                 and isinstance(inst.params[0], float)
                 and float(inst.params[0]) == 1
                 for inst in qobj.experiments[0].instructions
+            )
+        )
+
+    def test_binding_parameterized_circuits_built_in_multiproc(self):
+        """Verify subcircuits built in a subprocess can still be bound."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
+
+        num_processes = 4
+
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+
+        circuit = QuantumCircuit(qr, cr)
+        parameters = [Parameter(f"x{i}") for i in range(num_processes)]
+
+        results = parallel_map(
+            _construct_circuit, parameters, task_args=(qr,), num_processes=num_processes
+        )
+
+        for qc in results:
+            circuit.compose(qc, inplace=True)
+
+        parameter_values = {x: 1.0 for x in parameters}
+
+        bind_circuit = circuit.assign_parameters(parameter_values)
+
+        self.assertEqual(len(bind_circuit.data), 4)
+        self.assertTrue(
+            all(
+                len(inst.operation.params) == 1
+                and isinstance(inst.operation.params[0], float)
+                and float(inst.operation.params[0]) == 1
+                for inst in bind_circuit.data
             )
         )
 
