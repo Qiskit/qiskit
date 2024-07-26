@@ -117,9 +117,6 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
-        in_edges = dag._multi_graph.in_edges(node._node_id)
-        out_edges = dag._multi_graph.out_edges(node._node_id)
-
         in_wires = set(dag.in_wires(node._node_id))
         out_wires = set(dag.out_wires(node._node_id))
 

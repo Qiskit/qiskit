@@ -21,7 +21,6 @@ import qiskit._accelerate.circuit
 from qiskit.circuit import (
     Clbit,
     ClassicalRegister,
-    ControlFlowOp,
     IfElseOp,
     WhileLoopOp,
     SwitchCaseOp,

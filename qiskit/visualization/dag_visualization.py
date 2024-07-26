@@ -91,6 +91,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     Raises:
         VisualizationError: when style is not recognized.
         InvalidFileError: when filename provided is not valid
+        ValueError: If the file extension for ``filename`` is not an image
+            type supported by Graphviz.
 
     Example:
         .. plot::
