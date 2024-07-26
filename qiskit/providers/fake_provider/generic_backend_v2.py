@@ -388,11 +388,6 @@ class GenericBackendV2(BackendV2):
                 defaults = self._generate_calibration_defaults()
                 calibration_inst_map = defaults.instruction_schedule_map
 
-        is_fully_connected = (
-            self._coupling_map.graph.num_edges()
-            == self._coupling_map.graph.num_nodes() * (self._coupling_map.graph.num_nodes() - 1)
-        )
-
         # Iterate over gates, generate noise params from defaults,
         # and add instructions, noise and calibrations to target.
         for name in self._basis_gates:
@@ -411,12 +406,9 @@ class GenericBackendV2(BackendV2):
                 noise_params = self._get_noise_defaults(name, gate.num_qubits)
                 self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
             else:
-                if is_fully_connected:
-                    self._target.add_instruction(gate, properties=None, name=name)
-                else:
-                    qarg_set = self._coupling_map if gate.num_qubits > 1 else range(self.num_qubits)
-                    props = {(qarg,) if isinstance(qarg, int) else qarg: None for qarg in qarg_set}
-                    self._target.add_instruction(gate, properties=props, name=name)
+               qarg_set = self._coupling_map if gate.num_qubits > 1 else range(self.num_qubits)
+               props = {(qarg,) if isinstance(qarg, int) else qarg: None for qarg in qarg_set}
+               self._target.add_instruction(gate, properties=props, name=name)
 
         if self._control_flow:
             self._target.add_instruction(IfElseOp, name="if_else")
