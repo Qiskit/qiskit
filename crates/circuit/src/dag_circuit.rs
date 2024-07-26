@@ -2311,7 +2311,7 @@ def _format(operand):
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn size(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        let mut length = self.dag.node_count() - self.width() * 2;
+        let mut length = self.dag.node_count() - (self.width() + self.num_vars()) * 2;
         if !recurse {
             if CONTROL_FLOW_OP_NAMES
                 .iter()
@@ -2360,7 +2360,11 @@ def _format(operand):
                         &circuit_to_dag.call1((block.clone(),))?.extract()?;
                     length += inner_dag.size(py, true)?;
                 }
+            } else {
+                continue;
             }
+            // We don't count a control-flow node itself!
+            length -= 1;
         }
         Ok(length)
     }
