@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Statevector Sampler class
+V2 (Statevector) Sampler class
 """
 
 from __future__ import annotations

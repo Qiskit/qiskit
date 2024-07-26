@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator class
+V2 (Statevector) Estimator class
 """
 
 from __future__ import annotations
