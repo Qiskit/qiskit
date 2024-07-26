@@ -18,11 +18,20 @@ from types import SimpleNamespace
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
+from qiskit.utils import deprecate_func
 
 
 class QasmQobjInstruction:
     """A class representing a single instruction in an QasmQobj Experiment."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         name,
@@ -200,6 +209,14 @@ class QasmQobjExperiment:
     part of a larger OpenQASM 2 qobj.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, config=None, header=None, instructions=None):
         """Instantiate a QasmQobjExperiment.
 
@@ -276,6 +293,14 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for an OpenQASM 2 Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         shots=None,
@@ -410,6 +435,14 @@ class QasmQobjExperimentHeader(QobjDictField):
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single OpenQASM 2 experiment in the qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, calibrations=None, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """
         Args:
@@ -446,6 +479,14 @@ class QasmExperimentCalibrations:
     GateCalibrations.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, gates):
         """
         Initialize a container for calibrations.
@@ -486,6 +527,14 @@ class GateCalibration:
     """Each calibration specifies a unique gate by name, qubits and params, and
     contains the Pulse instructions to implement it."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, name, qubits, params, instructions):
         """
         Initialize a single gate calibration. Instructions may reference waveforms which should be
@@ -541,6 +590,14 @@ class GateCalibration:
 class QasmQobj:
     """An OpenQASM 2 Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Instantiate a new OpenQASM 2 Qobj Object.
 

@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
@@ -684,15 +684,15 @@ class TestInitialLayouts(QiskitTestCase):
         }
         backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42)
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
-        qobj = assemble(qc_b)
 
         self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
 
-        compiled_ops = qobj.experiments[0].instructions
-        for operation in compiled_ops:
-            if operation.name == "cx":
-                self.assertIn(tuple(operation.qubits), backend.coupling_map)
-                self.assertIn(operation.qubits, [[15, 0], [15, 2]])
+        for inst in qc_b.data:
+            if inst.operation.name == "cx":
+                self.assertIn(
+                    tuple(qc_b.find_bit(bit).index for bit in inst.qubits), backend.coupling_map
+                )
+                self.assertIn([qc_b.find_bit(bit).index for bit in inst.qubits], [[15, 0], [15, 2]])
 
     @data(0, 1, 2, 3)
     def test_layout_2532(self, level):
