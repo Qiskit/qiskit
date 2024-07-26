@@ -51,7 +51,7 @@ define a computation unit of work for the estimator to complete:
 * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
 
 Running an estimator returns a :class:`~qiskit.primitives.BasePrimitiveJob` object, where calling
-the method :meth:`~qiskit.primitives.BasePrimitiveJob.result` results in expectation value estimates 
+the method :meth:`~qiskit.primitives.BasePrimitiveJob.result` results in expectation value estimates
 and metadata for each pub:
 
 .. math::
@@ -86,31 +86,31 @@ Here is an example of how an estimator is used.
     estimator = Estimator()
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-    job = estimator.run([(psi1, hamiltonian1, [theta1])])
+    job = estimator.run([(psi1, H1, [theta1])])
     job_result = job.result() # It will block until the job finishes.
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # calculate [ [<psi1(theta1)|H1|psi1(theta1)>,
     #              <psi1(theta3)|H3|psi1(theta3)>],
     #             [<psi2(theta2)|H2|psi2(theta2)>] ]
     job2 = estimator.run(
         [
-            (psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), 
-            (psi2, hamiltonian2, theta2)
+            (psi1, [H1, H3], [theta1, theta3]),
+            (psi2, H2, theta2)
         ],
         precision=0.01
     )
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 
-    
+
 Overview of SamplerV2
 =====================
 
 :class:`~BaseSamplerV2` is a primitive that samples outputs of quantum circuits.
 
 Following construction, a sampler is used by calling its :meth:`~.BaseSamplerV2.run` method
-with a list of pubs (Primitive Unified Blocks). Each pub contains values that, together,
+with a list of pubs (Primitive Unified Blocs). Each pub contains values that, together,
 define a computational unit of work for the sampler to complete:
 
 * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized.
@@ -153,12 +153,12 @@ Here is an example of how a sampler is used.
     # collect 128 shots from the Bell circuit
     job = sampler.run([bell], shots=128)
     job_result = job.result()
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # run a sampler job on the parameterized circuits
-    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)]
+    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)])
     job_result = job2.result()
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
 
 Overview of EstimatorV1
@@ -214,14 +214,14 @@ Here is an example of how the estimator is used.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
     job = estimator.run([psi1], [H1], [theta1])
     job_result = job.result() # It will block until the job finishes.
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
     job2 = estimator.run(
-        [psi1, psi2, psi1], 
-        [H1, H2, H3], 
+        [psi1, psi2, psi1],
+        [H1, H2, H3],
         [theta1, theta2, theta3]
     )
     job_result = job2.result()
@@ -417,6 +417,7 @@ Results V2
    DataBin
    PrimitiveResult
    PubResult
+   SamplerPubResult
    BasePrimitiveJob
    PrimitiveJob
 
@@ -466,6 +467,7 @@ from .containers import (
     PubResult,
     EstimatorPubLike,
     SamplerPubLike,
+    SamplerPubResult,
     BindingsArrayLike,
     ObservableLike,
     ObservablesArrayLike,

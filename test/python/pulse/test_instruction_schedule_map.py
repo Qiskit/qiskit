@@ -305,12 +305,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_sequenced_parameterized_schedule(self):
         """Test parameterized schedule consists of multiple instruction."""
 
-        converter = QobjToInstructionConverter([], buffer=0)
-        qobjs = [
-            PulseQobjInstruction(name="fc", ch="d0", t0=10, phase="P1"),
-            PulseQobjInstruction(name="fc", ch="d0", t0=20, phase="P2"),
-            PulseQobjInstruction(name="fc", ch="d0", t0=30, phase="P3"),
-        ]
+        with self.assertWarns(DeprecationWarning):
+            converter = QobjToInstructionConverter([], buffer=0)
+            qobjs = [
+                PulseQobjInstruction(name="fc", ch="d0", t0=10, phase="P1"),
+                PulseQobjInstruction(name="fc", ch="d0", t0=20, phase="P2"),
+                PulseQobjInstruction(name="fc", ch="d0", t0=30, phase="P3"),
+            ]
         converted_instruction = [converter(qobj) for qobj in qobjs]
 
         inst_map = InstructionScheduleMap()
@@ -342,7 +343,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(sched.instructions[2][-1].phase, 3)
 
     def test_schedule_generator(self):
-        """Test schedule generator functionalty."""
+        """Test schedule generator functionality."""
 
         dur_val = 10
         amp = 1.0
@@ -364,7 +365,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(inst_map.get_parameters("f", (0,)), ("dur",))
 
     def test_schedule_generator_supports_parameter_expressions(self):
-        """Test expression-based schedule generator functionalty."""
+        """Test expression-based schedule generator functionality."""
 
         t_param = Parameter("t")
         amp = 1.0

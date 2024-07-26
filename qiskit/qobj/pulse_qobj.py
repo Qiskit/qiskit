@@ -23,11 +23,20 @@ import numpy
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.utils import deprecate_func
 
 
 class QobjMeasurementOption:
     """An individual measurement option."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, name, params=None):
         """Instantiate a new QobjMeasurementOption object.
 
@@ -89,6 +98,14 @@ class PulseQobjInstruction:
         "parameters",
     ]
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         name,
@@ -209,8 +226,8 @@ class PulseQobjInstruction:
         return out
 
     def __str__(self):
-        out = "Instruction: %s\n" % self.name
-        out += "\t\tt0: %s\n" % self.t0
+        out = f"Instruction: {self.name}\n"
+        out += f"\t\tt0: {self.t0}\n"
         for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
                 out += f"\t\t{attr}: {getattr(self, attr)}\n"
@@ -282,6 +299,14 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         meas_level,
@@ -383,6 +408,14 @@ class PulseQobjExperiment:
     experiment as part of a larger Pulse Qobj.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, instructions, config=None, header=None):
         """Instantiate a PulseQobjExperiment.
 
@@ -434,10 +467,10 @@ class PulseQobjExperiment:
             header = pprint.pformat(self.header.to_dict() or {})
         else:
             header = "{}"
-        out += "Header:\n%s\n" % header
-        out += "Config:\n%s\n\n" % config
+        out += f"Header:\n{header}\n"
+        out += f"Config:\n{config}\n\n"
         for instruction in self.instructions:
-            out += "\t%s\n" % instruction
+            out += f"\t{instruction}\n"
         return out
 
     @classmethod
@@ -473,6 +506,14 @@ class PulseQobjExperiment:
 class PulseQobjExperimentConfig(QobjDictField):
     """A config for a single Pulse experiment in the qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """Instantiate a PulseQobjExperimentConfig object.
 
@@ -492,6 +533,14 @@ class PulseQobjExperimentConfig(QobjDictField):
 class PulseLibraryItem:
     """An item in a pulse library."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, name, samples):
         """Instantiate a pulse library item.
 
@@ -542,6 +591,14 @@ class PulseLibraryItem:
 class PulseQobj:
     """A Pulse Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, qobj_id, config, experiments, header=None):
         """Instantiate a new Pulse Qobj Object.
 
@@ -567,23 +624,20 @@ class PulseQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "PulseQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
-            self.qobj_id,
-            repr(self.config),
-            experiments_repr,
-            repr(self.header),
+        return (
+            f"PulseQobj(qobj_id='{self.qobj_id}', config={repr(self.config)}, "
+            f"experiments={experiments_repr}, header={repr(self.header)})"
         )
-        return out
 
     def __str__(self):
-        out = "Pulse Qobj: %s:\n" % self.qobj_id
+        out = f"Pulse Qobj: {self.qobj_id}:\n"
         config = pprint.pformat(self.config.to_dict())
-        out += "Config: %s\n" % str(config)
+        out += f"Config: {str(config)}\n"
         header = pprint.pformat(self.header.to_dict())
-        out += "Header: %s\n" % str(header)
+        out += f"Header: {str(header)}\n"
         out += "Experiments:\n"
         for experiment in self.experiments:
-            out += "%s" % str(experiment)
+            out += str(experiment)
         return out
 
     def to_dict(self):

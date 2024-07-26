@@ -21,10 +21,11 @@ from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
+from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.primitive_result import PrimitiveResult
-from ..containers.pub_result import PubResult
 from ..containers.sampler_pub import SamplerPubLike
+from ..containers.sampler_pub_result import SamplerPubResult
 from . import validation
 from .base_primitive import BasePrimitive
 from .base_primitive_job import BasePrimitiveJob
@@ -150,7 +151,23 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseSampler must implement `_run` method.")
 
 
-BaseSampler = BaseSamplerV1
+class BaseSampler(BaseSamplerV1[T]):
+    """DEPRECATED. Type alias of Sampler V1 base class
+
+    See :class:`.BaseSamplerV1` for details.
+    """
+
+    @deprecate_func(since="1.2", additional_msg="Use BaseSamplerV2 instead.")
+    def __init__(
+        self,
+        *,
+        options: dict | None = None,
+    ):
+        """
+        Args:
+            options: Default options.
+        """
+        super().__init__(options=options)
 
 
 class BaseSamplerV2(ABC):
@@ -165,7 +182,7 @@ class BaseSamplerV2(ABC):
     @abstractmethod
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> BasePrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         """Run and collect samples from each pub.
 
         Args:

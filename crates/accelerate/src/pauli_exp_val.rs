@@ -19,6 +19,7 @@ use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
 use crate::getenv_use_multiple_threads;
+use qiskit_circuit::util::c64;
 
 const PARALLEL_THRESHOLD: usize = 19;
 
@@ -32,7 +33,7 @@ pub fn fast_sum_with_simd<S: Simd>(simd: S, values: &[f64]) -> f64 {
     sum + tail.iter().sum::<f64>()
 }
 
-/// Compute the pauli expectatation value of a statevector without x
+/// Compute the pauli expectation value of a statevector without x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, /)")]
 pub fn expval_pauli_no_x(
@@ -63,7 +64,7 @@ pub fn expval_pauli_no_x(
     }
 }
 
-/// Compute the pauli expectatation value of a statevector with x
+/// Compute the pauli expectation value of a statevector with x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, x_mask, phase, x_max, /)")]
 pub fn expval_pauli_with_x(
@@ -88,7 +89,7 @@ pub fn expval_pauli_with_x(
         let index_0 = ((i << 1) & mask_u) | (i & mask_l);
         let index_1 = index_0 ^ x_mask;
         let val_0 = (phase
-            * Complex64::new(
+            * c64(
                 data_arr[index_1].re * data_arr[index_0].re
                     + data_arr[index_1].im * data_arr[index_0].im,
                 data_arr[index_1].im * data_arr[index_0].re
@@ -96,7 +97,7 @@ pub fn expval_pauli_with_x(
             ))
         .re;
         let val_1 = (phase
-            * Complex64::new(
+            * c64(
                 data_arr[index_0].re * data_arr[index_1].re
                     + data_arr[index_0].im * data_arr[index_1].im,
                 data_arr[index_0].im * data_arr[index_1].re
@@ -121,7 +122,7 @@ pub fn expval_pauli_with_x(
     }
 }
 
-/// Compute the pauli expectatation value of a density matrix without x
+/// Compute the pauli expectation value of a density matrix without x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, /)")]
 pub fn density_expval_pauli_no_x(
@@ -153,7 +154,7 @@ pub fn density_expval_pauli_no_x(
     }
 }
 
-/// Compute the pauli expectatation value of a density matrix with x
+/// Compute the pauli expectation value of a density matrix with x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, x_mask, phase, x_max, /)")]
 pub fn density_expval_pauli_with_x(
@@ -193,7 +194,7 @@ pub fn density_expval_pauli_with_x(
 }
 
 #[pymodule]
-pub fn pauli_expval(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn pauli_expval(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(expval_pauli_no_x))?;
     m.add_wrapped(wrap_pyfunction!(expval_pauli_with_x))?;
     m.add_wrapped(wrap_pyfunction!(density_expval_pauli_with_x))?;

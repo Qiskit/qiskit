@@ -15,9 +15,8 @@
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.scheduling.base_scheduler import BaseSchedulerTransform
 from qiskit.utils.deprecation import deprecate_func
-
-from .base_scheduler import BaseSchedulerTransform
 
 
 class ASAPSchedule(BaseSchedulerTransform):
@@ -38,8 +37,7 @@ class ASAPSchedule(BaseSchedulerTransform):
             "Instead, use :class:`~.ASAPScheduleAnalysis`, which is an "
             "analysis pass that requires a padding pass to later modify the circuit."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

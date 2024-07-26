@@ -14,6 +14,7 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 from math import pi
+import math
 from typing import Optional, Union, Tuple, List
 import numpy as np
 
@@ -144,18 +145,20 @@ def _mcsu2_real_diagonal(
     if np.isclose(z, -1):
         s_op = [[1.0, 0.0], [0.0, 1.0j]]
     else:
-        alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
-        alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+        alpha_i = z.imag / (
+            2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+        )
         alpha = alpha_r + 1.0j * alpha_i
-        beta = x / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
 
         # S gate definition
         s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
 
     s_gate = UnitaryGate(s_op)
 
-    k_1 = int(np.ceil(num_controls / 2.0))
-    k_2 = int(np.floor(num_controls / 2.0))
+    k_1 = math.ceil(num_controls / 2.0)
+    k_2 = math.floor(num_controls / 2.0)
 
     ctrl_state_k_1 = None
     ctrl_state_k_2 = None
@@ -224,8 +227,8 @@ def mcrx(
     """
     from .rx import RXGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit
@@ -289,11 +292,11 @@ def mcry(
     """
     from .ry import RYGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
-    ancillary_qubits = [] if q_ancillae is None else self.qbit_argument_conversion(q_ancillae)
+    ancillary_qubits = [] if q_ancillae is None else self._qbit_argument_conversion(q_ancillae)
     all_qubits = control_qubits + target_qubit + ancillary_qubits
     target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
@@ -362,8 +365,8 @@ def mcrz(
     """
     from .rz import CRZGate, RZGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit

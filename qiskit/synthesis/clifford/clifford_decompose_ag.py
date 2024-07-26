@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_x,
     _append_z,
 )
-from .clifford_decompose_bm import _decompose_clifford_1q
+from .clifford_decompose_bm import synth_clifford_bm
 
 
 def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
@@ -50,7 +50,7 @@ def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau)
+        return synth_clifford_bm(clifford)
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))

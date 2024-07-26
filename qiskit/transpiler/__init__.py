@@ -650,8 +650,6 @@ manner to the "physical" qubits in an actual quantum device.
 .. image:: /source_images/mapping.png
 
 
-
-
 By default, qiskit will do this mapping for you.  The choice of mapping depends on the
 properties of the circuit, the particular device you are targeting, and the optimization
 level that is chosen. The choice of initial layout is extremely important for minimizing the
@@ -684,10 +682,12 @@ Next, for the heuristic stage, 2 passes are used by default:
   :class:`~.SabreLayout` is used to select a layout if a perfect layout isn't found for
   optimization levels 1, 2, and 3.
 - :class:`~.TrivialLayout`: Always used for the layout at optimization level 0.
+
+There are other passes than can be used for the heuristic stage, but are not included in the default
+pipeline, such as:
+
 - :class:`~.DenseLayout`: Finds the sub-graph of the device with greatest connectivity
-  that has the same number of qubits as the circuit. Used for
-  optimization level 1 if there are control flow operations (such as
-  :class:`~.IfElseOp`) present in the circuit.
+  that has the same number of qubits as the circuit.
 
 Let's see what layouts are automatically picked at various optimization levels.  The circuits
 returned by :func:`qiskit.compiler.transpile` are annotated with this initial layout information,
@@ -799,7 +799,7 @@ circuit repeatedly will in general result in a distribution of circuit depths an
 at the output.
 
 In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disconnected)
-`initial_layout`:
+``initial_layout`` in a heavy hex coupling map:
 
 .. plot::
 
@@ -816,18 +816,22 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
    from qiskit.providers.fake_provider import GenericBackendV2
-   backend = GenericBackendV2(16)
+   from qiskit.transpiler import CouplingMap
+
+   coupling_map = CouplingMap.from_heavy_hex(3)
+   backend = GenericBackendV2(coupling_map.size(), coupling_map=coupling_map)
 
    ghz = QuantumCircuit(15)
    ghz.h(0)
    ghz.cx(0, range(1, 15))
 
    depths = []
-   for _ in range(100):
+   for i in range(100):
        depths.append(
            transpile(
                ghz,
                backend,
+               seed_transpiler=i,
                layout_method='trivial'  # Fixed layout mapped in circuit order
            ).depth()
        )
@@ -1273,6 +1277,7 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
+from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties

@@ -35,6 +35,36 @@ class TestGenericBackendV2(QiskitTestCase):
         with self.assertRaises(QiskitError):
             GenericBackendV2(num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"])
 
+    def test_cx_1Q(self):
+        """Test failing with a backend with single qubit but with a two-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=1, basis_gates=["cx", "id"])
+
+    def test_ccx_2Q(self):
+        """Test failing with a backend with two qubits but with a three-qubit basis gate"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(num_qubits=2, basis_gates=["ccx", "id"])
+
+    def test_calibration_no_noise_info(self):
+        """Test failing with a backend with calibration and no noise info"""
+        with self.assertRaises(QiskitError):
+            GenericBackendV2(
+                num_qubits=2,
+                basis_gates=["ccx", "id"],
+                calibrate_instructions=True,
+                noise_info=False,
+            )
+
+    def test_no_noise(self):
+        """Test no noise info when parameter is false"""
+        backend = GenericBackendV2(num_qubits=2, noise_info=False)
+        self.assertEqual(backend.target.qubit_properties, None)
+
+    def test_no_pulse_channels(self):
+        """Test no/empty pulse channels when parameter is false"""
+        backend = GenericBackendV2(num_qubits=2, pulse_channels=False)
+        self.assertTrue(len(backend.channels_map) == 0)
+
     def test_operation_names(self):
         """Test that target basis gates include "delay", "measure" and "reset" even
         if not provided by user."""
@@ -117,19 +147,20 @@ class TestGenericBackendV2(QiskitTestCase):
 
         basis_gates = ["cx", "id", "rz", "sx", "x", "sdg", "rxx"]
         expected_durations = {
-            "cx": (8e-8, 9e-7),
-            "id": (3e-8, 6e-8),
+            "cx": (7.992e-08, 8.99988e-07),
+            "id": (2.997e-08, 5.994e-08),
             "rz": (0.0, 0.0),
-            "sx": (3e-8, 6e-8),
-            "x": (3e-8, 6e-8),
-            "measure": (7e-7, 1.5e-6),
-            "sdg": (3e-8, 6e-8),
-            "rxx": (8e-8, 9e-7),
+            "sx": (2.997e-08, 5.994e-08),
+            "x": (2.997e-08, 5.994e-08),
+            "measure": (6.99966e-07, 1.500054e-06),
+            "sdg": (2.997e-08, 5.994e-08),
+            "rxx": (7.992e-08, 8.99988e-07),
         }
-        target = GenericBackendV2(num_qubits=2, basis_gates=basis_gates).target
-        for inst in target:
-            for qargs in target.qargs_for_operation_name(inst):
-                duration = target[inst][qargs].duration
-                if inst not in ["delay", "reset"]:
-                    self.assertGreaterEqual(duration, expected_durations[inst][0])
-                    self.assertLessEqual(duration, expected_durations[inst][1])
+        for _ in range(20):
+            target = GenericBackendV2(num_qubits=2, basis_gates=basis_gates).target
+            for inst in target:
+                for qargs in target.qargs_for_operation_name(inst):
+                    duration = target[inst][qargs].duration
+                    if inst not in ["delay", "reset"]:
+                        self.assertGreaterEqual(duration, expected_durations[inst][0])
+                        self.assertLessEqual(duration, expected_durations[inst][1])

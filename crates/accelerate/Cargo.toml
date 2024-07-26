@@ -1,5 +1,5 @@
 [package]
-name = "qiskit_accelerate"
+name = "qiskit-accelerate"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,28 +7,26 @@ license.workspace = true
 
 [lib]
 name = "qiskit_accelerate"
-crate-type = ["cdylib"]
-
-[features]
-# This is a test-only shim removable feature.  See the root `Cargo.toml`.
-default = ["extension-module"]
-extension-module = ["pyo3/extension-module"]
+doctest = false
 
 [dependencies]
-rayon = "1.9"
-numpy = "0.20.0"
+rayon = "1.10"
+numpy.workspace = true
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-ahash = "0.8.6"
+ahash = "0.8.11"
 num-traits = "0.2"
-num-complex = "0.4"
+num-complex.workspace = true
 num-bigint = "0.4"
-rustworkx-core = "0.14"
-faer-core = "0.17.0"
+rustworkx-core = "0.15"
+faer = "0.19.1"
+itertools = "0.13.0"
+qiskit-circuit.workspace = true
+thiserror.workspace = true
 
 [dependencies.smallvec]
-version = "1.13"
+workspace = true
 features = ["union"]
 
 [dependencies.pyo3]
@@ -36,7 +34,7 @@ workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
 
 [dependencies.ndarray]
-version = "^0.15.6"
+workspace = true
 features = ["rayon", "approx-0_5"]
 
 [dependencies.approx]
@@ -51,10 +49,10 @@ features = ["rayon"]
 workspace = true
 features = ["rayon"]
 
-[dependencies.faer]
-version = "0.17.0"
+[dependencies.faer-ext]
+version = "0.2.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.18.9"
+version = "0.18.21"
 features = ["macro"]

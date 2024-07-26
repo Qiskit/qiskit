@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Added a new transpiler pass :class:`.StarPreRouting` which is designed to identify star connectivity subcircuits
+    and then replace them with an optimal linear routing. This is useful for certain circuits that are composed of
+    this circuit connectivity such as Bernstein Vazirani and QFT. For example:
+
+      .. plot:
+
+         from qiskit.circuit import QuantumCircuit
+
+         qc = QuantumCircuit(10)
+         qc.h(0)
+         qc.cx(0, range(1, 5))
+         qc.h(9)
+         qc.cx(9, range(8, 4, -1))
+         qc.measure_all()
+         qc.draw("mpl")
+
+      .. plot:
+         :include-source:
+
+         from qiskit.circuit import QuantumCircuit
+         from qiskit.transpiler.passes import StarPreRouting
+
+         qc = QuantumCircuit(10)
+         qc.h(0)
+         qc.cx(0, range(1, 5))
+         qc.h(9)
+         qc.cx(9, range(8, 4, -1))
+         qc.measure_all()
+         StarPreRouting()(qc).draw("mpl")

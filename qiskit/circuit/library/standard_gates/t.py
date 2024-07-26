@@ -21,6 +21,7 @@ from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
@@ -54,6 +55,8 @@ class TGate(SingletonGate):
 
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
+
+    _standard_gate = StandardGate.TGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new T gate."""
@@ -92,8 +95,7 @@ class TGate(SingletonGate):
         """
         return TdgGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(0.25 * numpy.pi * exponent)
 
     def __eq__(self, other):
@@ -130,6 +132,8 @@ class TdgGate(SingletonGate):
 
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
+
+    _standard_gate = StandardGate.TdgGate
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Tdg gate."""
@@ -168,8 +172,7 @@ class TdgGate(SingletonGate):
         """
         return TGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(-0.25 * numpy.pi * exponent)
 
     def __eq__(self, other):

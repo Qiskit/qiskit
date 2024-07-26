@@ -17,6 +17,7 @@ import datetime
 import itertools
 import operator
 import unittest
+import warnings
 
 from test import combine
 from ddt import ddt, data
@@ -105,7 +106,7 @@ class TestFakeBackends(QiskitTestCase):
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
-            self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.name)
+            self.skipTest(f"Unable to run fake_backend {backend.name} without qiskit-aer")
         job = backend.run(
             transpile(
                 self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
@@ -126,8 +127,7 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
             self.skipTest(
-                "Unable to run fake_backend %s without qiskit-aer"
-                % backend.configuration().backend_name
+                f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
         job = backend.run(
             transpile(
@@ -143,7 +143,8 @@ class TestFakeBackends(QiskitTestCase):
     def test_qobj_failure(self):
         backend = BACKENDS[-1]
         tqc = transpile(self.circuit, backend)
-        qobj = assemble(tqc, backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(tqc, backend)
         with self.assertRaises(QiskitError):
             backend.run(qobj)
 
@@ -202,7 +203,7 @@ class TestFakeBackends(QiskitTestCase):
                 self.assertGreater(i, 1e6)
                 self.assertGreater(i, 1e6)
         else:
-            self.skipTest("Backend %s does not have defaults" % backend)
+            self.skipTest(f"Backend {backend} does not have defaults")
 
     def test_delay_circuit(self):
         backend = Fake27QPulseV1()
@@ -227,7 +228,10 @@ class TestFakeBackends(QiskitTestCase):
         self.assertIsInstance(backend_v2, BackendV2)
         res = transpile(self.circuit, backend_v2, optimization_level=opt_level)
         job = backend_v2.run(res)
-        result = job.result()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
