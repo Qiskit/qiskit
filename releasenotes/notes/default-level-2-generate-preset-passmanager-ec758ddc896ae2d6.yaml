@@ -18,12 +18,15 @@ upgrade_transpiler:
   - |
     The default ``optimization_level`` used by the :func:`.transpile` function when one is not
     specified has been changed to level 2. This makes it consistent with the default used
-    by :func:`.generate_preset_pass_manager` which is used internally by :func:`.transpile`. If
-    you were previously relying on the implicit default of level 1, you can simply set
-    the argument ``optimization_level=1`` when you call :func:`.transpile`. There isn't an API
-    change though because fundamentally level 2 and level 1 have the same semantics. Similarly you
-    can change the default back in your local environment by using a user config file and setting
-    the ``transpile_optimization_level`` field to 1.
+    by :func:`.generate_preset_pass_manager` which is used internally by :func:`.transpile`. Optimization
+    level 2 provides a much better balance between the run time of the function and the optimizations it
+    performs, it's a better tradeoff to use by default.
+
+    The API of :func:`.transpile` remains unchange because fundamentally level 2 and level 1
+    have the same semantics. If you were previously relying on the implicit default of level 1,
+    you can simply set the argument ``optimization_level=1`` when you call :func:`.transpile`.
+    Similarly you can change the default back in your local environment by using a user config
+    file and setting the ``transpile_optimization_level`` field to 1.
 
     The only potential issue is that if you were relying on an implicit trivial layout (where qubit 0
     in the circuit passed to :func:`.transpile` is mapped to qubit 0 on the target backend/coupling,
