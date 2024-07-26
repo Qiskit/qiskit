@@ -65,7 +65,7 @@ def two_qubit_local_invariants(U: np.ndarray) -> np.ndarray:
     # to better equate to the Weyl chamber coordinates (c0,c1,c2)
     # and explore the parameter space.
     # Also do a FP trick -0.0 + 0.0 = 0.0
-    return np.round([G1.real, G1.imag, G2.real], 9) + 0.0
+    return np.round([G1.real, G1.imag, G2.real], 13) + 0.0
 
 
 def local_equivalence(weyl: np.ndarray) -> np.ndarray:

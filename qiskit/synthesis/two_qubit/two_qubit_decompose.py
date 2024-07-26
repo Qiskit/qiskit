@@ -113,7 +113,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
 
     temp = np.kron(L, R)
     deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)
-    if deviation > 1.0e-8:
+    if deviation > 1.0e-13:
         raise QiskitError(
             "decompose_two_qubit_product_gate: decomposition failed: "
             f"deviation too large: {deviation}"

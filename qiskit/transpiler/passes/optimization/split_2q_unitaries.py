@@ -27,7 +27,9 @@ class Split2QUnitaries(TransformationPass):
     def run(self, dag: DAGCircuit):
         """Run the Split2QUnitaries pass on `dag`."""
         sq_id = np.eye(2)
-        for node in dag.topological_op_nodes():
+        identity = np.eye(2 ** 2)
+
+        for i, node in enumerate(dag.topological_op_nodes()):
             # skip operations without two-qubits and for which we can not determine a potential 1q split
             if (
                 len(node.cargs) > 0
@@ -37,8 +39,13 @@ class Split2QUnitaries(TransformationPass):
             ):
                 continue
 
-            # check if the node can be represented by single-qubit gates
             nmat = node.matrix
+
+            if np.allclose(nmat, identity, atol=1e-8, rtol=0):
+                dag.remove_op_node(node)
+                continue
+
+            # check if the node can be represented by single-qubit gates
             local_invariants = two_qubit_local_invariants(nmat)
             if local_invariants[0] == 1 and local_invariants[1] == 0 and local_invariants[2] == 3:
                 ul, ur, phase = decompose_two_qubit_product_gate(nmat)

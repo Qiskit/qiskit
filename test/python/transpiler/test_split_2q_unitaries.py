@@ -13,6 +13,8 @@
 """
 Tests for the Split2QUnitaries transpiler pass.
 """
+from math import pi
+
 from test import QiskitTestCase
 
 from qiskit import QuantumCircuit
@@ -139,3 +141,28 @@ class TestSplit2QUnitaries(QiskitTestCase):
                 for op in qc_split.data
             )
         )
+
+    def test_almost_identity(self):
+        """Test that the pass handles QFT correctly."""
+        qc = QuantumCircuit(2)
+        qc.cp(pi*2**-(26), 0, 1)
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc)
+        self.assertEqual(qc_split.num_nonlocal_gates(), 0)
+
+    def test_split_qft(self):
+        """Test that the pass handles QFT correctly."""
+        #2**-26
+        qc = QuantumCircuit(31)
+        qc.h(0)
+        for i in range(29, 0, -1):
+            qc.cp(pi*2**-(30-i), 30, i)
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc)
+        self.assertEqual(qc_split.num_nonlocal_gates(), 23)
