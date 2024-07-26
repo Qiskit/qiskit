@@ -17,17 +17,28 @@ from qiskit.circuit import CircuitInstruction
 from qiskit.circuit.library import UnitaryGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
-from qiskit.synthesis.two_qubit.two_qubit_decompose import decompose_two_qubit_product_gate
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
+    decompose_two_qubit_product_gate,
+    TwoQubitWeylDecomposition,
+)
 from qiskit.transpiler import TransformationPass
 
 
 class Split2QUnitaries(TransformationPass):
     """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
 
+    def __init__(self, fidelity: float | None = 1.0 - 1.0e-9):
+        """Split2QUnitaries initializer.
+
+        Args:
+            fidelity (float): Allowed tolerance for splitting two-qubit unitaries and gate decompositions
+        """
+        super().__init__()
+        self.requested_fidelity = fidelity
+
     def run(self, dag: DAGCircuit):
         """Run the Split2QUnitaries pass on `dag`."""
         sq_id = np.eye(2)
-        identity = np.eye(2**2)
 
         for node in dag.topological_op_nodes():
             # skip operations without two-qubits and for which we can not determine a potential 1q split
@@ -39,18 +50,13 @@ class Split2QUnitaries(TransformationPass):
             ):
                 continue
 
-            nmat = node.matrix
-
-            if np.allclose(nmat, identity, atol=1e-8, rtol=0):
-                dag.remove_op_node(node)
-                continue
-
-            # check if the node can be represented by single-qubit gates
-            local_invariants = two_qubit_local_invariants(nmat)
-            if local_invariants[0] == 1 and local_invariants[1] == 0 and local_invariants[2] == 3:
-                ul, ur, phase = decompose_two_qubit_product_gate(nmat)
-
-                if not np.allclose(ur, sq_id):
+            decomp = TwoQubitWeylDecomposition(node.op, fidelity=self.requested_fidelity)
+            if (
+                decomp._inner_decomposition.specialization
+                == TwoQubitWeylDecomposition._specializations.IdEquiv
+            ):
+                ur = decomp.K1r
+                if not np.allclose(ur, sq_id, atol=self.requested_fidelity, rtol=0):
                     ur_node = DAGOpNode.from_instruction(
                         CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=dag
                     )
@@ -58,7 +64,8 @@ class Split2QUnitaries(TransformationPass):
                     dag._increment_op("unitary")
                     dag._multi_graph.insert_node_on_in_edges(ur_node._node_id, node._node_id)
 
-                if not np.allclose(ul, sq_id):
+                ul = decomp.K1l
+                if not np.allclose(ul, sq_id, atol=self.requested_fidelity, rtol=0):
                     ul_node = DAGOpNode.from_instruction(
                         CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=dag
                     )
@@ -66,7 +73,7 @@ class Split2QUnitaries(TransformationPass):
                     dag._increment_op("unitary")
                     dag._multi_graph.insert_node_on_in_edges(ul_node._node_id, node._node_id)
 
-                dag.global_phase += phase
+                dag.global_phase += decomp.global_phase
                 dag.remove_op_node(node)
 
         return dag

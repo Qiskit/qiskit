@@ -165,4 +165,4 @@ class TestSplit2QUnitaries(QiskitTestCase):
         pm.append(ConsolidateBlocks())
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
-        self.assertEqual(qc_split.num_nonlocal_gates(), 23)
+        self.assertEqual(14, qc_split.num_nonlocal_gates())
