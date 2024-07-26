@@ -394,14 +394,14 @@ class TestBackendEstimatorV2(QiskitTestCase):
         backend = BasicSimulator()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
         hamiltonians = [
-            SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
-            SparsePauliOp.from_list([("ZZ", 1)]),
-            SparsePauliOp.from_list([("ZZ", 1), ("ZZ", 1)]),
+            {"II": 1.0, "IZ": 2.0, "XI": 3.0},
+            {"ZZ": 1.0},
+            {"XX": 1.0, "ZZ": 1.0},
             [
-                SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
-                SparsePauliOp.from_list([("ZZ", 1)]),
-                SparsePauliOp.from_list([("ZZ", 1), ("ZZ", 1)]),
-                SparsePauliOp.from_list([("ZZ", 0), ("ZZ", 0)]),
+                {"II": 1.0, "IZ": 2.0, "XI": 3.0},
+                {"ZZ": 1.0},
+                {"XX": 1.0, "ZZ": 1.0},
+                {"XX": 0.0, "ZZ": 0.0},
             ],
         ]
         for hamiltonian in hamiltonians:
@@ -417,12 +417,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         backend = BasicSimulator()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
         hamiltonians = [
-            SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
-            SparsePauliOp.from_list([("ZZ", 0)]),
-            [
-                SparsePauliOp.from_list([("II", 0), ("IZ", 0), ("XI", 0)]),
-                SparsePauliOp.from_list([("ZZ", 0)]),
-            ],
+            {"II": 0.0, "IZ": 0.0, "XI": 0.0},
+            {"ZZ": 0.0},
+            [{"II": 0.0, "IZ": 0.0, "XI": 0.0}, {"ZZ": 0.0}],
         ]
         for hamiltonian in hamiltonians:
             job = estimator.run(
