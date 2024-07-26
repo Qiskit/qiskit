@@ -118,7 +118,7 @@ class Gate(Instruction):
             ctrl_state: the control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
             annotated: indicates whether the controlled gate is implemented
-                as an annotated gate. If ``None``, this is set to ``False``,
+                as an annotated gate. If ``None``, this is set to ``False``
                 if the controlled gate can directly be constructed, and otherwise
                 set to ``True``. This allows defering the construction process in case the
                 synthesis of the controlled gate requires more information (e.g.
