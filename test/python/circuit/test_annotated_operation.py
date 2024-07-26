@@ -197,11 +197,11 @@ class TestAnnotatedOperationClass(QiskitTestCase):
             self.assertEqual(len(annotated.params), 0)
 
         with self.subTest(msg="setting params fails"):
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(AttributeError):
                 annotated.params = [1.2]
 
         with self.subTest(msg="validating params fails"):
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(AttributeError):
                 _ = annotated.validate_parameter(1.2)
 
 
