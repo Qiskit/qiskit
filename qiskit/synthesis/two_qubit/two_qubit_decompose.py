@@ -639,7 +639,8 @@ class TwoQubitBasisDecomposer:
         """
 
         if use_dag:
-            from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+            from qiskit.dagcircuit.dagcircuit import DAGCircuit
+            from qiskit.dagcircuit.dagnode import DAGOpNode
 
             sequence = self._inner_decomposer(
                 np.asarray(unitary, dtype=complex),

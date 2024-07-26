@@ -1044,19 +1044,6 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     ];
 }
 
-#[pyfunction]
-pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
-    let Ok(node) = node.downcast::<DAGOpNode>() else {
-        return false;
-    };
-    let node = node.borrow();
-    let op = &node.instruction.operation;
-    op.num_qubits() == 1
-        && op.num_clbits() == 0
-        && op.matrix(&node.instruction.params).is_some()
-        && node.instruction.condition().is_none()
-}
-
 #[pymodule]
 pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
@@ -1071,7 +1058,6 @@ pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(compute_error_one_qubit_sequence))?;
     m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
     m.add_wrapped(wrap_pyfunction!(optimize_1q_gates_decomposition))?;
-    m.add_wrapped(wrap_pyfunction!(collect_1q_runs_filter))?;
     m.add_class::<OneQubitGateSequence>()?;
     m.add_class::<OneQubitGateErrorMap>()?;
     m.add_class::<EulerBasis>()?;
