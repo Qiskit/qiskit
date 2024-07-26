@@ -3167,11 +3167,14 @@ def _format(operand):
                     (qubit_wire_map, clbit_wire_map, var_map.unbind())
                 }
                 Err(_) => {
-                    let wires: &Bound<PyList> = match wires.downcast::<PyList>() {
-                        Ok(bound_list) => bound_list,
+                    let wires: Bound<PyList> = match wires.downcast::<PyList>() {
+                        Ok(bound_list) => bound_list.clone(),
                         // If someone passes a sequence instead of an exact list (tuple is
                         // occasionally used) cast that to a list and then use it.
-                        Err(_) => &BUILTIN_LIST.get_bound(py).call1((wires,))?.extract()?,
+                        Err(_) => {
+                            let raw_wires = BUILTIN_LIST.get_bound(py).call1((wires,))?;
+                            raw_wires.extract()?
+                        }
                     };
                     build_wire_map(&wires)?
                 }
