@@ -35,6 +35,7 @@ from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from ..legacy_cmaps import BOGOTA_CMAP
 
 
 def raise_if_parameter_table_invalid(circuit):
@@ -1114,20 +1115,7 @@ class TestParameters(QiskitTestCase):
             qc,
             GenericBackendV2(
                 num_qubits=5,
-                coupling_map=[
-                    [0, 1],
-                    [1, 0],
-                    [1, 2],
-                    [2, 1],
-                    [0, 2],
-                    [2, 0],
-                    [2, 3],
-                    [3, 2],
-                    [3, 4],
-                    [4, 3],
-                    [2, 4],
-                    [4, 2],
-                ],
+                coupling_map=BOGOTA_CMAP,
                 seed=42,
             ),
             optimization_level=opt_level,
