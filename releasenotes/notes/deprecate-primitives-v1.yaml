@@ -13,7 +13,7 @@ deprecations_primitives:
     As well as the following non-versioned type aliases:
     
     * :class:`.BaseEstimator`, alias for :class:`.BaseEstimatorV1`
-    * :class:`.BaseSampler`, alias for :class:`.BaseSamplerV1
+    * :class:`.BaseSampler`, alias for :class:`.BaseSamplerV1`
 
     This deprecation does NOT affect the explicitly-versioned :class:`BaseEstimatorV1` 
     and :class:`BaseSamplerV1` abstract
