@@ -1948,6 +1948,7 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: if ``other`` is wider or there are duplicate edge mappings.
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (other, qubits=None, clbits=None, front=false, inplace=true, *, inline_captures=false))]
     fn compose(
         slf: PyRefMut<Self>,
@@ -3075,11 +3076,9 @@ def _format(operand):
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
 
-        let build_wire_map = |wires: &Bound<PyList>| -> PyResult<(
-            HashMap<Qubit, Qubit>,
-            HashMap<Clbit, Clbit>,
-            Py<PyDict>,
-        )> {
+        type WireMapsTuple = (HashMap<Qubit, Qubit>, HashMap<Clbit, Clbit>, Py<PyDict>);
+
+        let build_wire_map = |wires: &Bound<PyList>| -> PyResult<WireMapsTuple> {
             let qargs_list = BUILTIN_LIST
                 .get_bound(py)
                 .call1((bound_node.borrow().get_qargs(py),))?;
@@ -3590,7 +3589,7 @@ new_condition = (new_target, value)
         self.decrement_op(old_packed.op.name().to_string());
         self.increment_op(new_op.operation.name().to_string());
 
-        Ok(self.get_node(py, node_index)?)
+        self.get_node(py, node_index)
     }
 
     /// Decompose the circuit into sets of qubits with no gates connecting them.
@@ -5122,7 +5121,9 @@ impl DAGCircuit {
     }
 
     fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
-        let key = |node: NodeIndex| -> Result<(Option<&[Qubit]>, Option<&[Clbit]>), Infallible> {
+        type SortKeyType<'a> = (Option<&'a [Qubit]>, Option<&'a [Clbit]>);
+
+        let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> {
             Ok(match &self.dag[node] {
                 NodeType::Operation(packed) => (
                     Some(self.qargs_cache.intern(packed.qubits).as_slice()),
