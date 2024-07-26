@@ -47,7 +47,7 @@ fn star_preroute(
     processing_order: Vec<Nodes>,
 ) -> (SwapMap, PyObject, NodeBlockResults, PyObject) {
     let mut qubit_mapping: Vec<usize> = (0..dag.num_qubits).collect();
-    let mut processed_block_ids: HashSet<usize> = HashSet::new();
+    let mut processed_block_ids: HashSet<usize> = HashSet::with_capacity(blocks.len());
     let last_2q_gate = processing_order.iter().rev().find(|node| node.1.len() == 2);
     let mut is_first_star = true;
 
@@ -58,31 +58,48 @@ fn star_preroute(
     let node_block_results: HashMap<usize, Vec<BlockResult>> = HashMap::new();
 
     // Create a HashMap to store the node-to-block mapping
-    let mut node_to_block: HashMap<usize, usize> = HashMap::new();
+    let mut node_to_block: HashMap<usize, usize> = HashMap::with_capacity(processing_order.len());
     for (block_id, block) in blocks.iter().enumerate() {
         for node in &block.1 {
             node_to_block.insert(node.0, block_id);
         }
     }
+    // Store nodes where swaps will be placed.
+    let mut swap_locations: Vec<&Nodes> = Vec::with_capacity(processing_order.len());
 
-    // Process each node in the given processing order
-    for node in processing_order.iter() {
+    // Process blocks, gathering swap locations and updating the gate order
+    for node in &processing_order {
         if let Some(&block_id) = node_to_block.get(&node.0) {
             // Skip if the block has already been processed
             if !processed_block_ids.insert(block_id) {
                 continue;
             }
             process_block(
-                &mut qubit_mapping,
                 &blocks[block_id],
                 last_2q_gate,
                 &mut is_first_star,
                 &mut gate_order,
-                &mut out_map,
+                &mut swap_locations,
             );
         } else {
             // Apply operation for nodes not part of any block
             gate_order.push(node.0);
+        }
+    }
+
+    // Apply the swaps based on the gathered swap locations and gate order
+    for (index, node_id) in gate_order.iter().enumerate() {
+        for swap_location in &swap_locations {
+            if *node_id == swap_location.0 {
+                if let Some(next_node_id) = gate_order.get(index + 1) {
+                    apply_swap(
+                        &mut qubit_mapping,
+                        &swap_location.1,
+                        *next_node_id,
+                        &mut out_map,
+                    );
+                }
+            }
         }
     }
 
@@ -108,19 +125,17 @@ fn star_preroute(
 ///
 /// Args:
 ///
-/// * `qubit_mapping` - A mutable reference to the qubit mapping vector.
 /// * `block` - A tuple containing a boolean indicating the presence of a center and a vector of nodes representing the star block.
 /// * `last_2q_gate` - The last two-qubit gate in the processing order.
 /// * `is_first_star` - A mutable reference to a boolean indicating if this is the first star block being processed.
 /// * `gate_order` - A mutable reference to the gate order vector.
-/// * `out_map` - A mutable reference to the output map.
+/// * `swap_locations` - A mutable reference to the nodes where swaps will be placed after
 fn process_block<'a>(
-    qubit_mapping: &mut [usize],
     block: &'a Block,
     last_2q_gate: Option<&'a Nodes>,
     is_first_star: &mut bool,
     gate_order: &mut Vec<usize>,
-    out_map: &mut HashMap<usize, Vec<[PhysicalQubit; 2]>>,
+    swap_locations: &mut Vec<&'a Nodes>,
 ) {
     let (has_center, sequence) = block;
 
@@ -155,10 +170,8 @@ fn process_block<'a>(
         gate_order.push(inner_node.0);
 
         if inner_node != last_2q_gate.unwrap() && inner_node.1.len() == 2 {
-            // Use the node ID of the next node in the sequence to match how SABRE applies swaps
-            apply_swap(qubit_mapping, &inner_node.1, inner_node.0, out_map);
+            swap_locations.push(inner_node);
         }
-
         prev_qargs = Some(&inner_node.1);
     }
     *is_first_star = false;
@@ -169,13 +182,13 @@ fn process_block<'a>(
 /// # Args:
 ///
 /// * `qubit_mapping` - A mutable reference to the qubit mapping vector.
-/// * `qargs` - A slice containing the qubit indices for the swap operation.
-/// * `node_id` - The ID of the node in the sequence.
+/// * `qargs` - Qubit indices for the swap operation (node before the swap)
+/// * `next_node_id` - ID of the next node in the gate order (node after the swap)
 /// * `out_map` - A mutable reference to the output map.
 fn apply_swap(
     qubit_mapping: &mut [usize],
     qargs: &[VirtualQubit],
-    node_id: usize,
+    next_node_id: usize,
     out_map: &mut HashMap<usize, Vec<[PhysicalQubit; 2]>>,
 ) {
     if qargs.len() == 2 {
@@ -185,7 +198,7 @@ fn apply_swap(
         // Update the `qubit_mapping` and `out_map` to reflect the swap operation
         qubit_mapping.swap(idx0, idx1);
         out_map.insert(
-            node_id,
+            next_node_id,
             vec![[
                 PhysicalQubit::new(qubit_mapping[idx0].try_into().unwrap()),
                 PhysicalQubit::new(qubit_mapping[idx1].try_into().unwrap()),
