@@ -31,6 +31,7 @@ from qiskit.utils import optionals
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from ..legacy_cmaps import KYOTO_CMAP
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
@@ -106,64 +107,7 @@ class TestGateMap(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SEABORN, "Seaborn not installed")
     def test_plot_error_map_backend_v1(self):
         """Test plotting error map with fake backend v1."""
-        coupling_map = [
-            [0, 1],
-            [1, 0],
-            [1, 2],
-            [1, 4],
-            [2, 1],
-            [2, 3],
-            [3, 2],
-            [3, 5],
-            [4, 1],
-            [4, 7],
-            [5, 3],
-            [5, 8],
-            [6, 7],
-            [7, 4],
-            [7, 6],
-            [7, 10],
-            [8, 5],
-            [8, 9],
-            [8, 11],
-            [9, 8],
-            [10, 7],
-            [10, 12],
-            [11, 8],
-            [11, 14],
-            [12, 10],
-            [12, 13],
-            [12, 15],
-            [13, 12],
-            [13, 14],
-            [14, 11],
-            [14, 13],
-            [14, 16],
-            [15, 12],
-            [15, 18],
-            [16, 14],
-            [16, 19],
-            [17, 18],
-            [18, 15],
-            [18, 17],
-            [18, 21],
-            [19, 16],
-            [19, 20],
-            [19, 22],
-            [20, 19],
-            [21, 18],
-            [21, 23],
-            [22, 19],
-            [22, 25],
-            [23, 21],
-            [23, 24],
-            [24, 23],
-            [24, 25],
-            [25, 22],
-            [25, 24],
-            [25, 26],
-            [26, 25],
-        ]
+        coupling_map = KYOTO_CMAP
         backend = GenericBackendV2(
             num_qubits=27,
             pulse_channels=True,
