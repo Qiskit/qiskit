@@ -10,9 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from qiskit.utils.deprecation import deprecate_func
-
-
 """
 Visualization function for animation of state transitions by applying gates to single qubit.
 """
@@ -21,6 +18,7 @@ from math import sin, cos, acos, sqrt
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils.deprecation import deprecate_func
 
 
 def _normalize(v, tolerance=0.00001):
