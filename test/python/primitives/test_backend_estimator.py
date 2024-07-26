@@ -430,7 +430,7 @@ class TestBackendEstimator(QiskitTestCase):
             backend.set_options(seed_simulator=15)
             with self.assertWarns(DeprecationWarning):
                 estimator = BackendEstimator(backend)
-                estimator.set_transpile_options(seed_transpiler=15)
+                estimator.set_transpile_options(seed_transpiler=15, optimization_level=1)
                 value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
                 ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
@@ -446,7 +446,9 @@ class TestBackendEstimator(QiskitTestCase):
             op = SparsePauliOp("IZI")
             with self.assertWarns(DeprecationWarning):
                 estimator = BackendEstimator(backend)
-                estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
+                estimator.set_transpile_options(
+                    initial_layout=[0, 1, 2], seed_transpiler=15, optimization_level=1
+                )
                 estimator.set_options(seed_simulator=15)
                 value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:

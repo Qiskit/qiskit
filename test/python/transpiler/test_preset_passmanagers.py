@@ -1219,6 +1219,24 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, target)
         self.assertIsInstance(pm, PassManager)
 
+    def test_default_optimization_level(self):
+        """Test a pass manager is constructed with no optimization level."""
+        backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP)
+        pm = generate_preset_pass_manager(backend=backend)
+        self.assertIsInstance(pm, PassManager)
+
+    def test_default_optimization_level_backend_first_pos_arg(self):
+        """Test a pass manager is constructed with only a positional backend."""
+        backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP)
+        pm = generate_preset_pass_manager(backend)
+        self.assertIsInstance(pm, PassManager)
+
+    def test_default_optimization_level_target_first_pos_arg(self):
+        """Test a pass manager is constructed with only a positional target."""
+        backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP)
+        pm = generate_preset_pass_manager(backend.target)
+        self.assertIsInstance(pm, PassManager)
+
     @data(0, 1, 2, 3)
     def test_with_no_backend(self, optimization_level):
         """Test a passmanager is constructed with no backend and optimization level."""
