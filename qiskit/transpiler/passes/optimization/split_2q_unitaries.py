@@ -10,24 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
-
-import numpy as np
+from typing import Optional
 
 from qiskit.circuit import CircuitInstruction
 from qiskit.circuit.library import UnitaryGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
-from qiskit.synthesis.two_qubit.two_qubit_decompose import (
-    decompose_two_qubit_product_gate,
-    TwoQubitWeylDecomposition,
-)
+from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
 from qiskit.transpiler import TransformationPass
 
 
 class Split2QUnitaries(TransformationPass):
     """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
 
-    def __init__(self, fidelity: float | None = 1.0 - 1.0e-9):
+    def __init__(self, fidelity: Optional[float] = 1.0 - 1e-16):
         """Split2QUnitaries initializer.
 
         Args:
@@ -38,8 +33,6 @@ class Split2QUnitaries(TransformationPass):
 
     def run(self, dag: DAGCircuit):
         """Run the Split2QUnitaries pass on `dag`."""
-        sq_id = np.eye(2)
-
         for node in dag.topological_op_nodes():
             # skip operations without two-qubits and for which we can not determine a potential 1q split
             if (
@@ -56,22 +49,20 @@ class Split2QUnitaries(TransformationPass):
                 == TwoQubitWeylDecomposition._specializations.IdEquiv
             ):
                 ur = decomp.K1r
-                if not np.allclose(ur, sq_id, atol=self.requested_fidelity, rtol=0):
-                    ur_node = DAGOpNode.from_instruction(
-                        CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=dag
-                    )
-                    ur_node._node_id = dag._multi_graph.add_node(ur_node)
-                    dag._increment_op("unitary")
-                    dag._multi_graph.insert_node_on_in_edges(ur_node._node_id, node._node_id)
+                ur_node = DAGOpNode.from_instruction(
+                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=dag
+                )
+                ur_node._node_id = dag._multi_graph.add_node(ur_node)
+                dag._increment_op("unitary")
+                dag._multi_graph.insert_node_on_in_edges(ur_node._node_id, node._node_id)
 
                 ul = decomp.K1l
-                if not np.allclose(ul, sq_id, atol=self.requested_fidelity, rtol=0):
-                    ul_node = DAGOpNode.from_instruction(
-                        CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=dag
-                    )
-                    ul_node._node_id = dag._multi_graph.add_node(ul_node)
-                    dag._increment_op("unitary")
-                    dag._multi_graph.insert_node_on_in_edges(ul_node._node_id, node._node_id)
+                ul_node = DAGOpNode.from_instruction(
+                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=dag
+                )
+                ul_node._node_id = dag._multi_graph.add_node(ul_node)
+                dag._increment_op("unitary")
+                dag._multi_graph.insert_node_on_in_edges(ul_node._node_id, node._node_id)
 
                 dag.global_phase += decomp.global_phase
                 dag.remove_op_node(node)

@@ -71,7 +71,7 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertTrue(
             matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
         )
-        self.assertEqual(qc_split.size(), 0)
+        self.assertEqual(qc_split.size(), 2)
 
     def test_1q_identity(self):
         """Test that a Kronecker product with one identity gate on top is correctly processed."""
@@ -92,7 +92,7 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertTrue(
             matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
         )
-        self.assertEqual(qc_split.size(), 1)
+        self.assertEqual(qc_split.size(), 2)
 
     def test_1q_identity2(self):
         """Test that a Kronecker product with one identity gate on bottom is correctly processed."""
@@ -113,7 +113,7 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertTrue(
             matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
         )
-        self.assertEqual(qc_split.size(), 1)
+        self.assertEqual(qc_split.size(), 2)
 
     def test_no_split(self):
         """Test that the pass does not split a non-local two-qubit unitary."""
@@ -146,23 +146,29 @@ class TestSplit2QUnitaries(QiskitTestCase):
         """Test that the pass handles QFT correctly."""
         qc = QuantumCircuit(2)
         qc.cp(pi * 2 ** -(26), 0, 1)
+        print(Operator(qc).data)
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries(fidelity=1.0 - 1e-9))
+        qc_split = pm.run(qc)
         pm = PassManager()
         pm.append(Collect2qBlocks())
         pm.append(ConsolidateBlocks())
         pm.append(Split2QUnitaries())
-        qc_split = pm.run(qc)
+        qc_split2 = pm.run(qc)
         self.assertEqual(qc_split.num_nonlocal_gates(), 0)
+        self.assertEqual(qc_split2.num_nonlocal_gates(), 1)
 
     def test_split_qft(self):
         """Test that the pass handles QFT correctly."""
-        # 2**-26
-        qc = QuantumCircuit(31)
+        qc = QuantumCircuit(100)
         qc.h(0)
-        for i in range(29, 0, -1):
-            qc.cp(pi * 2 ** -(30 - i), 30, i)
+        for i in range(qc.num_qubits - 2, 0, -1):
+            qc.cp(pi * 2 ** -(qc.num_qubits - 1 - i), qc.num_qubits - 1, i)
         pm = PassManager()
         pm.append(Collect2qBlocks())
         pm.append(ConsolidateBlocks())
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
-        self.assertEqual(14, qc_split.num_nonlocal_gates())
+        self.assertEqual(26, qc_split.num_nonlocal_gates())
