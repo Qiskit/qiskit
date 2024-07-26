@@ -291,10 +291,6 @@ impl DAGOpNode {
         self.instruction.params = val;
     }
 
-    pub fn is_parameterized(&self) -> bool {
-        self.instruction.is_parameterized()
-    }
-
     #[getter]
     fn matrix(&self, py: Python) -> Option<PyObject> {
         let matrix = self.instruction.op().matrix(&self.instruction.params);
@@ -333,9 +329,25 @@ impl DAGOpNode {
             .and_then(|attrs| attrs.unit.as_deref())
     }
 
-    #[getter]
+    /// Is the :class:`.Operation` contained in this node a Qiskit standard gate?
     pub fn is_standard_gate(&self) -> bool {
         self.instruction.is_standard_gate()
+    }
+
+    /// Is the :class:`.Operation` contained in this node a directive?
+    pub fn is_directive(&self) -> bool {
+        self.instruction.is_directive()
+    }
+
+    /// Is the :class:`.Operation` contained in this node a control-flow operation (i.e. an instance
+    /// of :class:`.ControlFlowOp`)?
+    pub fn is_control_flow(&self) -> bool {
+        self.instruction.is_control_flow()
+    }
+
+    /// Does this node contain any :class:`.ParameterExpression` parameters?
+    pub fn is_parameterized(&self) -> bool {
+        self.instruction.is_parameterized()
     }
 
     #[setter]

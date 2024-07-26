@@ -168,7 +168,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
+from qiskit.circuit import ControlledGate, EquivalenceLibrary
 from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -415,11 +415,11 @@ class HighLevelSynthesis(TransformationPass):
         dag_op_nodes = dag.op_nodes()
 
         for node in dag_op_nodes:
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 node.op = control_flow.map_blocks(self.run, node.op)
                 continue
 
-            if getattr(node.op, "_directive", False):
+            if node.is_directive():
                 continue
 
             if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
@@ -428,6 +428,9 @@ class HighLevelSynthesis(TransformationPass):
             qubits = (
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
+
+            if self._definitely_skip_node(node):
+                continue
 
             decomposition, modified = self._recursively_handle_op(node.op, qubits)
 
@@ -444,6 +447,17 @@ class HighLevelSynthesis(TransformationPass):
                 dag.substitute_node(node, decomposition)
 
         return dag
+
+    def _definitely_skip_node(self, node) -> bool:
+        """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
+        attempt to synthesise it).
+
+        This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
+        avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
+        node (which is _most_ nodes)."""
+        # In general, Rust-space standard gates aren't going to need synthesising (but check to be
+        # sure).
+        return node.is_standard_gate() and not self._methods_to_try(node.name)
 
     def _recursively_handle_op(
         self, op: Operation, qubits: Optional[List] = None
@@ -471,6 +485,9 @@ class HighLevelSynthesis(TransformationPass):
         involves synthesizing its "base operation" which might also be
         an annotated operation.
         """
+
+        # WARNING: if adding new things in here, ensure that `_definitely_skip_node` is also
+        # up-to-date.
 
         # Try to apply plugin mechanism
         decomposition = self._synthesize_op_using_plugins(op, qubits)
@@ -521,6 +538,22 @@ class HighLevelSynthesis(TransformationPass):
         dag = self.run(dag)
         return dag, True
 
+    def _methods_to_try(self, name: str):
+        """Get a sequence of methods to try for a given op name."""
+        if (methods := self.hls_config.methods.get(name)) is not None:
+            # the operation's name appears in the user-provided config,
+            # we use the list of methods provided by the user
+            return methods
+        if (
+            self.hls_config.use_default_on_unspecified
+            and "default" in self.hls_plugin_manager.method_names(name)
+        ):
+            # the operation's name does not appear in the user-specified config,
+            # we use the "default" method when instructed to do so and the "default"
+            # method is available
+            return ["default"]
+        return []
+
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List
     ) -> Union[QuantumCircuit, None]:
@@ -531,25 +564,10 @@ class HighLevelSynthesis(TransformationPass):
         """
         hls_plugin_manager = self.hls_plugin_manager
 
-        if op.name in self.hls_config.methods.keys():
-            # the operation's name appears in the user-provided config,
-            # we use the list of methods provided by the user
-            methods = self.hls_config.methods[op.name]
-        elif (
-            self.hls_config.use_default_on_unspecified
-            and "default" in hls_plugin_manager.method_names(op.name)
-        ):
-            # the operation's name does not appear in the user-specified config,
-            # we use the "default" method when instructed to do so and the "default"
-            # method is available
-            methods = ["default"]
-        else:
-            methods = []
-
         best_decomposition = None
         best_score = np.inf
 
-        for method in methods:
+        for method in self._methods_to_try(op.name):
             # There are two ways to specify a synthesis method. The more explicit
             # way is to specify it as a tuple consisting of a synthesis algorithm and a
             # list of additional arguments, e.g.,

@@ -18,7 +18,7 @@ import time
 
 import rustworkx
 
-from qiskit.circuit import SwitchCaseOp, ControlFlowOp, Clbit, ClassicalRegister
+from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.converters import dag_to_circuit
@@ -28,7 +28,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.utils.parallel import CPU_COUNT
 
 from qiskit._accelerate.sabre import (
@@ -289,9 +289,9 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
             cargs_bits = set(node.cargs)
-            if node.op.condition is not None:
-                cargs_bits.update(condition_resources(node.op.condition).clbits)
-            if isinstance(node.op, SwitchCaseOp):
+            if node.condition is not None:
+                cargs_bits.update(condition_resources(node.condition).clbits)
+            if node.is_control_flow() and isinstance(node.op, SwitchCaseOp):
                 target = node.op.target
                 if isinstance(target, Clbit):
                     cargs_bits.add(target)
@@ -300,7 +300,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                 else:  # Expr
                     cargs_bits.update(node_resources(target).clbits)
             cargs = {block_dag.find_bit(x).index for x in cargs_bits}
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 node_blocks[node._node_id] = [
                     recurse(
                         block,
@@ -313,7 +313,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                     node._node_id,
                     [wire_map[x] for x in node.qargs],
                     cargs,
-                    getattr(node.op, "_directive", False),
+                    node.is_directive(),
                 )
             )
         return SabreDAG(num_physical_qubits, block_dag.num_clbits(), dag_list, node_blocks)
@@ -383,14 +383,15 @@ def _apply_sabre_result(
             node = source_dag._multi_graph[node_id]
             if node_id in swap_map:
                 apply_swaps(dest_dag, swap_map[node_id], layout)
-            if not isinstance(node.op, ControlFlowOp):
-                dest_dag.apply_operation_back(
-                    node.op,
-                    [
-                        physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
-                        for q in node.qargs
-                    ],
-                    node.cargs,
+            if not node.is_control_flow():
+                qubits = [
+                    physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
+                    for q in node.qargs
+                ]
+                dest_dag._apply_op_node_back(
+                    DAGOpNode.from_instruction(
+                        node._to_circuit_instruction().replace(qubits=qubits)
+                    ),
                     check=False,
                 )
                 continue
