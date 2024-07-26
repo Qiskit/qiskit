@@ -27,9 +27,9 @@ class Split2QUnitaries(TransformationPass):
     def run(self, dag: DAGCircuit):
         """Run the Split2QUnitaries pass on `dag`."""
         sq_id = np.eye(2)
-        identity = np.eye(2 ** 2)
+        identity = np.eye(2**2)
 
-        for i, node in enumerate(dag.topological_op_nodes()):
+        for node in dag.topological_op_nodes():
             # skip operations without two-qubits and for which we can not determine a potential 1q split
             if (
                 len(node.cargs) > 0

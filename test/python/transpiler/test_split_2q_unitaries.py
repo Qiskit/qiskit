@@ -145,7 +145,7 @@ class TestSplit2QUnitaries(QiskitTestCase):
     def test_almost_identity(self):
         """Test that the pass handles QFT correctly."""
         qc = QuantumCircuit(2)
-        qc.cp(pi*2**-(26), 0, 1)
+        qc.cp(pi * 2 ** -(26), 0, 1)
         pm = PassManager()
         pm.append(Collect2qBlocks())
         pm.append(ConsolidateBlocks())
@@ -155,11 +155,11 @@ class TestSplit2QUnitaries(QiskitTestCase):
 
     def test_split_qft(self):
         """Test that the pass handles QFT correctly."""
-        #2**-26
+        # 2**-26
         qc = QuantumCircuit(31)
         qc.h(0)
         for i in range(29, 0, -1):
-            qc.cp(pi*2**-(30-i), 30, i)
+            qc.cp(pi * 2 ** -(30 - i), 30, i)
         pm = PassManager()
         pm.append(Collect2qBlocks())
         pm.append(ConsolidateBlocks())
