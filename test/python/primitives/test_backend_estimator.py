@@ -390,10 +390,11 @@ class TestBackendEstimator(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
-            estimator = BackendEstimator(
-                backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
-            )
-            _ = estimator.run(qc, op).result()
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(
+                    backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
+                )
+                _ = estimator.run(qc, op).result()
             expected = [
                 "bound_pass_manager",
             ]
@@ -412,10 +413,12 @@ class TestBackendEstimator(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                estimator = BackendEstimator(
-                    backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
-                )
-                _ = estimator.run([qc, qc], [op, op]).result()
+                with self.assertWarns(DeprecationWarning):
+                    estimator = BackendEstimator(
+                        backend=GenericBackendV2(num_qubits=5, seed=42),
+                        bound_pass_manager=bound_pass,
+                    )
+                    _ = estimator.run([qc, qc], [op, op]).result()
                 expected = [
                     "bound_pass_manager",
                     "bound_pass_manager",
