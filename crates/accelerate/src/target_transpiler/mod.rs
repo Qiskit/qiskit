@@ -24,6 +24,8 @@ use ahash::HashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nullable_index_map::NullableIndexMap;
+use pyo3::types::IntoPyDict;
+use pyo3::types::PyIterator;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
@@ -177,6 +179,7 @@ pub(crate) struct Target {
     qarg_gate_map: NullableIndexMap<Qargs, Option<HashSet<String>>>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
+    _py_gate_map_cache: IndexMap<String, Py<PyDict>, RandomState>,
 }
 
 #[pymethods]
@@ -274,6 +277,7 @@ impl Target {
             qarg_gate_map: NullableIndexMap::default(),
             non_global_basis: None,
             non_global_strict_basis: None,
+            _py_gate_map_cache: IndexMap::default(),
         })
     }
 
@@ -360,6 +364,7 @@ impl Target {
         self.gate_map.insert(name.to_string(), qargs_val);
         self.non_global_basis = None;
         self.non_global_strict_basis = None;
+        self._py_gate_map_cache.swap_remove(name);
         Ok(())
     }
 
@@ -374,30 +379,29 @@ impl Target {
     #[pyo3(text_signature = "(instruction, qargs, properties, /,)")]
     fn update_instruction_properties(
         &mut self,
-        instruction: String,
+        instruction: &str,
         qargs: Option<Qargs>,
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
-        if !self.contains_key(&instruction) {
+        if !self.contains_key(instruction) {
             return Err(PyKeyError::new_err(format!(
                 "Provided instruction: '{:?}' not in this Target.",
                 &instruction
             )));
         };
-        let mut prop_map = self[&instruction].clone();
-        if !(prop_map.contains_key(qargs.as_ref())) {
+        if !(self[instruction].contains_key(qargs.as_ref())) {
             return Err(PyKeyError::new_err(format!(
                 "Provided qarg {:?} not in this Target for {:?}.",
                 &qargs.unwrap_or_default(),
                 &instruction
             )));
         }
-        if let Some(e) = prop_map.get_mut(qargs.as_ref()) {
-            *e = properties;
+        if let Some(obj) = self.gate_map.get_mut(instruction) {
+            if let Some(e) = obj.get_mut(qargs.as_ref()) {
+                *e = properties;
+            }
         }
-        self.gate_map
-            .entry(instruction)
-            .and_modify(|e| *e = prop_map);
+        self._py_gate_map_cache.swap_remove(instruction);
         Ok(())
     }
 
@@ -790,8 +794,8 @@ impl Target {
 
     // Magic methods:
 
-    fn __len__(&self) -> PyResult<usize> {
-        Ok(self.gate_map.len())
+    fn __len__(&self) -> usize {
+        self.gate_map.len()
     }
 
     fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
@@ -897,6 +901,86 @@ impl Target {
             .unwrap()
             .extract::<Option<Vec<String>>>()?;
         Ok(())
+    }
+
+    /// Performs caching of python side dict objects for better access performance.
+    fn __getitem__(&mut self, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        let py: Python = key.py();
+        let Ok(key) = key.extract::<String>() else {return Err(PyKeyError::new_err(
+            "Invalid Key Type for Target."
+        ));};
+        if let Some(val) = self._py_gate_map_cache.get(key.as_str()) {
+            Ok(val.as_any().clone_ref(py))
+        } else if let Some(val) = self.gate_map.get(key.as_str()) {
+            let new_py: Vec<(Option<Bound<'_, PyTuple>>, PyObject)> = val
+                .clone()
+                .into_iter()
+                .map(|(key, val)| (key.map(|key| PyTuple::new_bound(py, key)), val.into_py(py)))
+                .collect();
+            let dict_py = new_py.into_py_dict_bound(py).unbind();
+            self._py_gate_map_cache.insert(key, dict_py.clone_ref(py));
+            Ok(dict_py.into())
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Key: '{key}' not present in target"
+            )))
+        }
+    }
+
+    /// Retrieves all the keys in the gate_map
+    #[pyo3(name = "keys")]
+    fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
+        let dict = PyDict::new_bound(slf.py());
+        let mapped_keys = slf.keys().map(|key| key.to_string());
+        for key in mapped_keys {
+            dict.set_item(key, slf.py().None())?;
+        }
+        Ok(dict.as_any().call_method0("keys")?.into())
+    }
+
+    #[pyo3(name = "values")]
+    fn py_values(slf: PyRef<Self>) -> PyResult<Py<PyList>> {
+        let py = slf.py();
+        let values = PyList::empty_bound(py);
+        let mapped_values = slf.values().map(|value| {
+            let vec_dict: Vec<_> = value
+                .clone()
+                .into_iter()
+                .map(|(key, val)| (key.map(|key| PyTuple::new_bound(py, key)), val.into_py(py)))
+                .collect();
+            vec_dict.into_py_dict_bound(py)
+        });
+        for key in mapped_values {
+            values.append(key)?;
+        }
+        Ok(values.into())
+    }
+
+    fn items(slf: PyRef<Self>) -> PyResult<Py<PyList>> {
+        let py = slf.py();
+        let items_list = PyList::empty_bound(py);
+        for (key, value) in slf.gate_map.iter().map(|(keys, values)| {
+            (keys.to_string(), {
+                let values_vec: Vec<_> = values
+                    .clone()
+                    .into_iter()
+                    .map(|(key, val)| (key.map(|key| PyTuple::new_bound(py, key)), val.into_py(py)))
+                    .collect();
+                values_vec.into_py_dict_bound(py)
+            })
+        }) {
+            items_list.append((key, value))?;
+        }
+        Ok(items_list.into())
+    }
+
+    fn __contains__(&self, item: &Bound<PyAny>) -> PyResult<bool> {
+        let Ok(item) = item.extract::<String>() else {return Err(PyKeyError::new_err("Invalid key type, not supported in Target."));};
+        Ok(self.gate_map.contains_key(&item))
+    }
+
+    fn __iter__(slf: &Bound<Self>) -> PyResult<Py<PyIterator>> {
+        Ok(slf.call_method0("keys")?.iter()?.into())
     }
 }
 
