@@ -827,8 +827,6 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the mcx with one clean ancilla
         is less than upper bound."""
-        from qiskit import transpile
-
         mcx_recursive = MCXRecursive(num_ctrl_qubits)
         qc = QuantumCircuit(mcx_recursive.num_qubits)
 
