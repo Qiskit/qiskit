@@ -23,7 +23,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend
-from qiskit.scheduler import ScheduleConfig
+from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.utils.parallel import parallel_map
 

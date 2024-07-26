@@ -12,3 +12,9 @@ upgrade_transpiler:
     If a `backend` input of type :class:`.BackendV1` is provided, it will be 
     converted to :class:`.BackendV2` to expose its :class:`.Target`. This change does 
     not require any user action.
+
+fixes:
+  - |
+    A series of input-handling inconsistencies between :func:`.transpile` and :func:`.generate_preset_pass_manager` 
+    have been fixed. These inconsistencies would lead to different transpilation outputs for the same inputs, 
+    or :func:`.generate_preset_pass_manager` failing for certain input combinations accepted by :func:`.transpile`.

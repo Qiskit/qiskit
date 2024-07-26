@@ -168,7 +168,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni = UnitaryGate(matrix)
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, "unitary")
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
@@ -197,7 +198,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         matrix = numpy.kron(sigmax, sigmay)
         uni = UnitaryGate(matrix, label="xy")
         qc.append(uni, [qr[0], qr[1]])
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[0]
         self.assertEqual(instr.name, "unitary")
         self.assertEqual(instr.label, "xy")

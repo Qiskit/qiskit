@@ -14,13 +14,13 @@
 
 import warnings
 
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.transpiler.target import Target
 
 

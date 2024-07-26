@@ -14,8 +14,11 @@
 
 import itertools
 
-from qiskit.transpiler import CouplingMap, Target, AnalysisPass, TranspilerError
+from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
+from qiskit.transpiler.target import Target
 from qiskit._accelerate.error_map import ErrorMap
 
 

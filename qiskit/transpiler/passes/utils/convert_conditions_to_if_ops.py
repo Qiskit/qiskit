@@ -22,7 +22,7 @@ from qiskit.circuit import (
     QuantumCircuit,
 )
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class ConvertConditionsToIfOps(TransformationPass):

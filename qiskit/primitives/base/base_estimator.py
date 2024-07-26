@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""Base Estimator Classes"""
+"""Base Estimator Classes"""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
 from ..containers import (
     DataBin,
@@ -187,7 +188,26 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseEstimator must implement `_run` method.")
 
 
-BaseEstimator = BaseEstimatorV1
+class BaseEstimator(BaseEstimatorV1[T]):
+    """DEPRECATED. Type alias of Estimator V1 base class.
+
+    See :class:`.BaseEstimatorV1` for details.
+    """
+
+    @deprecate_func(since="1.2", additional_msg="Use BaseEstimatorV2 instead.")
+    def __init__(
+        self,
+        *,
+        options: dict | None = None,
+    ):
+        """
+        Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
+        holds resources until the instance is ``close()`` ed or the context is exited.
+
+        Args:
+            options: Default options.
+        """
+        super().__init__(options=options)
 
 
 class BaseEstimatorV2(ABC):

@@ -17,7 +17,7 @@ import unittest
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dumps
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -47,7 +47,6 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         qcirc = QuantumCircuit.from_qasm_file(qasm_filename)
         qcirc.name = "test"
         self.transpiled_circuit = transpile(qcirc, backend=self.backend)
-        self.qobj = assemble(self.transpiled_circuit, shots=1000, seed_simulator=self.seed)
 
     def test_basic_simulator_single_shot(self):
         """Test single shot run."""

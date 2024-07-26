@@ -227,8 +227,8 @@ def mcrx(
     """
     from .rx import RXGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit
@@ -292,11 +292,11 @@ def mcry(
     """
     from .ry import RYGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
-    ancillary_qubits = [] if q_ancillae is None else self.qbit_argument_conversion(q_ancillae)
+    ancillary_qubits = [] if q_ancillae is None else self._qbit_argument_conversion(q_ancillae)
     all_qubits = control_qubits + target_qubit + ancillary_qubits
     target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
@@ -365,8 +365,8 @@ def mcrz(
     """
     from .rz import CRZGate, RZGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit

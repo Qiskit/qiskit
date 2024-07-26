@@ -1,0 +1,11 @@
+---
+deprecations_circuits:
+  - |
+    The following circuit methods were not intended for public use, but were accidentally left documented in the
+    public API during the 1.0 release. They are now deprecated from Qiskit 1.2 and will be removed in Qiskit 2.0:
+
+      * ``QuantumCircuit.cast``
+      * ``QuantumCircuit.cls_instances``
+      * ``QuantumCircuit.cls_prefix``
+      * ``QuantumCircuit.cbit_argument_conversion``
+      * ``QuantumCircuit.qbit_argument_conversion``

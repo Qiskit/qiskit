@@ -46,4 +46,6 @@ class DisassemblerBenchmarks:
         self.qobj = assemble(self.circuits)
 
     def time_disassemble_circuit(self, _, __, ___):
+        # TODO: QObj is getting deprecated. Remove once that happens
+        # https://github.com/Qiskit/qiskit/pull/12649
         disassemble(self.qobj)

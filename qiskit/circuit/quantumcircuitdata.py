@@ -53,8 +53,8 @@ class QuantumCircuitData(MutableSequence):
         if not isinstance(operation, Operation):
             raise CircuitError("object is not an Operation.")
 
-        expanded_qargs = [self._circuit.qbit_argument_conversion(qarg) for qarg in qargs or []]
-        expanded_cargs = [self._circuit.cbit_argument_conversion(carg) for carg in cargs or []]
+        expanded_qargs = [self._circuit._qbit_argument_conversion(qarg) for qarg in qargs or []]
+        expanded_cargs = [self._circuit._cbit_argument_conversion(carg) for carg in cargs or []]
 
         if isinstance(operation, Instruction):
             broadcast_args = list(operation.broadcast_arguments(expanded_qargs, expanded_cargs))

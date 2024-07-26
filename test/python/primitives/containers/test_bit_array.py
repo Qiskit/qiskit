@@ -232,6 +232,7 @@ class BitArrayTestCase(QiskitTestCase):
 
         counts1 = convert(Counts({"0b101010": 2, "0b1": 3, "0x010203": 4}))
         counts2 = convert(Counts({1: 3, 2: 6}))
+        counts3 = convert(Counts({0: 2}))
 
         bit_array = BitArray.from_counts(counts1)
         expected = BitArray(u_8([[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4), 17)
@@ -248,6 +249,10 @@ class BitArrayTestCase(QiskitTestCase):
         ]
         self.assertEqual(bit_array, BitArray(u_8(expected), 17))
 
+        bit_array = BitArray.from_counts(counts3)
+        expected = BitArray(u_8([[0], [0]]), 1)
+        self.assertEqual(bit_array, expected)
+
     def test_from_samples_bitstring(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples(["110", "1", "1111111111"])
@@ -255,6 +260,9 @@ class BitArrayTestCase(QiskitTestCase):
 
         bit_array = BitArray.from_samples(["110", "1", "1111111111"], 20)
         self.assertEqual(bit_array, BitArray(u_8([[0, 0, 6], [0, 0, 1], [0, 3, 255]]), 20))
+
+        bit_array = BitArray.from_samples(["000", "0"])
+        self.assertEqual(bit_array, BitArray(u_8([[0], [0]]), 1))
 
     def test_from_samples_hex(self):
         """Test the from_samples static constructor."""
@@ -264,6 +272,9 @@ class BitArrayTestCase(QiskitTestCase):
         bit_array = BitArray.from_samples(["0x01", "0x0a12", "0x0105"], 20)
         self.assertEqual(bit_array, BitArray(u_8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
 
+        bit_array = BitArray.from_samples(["0x0", "0x0"])
+        self.assertEqual(bit_array, BitArray(u_8([[0], [0]]), 1))
+
     def test_from_samples_int(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples([1, 2578, 261])
@@ -271,6 +282,9 @@ class BitArrayTestCase(QiskitTestCase):
 
         bit_array = BitArray.from_samples([1, 2578, 261], 20)
         self.assertEqual(bit_array, BitArray(u_8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
+
+        bit_array = BitArray.from_samples([0, 0, 0])
+        self.assertEqual(bit_array, BitArray(u_8([[0], [0], [0]]), 1))
 
     def test_reshape(self):
         """Test the reshape method."""

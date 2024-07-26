@@ -30,6 +30,7 @@ from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
+from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 
 
 def qs_decomposition(
@@ -253,7 +254,7 @@ def _apply_a2(circ):
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-    decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
+    decomposer = two_qubit_decompose_up_to_diagonal
     ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)
     ind2q = []
     # collect 2q instrs
@@ -275,7 +276,8 @@ def _apply_a2(circ):
         instr2 = ccirc.data[ind2]
         mat2 = Operator(instr2.operation).data
         # rollover
-        dmat, qc2cx = decomposer(mat1)
+        dmat, qc2cx_data = decomposer(mat1)
+        qc2cx = QuantumCircuit._from_circuit_data(qc2cx_data)
         ccirc.data[ind1] = instr1.replace(operation=qc2cx.to_gate())
         mat2 = mat2 @ dmat
         ccirc.data[ind2] = instr2.replace(UnitaryGate(mat2))

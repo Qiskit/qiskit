@@ -15,6 +15,7 @@
 from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import LoConfig
 from qiskit.exceptions import QiskitError
+from qiskit.utils import deprecate_func
 
 
 class LoConfigConverter:
@@ -23,6 +24,14 @@ class LoConfigConverter:
     ``get_qubit_los`` and ``get_meas_los`` to align with your backend.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         qobj_model,
