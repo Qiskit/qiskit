@@ -1106,6 +1106,7 @@ class TestBasisExamples(QiskitTestCase):
             circ,
             basis_gates=["id", "rz", "sx", "x", "cx"],
             seed_transpiler=42,
+            optimization_level=1,
         )
         self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
 
