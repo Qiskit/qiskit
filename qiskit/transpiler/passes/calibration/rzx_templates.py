@@ -29,6 +29,7 @@ def rzx_templates(template_list: List[str] = None) -> Dict:
     Returns:
         Decomposition templates and cost values.
     """
+
     class RZXTempateMap(Enum):
         """Mapping of instruction name to decomposition template."""
 
