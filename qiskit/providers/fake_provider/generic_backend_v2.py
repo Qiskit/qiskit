@@ -415,7 +415,9 @@ class GenericBackendV2(BackendV2):
                 noise_params = self._get_noise_defaults(name, gate.num_qubits)
                 self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
             else:
-                self._target.add_instruction(gate, properties=None, name=name)
+                qarg_set = self._coupling_map if gate.num_qubits > 1 else range(self.num_qubits)
+                props = {(qarg,) if isinstance(qarg, int) else qarg: None for qarg in qarg_set}
+                self._target.add_instruction(gate, properties=props, name=name)
 
         if self._control_flow:
             self._target.add_instruction(IfElseOp, name="if_else")
