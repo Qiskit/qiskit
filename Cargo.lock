@@ -102,9 +102,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.15.0"
+version = "1.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d6d68c57235a3a081186990eca2867354726650f42f7516ca50c28d6281fd15"
+checksum = "b236fc92302c97ed75b38da1f4917b5cdda4984745740f153a5d3059e48d725e"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -1157,7 +1157,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "ahash 0.8.11",
  "approx",
@@ -1185,8 +1185,9 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
+ "bytemuck",
  "hashbrown 0.14.5",
  "ndarray",
  "num-complex",
@@ -1198,7 +1199,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1209,7 +1210,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "hashbrown 0.14.5",
  "pyo3",
@@ -1218,7 +1219,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "hashbrown 0.14.5",
  "indexmap",

@@ -18,6 +18,7 @@ from math import sin, cos, acos, sqrt
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils.deprecation import deprecate_func
 
 
 def _normalize(v, tolerance=0.00001):
@@ -121,6 +122,10 @@ class _Quaternion:
         return np.linalg.norm(v)
 
 
+@deprecate_func(
+    since="1.2.0",
+    removal_timeline="in the 2.0 release",
+)
 def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     """
     Creates animation showing transitions between states of a single

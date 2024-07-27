@@ -234,7 +234,10 @@ class TestFakeBackends(QiskitTestCase):
         self.assertIsInstance(backend_v2, BackendV2)
         res = transpile(self.circuit, backend_v2, optimization_level=opt_level)
         job = backend_v2.run(res)
-        result = job.result()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")

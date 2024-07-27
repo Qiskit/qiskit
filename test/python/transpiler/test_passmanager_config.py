@@ -19,6 +19,7 @@ from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBac
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from ..legacy_cmaps import ALMADEN_CMAP
 
 
 class TestPassManagerConfig(QiskitTestCase):
@@ -87,54 +88,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
         backend = GenericBackendV2(
             num_qubits=20,
-            coupling_map=[
-                [0, 1],
-                [1, 0],
-                [1, 2],
-                [1, 6],
-                [2, 1],
-                [2, 3],
-                [3, 2],
-                [3, 4],
-                [3, 8],
-                [4, 3],
-                [5, 6],
-                [5, 10],
-                [6, 1],
-                [6, 5],
-                [6, 7],
-                [7, 6],
-                [7, 8],
-                [7, 12],
-                [8, 3],
-                [8, 7],
-                [8, 9],
-                [9, 8],
-                [9, 14],
-                [10, 5],
-                [10, 11],
-                [11, 10],
-                [11, 12],
-                [11, 16],
-                [12, 7],
-                [12, 11],
-                [12, 13],
-                [13, 12],
-                [13, 14],
-                [13, 18],
-                [14, 9],
-                [14, 13],
-                [15, 16],
-                [16, 11],
-                [16, 15],
-                [16, 17],
-                [17, 16],
-                [17, 18],
-                [18, 13],
-                [18, 17],
-                [18, 19],
-                [19, 18],
-            ],
+            coupling_map=ALMADEN_CMAP,
             basis_gates=["id", "u1", "u2", "u3", "cx"],
             calibrate_instructions=None,
             seed=42,

@@ -56,10 +56,10 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)  # 195[dt]
         qc.h(1)  # 210[dt]
 
-        backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
+        backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
 
         sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
-        self.assertEqual(sc.duration, 451096)
+        self.assertEqual(sc.duration, 451095)
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 450900)
@@ -68,7 +68,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.data[1].operation.duration, 0)
         self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
-        self.assertEqual(sc.data[4].operation.duration, 450928)
+        self.assertEqual(sc.data[4].operation.duration, 450885)
         self.assertEqual(sc.data[4].operation.unit, "dt")
 
     def test_schedule_circuit_when_transpile_option_tells_dt(self):
