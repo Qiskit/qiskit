@@ -120,6 +120,9 @@ class TestReadoutMitigation(QiskitTestCase):
         """Test whether readout mitigation led to more accurate results"""
         shots = 1024
         with self.assertWarns(DeprecationWarning):
+            # TODO self.assignment_matrices calls LocalReadoutMitigator,
+            #  which only supports BackendV1 at the moment:
+            #  https://github.com/Qiskit/qiskit/issues/12832
             assignment_matrices = self.assignment_matrices()
         mitigators = self.mitigators(assignment_matrices)
         circuit, circuit_name, num_qubits = self.ghz_3_circuit()
