@@ -15,6 +15,7 @@ Preset pass manager generation function
 """
 
 import copy
+import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -331,7 +332,16 @@ def generate_preset_pass_manager(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = target_to_backend_properties(target)
+            with warnings.catch_warnings():
+                # TODO this branch (targe-to-properties) is going to be removed soon (1.3) in favor
+                #   of backend-to-target approach
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.transpiler\.target\.target_to_backend_properties.+",
+                    module="qiskit",
+                )
+                backend_properties = target_to_backend_properties(target)
 
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
