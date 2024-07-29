@@ -230,9 +230,10 @@ class QasmBackendConfiguration:
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
-        "that probably means that they are using a backend based on the "
-        "deprecated BackendV1 class.",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
         stacklevel=3,
     )
     def __init__(
@@ -515,14 +516,16 @@ class QasmBackendConfiguration:
 
 
 class BackendConfiguration(QasmBackendConfiguration):
-    """Backwards compat shim representing an abstract backend configuration."""
+    """Backwards compatibility shim representing an abstract backend configuration."""
 
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="The class `BackendConfiguration` is being deprecated "
-        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
-        "means that they are using a backend based on the deprecated BackendV1 class.",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -536,10 +539,11 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="The class `PulseBackendConfiguration` is being deprecated "
-        "as they are not necessary for BackendV2. If user still need Qobj, "
-        "that probably means that they are using a backend based on the "
-        "deprecated BackendV1 class.",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
     )
     def __init__(
         self,
