@@ -519,11 +519,21 @@ class TestTranspile(QiskitTestCase):
 
         # Try with the initial layout in both directions to ensure we're dealing with the basis
         # having only a single direction.
+
+        # Use optimization level=1 because the synthesis that runs as part of optimization at
+        # higher optimization levels will create intermediate gates that the transpiler currently
+        # lacks logic to translate to a discrete basis.
         self.assertIsInstance(
-            transpile(qc, target=target, initial_layout=[0, 1], seed_transpiler=42), QuantumCircuit
+            transpile(
+                qc, target=target, initial_layout=[0, 1], seed_transpiler=42, optimization_level=1
+            ),
+            QuantumCircuit,
         )
         self.assertIsInstance(
-            transpile(qc, target=target, initial_layout=[1, 0], seed_transpiler=42), QuantumCircuit
+            transpile(
+                qc, target=target, initial_layout=[1, 0], seed_transpiler=42, optimization_level=1
+            ),
+            QuantumCircuit,
         )
 
     def test_transpile_one(self):
@@ -1356,6 +1366,7 @@ class TestTranspile(QiskitTestCase):
                 backend=GenericBackendV2(num_qubits=4),
                 layout_method="trivial",
                 seed_transpiler=42,
+                optimization_level=1,
             )
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
@@ -1372,7 +1383,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [1], q0_x180)
 
         transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42
+            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42, optimization_level=1
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})
@@ -1819,7 +1830,7 @@ class TestTranspile(QiskitTestCase):
             )
 
     def test_approximation_degree(self):
-        """Test more approximation gives lower-cost circuit."""
+        """Test more approximation can give lower-cost circuit."""
         circuit = QuantumCircuit(2)
         circuit.swap(0, 1)
         circuit.h(0)
@@ -1829,6 +1840,7 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.1,
             seed_transpiler=42,
+            optimization_level=1,
         )
         circ_90 = transpile(
             circuit,
@@ -1836,6 +1848,7 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.9,
             seed_transpiler=42,
+            optimization_level=1,
         )
         self.assertLess(circ_10.depth(), circ_90.depth())
 

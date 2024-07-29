@@ -26,9 +26,9 @@ from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
+from qiskit.transpiler.passes.scheduling.padding.base_padding import BasePadding
 from qiskit.transpiler.target import Target
 
-from .base_padding import BasePadding
 
 logger = logging.getLogger(__name__)
 

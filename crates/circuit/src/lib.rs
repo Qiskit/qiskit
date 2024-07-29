@@ -10,17 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod dag_node;
 pub mod gate_matrix;
 pub mod imports;
 pub mod operations;
+pub mod packed_instruction;
 pub mod parameter_table;
 pub mod slice;
 pub mod util;
 
-mod bit_data;
 mod interner;
 
 use pyo3::prelude::*;
@@ -64,8 +65,5 @@ pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<operations::StandardGate>()?;
-    m.add_class::<operations::PyInstruction>()?;
-    m.add_class::<operations::PyGate>()?;
-    m.add_class::<operations::PyOperation>()?;
     Ok(())
 }

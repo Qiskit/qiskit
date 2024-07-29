@@ -650,8 +650,6 @@ manner to the "physical" qubits in an actual quantum device.
 .. image:: /source_images/mapping.png
 
 
-
-
 By default, qiskit will do this mapping for you.  The choice of mapping depends on the
 properties of the circuit, the particular device you are targeting, and the optimization
 level that is chosen. The choice of initial layout is extremely important for minimizing the
@@ -684,10 +682,12 @@ Next, for the heuristic stage, 2 passes are used by default:
   :class:`~.SabreLayout` is used to select a layout if a perfect layout isn't found for
   optimization levels 1, 2, and 3.
 - :class:`~.TrivialLayout`: Always used for the layout at optimization level 0.
+
+There are other passes than can be used for the heuristic stage, but are not included in the default
+pipeline, such as:
+
 - :class:`~.DenseLayout`: Finds the sub-graph of the device with greatest connectivity
-  that has the same number of qubits as the circuit. Used for
-  optimization level 1 if there are control flow operations (such as
-  :class:`~.IfElseOp`) present in the circuit.
+  that has the same number of qubits as the circuit.
 
 Let's see what layouts are automatically picked at various optimization levels.  The circuits
 returned by :func:`qiskit.compiler.transpile` are annotated with this initial layout information,
@@ -1277,6 +1277,7 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
+from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
