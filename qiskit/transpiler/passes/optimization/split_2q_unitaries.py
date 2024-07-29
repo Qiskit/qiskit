@@ -12,10 +12,10 @@
 """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
 from typing import Optional
 
-from qiskit.transpiler import TransformationPass
-from qiskit.circuit import CircuitInstruction
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.circuit.library import UnitaryGate
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit.quantumcircuitdata import CircuitInstruction
+from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
 
 

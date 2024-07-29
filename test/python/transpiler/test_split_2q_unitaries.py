@@ -18,6 +18,7 @@ from math import pi
 import numpy as np
 
 from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from test import QiskitTestCase
 
@@ -124,10 +125,8 @@ class TestSplit2QUnitaries(QiskitTestCase):
         multi_x = np.kron(x_mat, x_mat)
         qr = QuantumRegister(2, "qr")
         backend = BasicSimulator()
-
         qc = QuantumCircuit(qr)
         qc.unitary(multi_x, qr)
-        #pm = generate_preset_pass_manager(optimization_level=2, backend=backend)
         qct = transpile(qc, backend)
 
         self.assertTrue(Operator(qc).equiv(qct))
