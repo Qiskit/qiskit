@@ -207,6 +207,16 @@ impl _VarIndexMap {
         let values = self.dict.bind(py).values();
         values.iter().map(|x| NodeIndex::new(x.extract().unwrap()))
     }
+
+    pub fn iter<'py>(
+        &'py self,
+        py: Python<'py>,
+    ) -> impl Iterator<Item = (PyObject, NodeIndex)> + 'py {
+        let bound_dict = self.dict.bind(py);
+        bound_dict
+            .iter()
+            .map(|(k, v)| (k.unbind(), NodeIndex::new(v.extract().unwrap())))
+    }
 }
 
 /// Quantum circuit as a directed acyclic graph.
@@ -820,12 +830,61 @@ impl DAGCircuit {
             ));
         }
 
-        let mut new_data = BitData::new(py, "qubits".to_string());
-        for bit in qubits {
-            new_data.add(py, &bit, true)?;
-        }
+        let dag_clone = self.clone();
 
-        self.set_qubit_data(py, new_data)
+        self.qubits = BitData::new(py, "qubits".to_string());
+
+        for bit in &qubits {
+            if !bit.is_instance(self.circuit_module.qubit.bind(py))? {
+                return Err(DAGCircuitError::new_err("not a Qubit instance."));
+            }
+
+            if self.qubits.find(bit).is_some() {
+                return Err(DAGCircuitError::new_err(format!(
+                    "duplicate qubits {}",
+                    bit
+                )));
+            }
+
+            let _qubit = self.qubits.add(py, &bit.clone(), false)?;
+            self.qubit_locations.bind(py).set_item(
+                bit,
+                Py::new(
+                    py,
+                    BitLocations {
+                        index: (self.qubits.len() - 1),
+                        registers: PyList::empty_bound(py).unbind(),
+                    },
+                )?,
+            )?;
+        }
+        let op_nodes: Vec<NodeIndex> = self.op_nodes(true).collect();
+        for node in op_nodes {
+            self.dag.remove_node(node);
+        }
+        for (qubit, index) in self.qubit_input_map.iter() {
+            self.dag
+                .add_edge(*index, self.qubit_output_map[qubit], Wire::Qubit(*qubit));
+        }
+        for (clbit, index) in self.clbit_input_map.iter() {
+            self.dag
+                .add_edge(*index, self.clbit_output_map[clbit], Wire::Clbit(*clbit));
+        }
+        for (var, index) in self.var_input_map.iter(py) {
+            self.dag.add_edge(
+                index,
+                self.var_output_map.get(&var).unwrap(),
+                Wire::Var(var.clone_ref(py)),
+            );
+        }
+        for node in dag_clone
+            .py_topological_op_nodes(py, None)?
+            .bind(py)
+            .iter()?
+        {
+            self._apply_op_node_back(py, &node?)?;
+        }
+        Ok(())
     }
 
     /// Returns the current sequence of registered :class:`.Clbit`
@@ -847,17 +906,68 @@ impl DAGCircuit {
     // bad there) so we continue to support setting the clbits list directly. This adds some guard rails
     // to ensure we can't corrupt things too horribly
     #[setter]
-    pub fn set_clbits(&mut self, py: Python, clbits: &Bound<PySequence>) -> PyResult<()> {
+    pub fn set_clbits(&mut self, py: Python, clbits: Vec<Bound<PyAny>>) -> PyResult<()> {
         let current_clbits = self.clbits.cached().bind(py);
-        if clbits.len()? != current_clbits.len() {
+        if clbits.len() != current_clbits.len() {
             return Err(DAGCircuitError::new_err(
-                "New qubits don't match the length of old qubits",
+                "New clbits don't match the length of old clbits",
             ));
         }
+        let dag_clone = self.clone();
+
         self.clbits = BitData::new(py, "clbits".to_string());
-        self.clbit_input_map.clear();
-        self.clbit_output_map.clear();
-        self.add_clbits(py, clbits)
+
+        for bit in &clbits {
+            if !bit.is_instance(self.circuit_module.clbit.bind(py))? {
+                return Err(DAGCircuitError::new_err("not a Clbit instance."));
+            }
+
+            if self.clbits.find(bit).is_some() {
+                return Err(DAGCircuitError::new_err(format!(
+                    "duplicate clbits {}",
+                    bit
+                )));
+            }
+
+            let _clbit = self.clbits.add(py, &bit.clone(), false)?;
+            self.clbit_locations.bind(py).set_item(
+                bit,
+                Py::new(
+                    py,
+                    BitLocations {
+                        index: (self.clbits.len() - 1),
+                        registers: PyList::empty_bound(py).unbind(),
+                    },
+                )?,
+            )?;
+        }
+        for node in dag_clone.op_nodes(true) {
+            self.dag.remove_node(node);
+        }
+        for (qubit, index) in self.qubit_input_map.iter() {
+            self.dag
+                .add_edge(*index, self.qubit_output_map[qubit], Wire::Qubit(*qubit));
+        }
+        for (clbit, index) in self.clbit_input_map.iter() {
+            self.dag
+                .add_edge(*index, self.clbit_output_map[clbit], Wire::Clbit(*clbit));
+        }
+        for (var, index) in self.var_input_map.iter(py) {
+            self.dag.add_edge(
+                index,
+                self.var_output_map.get(&var).unwrap(),
+                Wire::Var(var.clone_ref(py)),
+            );
+        }
+
+        for node in dag_clone
+            .py_topological_op_nodes(py, None)?
+            .bind(py)
+            .iter()?
+        {
+            self._apply_op_node_back(py, &node?)?;
+        }
+        Ok(())
     }
 
     /// Return a list of the wires in order.

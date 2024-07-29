@@ -27,7 +27,7 @@ use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::operations::Operation;
 
 use crate::QiskitError;
 
