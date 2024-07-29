@@ -1937,7 +1937,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
     def test_properties(self):
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         target = Target.from_configuration(
@@ -1950,7 +1951,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(0, target["rz"][(0,)].duration)
 
     def test_properties_with_durations(self):
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
@@ -1965,7 +1967,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(0.5, target["rz"][(0,)].duration)
 
     def test_inst_map(self):
-        fake_backend = Fake7QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         defaults = fake_backend.defaults()
@@ -1986,7 +1989,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
 
     def test_concurrent_measurements(self):
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         target = Target.from_configuration(
             basis_gates=config.basis_gates,

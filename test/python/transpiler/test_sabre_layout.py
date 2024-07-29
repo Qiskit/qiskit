@@ -195,7 +195,11 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
-        res = transpile(qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234)
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
+        res = transpile(
+            qc, backend, layout_method="sabre", seed_transpiler=1234, optimization_level=1
+        )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
@@ -245,9 +249,11 @@ barrier q18585[0],q18585[3],q18585[7],q18585[4],q18585[1],q18585[8],q18585[6],q1
 barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
 """
         )
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         res = transpile(
             qc,
-            Fake27QPulseV1(),
+            backend,
             layout_method="sabre",
             routing_method="stochastic",
             seed_transpiler=12345,

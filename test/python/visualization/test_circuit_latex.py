@@ -480,11 +480,15 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         """Tests partial_layout
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         filename = self._get_resource_path("test_latex_partial_layout.tex")
+
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+
         circuit = QuantumCircuit(3)
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=Fake5QV1(),
+            backend=backend,
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,

@@ -222,7 +222,9 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
         with unittest.mock.patch("qiskit.transpiler.passes.TimeUnitConversion.run") as mock:
-            transpile(circuit, backend=Fake20QV1(), optimization_level=level)
+            with self.assertWarns(DeprecationWarning):
+                backend = Fake20QV1()
+            transpile(circuit, backend=backend, optimization_level=level)
         mock.assert_not_called()
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
@@ -236,12 +238,15 @@ class TestPresetPassManager(QiskitTestCase):
         with unittest.mock.patch(
             "qiskit.transpiler.passes.TimeUnitConversion.run", return_value=circuit_to_dag(circuit)
         ) as mock:
-            transpile(circuit, backend=Fake20QV1(), optimization_level=level)
+            with self.assertWarns(DeprecationWarning):
+                backend = Fake20QV1()
+            transpile(circuit, backend=backend, optimization_level=level)
         mock.assert_called_once()
 
     def test_unroll_only_if_not_gates_in_basis(self):
         """Test that the list of passes _unroll only runs if a gate is not in the basis."""
-        qcomp = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            qcomp = Fake5QV1()
         qv_circuit = QuantumVolume(3)
         gates_in_basis_true_count = 0
         collect_2q_blocks_count = 0
@@ -782,7 +787,8 @@ class TestInitialLayouts(QiskitTestCase):
             19: ancilla[16],
         }
 
-        backend = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
         self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
@@ -1038,7 +1044,8 @@ class TestFinalLayouts(QiskitTestCase):
 
         expected_layouts = [trivial_layout, trivial_layout]
 
-        backend = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
@@ -1071,7 +1078,8 @@ class TestFinalLayouts(QiskitTestCase):
             18: qr[9],
         }
 
-        backend = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
         result = transpile(
             qc, backend, optimization_level=level, initial_layout=initial_layout, seed_transpiler=42
         )
@@ -1151,7 +1159,8 @@ class TestOptimizationWithCondition(QiskitTestCase):
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
         qc.cx(0, 1).c_if(cr, 1)
-        backend = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
         circ = transpile(qc, backend, optimization_level=level)
         self.assertIsInstance(circ, QuantumCircuit)
 
@@ -1215,8 +1224,9 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_backend(self, optimization_level):
         """Test a passmanager is constructed when only a backend and optimization level."""
-        target = Fake20QV1()
-        pm = generate_preset_pass_manager(optimization_level, target)
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
+        pm = generate_preset_pass_manager(optimization_level, backend)
         self.assertIsInstance(pm, PassManager)
 
     @data(0, 1, 2, 3)
@@ -1569,7 +1579,8 @@ class TestIntegrationControlFlow(QiskitTestCase):
     def test_unsupported_basis_gates_raise(self, optimization_level):
         """Test that trying to transpile a control-flow circuit for a backend that doesn't support
         the necessary operations in its `basis_gates` will raise a sensible error."""
-        backend = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
 
         qc = QuantumCircuit(1, 1)
         with qc.for_loop((0,)):
