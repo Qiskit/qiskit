@@ -30,6 +30,7 @@ pub mod sparse_pauli_op;
 pub mod star_prerouting;
 pub mod stochastic_swap;
 pub mod synthesis;
+pub mod target_transpiler;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
 pub mod utils;

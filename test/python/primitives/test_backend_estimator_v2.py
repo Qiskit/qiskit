@@ -446,8 +446,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_backend_v1(self):
-        """Test BackendEstimatorV2 respects job size limit"""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimatorV2 respects job size limit from BackendV1"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config

@@ -714,10 +714,9 @@ class TestBackendSamplerV2(QiskitTestCase):
 
     def test_job_size_limit_backend_v1(self):
         """Test BackendSamplerV2 respects backend's job size limit."""
-        backend = Fake7QPulseV1()
-        config = backend.configuration()
-        config.max_experiments = 1
-        backend._configuration = config
+        backend = GenericBackendV2(
+            2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+        )
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
