@@ -280,6 +280,11 @@ class TestStatevectorSampler(QiskitTestCase):
         qc3 = QuantumCircuit(1, 1)
         with qc3.for_loop(range(5)):
             qc3.h(0)
+        qc4 = QuantumCircuit(2, 2)
+        qc4.h(0)
+        qc4.measure(1, 1)
+        qc4.x(0).c_if(1, 1)
+        qc4.measure(0, 0)
 
         sampler = StatevectorSampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -301,6 +306,9 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
                 _ = sampler.run([qc3]).result()
+        with self.subTest("with c_if"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc4]).result()
         with self.subTest("negative shots, run arg"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc1], shots=-1).result()
@@ -594,7 +602,14 @@ class TestStatevectorSampler(QiskitTestCase):
         qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
-        cregs = [creg.name for creg in qc2.cregs]
+        qc3 = QuantumCircuit.copy_empty_like(qc2)
+        qc3.ry(np.pi / 4, 2)
+        qc3.cx(2, 1)
+        qc3.cx(0, 1)
+        qc3.h(0)
+        qc3.measure(0, 2)
+        qc3.measure(1, 4)
+        cregs = [creg.name for creg in qc3.cregs]
         target = {
             cregs[0]: {0: 4255, 4: 4297, 16: 720, 20: 726},
             cregs[1]: {0: 5000, 1: 5000},
@@ -602,7 +617,7 @@ class TestStatevectorSampler(QiskitTestCase):
         }
 
         sampler = StatevectorSampler(seed=self._seed)
-        result = sampler.run([qc2], shots=self._shots).result()
+        result = sampler.run([qc3], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
         self.assertEqual(len(data), 3)
