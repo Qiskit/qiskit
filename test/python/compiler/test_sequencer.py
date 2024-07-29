@@ -13,6 +13,8 @@
 # pylint: disable=missing-function-docstring
 
 """Tests basic functionality of the sequence function"""
+# TODO with the removal of pulses, this file can be removed too.
+
 import unittest
 
 from qiskit import QuantumCircuit, pulse

@@ -12,6 +12,9 @@
 """
 Test that the PulseBackendConfiguration methods work as expected with a mocked Pulse backend.
 """
+# TODO the full file can be removed once BackendV1 is removed, since it is the
+#  only one with backend.configuration()
+
 import collections
 import copy
 

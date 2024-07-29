@@ -96,7 +96,7 @@ from qiskit.transpiler.target import (
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, MUMBAI_CMAP, TOKYO_CMAP
 
 
 class CustomCX(Gate):
@@ -517,11 +517,21 @@ class TestTranspile(QiskitTestCase):
 
         # Try with the initial layout in both directions to ensure we're dealing with the basis
         # having only a single direction.
+
+        # Use optimization level=1 because the synthesis that runs as part of optimization at
+        # higher optimization levels will create intermediate gates that the transpiler currently
+        # lacks logic to translate to a discrete basis.
         self.assertIsInstance(
-            transpile(qc, target=target, initial_layout=[0, 1], seed_transpiler=42), QuantumCircuit
+            transpile(
+                qc, target=target, initial_layout=[0, 1], seed_transpiler=42, optimization_level=1
+            ),
+            QuantumCircuit,
         )
         self.assertIsInstance(
-            transpile(qc, target=target, initial_layout=[1, 0], seed_transpiler=42), QuantumCircuit
+            transpile(
+                qc, target=target, initial_layout=[1, 0], seed_transpiler=42, optimization_level=1
+            ),
+            QuantumCircuit,
         )
 
     def test_transpile_one(self):
@@ -1318,6 +1328,7 @@ class TestTranspile(QiskitTestCase):
                 backend=GenericBackendV2(num_qubits=4),
                 layout_method="trivial",
                 seed_transpiler=42,
+                optimization_level=1,
             )
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
@@ -1334,7 +1345,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [1], q0_x180)
 
         transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42
+            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42, optimization_level=1
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})
@@ -1513,7 +1524,13 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+        backend_v2 = GenericBackendV2(
+            num_qubits=27,
+            calibrate_instructions=True,
+            control_flow=True,
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
         # the original timing constraints are granularity = min_length = 16
         timing_constraints = TimingConstraints(granularity=32, min_length=64)
         error_msgs = {
@@ -1785,7 +1802,7 @@ class TestTranspile(QiskitTestCase):
             )
 
     def test_approximation_degree(self):
-        """Test more approximation gives lower-cost circuit."""
+        """Test more approximation can give lower-cost circuit."""
         circuit = QuantumCircuit(2)
         circuit.swap(0, 1)
         circuit.h(0)
@@ -1795,6 +1812,7 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.1,
             seed_transpiler=42,
+            optimization_level=1,
         )
         circ_90 = transpile(
             circuit,
@@ -1802,6 +1820,7 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.9,
             seed_transpiler=42,
+            optimization_level=1,
         )
         self.assertLess(circ_10.depth(), circ_90.depth())
 
@@ -2097,54 +2116,7 @@ class TestTranspile(QiskitTestCase):
 
         backend = GenericBackendV2(
             num_qubits=20,
-            coupling_map=[
-                [0, 1],
-                [1, 0],
-                [1, 2],
-                [1, 6],
-                [2, 1],
-                [2, 3],
-                [3, 2],
-                [3, 4],
-                [3, 8],
-                [4, 3],
-                [5, 6],
-                [5, 10],
-                [6, 1],
-                [6, 5],
-                [6, 7],
-                [7, 6],
-                [7, 8],
-                [7, 12],
-                [8, 3],
-                [8, 7],
-                [8, 9],
-                [9, 8],
-                [9, 14],
-                [10, 5],
-                [10, 11],
-                [11, 10],
-                [11, 12],
-                [11, 16],
-                [12, 7],
-                [12, 11],
-                [12, 13],
-                [13, 12],
-                [13, 14],
-                [13, 18],
-                [14, 9],
-                [14, 13],
-                [15, 16],
-                [16, 11],
-                [16, 15],
-                [16, 17],
-                [17, 16],
-                [17, 18],
-                [18, 13],
-                [18, 17],
-                [18, 19],
-                [19, 18],
-            ],
+            coupling_map=TOKYO_CMAP,
             basis_gates=["id", "u1", "u2", "u3", "cx"],
         )
         transpiled = transpile(
@@ -2454,6 +2426,26 @@ class TestPostTranspileIntegration(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_qasm3_output(self, optimization_level):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=TOKYO_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+        )
+
+        transpiled = transpile(
+            self._regular_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_17,
+        )
+        # TODO: There's not a huge amount we can sensibly test for the output here until we can
+        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
+        # itself doesn't throw an error, though.
+        self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
+
+    @data(0, 1, 2, 3)
+    def test_qasm3_output_v1(self, optimization_level):
+        """Test that the output of a transpiled circuit can be dumped into OpenQASM 3 (backend V1)."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
 

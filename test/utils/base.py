@@ -134,7 +134,7 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings(
             "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
-            message=r".* If user still need Qobj,.*",
+            message=r".*The `Qobj` class and related functionality.*",
             module=r"qiskit_aer",
         )
 

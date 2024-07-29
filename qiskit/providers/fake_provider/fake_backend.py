@@ -127,20 +127,12 @@ class FakeBackend(BackendV1):
 
     @classmethod
     def _default_options(cls):
-        with warnings.catch_warnings():
-            # Remove once https://github.com/Qiskit/qiskit-aer/issues/2178 gets closed.
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                module="qiskit",
-                message=".+abstract Provider and ProviderV1.+",
-            )
-            if _optionals.HAS_AER:
-                from qiskit_aer import QasmSimulator
+        if _optionals.HAS_AER:
+            from qiskit_aer import QasmSimulator
 
-                return QasmSimulator._default_options()
-            else:
-                return basic_provider.BasicSimulator._default_options()
+            return QasmSimulator._default_options()
+        else:
+            return basic_provider.BasicSimulator._default_options()
 
     def run(self, run_input, **kwargs):
         """Main job in simulator"""

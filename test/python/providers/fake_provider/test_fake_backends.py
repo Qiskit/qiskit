@@ -45,38 +45,6 @@ class FakeBackendsTest(QiskitTestCase):
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
-
-        raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
-
-        self.assertEqual(sum(raw_counts.values()), 1000)
-
-    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
-    def test_fake_backends_get_kwargs(self):
-        """Fake backends honor kwargs passed."""
-        backend = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=[
-                [0, 1],
-                [1, 0],
-                [1, 2],
-                [2, 1],
-                [0, 2],
-                [2, 0],
-                [2, 3],
-                [3, 2],
-                [3, 4],
-                [4, 3],
-                [2, 4],
-                [4, 2],
-            ],
-            seed=42,
-        )
-
-        qc = QuantumCircuit(2)
-        qc.x(range(0, 2))
-        qc.measure_all()
-
-        trans_qc = transpile(qc, backend)
         raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)

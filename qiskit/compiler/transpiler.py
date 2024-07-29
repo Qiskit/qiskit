@@ -20,7 +20,6 @@ import warnings
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
@@ -219,7 +218,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             * 2: heavy optimization
             * 3: even heavier optimization
 
-            If ``None``, level 1 will be chosen as default.
+            If ``None``, level 2 will be chosen as default.
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments,
@@ -313,7 +312,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get("transpile_optimization_level", 1)
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
         # This is a temporary conversion step to allow for a smoother transition
@@ -339,10 +338,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
 
-    initial_layout = _parse_initial_layout(initial_layout)
-    approximation_degree = _parse_approximation_degree(approximation_degree)
     output_name = _parse_output_name(output_name, circuits)
-
     coupling_map = _parse_coupling_map(coupling_map)
     _check_circuits_coupling_map(circuits, coupling_map, backend)
 
@@ -423,27 +419,6 @@ def _parse_coupling_map(coupling_map):
         )
     else:
         return coupling_map
-
-
-def _parse_initial_layout(initial_layout):
-    # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
-    # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
-    if initial_layout is None or isinstance(initial_layout, Layout):
-        return initial_layout
-    if isinstance(initial_layout, dict):
-        return Layout(initial_layout)
-    initial_layout = list(initial_layout)
-    if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
-        return Layout.from_qubit_list(initial_layout)
-    return initial_layout
-
-
-def _parse_approximation_degree(approximation_degree):
-    if approximation_degree is None:
-        return None
-    if approximation_degree < 0.0 or approximation_degree > 1.0:
-        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
-    return approximation_degree
 
 
 def _parse_output_name(output_name, circuits):

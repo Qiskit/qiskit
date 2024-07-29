@@ -44,9 +44,10 @@ def _log_assembly_time(start_time, end_time):
 @deprecate_func(
     since="1.2",
     removal_timeline="in the 2.0 release",
-    additional_msg="The function assemble is being deprecated "
-    "as they are not necessary for BackendV2. If user still need Qobj, that probably "
-    "means that the provider is using a backend based on the deprecated BackendV1 class.",
+    additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+    "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+    "workflow requires `Qobj` it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
 )
 def assemble(
     experiments: Union[
@@ -265,16 +266,12 @@ def _assemble(
         )
         end_time = time()
         _log_assembly_time(start_time, end_time)
-        with warnings.catch_warnings():
-            # The Qobj is deprecated
-            # warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            return _assemble_circuits(
-                circuits=bound_experiments,
-                qobj_id=qobj_id,
-                qobj_header=qobj_header,
-                run_config=run_config,
-            )
+        return _assemble_circuits(
+            circuits=bound_experiments,
+            qobj_id=qobj_id,
+            qobj_header=qobj_header,
+            run_config=run_config,
+        )
 
     elif all(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments):
         run_config = _parse_pulse_args(
