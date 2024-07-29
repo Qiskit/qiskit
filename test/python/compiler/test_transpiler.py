@@ -1523,7 +1523,8 @@ class TestTranspile(QiskitTestCase):
         work with both BackendV1 and BackendV2."""
 
         backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+        with self.assertWarns(DeprecationWarning):
+            backend_v2 = BackendV2Converter(backend_v1)
         # the original timing constraints are granularity = min_length = 16
         timing_constraints = TimingConstraints(granularity=32, min_length=64)
         error_msgs = {
@@ -1558,7 +1559,8 @@ class TestTranspile(QiskitTestCase):
         work with both BackendV1 and BackendV2."""
 
         backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+        with self.assertWarns(DeprecationWarning):
+            backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1, "dt")
@@ -1583,7 +1585,8 @@ class TestTranspile(QiskitTestCase):
         work with both BackendV1 and BackendV2."""
 
         backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+        with self.assertWarns(DeprecationWarning):
+            backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
@@ -1603,7 +1606,8 @@ class TestTranspile(QiskitTestCase):
         work with both BackendV1 and BackendV2."""
 
         backend_v1 = Fake20QV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+        with self.assertWarns(DeprecationWarning):
+            backend_v2 = BackendV2Converter(backend_v1)
         qr1 = QuantumRegister(3, "qr1")
         qr2 = QuantumRegister(2, "qr2")
         qc = QuantumCircuit(qr1, qr2)
