@@ -77,7 +77,7 @@ def raise_if_dagcircuit_invalid(dag):
 
     # Every edge should be labled with a known wire.
     edges_outside_wires = [
-        edge_data for edge_data in dag._multi_graph.edges() if edge_data not in dag.wires
+        edge_data for edge_data in dag._edges() if edge_data not in dag.wires
     ]
     if edges_outside_wires:
         raise DAGCircuitError(

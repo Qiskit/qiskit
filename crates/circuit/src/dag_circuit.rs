@@ -4971,6 +4971,20 @@ new_condition = (new_target, value)
             Err(PyTypeError::new_err("Invalid node type input"))
         }
     }
+
+    fn _edges(&self, py: Python) -> Vec<PyObject> {
+        self.dag
+            .edge_indices()
+            .map(|index| {
+                let wire = self.dag.edge_weight(index).unwrap();
+                match wire {
+                    Wire::Qubit(qubit) => self.qubits.get(*qubit).to_object(py),
+                    Wire::Clbit(clbit) => self.clbits.get(*clbit).to_object(py),
+                    Wire::Var(var) => var.clone_ref(py),
+                }
+            })
+            .collect()
+    }
 }
 
 impl DAGCircuit {
