@@ -190,7 +190,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[EstimatorPub], shots: int) -> list[PubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""

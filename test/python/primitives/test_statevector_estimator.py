@@ -299,7 +299,7 @@ class TestStatevectorEstimator(QiskitTestCase):
         result = estimator.run([(qc, "ZZ"), (qc2, "ZZ")], precision=0.1).result()
 
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result.metadata, dict)
+        self.assertEqual(result.metadata, {"version": 2})
         self.assertEqual(
             result[0].metadata, {"target_precision": 0.1, "circuit_metadata": qc.metadata}
         )

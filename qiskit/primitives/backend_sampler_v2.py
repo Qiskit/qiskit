@@ -155,7 +155,7 @@ class BackendSamplerV2(BaseSamplerV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[SamplerPubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""

@@ -487,7 +487,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         result = estimator.run([(qc, op), (qc2, op2)], precision=0.1).result()
 
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result.metadata, dict)
+        self.assertEqual(result.metadata, {"version": 2})
         self.assertEqual(
             result[0].metadata,
             {"target_precision": 0.1, "shots": 100, "circuit_metadata": qc.metadata},

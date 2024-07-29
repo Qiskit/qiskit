@@ -171,7 +171,7 @@ class StatevectorSampler(BaseSamplerV2):
 
     def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
         results = [self._run_pub(pub) for pub in pubs]
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pub(self, pub: SamplerPub) -> SamplerPubResult:
         circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)

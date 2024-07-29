@@ -760,7 +760,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         result = sampler.run([qc, qc2], shots=10).result()
 
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result.metadata, dict)
+        self.assertEqual(result.metadata, {"version": 2})
         self.assertEqual(result[0].metadata, {"circuit_metadata": qc.metadata})
         self.assertEqual(result[1].metadata, {"circuit_metadata": qc2.metadata})
 
