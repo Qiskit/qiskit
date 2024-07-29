@@ -1576,15 +1576,14 @@ class TestTranspile(QiskitTestCase):
         durations = InstructionDurations.from_backend(backend_v1)
         durations.update([("cx", [0, 1], 1000, "dt")])
 
-        with self.assertWarns(DeprecationWarning):
-            scheduled = transpile(
-                qc,
-                backend=backend_v1,
-                scheduling_method="alap",
-                instruction_durations=durations,
-                layout_method="trivial",
-            )
-            self.assertEqual(scheduled.duration, 1500)
+        scheduled = transpile(
+            qc,
+            backend=backend_v1,
+            scheduling_method="alap",
+            instruction_durations=durations,
+            layout_method="trivial",
+        )
+        self.assertEqual(scheduled.duration, 1500)
 
         scheduled = transpile(
             qc,
@@ -1608,12 +1607,9 @@ class TestTranspile(QiskitTestCase):
         original_dt = 2.2222222222222221e-10
         original_duration = 3504
 
-        with self.assertWarns(DeprecationWarning):
-            # halve dt in sec = double duration in dt
-            scheduled = transpile(
-                qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
-            )
-            self.assertEqual(scheduled.duration, original_duration * 2)
+        # halve dt in sec = double duration in dt
+        scheduled = transpile(qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2)
+        self.assertEqual(scheduled.duration, original_duration * 2)
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
