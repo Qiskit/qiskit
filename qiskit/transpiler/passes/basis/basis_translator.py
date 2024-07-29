@@ -311,7 +311,6 @@ class BasisTranslator(TransformationPass):
             )
         if node.params:
             parameter_map = dict(zip(target_params, node.params))
-            # bound_target_dag = target_dag.copy_empty_like()
             for inner_node in target_dag.topological_op_nodes():
                 new_node = DAGOpNode.from_instruction(
                     inner_node._to_circuit_instruction(),
