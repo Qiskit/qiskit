@@ -19,3 +19,7 @@ z3-solver==4.12.2.0; platform_system=="Darwin"
 # usage, but our test suite uses an exact reference file that uses the
 # pydot 3 output, so we need to enforce that during tests.
 pydot>=3.0.0
+
+# Temporary pin to avoid CI issues caused by setuptools 0.72.0
+# See https://github.com/pypa/setuptools/issues/4519
+setuptools<0.72.0
