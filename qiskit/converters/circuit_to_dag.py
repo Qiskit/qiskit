@@ -59,7 +59,7 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
     num_ops = len(circuit.data)
     node_count = 2 * num_bits + num_ops
     edge_count = num_bits + num_ops
-    dagcircuit = DAGCircuit(_node_count_hint=node_count, _edge_count_hint=edge_count)
+    dagcircuit = DAGCircuit(node_count_hint=node_count, edge_count_hint=edge_count)
     dagcircuit.name = circuit.name
     dagcircuit.global_phase = circuit.global_phase
     dagcircuit.calibrations = circuit.calibrations

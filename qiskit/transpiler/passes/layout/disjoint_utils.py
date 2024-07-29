@@ -112,8 +112,8 @@ def split_barriers(dag: DAGCircuit):
         else:
             barrier_uuid = f"_none_uuid={uuid.uuid4()}"
         split_dag = DAGCircuit(
-            _node_count_hint=3 * num_qubits,
-            _edge_count_hint=2 * num_qubits,
+            node_count_hint=3 * num_qubits,
+            edge_count_hint=2 * num_qubits,
         )
         split_dag.add_qubits([Qubit() for _ in range(num_qubits)])
         for i in range(num_qubits):

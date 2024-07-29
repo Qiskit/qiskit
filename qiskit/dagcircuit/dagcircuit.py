@@ -73,8 +73,19 @@ class DAGCircuit:
 
     # pylint: disable=invalid-name
 
-    def __init__(self, _node_count_hint=0, _edge_count_hint=0):
-        """Create an empty circuit."""
+    def __init__(self, node_count_hint=0, edge_count_hint=0):
+        """Create an empty circuit.
+
+        Args:
+            node_count_hint (int): An optional hint that will allocate with enough capacity to
+                store this many nodes before needing to grow. This does not prepopulate any nodes
+                with data, it is only a potential performance optimization if the complete size of
+                the graph is known in advance.
+            edge_count_hint (int):  An optional hint that will allocate enough capacity to store
+                this many edges before needing to grow. This does not prepopulate any edges with
+                data, it is only a potential performance optimization if the complete size of the
+                graph is known in advance.
+        """
 
         # Circuit name.  Generally, this corresponds to the name
         # of the QuantumCircuit from which the DAG was generated.
@@ -114,7 +125,7 @@ class DAGCircuit:
         # Edges carry wire labels and each operation has
         # corresponding in- and out-edges with the same wire labels.
         self._multi_graph = rx.PyDAG(
-            node_count_hint=_node_count_hint, edge_count_hint=_edge_count_hint
+            node_count_hint=node_count_hint, edge_count_hint=edge_count_hint
         )
 
         # Map of qreg/creg name to Register object.
@@ -689,8 +700,8 @@ class DAGCircuit:
             DAGCircuit: An empty copy of self.
         """
         target_dag = DAGCircuit(
-            _node_count_hint=self._multi_graph.num_nodes(),
-            _edge_count_hint=self._multi_graph.num_edges(),
+            node_count_hint=self._multi_graph.num_nodes(),
+            edge_count_hint=self._multi_graph.num_edges(),
         )
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase

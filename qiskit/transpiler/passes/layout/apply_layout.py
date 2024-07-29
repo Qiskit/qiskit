@@ -63,8 +63,8 @@ class ApplyLayout(TransformationPass):
         node_count = dag._multi_graph.num_nodes() + 2 * (layout_qubits - dag_qubits)
         edge_count = dag._multi_graph.num_edges() + layout_qubits - dag_qubits
         new_dag = DAGCircuit(
-            _node_count_hint=node_count,
-            _edge_count_hint=edge_count,
+            node_count_hint=node_count,
+            edge_count_hint=edge_count,
         )
         new_dag.add_qreg(q)
         for var in dag.iter_input_vars():

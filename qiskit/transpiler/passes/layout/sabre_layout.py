@@ -312,8 +312,8 @@ class SabreLayout(TransformationPass):
             num_edges += component_dag._multi_graph.num_edges()
 
         mapped_dag = DAGCircuit(
-            _node_count_hint=num_nodes,
-            _edge_count_hint=num_edges,
+            node_count_hint=num_nodes,
+            edge_count_hint=num_edges,
         )
         mapped_dag.add_qreg(physical_qubits)
         mapped_dag.add_clbits(dag.clbits)
