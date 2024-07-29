@@ -131,10 +131,15 @@ class BitArray(ShapedMixin):
 
     def __getitem__(self, indices):
         """Slices the array along an existing axis of the array."""
-        if isinstance(indices, tuple) and len(indices) >= self.ndim + 2:
-            raise ValueError(
-                "BitArrays cannot be sliced along the bits axis, see slice_bits() instead."
-            )
+        if isinstance(indices, tuple):
+            if len(indices) == self.ndim + 1:
+                raise IndexError(
+                    "BitArray cannot be sliced along the shots axis, use slice_shots() instead."
+                )
+            if len(indices) >= self.ndim + 2:
+                raise IndexError(
+                    "BitArray cannot be sliced along the bits axis, use slice_bits() instead."
+                )
         return BitArray(self._array[indices], self.num_bits)
 
     @property
@@ -428,13 +433,13 @@ class BitArray(ShapedMixin):
             A bit array sliced along the bit axis.
 
         Raises:
-            ValueError: If there are any invalid indices of the bit axis.
+            IndexError: If there are any invalid indices of the bit axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_bits:
-                raise ValueError(
+                raise IndexError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
         # This implementation introduces a temporary 8x memory overhead due to bit
@@ -455,13 +460,13 @@ class BitArray(ShapedMixin):
             A bit array sliced along the shots axis.
 
         Raises:
-            ValueError: If there are any invalid indices of the shots axis.
+            IndexError: If there are any invalid indices of the shots axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_shots:
-                raise ValueError(
+                raise IndexError(
                     f"index {index} is out of bounds for the number of shots {self.num_shots}."
                 )
         arr = self._array
