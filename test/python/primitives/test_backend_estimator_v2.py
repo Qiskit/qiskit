@@ -388,7 +388,6 @@ class TestBackendEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result[0].data.evs, [1.901141473854881], rtol=self._rtol)
         np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
 
-    @combine(backend=BACKENDS)
     def test_precision_and_stds(self):
         """Test that errors are within user-specified precision"""
         backend = BasicSimulator()
@@ -411,7 +410,6 @@ class TestBackendEstimatorV2(QiskitTestCase):
             result = job.result()
             np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian))
 
-    @combine(backend=BACKENDS)
     def test_precision_with_zero_coefficients(self):
         """Test that errors are within user-specified precision when all observable term coefficients are zero"""
         backend = BasicSimulator()
