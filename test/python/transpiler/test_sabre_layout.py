@@ -195,15 +195,11 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
-<<<<<<< HEAD
-        res = transpile(qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234)
-=======
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
         res = transpile(
             qc, backend, layout_method="sabre", seed_transpiler=1234, optimization_level=1
         )
->>>>>>> 7cd2c414b (Deprecate fake backends based on BackendV1 (#12660))
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
