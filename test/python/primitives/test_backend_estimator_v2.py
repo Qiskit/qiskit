@@ -392,6 +392,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         """Test that errors are within user-specified precision"""
         backend = BasicSimulator()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0,1)
         hamiltonians = [
             {"II": 1.0, "IZ": 2.0, "XI": 3.0},
             {"ZZ": 1.0},
@@ -405,7 +408,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         ]
         for hamiltonian in hamiltonians:
             job = estimator.run(
-                [(self.psi[0], hamiltonian, [self.theta[0]])], precision=self._precision
+                [circuit, hamiltonian)], precision=self._precision
             )
             result = job.result()
             np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian))
@@ -414,6 +417,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         """Test that errors are within user-specified precision when all observable term coefficients are zero"""
         backend = BasicSimulator()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0,1)
         hamiltonians = [
             {"II": 0.0, "IZ": 0.0, "XI": 0.0},
             {"ZZ": 0.0},
@@ -421,7 +427,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         ]
         for hamiltonian in hamiltonians:
             job = estimator.run(
-                [(self.psi[0], hamiltonian, [self.theta[0]])], precision=self._precision
+                [(circuit, hamiltonian)], precision=self._precision
             )
             result = job.result()
             np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
