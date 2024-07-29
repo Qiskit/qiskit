@@ -1,7 +1,7 @@
 ---
 deprecations_primitives:
   - |
-    V1 primitive implementations and V1-exclusive non-versioned type aliases are now 
+    Primitive V1 implementations and V1-exclusive non-versioned type aliases are now 
     deprecated in favor of their V2 counterparts. The deprecation is extended to the 
     following classes implementing V1 interfaces:
 

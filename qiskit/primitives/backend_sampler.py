@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""V1 Sampler implementation for an arbitrary Backend object."""
+"""Sampler V1 implementation for an arbitrary Backend object."""
 
 from __future__ import annotations
 
