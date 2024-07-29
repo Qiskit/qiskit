@@ -142,15 +142,11 @@ class TestCircuitKey(QiskitTestCase):
                 qc = QuantumCircuit(1)
                 qc.x(0)
                 qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
-<<<<<<< HEAD
-                return transpile(qc, Fake20QV1(), scheduling_method="alap")
-=======
 
                 backend = GenericBackendV2(
                     num_qubits=2, basis_gates=["id", "u1", "u2", "u3", "cx"], seed=42
                 )
                 return transpile(qc, backend, scheduling_method="alap", optimization_level=1)
->>>>>>> 7cd2c414b (Deprecate fake backends based on BackendV1 (#12660))
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))
