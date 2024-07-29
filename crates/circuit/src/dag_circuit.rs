@@ -1126,6 +1126,7 @@ def _format(operand):
             .map_bits(node.instruction.qubits.bind(py).iter())?
             .map(|bit| bit.0)
             .collect();
+        let qubits = PyTuple::new_bound(py, qubits);
         let params = PyTuple::new_bound(py, params);
         self.calibrations[node.instruction.operation.name()]
             .bind(py)
@@ -2975,8 +2976,8 @@ def _format(operand):
         let block_ids: Vec<_> = node_block.iter().map(|n| n.node.unwrap()).collect();
 
         let mut block_op_names = Vec::new();
-        let mut block_qargs: IndexSet<Qubit> = IndexSet::new();
-        let mut block_cargs: IndexSet<Clbit> = IndexSet::new();
+        let mut block_qargs: HashSet<Qubit> = HashSet::new();
+        let mut block_cargs: HashSet<Clbit> = HashSet::new();
         for nd in &block_ids {
             let weight = self.dag.node_weight(*nd);
             match weight {
@@ -2985,16 +2986,11 @@ def _format(operand):
                     block_qargs.extend(self.qargs_cache.intern(packed.qubits));
                     block_cargs.extend(self.cargs_cache.intern(packed.clbits));
 
-                    let condition = packed
-                        .extra_attrs
-                        .iter()
-                        .flat_map(|e| e.condition.as_ref().map(|c| c.bind(py)))
-                        .next();
-                    if let Some(condition) = condition {
+                    if let Some(condition) = packed.condition() {
                         block_cargs.extend(
                             self.clbits.map_bits(
                                 self.control_flow_module
-                                    .condition_resources(condition)?
+                                    .condition_resources(condition.bind(py))?
                                     .clbits
                                     .bind(py),
                             )?,
@@ -3004,9 +3000,9 @@ def _format(operand):
 
                     // Add classical bits from SwitchCaseOp, if applicable.
                     if let OperationRef::Instruction(op) = packed.op.view() {
-                        let op = op.instruction.bind(py);
-                        if op.is_instance(self.circuit_module.switch_case_op.bind(py))? {
-                            let target = op.getattr(intern!(py, "target"))?;
+                        if op.name() == "switch_case" {
+                            let op_bound = op.instruction.bind(py);
+                            let target = op_bound.getattr(intern!(py, "target"))?;
                             if target.is_instance(self.circuit_module.clbit.bind(py))? {
                                 block_cargs.insert(self.clbits.find(&target).unwrap());
                             } else if target
@@ -3055,6 +3051,13 @@ def _format(operand):
         block_cargs.sort_by_key(|c| clbit_pos_map[c]);
 
         let py_op = op.extract::<OperationFromPython>()?;
+
+        if py_op.operation.num_qubits() as usize != block_qargs.len() {
+            return Err(DAGCircuitError::new_err(format!(
+                "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!", py_op.operation.num_qubits(), block_qargs.len()
+            )));
+        }
+
         let op_name = py_op.operation.name().to_string();
         let qubits = Interner::intern(&mut self.qargs_cache, block_qargs)?;
         let clbits = Interner::intern(&mut self.cargs_cache, block_cargs)?;
@@ -3577,6 +3580,16 @@ new_condition = (new_target, value)
         };
         // Extract information from new op
         let mut new_op = op.extract::<OperationFromPython>()?;
+
+        if old_packed.op.num_qubits() != new_op.operation.num_qubits()
+            || old_packed.op.num_clbits() != new_op.operation.num_clbits()
+        {
+            return Err(DAGCircuitError::new_err(
+                format!(
+                    "Cannot replace node of width ({} qubits, {} clbits) with operation of mismatched width ({} qubits, {} clbits)",
+                    old_packed.op.num_qubits(), old_packed.op.num_clbits(), new_op.operation.num_qubits(), new_op.operation.num_clbits()
+                )));
+        }
 
         // If either operation is a control-flow operation, propagate_condition is ignored
         if propagate_condition
@@ -4183,10 +4196,10 @@ new_condition = (new_target, value)
     /// Returns iterator of the successors of a node that are
     /// connected by a classical edge as DAGOpNodes and DAGOutNodes.
     fn classical_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
-        let edges = self.dag.edges_directed(node.node.unwrap(), Incoming);
+        let edges = self.dag.edges_directed(node.node.unwrap(), Outgoing);
         let filtered = edges.filter_map(|e| match e.weight() {
-            Wire::Clbit(_) => Some(e.target()),
-            _ => None,
+            Wire::Qubit(_) => None,
+            _ => Some(e.target()),
         });
         let predecessors: PyResult<Vec<_>> =
             filtered.unique().map(|i| self.get_node(py, i)).collect();
@@ -4897,8 +4910,8 @@ new_condition = (new_target, value)
                     wire.source().index(),
                     wire.target().index(),
                     match wire.weight() {
-                        Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
-                        Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                        Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
+                        Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
                         Wire::Var(var) => var,
                     },
                 )
@@ -4909,14 +4922,14 @@ new_condition = (new_target, value)
 
     fn _out_edges(&self, py: Python, node_index: usize) -> Vec<Py<PyTuple>> {
         self.dag
-            .edges_directed(NodeIndex::new(node_index), Incoming)
+            .edges_directed(NodeIndex::new(node_index), Outgoing)
             .map(|wire| {
                 (
                     wire.source().index(),
                     wire.target().index(),
                     match wire.weight() {
-                        Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
-                        Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                        Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
+                        Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
                         Wire::Var(var) => var,
                     },
                 )
@@ -5110,7 +5123,7 @@ impl DAGCircuit {
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
                 let mut clbits: IndexSet<Clbit> =
-                    IndexSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().cloned());
+                    IndexSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) = self.additional_wires(py, &instr)?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
@@ -5128,7 +5141,7 @@ impl DAGCircuit {
 
         // Put the new node in-between the previously "last" nodes on each wire
         // and the output map.
-        let output_nodes: Vec<NodeIndex> = self
+        let output_nodes: IndexSet<NodeIndex> = self
             .qargs_cache
             .intern(qubits_id)
             .iter()
