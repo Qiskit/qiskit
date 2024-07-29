@@ -1,0 +1,6 @@
+---
+features_primitives:
+  - |
+    The metadata of Primitives V2 implementations, i.e., :class:`.StatevectorSampler`,
+    :class:`.StatevectorEstimator`, :class:`.BackendSamplerV2` and :class:`.BackendEstimatorV2`,
+    has been updated to match that of IBM quantum devices.

@@ -238,7 +238,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
         param_indices = np.fromiter(np.ndindex(param_shape), dtype=object).reshape(param_shape)
         bc_param_ind, bc_obs = np.broadcast_arrays(param_indices, observables)
 
-        # calculate expectation values for each pair of parameter value set and pauli
         param_obs_map = defaultdict(set)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]

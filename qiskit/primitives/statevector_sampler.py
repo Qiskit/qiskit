@@ -199,7 +199,7 @@ class StatevectorSampler(BaseSamplerV2):
         }
         return SamplerPubResult(
             DataBin(**meas, shape=pub.shape),
-            metadata={"shots": pub.shots, "circuit_metadata": pub.circuit.metadata},
+            metadata={"circuit_metadata": pub.circuit.metadata},
         )
 
 
