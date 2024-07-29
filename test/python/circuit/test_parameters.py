@@ -31,10 +31,11 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider import Fake5QV1
+from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from ..legacy_cmaps import BOGOTA_CMAP
 
 
 def raise_if_parameter_table_invalid(circuit):
@@ -1075,6 +1076,26 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(len(job.result().results), 2)
 
     @data(0, 1, 2, 3)
+    def test_transpile_across_optimization_levelsV1(self, opt_level):
+        """Verify parameterized circuits can be transpiled with all default pass managers.
+        To remove once Fake5QV1 gets removed"""
+
+        qc = QuantumCircuit(5, 5)
+
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+
+        qc.rx(theta, 0)
+        qc.x(0)
+        for i in range(5 - 1):
+            qc.rxx(phi, i, i + 1)
+
+        qc.measure(range(5 - 1), range(5 - 1))
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+        transpile(qc, backend, optimization_level=opt_level)
+
+    @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):
         """Verify parameterized circuits can be transpiled with all default pass managers."""
 
@@ -1090,7 +1111,15 @@ class TestParameters(QiskitTestCase):
 
         qc.measure(range(5 - 1), range(5 - 1))
 
-        transpile(qc, Fake5QV1(), optimization_level=opt_level)
+        transpile(
+            qc,
+            GenericBackendV2(
+                num_qubits=5,
+                coupling_map=BOGOTA_CMAP,
+                seed=42,
+            ),
+            optimization_level=opt_level,
+        )
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted
