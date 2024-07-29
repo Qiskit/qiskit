@@ -5406,14 +5406,17 @@ impl DAGCircuit {
                     (_, _) => Err(DAGCircuitError::new_err("classical wire already exists!")),
                 }
             }
-            Wire::Var(_) => {
-                // in_node = DAGInNode(wire=var)
-                // out_node = DAGOutNode(wire=var)
-                // in_node._node_id, out_node._node_id = self._multi_graph.add_nodes_from((in_node, out_node))
-                // self._multi_graph.add_edge(in_node._node_id, out_node._node_id, var)
-                // self.input_map[var] = in_node
-                // self.output_map[var] = out_node
-                todo!()
+            Wire::Var(ref var) => {
+                if self.var_input_map.contains_key(&var) || self.var_output_map.contains_key(&var) {
+                    return Err(DAGCircuitError::new_err("var wire already exists!"));
+                }
+                Python::with_gil(|py| {
+                    let in_node = self.dag.add_node(NodeType::VarIn(var.clone_ref(py)));
+                    let out_node = self.dag.add_node(NodeType::VarOut(var.clone_ref(py)));
+                    self.var_input_map.insert(var.clone_ref(py), in_node);
+                    self.var_output_map.insert(var.clone_ref(py), out_node);
+                    Ok((in_node, out_node))
+                })
             }
         }?;
 
