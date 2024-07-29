@@ -249,7 +249,7 @@ class BasisTranslator(TransformationPass):
         replace_start_time = time.time()
 
         def apply_translation(dag, wire_map):
-            # dag_updated = False
+            is_updated = False
             out_dag = dag.copy_empty_like()
             for node in dag.topological_op_nodes():
                 node_qargs = tuple(wire_map[bit] for bit in node.qargs)
@@ -259,14 +259,17 @@ class BasisTranslator(TransformationPass):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            updated_dag = apply_translation(
+                            updated_dag, is_updated = apply_translation(
                                 dag_block,
                                 {
                                     inner: wire_map[outer]
                                     for inner, outer in zip(block.qubits, node.qargs)
                                 },
                             )
-                            flow_circ_block = dag_to_circuit(updated_dag)
+                            if is_updated:
+                                flow_circ_block = dag_to_circuit(updated_dag)
+                            else:
+                                flow_circ_block = block
                             flow_blocks.append(flow_circ_block)
                         node.op = node.op.replace_blocks(flow_blocks)
                     out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
@@ -287,10 +290,10 @@ class BasisTranslator(TransformationPass):
                     self._replace_node(out_dag, node, instr_map)
                 else:
                     raise TranspilerError(f"BasisTranslator did not map {node.name}.")
-                # dag_updated = True
-            return out_dag
+                is_updated = True
+            return out_dag, is_updated
 
-        out_dag = apply_translation(dag, qarg_indices)
+        out_dag, _ = apply_translation(dag, qarg_indices)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
