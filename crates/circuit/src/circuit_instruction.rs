@@ -22,7 +22,9 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 
 use smallvec::SmallVec;
 
-use crate::imports::{CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
+use crate::imports::{
+    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
+};
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
 };
@@ -269,6 +271,19 @@ impl CircuitInstruction {
     /// Is the :class:`.Operation` contained in this instruction a Qiskit standard gate?
     pub fn is_standard_gate(&self) -> bool {
         self.operation.try_standard_gate().is_some()
+    }
+
+    /// Is the :class:`.Operation` contained in this instruction a subclass of
+    /// :class:`.ControlledGate`?
+    pub fn is_controlled_gate(&self, py: Python) -> PyResult<bool> {
+        match self.operation.view() {
+            OperationRef::Standard(standard) => Ok(standard.num_ctrl_qubits() != 0),
+            OperationRef::Gate(gate) => gate
+                .gate
+                .bind(py)
+                .is_instance(CONTROLLED_GATE.get_bound(py)),
+            _ => Ok(false),
+        }
     }
 
     /// Is the :class:`.Operation` contained in this node a directive?

@@ -159,7 +159,10 @@ QFT Synthesis
    QFTSynthesisLine
 """
 
-from typing import Optional, Union, List, Tuple, Callable
+from __future__ import annotations
+
+import typing
+from typing import Optional, Union, List, Tuple, Callable, Sequence
 
 import numpy as np
 import rustworkx as rx
@@ -168,7 +171,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlledGate, EquivalenceLibrary
+from qiskit.circuit import ControlledGate, EquivalenceLibrary, equivalence
 from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -209,6 +212,9 @@ from qiskit.synthesis.qft import (
 )
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
+
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGOpNode
 
 
 class HLSConfig:
@@ -396,6 +402,8 @@ class HighLevelSynthesis(TransformationPass):
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
+        else:
+            self._device_insts = set()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -429,7 +437,7 @@ class HighLevelSynthesis(TransformationPass):
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
 
-            if self._definitely_skip_node(node):
+            if self._definitely_skip_node(node, qubits):
                 continue
 
             decomposition, modified = self._recursively_handle_op(node.op, qubits)
@@ -448,16 +456,42 @@ class HighLevelSynthesis(TransformationPass):
 
         return dag
 
-    def _definitely_skip_node(self, node) -> bool:
+    def _definitely_skip_node(self, node: DAGOpNode, qubits: Sequence[int] | None) -> bool:
         """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
-        attempt to synthesise it).
+        attempt to synthesise it) without accessing its Python-space `Operation`.
 
         This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
         avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
         node (which is _most_ nodes)."""
-        # In general, Rust-space standard gates aren't going to need synthesising (but check to be
-        # sure).
-        return node.is_standard_gate() and not self._methods_to_try(node.name)
+        return (
+            # The fast path is just for Rust-space standard gates (which excludes
+            # `AnnotatedOperation`).
+            node.is_standard_gate()
+            # If it's a controlled gate, we might choose to do funny things to it.
+            and not node.is_controlled_gate()
+            # If there are plugins to try, they need to be tried.
+            and not self._methods_to_try(node.name)
+            # If all the above constraints hold, and it's already supported or the basis translator
+            # can handle it, we'll leave it be.
+            and (
+                self._instruction_supported(node.name, qubits)
+                # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
+                # `BasisTranslator`, and this is supposed to just be temporary til this is moved
+                # into Rust space.
+                or (
+                    self._equiv_lib is not None
+                    and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
+                    in self._equiv_lib._key_to_node_index
+                )
+            )
+        )
+
+    def _instruction_supported(self, name: str, qubits: Sequence[int]) -> bool:
+        qubits = tuple(qubits) if qubits is not None else None
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is None or self._target.num_qubits is None:
+            return name in self._device_insts
+        return self._target.instruction_supported(operation_name=name, qargs=qubits)
 
     def _recursively_handle_op(
         self, op: Operation, qubits: Optional[List] = None
@@ -507,17 +541,9 @@ class HighLevelSynthesis(TransformationPass):
         # or is in equivalence library
         controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
         if not controlled_gate_open_ctrl:
-            qargs = tuple(qubits) if qubits is not None else None
-            # include path for when target exists but target.num_qubits is None (BasicSimulator)
-            inst_supported = (
-                self._target.instruction_supported(
-                    operation_name=op.name,
-                    qargs=qargs,
-                )
-                if self._target is not None and self._target.num_qubits is not None
-                else op.name in self._device_insts
-            )
-            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
+            if self._instruction_supported(op.name, qubits) or (
+                self._equiv_lib is not None and self._equiv_lib.has_entry(op)
+            ):
                 return op, False
 
         try:

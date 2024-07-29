@@ -334,6 +334,11 @@ impl DAGOpNode {
         self.instruction.is_standard_gate()
     }
 
+    /// Is the :class:`.Operation` contained in this node a subclass of :class:`.ControlledGate`?
+    pub fn is_controlled_gate(&self, py: Python) -> PyResult<bool> {
+        self.instruction.is_controlled_gate(py)
+    }
+
     /// Is the :class:`.Operation` contained in this node a directive?
     pub fn is_directive(&self) -> bool {
         self.instruction.is_directive()

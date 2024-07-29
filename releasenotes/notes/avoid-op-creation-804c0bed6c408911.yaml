@@ -6,6 +6,7 @@ features_circuits:
     These methods are:
 
     * :meth:`.CircuitInstruction.is_standard_gate` and :meth:`.DAGOpNode.is_standard_gate`,
+    * :meth:`.CircuitInstruction.is_controlled_gate` and :meth:`.DAGOpNode.is_controlled_gate`,
     * :meth:`.CircuitInstruction.is_directive` and :meth:`.DAGOpNode.is_directive`,
     * :meth:`.CircuitInstruction.is_control_flow` and :meth:`.DAGOpNode.is_control_flow`, and
     * :meth:`.CircuitInstruction.is_parameterized` and :meth:`.DAGOpNode.is_parameterized`.
