@@ -35,6 +35,7 @@ class UserConfig:
     transpile_optimization_level = 1
     parallel = False
     num_processes = 4
+    sabre_all_threads = true
 
     """
 
@@ -168,6 +169,13 @@ class UserConfig:
                     )
                 self.settings["num_processes"] = num_processes
 
+            # Parse sabre_all_threads
+            sabre_all_threads = self.config_parser.getboolean(
+                "default", "sabre_all_threads", fallback=None
+            )
+            if sabre_all_threads is not None:
+                self.settings["sabre_all_threads"] = sabre_all_threads
+
 
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
@@ -208,6 +216,7 @@ def set_config(key, value, section=None, file_path=None):
         "transpile_optimization_level",
         "parallel",
         "num_processes",
+        "sabre_all_threads",
     }
 
     if section in [None, "default"]:
