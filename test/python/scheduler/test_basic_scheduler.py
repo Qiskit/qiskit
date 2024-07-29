@@ -46,14 +46,16 @@ class TestBasicSchedule(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_unavailable_defaults(self):
         """Test backend with unavailable defaults."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        backend = FakeBackend(None)
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeBackend(None)
         backend.defaults = backend.configuration
         self.assertRaises(QiskitError, lambda: schedule(qc, backend))
 
@@ -252,7 +254,8 @@ class TestBasicSchedule(QiskitTestCase):
         #       ┌──────┴───┴──────┐ └───────────────┘ ┌─┴─┐┌─────────────────┐
         # q0_2: ┤ U2(0.778,0.122) ├───────────────────┤ X ├┤ U2(0.778,0.122) ├
         #       └─────────────────┘                   └───┘└─────────────────┘
-        backend = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
         inst_map = backend.defaults().instruction_schedule_map
         q = QuantumRegister(3)
         c = ClassicalRegister(3)
@@ -416,9 +419,13 @@ class TestBasicSchedule(QiskitTestCase):
             meas_scheds.append(meas)
             qc.add_calibration("measure", [qubit], meas)
 
-        meas = macros.measure([1], FakeOpenPulse3Q())
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
+        meas = macros.measure([1], backend)
         meas = meas.exclude(channels=[AcquireChannel(0), AcquireChannel(2)])
-        sched = schedule(qc, FakeOpenPulse3Q())
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
+        sched = schedule(qc, backend)
         expected = Schedule(meas_scheds[0], meas_scheds[1], meas)
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -509,7 +516,7 @@ class TestBasicScheduleV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True)
+        self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
         self.inst_map = self.backend.instruction_schedule_map
         # self.pulse_2_samples is the pulse sequence used to calibrate "measure" in
         # GenericBackendV2. See class construction for more details.
