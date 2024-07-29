@@ -33,7 +33,7 @@ from .utils import _circuit_key
 
 class BackendSampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
     """A :class:`~.BaseSamplerV1` implementation that provides a wrapper for
-    leveraging the sampler V1 interface from any backend.
+    leveraging the Sampler V1 interface from any backend.
 
     This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
