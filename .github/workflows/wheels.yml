@@ -29,6 +29,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+
+      # This can be removed when `ibm-platform-services` can build/install with the most recent of
+      # `setuptools`. `setuptools==72.0.0` and `ibm-platform-services==0.55.1` are a known-bad combo.
+      - name: Prebuild old-setuptools dependencies
+        shell: bash
+        run: |
+          set -e
+          python -m venv .build-deps
+          if [[ ${{ runner.os }} =~ [wW]indows ]]; then
+            .build-deps/Scripts/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/Scripts/python -m pip wheel --no-build-isolation ibm-platform-services
+          else
+            .build-deps/bin/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/bin/python -m pip wheel --no-build-isolation ibm-platform-services
+          fi
+          rm -rf .build-deps
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
@@ -57,6 +74,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+
+      # This can be removed when `ibm-platform-services` can build/install with the most recent of
+      # `setuptools`. `setuptools==72.0.0` and `ibm-platform-services==0.55.1` are a known-bad combo.
+      - name: Prebuild old-setuptools dependencies
+        shell: bash
+        run: |
+          set -e
+          python -m venv .build-deps
+          if [[ ${{ runner.os }} =~ [wW]indows ]]; then
+            .build-deps/Scripts/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/Scripts/python -m pip wheel --no-build-isolation ibm-platform-services
+          else
+            .build-deps/bin/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/bin/python -m pip wheel --no-build-isolation ibm-platform-services
+          fi
+          rm -rf .build-deps
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
@@ -86,6 +120,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+
+      # This can be removed when `ibm-platform-services` can build/install with the most recent of
+      # `setuptools`. `setuptools==72.0.0` and `ibm-platform-services==0.55.1` are a known-bad combo.
+      - name: Prebuild old-setuptools dependencies
+        shell: bash
+        run: |
+          set -e
+          python -m venv .build-deps
+          if [[ ${{ runner.os }} =~ [wW]indows ]]; then
+            .build-deps/Scripts/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/Scripts/python -m pip wheel --no-build-isolation ibm-platform-services
+          else
+            .build-deps/bin/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/bin/python -m pip wheel --no-build-isolation ibm-platform-services
+          fi
+          rm -rf .build-deps
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
@@ -132,6 +183,23 @@ jobs:
         uses: docker/setup-qemu-action@v3
         with:
           platforms: all
+
+      # This can be removed when `ibm-platform-services` can build/install with the most recent of
+      # `setuptools`. `setuptools==72.0.0` and `ibm-platform-services==0.55.1` are a known-bad combo.
+      - name: Prebuild old-setuptools dependencies
+        shell: bash
+        run: |
+          set -e
+          python -m venv .build-deps
+          if [[ ${{ runner.os }} =~ [wW]indows ]]; then
+            .build-deps/Scripts/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/Scripts/python -m pip wheel --no-build-isolation ibm-platform-services
+          else
+            .build-deps/bin/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/bin/python -m pip wheel --no-build-isolation ibm-platform-services
+          fi
+          rm -rf .build-deps
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
@@ -166,6 +234,23 @@ jobs:
         uses: docker/setup-qemu-action@v3
         with:
           platforms: all
+
+      # This can be removed when `ibm-platform-services` can build/install with the most recent of
+      # `setuptools`. `setuptools==72.0.0` and `ibm-platform-services==0.55.1` are a known-bad combo.
+      - name: Prebuild old-setuptools dependencies
+        shell: bash
+        run: |
+          set -e
+          python -m venv .build-deps
+          if [[ ${{ runner.os }} =~ [wW]indows ]]; then
+            .build-deps/Scripts/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/Scripts/python -m pip wheel --no-build-isolation ibm-platform-services
+          else
+            .build-deps/bin/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/bin/python -m pip wheel --no-build-isolation ibm-platform-services
+          fi
+          rm -rf .build-deps
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
@@ -200,6 +285,23 @@ jobs:
         uses: docker/setup-qemu-action@v3
         with:
           platforms: all
+
+      # This can be removed when `ibm-platform-services` can build/install with the most recent of
+      # `setuptools`. `setuptools==72.0.0` and `ibm-platform-services==0.55.1` are a known-bad combo.
+      - name: Prebuild old-setuptools dependencies
+        shell: bash
+        run: |
+          set -e
+          python -m venv .build-deps
+          if [[ ${{ runner.os }} =~ [wW]indows ]]; then
+            .build-deps/Scripts/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/Scripts/python -m pip wheel --no-build-isolation ibm-platform-services
+          else
+            .build-deps/bin/python -m pip install 'setuptools<72.0' wheel
+            .build-deps/bin/python -m pip wheel --no-build-isolation ibm-platform-services
+          fi
+          rm -rf .build-deps
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
