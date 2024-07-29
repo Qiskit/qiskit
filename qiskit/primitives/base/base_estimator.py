@@ -110,7 +110,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         options: dict | None = None,
     ):
         """
-        Creating an instance of a V1 Estimator, or using one in a ``with`` context opens a session that
+        Creating an instance of an Estimator V1, or using one in a ``with`` context opens a session that
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
