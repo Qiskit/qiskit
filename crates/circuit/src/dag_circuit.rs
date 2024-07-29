@@ -4842,6 +4842,42 @@ new_condition = (new_target, value)
         rustworkx_core::petgraph::algo::toposort(&self.dag, None).is_ok()
     }
 
+    fn _in_edges(&self, py: Python, node_index: usize) -> Vec<Py<PyTuple>> {
+        self.dag
+            .edges_directed(NodeIndex::new(node_index), Incoming)
+            .map(|wire| {
+                (
+                    wire.source().index(),
+                    wire.target().index(),
+                    match wire.weight() {
+                        Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
+                        Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                        Wire::Var(var) => var,
+                    },
+                )
+                    .into_py(py)
+            })
+            .collect()
+    }
+
+    fn _out_edges(&self, py: Python, node_index: usize) -> Vec<Py<PyTuple>> {
+        self.dag
+            .edges_directed(NodeIndex::new(node_index), Incoming)
+            .map(|wire| {
+                (
+                    wire.source().index(),
+                    wire.target().index(),
+                    match wire.weight() {
+                        Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
+                        Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                        Wire::Var(var) => var,
+                    },
+                )
+                    .into_py(py)
+            })
+            .collect()
+    }
+
     fn _in_wires(&self, node_index: usize) -> Vec<&PyObject> {
         self.dag
             .edges_directed(NodeIndex::new(node_index), Incoming)
