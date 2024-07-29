@@ -203,6 +203,10 @@ impl _VarIndexMap {
             res
         })
     }
+    pub fn values<'py>(&self, py: Python<'py>) -> impl Iterator<Item = NodeIndex> + 'py {
+        let values = self.dict.bind(py).values();
+        values.iter().map(|x| NodeIndex::new(x.extract().unwrap()))
+    }
 }
 
 /// Quantum circuit as a directed acyclic graph.
@@ -4169,7 +4173,7 @@ new_condition = (new_target, value)
     /// Return a list of op nodes in the first layer of this dag.
     #[pyo3(name = "front_layer")]
     fn py_front_layer(&self, py: Python) -> PyResult<Py<PyList>> {
-        let native_front_layer = self.front_layer();
+        let native_front_layer = self.front_layer(py);
         let front_layer_list = PyList::empty_bound(py);
         for node in native_front_layer {
             front_layer_list.append(self.get_node(py, node)?)?;
@@ -4196,10 +4200,11 @@ new_condition = (new_target, value)
     #[pyo3(signature = (*, vars_mode="captures"))]
     fn layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty_bound(py);
-        let mut graph_layers = self.multigraph_layers();
+        let mut graph_layers = self.multigraph_layers(py);
         if graph_layers.next().is_none() {
             return Ok(PyIterator::from_bound_object(&layer_list)?.into());
         }
+
         for graph_layer in graph_layers {
             let layer_dict = PyDict::new_bound(py);
             // Sort to make sure they are in the order they were added to the original DAG
@@ -4297,7 +4302,7 @@ new_condition = (new_target, value)
     /// Yield layers of the multigraph.
     #[pyo3(name = "multigraph_layers")]
     fn py_multigraph_layers(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        let graph_layers = self.multigraph_layers().map(|layer| -> Vec<PyObject> {
+        let graph_layers = self.multigraph_layers(py).map(|layer| -> Vec<PyObject> {
             layer
                 .into_iter()
                 .filter_map(|index| self.get_node(py, index).ok())
@@ -5339,7 +5344,7 @@ impl DAGCircuit {
                 }
             }
             Wire::Var(ref var) => {
-                if self.var_input_map.contains_key(&var) || self.var_output_map.contains_key(&var) {
+                if self.var_input_map.contains_key(var) || self.var_output_map.contains_key(var) {
                     return Err(DAGCircuitError::new_err("var wire already exists!"));
                 }
                 Python::with_gil(|py| {
@@ -5654,8 +5659,10 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over a list layers of the `DAGCircuit``.
-    pub fn multigraph_layers(&self) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
-        let first_layer = self.qubit_input_map.values().copied().collect();
+    pub fn multigraph_layers(&self, py: Python) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
+        let mut first_layer: Vec<_> = self.qubit_input_map.values().copied().collect();
+        first_layer.extend(self.clbit_input_map.values().copied());
+        first_layer.extend(self.var_input_map.values(py));
         // A DAG is by definition acyclical, therefore unwrapping the layer should never fail.
         layers(&self.dag, first_layer).map(|layer| match layer {
             Ok(layer) => layer,
@@ -5664,8 +5671,8 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over the first layer of the `DAGCircuit``.
-    pub fn front_layer<'a>(&'a self) -> Box<dyn Iterator<Item = NodeIndex> + 'a> {
-        let mut graph_layers = self.multigraph_layers();
+    pub fn front_layer<'a>(&'a self, py: Python) -> Box<dyn Iterator<Item = NodeIndex> + 'a> {
+        let mut graph_layers = self.multigraph_layers(py);
         graph_layers.next();
 
         let next_layer = graph_layers.next();
