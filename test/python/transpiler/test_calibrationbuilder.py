@@ -267,7 +267,7 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
     def test_rzx_calibration_cr_pulse_stretch(self, theta: float):
         """Test that cross resonance pulse durations are computed correctly."""
         with self.assertWarns(DeprecationWarning):
-            # TODO this tests does not work with BackendV2
+            # TODO this tests does not work with BackendV2/GenericBackendV2
             #   https://github.com/Qiskit/qiskit/issues/12834
             backend = Fake27QPulseV1()
         inst_map = backend.defaults().instruction_schedule_map
