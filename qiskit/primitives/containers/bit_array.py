@@ -130,13 +130,7 @@ class BitArray(ShapedMixin):
         return f"BitArray({desc})"
 
     def __getitem__(self, indices):
-<<<<<<< HEAD
         """Slices the array along an existing axis of the array."""
-        if isinstance(indices, tuple) and len(indices) >= self.ndim + 2:
-            raise ValueError(
-                "BitArrays cannot be sliced along the bits axis, see slice_bits() instead."
-            )
-=======
         if isinstance(indices, tuple):
             if len(indices) == self.ndim + 1:
                 raise IndexError(
@@ -146,7 +140,6 @@ class BitArray(ShapedMixin):
                 raise IndexError(
                     "BitArray cannot be sliced along the bits axis, use slice_bits() instead."
                 )
->>>>>>> bfd2eea48 (Make `BitArray.{slice_bits,slice_shots,__getitem__}` raise `IndexError` when indices are not valid (#12755))
         return BitArray(self._array[indices], self.num_bits)
 
     @property
