@@ -15,12 +15,9 @@ Tests for the Split2QUnitaries transpiler pass.
 """
 from math import pi
 
+from test import QiskitTestCase
 import numpy as np
 
-from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
-from test import QiskitTestCase
 
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import UnitaryGate
@@ -28,7 +25,8 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
-
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 
 class TestSplit2QUnitaries(QiskitTestCase):
     """
@@ -130,9 +128,7 @@ class TestSplit2QUnitaries(QiskitTestCase):
         qct = transpile(qc, backend)
 
         self.assertTrue(Operator(qc).equiv(qct))
-        self.assertTrue(
-            matrix_equal(Operator(qc).data, Operator(qct).data, ignore_phase=False)
-        )
+        self.assertTrue(matrix_equal(Operator(qc).data, Operator(qct).data, ignore_phase=False))
         self.assertEqual(qct.size(), 2)
 
     def test_no_split(self):
@@ -192,5 +188,3 @@ class TestSplit2QUnitaries(QiskitTestCase):
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
         self.assertEqual(26, qc_split.num_nonlocal_gates())
-
-

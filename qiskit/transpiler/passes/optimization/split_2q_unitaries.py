@@ -66,8 +66,10 @@ class Split2QUnitaries(TransformationPass):
 
                 dag.global_phase += decomp.global_phase
                 dag.remove_op_node(node)
-            elif ( decomp._inner_decomposition.specialization
-                == TwoQubitWeylDecomposition._specializations.SWAPEquiv):
+            elif (
+                decomp._inner_decomposition.specialization
+                == TwoQubitWeylDecomposition._specializations.SWAPEquiv
+            ):
                 # TODO also look at swap-gate-like gates?
                 pass
         return dag
