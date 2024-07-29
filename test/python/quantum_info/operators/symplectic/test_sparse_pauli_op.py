@@ -14,23 +14,22 @@
 
 import itertools as it
 import unittest
+from test import QiskitTestCase, combine
+
 import numpy as np
-import scipy.sparse
 import rustworkx as rx
+import scipy.sparse
 from ddt import ddt
 
-
 from qiskit import QiskitError
-from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
-from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.compiler.transpiler import transpile
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.compiler.transpiler import transpile
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
 
 
 def pauli_mat(label):
@@ -182,7 +181,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
 
     def test_from_index_list_parameters(self):
-        """Test from_list method specifying the Paulis via indices with paramteres."""
+        """Test from_list method specifying the Paulis via indices with parameters."""
         expected_labels = ["XXZ", "IXI", "YIZ", "III"]
         paulis = ["XXZ", "X", "YZ", ""]
         indices = [[2, 1, 0], [1], [2, 0], []]
@@ -1029,7 +1028,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
         sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
         groups = sparse_pauli_list.group_commuting(qubit_wise)
-        # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
+        # checking that every input Pauli in sparse_pauli_list is in a group in the output
         output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # checking that every coeffs are grouped according to sparse_pauli_list group
@@ -1057,7 +1056,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             )
 
     def test_dot_real(self):
-        """Test dot for real coefficiets."""
+        """Test dot for real coefficients."""
         x = SparsePauliOp("X", np.array([1]))
         y = SparsePauliOp("Y", np.array([1]))
         iz = SparsePauliOp("Z", 1j)
@@ -1119,12 +1118,14 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
-        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        job = estimator.run(transpiled_psi, permuted_op, thetas)
-        res = job.result().values
+        with self.assertWarns(DeprecationWarning):
+            job = estimator.run(transpiled_psi, permuted_op, thetas)
+            res = job.result().values
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:
@@ -1178,6 +1179,34 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=None, num_qubits=1)
+
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
+    @combine(layout=[None, []])
+    def test_apply_layout_zero_qubit(self, layout):
+        """Test apply_layout with a zero-qubit operator"""
+        with self.subTest("default"):
+            op = SparsePauliOp("")
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII"), res)
+        with self.subTest("coeff"):
+            op = SparsePauliOp("", 2)
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII", 2), res)
+        with self.subTest("multiple ops"):
+            op = SparsePauliOp.from_list([("", 1), ("", 2)])
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
 
 
 if __name__ == "__main__":

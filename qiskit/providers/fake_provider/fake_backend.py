@@ -23,7 +23,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
-from qiskit.utils import optionals as _optionals
+from qiskit.utils import optionals as _optionals, deprecate_func
 from qiskit.providers import basic_provider
 
 
@@ -39,6 +39,13 @@ class _Credentials:
 class FakeBackend(BackendV1):
     """This is a dummy backend just for testing purposes."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Fake backends using BackendV1 are deprecated in favor of "
+        ":class:`.GenericBackendV2`. You can convert BackendV1 to "
+        ":class:`.BackendV2` with :class:`.BackendV2Converter`.",
+    )
     def __init__(self, configuration, time_alive=10):
         """FakeBackend initializer.
 
@@ -143,8 +150,8 @@ class FakeBackend(BackendV1):
                     pulse_job = False
         if pulse_job is None:
             raise QiskitError(
-                "Invalid input object %s, must be either a "
-                "QuantumCircuit, Schedule, or a list of either" % circuits
+                f"Invalid input object {circuits}, must be either a "
+                "QuantumCircuit, Schedule, or a list of either"
             )
         if pulse_job:
             raise QiskitError("Pulse simulation is currently not supported for fake backends.")

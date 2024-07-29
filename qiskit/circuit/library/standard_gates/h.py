@@ -11,12 +11,16 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
+
+from __future__ import annotations
+
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
@@ -51,6 +55,8 @@ class HGate(SingletonGate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.HGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new H gate."""
         super().__init__("h", 1, [], label=label, duration=duration, unit=unit)
@@ -76,9 +82,9 @@ class HGate(SingletonGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-H gate.
 
@@ -89,8 +95,8 @@ class HGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -181,6 +187,8 @@ class CHGate(SingletonControlledGate):
                     0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CHGate
 
     def __init__(
         self,

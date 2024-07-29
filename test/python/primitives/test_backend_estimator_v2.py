@@ -446,8 +446,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_backend_v1(self):
-        """Test BackendEstimatorV2 respects job size limit"""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimatorV2 respects job size limit from BackendV1"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
@@ -460,6 +461,18 @@ class TestBackendEstimatorV2(QiskitTestCase):
         with patch.object(backend, "run") as run_mock:
             estimator.run([(qc, op, param_list)] * k).result()
         self.assertEqual(run_mock.call_count, 10)
+
+    def test_iter_pub(self):
+        """test for an iterable of pubs"""
+        backend = BasicSimulator()
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        circuit = pm.run(circuit)
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        observable = self.observable.apply_layout(circuit.layout)
+        result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
+        np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
+        np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733], rtol=self._rtol)
 
 
 if __name__ == "__main__":

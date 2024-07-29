@@ -208,7 +208,7 @@ class BasicSimulator(BackendV2):
                 target.add_instruction(UnitaryGate, name="unitary")
             else:
                 raise BasicProviderError(
-                    "Gate is not a valid basis gate for this simulator: %s" % name
+                    f"Gate is not a valid basis gate for this simulator: {name}"
                 )
         return target
 
@@ -525,17 +525,17 @@ class BasicSimulator(BackendV2):
                 }
         """
         # TODO: replace assemble with new run flow
-        from qiskit.compiler import assemble
+        from qiskit.compiler.assembler import _assemble
 
         out_options = {}
-        for key in backend_options:
+        for key, value in backend_options.items():
             if not hasattr(self.options, key):
                 warnings.warn(
-                    "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
+                    f"Option {key} is not used by this backend", UserWarning, stacklevel=2
                 )
             else:
-                out_options[key] = backend_options[key]
-        qobj = assemble(run_input, self, **out_options)
+                out_options[key] = value
+        qobj = _assemble(run_input, self, **out_options)
         qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())

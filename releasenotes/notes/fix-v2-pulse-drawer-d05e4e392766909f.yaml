@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`qiskit.visualization.pulse_v2.interface.draw` that didn't 
+    draw pulse schedules when the draw function was called with a :class:`.BackendV2` argument.
+    Because the V2 backend doesn't report hardware channel frequencies,
+    the generated drawing will show 'no freq.' below each channel label.

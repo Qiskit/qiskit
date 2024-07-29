@@ -16,6 +16,8 @@ import dataclasses
 import math
 from typing import Iterable, Callable
 
+import numpy as np
+
 from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
@@ -30,6 +32,7 @@ from qiskit.circuit import (
     Reset,
     library as lib,
 )
+from qiskit.quantum_info import Operator
 from qiskit._accelerate.qasm2 import (
     OpCode,
     UnaryOpCode,
@@ -284,7 +287,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
 
 class _DefinedGate(Gate):
     """A gate object defined by a `gate` statement in an OpenQASM 2 program.  This object lazily
-    binds its parameters to its definition, so it is only synthesised when required."""
+    binds its parameters to its definition, so it is only synthesized when required."""
 
     def __init__(self, name, num_qubits, params, gates, bytecode):
         self._gates = gates
@@ -314,6 +317,11 @@ class _DefinedGate(Gate):
             else:
                 raise ValueError(f"received invalid bytecode to build gate: {op}")
         self._definition = qc
+
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        return np.asarray(Operator(self.definition), dtype=dtype)
 
     # It's fiddly to implement pickling for PyO3 types (the bytecode stream), so instead if we need
     # to pickle ourselves, we just eagerly create the definition and pickle that.

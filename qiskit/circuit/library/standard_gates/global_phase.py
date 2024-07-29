@@ -20,6 +20,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class GlobalPhaseGate(Gate):
@@ -35,6 +36,8 @@ class GlobalPhaseGate(Gate):
                 e^{i\theta}
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.GlobalPhaseGate
 
     def __init__(
         self, phase: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"

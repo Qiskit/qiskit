@@ -373,11 +373,7 @@ def detail_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerB
 
     # add program duration
     dt = device.dt * 1e9 if device.dt else 1.0
-    title_str.append(
-        "Duration: {dur:.1f} {unit}".format(
-            dur=program.duration * dt, unit="ns" if device.dt else "dt"
-        )
-    )
+    title_str.append(f"Duration: {program.duration * dt:.1f} {'ns' if device.dt else 'dt'}")
 
     # add device name
     if device.backend_name != "no-backend":

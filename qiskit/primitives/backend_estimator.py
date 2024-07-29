@@ -9,9 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Expectation value class
-"""
+
+"""Estimator V1 implementation for an arbitrary Backend object."""
 
 from __future__ import annotations
 
@@ -35,8 +34,9 @@ from qiskit.transpiler.passes import (
     Optimize1qGatesDecomposition,
     SetLayout,
 )
+from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseEstimator, EstimatorResult
+from .base import BaseEstimatorV1, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
@@ -65,6 +65,8 @@ def _run_circuits(
         max_circuits = getattr(backend.configuration(), "max_experiments", None)
     elif isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
+    else:
+        raise RuntimeError("Backend version not supported")
     if max_circuits:
         jobs = [
             backend.run(circuits[pos : pos + max_circuits], **run_options)
@@ -86,22 +88,29 @@ def _prepare_counts(results: list[Result]):
     return counts
 
 
-class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
+class BackendEstimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
-    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
+    :class:`~.BaseEstimatorV1` interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV1` API. It
     facilitates using backends that do not provide a native
-    :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`. However,
-    if you're using a provider that has a native implementation of
-    :class:`~.BaseEstimator`, it is a better choice to leverage that native
-    implementation as it will likely include additional optimizations and be
-    a more efficient implementation. The generic nature of this class
-    precludes doing any provider- or backend-specific optimizations.
+    :class:`~.BaseEstimatorV1` implementation in places that work with
+    :class:`~.BaseEstimatorV1`.
+    However, if you're using a provider that has a native implementation of
+    :class:`~.BaseEstimatorV1` or :class:`~.BaseEstimatorV2`, it is a better
+    choice to leverage that native implementation as it will likely include
+    additional optimizations and be a more efficient implementation.
+    The generic nature of this class precludes doing any provider- or
+    backend-specific optimizations.
     """
 
+    @deprecate_func(
+        since="1.2",
+        additional_msg="All implementations of the `BaseEstimatorV1` interface "
+        "have been deprecated in favor of their V2 counterparts. "
+        "The V2 alternative for the `BackendEstimator` class is `BackendEstimatorV2`.",
+    )
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -110,10 +119,10 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
     ):
-        """Initialize a new BackendEstimator instance
+        """Initialize a new BackendEstimator (V1) instance
 
         Args:
-            backend: Required: the backend to run the primitive on
+            backend: (required) the backend to run the primitive on
             options: Default options.
             abelian_grouping: Whether the observable should be grouped into
                 commuting
@@ -198,7 +207,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 transpiled_circuit = common_circuit.copy()
                 final_index_layout = list(range(common_circuit.num_qubits))
             else:
-                transpiled_circuit = transpile(
+                transpiled_circuit = transpile(  # pylint:disable=unexpected-keyword-arg
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
                 if transpiled_circuit.layout is not None:

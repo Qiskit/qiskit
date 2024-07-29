@@ -14,16 +14,16 @@
 
 import os
 import pathlib
+import re
 import shutil
 import tempfile
 import unittest
 import warnings
 from unittest.mock import patch
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
 from qiskit.utils import optionals
-from qiskit import visualization
-from qiskit.visualization.circuit import text, styles
+from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -55,6 +55,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_mpl_config_with_path(self):
+        # pylint: disable=possibly-used-before-assignment
         # It's too easy to get too nested in a test with many context managers.
         tempdir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
         self.addCleanup(tempdir.cleanup)
@@ -128,6 +129,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @_latex_drawer_condition
     def test_latex_output_file_correct_format(self):
+        # pylint: disable=possibly-used-before-assignment
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
             filename = "file.gif"
@@ -238,6 +240,24 @@ class TestCircuitDrawer(QiskitTestCase):
         )
         result = visualization.circuit_drawer(circuit, output="text", reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
+
+    def test_warning_for_bad_justify_argument(self):
+        """Test that the correct DeprecationWarning is raised when the justify parameter is badly input,
+        for both of the public interfaces."""
+        circuit = QuantumCircuit()
+        bad_arg = "bad"
+        error_message = re.escape(
+            f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {bad_arg}, to a "
+            "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of Qiskit 1.2.0. Starting no "
+            "earlier than 3 months after the release date, invalid arguments will error.",
+        )
+
+        with self.assertWarnsRegex(DeprecationWarning, error_message):
+            visualization.circuit_drawer(circuit, justify=bad_arg)
+
+        with self.assertWarnsRegex(DeprecationWarning, error_message):
+            circuit.draw(justify=bad_arg)
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc for LaTeX conversion")
     def test_no_explict_cregbundle(self):

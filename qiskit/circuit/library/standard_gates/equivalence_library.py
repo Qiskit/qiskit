@@ -850,6 +850,56 @@ for inst, qargs, cargs in [
     def_swap.append(inst, qargs, cargs)
 _sel.add_equivalence(SwapGate(), def_swap)
 
+# SwapGate
+#
+# q_0: ─X─
+#       │   ≡
+# q_1: ─X─
+#
+#      ┌──────────┐┌──────┐   ┌────┐   ┌──────┐┌──────────┐┌──────┐
+# q_0: ┤ Rz(-π/2) ├┤0     ├───┤ √X ├───┤1     ├┤ Rz(-π/2) ├┤0     ├
+#      └──┬────┬──┘│  Ecr │┌──┴────┴──┐│  Ecr │└──┬────┬──┘│  Ecr │
+# q_1: ───┤ √X ├───┤1     ├┤ Rz(-π/2) ├┤0     ├───┤ √X ├───┤1     ├
+#         └────┘   └──────┘└──────────┘└──────┘   └────┘   └──────┘
+#
+q = QuantumRegister(2, "q")
+def_swap_ecr = QuantumCircuit(q)
+def_swap_ecr.rz(-pi / 2, 0)
+def_swap_ecr.sx(1)
+def_swap_ecr.ecr(0, 1)
+def_swap_ecr.rz(-pi / 2, 1)
+def_swap_ecr.sx(0)
+def_swap_ecr.ecr(1, 0)
+def_swap_ecr.rz(-pi / 2, 0)
+def_swap_ecr.sx(1)
+def_swap_ecr.ecr(0, 1)
+_sel.add_equivalence(SwapGate(), def_swap_ecr)
+
+# SwapGate
+#
+# q_0: ─X─
+#       │   ≡
+# q_1: ─X─
+#
+# global phase: 3π/2
+#      ┌────┐   ┌────┐   ┌────┐
+# q_0: ┤ √X ├─■─┤ √X ├─■─┤ √X ├─■─
+#      ├────┤ │ ├────┤ │ ├────┤ │
+# q_1: ┤ √X ├─■─┤ √X ├─■─┤ √X ├─■─
+#      └────┘   └────┘   └────┘
+q = QuantumRegister(2, "q")
+def_swap_cz = QuantumCircuit(q, global_phase=-pi / 2)
+def_swap_cz.sx(0)
+def_swap_cz.sx(1)
+def_swap_cz.cz(0, 1)
+def_swap_cz.sx(0)
+def_swap_cz.sx(1)
+def_swap_cz.cz(0, 1)
+def_swap_cz.sx(0)
+def_swap_cz.sx(1)
+def_swap_cz.cz(0, 1)
+_sel.add_equivalence(SwapGate(), def_swap_cz)
+
 # iSwapGate
 #
 #      ┌────────┐          ┌───┐┌───┐     ┌───┐

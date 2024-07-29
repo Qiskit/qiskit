@@ -34,6 +34,7 @@ The circuit itself keeps this context.
 from __future__ import annotations
 
 import copy
+import warnings
 from itertools import zip_longest
 import math
 from typing import List, Type
@@ -47,7 +48,7 @@ from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-
+from qiskit.utils import deprecate_func
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -58,6 +59,7 @@ class Instruction(Operation):
     # Class attribute to treat like barrier for transpiler, unroller, drawer
     # NOTE: Using this attribute may change in the future (See issue # 5811)
     _directive = False
+    _standard_gate = None
 
     def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
         """Create a new instruction.
@@ -80,7 +82,7 @@ class Instruction(Operation):
             raise CircuitError("num_qubits and num_clbits must be integer.")
         if num_qubits < 0 or num_clbits < 0:
             raise CircuitError(
-                "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
+                f"bad instruction dimensions: {num_qubits} qubits, {num_clbits} clbits."
             )
         self._name = name
         self._num_qubits = num_qubits
@@ -114,12 +116,12 @@ class Instruction(Operation):
         The "base class" of an instruction is the lowest class in its inheritance tree that the
         object should be considered entirely compatible with for _all_ circuit applications.  This
         typically means that the subclass is defined purely to offer some sort of programmer
-        convenience over the base class, and the base class is the "true" class for a behavioural
+        convenience over the base class, and the base class is the "true" class for a behavioral
         perspective.  In particular, you should *not* override :attr:`base_class` if you are
         defining a custom version of an instruction that will be implemented differently by
-        hardware, such as an alternative measurement strategy, or a version of a parametrised gate
+        hardware, such as an alternative measurement strategy, or a version of a parametrized gate
         with a particular set of parameters for the purposes of distinguishing it in a
-        :class:`.Target` from the full parametrised gate.
+        :class:`.Target` from the full parametrized gate.
 
         This is often exactly equivalent to ``type(obj)``, except in the case of singleton instances
         of standard-library instructions.  These singleton instances are special subclasses of their
@@ -187,11 +189,12 @@ class Instruction(Operation):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            try:
+            if isinstance(self_param, numpy.ndarray):
+                if numpy.array_equal(self_param, other_param):
+                    continue
+            else:
                 if self_param == other_param:
                     continue
-            except ValueError:
-                pass
 
             try:
                 self_asarray = numpy.asarray(self_param)
@@ -221,8 +224,9 @@ class Instruction(Operation):
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
         """
-        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-            self.name, self.num_qubits, self.num_clbits, self.params
+        return (
+            f"Instruction(name='{self.name}', num_qubits={self.num_qubits}, "
+            f"num_clbits={self.num_clbits}, params={self.params})"
         )
 
     def soft_compare(self, other: "Instruction") -> bool:
@@ -356,9 +360,23 @@ class Instruction(Operation):
         """Set the time unit of duration."""
         self._unit = unit
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        return self._assemble()
+
+    def _assemble(self):
+        with warnings.catch_warnings():
+            # The class QasmQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]
@@ -455,7 +473,7 @@ class Instruction(Operation):
             return AnnotatedOperation(self, InverseModifier())
 
         if self.definition is None:
-            raise CircuitError("inverse() not implemented for %s." % self.name)
+            raise CircuitError(f"inverse() not implemented for {self.name}.")
 
         from qiskit.circuit import Gate  # pylint: disable=cyclic-import
 

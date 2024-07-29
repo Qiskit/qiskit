@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
+
+from __future__ import annotations
+
 import cmath
 import copy as _copy
 import math
@@ -19,8 +22,9 @@ from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
@@ -68,6 +72,8 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
+    _standard_gate = StandardGate.UGate
+
     def __init__(
         self,
         theta: ParameterValueType,
@@ -100,9 +106,9 @@ class UGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-U gate.
 
@@ -111,8 +117,10 @@ class UGate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -128,6 +136,11 @@ class UGate(Gate):
             )
             gate.base_gate.label = self.label
         else:
+            # If the gate parameters contain free parameters, we cannot eagerly synthesize
+            # the controlled gate decomposition. In this case, we annotate the gate per default.
+            if annotated is None:
+                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
+
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -180,7 +193,7 @@ class _CUGateParams(list):
         # Magic numbers: CUGate has 4 parameters, UGate has 3, with the last of CUGate's missing.
         if isinstance(key, slice):
             # We don't need to worry about the case of the slice being used to insert extra / remove
-            # elements because that would be "undefined behaviour" in a gate already, so we're
+            # elements because that would be "undefined behavior" in a gate already, so we're
             # within our rights to do anything at all.
             for i, base_key in enumerate(range(*key.indices(4))):
                 if base_key < 0:
@@ -258,6 +271,8 @@ class CUGate(ControlledGate):
             e^{i(\gamma + \phi)}\sin(\rotationangle) & e^{i(\gamma + \phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CUGate
 
     def __init__(
         self,

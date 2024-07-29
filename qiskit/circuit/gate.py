@@ -104,10 +104,9 @@ class Gate(Instruction):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
-        """
-        Return the controlled version of itself.
+        """Return the controlled version of itself.
 
         Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
         or as an annotated operation (ref. :class:`.AnnotatedOperation`).
@@ -118,8 +117,12 @@ class Gate(Instruction):
                 operation.
             ctrl_state: the control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate is implemented
+                as an annotated gate. If ``None``, this is set to ``False``
+                if the controlled gate can directly be constructed, and otherwise
+                set to ``True``. This allows defering the construction process in case the
+                synthesis of the controlled gate requires more information (e.g.
+                values of unbound parameters).
 
         Returns:
             Controlled version of the given operation.
@@ -127,7 +130,7 @@ class Gate(Instruction):
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state
         """
-        if not annotated:
+        if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
             from .add_control import add_control
 
@@ -177,7 +180,7 @@ class Gate(Instruction):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
-            raise CircuitError("Not sure how to combine these qubit arguments:\n %s\n" % qargs)
+            raise CircuitError(f"Not sure how to combine these qubit arguments:\n {qargs}\n")
 
     def broadcast_arguments(self, qargs: list, cargs: list) -> Iterable[tuple[list, list]]:
         """Validation and handling of the arguments and its relationship.
@@ -236,7 +239,7 @@ class Gate(Instruction):
         elif len(qargs) >= 3:
             return Gate._broadcast_3_or_more_args(qargs)
         else:
-            raise CircuitError("This gate cannot handle %i arguments" % len(qargs))
+            raise CircuitError(f"This gate cannot handle {len(qargs)} arguments")
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""

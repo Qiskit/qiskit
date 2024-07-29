@@ -29,11 +29,11 @@ This would be a particular problem for defining the circuit object and using it 
 
 ## Developer notes
 
-### Beware of initialisation order
+### Beware of initialization order
 
-The Qiskit C extension `qiskit._accelerate` needs to be initialised in a single go.
-It is the lowest part of the Python package stack, so it cannot rely on importing other parts of the Python library at initialisation time (except for exceptions through PyO3's `import_exception!` mechanism).
-This is because, unlike pure-Python modules, the initialisation of `_accelerate` cannot be done partially, and many components of Qiskit import their accelerators from `_accelerate`.
+The Qiskit C extension `qiskit._accelerate` needs to be initialized in a single go.
+It is the lowest part of the Python package stack, so it cannot rely on importing other parts of the Python library at initialization time (except for exceptions through PyO3's `import_exception!` mechanism).
+This is because, unlike pure-Python modules, the initialization of `_accelerate` cannot be done partially, and many components of Qiskit import their accelerators from `_accelerate`.
 
 In general, this should not be too onerous a requirement, but if you violate it, you might see Rust panics on import, and PyO3 should wrap that up into an exception.
 You might be able to track down the Rust source of the import cycle by running the import with the environment variable `RUST_BACKTRACE=full`.

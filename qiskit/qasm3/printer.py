@@ -34,13 +34,16 @@ from .experimental import ExperimentalFeatures
 # indexing and casting are all higher priority than these, so we just ignore them.
 _BindingPower = collections.namedtuple("_BindingPower", ("left", "right"), defaults=(255, 255))
 _BINDING_POWER = {
-    # Power: (21, 22)
+    # Power: (24, 23)
     #
-    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=20),
-    ast.Unary.Op.BIT_NOT: _BindingPower(right=20),
+    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
+    ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (17, 18)
-    # Addition/subtraction: (15, 16)
+    # Multiplication/division/modulo: (19, 20)
+    # Addition/subtraction: (17, 18)
+    #
+    ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
+    ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
     #
     ast.Binary.Op.LESS: _BindingPower(13, 14),
     ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
@@ -204,8 +207,16 @@ class BasicPrinter:
     def _visit_FloatType(self, node: ast.FloatType) -> None:
         self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
 
+    def _visit_BoolType(self, _node: ast.BoolType) -> None:
+        self.stream.write("bool")
+
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
+        if node.size is not None:
+            self.stream.write(f"[{node.size}]")
+
+    def _visit_UintType(self, node: ast.UintType) -> None:
+        self.stream.write("uint")
         if node.size is not None:
             self.stream.write(f"[{node.size}]")
 
@@ -324,6 +335,17 @@ class BasicPrinter:
         self.visit(node.operand)
         self.stream.write(")")
 
+    def _visit_Index(self, node: ast.Index):
+        if isinstance(node.target, (ast.Unary, ast.Binary)):
+            self.stream.write("(")
+            self.visit(node.target)
+            self.stream.write(")")
+        else:
+            self.visit(node.target)
+        self.stream.write("[")
+        self.visit(node.index)
+        self.stream.write("]")
+
     def _visit_ClassicalDeclaration(self, node: ast.ClassicalDeclaration) -> None:
         self._start_line()
         self.visit(node.type)
@@ -409,26 +431,17 @@ class BasicPrinter:
             self.stream.write("return")
         self._end_statement()
 
-    def _visit_QuantumArgument(self, node: ast.QuantumArgument) -> None:
-        self.stream.write("qubit")
-        if node.designator:
-            self.visit(node.designator)
-        self.stream.write(" ")
-        self.visit(node.identifier)
-
-    def _visit_QuantumGateSignature(self, node: ast.QuantumGateSignature) -> None:
+    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
+        self._start_line()
+        self.stream.write("gate ")
         self.visit(node.name)
         if node.params:
             self._visit_sequence(node.params, start="(", end=")", separator=", ")
         self.stream.write(" ")
-        self._visit_sequence(node.qargList, separator=", ")
-
-    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
-        self._start_line()
-        self.stream.write("gate ")
-        self.visit(node.quantumGateSignature)
-        self.stream.write(" ")
-        self.visit(node.quantumBlock)
+        if node.qubits:
+            self._visit_sequence(node.qubits, separator=", ")
+            self.stream.write(" ")
+        self.visit(node.body)
         self._end_line()
 
     def _visit_CalibrationDefinition(self, node: ast.CalibrationDefinition) -> None:
