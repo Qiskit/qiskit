@@ -13,6 +13,8 @@
 # pylint: disable=missing-function-docstring
 
 """Tests basic functionality of the sequence function"""
+# TODO with the removal of pulses, this file can be removed too.
+
 import unittest
 
 from qiskit import QuantumCircuit, pulse
@@ -27,7 +29,8 @@ class TestSequence(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = Fake127QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake127QPulseV1()
         self.backend.configuration().timing_constraints = {}
 
     def test_sequence_empty(self):

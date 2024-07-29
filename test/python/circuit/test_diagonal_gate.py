@@ -75,11 +75,13 @@ class TestDiagonalGate(QiskitTestCase):
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
 
-        qobj = assemble(qc)
-        params = qobj.experiments[0].instructions[0].params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
+        with self.assertWarns(DeprecationWarning):
+            # REMOVE this assertion (not the full test) once ASSEMBLE is removed.
+            qobj = assemble(qc)
+            params = qobj.experiments[0].instructions[0].params
+            self.assertTrue(
+                all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
+            )
 
 
 def _get_diag_gate_matrix(diag):
