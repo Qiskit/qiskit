@@ -431,26 +431,17 @@ class BasicPrinter:
             self.stream.write("return")
         self._end_statement()
 
-    def _visit_QuantumArgument(self, node: ast.QuantumArgument) -> None:
-        self.stream.write("qubit")
-        if node.designator:
-            self.visit(node.designator)
-        self.stream.write(" ")
-        self.visit(node.identifier)
-
-    def _visit_QuantumGateSignature(self, node: ast.QuantumGateSignature) -> None:
+    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
+        self._start_line()
+        self.stream.write("gate ")
         self.visit(node.name)
         if node.params:
             self._visit_sequence(node.params, start="(", end=")", separator=", ")
         self.stream.write(" ")
-        self._visit_sequence(node.qargList, separator=", ")
-
-    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
-        self._start_line()
-        self.stream.write("gate ")
-        self.visit(node.quantumGateSignature)
-        self.stream.write(" ")
-        self.visit(node.quantumBlock)
+        if node.qubits:
+            self._visit_sequence(node.qubits, separator=", ")
+            self.stream.write(" ")
+        self.visit(node.body)
         self._end_line()
 
     def _visit_CalibrationDefinition(self, node: ast.CalibrationDefinition) -> None:

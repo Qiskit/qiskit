@@ -1,0 +1,7 @@
+---
+deprecations_visualization:
+  - |
+    The :func:`.transition_visualization` function has been deprecated and will
+    be removed in the 2.0.0 release. This function had a number of limitations
+    which limited it's utility to only very specific use cases and didn't fit in with
+    the rest of the Qiskit visualization module. 
