@@ -22,4 +22,5 @@ pydot>=3.0.0
 
 # Temporary pin to avoid CI issues caused by setuptools 0.72.0
 # See https://github.com/pypa/setuptools/issues/4519
+# Leave until ibm-platform-services (installed via qiskit-ibm-runtime) fixes https://github.com/IBM/platform-services-python-sdk/issues/268
 setuptools<0.72.0
