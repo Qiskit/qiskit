@@ -26,6 +26,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
+from qiskit.utils import deprecate_func
 
 
 class GateConfig:
@@ -38,6 +39,14 @@ class GateConfig:
                   and CX.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
+        "that probably means that they are using a backend based on the "
+        "deprecated BackendV1 class.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         name,
@@ -141,6 +150,13 @@ class UchannelLO:
         scale: Scale factor for qubit frequency.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
+        "that probably means that they are using a backend based on the "
+        "deprecated BackendV1 class.",
+    )
     def __init__(self, q, scale):
         """Initialize a UchannelLOSchema object
 
@@ -211,6 +227,14 @@ class QasmBackendConfiguration:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
+        "that probably means that they are using a backend based on the "
+        "deprecated BackendV1 class.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         backend_name,
@@ -493,7 +517,15 @@ class QasmBackendConfiguration:
 class BackendConfiguration(QasmBackendConfiguration):
     """Backwards compat shim representing an abstract backend configuration."""
 
-    pass
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The class `BackendConfiguration` is being deprecated "
+        "as they are not necessary for BackendV2. If user still need Qobj, that probably "
+        "means that they are using a backend based on the deprecated BackendV1 class.",
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class PulseBackendConfiguration(QasmBackendConfiguration):
@@ -501,6 +533,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The class `PulseBackendConfiguration` is being deprecated "
+        "as they are not necessary for BackendV2. If user still need Qobj, "
+        "that probably means that they are using a backend based on the "
+        "deprecated BackendV1 class.",
+    )
     def __init__(
         self,
         backend_name: str,

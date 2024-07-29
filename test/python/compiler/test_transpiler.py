@@ -1554,11 +1554,12 @@ class TestTranspile(QiskitTestCase):
                     [0, 0],
                 )
                 with self.assertRaisesRegex(TranspilerError, error_msgs[duration]):
-                    _ = transpile(
-                        qc,
-                        backend=backend,
-                        timing_constraints=timing_constraints,
-                    )
+                    with self.assertWarns(DeprecationWarning):
+                        _ = transpile(
+                            qc,
+                            backend=backend,
+                            timing_constraints=timing_constraints,
+                        )
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1566,7 +1567,7 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+            backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1, "dt")
@@ -1575,16 +1576,24 @@ class TestTranspile(QiskitTestCase):
         durations = InstructionDurations.from_backend(backend_v1)
         durations.update([("cx", [0, 1], 1000, "dt")])
 
-        for backend in [backend_v1, backend_v2]:
-            with self.subTest(backend=backend):
-                scheduled = transpile(
-                    qc,
-                    backend=backend,
-                    scheduling_method="alap",
-                    instruction_durations=durations,
-                    layout_method="trivial",
-                )
-                self.assertEqual(scheduled.duration, 1500)
+        with self.assertWarns(DeprecationWarning):
+            scheduled = transpile(
+                qc,
+                backend=backend_v1,
+                scheduling_method="alap",
+                instruction_durations=durations,
+                layout_method="trivial",
+            )
+            self.assertEqual(scheduled.duration, 1500)
+
+        scheduled = transpile(
+            qc,
+            backend=backend_v2,
+            scheduling_method="alap",
+            instruction_durations=durations,
+            layout_method="trivial",
+        )
+        self.assertEqual(scheduled.duration, 1500)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1592,20 +1601,23 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake27QPulseV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+            backend_v2 = BackendV2Converter(backend_v1)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
         original_dt = 2.2222222222222221e-10
         original_duration = 3504
 
-        for backend in [backend_v1, backend_v2]:
-            with self.subTest(backend=backend):
-                # halve dt in sec = double duration in dt
-                scheduled = transpile(
-                    qc, backend=backend, scheduling_method="asap", dt=original_dt / 2
-                )
-                self.assertEqual(scheduled.duration, original_duration * 2)
+        with self.assertWarns(DeprecationWarning):
+            # halve dt in sec = double duration in dt
+            scheduled = transpile(
+                qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
+            )
+            self.assertEqual(scheduled.duration, original_duration * 2)
+
+        # halve dt in sec = double duration in dt
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
+        self.assertEqual(scheduled.duration, original_duration * 2)
 
     def test_backend_props_constraints(self):
         """Test that loose transpile constraints
@@ -1613,7 +1625,7 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake20QV1()
-        backend_v2 = BackendV2Converter(backend_v1)
+            backend_v2 = BackendV2Converter(backend_v1)
         qr1 = QuantumRegister(3, "qr1")
         qr2 = QuantumRegister(2, "qr2")
         qc = QuantumCircuit(qr1, qr2)
@@ -1625,7 +1637,8 @@ class TestTranspile(QiskitTestCase):
         # generate a fake backend with same number of qubits
         # but different backend properties
         fake_backend = GenericBackendV2(num_qubits=20, seed=42)
-        custom_backend_properties = target_to_backend_properties(fake_backend.target)
+        with self.assertWarns(DeprecationWarning):
+            custom_backend_properties = target_to_backend_properties(fake_backend.target)
 
         # expected layout for custom_backend_properties
         # (different from expected layout for Fake20QV1)
@@ -1652,17 +1665,25 @@ class TestTranspile(QiskitTestCase):
             17: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        for backend in [backend_v1, backend_v2]:
-            with self.subTest(backend=backend):
-                result = transpile(
-                    qc,
-                    backend=backend,
-                    backend_properties=custom_backend_properties,
-                    optimization_level=2,
-                    seed_transpiler=42,
-                )
+        with self.assertWarns(DeprecationWarning):
+            result = transpile(
+                qc,
+                backend=backend_v1,
+                backend_properties=custom_backend_properties,
+                optimization_level=2,
+                seed_transpiler=42,
+            )
 
-                self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
+        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
+        result = transpile(
+            qc,
+            backend=backend_v2,
+            backend_properties=custom_backend_properties,
+            optimization_level=2,
+            seed_transpiler=42,
+        )
+
+        self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -2101,9 +2122,9 @@ class TestTranspile(QiskitTestCase):
         qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
-        transpiled = transpile(
-            qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
-        )
+            transpiled = transpile(
+                qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
+            )
         self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
 
     @combine(opt_level=[0, 1, 2, 3])
@@ -2449,12 +2470,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
 
-        transpiled = transpile(
-            self._regular_circuit(),
-            backend=backend,
-            optimization_level=optimization_level,
-            seed_transpiler=2022_10_17,
-        )
+            transpiled = transpile(
+                self._regular_circuit(),
+                backend=backend,
+                optimization_level=optimization_level,
+                seed_transpiler=2022_10_17,
+            )
         # TODO: There's not a huge amount we can sensibly test for the output here until we can
         # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
         # itself doesn't throw an error, though.

@@ -25,6 +25,7 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +353,12 @@ class BackendV2Converter(BackendV2):
         )
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="Since ``BackendV1`` is deprecated, this conversion tool from BackendV1 to "
+        "BackendV2 is going to be removed with BackendV1.",
+    )
     def __init__(
         self,
         backend: BackendV1,
@@ -390,10 +397,13 @@ class BackendV2Converter(BackendV2):
         self._properties = None
         self._defaults = None
 
-        if hasattr(self._backend, "properties"):
-            self._properties = self._backend.properties()
-        if hasattr(self._backend, "defaults"):
-            self._defaults = self._backend.defaults()
+        with warnings.catch_warnings():
+            # The class QobjExperimentHeader is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            if hasattr(self._backend, "properties"):
+                self._properties = self._backend.properties()
+            if hasattr(self._backend, "defaults"):
+                self._defaults = self._backend.defaults()
 
         self._target = None
         self._name_mapping = name_mapping

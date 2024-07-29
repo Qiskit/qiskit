@@ -18,6 +18,7 @@ from typing import Any, Iterable, Tuple, Union, Dict
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils import deprecate_func
 from qiskit.utils.units import apply_prefix
 
 PropertyT = Tuple[Any, datetime.datetime]
@@ -172,6 +173,14 @@ class BackendProperties:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
+        "that probably means that they are using a backend based on the "
+        "deprecated BackendV1 class.",
+        stacklevel=3,
+    )
     def __init__(
         self, backend_name, backend_version, last_update_date, qubits, gates, general, **kwargs
     ):
@@ -248,6 +257,7 @@ class BackendProperties:
             qubits.append(nduvs)
         gates = [GateProperties.from_dict(x) for x in in_data.pop("gates")]
         general = [Nduv.from_dict(x) for x in in_data.pop("general")]
+
         return cls(
             backend_name, backend_version, last_update_date, qubits, gates, general, **in_data
         )
