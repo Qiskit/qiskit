@@ -4891,7 +4891,7 @@ new_condition = (new_target, value)
 
     fn _out_wires(&self, node_index: usize) -> Vec<&PyObject> {
         self.dag
-            .edges_directed(NodeIndex::new(node_index), Incoming)
+            .edges_directed(NodeIndex::new(node_index), Outgoing)
             .map(|wire| match wire.weight() {
                 Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
                 Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
