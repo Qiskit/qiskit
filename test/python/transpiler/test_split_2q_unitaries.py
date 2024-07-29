@@ -15,10 +15,13 @@ Tests for the Split2QUnitaries transpiler pass.
 """
 from math import pi
 
+import numpy as np
+
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from test import QiskitTestCase
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
@@ -115,6 +118,24 @@ class TestSplit2QUnitaries(QiskitTestCase):
         )
         self.assertEqual(qc_split.size(), 2)
 
+    def test_2_1q(self):
+        """Test that a Kronechker product of two X gates is correctly processed."""
+        x_mat = np.array([[0, 1], [1, 0]])
+        multi_x = np.kron(x_mat, x_mat)
+        qr = QuantumRegister(2, "qr")
+        backend = BasicSimulator()
+
+        qc = QuantumCircuit(qr)
+        qc.unitary(multi_x, qr)
+        #pm = generate_preset_pass_manager(optimization_level=2, backend=backend)
+        qct = transpile(qc, backend)
+
+        self.assertTrue(Operator(qc).equiv(qct))
+        self.assertTrue(
+            matrix_equal(Operator(qc).data, Operator(qct).data, ignore_phase=False)
+        )
+        self.assertEqual(qct.size(), 2)
+
     def test_no_split(self):
         """Test that the pass does not split a non-local two-qubit unitary."""
         qc = QuantumCircuit(2)
@@ -172,3 +193,5 @@ class TestSplit2QUnitaries(QiskitTestCase):
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
         self.assertEqual(26, qc_split.num_nonlocal_gates())
+
+
