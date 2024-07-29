@@ -15,6 +15,7 @@ Tests for the Split2QUnitaries transpiler pass.
 """
 from math import pi
 
+from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from test import QiskitTestCase
 
 from qiskit import QuantumCircuit
@@ -23,7 +24,6 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
-from qiskit.transpiler.passes.optimization import Split2QUnitaries
 
 
 class TestSplit2QUnitaries(QiskitTestCase):

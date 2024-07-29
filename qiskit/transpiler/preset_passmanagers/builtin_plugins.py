@@ -13,6 +13,7 @@
 """Built-in transpiler stage plugins for preset pass managers."""
 
 from qiskit.circuit import Instruction
+from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BasicSwap
@@ -40,7 +41,6 @@ from qiskit.transpiler.passes.optimization import (
     Collect2qBlocks,
     ConsolidateBlocks,
     InverseCancellation,
-    Split2QUnitaries,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
