@@ -408,7 +408,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         ]
         for hamiltonian in hamiltonians:
             job = estimator.run(
-                [circuit, hamiltonian)], precision=self._precision
+                [(circuit, hamiltonian)], precision=self._precision
             )
             result = job.result()
             np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian))
