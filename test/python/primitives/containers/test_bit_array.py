@@ -719,3 +719,82 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.expectation_values("Z")
             with self.assertRaisesRegex(ValueError, "is not diagonal"):
                 _ = ba.expectation_values("X" * ba.num_bits)
+
+    def test_postselection(self):
+        """Test the postselection method."""
+
+        flat_data = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            ],
+            dtype=bool,
+        )
+
+        shaped_data = np.array(
+            [
+                [
+                    [
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                        [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                    ],
+                    [
+                        [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                        [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    ],
+                ]
+            ],
+            dtype=bool,
+        )
+
+        for dataname, bool_array in zip(["flat", "shaped"], [flat_data, shaped_data]):
+
+            bit_array = BitArray.from_bool_array(bool_array, order="little")
+            # indices value of i <-> creg[i] <-> bool_array[..., i]
+
+            num_bits = bool_array.shape[-1]
+            bool_array = bool_array.reshape(-1, num_bits)
+
+            test_cases = [
+                ("basic", [0, 1], [0, 0]),
+                ("multibyte", [0, 9], [0, 1]),
+                ("repeated", [5, 5, 5], [0, 0, 0]),
+                ("contradict", [5, 5, 5], [1, 0, 0]),
+                ("unsorted", [5, 0, 9, 3], [1, 0, 1, 0]),
+                ("negative", [-5, 1, -2, -10], [1, 0, 1, 0]),
+                ("negcontradict", [4, -6], [1, 0]),
+                ("trivial", [], []),
+                ("bareindex", 6, 0),
+            ]
+
+            for name, indices, selection in test_cases:
+                with self.subTest("_".join([dataname, name])):
+                    postselected_bools = np.unpackbits(
+                        bit_array.postselect(indices, selection).array[:, ::-1],
+                        count=num_bits,
+                        axis=-1,
+                        bitorder="little",
+                    ).astype(bool)
+                    if isinstance(indices, int):
+                        indices = (indices,)
+                    if isinstance(selection, bool):
+                        selection = (selection,)
+                    answer = bool_array[np.all(bool_array[:, indices] == selection, axis=-1)]
+                    if name in ["contradict", "negcontradict"]:
+                        self.assertEqual(len(answer), 0)
+                    else:
+                        self.assertGreater(len(answer), 0)
+                    np.testing.assert_equal(postselected_bools, answer)
+
+            error_cases = [
+                ("aboverange", [0, 6, 10], [True, True, False], IndexError),
+                ("belowrange", [0, 6, -11], [True, True, False], IndexError),
+                ("mismatch", [0, 1, 2], [False, False], ValueError),
+            ]
+            for name, indices, selection, error in error_cases:
+                with self.subTest(dataname + "_" + name):
+                    with self.assertRaises(error):
+                        bit_array.postselect(indices, selection)
