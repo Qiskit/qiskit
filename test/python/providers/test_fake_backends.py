@@ -130,12 +130,14 @@ class TestFakeBackends(QiskitTestCase):
             self.skipTest(
                 f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
-        job = backend.run(
-            transpile(
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled = transpile(
                 self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
-            ),
-            seed_simulator=42,
-        )
+            )
+        job = backend.run(transpiled, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
@@ -223,7 +225,11 @@ class TestFakeBackends(QiskitTestCase):
         qc.x(1)
         qc.delay(250, 1, unit="ns")
         qc.measure_all()
-        res = transpile(qc, backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            res = transpile(qc, backend)
         self.assertIn("delay", res.count_ops())
 
     @data(0, 1, 2, 3)
