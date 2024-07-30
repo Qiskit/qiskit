@@ -24,6 +24,8 @@ faer = "0.19.1"
 itertools = "0.13.0"
 qiskit-circuit.workspace = true
 thiserror.workspace = true
+ndarray_einsum_beta = "0.7"
+
 
 [dependencies.smallvec]
 workspace = true

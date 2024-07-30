@@ -27,7 +27,7 @@ use crate::operations::{OperationRef, Param, PyGate, PyInstruction, PyOperation,
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
-enum PackedOperationType {
+pub enum PackedOperationType {
     // It's important that the `StandardGate` item is 0, so that zeroing out a `PackedOperation`
     // will make it appear as a standard gate, which will never allow accidental dangling-pointer
     // dereferencing.
