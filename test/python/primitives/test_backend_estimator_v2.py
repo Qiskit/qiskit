@@ -396,11 +396,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
         circuit.h(0)
         circuit.cx(0,1)
         hamiltonians = [
-            {"II": 1.0, "IZ": 2.0, "XI": 3.0},
             {"ZZ": 1.0},
             {"XX": 1.0, "ZZ": 1.0},
             [
-                {"II": 1.0, "IZ": 2.0, "XI": 3.0},
                 {"ZZ": 1.0},
                 {"XX": 1.0, "ZZ": 1.0},
                 {"XX": 0.0, "ZZ": 0.0},
