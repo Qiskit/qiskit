@@ -1576,13 +1576,17 @@ class TestTranspile(QiskitTestCase):
         durations = InstructionDurations.from_backend(backend_v1)
         durations.update([("cx", [0, 1], 1000, "dt")])
 
-        scheduled = transpile(
-            qc,
-            backend=backend_v1,
-            scheduling_method="alap",
-            instruction_durations=durations,
-            layout_method="trivial",
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            scheduled = transpile(
+                qc,
+                backend=backend_v1,
+                scheduling_method="alap",
+                instruction_durations=durations,
+                layout_method="trivial",
+            )
         self.assertEqual(scheduled.duration, 1500)
 
         scheduled = transpile(
@@ -1607,8 +1611,14 @@ class TestTranspile(QiskitTestCase):
         original_dt = 2.2222222222222221e-10
         original_duration = 3504
 
-        # halve dt in sec = double duration in dt
-        scheduled = transpile(qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            # halve dt in sec = double duration in dt
+            scheduled = transpile(
+                qc, backend=backend_v1, scheduling_method="asap", dt=original_dt / 2
+            )
         self.assertEqual(scheduled.duration, original_duration * 2)
 
         # halve dt in sec = double duration in dt
@@ -1661,13 +1671,17 @@ class TestTranspile(QiskitTestCase):
             17: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        result = transpile(
-            qc,
-            backend=backend_v1,
-            backend_properties=custom_backend_properties,
-            optimization_level=2,
-            seed_transpiler=42,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            result = transpile(
+                qc,
+                backend=backend_v1,
+                backend_properties=custom_backend_properties,
+                optimization_level=2,
+                seed_transpiler=42,
+            )
 
         self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
         result = transpile(
