@@ -10,7 +10,7 @@ name = "qiskit_qasm2"
 doctest = false
 
 [dependencies]
-num-bigint = "0.4"
+num-bigint.workspace = true
 hashbrown.workspace = true
 pyo3.workspace = true
 qiskit-circuit.workspace = true
