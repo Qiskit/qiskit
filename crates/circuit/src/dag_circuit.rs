@@ -3160,7 +3160,7 @@ def _format(operand):
             if !propagate_condition && self.may_have_additional_wires(py, &node) {
                 let (add_cargs, _add_vars) = self.additional_wires(py, &node)?;
                 for wire in add_cargs.iter() {
-                    let clbit = &self.clbits.bits()[wire.0 as usize];
+                    let clbit = &self.clbits.get(*wire).unwrap();
                     if !cargs_set.contains(clbit.clone_ref(py))? {
                         cargs_list.append(clbit)?;
                     }
@@ -3574,7 +3574,7 @@ new_condition = (new_target, value)
         #[allow(unused_variables)] inplace: bool,
         propagate_condition: bool,
     ) -> PyResult<Py<PyAny>> {
-        let mut node: PyRefMut<DAGOpNode> = match node.downcast() {
+        let node: PyRefMut<DAGOpNode> = match node.downcast() {
             Ok(node) => node.borrow_mut(),
             Err(_) => return Err(DAGCircuitError::new_err("Only DAGOpNodes can be replaced.")),
         };
@@ -3591,7 +3591,7 @@ new_condition = (new_target, value)
             None => return Err(DAGCircuitError::new_err("'node' not found in DAG.")),
         };
         // Extract information from new op
-        let mut new_op = op.extract::<OperationFromPython>()?;
+        let new_op = op.extract::<OperationFromPython>()?;
         let current_wires: HashSet<Wire> = self
             .dag
             .edges(node_index)
@@ -3620,6 +3620,7 @@ new_condition = (new_target, value)
                 )));
         }
 
+        let mut extra_attrs = new_op.extra_attrs.clone();
         // If either operation is a control-flow operation, propagate_condition is ignored
         if propagate_condition
             && !(node.instruction.operation.control_flow() || new_op.operation.control_flow())
@@ -3638,13 +3639,13 @@ new_condition = (new_target, value)
             if let Some(old_condition) = old_packed.condition() {
                 if matches!(new_op.operation.view(), OperationRef::Operation(_)) {
                     return Err(DAGCircuitError::new_err(
-                        "Cannot propagate a condition to an operation that already has one.",
+                        "Cannot add a condition on a generic Operation.",
                     ));
                 }
-                if let Some(ref mut extra) = new_op.extra_attrs {
+                if let Some(ref mut extra) = extra_attrs {
                     extra.condition = Some(old_condition.clone_ref(py));
                 } else {
-                    new_op.extra_attrs = ExtraInstructionAttributes::new(
+                    extra_attrs = ExtraInstructionAttributes::new(
                         None,
                         None,
                         None,
@@ -3658,6 +3659,17 @@ new_condition = (new_target, value)
                 let condition_clbits = binding.clbits.bind(py);
                 for bit in condition_clbits {
                     new_wires.insert(Wire::Clbit(self.clbits.find(&bit).unwrap()));
+                }
+                let op_ref = new_op.operation.view();
+                if let OperationRef::Instruction(inst) = op_ref {
+                    inst.instruction
+                        .bind(py)
+                        .setattr(intern!(py, "condition"), old_condition)?;
+                } else if let OperationRef::Gate(gate) = op_ref {
+                    gate.gate.bind(py).call_method1(
+                        intern!(py, "c_if"),
+                        old_condition.downcast_bound::<PyTuple>(py)?,
+                    )?;
                 }
             }
         };
@@ -3675,9 +3687,9 @@ new_condition = (new_target, value)
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
             params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
-            extra_attrs: new_op.extra_attrs.clone(),
+            extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(Some(op.clone().unbind())),
+            py_op: RefCell::new(None),
         });
 
         let node_index = node.as_ref().node.unwrap();

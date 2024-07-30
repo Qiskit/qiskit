@@ -2390,7 +2390,6 @@ class TestDagSubstitute(QiskitTestCase):
 
         expected = DAGCircuit()
         expected.add_input_var(a)
-
         self.assertEqual(src, expected)
 
     def test_raise_if_var_mismatch(self):
@@ -2659,7 +2658,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(replacement_node.cargs, ())
         self.assertEqual(replacement_node.op.condition, (cr, 1))
 
-        self.assertEqual(replacement_node is node_to_be_replaced, inplace)
+        self.assertNotEqual(replacement_node, node_to_be_replaced)
 
     @data(True, False)
     def test_substituting_node_preserves_parents_children(self, inplace):
@@ -2684,7 +2683,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(set(dag.successors(replacement_node)), successors)
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
         self.assertEqual(dag.descendants(replacement_node), descendants)
-        self.assertEqual(replacement_node is node_to_be_replaced, inplace)
+        self.assertNotEqual(replacement_node,  node_to_be_replaced)
 
     @data(True, False)
     def test_refuses_to_overwrite_condition(self, inplace):

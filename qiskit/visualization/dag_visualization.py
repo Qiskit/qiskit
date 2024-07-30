@@ -236,7 +236,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         label = register_bit_labels.get(
                             node.wire, f"q[{dag.find_bit(node.wire).index}]"
                         )
-                    elif isinstance(node, Clbit):
+                    elif isinstance(node.wire, Clbit):
                         label = register_bit_labels.get(
                             node.wire, f"c[{dag.find_bit(node.wire).index}]"
                         )
