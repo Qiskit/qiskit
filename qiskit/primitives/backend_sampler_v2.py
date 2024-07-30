@@ -155,7 +155,7 @@ class BackendSamplerV2(BaseSamplerV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[SamplerPubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""
@@ -183,7 +183,12 @@ class BackendSamplerV2(BaseSamplerV2):
             end = start + bound.size
             results.append(
                 self._postprocess_pub(
-                    result_memory[start:end], shots, bound.shape, meas_info, max_num_bytes
+                    result_memory[start:end],
+                    shots,
+                    bound.shape,
+                    meas_info,
+                    max_num_bytes,
+                    pub.circuit.metadata,
                 )
             )
             start = end
@@ -197,6 +202,7 @@ class BackendSamplerV2(BaseSamplerV2):
         shape: tuple[int, ...],
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
+        circuit_metadata: dict,
     ) -> SamplerPubResult:
         """Converts the memory data into an array of bit arrays with the shape of the pub."""
         arrays = {
@@ -213,7 +219,10 @@ class BackendSamplerV2(BaseSamplerV2):
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        return SamplerPubResult(DataBin(**meas, shape=shape), metadata={})
+        return SamplerPubResult(
+            DataBin(**meas, shape=shape),
+            metadata={"shots": shots, "circuit_metadata": circuit_metadata},
+        )
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
