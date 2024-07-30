@@ -197,10 +197,7 @@ class CommutationChecker:
             self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
                 _get_relative_placement(first_qargs, second_qargs), {}
             )[
-                (
-                    _hashable_parameters(first_params),
-                    _hashable_parameters(second_params),
-                )
+                (_hashable_parameters(first_params), _hashable_parameters(second_params))
             ] = is_commuting
         else:
             self._cached_commutations.setdefault((first_op.name, second_op.name), {})[
@@ -377,12 +374,7 @@ def _persistent_id(op_name: str) -> int:
 
 
 def _order_operations(
-    op1: Operation,
-    qargs1: List,
-    cargs1: List,
-    op2: Operation,
-    qargs2: List,
-    cargs2: List,
+    op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
 ):
     """Orders two operations in a canonical way that is persistent over
     @different python versions and executions
@@ -490,14 +482,10 @@ def _commute_matmul(
     # return false
     try:
         operator_1 = Operator(
-            first_ops,
-            input_dims=(2,) * len(first_qarg),
-            output_dims=(2,) * len(first_qarg),
+            first_ops, input_dims=(2,) * len(first_qarg), output_dims=(2,) * len(first_qarg)
         )
         operator_2 = Operator(
-            second_op,
-            input_dims=(2,) * len(second_qarg),
-            output_dims=(2,) * len(second_qarg),
+            second_op, input_dims=(2,) * len(second_qarg), output_dims=(2,) * len(second_qarg)
         )
     except QiskitError:
         return False
