@@ -78,9 +78,7 @@ class TestPulseGate(QiskitTestCase):
         """Test transpile without custom calibrations from target."""
 
         target = GenericBackendV2(
-            num_qubits=5,
-            coupling_map=BOGOTA_CMAP,
-            calibrate_instructions=True,
+            num_qubits=5, coupling_map=BOGOTA_CMAP, calibrate_instructions=True, seed=42
         ).target
 
         qc = circuit.QuantumCircuit(2)
@@ -459,10 +457,7 @@ class TestPulseGate(QiskitTestCase):
         qc.append(gate, [0])
         qc.measure_all()
 
-        backend = GenericBackendV2(
-            num_qubits=5,
-            calibrate_instructions=True,
-        )
+        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True, seed=42)
         transpiled_qc = transpile(
             qc,
             backend,
@@ -485,10 +480,7 @@ class TestPulseGate(QiskitTestCase):
         This should not override the source object since the same backend may
         be used for future transpile without intention of instruction overriding.
         """
-        backend = GenericBackendV2(
-            num_qubits=5,
-            calibrate_instructions=True,
-        )
+        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=True, seed=42)
         original_sx0 = backend.target["sx"][(0,)].calibration
 
         with self.assertWarns(DeprecationWarning):

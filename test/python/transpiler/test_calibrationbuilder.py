@@ -516,7 +516,7 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         an unassigned Parameter, not a number.
         The QiskitError occurs while trying to typecast the Parameter into a float.
         """
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         tp = RXCalibrationBuilder(backend.target)
         qubits = (0,)
         rx = RXGate(Parameter("theta"))
@@ -528,7 +528,7 @@ class TestRXCalibrationBuilder(QiskitTestCase):
     @data(0, np.pi / 3, (2 / 3) * np.pi)
     def test_pulse_schedule(self, theta: float):
         """Test that get_calibration() returns a schedule with correct amplitude."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         dummy_target = Target()
         sx_amp, sx_beta, sx_sigma, sx_duration, sx_angle = 0.6, 2, 40, 160, 0.5
         with builder.build(backend=backend) as dummy_sx_cal:
@@ -579,7 +579,7 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         )
         ism = InstructionScheduleMap()
         ism.add("sx", (0,), sched)
-        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=ism)
+        backend = GenericBackendV2(num_qubits=5, calibrate_instructions=ism, seed=42)
 
         # NormalizeRXAngle pass should also be included because it's a required pass.
         pm = PassManager(RXCalibrationBuilder(backend.target))

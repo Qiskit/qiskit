@@ -1305,7 +1305,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [0], q0_x180)
 
         transpiled_circuit = transpile(
-            circ, backend=GenericBackendV2(num_qubits=4), seed_transpiler=42
+            circ, backend=GenericBackendV2(num_qubits=4, seed=42), seed_transpiler=42
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
 
@@ -1325,7 +1325,7 @@ class TestTranspile(QiskitTestCase):
         with self.assertRaises(QiskitError):
             transpile(
                 circ,
-                backend=GenericBackendV2(num_qubits=4),
+                backend=GenericBackendV2(num_qubits=4, seed=42),
                 layout_method="trivial",
                 seed_transpiler=42,
                 optimization_level=1,
@@ -1368,7 +1368,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circ = transpile(
             circ,
-            backend=GenericBackendV2(num_qubits=4),
+            backend=GenericBackendV2(num_qubits=4, seed=42),
             layout_method="trivial",
             seed_transpiler=42,
         )
@@ -1390,7 +1390,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circ = transpile(
             circ,
-            backend=GenericBackendV2(num_qubits=4),
+            backend=GenericBackendV2(num_qubits=4, seed=42),
             layout_method="trivial",
             seed_transpiler=42,
         )
