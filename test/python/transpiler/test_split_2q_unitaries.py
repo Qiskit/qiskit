@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 
+
 class TestSplit2QUnitaries(QiskitTestCase):
     """
     Tests to verify that splitting two-qubit unitaries into two single-qubit unitaries works correctly.
