@@ -34,9 +34,19 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from ..legacy_cmaps import LAGOS_CMAP
 
 BACKENDS_V1 = [Fake7QPulseV1()]
-BACKENDS_V2 = [BasicSimulator(), BackendV2Converter(Fake7QPulseV1())]
+BACKENDS_V2 = [
+    BasicSimulator(),
+    BackendV2Converter(Fake7QPulseV1()),
+    GenericBackendV2(
+        num_qubits=7,
+        basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+        coupling_map=LAGOS_CMAP,
+        seed=42,
+    ),
+]
 BACKENDS = BACKENDS_V1 + BACKENDS_V2
 
 
