@@ -20,17 +20,26 @@ from qiskit import QiskitError
 from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.circuit.library import XGate, YGate, ZGate
+from qiskit.circuit.library import XGate, YGate, ZGate, CZGate
 from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 from qiskit.quantum_info.operators import Operator
 
 _skipped_op_names = {"measure", "reset", "delay", "initialize"}
 _no_cache_op_names = {"annotated"}
+_supported_operations = {"h", "x", "y", "z", "sx", "cx"}  # and more
 
 _rotation_gates = {
     "rx": XGate(),
     "ry": YGate(),
     "rz": ZGate(),
+    "p": ZGate(),
+    "cp": CZGate(),
+    "s": ZGate(),
+    "sdg": ZGate(),
+    "sx": XGate(),
+    "sxdg": XGate(),
+    "t": ZGate(),
+    "tdg": ZGate(),
     "rxx": PauliGate("XX"),
     "ryy": PauliGate("YY"),
     "rzz": PauliGate("ZZ"),
@@ -42,9 +51,7 @@ _rotation_gates = {
 def _identity_op(num_qubits):
     """Cached identity matrix"""
     return Operator(
-        np.eye(2**num_qubits),
-        input_dims=(2,) * num_qubits,
-        output_dims=(2,) * num_qubits,
+        np.eye(2**num_qubits), input_dims=(2,) * num_qubits, output_dims=(2,) * num_qubits
     )
 
 
@@ -56,9 +63,7 @@ class CommutationChecker:
     evicting from the cache less useful entries, etc.
     """
 
-    def __init__(
-        self, standard_gate_commutations: dict = None, cache_max_entries: int = 10**6
-    ):
+    def __init__(self, standard_gate_commutations: dict = None, cache_max_entries: int = 10**6):
         super().__init__()
         if standard_gate_commutations is None:
             self._standard_commutations = {}
@@ -82,12 +87,12 @@ class CommutationChecker:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
         cargs1 = op2.cargs
-        if not op1.is_standard_gate:
-            op1 = op1.op
+        # if not op1.is_standard_gate:
+        op1 = op1.op
         qargs2 = op2.qargs
         cargs2 = op2.cargs
-        if not op2.is_standard_gate:
-            op2 = op2.op
+        # if not op2.is_standard_gate:
+        op2 = op2.op
         return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 
     def commute(
@@ -119,19 +124,22 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
-        # The rotation gates commute like their respective generators.
-        if (
-            op1.name in _rotation_gates
-            and getattr(op1, "is_parameterized", False)
-            and op1.is_parameterized()
-        ):
-            op1 = _rotation_gates[op1.name]
-        if (
-            op2.name in _rotation_gates
-            and getattr(op2, "is_parameterized", False)
-            and op2.is_parameterized()
-        ):
-            op2 = _rotation_gates[op2.name]
+        # The rotation gates commute like their respective generators. Additionally, if their
+        # only parameter is 0, they reduce to the identity and we return ``True``, as the
+        # identity commutes with everything.
+        if op1._name in _rotation_gates:
+            if op1.params[0] == 0:
+                return True
+            op1 = _rotation_gates[op1._name]
+
+        if op2._name in _rotation_gates:
+            if op2.params[0] == 0:
+                return True
+            op2 = _rotation_gates[op2._name]
+
+        # everything commutes with the identity
+        if op1._name == "id" or op2._name == "id":
+            return True
 
         structural_commutation = _commutation_precheck(
             op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits
@@ -146,9 +154,7 @@ class CommutationChecker:
         first_op, first_qargs, _ = first_op_tuple
         second_op, second_qargs, _ = second_op_tuple
 
-        skip_cache = (
-            first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
-        )
+        skip_cache = first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
 
         if skip_cache:
             return _commute_matmul(first_op, first_qargs, second_op, second_qargs)
@@ -172,9 +178,9 @@ class CommutationChecker:
         first_params = getattr(first_op, "params", [])
         second_params = getattr(second_op, "params", [])
         if len(first_params) > 0 or len(second_params) > 0:
-            self._cached_commutations.setdefault(
-                (first_op.name, second_op.name), {}
-            ).setdefault(_get_relative_placement(first_qargs, second_qargs), {})[
+            self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
+                _get_relative_placement(first_qargs, second_qargs), {}
+            )[
                 (
                     _hashable_parameters(first_params),
                     _hashable_parameters(second_params),
@@ -266,7 +272,7 @@ def _hashable_parameters(params):
     return ("fallback", str(params))
 
 
-def is_commutation_supported(op):
+def is_commutation_supported(op, qargs, max_num_qubits):
     """
     Filter operations whose commutation is not supported due to bugs in transpiler passes invoking
     commutation analysis.
@@ -275,6 +281,9 @@ def is_commutation_supported(op):
     Return:
         True if determining the commutation of op is currently supported
     """
+    if op._name in _supported_operations:
+        return True
+
     # Bug in CommutativeCancellation, e.g. see gh-8553
     if getattr(op, "condition", False):
         return False
@@ -283,42 +292,18 @@ def is_commutation_supported(op):
     if op.name in CONTROL_FLOW_OP_NAMES:
         return False
 
-    return True
-
-
-def is_commutation_skipped(op, qargs, max_num_qubits):
-    """
-    Filter operations whose commutation will not be determined.
-    Args:
-        op (Operation): operation to be checked for commutation relation
-        qargs (List): operation qubits
-        max_num_qubits (int): the maximum number of qubits to consider, the check may be skipped if
-                the number of qubits for either operation exceeds this amount.
-    Return:
-        True if determining the commutation of op is currently not supported
-    """
     if (
         len(qargs) > max_num_qubits
         or getattr(op, "_directive", False)
         or op.name in _skipped_op_names
     ):
-        return True
-
-    if getattr(op, "is_parameterized", False) and op.is_parameterized():
-        return True
-
-    from qiskit.dagcircuit.dagnode import DAGOpNode
-
-    # we can proceed if op has defined: to_operator, to_matrix and __array__, or if its definition can be
-    # recursively resolved by operations that have a matrix. We check this by constructing an Operator.
-    if (
-        isinstance(op, DAGOpNode)
-        or (hasattr(op, "to_matrix") and hasattr(op, "__array__"))
-        or hasattr(op, "to_operator")
-    ):
         return False
 
-    return False
+    if getattr(op, "is_parameterized", False) and op.is_parameterized():
+        return False
+
+    _supported_operations.add(op.name)
+    return True
 
 
 def _commutation_precheck(
@@ -330,13 +315,10 @@ def _commutation_precheck(
     cargs2: List,
     max_num_qubits,
 ):
-    if not is_commutation_supported(op1) or not is_commutation_supported(op2):
-        return False
-
     if set(qargs1).isdisjoint(qargs2) and set(cargs1).isdisjoint(cargs2):
         return True
 
-    if is_commutation_skipped(op1, qargs1, max_num_qubits) or is_commutation_skipped(
+    if not is_commutation_supported(op1, qargs1, max_num_qubits) or not is_commutation_supported(
         op2, qargs2, max_num_qubits
     ):
         return False
@@ -344,9 +326,7 @@ def _commutation_precheck(
     return None
 
 
-def _get_relative_placement(
-    first_qargs: List[Qubit], second_qargs: List[Qubit]
-) -> tuple:
+def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit]) -> tuple:
     """Determines the relative qubit placement of two gates. Note: this is NOT symmetric.
 
     Args:
@@ -373,9 +353,7 @@ def _persistent_id(op_name: str) -> int:
     Return:
         The integer id of the input string.
     """
-    return int.from_bytes(
-        bytes(op_name, encoding="utf-8"), byteorder="big", signed=True
-    )
+    return int.from_bytes(bytes(op_name, encoding="utf-8"), byteorder="big", signed=True)
 
 
 def _order_operations(
@@ -401,9 +379,7 @@ def _order_operations(
     op1_tuple = (op1, qargs1, cargs1)
     op2_tuple = (op2, qargs2, cargs2)
     least_qubits_op, most_qubits_op = (
-        (op1_tuple, op2_tuple)
-        if op1.num_qubits < op2.num_qubits
-        else (op2_tuple, op1_tuple)
+        (op1_tuple, op2_tuple) if op1.num_qubits < op2.num_qubits else (op2_tuple, op1_tuple)
     )
     # prefer operation with the least number of qubits as first key as this results in shorter keys
     if op1.num_qubits != op2.num_qubits:
