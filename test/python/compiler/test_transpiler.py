@@ -1661,14 +1661,13 @@ class TestTranspile(QiskitTestCase):
             17: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        with self.assertWarns(DeprecationWarning):
-            result = transpile(
-                qc,
-                backend=backend_v1,
-                backend_properties=custom_backend_properties,
-                optimization_level=2,
-                seed_transpiler=42,
-            )
+        result = transpile(
+            qc,
+            backend=backend_v1,
+            backend_properties=custom_backend_properties,
+            optimization_level=2,
+            seed_transpiler=42,
+        )
 
         self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
         result = transpile(
