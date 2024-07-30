@@ -2637,6 +2637,7 @@ def _format(operand):
             }
         }
 
+
         // Check for VF2 isomorphic match.
         let legacy_condition_eq = LEGACY_CONDITION_CHECK.get_bound(py);
         let condition_op_check = CONDITION_OP_CHECK.get_bound(py);
@@ -2802,7 +2803,7 @@ def _format(operand):
                             Ok(conditions_eq)
                         }
                         [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
-                            Ok(node1_qargs != node2_qargs || node1_cargs != node2_cargs)
+                            Ok(node1_qargs == node2_qargs || node1_cargs == node2_cargs)
                         }
                         _ => Ok(false),
                     }
@@ -5234,21 +5235,23 @@ impl DAGCircuit {
         Ok(new_node)
     }
 
-    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
-        type SortKeyType<'a> = (Option<&'a [Qubit]>, Option<&'a [Clbit]>);
+    fn sort_key(&self, node: NodeIndex) -> Result<SortKeyType, Infallible> {
+        Ok(match &self.dag[node] {
+            NodeType::Operation(packed) => (
+                Some(self.qargs_cache.intern(packed.qubits).as_slice()),
+                Some(self.cargs_cache.intern(packed.clbits).as_slice()),
+            ),
+            NodeType::QubitIn(qubit) => (Some(std::slice::from_ref(qubit)), None),
+            NodeType::ClbitIn(clbit) => (None, Some(std::slice::from_ref(clbit))),
+            NodeType::QubitOut(qubit) => (Some(std::slice::from_ref(qubit)), None),
+            NodeType::ClbitOut(clbit) => (None, Some(std::slice::from_ref(clbit))),
+            _ => (None, None),
+        })
+    }
 
+    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
         let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> {
-            Ok(match &self.dag[node] {
-                NodeType::Operation(packed) => (
-                    Some(self.qargs_cache.intern(packed.qubits).as_slice()),
-                    Some(self.cargs_cache.intern(packed.clbits).as_slice()),
-                ),
-                NodeType::QubitIn(qubit) => (Some(std::slice::from_ref(qubit)), None),
-                NodeType::ClbitIn(clbit) => (None, Some(std::slice::from_ref(clbit))),
-                NodeType::QubitOut(qubit) => (Some(std::slice::from_ref(qubit)), None),
-                NodeType::ClbitOut(clbit) => (None, Some(std::slice::from_ref(clbit))),
-                _ => (None, None),
-            })
+            self.sort_key(node)
         };
         let nodes =
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
@@ -5731,7 +5734,7 @@ impl DAGCircuit {
                                 #[cfg(feature = "cache_pygates")]
                                 py_op: packed.py_op.clone(),
                             },
-                            sort_key: py.None(),
+                            sort_key: format!("{:?}", self.sort_key(id).unwrap()).into_py(py),
                         },
                         DAGNode { node: Some(id) },
                     ),
@@ -6174,3 +6177,5 @@ impl DAGCircuit {
         Ok(())
     }
 }
+
+type SortKeyType<'a> = (Option<&'a [Qubit]>, Option<&'a [Clbit]>);

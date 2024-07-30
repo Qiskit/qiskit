@@ -129,6 +129,7 @@ pub trait Operation {
 /// `PackedInstruction::op`, and in turn is a view object onto a `PackedOperation`.
 ///
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
+#[derive(Debug)]
 pub enum OperationRef<'a> {
     Standard(StandardGate),
     Gate(&'a PyGate),
