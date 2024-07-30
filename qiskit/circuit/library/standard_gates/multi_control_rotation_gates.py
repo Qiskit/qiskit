@@ -18,7 +18,7 @@ import math
 from typing import Optional, Union, Tuple, List
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, ParameterExpression
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -258,6 +258,9 @@ def mcrx(
             use_basis_gates=use_basis_gates,
         )
     else:
+        if isinstance(theta, ParameterExpression):
+            raise QiskitError(f"Cannot synthesize MCRX with unbound parameter: {theta}.")
+
         cgate = _mcsu2_real_diagonal(
             RXGate(theta).to_matrix(),
             num_controls=len(control_qubits),
@@ -272,8 +275,8 @@ def mcry(
     q_controls: Union[QuantumRegister, List[Qubit]],
     q_target: Qubit,
     q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
-    mode: str = None,
-    use_basis_gates=False,
+    mode: Optional[str] = None,
+    use_basis_gates: bool = False,
 ):
     """
     Apply Multiple-Controlled Y rotation gate
@@ -333,6 +336,9 @@ def mcry(
                 use_basis_gates=use_basis_gates,
             )
         else:
+            if isinstance(theta, ParameterExpression):
+                raise QiskitError(f"Cannot synthesize MCRY with unbound parameter: {theta}.")
+
             cgate = _mcsu2_real_diagonal(
                 RYGate(theta).to_matrix(),
                 num_controls=len(control_qubits),
@@ -383,6 +389,9 @@ def mcrz(
         else:
             self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
+        if isinstance(lam, ParameterExpression):
+            raise QiskitError(f"Cannot synthesize MCRZ with unbound parameter: {lam}.")
+
         cgate = _mcsu2_real_diagonal(
             RZGate(lam).to_matrix(),
             num_controls=len(control_qubits),

@@ -139,7 +139,7 @@ class TestQFT(QiskitTestCase):
         qft = QFT(
             num_qubits, approximation_degree=approximation_degree, insert_barriers=insert_barriers
         )
-        ops = transpile(qft, basis_gates=basis_gates).count_ops()
+        ops = transpile(qft, basis_gates=basis_gates, optimization_level=1).count_ops()
 
         with self.subTest(msg="assert H count"):
             self.assertEqual(ops["h"], num_qubits)
