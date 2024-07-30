@@ -25,7 +25,6 @@ from qiskit.quantum_info.operators import Operator
 _skipped_op_names = {"measure", "reset", "delay", "initialize"}
 _no_cache_op_names = {"annotated"}
 
-# Pauli rotations and phase gate not required as they are mapped to Paulis
 _supported_ops = {
     "h",
     "x",
@@ -132,12 +131,7 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
-        # The rotation gates commute like their respective generators. Additionally, if their
-        # only parameter is 0, they reduce to the identity and we return ``True``, as the
-        # identity commutes with everything.
-        # Note that we deliberatily use op1._name instead of op1.name, since (1) it is faster and
-        # (2) for controlled gates we do not care about the control state, which is included in the
-        # ``.name`` property.
+        # Skip gates that are not specified.
         if self._gate_names is not None:
             if op1.name not in self._gate_names or op2.name not in self._gate_names:
                 return False
