@@ -3609,6 +3609,9 @@ new_condition = (new_target, value)
                     .map(|x| Wire::Clbit(*x)),
             )
             .collect();
+        let (additional_clbits, additional_vars) = self.additional_wires(py, &old_packed)?;
+        new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
+        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(x.clone_ref(py))));
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
@@ -3619,6 +3622,9 @@ new_condition = (new_target, value)
                     old_packed.op.num_qubits(), old_packed.op.num_clbits(), new_op.operation.num_qubits(), new_op.operation.num_clbits()
                 )));
         }
+
+        #[cfg(feature = "cache_pygates")]
+        let mut py_op_cache = Some(op.clone().unbind());
 
         let mut extra_attrs = new_op.extra_attrs.clone();
         // If either operation is a control-flow operation, propagate_condition is ignored
@@ -3671,6 +3677,10 @@ new_condition = (new_target, value)
                         old_condition.downcast_bound::<PyTuple>(py)?,
                     )?;
                 }
+                #[cfg(feature = "cache_pygates")]
+                {
+                    py_op_cache = None;
+                }
             }
         };
         if new_wires != current_wires {
@@ -3689,7 +3699,7 @@ new_condition = (new_target, value)
             params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(None),
+            py_op: RefCell::new(py_op_cache),
         });
 
         let node_index = node.as_ref().node.unwrap();
