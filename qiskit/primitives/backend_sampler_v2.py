@@ -220,7 +220,8 @@ class BackendSamplerV2(BaseSamplerV2):
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
         return SamplerPubResult(
-            DataBin(**meas, shape=shape), metadata={"circuit_metadata": circuit_metadata}
+            DataBin(**meas, shape=shape),
+            metadata={"shots": shots, "circuit_metadata": circuit_metadata},
         )
 
 

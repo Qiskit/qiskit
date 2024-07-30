@@ -756,12 +756,12 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc2.metadata = {"a": 1}
         backend = BasicSimulator()
         sampler = BackendSamplerV2(backend=backend)
-        result = sampler.run([qc, qc2], shots=10).result()
+        result = sampler.run([(qc, None, 10), (qc2, None, 20)]).result()
 
         self.assertEqual(len(result), 2)
         self.assertEqual(result.metadata, {"version": 2})
-        self.assertEqual(result[0].metadata, {"circuit_metadata": qc.metadata})
-        self.assertEqual(result[1].metadata, {"circuit_metadata": qc2.metadata})
+        self.assertEqual(result[0].metadata, {"shots": 10, "circuit_metadata": qc.metadata})
+        self.assertEqual(result[1].metadata, {"shots": 20, "circuit_metadata": qc2.metadata})
 
 
 if __name__ == "__main__":
