@@ -140,7 +140,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         theta1, theta2, theta3 = self.theta
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1, psi2 = pm.run([psi1, psi2])
@@ -217,7 +218,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         theta1, theta2, theta3 = self.theta
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1, psi2 = pm.run([psi1, psi2])
@@ -257,7 +259,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         circuit = pm.run(circuit)
@@ -332,7 +335,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         est.options.abelian_grouping = abelian_grouping
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
@@ -425,7 +429,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         qc2.x(0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc, qc2 = pm.run([qc, qc2])
@@ -498,7 +503,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         qc2.x(0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc, qc2 = pm.run([qc, qc2])
@@ -604,7 +610,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         qc = RealAmplitudes(num_qubits=2, reps=2)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
@@ -659,7 +666,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         estimator.options.abelian_grouping = abelian_grouping
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1 = pm.run(self.psi[0])
@@ -701,7 +709,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         estimator.options.abelian_grouping = abelian_grouping
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `generate_preset_pass_manager` function will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting "
+            "inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1 = pm.run(self.psi[0])
