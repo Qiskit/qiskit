@@ -137,7 +137,10 @@ where
                     .get(&BitAsKey::new(&b))
                     .copied()
                     .ok_or_else(|| {
-                        PyKeyError::new_err(format!("Bit {:?} has not been added to this circuit.", b))
+                        PyKeyError::new_err(format!(
+                            "Bit {:?} has not been added to this circuit.",
+                            b
+                        ))
                     })
             })
             .collect();

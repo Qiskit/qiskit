@@ -9,6 +9,9 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
+use std::hash::{Hash, Hasher};
+
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
@@ -95,6 +98,16 @@ impl PartialEq for Wire {
                 v1.is(v2) || Python::with_gil(|py| v1.bind(py).eq(v2).unwrap())
             }
             _ => false,
+        }
+    }
+}
+
+impl Hash for Wire {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Qubit(qubit) => qubit.hash(state),
+            Self::Clbit(clbit) => clbit.hash(state),
+            Self::Var(var) => Python::with_gil(|py| var.bind(py).hash().unwrap().hash(state)),
         }
     }
 }
@@ -2637,7 +2650,6 @@ def _format(operand):
             }
         }
 
-
         // Check for VF2 isomorphic match.
         let legacy_condition_eq = LEGACY_CONDITION_CHECK.get_bound(py);
         let condition_op_check = CONDITION_OP_CHECK.get_bound(py);
@@ -3562,15 +3574,12 @@ new_condition = (new_target, value)
     ) -> PyResult<Py<PyAny>> {
         let mut node: PyRefMut<DAGOpNode> = match node.downcast() {
             Ok(node) => node.borrow_mut(),
-            Err(_) => {
-                return Err(DAGCircuitError::new_err(
-                    "node can't be converted into a DAGOpNode",
-                ))
-            }
+            Err(_) => return Err(DAGCircuitError::new_err("Only DAGOpNodes can be replaced.")),
         };
         let py = op.py();
+        let node_index = node.as_ref().node.unwrap();
         // Extract information from node that is going to be replaced
-        let old_packed = match self.dag.node_weight(node.as_ref().node.unwrap()) {
+        let old_packed = match self.dag.node_weight(node_index) {
             Some(NodeType::Operation(old_packed)) => old_packed.clone(),
             Some(_) => {
                 return Err(DAGCircuitError::new_err(
@@ -3581,6 +3590,23 @@ new_condition = (new_target, value)
         };
         // Extract information from new op
         let mut new_op = op.extract::<OperationFromPython>()?;
+        let current_wires: HashSet<Wire> = self
+            .dag
+            .edges(node_index)
+            .map(|e| e.weight().clone())
+            .collect();
+        let mut new_wires: HashSet<Wire> = self
+            .qargs_cache
+            .intern(old_packed.qubits)
+            .iter()
+            .map(|x| Wire::Qubit(*x))
+            .chain(
+                self.cargs_cache
+                    .intern(old_packed.clbits)
+                    .iter()
+                    .map(|x| Wire::Clbit(*x)),
+            )
+            .collect();
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
@@ -3594,8 +3620,7 @@ new_condition = (new_target, value)
 
         // If either operation is a control-flow operation, propagate_condition is ignored
         if propagate_condition
-            && !new_op.operation.control_flow()
-            && !node.instruction.operation.control_flow()
+            && !(node.instruction.operation.control_flow() || new_op.operation.control_flow())
         {
             // if new_op has a condition, the condition can't be propagated from the old node
             if new_op
@@ -3608,30 +3633,39 @@ new_condition = (new_target, value)
                     "Cannot propagate a condition to an operation that already has one.",
                 ));
             }
-            new_op.extra_attrs = if let Some(extra) = new_op.extra_attrs {
-                ExtraInstructionAttributes::new(
-                    extra.label,
-                    extra.duration,
-                    extra.unit,
-                    node.instruction
-                        .extra_attrs
-                        .take()
-                        .and_then(|attrs| attrs.condition),
-                )
-                .map(Box::new)
-            } else {
-                ExtraInstructionAttributes::new(
-                    None,
-                    None,
-                    None,
-                    node.instruction
-                        .extra_attrs
-                        .take()
-                        .and_then(|attrs| attrs.condition),
-                )
-                .map(Box::new)
-            };
+            if let Some(old_condition) = old_packed.condition() {
+                if matches!(new_op.operation.view(), OperationRef::Operation(_)) {
+                    return Err(DAGCircuitError::new_err(
+                        "Cannot propagate a condition to an operation that already has one.",
+                    ));
+                }
+                if let Some(ref mut extra) = new_op.extra_attrs {
+                    extra.condition = Some(old_condition.clone_ref(py));
+                } else {
+                    new_op.extra_attrs = ExtraInstructionAttributes::new(
+                        None,
+                        None,
+                        None,
+                        Some(old_condition.clone_ref(py)),
+                    )
+                    .map(Box::new)
+                }
+                let binding = self
+                    .control_flow_module
+                    .condition_resources(old_condition.bind(py))?;
+                let condition_clbits = binding.clbits.bind(py);
+                for bit in condition_clbits {
+                    new_wires.insert(Wire::Clbit(self.clbits.find(&bit).unwrap()));
+                }
+            }
         };
+        if new_wires != current_wires {
+            // The new wires must be a non-strict subset of the current wires; if they add new
+            // wires, we'd not know where to cut the existing wire to insert the new dependency.
+            return Err(DAGCircuitError::new_err(format!(
+                "New operation '{:?}' does not span the same wires as the old node '{:?}'. New wires: {:?}, old_wires: {:?}.", op.str(), old_packed.op.view(), new_wires, current_wires
+            )));
+        }
 
         // Clone op data, as it will be moved into the PackedInstruction
         let new_weight = NodeType::Operation(PackedInstruction {
@@ -5235,8 +5269,8 @@ impl DAGCircuit {
         Ok(new_node)
     }
 
-    fn sort_key(&self, node: NodeIndex) -> Result<SortKeyType, Infallible> {
-        Ok(match &self.dag[node] {
+    fn sort_key(&self, node: NodeIndex) -> SortKeyType {
+        match &self.dag[node] {
             NodeType::Operation(packed) => (
                 Some(self.qargs_cache.intern(packed.qubits).as_slice()),
                 Some(self.cargs_cache.intern(packed.clbits).as_slice()),
@@ -5246,13 +5280,11 @@ impl DAGCircuit {
             NodeType::QubitOut(qubit) => (Some(std::slice::from_ref(qubit)), None),
             NodeType::ClbitOut(clbit) => (None, Some(std::slice::from_ref(clbit))),
             _ => (None, None),
-        })
+        }
     }
 
     fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
-        let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> {
-            self.sort_key(node)
-        };
+        let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
         let nodes =
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
                 .map_err(|e| match e {
@@ -5734,7 +5766,7 @@ impl DAGCircuit {
                                 #[cfg(feature = "cache_pygates")]
                                 py_op: packed.py_op.clone(),
                             },
-                            sort_key: format!("{:?}", self.sort_key(id).unwrap()).into_py(py),
+                            sort_key: format!("{:?}", self.sort_key(id)).into_py(py),
                         },
                         DAGNode { node: Some(id) },
                     ),
