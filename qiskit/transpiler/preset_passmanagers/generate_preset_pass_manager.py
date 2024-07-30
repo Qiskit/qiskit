@@ -15,6 +15,7 @@ Preset pass manager generation function
 """
 
 import copy
+import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -251,10 +252,18 @@ def generate_preset_pass_manager(
         optimization_level = 2
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
-        # This is a temporary conversion step to allow for a smoother transition
-        # to a fully target-based transpiler pipeline while maintaining the behavior
-        # of `transpile` with BackendV1 inputs.
-        backend = BackendV2Converter(backend)
+        with warnings.catch_warnings():
+            # TODO BackendV1 is deprecated and this path can be removed once it gets removed.
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
+                module="qiskit",
+            )
+            # This is a temporary conversion step to allow for a smoother transition
+            # to a fully target-based transpiler pipeline while maintaining the behavior
+            # of `transpile` with BackendV1 inputs.
+            backend = BackendV2Converter(backend)
 
     # Check if a custom inst_map was specified before overwriting inst_map
     _given_inst_map = bool(inst_map)
