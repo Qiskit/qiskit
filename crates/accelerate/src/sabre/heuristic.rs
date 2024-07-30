@@ -41,11 +41,16 @@ impl SetScaling {
     }
 }
 
+/// Define the characteristics of the basic heuristic.  This is a simple sum of the physical
+/// distances of every gate in the front layer.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct BasicHeuristic {
+    /// The relative weighting of this heuristic to others.  Typically you should just set this to
+    /// 1.0 and define everything else in terms of this.
     pub weight: f64,
+    /// Set the dynamic scaling of the weight based on the layer it is applying to.
     pub scale: SetScaling,
 }
 #[pymethods]
@@ -75,13 +80,18 @@ impl BasicHeuristic {
     }
 }
 
+/// Define the characteristics of the lookahead heuristic.  This is a sum of the physical distances
+/// of every gate in the lookahead set, which is gates immediately after the front layer.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct LookaheadHeuristic {
+    /// The relative weight of this heuristic.  Typically this is defined relative to the
+    /// :class:`.BasicHeuristic`, which generally has its weight set to 1.0.
     pub weight: f64,
     /// Number of gates to consider in the heuristic.
     pub size: usize,
+    /// Dynamic scaling of the heuristic weight depending on the lookahead set.
     pub scale: SetScaling,
 }
 #[pymethods]
@@ -115,11 +125,17 @@ impl LookaheadHeuristic {
     }
 }
 
+/// Define the characteristics of the "decay" heuristic.  In this, each physical qubit has a
+/// multiplier associated with it, beginning at 1.0, and has :attr:`increment` added to it each time
+/// the qubit is involved in a swap.  The final heuristic is calculated by multiplying all other
+/// components by the maximum multiplier involved in a given swap.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct DecayHeuristic {
+    /// The amount to add onto the multiplier of a physical qubit when it is used.
     pub increment: f64,
+    /// How frequently (in terms of swaps in the layer) to reset all qubit multipliers back to 1.0.
     pub reset: usize,
 }
 #[pymethods]
@@ -149,6 +165,8 @@ impl DecayHeuristic {
     }
 }
 
+/// A complete description of the heuristic that Sabre will use.  See the individual elements for a
+/// greater description.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
 #[derive(Clone, PartialEq)]
