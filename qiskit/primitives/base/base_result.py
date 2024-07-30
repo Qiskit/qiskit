@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Primitive result abstract base class
+Primitive V1 result abstract base class
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ ExperimentData = Dict[str, Any]
 
 class _BasePrimitiveResult(ABC):
     """
-    Base class for deprecated Primitive result methods.
+    Base class for deprecated Primitive V1 result methods.
     """
 
     def __post_init__(self) -> None:
