@@ -6034,10 +6034,10 @@ impl DAGCircuit {
                 Some(old_index) => match out_map.get(&old_index) {
                     Some(new_index) => *new_index,
                     None => {
-                        return Err(PyIndexError::new_err(format!(
-                            "No mapped index {} found",
-                            old_index.index()
-                        )))
+                        // If the index isn't in the node map we've already added the edges as
+                        // part of the idle wire handling at the top of this method so just
+                        // move on.
+                        continue;
                     }
                 },
                 None => continue,
@@ -6070,10 +6070,10 @@ impl DAGCircuit {
                 Some(old_index) => match out_map.get(&old_index) {
                     Some(new_index) => *new_index,
                     None => {
-                        return Err(PyIndexError::new_err(format!(
-                            "No mapped index {} found",
-                            old_index.index()
-                        )))
+                        // If the index isn't in the node map we've already added the edges as
+                        // part of the idle wire handling at the top of this method so just
+                        // move on.
+                        continue;
                     }
                 },
                 None => continue,
