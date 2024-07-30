@@ -316,9 +316,9 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
         warnings.warn(
-            f"The function transpile will stop supporting BackendV1 {backend} "
-            "in the backend parameter not earlier than the release of 2.0. "
-            "BackendV1 is deprecated and and providers should move to BackendV2.",
+            f"The `transpile` function will stop supporting inputs of type `BackendV1` ( {backend} ) "
+            "in the `backend` parameter in a future release not earlier than 2.0. "
+            "`BackendV1` is deprecated and implementations should move to `BackendV2`.",
             category=DeprecationWarning,
             stacklevel=2,
         )
