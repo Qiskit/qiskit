@@ -1578,7 +1578,7 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
         ):
             scheduled = transpile(
                 qc,
@@ -1613,7 +1613,7 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
         ):
             # halve dt in sec = double duration in dt
             scheduled = transpile(
@@ -1673,7 +1673,7 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1` ",
         ):
             result = transpile(
                 qc,
