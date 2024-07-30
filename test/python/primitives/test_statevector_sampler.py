@@ -592,16 +592,12 @@ class TestStatevectorSampler(QiskitTestCase):
         c2 = ClassicalRegister(1, "c2")
 
         qc = QuantumCircuit(q, c1, c2)
-        qc.ry(np.pi / 4, 2)
-        qc.cx(2, 1)
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.measure(0, c1)
-        qc.measure(1, c2)
         qc.z(2).c_if(c1, 1)
         qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
+        # Note: qc2 has aliased cregs, c0 -> c[2] and c1 -> c[4].
+        # copy_empty_like copies the aliased cregs of qc2 to qc3.
         qc3 = QuantumCircuit.copy_empty_like(qc2)
         qc3.ry(np.pi / 4, 2)
         qc3.cx(2, 1)
@@ -609,6 +605,7 @@ class TestStatevectorSampler(QiskitTestCase):
         qc3.h(0)
         qc3.measure(0, 2)
         qc3.measure(1, 4)
+        self.assertEqual(len(qc3.cregs), 3)
         cregs = [creg.name for creg in qc3.cregs]
         target = {
             cregs[0]: {0: 4255, 4: 4297, 16: 720, 20: 726},
