@@ -4995,6 +4995,30 @@ new_condition = (new_target, value)
             .collect()
     }
 
+    fn _find_successors_by_edge(
+        &self,
+        py: Python,
+        node_index: usize,
+        edge_checker: &Bound<PyAny>,
+    ) -> PyResult<Vec<PyObject>> {
+        let mut result = Vec::new();
+        for e in self
+            .dag
+            .edges_directed(NodeIndex::new(node_index), Outgoing)
+            .unique_by(|e| e.id())
+        {
+            let weight = match e.weight() {
+                Wire::Qubit(q) => self.qubits.get(*q).unwrap(),
+                Wire::Clbit(c) => self.clbits.get(*c).unwrap(),
+                Wire::Var(v) => v,
+            };
+            if edge_checker.call1((weight,))?.extract::<bool>()? {
+                result.push(self.get_node(py, e.target())?);
+            }
+        }
+        Ok(result)
+    }
+
     fn _insert_1q_on_incoming_qubit(
         &mut self,
         py: Python,
