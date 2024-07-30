@@ -17,9 +17,10 @@ import unittest
 import math
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import EfficientSU2
 from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
-from qiskit.transpiler.passes import SabreLayout, DenseLayout
+from qiskit.transpiler.passes import SabreLayout, DenseLayout, StochasticSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.compiler.transpiler import transpile
@@ -194,7 +195,11 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
-        res = transpile(qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234)
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
+        res = transpile(
+            qc, backend, layout_method="sabre", seed_transpiler=1234, optimization_level=1
+        )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
@@ -244,18 +249,61 @@ barrier q18585[0],q18585[3],q18585[7],q18585[4],q18585[1],q18585[8],q18585[6],q1
 barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
 """
         )
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         res = transpile(
             qc,
-            Fake27QPulseV1(),
+            backend,
             layout_method="sabre",
             routing_method="stochastic",
             seed_transpiler=12345,
+            optimization_level=1,
         )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
             [layout[q] for q in qc.qubits], [22, 7, 2, 12, 1, 5, 14, 4, 11, 0, 16, 15, 3, 10]
         )
+
+    def test_support_var_with_rust_fastpath(self):
+        """Test that the joint layout/embed/routing logic for the Rust-space fast-path works in the
+        presence of standalone `Var` nodes."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(5, inputs=[a])
+        qc.add_var(b, 12)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.cx(4, 0)
+
+        out = SabreLayout(CouplingMap.from_line(8), seed=0, swap_trials=2, layout_trials=2)(qc)
+
+        self.assertIsInstance(out, QuantumCircuit)
+        self.assertEqual(out.layout.initial_index_layout(), [4, 5, 6, 3, 2, 0, 1, 7])
+
+    def test_support_var_with_explicit_routing_pass(self):
+        """Test that the logic works if an explicit routing pass is given."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(5, inputs=[a])
+        qc.add_var(b, 12)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        qc.cx(4, 0)
+
+        cm = CouplingMap.from_line(8)
+        pass_ = SabreLayout(
+            cm, seed=0, routing_pass=StochasticSwap(cm, trials=1, seed=0, fake_run=True)
+        )
+        _ = pass_(qc)
+        layout = pass_.property_set["layout"]
+        self.assertEqual([layout[q] for q in qc.qubits], [2, 3, 4, 1, 5])
 
 
 class DensePartialSabreTrial(AnalysisPass):
@@ -317,7 +365,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
     def test_dual_ghz_with_intermediate_barriers(self):
-        """Test dual ghz circuit with intermediate barriers local to each componennt."""
+        """Test dual ghz circuit with intermediate barriers local to each component."""
         qc = QuantumCircuit(8, name="double dhz")
         qc.h(0)
         qc.cz(0, 1)

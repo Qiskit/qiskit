@@ -226,7 +226,7 @@ class SabreSwap(TransformationPass):
                 .with_decay(0.001, 5)
             )
         else:
-            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
+            raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
         disjoint_utils.require_layout_isolated_to_component(
             dag, self.coupling_map if self.target is None else self.target
         )

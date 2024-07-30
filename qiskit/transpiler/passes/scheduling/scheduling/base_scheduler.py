@@ -14,13 +14,13 @@
 
 import warnings
 
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.transpiler.target import Target
 
 
@@ -70,8 +70,9 @@ class BaseScheduler(AnalysisPass):
             duration = dag.calibrations[node.op.name][cal_key].duration
 
             # Note that node duration is updated (but this is analysis pass)
-            node.op = node.op.to_mutable()
-            node.op.duration = duration
+            op = node.op.to_mutable()
+            op.duration = duration
+            node.op = op
         else:
             duration = node.op.duration
 

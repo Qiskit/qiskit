@@ -11,11 +11,15 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
+
+from __future__ import annotations
+
 import math
 from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZXGate(Gate):
@@ -117,6 +121,8 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.RZXGate
+
     def __init__(
         self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
@@ -152,6 +158,39 @@ class RZXGate(Gate):
 
         self.definition = qc
 
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-RZX gate.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters, in which case it cannot
+                yet be synthesized.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if annotated is None:
+            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
+
+        gate = super().control(
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            annotated=annotated,
+        )
+        return gate
+
     def inverse(self, annotated: bool = False):
         """Return inverse RZX gate (i.e. with the negative rotation angle).
 
@@ -166,10 +205,12 @@ class RZXGate(Gate):
         """
         return RZXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZX gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)
@@ -178,8 +219,7 @@ class RZXGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZXGate(exponent * theta)
 

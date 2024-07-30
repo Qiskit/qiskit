@@ -26,11 +26,11 @@ class UnitaryOverlap(QuantumCircuit):
     names `"p1"` (for circuit ``unitary1``) and `"p2"` (for circuit ``unitary_2``) in the output
     circuit.
 
-    This circuit is usually employed in computing the fidelity::
+    This circuit is usually employed in computing the fidelity:
 
-        .. math::
+    .. math::
 
-            \left|\langle 0| U_2^{\dag} U_1|0\rangle\right|^{2}
+        \left|\langle 0| U_2^{\dag} U_1|0\rangle\right|^{2}
 
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
@@ -59,7 +59,12 @@ class UnitaryOverlap(QuantumCircuit):
     """
 
     def __init__(
-        self, unitary1: QuantumCircuit, unitary2: QuantumCircuit, prefix1="p1", prefix2="p2"
+        self,
+        unitary1: QuantumCircuit,
+        unitary2: QuantumCircuit,
+        prefix1: str = "p1",
+        prefix2: str = "p2",
+        insert_barrier: bool = False,
     ):
         """
         Args:
@@ -69,6 +74,7 @@ class UnitaryOverlap(QuantumCircuit):
                 if it is parameterized. Defaults to ``"p1"``.
             prefix2: The name of the parameter vector associated to ``unitary2``,
                 if it is parameterized. Defaults to ``"p2"``.
+            insert_barrier: Whether to insert a barrier between the two unitaries.
 
         Raises:
             CircuitError: Number of qubits in ``unitary1`` and ``unitary2`` does not match.
@@ -95,6 +101,8 @@ class UnitaryOverlap(QuantumCircuit):
         # Generate the actual overlap circuit
         super().__init__(unitaries[0].num_qubits, name="UnitaryOverlap")
         self.compose(unitaries[0], inplace=True)
+        if insert_barrier:
+            self.barrier()
         self.compose(unitaries[1].inverse(), inplace=True)
 
 
@@ -104,8 +112,6 @@ def _check_unitary(circuit):
     for instruction in circuit.data:
         if not isinstance(instruction.operation, (Gate, Barrier)):
             raise CircuitError(
-                (
-                    "One or more instructions cannot be converted to"
-                    ' a gate. "{}" is not a gate instruction'
-                ).format(instruction.operation.name)
+                "One or more instructions cannot be converted to"
+                f' a gate. "{instruction.operation.name}" is not a gate instruction'
             )

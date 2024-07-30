@@ -33,12 +33,15 @@ class TestMeasure(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
+            self.backend_v1 = Fake27QPulseV1()
+
         self.inst_map = self.backend.defaults().instruction_schedule_map
-        self.backend_v1 = Fake27QPulseV1()
         self.backend_v2 = GenericBackendV2(
             num_qubits=27,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
+            seed=42,
         )
 
     def test_measure(self):
@@ -171,7 +174,9 @@ class TestMeasure(QiskitTestCase):
     def test_output_with_measure_v1_and_measure_v2_sched_with_meas_map(self):
         """Test make outputs of measure_v1 and measure_v2
         with custom meas_map as list and dict consistent."""
-        num_qubits_list_measure_v1 = list(range(Fake27QPulseV1().configuration().num_qubits))
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
+        num_qubits_list_measure_v1 = list(range(backend.configuration().num_qubits))
         num_qubits_list_measure_v2 = list(range(self.backend_v2.num_qubits))
         sched_with_meas_map_list_v1 = macros.measure(
             qubits=[0], backend=self.backend_v1, meas_map=[num_qubits_list_measure_v1]
@@ -210,11 +215,13 @@ class TestMeasureAll(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend_v1 = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend_v1 = FakeOpenPulse2Q()
         self.inst_map = self.backend_v1.defaults().instruction_schedule_map
         self.backend_v2 = GenericBackendV2(
             num_qubits=2,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
+            seed=42,
         )
 
     def test_measure_all(self):

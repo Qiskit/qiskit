@@ -12,11 +12,14 @@
 
 """Swap gate."""
 
+from __future__ import annotations
+
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _SWAP_ARRAY = numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -58,6 +61,8 @@ class SwapGate(SingletonGate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
+    _standard_gate = StandardGate.SwapGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SWAP gate."""
         super().__init__("swap", 2, [], label=label, duration=duration, unit=unit)
@@ -87,9 +92,9 @@ class SwapGate(SingletonGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-SWAP gate.
 
@@ -100,8 +105,8 @@ class SwapGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -212,6 +217,8 @@ class CSwapGate(SingletonControlledGate):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
+
+    _standard_gate = StandardGate.CSwapGate
 
     def __init__(
         self,

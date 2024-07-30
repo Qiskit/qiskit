@@ -15,6 +15,7 @@ use pyo3::prelude::*;
 use pyo3::Python;
 
 use hashbrown::HashSet;
+use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
@@ -29,6 +30,8 @@ use super::route::{swap_map, swap_map_trial, RoutingTargetView};
 use super::sabre_dag::SabreDAG;
 use super::swap_map::SwapMap;
 use super::{NodeBlockResults, SabreResult};
+
+use crate::dense_layout::best_subset_inner;
 
 #[pyfunction]
 #[pyo3(signature = (dag, neighbor_table, distance_matrix, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![]))]
@@ -53,6 +56,12 @@ pub fn sabre_layout_and_routing(
     let mut starting_layouts: Vec<Vec<Option<u32>>> =
         (0..num_random_trials).map(|_| vec![]).collect();
     starting_layouts.append(&mut partial_layouts);
+    // Run a dense layout trial
+    starting_layouts.push(compute_dense_starting_layout(
+        dag.num_qubits,
+        &target,
+        run_in_parallel,
+    ));
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
@@ -208,4 +217,27 @@ fn layout_trial(
         .map(|(_, virt)| virt.to_phys(&final_layout))
         .collect();
     (initial_layout, final_permutation, sabre_result)
+}
+
+fn compute_dense_starting_layout(
+    num_qubits: usize,
+    target: &RoutingTargetView,
+    run_in_parallel: bool,
+) -> Vec<Option<u32>> {
+    let mut adj_matrix = target.distance.to_owned();
+    if run_in_parallel {
+        adj_matrix.par_mapv_inplace(|x| if x == 1. { 1. } else { 0. });
+    } else {
+        adj_matrix.mapv_inplace(|x| if x == 1. { 1. } else { 0. });
+    }
+    let [_rows, _cols, map] = best_subset_inner(
+        num_qubits,
+        adj_matrix.view(),
+        0,
+        0,
+        false,
+        true,
+        aview2(&[[0.]]),
+    );
+    map.into_iter().map(|x| Some(x as u32)).collect()
 }

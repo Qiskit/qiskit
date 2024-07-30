@@ -20,6 +20,7 @@ import numpy
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 from .p import PhaseGate
 
@@ -73,6 +74,8 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
+    _standard_gate = StandardGate.ZGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Z gate."""
         super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
@@ -109,7 +112,7 @@ class ZGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -140,8 +143,7 @@ class ZGate(SingletonGate):
         """
         return ZGate()  # self-inverse
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(numpy.pi * exponent)
 
     def __eq__(self, other):
@@ -181,6 +183,8 @@ class CZGate(SingletonControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
+
+    _standard_gate = StandardGate.CZGate
 
     def __init__(
         self,
@@ -281,6 +285,8 @@ class CCZGate(SingletonControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
+
+    _standard_gate = StandardGate.CCZGate
 
     def __init__(
         self,

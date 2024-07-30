@@ -69,23 +69,16 @@ class Result:
 
     def __repr__(self):
         out = (
-            "Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
-            "job_id='%s', success=%s, results=%s"
-            % (
-                self.backend_name,
-                self.backend_version,
-                self.qobj_id,
-                self.job_id,
-                self.success,
-                self.results,
-            )
+            f"Result(backend_name='{self.backend_name}', backend_version='{self.backend_version}',"
+            f" qobj_id='{self.qobj_id}', job_id='{self.job_id}', success={self.success},"
+            f" results={self.results}"
         )
         out += f", date={self.date}, status={self.status}, header={self.header}"
-        for key in self._metadata:
-            if isinstance(self._metadata[key], str):
-                value_str = "'%s'" % self._metadata[key]
+        for key, value in self._metadata.items():
+            if isinstance(value, str):
+                value_str = f"'{value}'"
             else:
-                value_str = repr(self._metadata[key])
+                value_str = repr(value)
             out += f", {key}={value_str}"
         out += ")"
         return out
@@ -132,7 +125,9 @@ class Result:
         in_data = copy.copy(data)
         in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
         if in_data.get("header") is not None:
-            in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
         return cls(**in_data)
 
     def data(self, experiment=None):
@@ -236,10 +231,10 @@ class Result:
 
         except KeyError as ex:
             raise QiskitError(
-                'No memory for experiment "{}". '
+                f'No memory for experiment "{repr(experiment)}". '
                 "Please verify that you either ran a measurement level 2 job "
                 'with the memory flag set, eg., "memory=True", '
-                "or a measurement level 0/1 job.".format(repr(experiment))
+                "or a measurement level 0/1 job."
             ) from ex
 
     def get_counts(self, experiment=None):
@@ -377,14 +372,14 @@ class Result:
             ]
 
             if len(exp) == 0:
-                raise QiskitError('Data for experiment "%s" could not be found.' % key)
+                raise QiskitError(f'Data for experiment "{key}" could not be found.')
             if len(exp) == 1:
                 exp = exp[0]
             else:
                 warnings.warn(
-                    'Result object contained multiple results matching name "%s", '
+                    f'Result object contained multiple results matching name "{key}", '
                     "only first match will be returned. Use an integer index to "
-                    "retrieve results for all entries." % key
+                    "retrieve results for all entries."
                 )
                 exp = exp[0]
 

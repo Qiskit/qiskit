@@ -40,7 +40,7 @@ def synth_cnotdihedral_full(elem: CNOTDihedral) -> QuantumCircuit:
            with optimal number of two qubit gates*, `Quantum 4(369), 2020
            <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
         2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-           *Scalable randomised benchmarking of non-Clifford gates*,
+           *Scalable randomized benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
     """
 

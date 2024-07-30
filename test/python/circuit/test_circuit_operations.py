@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
+from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.classicalregister import Clbit
@@ -485,6 +485,69 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    def test_copy_empty_variables_alike(self):
+        """Test that an empty copy of circuits including variables copies them across, but does not
+        initialise them.  This is the same as the default, just spelled explicitly."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="alike")
+        self.assertEqual({a}, set(copied.iter_input_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_input(b)
+        copied.add_var(d, 0xFF)
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
+        copied = qc.copy_empty_like(vars_mode="alike")
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_capture(d)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
+
+    def test_copy_empty_variables_to_captures(self):
+        """``vars_mode="captures"`` should convert all variables to captures."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="captures")
+        self.assertEqual({a, b, c}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, b, c}, set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+        qc = QuantumCircuit(captures=[c, d])
+        copied = qc.copy_empty_like(vars_mode="captures")
+        self.assertEqual({c, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({c, d}, set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+    def test_copy_empty_variables_drop(self):
+        """``vars_mode="drop"`` should not have variables in the output."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="drop")
+        self.assertEqual(set(), set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
     def test_copy_empty_like_parametric_phase(self):
         """Test that the parameter table of an empty circuit remains valid after copying a circuit
         with a parametric global phase."""
@@ -530,7 +593,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.clear()
 
         self.assertEqual(len(qc.data), 0)
-        self.assertEqual(len(qc._parameter_table), 0)
+        self.assertEqual(qc._data.num_params(), 0)
 
     def test_barrier(self):
         """Test multiple argument forms of barrier."""
@@ -865,7 +928,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.clbits, [])
 
     def test_remove_final_measurements_bit_locations(self):
-        """Test remove_final_measurements properly recalculates clbit indicies
+        """Test remove_final_measurements properly recalculates clbit indices
         and preserves order of remaining cregs and clbits.
         """
         c0 = ClassicalRegister(1)
@@ -936,6 +999,31 @@ class TestCircuitOperations(QiskitTestCase):
         expected.cx(0, 1)
         expected.s(1)
         expected.h(0)
+
+        self.assertEqual(qc.reverse_ops(), expected)
+
+    def test_reverse_with_standlone_vars(self):
+        """Test that instruction-reversing works in the presence of stand-alone variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Uint(8))
+
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        with qc.if_test(a):
+            # We don't really comment on what should happen within control-flow operations in this
+            # method - it's not really defined in a non-linear CFG.  This deliberately uses a body
+            # of length 1 (a single `Store`), so there's only one possibility.
+            qc.add_var(c, 12)
+
+        expected = qc.copy_empty_like()
+        with expected.if_test(a):
+            expected.add_var(c, 12)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.store(b, 12)
 
         self.assertEqual(qc.reverse_ops(), expected)
 
@@ -1012,6 +1100,21 @@ class TestCircuitOperations(QiskitTestCase):
 
         with self.subTest("negative power"):
             self.assertEqual(qc.power(-2).data[0].operation, gate.power(-2))
+
+        with self.subTest("integer circuit power via annotation"):
+            power_qc = qc.power(4, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(4))
+
+        with self.subTest("float circuit power via annotation"):
+            power_qc = qc.power(1.5, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(1.5))
+
+        with self.subTest("negative circuit power via annotation"):
+            power_qc = qc.power(-2, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(-2))
 
     def test_power_parameterized_circuit(self):
         """Test taking a parameterized circuit to a power."""

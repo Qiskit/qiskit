@@ -43,7 +43,7 @@ class Qubit(Bit):
             super().__init__(register, index)
         else:
             raise CircuitError(
-                "Qubit needs a QuantumRegister and %s was provided" % type(register).__name__
+                f"Qubit needs a QuantumRegister and {type(register).__name__} was provided"
             )
 
 

@@ -11,12 +11,16 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
+
+from __future__ import annotations
+
 from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZGate(Gate):
@@ -59,6 +63,8 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
+    _standard_gate = StandardGate.RZGate
+
     def __init__(
         self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
@@ -85,9 +91,9 @@ class RZGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-RZ gate.
 
@@ -96,16 +102,24 @@ class RZGate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
+        # deliberately capture annotated in [None, False] here
         if not annotated and num_ctrl_qubits == 1:
             gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
+            # If the gate parameters contain free parameters, we cannot eagerly synthesize
+            # the controlled gate decomposition. In this case, we annotate the gate per default.
+            if annotated is None:
+                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
+
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -130,15 +144,16 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZGate(exponent * theta)
 
@@ -212,6 +227,8 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
+    _standard_gate = StandardGate.CRZGate
+
     def __init__(
         self,
         theta: ParameterValueType,
@@ -277,10 +294,12 @@ class CRZGate(ControlledGate):
         """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(

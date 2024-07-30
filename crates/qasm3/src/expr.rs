@@ -71,7 +71,7 @@ fn eval_const_int(_py: Python, _ast_symbols: &SymbolTable, expr: &asg::TExpr) ->
                 match expr.expression() {
                     asg::Expr::Literal(asg::Literal::Int(lit)) => Ok(*lit.value() as isize),
                     expr => Err(QASM3ImporterError::new_err(format!(
-                        "unhandled expression type for constant-integer evaluatation: {:?}",
+                        "unhandled expression type for constant-integer evaluation: {:?}",
                         expr
                     ))),
                 }
@@ -244,11 +244,11 @@ pub fn eval_qarg(
     qarg: &asg::GateOperand,
 ) -> PyResult<BroadcastItem> {
     match qarg {
-        asg::GateOperand::Identifier(iden) => broadcast_bits_for_identifier(
+        asg::GateOperand::Identifier(symbol) => broadcast_bits_for_identifier(
             py,
             &our_symbols.qubits,
             &our_symbols.qregs,
-            iden.symbol().as_ref().unwrap(),
+            symbol.as_ref().unwrap(),
         ),
         asg::GateOperand::IndexedIdentifier(indexed) => {
             let iden_symbol = indexed.identifier().as_ref().unwrap();

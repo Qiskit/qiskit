@@ -29,14 +29,27 @@ import math
 import io
 import base64
 import warnings
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import CXGate, U3Gate, U2Gate, U1Gate
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate, CircuitInstruction
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    U3Gate,
+    U2Gate,
+    U1Gate,
+    UGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SXGate,
+    XGate,
+    RGate,
+)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
@@ -46,7 +59,26 @@ from qiskit.synthesis.one_qubit.one_qubit_decompose import (
 from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
+if TYPE_CHECKING:
+    from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+
 logger = logging.getLogger(__name__)
+
+
+GATE_NAME_MAP = {
+    "cx": CXGate,
+    "rx": RXGate,
+    "sx": SXGate,
+    "x": XGate,
+    "rz": RZGate,
+    "u": UGate,
+    "p": PhaseGate,
+    "u1": U1Gate,
+    "u2": U2Gate,
+    "u3": U3Gate,
+    "ry": RYGate,
+    "r": RGate,
+}
 
 
 def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
@@ -84,7 +116,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
     if deviation > 1.0e-13:
         raise QiskitError(
             "decompose_two_qubit_product_gate: decomposition failed: "
-            "deviation too large: {}".format(deviation)
+            f"deviation too large: {deviation}"
         )
 
     return L, R, phase
@@ -198,13 +230,10 @@ class TwoQubitWeylDecomposition:
         self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form."""
-        circuit_sequence = self._inner_decomposition.circuit(
+        circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        circ = QuantumCircuit(2, global_phase=circuit_sequence.global_phase)
-        for name, params, qubits in circuit_sequence:
-            getattr(circ, name)(*params, *qubits)
-        return circ
+        return QuantumCircuit._from_circuit_data(circuit_data)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
@@ -481,6 +510,7 @@ class TwoQubitBasisDecomposer:
             If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
 
+
     .. automethod:: __call__
     """
 
@@ -585,9 +615,10 @@ class TwoQubitBasisDecomposer:
         unitary: Operator | np.ndarray,
         basis_fidelity: float | None = None,
         approximate: bool = True,
+        use_dag: bool = False,
         *,
         _num_basis_uses: int | None = None,
-    ) -> QuantumCircuit:
+    ) -> QuantumCircuit | DAGCircuit:
         r"""Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
         approximation given that each basis application has a finite ``basis_fidelity``.
 
@@ -596,6 +627,8 @@ class TwoQubitBasisDecomposer:
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides ``basis_fidelity`` given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
+            use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
 
         Returns:
@@ -605,33 +638,58 @@ class TwoQubitBasisDecomposer:
             QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
         """
 
-        sequence = self._inner_decomposer(
-            np.asarray(unitary, dtype=complex),
-            basis_fidelity,
-            approximate,
-            _num_basis_uses=_num_basis_uses,
-        )
-        q = QuantumRegister(2)
-        circ = QuantumCircuit(q, global_phase=sequence.global_phase)
-        for name, params, qubits in sequence:
-            try:
-                getattr(circ, name)(*params, *qubits)
-            except AttributeError as exc:
-                if name == "USER_GATE":
-                    circ.append(self.gate, qubits)
-                elif name == "u3":
-                    gate = U3Gate(*params)
-                    circ.append(gate, qubits)
-                elif name == "u2":
-                    gate = U2Gate(*params)
-                    circ.append(gate, qubits)
-                elif name == "u1":
-                    gate = U1Gate(*params)
-                    circ.append(gate, qubits)
-                else:
-                    raise QiskitError(f"Unknown gate {name}") from exc
+        if use_dag:
+            from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
 
-        return circ
+            sequence = self._inner_decomposer(
+                np.asarray(unitary, dtype=complex),
+                basis_fidelity,
+                approximate,
+                _num_basis_uses=_num_basis_uses,
+            )
+            q = QuantumRegister(2)
+
+            dag = DAGCircuit()
+            dag.global_phase = sequence.global_phase
+            dag.add_qreg(q)
+            for gate, params, qubits in sequence:
+                if gate is None:
+                    dag.apply_operation_back(self.gate, tuple(q[x] for x in qubits), check=False)
+                else:
+                    op = CircuitInstruction.from_standard(
+                        gate, qubits=tuple(q[x] for x in qubits), params=params
+                    )
+                    node = DAGOpNode.from_instruction(op, dag=dag)
+                    dag._apply_op_node_back(node)
+            return dag
+        else:
+            if getattr(self.gate, "_standard_gate", None):
+                circ_data = self._inner_decomposer.to_circuit(
+                    np.asarray(unitary, dtype=complex),
+                    self.gate,
+                    basis_fidelity,
+                    approximate,
+                    _num_basis_uses=_num_basis_uses,
+                )
+                return QuantumCircuit._from_circuit_data(circ_data)
+            else:
+                sequence = self._inner_decomposer(
+                    np.asarray(unitary, dtype=complex),
+                    basis_fidelity,
+                    approximate,
+                    _num_basis_uses=_num_basis_uses,
+                )
+                q = QuantumRegister(2)
+                circ = QuantumCircuit(q, global_phase=sequence.global_phase)
+                for gate, params, qubits in sequence:
+                    if gate is None:
+                        circ._append(self.gate, qargs=tuple(q[x] for x in qubits))
+                    else:
+                        inst = CircuitInstruction.from_standard(
+                            gate, qubits=tuple(q[x] for x in qubits), params=params
+                        )
+                        circ._append(inst)
+                return circ
 
     def traces(self, target):
         r"""
@@ -641,98 +699,9 @@ class TwoQubitBasisDecomposer:
         return self._inner_decomposer.traces(target._inner_decomposition)
 
 
-class TwoQubitDecomposeUpToDiagonal:
-    """
-    Class to decompose two qubit unitaries into the product of a diagonal gate
-    and another unitary gate which can be represented by two CX gates instead of the
-    usual three. This can be used when neighboring gates commute with the diagonal to
-    potentially reduce overall CX count.
-    """
-
-    def __init__(self):
-        sy = np.array([[0, -1j], [1j, 0]])
-        self.sysy = np.kron(sy, sy)
-
-    def _u4_to_su4(self, u4):
-        phase_factor = np.conj(np.linalg.det(u4) ** (-1 / u4.shape[0]))
-        su4 = u4 / phase_factor
-        return su4, cmath.phase(phase_factor)
-
-    def _gamma(self, mat):
-        """
-        proposition II.1: this invariant characterizes when two operators in U(4),
-        say u, v, are equivalent up to single qubit gates:
-
-           u ≡ v -> Det(γ(u)) = Det(±(γ(v)))
-        """
-        sumat, _ = self._u4_to_su4(mat)
-        sysy = self.sysy
-        return sumat @ sysy @ sumat.T @ sysy
-
-    def _cx0_test(self, mat):
-        # proposition III.1: zero cx sufficient
-        gamma = self._gamma(mat)
-        evals = np.linalg.eigvals(gamma)
-        return np.all(np.isclose(evals, np.ones(4)))
-
-    def _cx1_test(self, mat):
-        # proposition III.2: one cx sufficient
-        gamma = self._gamma(mat)
-        evals = np.linalg.eigvals(gamma)
-        uvals, ucnts = np.unique(np.round(evals, 10), return_counts=True)
-        return (
-            len(uvals) == 2
-            and all(ucnts == 2)
-            and all((np.isclose(x, 1j)) or np.isclose(x, -1j) for x in uvals)
-        )
-
-    def _cx2_test(self, mat):
-        # proposition III.3: two cx sufficient
-        gamma = self._gamma(mat)
-        return np.isclose(np.trace(gamma).imag, 0)
-
-    def _real_trace_transform(self, mat):
-        """
-        Determine diagonal gate such that
-
-        U3 = D U2
-
-        Where U3 is a general two-qubit gate which takes 3 cnots, D is a
-        diagonal gate, and U2 is a gate which takes 2 cnots.
-        """
-        a1 = (
-            -mat[1, 3] * mat[2, 0]
-            + mat[1, 2] * mat[2, 1]
-            + mat[1, 1] * mat[2, 2]
-            - mat[1, 0] * mat[2, 3]
-        )
-        a2 = (
-            mat[0, 3] * mat[3, 0]
-            - mat[0, 2] * mat[3, 1]
-            - mat[0, 1] * mat[3, 2]
-            + mat[0, 0] * mat[3, 3]
-        )
-        theta = 0  # arbitrary
-        phi = 0  # arbitrary
-        psi = np.arctan2(a1.imag + a2.imag, a1.real - a2.real) - phi
-        diag = np.diag(np.exp(-1j * np.array([theta, phi, psi, -(theta + phi + psi)])))
-        return diag
-
-    def __call__(self, mat):
-        """do the decomposition"""
-        su4, phase = self._u4_to_su4(mat)
-        real_map = self._real_trace_transform(su4)
-        mapped_su4 = real_map @ su4
-        if not self._cx2_test(mapped_su4):
-            warnings.warn("Unitary decomposition up to diagonal may use an additionl CX gate.")
-        circ = two_qubit_cnot_decompose(mapped_su4)
-        circ.global_phase += phase
-        return real_map.conj(), circ
-
-
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
 # always made ``two_qubit_cnot_decompose`` available publicly immediately on import, but it's quite
-# expensive to construct, and we want to defer the obejct's creation until it's actually used.  We
+# expensive to construct, and we want to defer the object's creation until it's actually used.  We
 # only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
 # doesn't work because it is only called if the normal resolution methods fail.  Using
 # `__getattribute__` is too messy for a simple one-off use object.

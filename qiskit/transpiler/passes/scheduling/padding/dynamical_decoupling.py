@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,9 +26,9 @@ from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
+from qiskit.transpiler.passes.scheduling.padding.base_padding import BasePadding
 from qiskit.transpiler.target import Target
 
-from .base_padding import BasePadding
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ class PadDynamicalDecoupling(BasePadding):
                 will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits: If True, does not insert DD on idle periods that
                 immediately follow initialized/reset qubits
-                (as qubits in the ground state are less susceptile to decoherence).
+                (as qubits in the ground state are less susceptible to decoherence).
             pulse_alignment: The hardware constraints for gate timing allocation.
                 This is usually provided from ``backend.configuration().timing_constraints``.
                 If provided, the delay length, i.e. ``spacing``, is implicitly adjusted to
@@ -179,8 +179,30 @@ class PadDynamicalDecoupling(BasePadding):
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
 
+    def _update_inst_durations(self, dag):
+        """Update instruction durations with circuit information. If the dag contains gate
+        calibrations and no instruction durations were provided through the target or as a
+        standalone input, the circuit calibration durations will be used.
+        The priority order for instruction durations is: target > standalone > circuit.
+        """
+        circ_durations = InstructionDurations()
+
+        if dag.calibrations:
+            cal_durations = []
+            for gate, gate_cals in dag.calibrations.items():
+                for (qubits, parameters), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            circ_durations.update(cal_durations, circ_durations.dt)
+
+        if self._durations is not None:
+            circ_durations.update(self._durations, getattr(self._durations, "dt", None))
+
+        return circ_durations
+
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)
+
+        durations = self._update_inst_durations(dag)
 
         num_pulses = len(self._dd_sequence)
 
@@ -245,7 +267,7 @@ class PadDynamicalDecoupling(BasePadding):
                             f"is not acceptable in {self.__class__.__name__} pass."
                         )
                 except KeyError:
-                    gate_length = self._durations.get(gate, physical_index)
+                    gate_length = durations.get(gate, physical_index)
                 sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
                 gate = gate.to_mutable()
@@ -289,7 +311,7 @@ class PadDynamicalDecoupling(BasePadding):
         # slack = 992 dt - 4 x 160 dt = 352 dt
         #
         # unconstraind sequence: 44dt-X1-88dt-Y2-88dt-X3-88dt-Y4-44dt
-        # constraind sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
+        # constrained sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
         #
         # Now we evenly split extra slack into start and end of the sequence.
         # The distributed slack should be multiple of 16.
@@ -339,17 +361,17 @@ class PadDynamicalDecoupling(BasePadding):
             theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
             if isinstance(next_node, DAGOpNode) and isinstance(next_node.op, (UGate, U3Gate)):
                 # Absorb the inverse into the successor (from left in circuit)
-                theta_r, phi_r, lam_r = next_node.op.params
-                next_node.op.params = Optimize1qGates.compose_u3(
-                    theta_r, phi_r, lam_r, theta, phi, lam
-                )
+                op = next_node.op
+                theta_r, phi_r, lam_r = op.params
+                op.params = Optimize1qGates.compose_u3(theta_r, phi_r, lam_r, theta, phi, lam)
+                next_node.op = op
                 sequence_gphase += phase
             elif isinstance(prev_node, DAGOpNode) and isinstance(prev_node.op, (UGate, U3Gate)):
                 # Absorb the inverse into the predecessor (from right in circuit)
-                theta_l, phi_l, lam_l = prev_node.op.params
-                prev_node.op.params = Optimize1qGates.compose_u3(
-                    theta, phi, lam, theta_l, phi_l, lam_l
-                )
+                op = prev_node.op
+                theta_l, phi_l, lam_l = op.params
+                op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
+                prev_node.op = op
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse

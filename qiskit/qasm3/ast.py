@@ -123,8 +123,19 @@ class FloatType(ClassicalType, enum.Enum):
     OCT = 256
 
 
+class BoolType(ClassicalType):
+    """Type information for a Boolean."""
+
+
 class IntType(ClassicalType):
     """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class UintType(ClassicalType):
+    """Type information for an unsigned integer."""
 
     def __init__(self, size: Optional[int] = None):
         self.size = size
@@ -241,6 +252,8 @@ class Binary(Expression):
         GREATER_EQUAL = ">="
         EQUAL = "=="
         NOT_EQUAL = "!="
+        SHIFT_LEFT = "<<"
+        SHIFT_RIGHT = ">>"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -252,6 +265,12 @@ class Cast(Expression):
     def __init__(self, type: ClassicalType, operand: Expression):
         self.type = type
         self.operand = operand
+
+
+class Index(Expression):
+    def __init__(self, target: Expression, index: Expression):
+        self.target = target
+        self.index = index
 
 
 class IndexSet(ASTNode):
@@ -298,7 +317,7 @@ class Designator(ASTNode):
 
 
 class ClassicalDeclaration(Statement):
-    """Declaration of a classical type, optionally initialising it to a value."""
+    """Declaration of a classical type, optionally initializing it to a value."""
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_
@@ -437,39 +456,23 @@ class SubroutineBlock(ProgramBlock):
     pass
 
 
-class QuantumArgument(QuantumDeclaration):
-    """
-    quantumArgument
-        : 'qreg' Identifier designator? | 'qubit' designator? Identifier
-    """
-
-
-class QuantumGateSignature(ASTNode):
-    """
-    quantumGateSignature
-        : quantumGateName ( LPAREN identifierList? RPAREN )? identifierList
-    """
-
-    def __init__(
-        self,
-        name: Identifier,
-        qargList: List[Identifier],
-        params: Optional[List[Expression]] = None,
-    ):
-        self.name = name
-        self.qargList = qargList
-        self.params = params
-
-
 class QuantumGateDefinition(Statement):
     """
     quantumGateDefinition
         : 'gate' quantumGateSignature quantumBlock
     """
 
-    def __init__(self, quantumGateSignature: QuantumGateSignature, quantumBlock: QuantumBlock):
-        self.quantumGateSignature = quantumGateSignature
-        self.quantumBlock = quantumBlock
+    def __init__(
+        self,
+        name: Identifier,
+        params: Tuple[Identifier, ...],
+        qubits: Tuple[Identifier, ...],
+        body: QuantumBlock,
+    ):
+        self.name = name
+        self.params = params
+        self.qubits = qubits
+        self.body = body
 
 
 class SubroutineDefinition(Statement):

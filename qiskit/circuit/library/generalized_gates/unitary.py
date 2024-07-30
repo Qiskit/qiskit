@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,6 +18,7 @@ import math
 import typing
 import numpy
 
+from qiskit import _numpy_compat
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
@@ -29,13 +30,7 @@ from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-# pylint: disable=cyclic-import
-from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.synthesis.two_qubit.two_qubit_decompose import two_qubit_cnot_decompose
-
 from .isometry import Isometry
-
-_DECOMPOSER1Q = OneQubitEulerDecomposer("U")
 
 if typing.TYPE_CHECKING:
     from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -118,10 +113,10 @@ class UnitaryGate(Gate):
             return False
         return matrix_equal(self.params[0], other.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         """Return matrix for the unitary."""
-        # pylint: disable=unused-argument
-        return self.params[0]
+        dtype = self.params[0].dtype if dtype is None else dtype
+        return numpy.array(self.params[0], dtype=dtype, copy=copy)
 
     def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
@@ -142,13 +137,21 @@ class UnitaryGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
+            from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
+
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
-            theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
+            theta, phi, lam, global_phase = OneQubitEulerDecomposer("U").angles_and_phase(
+                self.to_matrix()
+            )
             qc._append(UGate(theta, phi, lam), [q[0]], [])
             qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
+            from qiskit.synthesis.two_qubit.two_qubit_decompose import (  # pylint: disable=cyclic-import
+                two_qubit_cnot_decompose,
+            )
+
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
             from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
@@ -162,7 +165,7 @@ class UnitaryGate(Gate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ) -> ControlledGate | AnnotatedOperation:
         """Return controlled version of gate.
 
@@ -171,8 +174,8 @@ class UnitaryGate(Gate):
             label: Optional gate label.
             ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
                 If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             Controlled version of gate.
