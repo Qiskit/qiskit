@@ -51,7 +51,7 @@ def deprecate_func(
         is_property: If the deprecated function is a `@property`, set this to True so that the
             generated message correctly describes it as such. (This isn't necessary for
             property setters, as their docstring is ignored by Python.)
-        stacklevel: It will be pass to :func:`warnings.warn`.
+        stacklevel: Stack level passed to :func:`warnings.warn`.
     Returns:
         Callable: The decorated callable.
     """

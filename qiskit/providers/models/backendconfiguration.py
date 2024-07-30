@@ -42,9 +42,10 @@ class GateConfig:
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
-        "that probably means that they are using a backend based on the "
-        "deprecated BackendV1 class.",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
         stacklevel=3,
     )
     def __init__(
@@ -153,9 +154,10 @@ class UchannelLO:
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="This class is not necessary for BackendV2. If user still need Qobj, "
-        "that probably means that they are using a backend based on the "
-        "deprecated BackendV1 class.",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
     )
     def __init__(self, q, scale):
         """Initialize a UchannelLOSchema object
@@ -230,9 +232,9 @@ class QasmBackendConfiguration:
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
-        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
-        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
         stacklevel=3,
     )
@@ -521,9 +523,9 @@ class BackendConfiguration(QasmBackendConfiguration):
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
-        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
-        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
         stacklevel=3,
     )
@@ -539,9 +541,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
-        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
-        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
         "should be updated to use `BackendV2`.",
         stacklevel=3,
     )

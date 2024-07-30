@@ -63,7 +63,7 @@ class FakeQasmBackend(FakeBackend):
         props = self._load_json(self.props_filename)
         decode_backend_properties(props)
         with warnings.catch_warnings():
-            # This raises BackendProperties internally
+            # This raises the BackendProperties deprecation warning internally
             warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             self._properties = BackendProperties.from_dict(props)
 

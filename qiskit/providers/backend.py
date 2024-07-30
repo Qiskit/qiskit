@@ -75,10 +75,9 @@ class BackendV1(Backend, ABC):
     @deprecate_func(
         since="1.2",
         removal_timeline="in the 2.0 release",
-        additional_msg="If this backend is only a hardware description, consider constructing a "
-        "Target. If the provider also provides access for execution, it can construct "
-        "Primitives. Alternatebly, consider moving to BackendV2 "
-        "(see https://qisk.it/backendV1-to-V2).",
+        additional_msg="If the backend only encapsulates a hardware description, consider constructing a "
+        "Target directly. If it is part of a provider that gives access to execution, consider using Primitives instead. "
+        "Alternatively, consider moving to BackendV2 (see https://qisk.it/backendV1-to-V2).",
     )
     def __init__(self, configuration, provider=None, **fields):
         """Initialize a backend class

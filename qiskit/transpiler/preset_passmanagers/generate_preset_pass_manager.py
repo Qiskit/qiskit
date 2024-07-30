@@ -333,7 +333,7 @@ def generate_preset_pass_manager(
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
             with warnings.catch_warnings():
-                # TODO this branch (targe-to-properties) is going to be removed soon (1.3) in favor
+                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
                 #   of backend-to-target approach
                 warnings.filterwarnings(
                     "ignore",

@@ -237,9 +237,6 @@ class BasicSimulator(BackendV2):
         ]
 
         with warnings.catch_warnings():
-            # This is a temporary conversion step to allow for a smoother transition
-            # to a fully target-based transpiler pipeline while maintaining the behavior
-            # of `transpile` with BackendV1 inputs.
             # TODO Provider models are deprecated
             #   https://github.com/Qiskit/qiskit/issues/12843
             warnings.filterwarnings(
