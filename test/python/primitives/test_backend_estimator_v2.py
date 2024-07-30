@@ -411,7 +411,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 [(circuit, hamiltonian)], precision=self._precision
             )
             result = job.result()
-            np.testing.assert_array_less(result[0].data.stds, [self._precision] * len(hamiltonian))
+            np.testing.assert_array_less(result[0].data.stds, self._precision)
 
     def test_precision_with_zero_coefficients(self):
         """Test that errors are within user-specified precision when all observable term coefficients are zero"""
