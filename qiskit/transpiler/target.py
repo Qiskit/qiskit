@@ -1169,9 +1169,11 @@ Mapping.register(Target)
 @deprecate_func(
     since="1.2",
     removal_timeline="in the 2.0 release",
-    additional_msg="This method is used to build an element from the deprecated ``qiskit.providers.models`` module. "
-        "These models are part of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user workflow requires these representations it likely relies on deprecated functionality and "
-        "should be updated to use `BackendV2`.",
+    additional_msg="This method is used to build an element from the deprecated "
+    "``qiskit.providers.models`` module. These models are part of the deprecated `BackendV1` "
+    "workflow and no longer necessary for `BackendV2`. If a user workflow requires these "
+    "representations it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
 )
 def target_to_backend_properties(target: Target):
     """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
