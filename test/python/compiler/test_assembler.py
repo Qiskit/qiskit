@@ -63,7 +63,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.circ.cx(qr[0], qr[1])
         self.circ.measure(qr, cr)
 
-        self.backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake5QV1()
         self.backend_config = self.backend.configuration()
         self.num_qubits = self.backend_config.n_qubits
 
@@ -591,7 +592,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.h(0)
         circ.add_calibration("h", [0], custom_h_schedule)
 
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         backend.configuration().parametric_pulses = ["drag"]
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(circ, backend)
@@ -974,7 +976,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
         test_pulse = pulse.Waveform(
@@ -1282,7 +1285,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts_in_other_schedule(self):
         """Test two pulses with the same name in different schedule can be resolved."""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         defaults = backend.defaults()
 
         schedules = []
@@ -1390,7 +1394,8 @@ class TestPulseAssembler(QiskitTestCase):
             )
             << sched.duration
         )
-        backend = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = [
             "gaussian",
             "drag",
@@ -1437,7 +1442,8 @@ class TestPulseAssembler(QiskitTestCase):
         )
         sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
-        backend = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = ["something_extra"]
 
         with self.assertWarns(DeprecationWarning):
@@ -1449,7 +1455,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg over backend"""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1465,7 +1472,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg as empty list over backend"""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1822,7 +1830,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         super().setUp()
         self.schedule = pulse.Schedule(name="fake_experiment")
 
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.qubit_lo_freq = list(self.defaults.qubit_freq_est)
@@ -1963,7 +1972,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_unsupported_meas_level(self):
         """Test that assembly raises an error if meas_level is not supported"""
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         backend.configuration().meas_levels = [1, 2]
         with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
@@ -1983,7 +1993,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_single_and_deprecated_acquire_styles(self):
         """Test that acquires are identically combined with Acquires that take a single channel."""
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         new_style_schedule = Schedule()
         acq_dur = 1200
         for i in range(2):
