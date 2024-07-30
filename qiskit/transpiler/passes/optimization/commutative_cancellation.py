@@ -16,6 +16,7 @@ from collections import defaultdict
 import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
@@ -103,6 +104,8 @@ class CommutativeCancellation(TransformationPass):
                     continue
                 for node in com_set:
                     num_qargs = len(node.qargs)
+                    if any(isinstance(p, ParameterExpression) for p in node.params):
+                        continue  # no support for cancellation of parameterized gates
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ["p", "z", "u1", "rz", "t", "s"]:

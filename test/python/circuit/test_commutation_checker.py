@@ -40,6 +40,7 @@ from qiskit.circuit.library import (
     LinearFunction,
     SGate,
     RXXGate,
+    RZXGate,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -266,6 +267,11 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertEqual(len(rz_gate_theta.params), 1)
         self.assertTrue(rz_gate_theta.is_parameterized())
 
+        # multi qubit rotation
+        rzx_gate_alpha = RZXGate(Parameter("Alpha"))
+        self.assertEqual(len(rzx_gate_alpha.params), 1)
+        self.assertTrue(rzx_gate_alpha.is_parameterized())
+
         # gate that has no parameters and is not considered parameterized
         cx_gate = CXGate()
         self.assertEqual(len(cx_gate.params), 0)
@@ -291,15 +297,19 @@ class TestCommutationChecker(QiskitTestCase):
         res = scc.commute(rz_gate_theta, [2], [], cx_gate, [1, 3], [])
         self.assertTrue(res)
 
-        # However, for now commutativity checker should return False when checking
-        # commutativity between a parameterized gate and some other gate, when
-        # the two gates are over intersecting qubit subsets.
-        # This check should be changed if commutativity checker is extended to
-        # handle parameterized gates better.
+        # We should detect parameterized gates that always commute no matter their
+        # parameter value
         res = scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], [])
-        self.assertFalse(res)
+        self.assertTrue(res)
 
         res = scc.commute(rz_gate_theta, [0], [], rz_gate, [0], [])
+        self.assertTrue(res)
+
+        # We also test multi qubit rotations
+        res = scc.commute(rzx_gate_alpha, [0, 1], [], cx_gate, [0, 1], [])
+        self.assertTrue(res)
+
+        res = scc.commute(rzx_gate_alpha, [1, 0], [], cx_gate, [0, 1], [])
         self.assertFalse(res)
 
     def test_measure(self):
@@ -358,18 +368,29 @@ class TestCommutationChecker(QiskitTestCase):
 
         # Currently, in all cases commutativity checker should returns False.
         # This is definitely suboptimal.
-        res = scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], [])
-        self.assertFalse(res)
-
-        res = scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], [])
-        self.assertFalse(res)
-
         res = scc.commute(
-            CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], CXGate().c_if(cr[0], 0), [qr[0], qr[1]], []
+            CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], []
         )
         self.assertFalse(res)
 
-        res = scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], [])
+        res = scc.commute(
+            CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], []
+        )
+        self.assertFalse(res)
+
+        res = scc.commute(
+            CXGate().c_if(cr[0], 0),
+            [qr[0], qr[1]],
+            [],
+            CXGate().c_if(cr[0], 0),
+            [qr[0], qr[1]],
+            [],
+        )
+        self.assertFalse(res)
+
+        res = scc.commute(
+            XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []
+        )
         self.assertFalse(res)
 
         res = scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], [])

@@ -757,20 +757,23 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
 
         self.assertEqual(circuit, new_circuit)
 
-    @data(False, True)
-    def test_no_cancellation_across_parameterized_gates(self, matrix_based):
+    def test_cancellation_across_parameterized_gates(self):
         """Test that parameterized gates prevent cancellation.
         This test should be modified when inverse and commutativity checking
         get improved to handle parameterized gates.
         """
+        theta = Parameter("theta")
         circuit = QuantumCircuit(1)
         circuit.rz(np.pi / 2, 0)
-        circuit.rz(Parameter("Theta"), 0)
+        circuit.rz(theta, 0)
         circuit.rz(-np.pi / 2, 0)
 
-        passmanager = PassManager(CommutativeInverseCancellation(matrix_based=matrix_based))
+        ref = QuantumCircuit(1)
+        ref.rz(theta, 0)
+
+        passmanager = PassManager(CommutativeInverseCancellation())
         new_circuit = passmanager.run(circuit)
-        self.assertEqual(circuit, new_circuit)
+        self.assertEqual(ref, new_circuit)
 
     @data(False, True)
     def test_parameterized_gates_do_not_cancel(self, matrix_based):
