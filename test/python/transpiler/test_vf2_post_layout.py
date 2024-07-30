@@ -26,7 +26,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP
+from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP, BOGOTA_CMAP
 
 
 class TestVF2PostLayout(QiskitTestCase):
@@ -183,29 +183,6 @@ class TestVF2PostLayout(QiskitTestCase):
             vf2_pass.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.MORE_THAN_2Q
         )
 
-    def test_best_mapping_ghz_state_full_device_multiple_qregs(self):
-        """Test best mappings with multiple registers"""
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        qr_a = QuantumRegister(2)
-        qr_b = QuantumRegister(3)
-        qc = QuantumCircuit(qr_a, qr_b)
-        qc.h(qr_a[0])
-        qc.cx(qr_a[0], qr_a[1])
-        qc.cx(qr_a[0], qr_b[0])
-        qc.cx(qr_a[0], qr_b[1])
-        qc.cx(qr_a[0], qr_b[2])
-        qc.measure_all()
-        tqc = transpile(qc, backend, seed_transpiler=self.seed, layout_method="trivial")
-        initial_layout = tqc._layout
-        dag = circuit_to_dag(tqc)
-        cmap = CouplingMap(backend.configuration().coupling_map)
-        props = backend.properties()
-        pass_ = VF2PostLayout(coupling_map=cmap, properties=props, seed=self.seed)
-        pass_.run(dag)
-        self.assertLayout(dag, cmap, pass_.property_set)
-        self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
-
     def test_2q_circuit_5q_backend(self):
         """A simple example, without considering the direction
           0 - 1
@@ -217,7 +194,11 @@ class TestVF2PostLayout(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
-        tqc = transpile(circuit, backend, layout_method="dense")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
@@ -259,13 +240,51 @@ class TestVF2PostLayout(QiskitTestCase):
         qr1 - qr0
         """
         max_trials = 11
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            seed=1,
+        )
+
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        tqc = transpile(circuit, backend, layout_method="dense")
+        initial_layout = tqc._layout
+        dag = circuit_to_dag(tqc)
+        cmap = CouplingMap(backend.coupling_map)
+        pass_ = VF2PostLayout(target=backend.target, seed=self.seed, max_trials=max_trials)
+        with self.assertLogs(
+            "qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG"
+        ) as cm:
+            pass_.run(dag)
+        self.assertIn(
+            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials} "
+            f"is >= configured max trials {max_trials}",
+            cm.output,
+        )
+        print(pass_.property_set["VF2PostLayout_stop_reason"])
+        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
+
+    def test_2q_circuit_5q_backend_max_trials_v1(self):
+        """A simple example, without considering the direction
+          0 - 1
+        qr1 - qr0
+        """
+        max_trials = 11
         with self.assertWarns(DeprecationWarning):
             backend = Fake5QV1()
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
-        tqc = transpile(circuit, backend, layout_method="dense")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
@@ -287,7 +306,7 @@ class TestVF2PostLayout(QiskitTestCase):
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 
-    def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):
+    def test_best_mapping_ghz_state_full_device_multiple_qregs(self):
         """Test best mappings with multiple registers"""
         backend = GenericBackendV2(
             num_qubits=5,
@@ -635,6 +654,32 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
 
     def test_best_mapping_ghz_state_full_device_multiple_qregs(self):
         """Test best mappings with multiple registers"""
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            seed=8,
+        )
+        qr_a = QuantumRegister(2)
+        qr_b = QuantumRegister(3)
+        qc = QuantumCircuit(qr_a, qr_b)
+        qc.h(qr_a[0])
+        qc.cx(qr_a[0], qr_a[1])
+        qc.cx(qr_a[0], qr_b[0])
+        qc.cx(qr_a[0], qr_b[1])
+        qc.cx(qr_a[0], qr_b[2])
+        qc.measure_all()
+        tqc = transpile(qc, seed_transpiler=self.seed, layout_method="trivial")
+        initial_layout = tqc._layout
+        dag = circuit_to_dag(tqc)
+        cmap = CouplingMap(backend.coupling_map)
+        pass_ = VF2PostLayout(target=backend.target, seed=self.seed, strict_direction=False)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
+
+    def test_best_mapping_ghz_state_full_device_multiple_qregs_v1(self):
+        """Test best mappings with multiple registers"""
         with self.assertWarns(DeprecationWarning):
             backend = Fake5QV1()
         qr_a = QuantumRegister(2)
@@ -646,7 +691,11 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         qc.cx(qr_a[0], qr_b[1])
         qc.cx(qr_a[0], qr_b[2])
         qc.measure_all()
-        tqc = transpile(qc, backend, seed_transpiler=self.seed, layout_method="trivial")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            tqc = transpile(qc, backend, seed_transpiler=self.seed, layout_method="trivial")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
@@ -663,13 +712,40 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
           0 - 1
         qr1 - qr0
         """
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=BOGOTA_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        tqc = transpile(circuit, backend, layout_method="dense")
+        initial_layout = tqc._layout
+        dag = circuit_to_dag(tqc)
+        cmap = CouplingMap(backend.coupling_map)
+        pass_ = VF2PostLayout(target=backend.target, seed=self.seed, strict_direction=False)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
+
+    def test_2q_circuit_5q_backend_v1(self):
+        """A simple example, without considering the direction
+          0 - 1
+        qr1 - qr0
+        """
         with self.assertWarns(DeprecationWarning):
             backend = Fake5QV1()
 
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
-        tqc = transpile(circuit, backend, layout_method="dense")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)

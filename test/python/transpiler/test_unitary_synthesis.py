@@ -65,6 +65,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
     FakeMumbaiFractionalCX,
 )
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 
 class FakeBackend2QV2(GenericBackendV2):
@@ -674,8 +675,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            calibrate_instructions=True,
+            pulse_channels=True,
+            seed=42,
+        )
         tqc = transpile(
             circ,
             backend=backend,
@@ -687,7 +694,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertTrue(
             all(
                 (
-                    (0, 1) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
+                    (1, 0) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
                     for instr in tqc.get_instructions("cx")
                 )
             )
