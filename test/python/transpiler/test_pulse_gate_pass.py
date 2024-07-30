@@ -57,6 +57,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_bare_backend(self):
         """Test transpile without custom calibrations."""
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         # Remove timing constraints to avoid triggering
         # scheduling passes.
@@ -69,7 +70,11 @@ class TestPulseGate(QiskitTestCase):
         qc.sx(1)
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
 
         ref_calibration = {}
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
@@ -96,6 +101,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_custom_basis_gate(self):
         """Test transpile with custom calibrations."""
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add("sx", (0,), self.custom_sx_q0)
         backend.defaults().instruction_schedule_map.add("sx", (1,), self.custom_sx_q1)
@@ -110,7 +116,11 @@ class TestPulseGate(QiskitTestCase):
         qc.sx(1)
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
 
         ref_calibration = {
             "sx": {
@@ -154,6 +164,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_instmap(self):
         """Test providing instruction schedule map."""
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         instmap = backend.defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
@@ -161,6 +172,7 @@ class TestPulseGate(QiskitTestCase):
 
         # Inst map is renewed
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         # Remove timing constraints to avoid triggering
         # scheduling passes.
@@ -173,7 +185,11 @@ class TestPulseGate(QiskitTestCase):
         qc.sx(1)
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, backend, inst_map=instmap, initial_layout=[0, 1])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, inst_map=instmap, initial_layout=[0, 1])
 
         ref_calibration = {
             "sx": {
@@ -186,6 +202,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_custom_gate(self):
         """Test providing non-basis gate."""
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add(
             "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
@@ -208,7 +225,11 @@ class TestPulseGate(QiskitTestCase):
         qc.append(circuit.Gate("my_gate", 1, [1.0]), [0])
         qc.append(circuit.Gate("my_gate", 1, [2.0]), [1])
 
-        transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0, 1])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0, 1])
 
         my_gate_q0_1_0 = self.my_gate_q0.assign_parameters({self.sched_param: 1.0}, inplace=False)
         my_gate_q1_2_0 = self.my_gate_q1.assign_parameters({self.sched_param: 2.0}, inplace=False)
@@ -224,6 +245,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_parameterized_custom_gate(self):
         """Test providing non-basis gate, which is kept parameterized throughout transpile."""
         with self.assertWarns(DeprecationWarning):
+            # TODO convert this to BackendV2/Target
             backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add(
             "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
@@ -243,7 +265,11 @@ class TestPulseGate(QiskitTestCase):
         qc = circuit.QuantumCircuit(1)
         qc.append(circuit.Gate("my_gate", 1, [param]), [0])
 
-        transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
 
         my_gate_q0_p = self.my_gate_q0.assign_parameters({self.sched_param: param}, inplace=False)
 
@@ -257,6 +283,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_multiple_circuits(self):
         """Test transpile with multiple circuits with custom gate."""
         with self.assertWarns(DeprecationWarning):
+            # TODO move this test to backendV2
             backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add(
             "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
@@ -279,7 +306,11 @@ class TestPulseGate(QiskitTestCase):
             qc.append(circuit.Gate("my_gate", 1, [param]), [0])
             circs.append(qc)
 
-        transpiled_qcs = transpile(circs, backend, basis_gates=["my_gate"], initial_layout=[0])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qcs = transpile(circs, backend, basis_gates=["my_gate"], initial_layout=[0])
 
         for param, transpiled_qc in zip(params, transpiled_qcs):
             my_gate_q0_x = self.my_gate_q0.assign_parameters(
@@ -291,6 +322,7 @@ class TestPulseGate(QiskitTestCase):
     def test_multiple_instructions_with_different_parameters(self):
         """Test adding many instruction with different parameter binding."""
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add(
             "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
@@ -311,7 +343,11 @@ class TestPulseGate(QiskitTestCase):
         qc.append(circuit.Gate("my_gate", 1, [2.0]), [0])
         qc.append(circuit.Gate("my_gate", 1, [3.0]), [0])
 
-        transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
 
         my_gate_q0_1_0 = self.my_gate_q0.assign_parameters({self.sched_param: 1.0}, inplace=False)
         my_gate_q0_2_0 = self.my_gate_q0.assign_parameters({self.sched_param: 2.0}, inplace=False)
@@ -329,6 +365,7 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_different_qubit(self):
         """Test transpile with qubit without custom gate."""
         with self.assertWarns(DeprecationWarning):
+            # TODO Move this test to backendV2
             backend = Fake27QPulseV1()
         backend.defaults().instruction_schedule_map.add("sx", (0,), self.custom_sx_q0)
         # Remove timing constraints to avoid triggering
@@ -339,7 +376,11 @@ class TestPulseGate(QiskitTestCase):
         qc.sx(0)
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, backend, initial_layout=[3])
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            transpiled_qc = transpile(qc, backend, initial_layout=[3])
 
         self.assertDictEqual(transpiled_qc.calibrations, {})
 
