@@ -1058,7 +1058,7 @@ impl DAGCircuit {
         &mut self,
         py: Python<'py>,
         mut gate: Bound<'py, PyAny>,
-        mut qubits: Bound<'py, PyAny>,
+        qubits: Bound<'py, PyAny>,
         schedule: Py<PyAny>,
         mut params: Option<Bound<'py, PyAny>>,
     ) -> PyResult<()> {
@@ -1105,9 +1105,11 @@ def _format(operand):
             .or_insert_with(|| PyDict::new_bound(py).unbind())
             .bind(py);
 
-        if !qubits.is_instance_of::<PyTuple>() {
-            qubits = PyTuple::new_bound(py, [qubits]).into_any();
-        }
+        let qubits = if let Ok(qubits) = qubits.downcast::<PySequence>() {
+            qubits.to_tuple()?.into_any()
+        } else {
+            PyTuple::new_bound(py, [qubits]).into_any()
+        };
 
         calibrations.set_item((qubits, params.unwrap()).to_object(py), schedule)?;
         Ok(())
