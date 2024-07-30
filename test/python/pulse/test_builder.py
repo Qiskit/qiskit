@@ -766,9 +766,12 @@ class TestBuilderComposition(TestBuilder):
             qc = circuit.QuantumCircuit(2)
             for idx in qubit_idx:
                 qc.append(circuit.library.U2Gate(0, pi / 2), [idx])
-            return compiler.schedule(
-                compiler.transpile(qc, backend=backend, optimization_level=1), backend
-            )
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="The function transpile will stop supporting BackendV1",
+            ):
+                transpiled = compiler.transpile(qc, backend=backend, optimization_level=1)
+            return compiler.schedule(transpiled, backend)
 
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
@@ -788,7 +791,11 @@ class TestBuilderComposition(TestBuilder):
         # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
         single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        single_u2_qc = compiler.transpile(single_u2_qc, self.backend, optimization_level=1)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            single_u2_qc = compiler.transpile(single_u2_qc, self.backend, optimization_level=1)
         single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
 
         # sequential context
@@ -813,7 +820,11 @@ class TestBuilderComposition(TestBuilder):
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend, optimization_level=1)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The function transpile will stop supporting BackendV1",
+        ):
+            triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend, optimization_level=1)
         align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")
 
         # measurement
