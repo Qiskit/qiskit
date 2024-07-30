@@ -391,7 +391,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     def test_precision_and_stds(self):
         """Test that errors are within user-specified precision"""
         backend = BasicSimulator()
-        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator = BackendEstimatorV2(backend=backend)
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.cx(0,1)
@@ -415,7 +415,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     def test_precision_with_zero_coefficients(self):
         """Test that errors are within user-specified precision when all observable term coefficients are zero"""
         backend = BasicSimulator()
-        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator = BackendEstimatorV2(backend=backend)
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.cx(0,1)
