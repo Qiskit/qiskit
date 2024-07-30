@@ -1971,7 +1971,7 @@ def _format(operand):
                     }
                 }
             }
-            self.push_back(py, instr)?
+            self.push_front(py, instr)?
         };
 
         self.get_node(py, node)
