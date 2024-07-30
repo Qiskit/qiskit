@@ -629,7 +629,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_with_properties(self):
         """Test it finds the least noise perfect layout with no properties."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -643,7 +644,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_max_trials_exceeded(self):
         """Test it exits when max_trials is reached."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -663,7 +665,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_time_limit_exceeded(self):
         """Test the pass stops after time_limit is reached."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -685,9 +688,11 @@ class TestMultipleTrials(QiskitTestCase):
 
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {2, 0})
 
-    def test_reasonable_limits_for_simple_layouts(self):
-        """Test that the default trials is set to a reasonable number."""
-        backend = Fake127QPulseV1()
+    def test_reasonable_limits_for_simple_layouts_v1(self):
+        """Test that the default trials is set to a reasonable number.
+        REMOVE ONCE Fake127QPulseV1 IS GONE"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
         qc = QuantumCircuit(5)
         qc.cx(2, 3)
         qc.cx(0, 1)
@@ -704,9 +709,28 @@ class TestMultipleTrials(QiskitTestCase):
         )
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {57, 58, 61, 62, 0})
 
+    def test_reasonable_limits_for_simple_layouts(self):
+        """Test that the default trials is set to a reasonable number."""
+        backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
+        qc = QuantumCircuit(5)
+        qc.cx(2, 3)
+        qc.cx(0, 1)
+
+        # Run without any limits set
+        vf2_pass = VF2Layout(target=backend.target, seed=42)
+        property_set = {}
+        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
+            vf2_pass(qc, property_set)
+        self.assertIn(
+            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 717 is >= configured max trials 717",
+            cm.output,
+        )
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {16, 24, 6, 7, 0})
+
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qc = QuantumCircuit(3)
         qc.h(0)
         cmap = CouplingMap(backend.configuration().coupling_map)

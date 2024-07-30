@@ -454,7 +454,9 @@ impl StandardGate {
 
     pub fn __eq__(&self, other: &Bound<PyAny>) -> Py<PyAny> {
         let py = other.py();
-        let Ok(other) = other.extract::<Self>() else { return py.NotImplemented() };
+        let Ok(other) = other.extract::<Self>() else {
+            return py.NotImplemented();
+        };
         (*self == other).into_py(py)
     }
 

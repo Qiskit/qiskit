@@ -19,6 +19,7 @@ from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBac
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from ..legacy_cmaps import ALMADEN_CMAP
 
 
 class TestPassManagerConfig(QiskitTestCase):
@@ -30,7 +31,8 @@ class TestPassManagerConfig(QiskitTestCase):
         `Fake27QPulseV1` is used in this testcase. This backend has `defaults` attribute
         that contains an instruction schedule map.
         """
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
         self.assertEqual(config.inst_map, backend.defaults().instruction_schedule_map)
@@ -40,7 +42,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = GenericBackendV2(num_qubits=27)
+        backend = GenericBackendV2(num_qubits=27, seed=42)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.inst_map, backend.instruction_schedule_map)
@@ -51,16 +53,19 @@ class TestPassManagerConfig(QiskitTestCase):
         with self.assertRaises(AttributeError):
             PassManagerConfig.from_backend(Backend())
 
-    def test_from_backend_and_user(self):
+    def test_from_backend_and_user_v1(self):
         """Test from_backend() with a backend and user options.
 
         `FakeMelbourne` is used in this testcase. This backend does not have
         `defaults` attribute and thus not provide an instruction schedule map.
+
+        REMOVE AFTER Fake20QV1 GETS REMOVED.
         """
         qr = QuantumRegister(4, "qr")
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
-        backend = Fake20QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
         config = PassManagerConfig.from_backend(
             backend, basis_gates=["user_gate"], initial_layout=initial_layout
         )
@@ -72,9 +77,35 @@ class TestPassManagerConfig(QiskitTestCase):
         )
         self.assertEqual(config.initial_layout, initial_layout)
 
+    def test_from_backend_and_user(self):
+        """Test from_backend() with a backend and user options.
+
+        `FakeMelbourne` is used in this testcase. This backend does not have
+        `defaults` attribute and thus not provide an instruction schedule map.
+        """
+        qr = QuantumRegister(4, "qr")
+        initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
+
+        backend = GenericBackendV2(
+            num_qubits=20,
+            coupling_map=ALMADEN_CMAP,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            calibrate_instructions=None,
+            seed=42,
+        )
+        config = PassManagerConfig.from_backend(
+            backend, basis_gates=["user_gate"], initial_layout=initial_layout
+        )
+        self.assertEqual(config.basis_gates, ["user_gate"])
+        self.assertNotEqual(config.basis_gates, backend.operation_names)
+        self.assertEqual(config.inst_map.instructions, [])
+        self.assertEqual(str(config.coupling_map), str(CouplingMap(backend.coupling_map)))
+        self.assertEqual(config.initial_layout, initial_layout)
+
     def test_from_backendv1_inst_map_is_none(self):
         """Test that from_backend() works with backend that has defaults defined as None."""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         backend.defaults = lambda: None
         config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
@@ -82,8 +113,9 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
+        backend = GenericBackendV2(num_qubits=20, seed=42)
         with self.assertRaises(TypeError):
-            PassManagerConfig.from_backend(Fake20QV1(), invalid_option=None)
+            PassManagerConfig.from_backend(backend, invalid_option=None)
 
     def test_str(self):
         """Test string output."""

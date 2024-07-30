@@ -126,7 +126,9 @@ pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
 
 #[pyfunction]
 pub fn collect_2q_blocks_filter(node: &Bound<PyAny>) -> Option<bool> {
-    let Ok(node) = node.downcast::<DAGOpNode>() else { return None };
+    let Ok(node) = node.downcast::<DAGOpNode>() else {
+        return None;
+    };
     let node = node.borrow();
     match node.instruction.op() {
         gate @ (OperationRef::Standard(_) | OperationRef::Gate(_)) => Some(

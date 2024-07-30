@@ -266,7 +266,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
     @data(-np.pi / 4, 0.1, np.pi / 4, np.pi / 2, np.pi)
     def test_rzx_calibration_cr_pulse_stretch(self, theta: float):
         """Test that cross resonance pulse durations are computed correctly."""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         inst_map = backend.defaults().instruction_schedule_map
         cr_schedule = inst_map.get("cx", (0, 1))
         with builder.build() as test_sched:
@@ -279,7 +280,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
     @data(-np.pi / 4, 0.1, np.pi / 4, np.pi / 2, np.pi)
     def test_rzx_calibration_rotary_pulse_stretch(self, theta: float):
         """Test that rotary pulse durations are computed correctly."""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         inst_map = backend.defaults().instruction_schedule_map
         cr_schedule = inst_map.get("cx", (0, 1))
         with builder.build() as test_sched:
@@ -296,8 +298,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 0, 1)
         dag = circuit_to_dag(qc)
-
-        backend = Fake7QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         # The error is raised when calibrations in multi-qubit
         # gates are not detected.
         # We force this by removing the 'cx' entries from the
@@ -322,7 +324,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 0, 1)
 
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         inst_map = backend.defaults().instruction_schedule_map
         _pass = RZXCalibrationBuilder(inst_map)
         test_qc = PassManager(_pass).run(qc)
@@ -347,7 +350,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 1, 0)
 
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         inst_map = backend.defaults().instruction_schedule_map
         _pass = RZXCalibrationBuilder(inst_map)
         test_qc = PassManager(_pass).run(qc)
@@ -434,7 +438,8 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 0, 1)
 
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         inst_map = backend.defaults().instruction_schedule_map
 
         _pass = RZXCalibrationBuilderNoEcho(inst_map)

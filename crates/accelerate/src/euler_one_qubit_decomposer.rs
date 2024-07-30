@@ -1045,7 +1045,9 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
 
 #[pyfunction]
 pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
-    let Ok(node) = node.downcast::<DAGOpNode>() else { return false };
+    let Ok(node) = node.downcast::<DAGOpNode>() else {
+        return false;
+    };
     let node = node.borrow();
     let op = node.instruction.op();
     op.num_qubits() == 1

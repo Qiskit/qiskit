@@ -46,6 +46,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import deprecate_func
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -1078,7 +1079,7 @@ class QuantumCircuit:
         self.name: str
         """A human-readable name for the circuit."""
         if name is None:
-            self._base_name = self.cls_prefix()
+            self._base_name = self._cls_prefix()
             self._name_update()
         elif not isinstance(name, str):
             raise CircuitError(
@@ -1397,13 +1398,36 @@ class QuantumCircuit:
         cls.instances += 1
 
     @classmethod
+    @deprecate_func(
+        since=1.2,
+        removal_timeline="in the 2.0 release",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
+    )
     def cls_instances(cls) -> int:
         """Return the current number of instances of this class,
         useful for auto naming."""
         return cls.instances
 
     @classmethod
+    def _cls_instances(cls) -> int:
+        """Return the current number of instances of this class,
+        useful for auto naming."""
+        return cls.instances
+
+    @classmethod
+    @deprecate_func(
+        since=1.2,
+        removal_timeline="in the 2.0 release",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
+    )
     def cls_prefix(cls) -> str:
+        """Return the prefix to use for auto naming."""
+        return cls.prefix
+
+    @classmethod
+    def _cls_prefix(cls) -> str:
         """Return the prefix to use for auto naming."""
         return cls.prefix
 
@@ -1414,7 +1438,7 @@ class QuantumCircuit:
         else:
             pid_name = ""
 
-        self.name = f"{self._base_name}-{self.cls_instances()}{pid_name}"
+        self.name = f"{self._base_name}-{self._cls_instances()}{pid_name}"
 
     def has_register(self, register: Register) -> bool:
         """
@@ -1690,7 +1714,7 @@ class QuantumCircuit:
             label (str): An optional label to give the controlled operation for visualization.
             ctrl_state (str or int): The control state in decimal or as a bitstring
                 (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -1923,7 +1947,7 @@ class QuantumCircuit:
             mapped_qubits = dest.qubits
             edge_map.update(zip(other.qubits, dest.qubits))
         else:
-            mapped_qubits = dest.qbit_argument_conversion(qubits)
+            mapped_qubits = dest._qbit_argument_conversion(qubits)
             if len(mapped_qubits) != other.num_qubits:
                 raise CircuitError(
                     f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
@@ -1939,7 +1963,7 @@ class QuantumCircuit:
             mapped_clbits = dest.clbits
             edge_map.update(zip(other.clbits, dest.clbits))
         else:
-            mapped_clbits = dest.cbit_argument_conversion(clbits)
+            mapped_clbits = dest._cbit_argument_conversion(clbits)
             if len(mapped_clbits) != other.num_clbits:
                 raise CircuitError(
                     f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
@@ -1949,7 +1973,7 @@ class QuantumCircuit:
                 raise CircuitError(
                     f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
                 )
-            edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
+            edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -2264,6 +2288,12 @@ class QuantumCircuit:
         return self._data[item]
 
     @staticmethod
+    @deprecate_func(
+        since=1.2,
+        removal_timeline="in the 2.0 release",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
+    )
     def cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
         """Best effort to cast value to type. Otherwise, returns the value."""
         try:
@@ -2271,31 +2301,78 @@ class QuantumCircuit:
         except (ValueError, TypeError):
             return value
 
+    @staticmethod
+    def _cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
+        """Best effort to cast value to type. Otherwise, returns the value."""
+        try:
+            return type_(value)
+        except (ValueError, TypeError):
+            return value
+
+    @deprecate_func(
+        since=1.2,
+        removal_timeline="in the 2.0 release",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
+    )
     def qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
         """
         Converts several qubit representations (such as indexes, range, etc.)
         into a list of qubits.
 
         Args:
-            qubit_representation (Object): representation to expand
+            qubit_representation: Representation to expand.
 
         Returns:
-            List(Qubit): the resolved instances of the qubits.
+            The resolved instances of the qubits.
+        """
+
+        return self._qbit_argument_conversion(qubit_representation)
+
+    def _qbit_argument_conversion(self, qubit_representation: QubitSpecifier) -> list[Qubit]:
+        """
+        Converts several qubit representations (such as indexes, range, etc.)
+        into a list of qubits.
+
+        Args:
+            qubit_representation: Representation to expand.
+
+        Returns:
+            The resolved instances of the qubits.
         """
         return _bit_argument_conversion(
             qubit_representation, self.qubits, self._qubit_indices, Qubit
         )
 
+    @deprecate_func(
+        since=1.2,
+        removal_timeline="in the 2.0 release",
+        additional_msg="This method is only used as an internal helper "
+        "and will be removed with no replacement.",
+    )
     def cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
         """
         Converts several classical bit representations (such as indexes, range, etc.)
         into a list of classical bits.
 
         Args:
-            clbit_representation (Object): representation to expand
+            clbit_representation : Representation to expand.
 
         Returns:
-            List(tuple): Where each tuple is a classical bit.
+            A list of tuples where each tuple is a classical bit.
+        """
+        return self._cbit_argument_conversion(clbit_representation)
+
+    def _cbit_argument_conversion(self, clbit_representation: ClbitSpecifier) -> list[Clbit]:
+        """
+        Converts several classical bit representations (such as indexes, range, etc.)
+        into a list of classical bits.
+
+        Args:
+            clbit_representation: Representation to expand.
+
+        Returns:
+            A list of tuples where each tuple is a classical bit.
         """
         return _bit_argument_conversion(
             clbit_representation, self.clbits, self._clbit_indices, Clbit
@@ -2314,7 +2391,7 @@ class QuantumCircuit:
         if params is None:
             params = []
 
-        expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
+        expanded_qargs = [self._qbit_argument_conversion(qarg) for qarg in qargs or []]
         for param in params:
             Gate.validate_parameter(op, param)
 
@@ -2413,8 +2490,8 @@ class QuantumCircuit:
                     " which are not in this circuit"
                 )
 
-        expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
-        expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
+        expanded_qargs = [self._qbit_argument_conversion(qarg) for qarg in qargs or []]
+        expanded_cargs = [self._cbit_argument_conversion(carg) for carg in cargs or []]
 
         instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
         # For Operations that are non-Instructions, we use the Instruction's default method
@@ -4312,7 +4389,9 @@ class QuantumCircuit:
 
         if qargs:
             # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
-            qubits = tuple({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
+            qubits = tuple(
+                {q: None for qarg in qargs for q in self._qbit_argument_conversion(qarg)}
+            )
             return self.append(
                 CircuitInstruction(Barrier(len(qubits), label=label), qubits, ()), copy=False
             )
@@ -5344,7 +5423,7 @@ class QuantumCircuit:
 
         # check ancilla input
         if ancilla_qubits:
-            _ = self.qbit_argument_conversion(ancilla_qubits)
+            _ = self._qbit_argument_conversion(ancilla_qubits)
 
         try:
             gate = available_implementations[mode]

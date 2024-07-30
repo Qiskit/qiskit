@@ -31,10 +31,11 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider import Fake5QV1
+from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from ..legacy_cmaps import BOGOTA_CMAP
 
 
 def raise_if_parameter_table_invalid(circuit):
@@ -794,7 +795,8 @@ class TestParameters(QiskitTestCase):
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
             circs.append(qc_aer.assign_parameters({theta: theta_i}))
-        qobj = assemble(circs)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
             res = float(qobj.experiments[index].instructions[0].params[0])
             self.assertTrue(math.isclose(res, theta_i), f"{res} != {theta_i}")
@@ -981,8 +983,9 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(hash(x1), hash(x1_expr))
         self.assertEqual(hash(x2), hash(x2_expr))
 
-    def test_binding_parameterized_circuits_built_in_multiproc(self):
-        """Verify subcircuits built in a subprocess can still be bound."""
+    def test_binding_parameterized_circuits_built_in_multiproc_(self):
+        """Verify subcircuits built in a subprocess can still be bound.
+        REMOVE this test once assemble is REMOVED"""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
 
         num_processes = 4
@@ -1002,11 +1005,12 @@ class TestParameters(QiskitTestCase):
 
         parameter_values = [{x: 1.0 for x in parameters}]
 
-        qobj = assemble(
-            circuit,
-            backend=BasicSimulator(),
-            parameter_binds=parameter_values,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                circuit,
+                backend=BasicSimulator(),
+                parameter_binds=parameter_values,
+            )
 
         self.assertEqual(len(qobj.experiments), 1)
         self.assertEqual(len(qobj.experiments[0].instructions), 4)
@@ -1016,6 +1020,39 @@ class TestParameters(QiskitTestCase):
                 and isinstance(inst.params[0], float)
                 and float(inst.params[0]) == 1
                 for inst in qobj.experiments[0].instructions
+            )
+        )
+
+    def test_binding_parameterized_circuits_built_in_multiproc(self):
+        """Verify subcircuits built in a subprocess can still be bound."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
+
+        num_processes = 4
+
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+
+        circuit = QuantumCircuit(qr, cr)
+        parameters = [Parameter(f"x{i}") for i in range(num_processes)]
+
+        results = parallel_map(
+            _construct_circuit, parameters, task_args=(qr,), num_processes=num_processes
+        )
+
+        for qc in results:
+            circuit.compose(qc, inplace=True)
+
+        parameter_values = {x: 1.0 for x in parameters}
+
+        bind_circuit = circuit.assign_parameters(parameter_values)
+
+        self.assertEqual(len(bind_circuit.data), 4)
+        self.assertTrue(
+            all(
+                len(inst.operation.params) == 1
+                and isinstance(inst.operation.params[0], float)
+                and float(inst.operation.params[0]) == 1
+                for inst in bind_circuit.data
             )
         )
 
@@ -1040,6 +1077,26 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(len(job.result().results), 2)
 
     @data(0, 1, 2, 3)
+    def test_transpile_across_optimization_levelsV1(self, opt_level):
+        """Verify parameterized circuits can be transpiled with all default pass managers.
+        To remove once Fake5QV1 gets removed"""
+
+        qc = QuantumCircuit(5, 5)
+
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+
+        qc.rx(theta, 0)
+        qc.x(0)
+        for i in range(5 - 1):
+            qc.rxx(phi, i, i + 1)
+
+        qc.measure(range(5 - 1), range(5 - 1))
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+        transpile(qc, backend, optimization_level=opt_level)
+
+    @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):
         """Verify parameterized circuits can be transpiled with all default pass managers."""
 
@@ -1055,7 +1112,15 @@ class TestParameters(QiskitTestCase):
 
         qc.measure(range(5 - 1), range(5 - 1))
 
-        transpile(qc, Fake5QV1(), optimization_level=opt_level)
+        transpile(
+            qc,
+            GenericBackendV2(
+                num_qubits=5,
+                coupling_map=BOGOTA_CMAP,
+                seed=42,
+            ),
+            optimization_level=opt_level,
+        )
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted
