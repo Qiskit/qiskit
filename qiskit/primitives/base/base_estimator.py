@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base Estimator Classes"""
+"""Base Estimator V1 and V2 classes"""
 
 from __future__ import annotations
 
@@ -110,7 +110,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         options: dict | None = None,
     ):
         """
-        Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
+        Creating an instance of an Estimator V1, or using one in a ``with`` context opens a session that
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
@@ -189,12 +189,19 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 
 
 class BaseEstimator(BaseEstimatorV1[T]):
-    """DEPRECATED. Type alias of Estimator V1 base class.
+    """DEPRECATED. Type alias for Estimator V1 base class.
 
     See :class:`.BaseEstimatorV1` for details.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use BaseEstimatorV2 instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The `BaseEstimator` class is a type alias for the `BaseEstimatorV1` "
+        "interface that has been deprecated in favor of explicitly versioned interface classes. "
+        "It is recommended to migrate all implementations to use `BaseEstimatorV2`. "
+        "However, for implementations incompatible with `BaseEstimatorV2`, `BaseEstimator` can "
+        "be replaced with the explicitly versioned `BaseEstimatorV1` class.",
+    )
     def __init__(
         self,
         *,

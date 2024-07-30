@@ -61,8 +61,10 @@ class TestCalibrationPasses(QpyCircuitTestCase):
 
     def setUp(self):
         super().setUp()
-        # This backend provides CX(0,1) with native ECR direction.
-        self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
+        # TODO remove context once https://github.com/Qiskit/qiskit/issues/12759 is fixed
+        with self.assertWarns(DeprecationWarning):
+            # This backend provides CX(0,1) with native ECR direction.
+            self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):
@@ -112,7 +114,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -126,7 +128,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -137,7 +139,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -201,7 +203,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -213,7 +215,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()

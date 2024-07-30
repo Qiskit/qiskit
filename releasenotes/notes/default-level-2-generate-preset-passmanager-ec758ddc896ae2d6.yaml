@@ -1,0 +1,44 @@
+---
+features_transpiler:
+  - |
+    The ``optimization_level`` argument for the :func:`.generate_preset_pass_manager` function is
+    now optional. If it's not specified it will default to using optimization level 2. As the argument
+    is now optional, the first positional argument has been expanded to enable passing a :class:`.Target`
+    or a :class:`.BackendV2` as the first argument for more convenient construction. For example::
+
+      from qiskit.transpiler.preset_passmanager import generate_preset_pass_manager
+      from qiskit.providers.fake_provider import GenericBackendV2
+
+      backend = GenericBackendV2(100)
+
+      generate_preset_pass_manager(backend.Target)
+
+    will construct a default pass manager for the 100 qubit :class`.GenericBackendV2` instance.
+upgrade_transpiler:
+  - |
+    The default ``optimization_level`` used by the :func:`.transpile` function when one is not
+    specified has been changed to level 2. This makes it consistent with the default used
+    by :func:`.generate_preset_pass_manager` which is used internally by :func:`.transpile`. Optimization
+    level 2 provides a much better balance between the run time of the function and the optimizations it
+    performs, it's a better tradeoff to use by default.
+
+    The API of :func:`.transpile` remains unchanged because, fundamentally, level 2 and level 1
+    have the same semantics. If you were previously relying on the implicit default of level 1,
+    you can simply set the argument ``optimization_level=1`` when you call :func:`.transpile`.
+    Similarly you can change the default back in your local environment by using a user config
+    file and setting the ``transpile_optimization_level`` field to 1.
+
+    The only potential issue is that your transpilation workflow may be relying on an implicit trivial layout (where qubit 0
+    in the circuit passed to :func:`.transpile` is mapped to qubit 0 on the target backend/coupling,
+    1->1, 2->2, etc.) without specifying ``optimization_level=1``, ``layout_method="trivial"``, or
+    explicitly setting ``initial_layout`` when calling :func:`.transpile`. This behavior was a side
+    effect of the preset pass manager construction in optimization level 1 and is not mirrored in
+    level 2. If you need this behavior you can use any of the three options listed previously to make
+    this behavior explicit.
+
+    Similarly, if you were targeting a discrete basis gate set you may encounter an issue using the
+    new default with optimization level 2 (or running explicitly optimization level 3), as the additional optimization passes that run in
+    level 2 and 3 don't work in all cases with a discrete basis. You can explicitly set
+    ``optimization_level=1`` manually in this case. In general the transpiler does not currently
+    fully support discrete basis sets and if you're relying on this you should likely construct a
+    pass manager manually to build a compilation pipeline that will work with your target.

@@ -2118,11 +2118,9 @@ class TestQFTSynthesisPlugins(QiskitTestCase):
         qc.cx(1, 3)
         qc.append(QFTGate(3).inverse(), [0, 1, 2])
         hls_config = HLSConfig(qft=[qft_plugin_name])
-        basis_gates = ["cx", "u"]
-        qct = transpile(qc, hls_config=hls_config, basis_gates=basis_gates)
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
         self.assertEqual(Operator(qc), Operator(qct))
-        ops = set(qct.count_ops().keys())
-        self.assertEqual(ops, {"u", "cx"})
 
     @data("line", "full")
     def test_qft_line_plugin_annotated_qft(self, qft_plugin_name):
@@ -2130,11 +2128,9 @@ class TestQFTSynthesisPlugins(QiskitTestCase):
         qc = QuantumCircuit(4)
         qc.append(QFTGate(3).inverse(annotated=True).control(annotated=True), [0, 1, 2, 3])
         hls_config = HLSConfig(qft=[qft_plugin_name])
-        basis_gates = ["cx", "u"]
-        qct = transpile(qc, hls_config=hls_config, basis_gates=basis_gates)
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
         self.assertEqual(Operator(qc), Operator(qct))
-        ops = set(qct.count_ops().keys())
-        self.assertEqual(ops, {"u", "cx"})
 
 
 if __name__ == "__main__":

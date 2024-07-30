@@ -19,6 +19,7 @@ import copy
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
+from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -35,7 +36,7 @@ from .level3 import level_3_pass_manager
 
 
 def generate_preset_pass_manager(
-    optimization_level,
+    optimization_level=2,
     backend=None,
     target=None,
     basis_gates=None,
@@ -96,9 +97,10 @@ def generate_preset_pass_manager(
 
     Args:
         optimization_level (int): The optimization level to generate a
-            :class:`~.PassManager` for. This can be 0, 1, 2, or 3. Higher
-            levels generate more optimized circuits, at the expense of
-            longer transpilation time:
+            :class:`~.StagedPassManager` for. By default optimization level 2
+            is used if this is not specified. This can be 0, 1, 2, or 3. Higher
+            levels generate potentially more optimized circuits, at the expense
+            of longer transpilation time:
 
                 * 0: no optimization
                 * 1: light optimization
@@ -237,6 +239,16 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+
+    # Handle positional arguments for target and backend. This enables the usage
+    # pattern `generate_preset_pass_manager(backend.target)` to generate a default
+    # pass manager for a given target.
+    if isinstance(optimization_level, Target):
+        target = optimization_level
+        optimization_level = 2
+    elif isinstance(optimization_level, Backend):
+        backend = optimization_level
+        optimization_level = 2
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
         # This is a temporary conversion step to allow for a smoother transition

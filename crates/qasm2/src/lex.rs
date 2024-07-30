@@ -24,6 +24,7 @@
 //! real-number tokenization.
 
 use hashbrown::HashMap;
+use num_bigint::BigUint;
 use pyo3::prelude::PyResult;
 
 use std::path::Path;
@@ -273,6 +274,15 @@ impl Token {
     /// If the token is an integer (by type, not just by value), this method can be called to
     /// evaluate its value.  Panics if the token is not an integer type.
     pub fn int(&self, context: &TokenContext) -> usize {
+        if self.ttype != TokenType::Integer {
+            panic!()
+        }
+        context.text[self.index].parse().unwrap()
+    }
+
+    /// If the token is an integer (by type, not just by value), this method can be called to
+    /// evaluate its value as a big integer.  Panics if the token is not an integer type.
+    pub fn bigint(&self, context: &TokenContext) -> BigUint {
         if self.ttype != TokenType::Integer {
             panic!()
         }

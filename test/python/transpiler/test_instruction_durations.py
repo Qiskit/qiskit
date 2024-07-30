@@ -36,14 +36,18 @@ class TestInstructionDurationsClass(QiskitTestCase):
             InstructionDurations(invalid_dic)
 
     def test_from_backend_for_backend_with_dt(self):
-        backend = Fake27QPulseV1()
+        # Remove context once https://github.com/Qiskit/qiskit/issues/12760 is fixed
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)
         self.assertGreater(durations.dt, 0)
         self.assertGreater(durations.get(gate, 0), 0)
 
     def test_from_backend_for_backend_without_dt(self):
-        backend = Fake27QPulseV1()
+        # Remove context once https://github.com/Qiskit/qiskit/issues/12760 is fixed
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         delattr(backend.configuration(), "dt")
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)

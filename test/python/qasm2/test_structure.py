@@ -324,6 +324,35 @@ class TestGateApplication(QiskitTestCase):
         qc.cx(1, 0)
         self.assertEqual(parsed, qc)
 
+    def test_huge_conditions(self):
+        # Something way bigger than any native integer.
+        bigint = (1 << 300) + 123456789
+        program = f"""
+            qreg qr[2];
+            creg cr[2];
+            creg cond[500];
+            if (cond=={bigint}) U(0, 0, 0) qr[0];
+            if (cond=={bigint}) U(0, 0, 0) qr;
+            if (cond=={bigint}) reset qr[0];
+            if (cond=={bigint}) reset qr;
+            if (cond=={bigint}) measure qr[0] -> cr[0];
+            if (cond=={bigint}) measure qr -> cr;
+        """
+        parsed = qiskit.qasm2.loads(program)
+        qr, cr = QuantumRegister(2, "qr"), ClassicalRegister(2, "cr")
+        cond = ClassicalRegister(500, "cond")
+        qc = QuantumCircuit(qr, cr, cond)
+        qc.u(0, 0, 0, qr[0]).c_if(cond, bigint)
+        qc.u(0, 0, 0, qr[0]).c_if(cond, bigint)
+        qc.u(0, 0, 0, qr[1]).c_if(cond, bigint)
+        qc.reset(qr[0]).c_if(cond, bigint)
+        qc.reset(qr[0]).c_if(cond, bigint)
+        qc.reset(qr[1]).c_if(cond, bigint)
+        qc.measure(qr[0], cr[0]).c_if(cond, bigint)
+        qc.measure(qr[0], cr[0]).c_if(cond, bigint)
+        qc.measure(qr[1], cr[1]).c_if(cond, bigint)
+        self.assertEqual(parsed, qc)
+
 
 class TestGateDefinition(QiskitTestCase):
     def test_simple_definition(self):

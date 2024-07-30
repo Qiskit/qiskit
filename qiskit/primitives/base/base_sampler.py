@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base Sampler Classes"""
+"""Base Sampler V1 and V2 classes"""
 
 from __future__ import annotations
 
@@ -152,12 +152,19 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
 
 
 class BaseSampler(BaseSamplerV1[T]):
-    """DEPRECATED. Type alias of Sampler V1 base class
+    """DEPRECATED. Type alias for Sampler V1 base class
 
     See :class:`.BaseSamplerV1` for details.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use BaseSamplerV2 instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The `BaseSampler` class is a type alias for the `BaseSamplerV1` "
+        "interface that has been deprecated in favor of explicitly versioned interface classes. "
+        "It is recommended to migrate all implementations to use `BaseSamplerV2`. "
+        "However, for implementations incompatible with `BaseSamplerV2`, `BaseSampler` can "
+        "be replaced with the explicitly versioned `BaseSamplerV1` class.",
+    )
     def __init__(
         self,
         *,

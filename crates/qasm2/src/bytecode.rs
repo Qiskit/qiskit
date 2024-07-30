@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use num_bigint::BigUint;
 use pyo3::prelude::*;
 
 use crate::error::QASM2ParseError;
@@ -160,7 +161,7 @@ pub enum InternalBytecode {
         arguments: Vec<f64>,
         qubits: Vec<QubitId>,
         creg: CregId,
-        value: usize,
+        value: BigUint,
     },
     Measure {
         qubit: QubitId,
@@ -170,7 +171,7 @@ pub enum InternalBytecode {
         qubit: QubitId,
         clbit: ClbitId,
         creg: CregId,
-        value: usize,
+        value: BigUint,
     },
     Reset {
         qubit: QubitId,
@@ -178,7 +179,7 @@ pub enum InternalBytecode {
     ConditionedReset {
         qubit: QubitId,
         creg: CregId,
-        value: usize,
+        value: BigUint,
     },
     Barrier {
         qubits: Vec<QubitId>,

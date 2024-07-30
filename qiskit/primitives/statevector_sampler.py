@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Statevector Sampler class
+Statevector Sampler V2 class
 """
 
 from __future__ import annotations
@@ -207,7 +207,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
     qargs_index = {v: k for k, v in enumerate(qargs)}
     circuit = circuit.remove_final_measurements(inplace=False)
     if _has_control_flow(circuit):
-        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp")
+        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp and c_if")
     if _has_measure(circuit):
         raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
     # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
@@ -283,4 +283,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
 
 
 def _has_control_flow(circuit: QuantumCircuit) -> bool:
-    return any(isinstance(instruction.operation, ControlFlowOp) for instruction in circuit)
+    return any(
+        isinstance((op := instruction.operation), ControlFlowOp) or op.condition
+        for instruction in circuit
+    )

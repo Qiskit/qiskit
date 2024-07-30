@@ -311,7 +311,7 @@ class TestBackendEstimator(QiskitTestCase):
             def max_circuits(self):
                 return 1
 
-        backend = FakeBackendLimitedCircuits(num_qubits=5)
+        backend = FakeBackendLimitedCircuits(num_qubits=5, seed=42)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -326,8 +326,10 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_v1(self):
-        """Test BackendEstimator respects job size limit"""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimator respects job size limit
+        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
@@ -345,8 +347,10 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertEqual(run_mock.call_count, 10)
 
     def test_no_max_circuits(self):
-        """Test BackendEstimator works with BackendV1 and no max_experiments set."""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimator works with BackendV1 and no max_experiments set.
+        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         del config.max_experiments
         backend._configuration = config
@@ -387,7 +391,9 @@ class TestBackendEstimator(QiskitTestCase):
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
             with self.assertWarns(DeprecationWarning):
-                estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
+                estimator = BackendEstimator(
+                    backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
+                )
                 _ = estimator.run(qc, op).result()
             expected = [
                 "bound_pass_manager",
@@ -409,7 +415,8 @@ class TestBackendEstimator(QiskitTestCase):
                 bound_pass = PassManager(bound_counter)
                 with self.assertWarns(DeprecationWarning):
                     estimator = BackendEstimator(
-                        backend=Fake7QPulseV1(), bound_pass_manager=bound_pass
+                        backend=GenericBackendV2(num_qubits=5, seed=42),
+                        bound_pass_manager=bound_pass,
                     )
                     _ = estimator.run([qc, qc], [op, op]).result()
                 expected = [
@@ -430,7 +437,7 @@ class TestBackendEstimator(QiskitTestCase):
             backend.set_options(seed_simulator=15)
             with self.assertWarns(DeprecationWarning):
                 estimator = BackendEstimator(backend)
-                estimator.set_transpile_options(seed_transpiler=15)
+                estimator.set_transpile_options(seed_transpiler=15, optimization_level=1)
                 value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
                 ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
@@ -446,7 +453,9 @@ class TestBackendEstimator(QiskitTestCase):
             op = SparsePauliOp("IZI")
             with self.assertWarns(DeprecationWarning):
                 estimator = BackendEstimator(backend)
-                estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
+                estimator.set_transpile_options(
+                    initial_layout=[0, 1, 2], seed_transpiler=15, optimization_level=1
+                )
                 estimator.set_options(seed_simulator=15)
                 value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:

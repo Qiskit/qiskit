@@ -15,7 +15,7 @@
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
-from qiskit.providers.fake_provider import FakeOpenPulse3Q
+from qiskit.providers.fake_provider import FakeOpenPulse3Q, GenericBackendV2
 from qiskit.compiler.scheduler import schedule
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -37,9 +37,9 @@ class TestCircuitScheduler(QiskitTestCase):
         self.circ2.cx(qr2[0], qr2[1])
         self.circ2.measure(qr2, cr2)
 
-        self.backend = FakeOpenPulse3Q()
-        self.backend_config = self.backend.configuration()
-        self.num_qubits = self.backend_config.n_qubits
+        self.backend = GenericBackendV2(
+            3, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+        )
 
     def test_instruction_map_and_backend_not_supplied(self):
         """Test instruction map and backend not supplied."""
@@ -51,6 +51,8 @@ class TestCircuitScheduler(QiskitTestCase):
 
     def test_instruction_map_and_backend_defaults_unavailable(self):
         """Test backend defaults unavailable when backend is provided, but instruction map is not."""
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse3Q()
         self.backend._defaults = None
         with self.assertRaisesRegex(
             QiskitError, r"The backend defaults are unavailable. The backend may not support pulse."

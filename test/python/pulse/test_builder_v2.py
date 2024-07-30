@@ -32,9 +32,7 @@ class TestBuilderV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend = GenericBackendV2(
-            num_qubits=27,
-            coupling_map=MUMBAI_CMAP,
-            calibrate_instructions=True,
+            num_qubits=27, coupling_map=MUMBAI_CMAP, calibrate_instructions=True, seed=42
         )
 
     def assertScheduleEqual(self, program, target):

@@ -33,8 +33,9 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend_with_dt = Fake27QPulseV1()
-        self.backend_without_dt = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend_with_dt = Fake27QPulseV1()
+            self.backend_without_dt = Fake27QPulseV1()
         delattr(self.backend_without_dt.configuration(), "dt")
         # Remove timing constraints from the backends (alignment values,
         # granularity and min_length), so that these values will default
@@ -50,21 +51,24 @@ class TestScheduledCircuit(QiskitTestCase):
     def test_schedule_circuit_when_backend_tells_dt(self):
         """dt is known to transpiler by backend"""
         qc = QuantumCircuit(2)
-        qc.delay(0.1, 0, unit="ms")  # 450000[dt]
+        qc.delay(0.1, 0, unit="ms")  # 450450[dt]
         qc.delay(100, 0, unit="ns")  # 450[dt]
-        qc.h(0)  # 160[dt]
-        qc.h(1)  # 160[dt]
-        sc = transpile(qc, self.backend_with_dt, scheduling_method="alap", layout_method="trivial")
-        self.assertEqual(sc.duration, 450546)
+        qc.h(0)  # 195[dt]
+        qc.h(1)  # 210[dt]
+
+        backend = GenericBackendV2(2, calibrate_instructions=True, seed=42)
+
+        sc = transpile(qc, backend, scheduling_method="alap", layout_method="trivial")
+        self.assertEqual(sc.duration, 451095)
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
-        self.assertEqual(sc.data[0].operation.duration, 450450)
+        self.assertEqual(sc.data[0].operation.duration, 450900)
         self.assertEqual(sc.data[0].operation.unit, "dt")
         self.assertEqual(sc.data[1].operation.name, "rz")
         self.assertEqual(sc.data[1].operation.duration, 0)
         self.assertEqual(sc.data[1].operation.unit, "dt")
         self.assertEqual(sc.data[4].operation.name, "delay")
-        self.assertEqual(sc.data[4].operation.duration, 450450)
+        self.assertEqual(sc.data[4].operation.duration, 450885)
         self.assertEqual(sc.data[4].operation.unit, "dt")
 
     def test_schedule_circuit_when_transpile_option_tells_dt(self):
@@ -301,7 +305,7 @@ class TestScheduledCircuit(QiskitTestCase):
         """Test that circuit duration unit conversion is applied only when necessary.
         Tests fix for bug reported in PR #11782."""
 
-        backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=10)
+        backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=42)
         schedule_config = ScheduleConfig(
             inst_map=backend.target.instruction_schedule_map(),
             meas_map=backend.meas_map,

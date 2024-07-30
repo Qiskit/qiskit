@@ -457,7 +457,8 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
         self.backend_config.parametric_pulses = ["constant", "gaussian", "gaussian_square", "drag"]
 
