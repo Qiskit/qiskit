@@ -33,10 +33,53 @@ from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
     ApplyLayout,
 )
-
-from qiskit_ibm_runtime.fake_provider import FakeSherbrooke  # pylint: disable=wrong-import-order
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+class Mock127q(GenericBackendV2):
+    """A fake 127-qubit backend.
+
+    The node number equals ``ibm_sherbrooke`` though the directions of the ECR gates might
+    not match.
+
+    Used instead of the GenericBackendV2 to ensure the 2-qubit gate lengths are larger
+    than 2 X gates, and fixes the seed.
+    """
+
+    def __init__(self):
+        coupling_map = []
+        line_lengths = [13] + 5 * [14] + [13]
+        lines = []
+        start = 0
+        for length in line_lengths:
+            line = list(range(start, start + length + 1))
+            coupling_map += list(zip(line[:-1], line[1:]))
+            lines.append(line)
+            start += length + 5  # 4 nodes are in between the lines
+
+        for i, (prev, after) in enumerate(zip(lines[:-1], lines[1:])):
+            from_front = i % 2 == 0
+            for j in range(4):
+                node = prev[-1] + j + 1 if from_front else prev[-1] + 4 - j  # node number
+                index = 4 * j if from_front else ~(4 * j)
+                coupling_map.append((prev[index], node))
+                coupling_map.append((node, after[index]))
+
+        basis_gates = ["id", "rz", "sx", "x", "ecr"]
+
+        super().__init__(num_qubits=127, coupling_map=coupling_map, basis_gates=basis_gates, seed=9)
+
+    def _get_noise_defaults(self, name, num_qubits):
+        # gate durations and errors as (min duration, max duration, min error, max error)
+        if name == "ecr":
+            return (341e-9, 881e-9, 1e-3, 3e-3)
+        elif name == "x":
+            return (1e-10, 1.1e-10, 9e-5, 6e-3)
+        elif name == "sx":
+            return (5e-11, 5.5e-11, 9e-5, 6e-3)
+        return super()._get_noise_defaults(name, num_qubits)
 
 
 @ddt
@@ -488,13 +531,14 @@ class TestContextAwareDD(QiskitTestCase):
         self.assertEqual(reference, circuit)
 
     def test_127q(self):
-        """Test running on a larger backend.
+        """Test running on a larger backend with 100+ qubits.
 
         Since this is a bipartite graph, the coloring problem can be solved optimally, which
         in this case means the maximum order is 1.
         """
-        backend = FakeSherbrooke()
+        backend = Mock127q()
         target = backend.target
+
         snake = (
             list(range(0, 14))[::-1]
             + [14]
