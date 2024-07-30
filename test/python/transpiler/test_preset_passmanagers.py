@@ -326,7 +326,7 @@ class TestTranspileLevels(QiskitTestCase):
         """All the levels with all the backends"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             result = transpile(
                 circuit(), backend=backend, optimization_level=level, seed_transpiler=42
@@ -1287,7 +1287,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
             backend = Fake20QV1()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level, backend)
         self.assertIsInstance(pm, PassManager)

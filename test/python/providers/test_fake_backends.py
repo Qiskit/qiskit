@@ -132,7 +132,7 @@ class TestFakeBackends(QiskitTestCase):
             )
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             transpiled = transpile(
                 self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
@@ -227,7 +227,7 @@ class TestFakeBackends(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             res = transpile(qc, backend)
         self.assertIn("delay", res.count_ops())
