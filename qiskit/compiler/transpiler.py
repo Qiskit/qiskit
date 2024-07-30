@@ -318,7 +318,18 @@ def transpile(  # pylint: disable=too-many-return-statements
         # This is a temporary conversion step to allow for a smoother transition
         # to a fully target-based transpiler pipeline while maintaining the behavior
         # of `transpile` with BackendV1 inputs.
-        backend = BackendV2Converter(backend)
+        with warnings.catch_warnings():
+            # This is a temporary conversion step to allow for a smoother transition
+            # to a fully target-based transpiler pipeline while maintaining the behavior
+            # of `transpile` with BackendV1 inputs.
+            # TODO BackendV1 is deprecated and this path can be removed once it gets removed.
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
+                module="qiskit",
+            )
+            backend = BackendV2Converter(backend)
 
     if (
         scheduling_method is not None
