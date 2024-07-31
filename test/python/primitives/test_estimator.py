@@ -13,6 +13,7 @@
 """Tests for Estimator."""
 
 import unittest
+from test import QiskitTestCase
 
 import numpy as np
 from ddt import data, ddt, unpack
@@ -24,9 +25,9 @@ from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestEstimator(QiskitTestCase):
     """Test Estimator"""
 
@@ -354,6 +355,24 @@ class TestEstimator(QiskitTestCase):
 
         keys = [_observable_key(get_op(i)) for i in range(5)]
         self.assertEqual(len(keys), len(set(keys)))
+
+    @unpack
+    @data(
+        {"seed": 12, "expect": 1},
+        {"seed": 13, "expect": -1},
+    )
+    def test_reset(self, seed, expect):
+        """Test for circuits with reset."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.reset(0)
+        op = SparsePauliOp("ZI")
+
+        with self.assertWarns(DeprecationWarning):
+            estimator = Estimator()
+            result = estimator.run(qc, op, seed=seed).result()
+        np.testing.assert_allclose(result.values, expect)
 
 
 @ddt

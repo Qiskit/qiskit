@@ -19,13 +19,13 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import SparsePauliOp
 
 from .base import BaseEstimatorV2
 from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
-from .utils import bound_circuit_to_instruction
+from .utils import _statevector_from_circuit
 
 
 class StatevectorEstimator(BaseEstimatorV2):
@@ -151,7 +151,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         for index in np.ndindex(*bc_circuits.shape):
             bound_circuit = bc_circuits[index]
             observable = bc_obs[index]
-            final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
+            final_state = _statevector_from_circuit(bound_circuit, self._seed)
             paulis, coeffs = zip(*observable.items())
             obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
             expectation_value = np.real_if_close(final_state.expectation_value(obs))

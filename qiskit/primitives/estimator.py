@@ -22,7 +22,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
@@ -31,7 +30,7 @@ from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
     _observable_key,
-    bound_circuit_to_instruction,
+    _statevector_from_circuit,
     init_observable,
 )
 
@@ -112,7 +111,7 @@ class Estimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            final_state = Statevector(bound_circuit_to_instruction(circ))
+            final_state = _statevector_from_circuit(circ, seed)
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)

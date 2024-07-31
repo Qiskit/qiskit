@@ -13,19 +13,21 @@
 """Tests for Estimator."""
 
 import unittest
+from test import QiskitTestCase
 
 import numpy as np
+from ddt import data, ddt, unpack
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import StatevectorEstimator
+from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.quantum_info import SparsePauliOp
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestStatevectorEstimator(QiskitTestCase):
     """Test Estimator"""
 
@@ -306,6 +308,23 @@ class TestStatevectorEstimator(QiskitTestCase):
         self.assertEqual(
             result[1].metadata, {"target_precision": 0.1, "circuit_metadata": qc2.metadata}
         )
+
+    @unpack
+    @data(
+        {"seed": 12, "expect": 1},
+        {"seed": 13, "expect": -1},
+    )
+    def test_reset(self, seed, expect):
+        """Test for circuits with reset."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.reset(0)
+        op = SparsePauliOp("ZI")
+
+        estimator = StatevectorEstimator(seed=seed)
+        result = estimator.run([(qc, op)]).result()
+        np.testing.assert_allclose(result[0].data.evs, expect)
 
 
 if __name__ == "__main__":
