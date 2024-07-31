@@ -159,7 +159,10 @@ QFT Synthesis
    QFTSynthesisLine
 """
 
-from typing import Optional, Union, List, Tuple, Callable
+from __future__ import annotations
+
+import typing
+from typing import Optional, Union, List, Tuple, Callable, Sequence
 
 import numpy as np
 import rustworkx as rx
@@ -168,7 +171,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
+from qiskit.circuit import ControlledGate, EquivalenceLibrary, equivalence
 from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -209,6 +212,9 @@ from qiskit.synthesis.qft import (
 )
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
+
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGOpNode
 
 
 class HLSConfig:
@@ -396,6 +402,8 @@ class HighLevelSynthesis(TransformationPass):
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
+        else:
+            self._device_insts = set()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -415,11 +423,11 @@ class HighLevelSynthesis(TransformationPass):
         dag_op_nodes = dag.op_nodes()
 
         for node in dag_op_nodes:
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 node.op = control_flow.map_blocks(self.run, node.op)
                 continue
 
-            if getattr(node.op, "_directive", False):
+            if node.is_directive():
                 continue
 
             if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
@@ -428,6 +436,9 @@ class HighLevelSynthesis(TransformationPass):
             qubits = (
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
+
+            if self._definitely_skip_node(node, qubits):
+                continue
 
             decomposition, modified = self._recursively_handle_op(node.op, qubits)
 
@@ -444,6 +455,43 @@ class HighLevelSynthesis(TransformationPass):
                 dag.substitute_node(node, decomposition)
 
         return dag
+
+    def _definitely_skip_node(self, node: DAGOpNode, qubits: Sequence[int] | None) -> bool:
+        """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
+        attempt to synthesise it) without accessing its Python-space `Operation`.
+
+        This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
+        avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
+        node (which is _most_ nodes)."""
+        return (
+            # The fast path is just for Rust-space standard gates (which excludes
+            # `AnnotatedOperation`).
+            node.is_standard_gate()
+            # If it's a controlled gate, we might choose to do funny things to it.
+            and not node.is_controlled_gate()
+            # If there are plugins to try, they need to be tried.
+            and not self._methods_to_try(node.name)
+            # If all the above constraints hold, and it's already supported or the basis translator
+            # can handle it, we'll leave it be.
+            and (
+                self._instruction_supported(node.name, qubits)
+                # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
+                # `BasisTranslator`, and this is supposed to just be temporary til this is moved
+                # into Rust space.
+                or (
+                    self._equiv_lib is not None
+                    and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
+                    in self._equiv_lib._key_to_node_index
+                )
+            )
+        )
+
+    def _instruction_supported(self, name: str, qubits: Sequence[int]) -> bool:
+        qubits = tuple(qubits) if qubits is not None else None
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is None or self._target.num_qubits is None:
+            return name in self._device_insts
+        return self._target.instruction_supported(operation_name=name, qargs=qubits)
 
     def _recursively_handle_op(
         self, op: Operation, qubits: Optional[List] = None
@@ -472,6 +520,9 @@ class HighLevelSynthesis(TransformationPass):
         an annotated operation.
         """
 
+        # WARNING: if adding new things in here, ensure that `_definitely_skip_node` is also
+        # up-to-date.
+
         # Try to apply plugin mechanism
         decomposition = self._synthesize_op_using_plugins(op, qubits)
         if decomposition is not None:
@@ -490,17 +541,9 @@ class HighLevelSynthesis(TransformationPass):
         # or is in equivalence library
         controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
         if not controlled_gate_open_ctrl:
-            qargs = tuple(qubits) if qubits is not None else None
-            # include path for when target exists but target.num_qubits is None (BasicSimulator)
-            inst_supported = (
-                self._target.instruction_supported(
-                    operation_name=op.name,
-                    qargs=qargs,
-                )
-                if self._target is not None and self._target.num_qubits is not None
-                else op.name in self._device_insts
-            )
-            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
+            if self._instruction_supported(op.name, qubits) or (
+                self._equiv_lib is not None and self._equiv_lib.has_entry(op)
+            ):
                 return op, False
 
         try:
@@ -521,6 +564,22 @@ class HighLevelSynthesis(TransformationPass):
         dag = self.run(dag)
         return dag, True
 
+    def _methods_to_try(self, name: str):
+        """Get a sequence of methods to try for a given op name."""
+        if (methods := self.hls_config.methods.get(name)) is not None:
+            # the operation's name appears in the user-provided config,
+            # we use the list of methods provided by the user
+            return methods
+        if (
+            self.hls_config.use_default_on_unspecified
+            and "default" in self.hls_plugin_manager.method_names(name)
+        ):
+            # the operation's name does not appear in the user-specified config,
+            # we use the "default" method when instructed to do so and the "default"
+            # method is available
+            return ["default"]
+        return []
+
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List
     ) -> Union[QuantumCircuit, None]:
@@ -531,25 +590,10 @@ class HighLevelSynthesis(TransformationPass):
         """
         hls_plugin_manager = self.hls_plugin_manager
 
-        if op.name in self.hls_config.methods.keys():
-            # the operation's name appears in the user-provided config,
-            # we use the list of methods provided by the user
-            methods = self.hls_config.methods[op.name]
-        elif (
-            self.hls_config.use_default_on_unspecified
-            and "default" in hls_plugin_manager.method_names(op.name)
-        ):
-            # the operation's name does not appear in the user-specified config,
-            # we use the "default" method when instructed to do so and the "default"
-            # method is available
-            methods = ["default"]
-        else:
-            methods = []
-
         best_decomposition = None
         best_score = np.inf
 
-        for method in methods:
+        for method in self._methods_to_try(op.name):
             # There are two ways to specify a synthesis method. The more explicit
             # way is to specify it as a tuple consisting of a synthesis algorithm and a
             # list of additional arguments, e.g.,
