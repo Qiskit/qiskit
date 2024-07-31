@@ -714,10 +714,9 @@ class TestBackendSamplerV2(QiskitTestCase):
 
     def test_job_size_limit_backend_v1(self):
         """Test BackendSamplerV2 respects backend's job size limit."""
-        backend = Fake7QPulseV1()
-        config = backend.configuration()
-        config.max_experiments = 1
-        backend._configuration = config
+        backend = GenericBackendV2(
+            2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+        )
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -748,6 +747,21 @@ class TestBackendSamplerV2(QiskitTestCase):
         self.assertIsInstance(result[1], PubResult)
         self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
         self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        qc2 = qc.copy()
+        qc2.metadata = {"a": 1}
+        backend = BasicSimulator()
+        sampler = BackendSamplerV2(backend=backend)
+        result = sampler.run([(qc, None, 10), (qc2, None, 20)]).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result.metadata, {"version": 2})
+        self.assertEqual(result[0].metadata, {"shots": 10, "circuit_metadata": qc.metadata})
+        self.assertEqual(result[1].metadata, {"shots": 20, "circuit_metadata": qc2.metadata})
 
 
 if __name__ == "__main__":
