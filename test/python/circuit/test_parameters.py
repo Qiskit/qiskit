@@ -627,6 +627,45 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(fbqc.parameters, set())
         self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
 
+    def test_assignment_to_annotated_operation(self):
+        """Test that assignments to an ``AnnotatedOperation`` are propagated all the way down."""
+
+        class MyGate(Gate):
+            def __init__(self, param):
+                super().__init__("my_gate", 1, [param])
+                # Eagerly create our definition.
+                _ = self.definition
+
+            def _define(self):
+                self._definition = QuantumCircuit(1, name="my_gate_inner")
+                self._definition.ry(self.params[0], 0)
+
+        theta = Parameter("theta")
+
+        # Sanity check for the test; it won't catch errors if this fails.
+        self.assertEqual(MyGate(theta), MyGate(theta))
+        self.assertNotEqual(MyGate(theta), MyGate(1.23))
+
+        parametric_gate = MyGate(theta)
+        qc = QuantumCircuit(2)
+        qc.append(parametric_gate.control(1, annotated=True), [0, 1], copy=True)
+        assigned = qc.assign_parameters([1.23])
+
+        expected = QuantumCircuit(2)
+        expected.append(MyGate(1.23).control(1, annotated=True), [0, 1])
+        self.assertEqual(assigned, expected)
+        self.assertEqual(
+            assigned.data[0].operation.base_op.definition,
+            expected.data[0].operation.base_op.definition,
+        )
+
+        qc.assign_parameters([1.23], inplace=True)
+        self.assertEqual(qc, expected)
+
+        # Test that the underlying gate was not modified.
+        self.assertEqual(parametric_gate.params, [theta])
+        self.assertEqual(set(parametric_gate.definition.parameters), {theta})
+
     def test_raise_if_assigning_params_not_in_circuit(self):
         """Verify binding parameters which are not present in the circuit raises an error."""
         x = Parameter("x")

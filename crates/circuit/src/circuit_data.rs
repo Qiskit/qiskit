@@ -15,9 +15,9 @@ use std::cell::RefCell;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::imports::{QUANTUM_CIRCUIT, QUBIT};
+use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
-use crate::operations::{Operation, Param, StandardGate};
+use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::PackedInstruction;
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::slice::{PySequenceIndex, SequenceIndex};
@@ -1193,10 +1193,26 @@ impl CircuitData {
         for (instruction, bindings) in user_operations {
             // We only put non-standard gates in `user_operations`, so we're not risking creating a
             // previously non-existent Python object.
-            let definition_cache = self.data[instruction]
-                .unpack_py_op(py)?
-                .bind(py)
-                .getattr(_definition_attr)?;
+            let instruction = &self.data[instruction];
+            let definition_cache = if matches!(instruction.op.view(), OperationRef::Operation(_)) {
+                // `Operation` instances don't have a `definition` as part of their interfaces, but
+                // they might be an `AnnotatedOperation`, which is one of our special built-ins.
+                // This should be handled more completely in the user-customisation interface by a
+                // delegating method, but that's not the data model we currently have.
+                let py_op = instruction.unpack_py_op(py)?;
+                let py_op = py_op.bind(py);
+                if !py_op.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
+                    continue;
+                }
+                py_op
+                    .getattr(intern!(py, "base_op"))?
+                    .getattr(_definition_attr)?
+            } else {
+                instruction
+                    .unpack_py_op(py)?
+                    .bind(py)
+                    .getattr(_definition_attr)?
+            };
             if !definition_cache.is_none() {
                 definition_cache.call_method(
                     assign_parameters_attr,
