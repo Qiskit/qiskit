@@ -12,7 +12,6 @@
 
 """Check if all gates in the DAGCircuit are in the specified basis gates."""
 
-from qiskit.circuit import ControlFlowOp
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -55,7 +54,7 @@ class GatesInBasis(AnalysisPass):
                         return True
                     # Control-flow ops still need to be supported, so don't skip them in the
                     # previous checks.
-                    if isinstance(gate.op, ControlFlowOp):
+                    if gate.is_control_flow():
                         for block in gate.op.blocks:
                             inner_wire_map = {
                                 inner: wire_map[outer]

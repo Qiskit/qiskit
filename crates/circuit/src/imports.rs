@@ -28,7 +28,7 @@ pub struct ImportOnceCell {
 }
 
 impl ImportOnceCell {
-    const fn new(module: &'static str, object: &'static str) -> Self {
+    pub const fn new(module: &'static str, object: &'static str) -> Self {
         Self {
             module,
             object,
@@ -61,6 +61,8 @@ pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.opera
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
 pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
+pub static CONTROL_FLOW_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
 pub static QUBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.quantumregister", "Qubit");
 pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classicalregister", "Clbit");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
