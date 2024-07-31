@@ -45,8 +45,6 @@ impl ImportOnceCell {
                 .unwrap()
                 .getattr(self.object)
                 .unwrap()
-                .downcast_into()
-                .unwrap()
                 .unbind()
         })
     }
