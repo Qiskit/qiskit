@@ -1149,7 +1149,12 @@ class TestParameters(QiskitTestCase):
         qc.measure(range(5 - 1), range(5 - 1))
         with self.assertWarns(DeprecationWarning):
             backend = Fake5QV1()
-        transpile(qc, backend, optimization_level=opt_level)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            transpile(qc, backend, optimization_level=opt_level)
 
     @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):

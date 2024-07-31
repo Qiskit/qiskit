@@ -73,7 +73,7 @@ def control(
 ) -> ControlledGate:
     """Return controlled version of gate using controlled rotations. This function
     first checks the name of the operation to see if it knows of a method from which
-    to generate a controlled version. Currently these are `x`, `rx`, `ry`, and `rz`.
+    to generate a controlled version. Currently, these are ``x``, ``rx``, ``ry``, and ``rz``.
     If a method is not directly known, it calls the unroller to convert to `u1`, `u3`,
     and `cx` gates.
 

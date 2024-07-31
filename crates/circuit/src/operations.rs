@@ -2058,6 +2058,7 @@ pub struct PyInstruction {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
+    pub control_flow: bool,
     pub instruction: PyObject,
 }
 
@@ -2075,7 +2076,7 @@ impl Operation for PyInstruction {
         self.params
     }
     fn control_flow(&self) -> bool {
-        false
+        self.control_flow
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None
