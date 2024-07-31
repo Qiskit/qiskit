@@ -163,7 +163,6 @@ class TestSplit2QUnitaries(QiskitTestCase):
         """Test that the pass handles QFT correctly."""
         qc = QuantumCircuit(2)
         qc.cp(pi * 2 ** -(26), 0, 1)
-        print(Operator(qc).data)
         pm = PassManager()
         pm.append(Collect2qBlocks())
         pm.append(ConsolidateBlocks())

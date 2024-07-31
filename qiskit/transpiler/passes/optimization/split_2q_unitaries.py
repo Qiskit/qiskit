@@ -48,24 +48,22 @@ class Split2QUnitaries(TransformationPass):
                 decomp._inner_decomposition.specialization
                 == TwoQubitWeylDecomposition._specializations.IdEquiv
             ):
+                new_dag = DAGCircuit()
+                new_dag.add_qubits(node.qargs)
+
                 ur = decomp.K1r
                 ur_node = DAGOpNode.from_instruction(
-                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=dag
+                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=new_dag
                 )
-                ur_node._node_id = dag._multi_graph.add_node(ur_node)
-                dag._increment_op("unitary")
-                dag._multi_graph.insert_node_on_in_edges(ur_node._node_id, node._node_id)
 
                 ul = decomp.K1l
                 ul_node = DAGOpNode.from_instruction(
-                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=dag
+                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=new_dag
                 )
-                ul_node._node_id = dag._multi_graph.add_node(ul_node)
-                dag._increment_op("unitary")
-                dag._multi_graph.insert_node_on_in_edges(ul_node._node_id, node._node_id)
-
-                dag.global_phase += decomp.global_phase
-                dag.remove_op_node(node)
+                new_dag._apply_op_node_back(ur_node)
+                new_dag._apply_op_node_back(ul_node)
+                new_dag.global_phase = decomp.global_phase
+                dag.substitute_node_with_dag(node, new_dag)
             elif (
                 decomp._inner_decomposition.specialization
                 == TwoQubitWeylDecomposition._specializations.SWAPEquiv
