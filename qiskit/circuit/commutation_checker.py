@@ -13,7 +13,7 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from functools import lru_cache
-from typing import List, Union
+from typing import List, Union, Set, Optional
 import numpy as np
 
 from qiskit import QiskitError
@@ -68,7 +68,7 @@ class CommutationChecker:
         standard_gate_commutations: dict = None,
         cache_max_entries: int = 10**6,
         *,
-        gates: list[str] = None,
+        gates: Optional[Set[str]] = None,
     ):
         super().__init__()
         if standard_gate_commutations is None:
