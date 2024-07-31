@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import Fake5QV1
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -36,6 +36,7 @@ from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 pi = np.pi
 
@@ -481,8 +482,12 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         filename = self._get_resource_path("test_latex_partial_layout.tex")
 
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            seed=42,
+        )
 
         circuit = QuantumCircuit(3)
         circuit.h(1)
