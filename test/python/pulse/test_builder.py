@@ -768,7 +768,7 @@ class TestBuilderComposition(TestBuilder):
                 qc.append(circuit.library.U2Gate(0, pi / 2), [idx])
             with self.assertWarnsRegex(
                 DeprecationWarning,
-                expected_regex="The function transpile will stop supporting BackendV1",
+                expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
             ):
                 transpiled = compiler.transpile(qc, backend=backend, optimization_level=1)
             return compiler.schedule(transpiled, backend)
@@ -793,7 +793,7 @@ class TestBuilderComposition(TestBuilder):
         single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             single_u2_qc = compiler.transpile(single_u2_qc, self.backend, optimization_level=1)
         single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
@@ -822,7 +822,7 @@ class TestBuilderComposition(TestBuilder):
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend, optimization_level=1)
         align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")

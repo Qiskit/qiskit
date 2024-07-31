@@ -196,7 +196,7 @@ class TestVF2PostLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
@@ -282,7 +282,7 @@ class TestVF2PostLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
@@ -693,7 +693,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             tqc = transpile(qc, backend, seed_transpiler=self.seed, layout_method="trivial")
         initial_layout = tqc._layout
@@ -743,7 +743,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function transpile will stop supporting BackendV1",
+            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
         ):
             tqc = transpile(circuit, backend, layout_method="dense")
         initial_layout = tqc._layout
