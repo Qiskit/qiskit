@@ -3450,6 +3450,7 @@ new_condition = (new_target, value)
                 &var_map,
             )?
         };
+        self.global_phase = self.global_phase.add(py, &input_dag.global_phase);
 
         let wire_map_dict = PyDict::new_bound(py);
         let clbits = self.clbits.bits();
