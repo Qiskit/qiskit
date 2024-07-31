@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Primitive abstract base class."""
+"""Primitive V1 abstract base class."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from qiskit.providers import Options
 
 
 class BasePrimitive(ABC):
-    """Primitive abstract base class."""
+    """Primitive V1 abstract base class."""
 
     def __init__(self, options: dict | None = None):
         self._run_options = Options()

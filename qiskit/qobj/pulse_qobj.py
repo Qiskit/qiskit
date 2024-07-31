@@ -23,11 +23,20 @@ import numpy
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.utils import deprecate_func
 
 
 class QobjMeasurementOption:
     """An individual measurement option."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, name, params=None):
         """Instantiate a new QobjMeasurementOption object.
 
@@ -89,6 +98,14 @@ class PulseQobjInstruction:
         "parameters",
     ]
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         name,
@@ -282,6 +299,14 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(
         self,
         meas_level,
@@ -383,6 +408,14 @@ class PulseQobjExperiment:
     experiment as part of a larger Pulse Qobj.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, instructions, config=None, header=None):
         """Instantiate a PulseQobjExperiment.
 
@@ -473,6 +506,14 @@ class PulseQobjExperiment:
 class PulseQobjExperimentConfig(QobjDictField):
     """A config for a single Pulse experiment in the qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """Instantiate a PulseQobjExperimentConfig object.
 
@@ -492,6 +533,14 @@ class PulseQobjExperimentConfig(QobjDictField):
 class PulseLibraryItem:
     """An item in a pulse library."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, name, samples):
         """Instantiate a pulse library item.
 
@@ -542,6 +591,14 @@ class PulseLibraryItem:
 class PulseQobj:
     """A Pulse Qobj."""
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, qobj_id, config, experiments, header=None):
         """Instantiate a new Pulse Qobj Object.
 

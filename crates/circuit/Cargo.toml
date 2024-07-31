@@ -10,6 +10,7 @@ name = "qiskit_circuit"
 doctest = false
 
 [dependencies]
+bytemuck.workspace = true
 hashbrown.workspace = true
 num-complex.workspace = true
 ndarray.workspace = true
