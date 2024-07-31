@@ -43,13 +43,15 @@ class TestSequence(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(actual, pad(expected))
@@ -62,13 +64,15 @@ class TestSequence(QiskitTestCase):
         qc.measure(0, 0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(
@@ -83,13 +87,15 @@ class TestSequence(QiskitTestCase):
         qc.cx(0, 1)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(actual, pad(expected))

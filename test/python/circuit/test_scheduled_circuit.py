@@ -80,7 +80,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(1)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(
                 qc,
@@ -110,7 +111,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(1)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(
                 qc, self.backend_without_dt, scheduling_method="alap", layout_method="trivial"
@@ -138,7 +140,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(1)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             with self.assertRaises(QiskitError):
                 transpile(qc, self.backend_without_dt, scheduling_method="alap")
@@ -148,7 +151,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(1234, 0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
         self.assertEqual(sc.duration, 1234)
@@ -163,7 +167,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
         self.assertEqual(scheduled.duration, 8004)
@@ -175,7 +180,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.cx(0, 1)  # 1760 [dt]
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(
                 qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
@@ -213,7 +219,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(100, 0, unit="ns")
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled = transpile(qc, backend=self.backend_with_dt)
         self.assertEqual(transpiled.duration, None)  # not scheduled
@@ -242,7 +249,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.cx(0, 1)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
         # append a gate to a scheduled circuit
@@ -279,7 +287,8 @@ class TestScheduledCircuit(QiskitTestCase):
         # usual case
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(
                 qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
@@ -291,7 +300,8 @@ class TestScheduledCircuit(QiskitTestCase):
         durations.update([("cx", [0, 1], 1000 * self.dt, "s")])
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(
                 qc,
@@ -390,7 +400,8 @@ class TestScheduledCircuit(QiskitTestCase):
         # default case
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="asap")
         org_duration = scheduled.duration
@@ -398,7 +409,8 @@ class TestScheduledCircuit(QiskitTestCase):
         # halve dt in sec = double duration in dt
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             scheduled = transpile(
                 qc, backend=self.backend_with_dt, scheduling_method="asap", dt=self.dt / 2
@@ -416,7 +428,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.cz(1, 2)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             sc = transpile(qc, backend=self.backend_with_dt, scheduling_method=scheduling_method)
         cxs = [inst.operation for inst in sc.data if inst.operation.name == "cx"]
@@ -458,7 +471,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = qc.assign_parameters({idle_dur: 0.1})
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt)
         self.assertEqual(circ.duration, None)  # not scheduled
@@ -472,7 +486,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.measure(0, 0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt)
         circ = circ.assign_parameters({idle_dur: 0.1})
@@ -490,7 +505,8 @@ class TestScheduledCircuit(QiskitTestCase):
         # not assign parameter
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt)
         self.assertEqual(circ.duration, None)  # not scheduled
@@ -507,7 +523,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.measure(0, 0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             qc = transpile(qc, self.backend_with_dt)
         with self.assertRaises(DeprecationWarning):
@@ -523,7 +540,8 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = qc.assign_parameters({idle_dur: 0.1})
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             circ = transpile(qc, self.backend_with_dt, scheduling_method=scheduling_method)
         self.assertIsNotNone(circ.duration)  # scheduled
@@ -538,7 +556,8 @@ class TestScheduledCircuit(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             # unassigned parameter
             with self.assertRaises(TranspilerError):

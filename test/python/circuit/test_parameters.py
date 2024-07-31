@@ -1095,7 +1095,8 @@ class TestParameters(QiskitTestCase):
             backend = Fake5QV1()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpile(qc, backend, optimization_level=opt_level)
 

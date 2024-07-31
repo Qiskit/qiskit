@@ -72,7 +72,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
 
@@ -118,7 +119,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
 
@@ -187,7 +189,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, inst_map=instmap, initial_layout=[0, 1])
 
@@ -227,7 +230,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0, 1])
 
@@ -267,7 +271,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
 
@@ -308,7 +313,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qcs = transpile(circs, backend, basis_gates=["my_gate"], initial_layout=[0])
 
@@ -345,7 +351,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
 
@@ -378,7 +385,8 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The `transpile` function will stop supporting inputs of type `BackendV1`",
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             transpiled_qc = transpile(qc, backend, initial_layout=[3])
 

@@ -256,9 +256,10 @@ def generate_preset_pass_manager(
         # to a fully target-based transpiler pipeline while maintaining the behavior
         # of `transpile` with BackendV1 inputs.
         warnings.warn(
-            f"The `generate_preset_pass_manager` function will stop supporting inputs of type `BackendV1` ( {backend} ) "
-            "in the `backend` parameter in a future release not earlier than 2.0. "
-            "`BackendV1` is deprecated and implementations should move to `BackendV2`.",
+            "The `generate_preset_pass_manager` function will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
             category=DeprecationWarning,
             stacklevel=2,
         )
