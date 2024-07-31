@@ -10,28 +10,28 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::iter::Chain;
 use hashbrown::HashMap;
 use itertools::chain;
-use ndarray::Array2;
 use ndarray::linalg::kron;
+use ndarray::Array2;
 use num_complex::Complex64;
 use smallvec::SmallVec;
+use std::iter::Chain;
 
+use crate::nlayout::PhysicalQubit;
+use crate::unitary_compose::compose_unitary;
+use ndarray_einsum_beta::*;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PySet, PyTuple};
 use pyo3::types::iter::BoundTupleIterator;
-use rustworkx_core::distancemap::DistanceMap;
+use pyo3::types::{PyDict, PySet, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation, PackedOperationType};
 use qiskit_circuit::Qubit;
-use crate::nlayout::PhysicalQubit;
-use crate::unitary_compose::compose_unitary;
-use ndarray_einsum_beta::*;
+use rustworkx_core::distancemap::DistanceMap;
 #[derive(Clone)]
 pub enum CommutationLibraryEntry {
     Commutes(bool),
@@ -120,25 +120,57 @@ impl CommutationChecker {
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
-        max_num_qubits: u32
+        max_num_qubits: u32,
     ) -> PyResult<bool> {
+        let get_hashmap_for_bits =
+            |chain: Chain<BoundTupleIterator, BoundTupleIterator>| -> HashMap<isize, usize> {
+                let mut qqmap: HashMap<isize, usize> = HashMap::new();
+                for b in chain {
+                    let len = qqmap.len();
+                    qqmap
+                        .entry(b.hash().expect("Error building bit map!"))
+                        .or_insert(len);
+                }
+                qqmap
+            };
+        let mut qmap = get_hashmap_for_bits(
+            op1.instruction
+                .qubits
+                .bind(py)
+                .iter()
+                .chain(op2.instruction.qubits.bind(py).iter()),
+        );
+        let mut cmap = get_hashmap_for_bits(
+            op1.instruction
+                .clbits
+                .bind(py)
+                .iter()
+                .chain(op2.instruction.clbits.bind(py).iter()),
+        );
 
-        let get_hashmap_for_bits = |chain: Chain<BoundTupleIterator, BoundTupleIterator>| -> HashMap<isize, usize> {
-            let mut qqmap: HashMap<isize, usize> = HashMap::new();
-            for b in chain{
-                let len = qqmap.len();
-                qqmap.entry(b.hash().expect("Error building bit map!")).or_insert(len);
-            }
-            qqmap
+        let qmapping = |op: &DAGOpNode| -> Vec<_> {
+            op.instruction
+                .qubits
+                .bind(py)
+                .iter()
+                .map(|q| {
+                    qmap.get_item(q.hash().expect("Error building qubit map!"))
+                        .unwrap()
+                        .clone()
+                })
+                .collect::<Vec<_>>()
         };
-        let mut qmap = get_hashmap_for_bits(op1.instruction.qubits.bind(py).iter().chain(op2.instruction.qubits.bind(py).iter()));
-        let mut cmap = get_hashmap_for_bits(op1.instruction.clbits.bind(py).iter().chain(op2.instruction.clbits.bind(py).iter()));
-
-        let qmapping = |op: &DAGOpNode| -> Vec<_>  {
-            op.instruction.qubits.bind(py).iter().map(|q| qmap.get_item(q.hash().expect("Error building qubit map!")).unwrap().clone()).collect::<Vec<_>>()
-        };
-        let cmapping = |op: &DAGOpNode| -> Vec<_>  {
-            op.instruction.clbits.bind(py).iter().map(|q| cmap.get_item(q.hash().expect("Error building qubit map!")).unwrap().clone()).collect::<Vec<_>>()
+        let cmapping = |op: &DAGOpNode| -> Vec<_> {
+            op.instruction
+                .clbits
+                .bind(py)
+                .iter()
+                .map(|q| {
+                    cmap.get_item(q.hash().expect("Error building qubit map!"))
+                        .unwrap()
+                        .clone()
+                })
+                .collect::<Vec<_>>()
         };
 
         let qargs1 = qmapping(op1);
@@ -147,8 +179,15 @@ impl CommutationChecker {
         let qargs2 = qmapping(op2);
         let cargs2 = cmapping(op2);
 
-        Ok(commute_inner(&op1.instruction, &qargs1, &cargs1,
-                         &op2.instruction, &qargs2, &cargs2, max_num_qubits))
+        Ok(commute_inner(
+            &op1.instruction,
+            &qargs1,
+            &cargs1,
+            &op2.instruction,
+            &qargs2,
+            &cargs2,
+            max_num_qubits,
+        ))
     }
 }
 
@@ -163,7 +202,8 @@ impl CommutationChecker {
         }
 */
 fn is_commutation_supported(op: &OperationRef) -> bool {
-    match op { (OperationRef::Standard(_) | OperationRef::Gate(_)) => !op.control_flow(),
+    match op {
+        (OperationRef::Standard(_) | OperationRef::Gate(_)) => !op.control_flow(),
         _ => false,
     }
 }
@@ -178,7 +218,6 @@ fn is_commutation_skipped(instr: &CircuitInstruction, max_qubits: u32) -> bool {
         || instr.is_parameterized()
 }
 
-
 fn commutation_precheck(
     op1: &CircuitInstruction,
     qargs1: &Vec<usize>,
@@ -186,15 +225,14 @@ fn commutation_precheck(
     op2: &CircuitInstruction,
     qargs2: &Vec<usize>,
     cargs2: &Vec<usize>,
-    max_num_qubits: u32) -> Option<bool> {
-
+    max_num_qubits: u32,
+) -> Option<bool> {
     if !is_commutation_supported(&op1.op()) || !is_commutation_supported(&op2.op()) {
         return Some(false);
     }
 
     // assuming the number of involved qubits to be small, this might be faster than set operations
-    if !qargs1.iter().any(|e| qargs2.contains(e)) &&
-       !cargs1.iter().any(|e| cargs2.contains(e)) {
+    if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
         return Some(true);
     }
 
@@ -205,7 +243,6 @@ fn commutation_precheck(
     None
 }
 
-
 fn commute_inner(
     instr1: &CircuitInstruction,
     qargs1: &Vec<usize>,
@@ -213,10 +250,17 @@ fn commute_inner(
     instr2: &CircuitInstruction,
     qargs2: &Vec<usize>,
     cargs2: &Vec<usize>,
-    max_num_qubits: u32
-)-> bool {
-    let commutation: Option<bool> = commutation_precheck(instr1, qargs1, cargs1,
-                                                         instr2, qargs2, cargs2, max_num_qubits);
+    max_num_qubits: u32,
+) -> bool {
+    let commutation: Option<bool> = commutation_precheck(
+        instr1,
+        qargs1,
+        cargs1,
+        instr2,
+        qargs2,
+        cargs2,
+        max_num_qubits,
+    );
     if !commutation.is_none() {
         return commutation.unwrap();
     }
@@ -228,17 +272,28 @@ fn commute_inner(
         // TODO is this consistent between machines?
         op1.name() > op2.name()
     };
-    let (first_instr, second_instr) = if reversed { (instr2, instr1) } else { (instr1, instr2) };
+    let (first_instr, second_instr) = if reversed {
+        (instr2, instr1)
+    } else {
+        (instr1, instr2)
+    };
     let (first_op, second_op) = if reversed { (op2, op1) } else { (op1, op2) };
-    let (first_qargs, second_qargs) = if reversed { (qargs2, qargs1) } else { (qargs1, qargs2) };
-    let (first_cargs, second_cargs) = if reversed { (cargs2, cargs1) } else { (cargs1, cargs2) };
+    let (first_qargs, second_qargs) = if reversed {
+        (qargs2, qargs1)
+    } else {
+        (qargs1, qargs2)
+    };
+    let (first_cargs, second_cargs) = if reversed {
+        (cargs2, cargs1)
+    } else {
+        (cargs1, cargs2)
+    };
 
     if first_op.name() == "annotated" || second_op.name() == "annotated" {
         return commute_matmul(first_instr, first_qargs, second_instr, second_qargs);
     }
 
     //TODO else, look into commutation library!
-
 
     return commute_matmul(first_instr, first_qargs, second_instr, second_qargs);
 
@@ -261,11 +316,11 @@ fn commute_matmul(
     first_instr: &CircuitInstruction,
     first_qargs: &Vec<usize>,
     second_instr: &CircuitInstruction,
-    second_qargs: &Vec<usize>
+    second_qargs: &Vec<usize>,
 ) -> bool {
-
     // compute relative positioning in qarg
-    let mut qarg: HashMap<&usize, usize> = HashMap::with_capacity(first_qargs.len() + second_qargs.len());
+    let mut qarg: HashMap<&usize, usize> =
+        HashMap::with_capacity(first_qargs.len() + second_qargs.len());
     for (i, q) in first_qargs.iter().enumerate() {
         qarg.entry(q).or_insert(i);
     }
@@ -278,14 +333,22 @@ fn commute_matmul(
     }
 
     //let first_qarg: Vec<usize> = first_qargs.iter().map(|q| qarg.entry(q)).collect();
-    let first_qarg: Vec<_> = first_qargs.iter().map(|q| qarg.get_item(q).unwrap().clone()).collect();
-    let second_qarg: Vec<_> = second_qargs.iter().map(|q| qarg.get_item(q).unwrap().clone()).collect();
+    let first_qarg: Vec<_> = first_qargs
+        .iter()
+        .map(|q| qarg.get_item(q).unwrap().clone())
+        .collect();
+    let second_qarg: Vec<_> = second_qargs
+        .iter()
+        .map(|q| qarg.get_item(q).unwrap().clone())
+        .collect();
     assert_eq!(&first_qarg, first_qargs, "hm, should be ok");
     assert_eq!(&second_qarg, second_qargs, "hm, should be ok");
     //second_qarg = tuple(qarg[q] for q in second_qargs)
 
-
-    assert!(first_qargs.len() <= second_qargs.len(), "first instructions must have at most as many qubits as the second instruction");
+    assert!(
+        first_qargs.len() <= second_qargs.len(),
+        "first instructions must have at most as many qubits as the second instruction"
+    );
 
     let first_op = first_instr.op();
     let second_op = second_instr.op();
@@ -308,7 +371,13 @@ fn commute_matmul(
         } else {
             first_mat
         };
-        println!("{} {} {:?} {:?}", first_op.num_qubits(), second_op.num_qubits(), first_qargs, second_qargs);
+        println!(
+            "{} {} {:?} {:?}",
+            first_op.num_qubits(),
+            second_op.num_qubits(),
+            first_qargs,
+            second_qargs
+        );
         println!("{:?}", first_mat);
         let op12 = compose_unitary(second_mat.view(), first_mat.view(), second_qargs);
         let op21 = compose_unitary(first_mat.view(), second_mat.view(), second_qargs);
@@ -316,8 +385,6 @@ fn commute_matmul(
     };
     op12 == op21
 }
-
-
 
 #[derive(Debug, Copy, Clone)]
 struct ParameterKey(f64);
@@ -357,7 +424,6 @@ fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
         })
         .collect()
 }
-
 
 #[pymodule]
 pub fn commutation_checker(_py: Python, m: &PyModule) -> PyResult<()> {
