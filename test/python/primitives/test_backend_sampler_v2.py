@@ -102,7 +102,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test run()."""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
@@ -210,7 +211,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         bell = pm.run(bell)
@@ -240,7 +242,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         bell = pm.run(bell)
@@ -309,7 +312,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc2.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc, qc2 = pm.run([qc, qc2])
@@ -359,7 +363,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc3.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc0, qc1, qc2, qc3 = pm.run([qc0, qc1, qc2, qc3])
@@ -434,7 +439,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
@@ -532,7 +538,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.measure(2, 0)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
@@ -609,7 +616,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc2.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc1, qc2 = pm.run([qc1, qc2])
@@ -684,7 +692,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.measure(range(n - 1), range(n - 1))
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
@@ -737,7 +746,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
@@ -834,7 +844,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell, _, _ = self._cases[1]
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         bell = pm.run(bell)
@@ -920,7 +931,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc.measure_all()
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
@@ -947,7 +959,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell, _, _ = self._cases[1]
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         bell = pm.run(bell)
@@ -992,7 +1005,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test for circuit with unitary gate."""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
@@ -1107,7 +1121,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test for circuit with multiple classical registers."""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         cases = []
@@ -1250,7 +1265,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=self._options)
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc2 = pm.run(qc2)
@@ -1311,7 +1327,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test of pubs with different shots"""
         with self.assertWarnsRegex(
             DeprecationWarning,
-            expected_regex="The function generate_preset_pass_manager will stop supporting BackendV1",
+            expected_regex="The `generate_preset_pass_manager` function will "
+            "stop supporting inputs of type `BackendV1`",
         ):
             pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
