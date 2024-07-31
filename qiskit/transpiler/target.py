@@ -1444,11 +1444,6 @@ class Target(Mapping):
         return target
 
 
-<<<<<<< HEAD
-=======
-Mapping.register(Target)
-
-
 @deprecate_func(
     since="1.2",
     removal_timeline="in the 2.0 release",
@@ -1458,7 +1453,6 @@ Mapping.register(Target)
     "representations it likely relies on deprecated functionality and "
     "should be updated to use `BackendV2`.",
 )
->>>>>>> a6ec8b9ad (Deprecate BackendV1 and `qiskit.providers.models` (#12629))
 def target_to_backend_properties(target: Target):
     """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
 
