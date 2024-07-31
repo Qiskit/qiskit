@@ -1213,6 +1213,7 @@ name = "qiskit-qasm2"
 version = "1.3.0"
 dependencies = [
  "hashbrown 0.14.5",
+ "num-bigint",
  "pyo3",
  "qiskit-circuit",
 ]
