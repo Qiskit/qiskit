@@ -140,7 +140,7 @@ impl<'py> FromPyObject<'py> for Wire {
             Ok(Self::Qubit(Qubit(tuple.get_item(1)?.extract()?)))
         } else if wire_type == 1 {
             Ok(Self::Clbit(Clbit(tuple.get_item(1)?.extract()?)))
-        } else if wire_type == 3 {
+        } else if wire_type == 2 {
             Ok(Self::Var(tuple.get_item(1)?.unbind()))
         } else {
             Err(PyTypeError::new_err("Invalid wire type"))
