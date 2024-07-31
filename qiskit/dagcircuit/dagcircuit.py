@@ -974,15 +974,26 @@ class DAGCircuit:
             elif isinstance(nd, DAGOpNode):
                 m_qargs = [edge_map.get(x, x) for x in nd.qargs]
                 m_cargs = [edge_map.get(x, x) for x in nd.cargs]
-                op = nd.op.copy()
-                if (condition := getattr(op, "condition", None)) is not None:
-                    if not isinstance(op, ControlFlowOp):
-                        op = op.c_if(*variable_mapper.map_condition(condition, allow_reorder=True))
+                inst = nd._to_circuit_instruction(deepcopy=True)
+                m_op = None
+                if inst.condition is not None:
+                    if inst.is_control_flow():
+                        m_op = inst.operation
+                        m_op.condition = variable_mapper.map_condition(
+                            inst.condition, allow_reorder=True
+                        )
                     else:
-                        op.condition = variable_mapper.map_condition(condition, allow_reorder=True)
-                elif isinstance(op, SwitchCaseOp):
-                    op.target = variable_mapper.map_target(op.target)
-                dag.apply_operation_back(op, m_qargs, m_cargs, check=False)
+                        m_op = inst.operation.c_if(
+                            *variable_mapper.map_condition(inst.condition, allow_reorder=True)
+                        )
+                elif inst.is_control_flow() and isinstance(inst.operation, SwitchCaseOp):
+                    m_op = inst.operation
+                    m_op.target = variable_mapper.map_target(m_op.target)
+                if m_op is None:
+                    inst = inst.replace(qubits=m_qargs, clbits=m_cargs)
+                else:
+                    inst = inst.replace(operation=m_op, qubits=m_qargs, clbits=m_cargs)
+                dag._apply_op_node_back(DAGOpNode.from_instruction(inst), check=False)
             else:
                 raise DAGCircuitError(f"bad node type {type(nd)}")
 
@@ -1460,11 +1471,7 @@ class DAGCircuit:
         reverse_wire_map = {b: a for a, b in wire_map.items()}
         # It doesn't make sense to try and propagate a condition from a control-flow op; a
         # replacement for the control-flow op should implement the operation completely.
-        if (
-            propagate_condition
-            and not isinstance(node.op, ControlFlowOp)
-            and (op_condition := getattr(node.op, "condition", None)) is not None
-        ):
+        if propagate_condition and not node.is_control_flow() and node.condition is not None:
             in_dag = input_dag.copy_empty_like()
             # The remapping of `condition` below is still using the old code that assumes a 2-tuple.
             # This is because this remapping code only makes sense in the case of non-control-flow
@@ -1473,7 +1480,7 @@ class DAGCircuit:
             # in favour of the new-style conditional blocks.  The extra logic in here to add
             # additional wires into the map as necessary would hugely complicate matters if we tried
             # to abstract it out into the `VariableMapper` used elsewhere.
-            target, value = op_condition
+            target, value = node.condition
             if isinstance(target, Clbit):
                 new_target = reverse_wire_map.get(target, Clbit())
                 if new_target not in wire_map:
@@ -1593,25 +1600,31 @@ class DAGCircuit:
         for old_node_index, new_node_index in node_map.items():
             # update node attributes
             old_node = in_dag._multi_graph[old_node_index]
-            if isinstance(old_node.op, SwitchCaseOp):
+            m_op = None
+            if not old_node.is_standard_gate() and isinstance(old_node.op, SwitchCaseOp):
                 m_op = SwitchCaseOp(
                     variable_mapper.map_target(old_node.op.target),
                     old_node.op.cases_specifier(),
                     label=old_node.op.label,
                 )
-            elif getattr(old_node.op, "condition", None) is not None:
+            elif old_node.condition is not None:
                 m_op = old_node.op
-                if not isinstance(old_node.op, ControlFlowOp):
+                if old_node.is_control_flow():
+                    m_op.condition = variable_mapper.map_condition(m_op.condition)
+                else:
                     new_condition = variable_mapper.map_condition(m_op.condition)
                     if new_condition is not None:
                         m_op = m_op.c_if(*new_condition)
-                else:
-                    m_op.condition = variable_mapper.map_condition(m_op.condition)
-            else:
-                m_op = old_node.op
             m_qargs = [wire_map[x] for x in old_node.qargs]
             m_cargs = [wire_map[x] for x in old_node.cargs]
-            new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs, dag=self)
+            old_instruction = old_node._to_circuit_instruction()
+            if m_op is None:
+                new_instruction = old_instruction.replace(qubits=m_qargs, clbits=m_cargs)
+            else:
+                new_instruction = old_instruction.replace(
+                    operation=m_op, qubits=m_qargs, clbits=m_cargs
+                )
+            new_node = DAGOpNode.from_instruction(new_instruction)
             new_node._node_id = new_node_index
             self._multi_graph[new_node_index] = new_node
             self._increment_op(new_node.name)
@@ -1840,11 +1853,18 @@ class DAGCircuit:
             list[DAGOpNode]: the list of node ids containing the given op.
         """
         nodes = []
+        filter_is_nonstandard = getattr(op, "_standard_gate", None) is None
         for node in self._multi_graph.nodes():
             if isinstance(node, DAGOpNode):
-                if not include_directives and getattr(node.op, "_directive", False):
+                if not include_directives and node.is_directive():
                     continue
-                if op is None or isinstance(node.op, op):
+                if op is None or (
+                    # This middle catch is to avoid Python-space operation creation for most uses of
+                    # `op`; we're usually just looking for control-flow ops, and standard gates
+                    # aren't control-flow ops.
+                    not (filter_is_nonstandard and node.is_standard_gate())
+                    and isinstance(node.op, op)
+                ):
                     nodes.append(node)
         return nodes
 
@@ -1864,7 +1884,7 @@ class DAGCircuit:
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
         for node in self._multi_graph.nodes():
-            if isinstance(node, DAGOpNode) and node.op.name in names:
+            if isinstance(node, DAGOpNode) and node.name in names:
                 named_nodes.append(node)
         return named_nodes
 
@@ -2070,14 +2090,11 @@ class DAGCircuit:
             new_layer = self.copy_empty_like(vars_mode=vars_mode)
 
             for node in op_nodes:
-                # this creates new DAGOpNodes in the new_layer
-                new_layer.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
+                new_layer._apply_op_node_back(node, check=False)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
-                op_node.qargs
-                for op_node in new_layer.op_nodes()
-                if not getattr(op_node.op, "_directive", False)
+                op_node.qargs for op_node in new_layer.op_nodes() if not op_node.is_directive()
             ]
 
             yield {"graph": new_layer, "partition": support_list}
@@ -2129,11 +2146,7 @@ class DAGCircuit:
         """
 
         def filter_fn(node):
-            return (
-                isinstance(node, DAGOpNode)
-                and node.op.name in namelist
-                and getattr(node.op, "condition", None) is None
-            )
+            return isinstance(node, DAGOpNode) and node.name in namelist and node.condition is None
 
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
         return {tuple(x) for x in group_list}
@@ -2366,7 +2379,7 @@ def _may_have_additional_wires(node) -> bool:
     #
     # If updating this, you most likely also need to update `_additional_wires`.
     return node.condition is not None or (
-        not node.is_standard_gate and isinstance(node.op, (ControlFlowOp, Store))
+        not node.is_standard_gate() and isinstance(node.op, (ControlFlowOp, Store))
     )
 
 

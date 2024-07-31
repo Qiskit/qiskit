@@ -14,7 +14,6 @@
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target
-from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.converters import circuit_to_dag
 
 
@@ -73,7 +72,7 @@ class CheckMap(AnalysisPass):
 
     def _recurse(self, dag, wire_map) -> bool:
         for node in dag.op_nodes(include_directives=False):
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 for block in node.op.blocks:
                     inner_wire_map = {
                         inner: wire_map[outer] for inner, outer in zip(block.qubits, node.qargs)
