@@ -1143,7 +1143,7 @@ impl CircuitData {
                                     // Our `bind_expr` coercion means that a non-parametric
                                     // `ParameterExperssion` after binding would have been coerced
                                     // to a numeric quantity already, so the match here is
-                                    // definitely paramterised.
+                                    // definitely parameterized.
                                     match new_param {
                                         Param::ParameterExpression(_) => new_param,
                                         new_param => Param::extract_no_coerce(&op.call_method1(

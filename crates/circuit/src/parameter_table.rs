@@ -364,7 +364,7 @@ impl ParameterTable {
         self.py_parameters = None;
     }
 
-    /// Expose the trackec data for a given parameter as directly as possible to Python space.
+    /// Expose the tracked data for a given parameter as directly as possible to Python space.
     ///
     /// This is only really intended for use in testing.
     pub(crate) fn _py_raw_entry(&self, param: Bound<PyAny>) -> PyResult<Py<PySet>> {
