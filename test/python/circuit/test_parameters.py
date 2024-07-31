@@ -25,7 +25,14 @@ import qiskit
 import qiskit.circuit.library as circlib
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
+from qiskit.circuit import (
+    Gate,
+    Instruction,
+    Parameter,
+    ParameterExpression,
+    ParameterVector,
+    CircuitInstruction,
+)
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
@@ -54,6 +61,8 @@ def raise_if_parameter_table_invalid(circuit):
         for parameter in param.parameters
         if isinstance(param, ParameterExpression)
     }
+    if isinstance(circuit.global_phase, ParameterExpression):
+        circuit_parameters |= circuit.global_phase.parameters
     table_parameters = set(circuit._data.unsorted_parameters())
 
     if circuit_parameters != table_parameters:
@@ -69,22 +78,29 @@ def raise_if_parameter_table_invalid(circuit):
     for parameter in table_parameters:
         instr_list = circuit._data._raw_parameter_table_entry(parameter)
         for instr_index, param_index in instr_list:
-            instr = circuit.data[instr_index].operation
-            if instr not in circuit_instructions:
-                raise CircuitError(f"ParameterTable instruction not present in circuit: {instr}.")
+            if instr_index is None:
+                # Global phase.
+                expression = circuit.global_phase
+                instr = "<global phase>"
+            else:
+                instr = circuit.data[instr_index].operation
+                if instr not in circuit_instructions:
+                    raise CircuitError(
+                        f"ParameterTable instruction not present in circuit: {instr}."
+                    )
+                expression = instr.params[param_index]
 
-            if not isinstance(instr.params[param_index], ParameterExpression):
+            if not isinstance(expression, ParameterExpression):
                 raise CircuitError(
                     "ParameterTable instruction does not have a "
                     f"ParameterExpression at param_index {param_index}: {instr}."
                 )
 
-            if parameter not in instr.params[param_index].parameters:
+            if parameter not in expression.parameters:
                 raise CircuitError(
-                    "ParameterTable instruction parameters does "
-                    "not match ParameterTable key. Instruction "
-                    f"parameters: {instr.params[param_index].parameters}"
-                    f" ParameterTable key: {parameter}."
+                    "ParameterTable instruction parameters does not match ParameterTable key."
+                    f"\nInstruction parameters: {expression.parameters}"
+                    f"\nParameterTable key: {parameter}."
                 )
 
     # Assert circuit has no other parameter locations other than those in table.
@@ -1378,6 +1394,18 @@ class TestParameters(QiskitTestCase):
 
         qc.data = []
         self.assertEqual(qc.parameters, set())
+        raise_if_parameter_table_invalid(qc)
+
+    def test_nonfinal_insert_maintains_valid_table(self):
+        """Inserts other than appends should still maintain valid tracking, for as long as we
+        continue to allow non-final inserts."""
+        a, b, c = [Parameter(x) for x in "abc"]
+        qc = QuantumCircuit(1)
+        qc.global_phase = a / 2
+        qc.rz(a, 0)
+        qc.rz(b + c, 0)
+        raise_if_parameter_table_invalid(qc)
+        qc.data.insert(0, qc.data.pop())
         raise_if_parameter_table_invalid(qc)
 
     def test_circuit_with_ufunc(self):
