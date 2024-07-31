@@ -25,14 +25,7 @@ import qiskit
 import qiskit.circuit.library as circlib
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import (
-    Gate,
-    Instruction,
-    Parameter,
-    ParameterExpression,
-    ParameterVector,
-    CircuitInstruction,
-)
+from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
@@ -631,6 +624,8 @@ class TestParameters(QiskitTestCase):
         """Test that assignments to an ``AnnotatedOperation`` are propagated all the way down."""
 
         class MyGate(Gate):
+            """Arbitrary non-standard gate."""
+
             def __init__(self, param):
                 super().__init__("my_gate", 1, [param])
                 # Eagerly create our definition.
