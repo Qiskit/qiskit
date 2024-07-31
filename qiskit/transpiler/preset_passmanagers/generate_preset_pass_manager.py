@@ -15,6 +15,7 @@ Preset pass manager generation function
 """
 
 import copy
+import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -242,6 +243,14 @@ def generate_preset_pass_manager(
         # This is a temporary conversion step to allow for a smoother transition
         # to a fully target-based transpiler pipeline while maintaining the behavior
         # of `transpile` with BackendV1 inputs.
+        warnings.warn(
+            "The `generate_preset_pass_manager` function will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         backend = BackendV2Converter(backend)
 
     # Check if a custom inst_map was specified before overwriting inst_map
@@ -319,7 +328,17 @@ def generate_preset_pass_manager(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = target_to_backend_properties(target)
+            with warnings.catch_warnings():
+                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
+                #   of backend-to-target approach
+                #   https://github.com/Qiskit/qiskit/pull/12850
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.transpiler\.target\.target_to_backend_properties.+",
+                    module="qiskit",
+                )
+                backend_properties = target_to_backend_properties(target)
 
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
