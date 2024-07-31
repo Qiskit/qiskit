@@ -71,26 +71,28 @@ class InstructionProperties(BaseInstructionProperties):
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = [
-        "_calibration",
-    ]
-
     def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
         duration=None,  # pylint: disable=keyword-arg-before-vararg
         error=None,  # pylint: disable=keyword-arg-before-vararg
+        calibration=None,
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
         return super(InstructionProperties, cls).__new__(  # pylint: disable=too-many-function-args
-            cls, duration, error
+            cls,
+            duration,
+            error,
+            calibration,
         )
 
     def __init__(
         self,
         duration: float | None = None,  # pylint: disable=unused-argument
         error: float | None = None,  # pylint: disable=unused-argument
-        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
+        calibration: (  # pylint: disable=unused-argument
+            Schedule | ScheduleBlock | CalibrationEntry | None
+        ) = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -102,63 +104,6 @@ class InstructionProperties(BaseInstructionProperties):
             calibration: The pulse representation of the instruction.
         """
         super().__init__()
-        self._calibration: CalibrationEntry | None = None
-        self.calibration = calibration
-
-    @property
-    def calibration(self):
-        """The pulse representation of the instruction.
-
-        .. note::
-
-            This attribute always returns a Qiskit pulse program, but it is internally
-            wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
-            and to uniformly handle different data representation,
-            for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
-
-            This value can be overridden through the property setter in following manner.
-            When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
-            always treated as a user-defined (custom) calibration and
-            the transpiler may automatically attach the calibration data to the output circuit.
-            This calibration data may appear in the wire format as an inline calibration,
-            which may further update the backend standard instruction set architecture.
-
-            If you are a backend provider who provides a default calibration data
-            that is not needed to be attached to the transpiled quantum circuit,
-            you can directly set :class:`.CalibrationEntry` instance to this attribute,
-            in which you should set :code:`user_provided=False` when you define
-            calibration data for the entry. End users can still intentionally utilize
-            the calibration data, for example, to run pulse-level simulation of the circuit.
-            However, such entry doesn't appear in the wire format, and backend must
-            use own definition to compile the circuit down to the execution format.
-
-        """
-        if self._calibration is None:
-            return None
-        return self._calibration.get_schedule()
-
-    @calibration.setter
-    def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
-        if isinstance(calibration, (Schedule, ScheduleBlock)):
-            new_entry = ScheduleDef()
-            new_entry.define(calibration, user_provided=True)
-        else:
-            new_entry = calibration
-        self._calibration = new_entry
-
-    def __repr__(self):
-        return (
-            f"InstructionProperties(duration={self.duration}, error={self.error}"
-            f", calibration={self._calibration})"
-        )
-
-    def __getstate__(self) -> tuple:
-        return (super().__getstate__(), self.calibration, self._calibration)
-
-    def __setstate__(self, state: tuple):
-        super().__setstate__(state[0])
-        self.calibration = state[1]
-        self._calibration = state[2]
 
 
 class Target(BaseTarget):

@@ -376,7 +376,6 @@ impl Target {
     ///     properties (InstructionProperties): The properties to set for this instruction
     /// Raises:
     ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
-    #[pyo3(text_signature = "(instruction, qargs, properties, /,)")]
     fn update_instruction_properties(
         &mut self,
         instruction: &str,
@@ -774,8 +773,12 @@ impl Target {
     /// Get the operation names in the target.
     #[getter]
     #[pyo3(name = "operation_names")]
-    fn py_operation_names(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new_bound(py, self.operation_names()).unbind()
+    fn py_operation_names(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let null_dict = PyDict::new_bound(py);
+        for name in self.operation_names() {
+            null_dict.set_item(name, py.None())?;
+        }
+        Ok(null_dict.into_any().call_method0("keys")?.into())
     }
 
     /// Get the operation objects in the target.

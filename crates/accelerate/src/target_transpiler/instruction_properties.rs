@@ -10,7 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::{prelude::*, pyclass};
+use pyo3::{prelude::*, pyclass, types::IntoPyDict};
+use qiskit_circuit::imports::ImportOnceCell;
+
+static SCHEDULE: ImportOnceCell = ImportOnceCell::new("qiskit.pulse.schedule", "Schedule");
+static SCHEDULE_BLOCK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.pulse.schedule", "ScheduleBlock");
+static SCHEDULE_DEF: ImportOnceCell =
+    ImportOnceCell::new("qiskit.pulse.calibration_entries", "ScheduleDef");
 
 /**
  A representation of an ``InstructionProperties`` object.
@@ -26,6 +33,8 @@ pub struct InstructionProperties {
     pub duration: Option<f64>,
     #[pyo3(get, set)]
     pub error: Option<f64>,
+    #[pyo3(get)]
+    _calibration: Option<PyObject>,
 }
 
 #[pymethods]
@@ -39,34 +48,93 @@ impl InstructionProperties {
     ///         set of qubits.
     ///     calibration (Option<PyObject>): The pulse representation of the instruction.
     #[new]
-    #[pyo3(signature = (duration=None, error=None))]
-    pub fn new(_py: Python<'_>, duration: Option<f64>, error: Option<f64>) -> Self {
-        Self { error, duration }
+    #[pyo3(signature = (duration=None, error=None, calibration=None))]
+    pub fn new(
+        py: Python,
+        duration: Option<f64>,
+        error: Option<f64>,
+        calibration: Option<PyObject>,
+    ) -> Self {
+        let mut instance = Self {
+            error,
+            duration,
+            _calibration: None,
+        };
+        if let Some(calibration) = calibration {
+            let _ = instance.set_calibration(calibration.into_bound(py));
+        }
+        instance
     }
 
-    fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>)> {
-        Ok((self.duration, self.error))
+    /// The pulse representation of the instruction.
+    ///
+    /// .. note::
+    ///
+    /// This attribute always returns a Qiskit pulse program, but it is internally
+    /// wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
+    /// and to uniformly handle different data representation,
+    /// for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
+    ///
+    /// This value can be overridden through the property setter in following manner.
+    /// When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
+    /// always treated as a user-defined (custom) calibration and
+    /// the transpiler may automatically attach the calibration data to the output circuit.
+    /// This calibration data may appear in the wire format as an inline calibration,
+    /// which may further update the backend standard instruction set architecture.
+    ///
+    /// If you are a backend provider who provides a default calibration data
+    /// that is not needed to be attached to the transpiled quantum circuit,
+    /// you can directly set :class:`.CalibrationEntry` instance to this attribute,
+    /// in which you should set :code:`user_provided=False` when you define
+    /// calibration data for the entry. End users can still intentionally utilize
+    /// the calibration data, for example, to run pulse-level simulation of the circuit.
+    /// However, such entry doesn't appear in the wire format, and backend must
+    /// use own definition to compile the circuit down to the execution format.
+    #[getter]
+    fn get_calibration(&self, py: Python) -> PyResult<PyObject> {
+        if let Some(calib) = &self._calibration {
+            Ok(calib.call_method0(py, "get_schedule")?)
+        } else {
+            Ok(py.None())
+        }
     }
 
-    fn __setstate__(&mut self, _py: Python<'_>, state: (Option<f64>, Option<f64>)) -> PyResult<()> {
-        self.duration = state.0;
-        self.error = state.1;
+    #[setter]
+    fn set_calibration(&mut self, calibration: Bound<PyAny>) -> PyResult<()> {
+        let py = calibration.py();
+        if calibration.is_instance(SCHEDULE.get_bound(py))?
+            || calibration.is_instance(SCHEDULE_BLOCK.get_bound(py))?
+        {
+            let new_entry = SCHEDULE_DEF.get_bound(py).call0()?;
+            new_entry.call_method(
+                "define",
+                (calibration,),
+                Some(&[("user_provided", true)].into_py_dict_bound(py)),
+            )?;
+            self._calibration = Some(new_entry.into());
+        } else {
+            self._calibration = Some(calibration.into());
+        }
         Ok(())
     }
 
-    fn __repr__(&self, _py: Python<'_>) -> String {
-        format!(
-            "InstructionProperties(duration={}, error={})",
-            if let Some(duration) = self.duration {
-                duration.to_string()
-            } else {
-                "None".to_string()
-            },
-            if let Some(error) = self.error {
-                error.to_string()
-            } else {
-                "None".to_string()
-            }
-        )
+    fn __getnewargs__(&self, py: Python) -> PyResult<(Option<f64>, Option<f64>, Option<PyObject>)> {
+        Ok((
+            self.duration,
+            self.error,
+            self._calibration
+                .as_ref()
+                .map(|calibration| calibration.clone_ref(py)),
+        ))
+    }
+
+    fn __repr__(slf: Bound<Self>) -> PyResult<String> {
+        let duration = slf.getattr("duration")?.str()?.to_string();
+        let error = slf.getattr("error")?.str()?.to_string();
+        let calibration = slf.getattr("_calibration")?.str()?.to_string();
+        Ok(format!(
+            "InstructionProperties(duration={}, error={}, calibration={})",
+            duration, error, calibration,
+        ))
     }
 }
