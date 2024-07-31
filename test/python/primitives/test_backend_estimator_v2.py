@@ -410,7 +410,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
             np.testing.assert_array_less(result[0].data.stds, self._precision)
 
     def test_precision_with_zero_coefficients(self):
-        """Test that errors are within user-specified precision when all observable term coefficients are zero"""
+        """Test that errors are within user-specified precision with zero coefficients"""
         backend = BasicSimulator()
         estimator = BackendEstimatorV2(backend=backend)
         circuit = QuantumCircuit(2)
