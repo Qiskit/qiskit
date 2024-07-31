@@ -4170,7 +4170,7 @@ class QuantumCircuit:
     @property
     def num_parameters(self) -> int:
         """The number of parameter objects in the circuit."""
-        return self._data.num_params()
+        return self._data.num_parameters()
 
     def _unsorted_parameters(self) -> set[Parameter]:
         """Efficiently get all parameters in the circuit, without any sorting overhead.

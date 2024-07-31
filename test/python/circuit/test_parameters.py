@@ -199,7 +199,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
-        self.assertEqual(qc._data.num_params(), 1)
+        self.assertEqual(qc._data.num_parameters(), 1)
         self.assertIs(theta, next(iter(qc._data.unsorted_parameters())))
         ((instruction_index, _),) = list(qc._data._raw_parameter_table_entry(theta))
         self.assertEqual(rxg, qc.data[instruction_index].operation)
@@ -697,7 +697,7 @@ class TestParameters(QiskitTestCase):
         qc.append(gate, [0], [])
         qc.append(gate, [0], [])
         qc2 = qc.assign_parameters({theta: 1.0})
-        self.assertEqual(qc2._data.num_params(), 0)
+        self.assertEqual(qc2._data.num_parameters(), 0)
         for instruction in qc2.data:
             self.assertEqual(float(instruction.operation.params[0]), 1.0)
 

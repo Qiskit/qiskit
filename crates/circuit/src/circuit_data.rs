@@ -336,7 +336,7 @@ impl CircuitData {
     }
 
     /// Return the number of unbound compile-time symbolic parameters tracked by the circuit.
-    pub fn num_params(&self) -> usize {
+    pub fn num_parameters(&self) -> usize {
         self.param_table.num_parameters()
     }
 
