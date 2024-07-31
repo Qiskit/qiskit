@@ -1,0 +1,30 @@
+---
+features_circuits:
+  - |
+    Added support for :meth:`.AnnotatedOperation.params` and
+    :meth:`.AnnotatedOperation.validate_parameter`, which enable
+    circuit-level parameter handling (such as binding parameters) for
+    annotated operations.
+fixes:
+  - |
+    Fixed a series of issues when controlling parameterized standard gates.
+    The controlled version of some gates (e.g. :class:`.RXXGate` or
+    :class:`.RYGate` for more than 1 control) cannot be synthesized if
+    they contain unbound parameters. Previously, calling ``.control()`` but
+    now we create an :class:`.AnnotatedOperation` as placeholder. This
+    allows to insert the controlled gate into a circuit, bind the parameters
+    at a later stage, and then synthesize the operation.
+    Fixes `#10311 <https://github.com/Qiskit/qiskit/issues/10311>`_,
+    `#10697 <https://github.com/Qiskit/qiskit/issues/10697>`_,
+    and `#12135 <https://github.com/Qiskit/qiskit/issues/12135>`_.
+  - |
+    The :class:`.SGate` and :class:`.SdgGate` now correctly return a 
+    :class:`.CSGate`, resp. :class:`.CSdgGate`, if they are controlled on
+    a single control qubit.
+upgrade_circuits:
+  - |
+    The ``annotated`` argument of the :meth:`.Gate.control` method is now 
+    ``None``, which allows Qiskit to choose whether to annotate a controlled operation.
+    If the concrete implementation (``annotated=False``) is available, it will be returned by
+    default. Otherwise, the annotated implementation will be returned (``annotated=True``). 
+    This allows, for example, to defer the synthesis of controlled, parameterized gates.

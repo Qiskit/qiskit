@@ -218,7 +218,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             * 2: heavy optimization
             * 3: even heavier optimization
 
-            If ``None``, level 1 will be chosen as default.
+            If ``None``, level 2 will be chosen as default.
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments,
@@ -312,13 +312,31 @@ def transpile(  # pylint: disable=too-many-return-statements
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get("transpile_optimization_level", 1)
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
-        # This is a temporary conversion step to allow for a smoother transition
-        # to a fully target-based transpiler pipeline while maintaining the behavior
-        # of `transpile` with BackendV1 inputs.
-        backend = BackendV2Converter(backend)
+        warnings.warn(
+            "The `transpile` function will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        with warnings.catch_warnings():
+            # This is a temporary conversion step to allow for a smoother transition
+            # to a fully target-based transpiler pipeline while maintaining the behavior
+            # of `transpile` with BackendV1 inputs.
+            # TODO BackendV1 is deprecated and this path can be
+            #   removed once it gets removed:
+            #   https://github.com/Qiskit/qiskit/pull/12850
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
+                module="qiskit",
+            )
+            backend = BackendV2Converter(backend)
 
     if (
         scheduling_method is not None
