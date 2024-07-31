@@ -394,7 +394,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         estimator = BackendEstimatorV2(backend=backend)
         circuit = QuantumCircuit(2)
         circuit.h(0)
-        circuit.cx(0,1)
+        circuit.cx(0, 1)
         hamiltonians = [
             {"ZZ": 1.0},
             {"ZZ": 2.0, "XX": 3.0},
@@ -405,9 +405,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
             ],
         ]
         for hamiltonian in hamiltonians:
-            job = estimator.run(
-                [(circuit, hamiltonian)], precision=self._precision
-            )
+            job = estimator.run([(circuit, hamiltonian)], precision=self._precision)
             result = job.result()
             np.testing.assert_array_less(result[0].data.stds, self._precision)
 
@@ -417,16 +415,14 @@ class TestBackendEstimatorV2(QiskitTestCase):
         estimator = BackendEstimatorV2(backend=backend)
         circuit = QuantumCircuit(2)
         circuit.h(0)
-        circuit.cx(0,1)
+        circuit.cx(0, 1)
         hamiltonians = [
             {"ZZ": 0.0},
             {"ZZ": 0.0, "XX": 0.0},
             [{"ZZ": 0.0}, {"ZZ": 0.0, "XX": 0.0}],
         ]
         for hamiltonian in hamiltonians:
-            job = estimator.run(
-                [(circuit, hamiltonian)], precision=self._precision
-            )
+            job = estimator.run([(circuit, hamiltonian)], precision=self._precision)
             result = job.result()
             np.testing.assert_allclose(result[0].data.stds, 0, rtol=self._rtol)
 
