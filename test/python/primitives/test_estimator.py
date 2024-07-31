@@ -370,8 +370,8 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp("ZI")
 
         with self.assertWarns(DeprecationWarning):
-            estimator = Estimator()
-            result = estimator.run(qc, op, seed=seed).result()
+            estimator = Estimator(options={"seed": seed})
+            result = estimator.run(qc, op).result()
         np.testing.assert_allclose(result.values, expect)
 
 
