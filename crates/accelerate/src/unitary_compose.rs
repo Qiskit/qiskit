@@ -44,7 +44,7 @@ fn einsum_matmul_helper(qubits: &[usize], num_qubits: usize) -> [String; 4] {
 }
 
 fn einsum_matmul_index(qubits: &[usize], num_qubits: usize) -> String {
-    assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
+    assert!(num_qubits < 26, "Can't compute unitary of > 26 qubits");
     let tens_r: String = unsafe {
         String::from_utf8_unchecked(UPPERCASE[..num_qubits].iter().copied().collect::<Vec<u8>>())
     };
@@ -72,7 +72,7 @@ pub fn compose_unitary(
                 .collect::<Vec<usize>>(),
         )
         .unwrap();
-
+    // TODO does not work, `ndarray_einsum_beta` does not support upper case characters + look into  operator shapes
     einsum(indices.as_str(), &[&gate_tensor, &overall_unitary])
         .unwrap()
         .into_dimensionality::<ndarray::Ix2>()

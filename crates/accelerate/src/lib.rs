@@ -41,7 +41,6 @@ mod rayon_ext;
 mod test;
 mod unitary_compose;
 
-
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
