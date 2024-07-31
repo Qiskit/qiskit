@@ -35,7 +35,8 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_fake_backend_status(self):
         """Test backend status for one of the fake backends"""
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         backend_status = fake_backend.status()
         self.assertIsInstance(backend_status, BackendStatus)
 

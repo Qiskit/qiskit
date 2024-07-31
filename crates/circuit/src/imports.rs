@@ -28,7 +28,7 @@ pub struct ImportOnceCell {
 }
 
 impl ImportOnceCell {
-    const fn new(module: &'static str, object: &'static str) -> Self {
+    pub const fn new(module: &'static str, object: &'static str) -> Self {
         Self {
             module,
             object,
