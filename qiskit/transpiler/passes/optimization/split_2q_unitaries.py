@@ -26,7 +26,7 @@ class Split2QUnitaries(TransformationPass):
     matrix to determine if the gate is actually a product of 2 single qubit gates. In these
     cases the 2q gate can be simplified into two single qubit gates and this pass will
     perform this optimization and will replace the two qubit gate with two single qubit
-    :class:`.UnitaryGate`\ s.
+    :class:`.UnitaryGate`.
     """
 
     def __init__(self, fidelity: Optional[float] = 1.0 - 1e-16):
