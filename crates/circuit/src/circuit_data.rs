@@ -1025,6 +1025,36 @@ impl CircuitData {
         self.data.iter()
     }
 
+    /// Assigns parameters to circuit data based on a slice of `Param`.
+    pub fn assign_parameters_from_slice(&mut self, py: Python, slice: &[Param]) -> PyResult<()> {
+        if slice.len() != self.param_table.num_parameters() {
+            todo!()
+        }
+        let mut old_table = std::mem::take(&mut self.param_table);
+        self.assign_parameters_inner(
+            py,
+            slice
+                .iter()
+                .cloned()
+                .zip(old_table.drain_ordered())
+                .map(|(value, (param_ob, uses))| (param_ob, value, uses)),
+        )
+    }
+
+    /// Assigns parameters to circuit data based on a mapping of `Param` : `Param`.
+    pub fn assign_parameters_from_mapping<'a, I>(&mut self, py: Python, iter: I) -> PyResult<()>
+    where
+        I: IntoIterator<Item = (&'a Param, &'a Param)>,
+    {
+        let mut items = Vec::new();
+        for (param_obj, value) in iter {
+            let param_obj = param_obj.to_object(py);
+            let uuid = ParameterUuid::from_parameter(param_obj.bind(py))?;
+            items.push((param_obj, value.clone(), self.param_table.pop(uuid)?));
+        }
+        self.assign_parameters_inner(py, items)
+    }
+
     fn assign_parameters_inner<I>(&mut self, py: Python, iter: I) -> PyResult<()>
     where
         I: IntoIterator<Item = (Py<PyAny>, Param, HashSet<ParameterUse>)>,
