@@ -91,6 +91,7 @@ Optimizations
    ElidePermutations
    NormalizeRXAngle
    OptimizeAnnotated
+   Split2QUnitaries
 
 Calibration
 =============
@@ -244,6 +245,7 @@ from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import Split2QUnitaries
 
 # circuit analysis
 from .analysis import ResourceEstimation
