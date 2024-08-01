@@ -105,9 +105,18 @@ class CommutativeCancellation(TransformationPass):
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ["p", "z", "u1", "rz", "t", "s"]:
+                    if num_qargs == 1 and node.name in [
+                        "p",
+                        "z",
+                        "u1",
+                        "rz",
+                        "t",
+                        "tdg",
+                        "s",
+                        "sdg",
+                    ]:
                         cancellation_sets[("z_rotation", wire, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ["rx", "x"]:
+                    if num_qargs == 1 and node.name in ["rx", "x", "sx", "sxdg"]:
                         cancellation_sets[("x_rotation", wire, com_set_idx)].append(node)
                     # Don't deal with Y rotation, because Y rotation doesn't commute with CNOT, so
                     # it should be dealt with by optimized1qgate pass
@@ -150,11 +159,15 @@ class CommutativeCancellation(TransformationPass):
                         current_angle = np.pi
                     elif current_node.name == "t":
                         current_angle = np.pi / 4
-                    elif current_node.name == "s":
+                    elif current_node.name == "tdg":
+                        current_angle = -np.pi / 4
+                    elif current_node.name in ["s", "sx"]:
                         current_angle = np.pi / 2
+                    elif current_node.name in ["sdg", "sxdg"]:
+                        current_angle = -np.pi / 2
                     else:
                         raise RuntimeError(
-                            f"Angle for operation {current_node.name } is not defined"
+                            f"Angle for operation {current_node.name} is not defined"
                         )
 
                     # Compose gates
