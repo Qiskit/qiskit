@@ -185,19 +185,22 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 Returns
                     True if at least one operation in `ops` is not discrete, False otherwise
                 """
+                found_one_continuous_gate = False
                 for op in ops:
                     if isinstance(op, str):
+                        if op in _discrete_skipped_ops:
+                            continue
                         op = stdgates.get(op, None)
+
+                    if op is not None and op.name in _discrete_skipped_ops:
+                        continue
 
                     if op is None or not isinstance(op, Instruction):
                         return False
 
-                    if op.name in _discrete_skipped_ops:
-                        continue
-
                     if len(op.params) > 0:
-                        return True
-                return False
+                        found_one_continuous_gate = True
+                return found_one_continuous_gate
 
             target = pass_manager_config.target
             basis = pass_manager_config.basis_gates

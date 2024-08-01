@@ -15,6 +15,7 @@ Tests for the Split2QUnitaries transpiler pass.
 """
 from math import pi
 
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase
 import numpy as np
 
@@ -119,15 +120,14 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertEqual(qc_split.size(), 2)
 
     def test_2_1q(self):
-        """Test that a Kronechker product of two X gates is correctly processed."""
+        """Test that a Kronecker product of two X gates is correctly processed."""
         x_mat = np.array([[0, 1], [1, 0]])
         multi_x = np.kron(x_mat, x_mat)
         qr = QuantumRegister(2, "qr")
-        backend = BasicSimulator()
+        backend = GenericBackendV2(2)
         qc = QuantumCircuit(qr)
         qc.unitary(multi_x, qr)
-        qct = transpile(qc, backend)
-
+        qct = transpile(qc, backend, optimization_level=2)
         self.assertTrue(Operator(qc).equiv(qct))
         self.assertTrue(matrix_equal(Operator(qc).data, Operator(qct).data, ignore_phase=False))
         self.assertEqual(qct.size(), 2)
@@ -175,6 +175,20 @@ class TestSplit2QUnitaries(QiskitTestCase):
         qc_split2 = pm.run(qc)
         self.assertEqual(qc_split.num_nonlocal_gates(), 0)
         self.assertEqual(qc_split2.num_nonlocal_gates(), 1)
+
+    def test_single_q_gates(self):
+        """Test that the pass handles circuits with single-qubit gates correctly."""
+        qc = QuantumCircuit(5)
+        qc.x(0)
+        qc.z(1)
+        qc.h(2)
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries(fidelity=1.0 - 1e-9))
+        qc_split = pm.run(qc)
+        self.assertEqual(qc_split.num_nonlocal_gates(), 0)
+        self.assertEqual(qc_split.size(), 3)
 
     def test_split_qft(self):
         """Test that the pass handles QFT correctly."""
