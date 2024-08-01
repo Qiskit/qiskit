@@ -20,7 +20,13 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposi
 
 
 class Split2QUnitaries(TransformationPass):
-    """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
+    """Attempt to splits two-qubit gates in a :class:`.DAGCircuit` into two single-qubit gates
+    
+    This pass will analyze all the two qubit gates in the circuit and analyze the gate's unitary
+    matrix to determine if the gate is actually a product of 2 single qubit gates. In these
+    cases the 2q gate can be simplified into two single qubit gates and this pass will
+    perform this optimization and will replace the two qubit gate with two single qubit
+    :class:`.UnitaryGate`\s.
 
     def __init__(self, fidelity: Optional[float] = 1.0 - 1e-16):
         """Split2QUnitaries initializer.
