@@ -26,22 +26,23 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.utils.deprecation import deprecate_func
 
 from .backend_estimator import _prepare_counts, _run_circuits
-from .base import BaseSamplerV1, SamplerResult
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
 
 
-class BackendSampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
-    """A :class:`~.BaseSamplerV1` implementation that provides a wrapper for
+class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
+    """A :class:`~.BaseSampler` (V1) implementation that provides a wrapper for
     leveraging the Sampler V1 interface from any backend.
 
     This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
     from the counts. It facilitates using backends that do not provide a
-    native :class:`~.BaseSamplerV1` implementation in places that work with
-    :class:`~.BaseSamplerV1`.
+    native :class:`~.BaseSampler` V1 implementation in places that work with
+    :class:`~.BaseSampler` V1.
     However, if you're using a provider that has a native implementation of
-    :class:`~.BaseSamplerV1` or :class:`~.BaseESamplerV2`, it is a better
+    :class:`~.BaseSamplerV1` ( :class:`~.BaseSampler`) or
+    :class:`~.BaseESamplerV2`, it is a better
     choice to leverage that native implementation as it will likely include
     additional optimizations and be a more efficient implementation.
     The generic nature of this class precludes doing any provider- or
