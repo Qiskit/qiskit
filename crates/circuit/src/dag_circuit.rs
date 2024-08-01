@@ -3366,7 +3366,7 @@ def _format(operand):
                 .as_ref()
                 .and_then(|attrs| attrs.condition.as_ref())
             {
-                let mut in_dag = input_dag.copy_empty_like(py, "alike")?;
+                let in_dag = input_dag.copy_empty_like(py, "alike")?;
                 // The remapping of `condition` below is still using the old code that assumes a 2-tuple.
                 // This is because this remapping code only makes sense in the case of non-control-flow
                 // operations being replaced.  These can only have the 2-tuple conditions, and the
@@ -3374,7 +3374,9 @@ def _format(operand):
                 // in favour of the new-style conditional blocks.  The extra logic in here to add
                 // additional wires into the map as necessary would hugely complicate matters if we tried
                 // to abstract it out into the `VariableMapper` used elsewhere.
+                let locals = PyDict::new_bound(py);
                 let wire_map = PyDict::new_bound(py);
+                locals.set_item("op_condition", condition)?;
                 for (source_qubit, target_qubit) in &qubit_wire_map {
                     wire_map.set_item(
                         in_dag.qubits.bits()[source_qubit.0 as usize].clone_ref(py),
@@ -3388,57 +3390,42 @@ def _format(operand):
                     )?
                 }
                 wire_map.update(var_map.bind(py).as_mapping())?;
+                locals.set_item("wire_map", wire_map)?;
+                locals.set_item("Clbit", self.circuit_module.clbit.clone_ref(py))?;
+                locals.set_item(
+                    "ClassicalRegister",
+                    self.circuit_module.classical_register.clone_ref(py),
+                )?;
+                locals.set_item("in_dag", in_dag.into_py(py))?;
 
-                let reverse_wire_map = wire_map.iter().map(|(k, v)| (v, k)).into_py_dict_bound(py);
-                let (py_target, py_value): (Bound<PyAny>, Bound<PyAny>) =
-                    condition.bind(py).extract()?;
-                let (py_new_target, target_cargs) = if py_target.is_instance(CLBIT.get_bound(py))? {
-                    let new_target = reverse_wire_map
-                        .get_item(&py_target)?
-                        .map(Ok::<_, PyErr>)
-                        .unwrap_or_else(|| {
-                            // Target was not in node's wires, so we need a dummy.
-                            let new_target = CLBIT.get_bound(py).call0()?;
-                            in_dag.add_clbit_unchecked(py, &new_target)?;
-                            wire_map.set_item(&new_target, &py_target)?;
-                            reverse_wire_map.set_item(&py_target, &new_target)?;
-                            Ok(new_target)
-                        })?;
-                    (new_target.clone(), PySet::new_bound(py, &[new_target])?)
-                } else {
-                    // ClassicalRegister
-                    let target_bits: Vec<Bound<PyAny>> =
-                        py_target.iter()?.collect::<PyResult<_>>()?;
-                    let mapped_bits: Vec<Option<Bound<PyAny>>> = target_bits
-                        .iter()
-                        .map(|b| reverse_wire_map.get_item(b))
-                        .collect::<PyResult<_>>()?;
-
-                    let mut new_target = Vec::with_capacity(target_bits.len());
-                    let target_cargs = PySet::empty_bound(py)?;
-                    for (ours, theirs) in target_bits.into_iter().zip(mapped_bits) {
-                        if let Some(theirs) = theirs {
-                            // Target bit was in node's wires.
-                            new_target.push(theirs.clone());
-                            target_cargs.add(theirs)?;
-                        } else {
-                            // Target bit was not in node's wires, so we need a dummy.
-                            let theirs = CLBIT.get_bound(py).call0()?;
-                            in_dag.add_clbit_unchecked(py, &theirs)?;
-                            wire_map.set_item(&theirs, &ours)?;
-                            reverse_wire_map.set_item(&ours, &theirs)?;
-                            new_target.push(theirs.clone());
-                            target_cargs.add(theirs)?;
-                        }
-                    }
-                    let new_target_register =
-                        CLASSICAL_REGISTER.get_bound(py).call1((new_target,))?;
-                    in_dag.add_creg(py, &new_target_register)?;
-                    (new_target_register, target_cargs)
-                };
-                let new_condition = PyTuple::new_bound(py, [py_new_target, py_value]);
-
-                // let mut in_dag: DAGCircuit = binding.extract()?;
+                py.run_bound(
+                    r#"
+reverse_wire_map = {b: a for a, b in wire_map.items()}
+target, value = op_condition
+if isinstance(target, Clbit):
+    new_target = reverse_wire_map.get(target, Clbit())
+    if new_target not in wire_map:
+        in_dag.add_clbits([new_target])
+        wire_map[new_target], reverse_wire_map[target] = target, new_target
+    target_cargs = {new_target}
+else:  # ClassicalRegister
+    mapped_bits = [reverse_wire_map.get(bit, Clbit()) for bit in target]
+    for ours, theirs in zip(target, mapped_bits):
+        # Update to any new dummy bits we just created to the wire maps.
+        wire_map[theirs], reverse_wire_map[ours] = ours, theirs
+    new_target = ClassicalRegister(bits=mapped_bits)
+    in_dag.add_creg(new_target)
+    target_cargs = set(new_target)
+new_condition = (new_target, value)
+"#,
+                    None,
+                    Some(&locals),
+                )?;
+                let binding = locals.get_item("target_cargs")?.unwrap();
+                let target_cargs = binding.downcast::<PySet>()?;
+                let new_condition = locals.get_item("new_condition")?.unwrap();
+                let binding = locals.get_item("in_dag")?.unwrap();
+                let mut in_dag: DAGCircuit = binding.extract()?;
                 for in_node_index in input_dag.topological_op_nodes()? {
                     let in_node = &input_dag.dag[in_node_index];
                     if let NodeType::Operation(inst) = in_node {
@@ -3468,10 +3455,10 @@ def _format(operand):
                         let mut new_inst = inst.clone();
                         if new_condition.is_truthy()? {
                             if let Some(ref mut attrs) = new_inst.extra_attrs {
-                                attrs.condition = Some(new_condition.as_any().clone().unbind());
+                                attrs.condition = Some(new_condition.clone().unbind());
                             } else {
                                 new_inst.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
-                                    condition: Some(new_condition.as_any().clone().unbind()),
+                                    condition: Some(new_condition.clone().unbind()),
                                     label: None,
                                     duration: None,
                                     unit: None,
