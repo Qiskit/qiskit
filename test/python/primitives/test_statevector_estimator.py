@@ -322,9 +322,16 @@ class TestStatevectorEstimator(QiskitTestCase):
         qc.reset(0)
         op = SparsePauliOp("ZI")
 
-        estimator = StatevectorEstimator(seed=seed)
-        result = estimator.run([(qc, op)]).result()
-        np.testing.assert_allclose(result[0].data.evs, expect)
+        with self.subTest("single"):
+            estimator = StatevectorEstimator(seed=seed)
+            result = estimator.run([(qc, op)]).result()
+            np.testing.assert_allclose(result[0].data.evs, expect)
+
+        with self.subTest("multiple"):
+            estimator = StatevectorEstimator(seed=seed)
+            n = 250
+            result = estimator.run([(qc, [op] * n)]).result()
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
 
 
 if __name__ == "__main__":

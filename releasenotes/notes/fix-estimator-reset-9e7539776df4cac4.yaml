@@ -2,8 +2,8 @@
 fixes:
   - |
     Fixed a bug of :class:`.Estimator` and :class:`.StatevectorEstimator` that
-    they may behave in a stochastic way if input circuits include resets for a some subsystems.
-    They behave in a deterministic way if a random seed is given. For example::
+    the stochastic results due to resets for a some subsystems are not reproducible.
+    The results are now reproducible if a random seed is given. For example::
 
       from qiskit.primitives import StatevectorEstimator
 

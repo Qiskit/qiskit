@@ -369,10 +369,18 @@ class TestEstimator(QiskitTestCase):
         qc.reset(0)
         op = SparsePauliOp("ZI")
 
-        with self.assertWarns(DeprecationWarning):
-            estimator = Estimator(options={"seed": seed})
-            result = estimator.run(qc, op).result()
-        np.testing.assert_allclose(result.values, expect)
+        with self.subTest("single"):
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator(options={"seed": seed})
+                result = estimator.run(qc, op).result()
+            np.testing.assert_allclose(result.values, expect)
+
+        with self.subTest("multiple"):
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator(options={"seed": seed})
+                n = 250
+                result = estimator.run([qc for _ in range(n)], [op] * n).result()
+            np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
 
 
 @ddt
