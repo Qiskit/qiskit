@@ -1,0 +1,12 @@
+---
+features_transpiler:
+  - |
+    The :class:`.SabreLayout` transpiler pass has been updated to always run
+    an additional trial using the same algorithm as :class:`.DenseLayout` to
+    choose a starting point for Sabre's layout algorithm. The starting point
+    used by the layout algorithm can have a large influence on the quality of
+    the results. By default :class:`.SabreLayout` still start with
+    ``layout_trials`` random trials but in addition there will be a single
+    trial that uses the densest subgraph of the connectivity graph as the
+    starting point. This may yield better results in some cases especially
+    on cases with smaller circuits for larger coupling maps.
