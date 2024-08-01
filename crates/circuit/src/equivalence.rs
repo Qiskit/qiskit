@@ -434,7 +434,7 @@ impl EquivalenceLibrary {
     fn set_entry(&mut self, py: Python, gate: GateOper, entry: Vec<CircuitRep>) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(&gate, equiv)?;
-            raise_if_param_mismatch(py, &gate.params, equiv.data.get_params_unsorted(py)?)?;
+            raise_if_param_mismatch(py, &gate.params, equiv.data.unsorted_parameters(py)?)?;
         }
         let op_ref: OperationRef = gate.operation.view();
         let key = Key {
@@ -605,7 +605,7 @@ impl EquivalenceLibrary {
         raise_if_param_mismatch(
             py,
             &gate.params,
-            equivalent_circuit.data.get_params_unsorted(py)?,
+            equivalent_circuit.data.unsorted_parameters(py)?,
         )?;
         let op_ref = gate.operation.view();
         let key: Key = Key {
@@ -697,7 +697,7 @@ impl EquivalenceLibrary {
 fn raise_if_param_mismatch(
     py: Python,
     gate_params: &[Param],
-    circuit_parameters: Py<PySet>,
+    circuit_parameters: Bound<PySet>,
 ) -> PyResult<()> {
     let gate_params_obj = PySet::new_bound(
         py,
