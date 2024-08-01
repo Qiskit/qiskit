@@ -512,7 +512,7 @@ class UnitarySynthesis(TransformationPass):
         for node in dag.op_nodes():
             if node.name not in CONTROL_FLOW_OP_NAMES:
                 continue
-            node.op = node.op.replace_blocks(
+            new_op = node.op.replace_blocks(
                 [
                     dag_to_circuit(
                         self._run_main_loop(
@@ -531,6 +531,7 @@ class UnitarySynthesis(TransformationPass):
                     for block in node.op.blocks
                 ]
             )
+            dag.substitute_node(node, new_op, propagate_condition=False)
 
         out_dag = dag.copy_empty_like()
         for node in dag.topological_op_nodes():
