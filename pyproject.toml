@@ -234,6 +234,10 @@ enable = [
 [tool.pylint.spelling]
 spelling-private-dict-file = ".local-spellings"
 
+[tool.stestr]
+test_path= "./test/python"
+top_dir = "./"
+
 [tool.coverage.report]
 exclude_also = [
     "def __repr__",               # Printable epresentational string does not typically execute during testing
