@@ -14,19 +14,17 @@
 Tests for the Split2QUnitaries transpiler pass.
 """
 from math import pi
-
-from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase
 import numpy as np
 
-
 from qiskit import QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit.library import UnitaryGate
+from qiskit.circuit.library import UnitaryGate, XGate, ZGate, HGate
+from qiskit.circuit import Parameter, CircuitInstruction
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
-from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 
 
@@ -176,9 +174,28 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertEqual(qc_split.num_nonlocal_gates(), 0)
         self.assertEqual(qc_split2.num_nonlocal_gates(), 1)
 
+    def test_almost_identity_param(self):
+        """Test that the pass handles parameterized gates correctly."""
+        qc = QuantumCircuit(2)
+        param = Parameter("p*2**-26")
+        qc.cp(param, 0, 1)
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries(fidelity=1.0 - 1e-9))
+        qc_split = pm.run(qc)
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split2 = pm.run(qc)
+        self.assertEqual(qc_split.num_nonlocal_gates(), 1)
+        self.assertEqual(qc_split2.num_nonlocal_gates(), 1)
+
     def test_single_q_gates(self):
         """Test that the pass handles circuits with single-qubit gates correctly."""
-        qc = QuantumCircuit(5)
+        qr = QuantumRegister(5)
+        qc = QuantumCircuit(qr)
         qc.x(0)
         qc.z(1)
         qc.h(2)
@@ -189,6 +206,10 @@ class TestSplit2QUnitaries(QiskitTestCase):
         qc_split = pm.run(qc)
         self.assertEqual(qc_split.num_nonlocal_gates(), 0)
         self.assertEqual(qc_split.size(), 3)
+
+        self.assertTrue(CircuitInstruction(XGate(), qubits=[qr[0]], clbits=[]) in qc.data)
+        self.assertTrue(CircuitInstruction(ZGate(), qubits=[qr[1]], clbits=[]) in qc.data)
+        self.assertTrue(CircuitInstruction(HGate(), qubits=[qr[2]], clbits=[]) in qc.data)
 
     def test_split_qft(self):
         """Test that the pass handles QFT correctly."""
