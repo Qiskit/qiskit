@@ -288,6 +288,7 @@ impl PackedOperation {
                 qubits: instruction.qubits,
                 clbits: instruction.clbits,
                 params: instruction.params,
+                control_flow: instruction.control_flow,
                 op_name: instruction.op_name.clone(),
             }
             .into()),
@@ -321,6 +322,7 @@ impl PackedOperation {
                 qubits: instruction.qubits,
                 clbits: instruction.clbits,
                 params: instruction.params,
+                control_flow: instruction.control_flow,
                 op_name: instruction.op_name.clone(),
             })
             .into()),

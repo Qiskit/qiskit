@@ -26,7 +26,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseSamplerV1, SamplerResult
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -36,11 +36,11 @@ from .utils import (
 )
 
 
-class Sampler(BaseSamplerV1[PrimitiveJob[SamplerResult]]):
+class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """
     Sampler V1 class.
 
-    :class:`~Sampler` is a reference implementation of :class:`~BaseSamplerV1`.
+    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler` (V1).
 
     :Run Options:
 

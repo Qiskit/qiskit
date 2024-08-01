@@ -190,7 +190,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[EstimatorPub], shots: int) -> list[PubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""
@@ -238,7 +238,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
         param_indices = np.fromiter(np.ndindex(param_shape), dtype=object).reshape(param_shape)
         bc_param_ind, bc_obs = np.broadcast_arrays(param_indices, observables)
 
-        # calculate expectation values for each pair of parameter value set and pauli
         param_obs_map = defaultdict(set)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
@@ -275,7 +274,14 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 variances[index] += np.abs(coeff) * variance**0.5
         stds = variances / np.sqrt(shots)
         data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
-        return PubResult(data_bin, metadata={"target_precision": pub.precision})
+        return PubResult(
+            data_bin,
+            metadata={
+                "target_precision": pub.precision,
+                "shots": shots,
+                "circuit_metadata": pub.circuit.metadata,
+            },
+        )
 
     def _bind_and_add_measurements(
         self,

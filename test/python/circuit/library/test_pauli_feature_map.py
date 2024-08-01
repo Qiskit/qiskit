@@ -213,9 +213,9 @@ class TestDataPreparation(QiskitTestCase):
             "ParameterView([ParameterVectorElement(x[0]), ParameterVectorElement(x[1])])",
         )
 
-        encoding_pauli_param_y = encoding_pauli.assign_parameters({1, y})
-        encoding_z_param_y = encoding_z.assign_parameters({1, y})
-        encoding_zz_param_y = encoding_zz.assign_parameters({1, y})
+        encoding_pauli_param_y = encoding_pauli.assign_parameters([1, y])
+        encoding_z_param_y = encoding_z.assign_parameters([1, y])
+        encoding_zz_param_y = encoding_zz.assign_parameters([1, y])
 
         self.assertEqual(str(encoding_pauli_param_y.parameters), "ParameterView([Parameter(y)])")
         self.assertEqual(str(encoding_z_param_y.parameters), "ParameterView([Parameter(y)])")

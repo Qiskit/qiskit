@@ -26,7 +26,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from .base import BaseEstimatorV1, EstimatorResult
+from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -36,9 +36,9 @@ from .utils import (
 )
 
 
-class Estimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
+class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """
-    Reference implementation of :class:`BaseEstimatorV1`.
+    Reference implementation of :class:`BaseEstimator` (V1).
 
     :Run Options:
 

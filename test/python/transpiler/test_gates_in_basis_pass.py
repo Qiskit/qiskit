@@ -99,7 +99,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_with_target(self):
         """Test circuit with all gates in basis with target."""
-        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"], seed=42).target
         basis_gates = ["cx", "u"]  # not used
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -112,7 +112,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_not_in_basis_with_target(self):
         """Test circuit with not all gates in basis with target."""
-        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"], seed=42).target
         basis_gates = ["cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -125,7 +125,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_not_on_all_qubits_with_target(self):
         """Test circuit with gate in global basis but not local basis."""
-        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"], seed=42).target
         basis_gates = ["ecr", "cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -138,7 +138,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_empty_circuit_with_target(self):
         """Test circuit with no gates with target."""
-        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"], seed=42).target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -191,7 +191,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_after_translation_with_target(self):
         """Test circuit with gates in basis after conditional translation."""
-        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"], seed=42).target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target)

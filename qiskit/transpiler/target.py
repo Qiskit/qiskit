@@ -20,6 +20,7 @@ from a backend
 from __future__ import annotations
 
 import itertools
+import warnings
 
 from typing import Optional, List, Any
 from collections.abc import Mapping
@@ -55,6 +56,7 @@ from qiskit.exceptions import QiskitError
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -1164,6 +1166,15 @@ class Target(BaseTarget):
 Mapping.register(Target)
 
 
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="This method is used to build an element from the deprecated "
+    "``qiskit.providers.models`` module. These models are part of the deprecated `BackendV1` "
+    "workflow and no longer necessary for `BackendV2`. If a user workflow requires these "
+    "representations it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
+)
 def target_to_backend_properties(target: Target):
     """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
 
@@ -1242,6 +1253,9 @@ def target_to_backend_properties(target: Target):
     if gates or qubits:
         properties_dict["gates"] = gates
         properties_dict["qubits"] = qubits
-        return BackendProperties.from_dict(properties_dict)
+        with warnings.catch_warnings():
+            # This raises BackendProperties internally
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return BackendProperties.from_dict(properties_dict)
     else:
         return None

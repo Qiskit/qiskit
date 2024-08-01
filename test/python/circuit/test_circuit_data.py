@@ -859,6 +859,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         # A fancy way of doing qc0_instance = qc0.data[0] and qc1_instance = qc1.data[0]
         # but this at least verifies the parameter table is point from the parameter to
         # the correct instruction (which is the only one)
-        qc0_instance = qc0._data[next(iter(qc0._data._get_param(b.uuid.int)))[0]]
-        qc1_instance = qc1._data[next(iter(qc1._data._get_param(a.uuid.int)))[0]]
+        qc0_instance = qc0._data[next(iter(qc0._data._raw_parameter_table_entry(b)))[0]]
+        qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)

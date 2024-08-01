@@ -895,7 +895,7 @@ impl DAGCircuit {
             .bind(py)
             .iter()?
         {
-            self._apply_op_node_back(py, &node?)?;
+            self._apply_op_node_back(py, &node?, false)?;
         }
         Ok(())
     }
@@ -978,7 +978,7 @@ impl DAGCircuit {
             .bind(py)
             .iter()?
         {
-            self._apply_op_node_back(py, &node?)?;
+            self._apply_op_node_back(py, &node?, false)?;
         }
         Ok(())
     }
@@ -1778,8 +1778,54 @@ def _format(operand):
         Ok(target_dag)
     }
 
-    fn _apply_op_node_back(&mut self, py: Python, node: &Bound<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(node, check=false))]
+    fn _apply_op_node_back(&mut self, py: Python, node: &Bound<PyAny>, check: bool) -> PyResult<()> {
         if let NodeType::Operation(inst) = self.pack_into(py, node)? {
+            if check {
+                if let Some(condition) = inst.condition() {
+                    self._check_condition(py, inst.op.name(), condition.bind(py))?;
+                }
+
+                for b in self.qargs_cache.intern(inst.qubits) {
+                    if !self.qubit_output_map.contains_key(b) {
+                        return Err(DAGCircuitError::new_err(format!(
+                            "qubit {} not found in output map",
+                            self.qubits.get(*b).unwrap()
+                        )));
+                    }
+                }
+
+                for b in self.cargs_cache.intern(inst.clbits) {
+                    if !self.clbit_output_map.contains_key(b) {
+                        return Err(DAGCircuitError::new_err(format!(
+                            "clbit {} not found in output map",
+                            self.clbits.get(*b).unwrap()
+                        )));
+                    }
+                }
+
+                if self.may_have_additional_wires(py, &inst) {
+                    let (clbits, vars) = self.additional_wires(py, &inst)?;
+                    for b in clbits {
+                        if !self.clbit_output_map.contains_key(&b) {
+                            return Err(DAGCircuitError::new_err(format!(
+                                "clbit {} not found in output map",
+                                self.clbits.get(b).unwrap()
+                            )));
+                        }
+                    }
+                    for v in vars {
+                        if !self.var_output_map.contains_key(&v) {
+                            return Err(DAGCircuitError::new_err(format!(
+                                "var {} not found in output map",
+                                v
+                            )));
+                        }
+                    }
+                }
+            }
+
+
             self.push_back(py, inst)?;
             Ok(())
         } else {
@@ -3489,6 +3535,7 @@ new_condition = (new_target, value)
                                 qubits: op.num_qubits(),
                                 clbits: op.num_clbits(),
                                 params: op.num_params(),
+                                control_flow: op.control_flow(),
                                 op_name: op.name().to_string(),
                                 instruction: new_op.unbind(),
                             }
