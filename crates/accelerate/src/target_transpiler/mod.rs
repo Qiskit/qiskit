@@ -907,21 +907,21 @@ impl Target {
     }
 
     /// Performs caching of python side dict objects for better access performance.
-    fn __getitem__(&mut self, key: &Bound<PyAny>) -> PyResult<PyObject> {
+    fn __getitem__(mut slf: PyRefMut<Self>, key: &Bound<PyAny>) -> PyResult<PyObject> {
         let py: Python = key.py();
         let Ok(key) = key.extract::<String>() else {return Err(PyKeyError::new_err(
             "Invalid Key Type for Target."
         ));};
-        if let Some(val) = self._py_gate_map_cache.get(key.as_str()) {
+        if let Some(val) = slf._py_gate_map_cache.get(key.as_str()) {
             Ok(val.as_any().clone_ref(py))
-        } else if let Some(val) = self.gate_map.get(key.as_str()) {
+        } else if let Some(val) = slf.gate_map.get(key.as_str()) {
             let new_py: Vec<(Option<Bound<'_, PyTuple>>, PyObject)> = val
                 .clone()
                 .into_iter()
                 .map(|(key, val)| (key.map(|key| PyTuple::new_bound(py, key)), val.into_py(py)))
                 .collect();
             let dict_py = new_py.into_py_dict_bound(py).unbind();
-            self._py_gate_map_cache.insert(key, dict_py.clone_ref(py));
+            slf._py_gate_map_cache.insert(key, dict_py.clone_ref(py));
             Ok(dict_py.into())
         } else {
             Err(PyKeyError::new_err(format!(

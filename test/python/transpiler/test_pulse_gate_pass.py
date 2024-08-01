@@ -143,8 +143,12 @@ class TestPulseGate(QiskitTestCase):
             seed=42,
         ).target
 
-        target["sx"][(0,)].calibration = self.custom_sx_q0
-        target["sx"][(1,)].calibration = self.custom_sx_q1
+        inst_prop_0 = target["sx"][(0,)]
+        inst_prop_0.calibration = self.custom_sx_q0
+        target.update_instruction_properties("sx", (0,), inst_prop_0)
+        inst_prop_1 = target["sx"][(1,)]
+        inst_prop_1.calibration = self.custom_sx_q1
+        target.update_instruction_properties("sx", (1,), inst_prop_1)
 
         qc = circuit.QuantumCircuit(2)
         qc.sx(0)
