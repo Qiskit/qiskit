@@ -151,7 +151,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         for index in np.ndindex(*bc_circuits.shape):
             bound_circuit = bc_circuits[index]
             observable = bc_obs[index]
-            final_state = _statevector_from_circuit(bound_circuit, self._seed)
+            final_state = _statevector_from_circuit(bound_circuit, rng)
             paulis, coeffs = zip(*observable.items())
             obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
             expectation_value = np.real_if_close(final_state.expectation_value(obs))

@@ -42,8 +42,9 @@ class Estimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
     :Run Options:
 
         - **shots** (None or int) --
-          The number of shots. If None, it calculates the exact expectation
-          values. Otherwise, it samples from normal distributions with standard errors as standard
+          The number of shots. If None, it calculates the expectation values
+          with full state vector simulation.
+          Otherwise, it samples from normal distributions with standard errors as standard
           deviations using normal distribution approximation.
 
         - **seed** (np.random.Generator or int) --
@@ -111,7 +112,7 @@ class Estimator(BaseEstimatorV1[PrimitiveJob[EstimatorResult]]):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            final_state = _statevector_from_circuit(circ, seed)
+            final_state = _statevector_from_circuit(circ, rng)
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)

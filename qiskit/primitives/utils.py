@@ -227,19 +227,21 @@ def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
     return inst
 
 
-def _statevector_from_circuit(circuit: QuantumCircuit, seed: int | None) -> Statevector:
+def _statevector_from_circuit(
+    circuit: QuantumCircuit, rng: np.random.Generator | None
+) -> Statevector:
     """Generate a statevector from a circuit
 
     If the input circuit includes any resets for a some subsystem,
     :meth:`.Statevector.reset` behaves in a stochastic way in :meth:`.Statevector.evolve`.
-    This function sets a random seed to make it deterministic.
+    This function sets a random number generator to be reproducible.
 
     See :meth:`.Statevector.reset` for details.
 
     Args:
         circuit: The quantum circuit.
-        seed: The random seed number or None.
+        seed: The random number generator or None.
     """
     sv = Statevector.from_int(0, 2**circuit.num_qubits)
-    sv.seed(seed)
+    sv.seed(rng)
     return sv.evolve(bound_circuit_to_instruction(circuit))
