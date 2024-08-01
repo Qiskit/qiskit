@@ -1096,7 +1096,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             op.paulis = PauliList([Pauli("X"), Pauli("Y")])
         with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
             op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
-    
+
     def test_paulis_setter_absorbs_phase(self):
         """Test that the setter for `paulis` absorbs `paulis.phase` to `self.coeffs`."""
         coeffs_init = np.array([1, 1j])

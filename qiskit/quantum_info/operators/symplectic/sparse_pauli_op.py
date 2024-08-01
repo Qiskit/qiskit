@@ -256,7 +256,7 @@ class SparsePauliOp(LinearOp):
             raise ValueError(
                 f"incorrect number of operators: expected {len(self.paulis)}, got {len(value)}"
             )
-        self.coeffs *= (-1j)**value.phase
+        self.coeffs *= (-1j) ** value.phase
         self._pauli_list = PauliList.from_symplectic(value.z, value.x, phase=0)
 
     @property
