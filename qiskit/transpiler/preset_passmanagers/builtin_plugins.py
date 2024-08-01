@@ -214,7 +214,14 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             if do_consolidate_blocks_init:
                 init.append(Collect2qBlocks())
                 init.append(ConsolidateBlocks())
-                init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
+                # If approximation degree is None that indicates a request to approximate up to the
+                # error rates in the target. However, in the init stage we don't yet know the target
+                # qubits being used to figure out the fidelity so just use the default fidelity parameter
+                # in this case.
+                if pass_manager_config.approximation_degree is not None:
+                    init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
+                else:
+                    init.append(Split2QUnitaries())
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
