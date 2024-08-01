@@ -73,7 +73,15 @@ from qiskit import user_config
 
 CONFIG = user_config.get_config()
 
-_discrete_skipped_ops = {"delay", "reset", "measure"}
+_discrete_skipped_ops = {
+    "delay",
+    "reset",
+    "measure",
+    "switch_case",
+    "if_else",
+    "for_loop",
+    "while_loop",
+}
 
 
 class DefaultInitPassManager(PassManagerStagePlugin):
@@ -181,11 +189,10 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     if isinstance(op, str):
                         op = stdgates.get(op, None)
 
-                    if (
-                        op is None
-                        or not isinstance(op, Instruction)
-                        or op.name in _discrete_skipped_ops
-                    ):
+                    if op is None or not isinstance(op, Instruction):
+                        return False
+
+                    if op.name in _discrete_skipped_ops:
                         continue
 
                     if len(op.params) > 0:
@@ -207,7 +214,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             if do_consolidate_blocks_init:
                 init.append(Collect2qBlocks())
                 init.append(ConsolidateBlocks())
-                init.append(Split2QUnitaries())
+                init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init

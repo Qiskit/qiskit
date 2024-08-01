@@ -68,6 +68,9 @@ class Split2QUnitaries(TransformationPass):
                 decomp._inner_decomposition.specialization
                 == TwoQubitWeylDecomposition._specializations.SWAPEquiv
             ):
-                # TODO also look at swap-gate-like gates?
+                # TODO maybe also look into swap-gate-like gates? Things to consider:
+                #   * As the qubit mapping may change, we'll always need to build a new dag in this pass
+                #   * There may not be many swap-gate-like gates in an arbitrary input circuit
+                #   * Removing swap gates from a user-routed input circuit here is unexpected
                 pass
         return dag
