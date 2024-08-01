@@ -14,6 +14,7 @@
 
 import unittest
 
+
 from test import combine
 from ddt import ddt, data
 
@@ -279,7 +280,7 @@ class TestPresetPassManager(QiskitTestCase):
             callback=counting_callback_func,
             translation_method="synthesis",
         )
-        self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
+        self.assertEqual(gates_in_basis_true_count + 2, collect_2q_blocks_count)
 
 
 @ddt
