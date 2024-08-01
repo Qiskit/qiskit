@@ -15,10 +15,12 @@ Preset pass manager generation function
 """
 
 import copy
+import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
+from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -35,7 +37,7 @@ from .level3 import level_3_pass_manager
 
 
 def generate_preset_pass_manager(
-    optimization_level,
+    optimization_level=2,
     backend=None,
     target=None,
     basis_gates=None,
@@ -96,9 +98,10 @@ def generate_preset_pass_manager(
 
     Args:
         optimization_level (int): The optimization level to generate a
-            :class:`~.PassManager` for. This can be 0, 1, 2, or 3. Higher
-            levels generate more optimized circuits, at the expense of
-            longer transpilation time:
+            :class:`~.StagedPassManager` for. By default optimization level 2
+            is used if this is not specified. This can be 0, 1, 2, or 3. Higher
+            levels generate potentially more optimized circuits, at the expense
+            of longer transpilation time:
 
                 * 0: no optimization
                 * 1: light optimization
@@ -238,10 +241,28 @@ def generate_preset_pass_manager(
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
 
+    # Handle positional arguments for target and backend. This enables the usage
+    # pattern `generate_preset_pass_manager(backend.target)` to generate a default
+    # pass manager for a given target.
+    if isinstance(optimization_level, Target):
+        target = optimization_level
+        optimization_level = 2
+    elif isinstance(optimization_level, Backend):
+        backend = optimization_level
+        optimization_level = 2
+
     if backend is not None and getattr(backend, "version", 0) <= 1:
         # This is a temporary conversion step to allow for a smoother transition
         # to a fully target-based transpiler pipeline while maintaining the behavior
         # of `transpile` with BackendV1 inputs.
+        warnings.warn(
+            "The `generate_preset_pass_manager` function will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         backend = BackendV2Converter(backend)
 
     # Check if a custom inst_map was specified before overwriting inst_map
@@ -319,7 +340,17 @@ def generate_preset_pass_manager(
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
-            backend_properties = target_to_backend_properties(target)
+            with warnings.catch_warnings():
+                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
+                #   of backend-to-target approach
+                #   https://github.com/Qiskit/qiskit/pull/12850
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.transpiler\.target\.target_to_backend_properties.+",
+                    module="qiskit",
+                )
+                backend_properties = target_to_backend_properties(target)
 
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)

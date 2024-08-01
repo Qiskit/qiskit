@@ -364,10 +364,7 @@ def generate_routing_passmanager(
         routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
 
     def filter_fn(node):
-        return (
-            getattr(node.op, "label", None)
-            != "qiskit.transpiler.internal.routing.protection.barrier"
-        )
+        return node.label != "qiskit.transpiler.internal.routing.protection.barrier"
 
     routing.append([FilterOpNodes(filter_fn)])
 

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Sampler implementation for an arbitrary Backend object."""
+"""Sampler V1 implementation for an arbitrary Backend object."""
 
 from __future__ import annotations
 
@@ -32,22 +32,29 @@ from .utils import _circuit_key
 
 
 class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
-    """A :class:`~.BaseSampler` implementation that provides an interface for
-    leveraging the sampler interface from any backend.
+    """A :class:`~.BaseSampler` (V1) implementation that provides a wrapper for
+    leveraging the Sampler V1 interface from any backend.
 
     This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
     from the counts. It facilitates using backends that do not provide a
-    native :class:`~.BaseSampler` implementation in places that work with
-    :class:`~.BaseSampler`.
+    native :class:`~.BaseSampler` V1 implementation in places that work with
+    :class:`~.BaseSampler` V1.
     However, if you're using a provider that has a native implementation of
-    :class:`~.BaseSampler`, it is a better choice to leverage that native
-    implementation as it will likely include additional optimizations and be
-    a more efficient implementation. The generic nature of this class
-    precludes doing any provider- or backend-specific optimizations.
+    :class:`~.BaseSamplerV1` ( :class:`~.BaseSampler`) or
+    :class:`~.BaseESamplerV2`, it is a better
+    choice to leverage that native implementation as it will likely include
+    additional optimizations and be a more efficient implementation.
+    The generic nature of this class precludes doing any provider- or
+    backend-specific optimizations.
     """
 
-    @deprecate_func(since="1.2", additional_msg="Use BackendSamplerV2 instead.")
+    @deprecate_func(
+        since="1.2",
+        additional_msg="All implementations of the `BaseSamplerV1` interface "
+        "have been deprecated in favor of their V2 counterparts. "
+        "The V2 alternative for the `BackendSampler` class is `BackendSamplerV2`.",
+    )
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -55,10 +62,10 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
     ):
-        """Initialize a new BackendSampler
+        """Initialize a new BackendSampler (V1) instance
 
         Args:
-            backend: Required: the backend to run the sampler primitive on
+            backend: (required) the backend to run the sampler primitive on
             options: Default options.
             bound_pass_manager: An optional pass manager to run after
                 parameter binding.
