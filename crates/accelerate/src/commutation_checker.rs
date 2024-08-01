@@ -12,6 +12,8 @@
 
 use hashbrown::HashMap;
 use itertools::chain;
+use approx::abs_diff_eq;
+
 use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -179,6 +181,11 @@ impl CommutationChecker {
         let qargs2 = qmapping(op2);
         let cargs2 = cmapping(op2);
 
+        println!("qargs1 {:?}",qargs1);
+        println!("cargs1 {:?}",cargs1);
+
+        println!("qargs2 {:?}",qargs2);
+        println!("cargs2 {:?}",cargs2);
         Ok(commute_inner(
             &op1.instruction,
             &qargs1,
@@ -191,22 +198,6 @@ impl CommutationChecker {
     }
 }
 
-/*
-        OperationType::Standard(_) | OperationType::Gate(_) => {
-            if let Some(attr) = &op.extra_attrs {
-                if attr.condition.is_some() {
-                    return false;
-                }
-            }
-            true
-        }
-*/
-fn is_commutation_supported(op: &OperationRef) -> bool {
-    match op {
-        (OperationRef::Standard(_) | OperationRef::Gate(_)) => !op.control_flow(),
-        _ => false,
-    }
-}
 
 const SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
 
@@ -227,16 +218,20 @@ fn commutation_precheck(
     cargs2: &Vec<usize>,
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if !is_commutation_supported(&op1.op()) || !is_commutation_supported(&op2.op()) {
+    println!("going into precheck!");
+    if op1.op().control_flow() || op2.op().control_flow() {
+        println!("not supported!");
         return Some(false);
     }
 
     // assuming the number of involved qubits to be small, this might be faster than set operations
     if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
+        println!("dishjoint!!");
         return Some(true);
     }
 
     if is_commutation_skipped(op1, max_num_qubits) || is_commutation_skipped(op2, max_num_qubits) {
+        println!("skipped!!");
         return Some(false);
     }
 
@@ -261,6 +256,7 @@ fn commute_inner(
         cargs2,
         max_num_qubits,
     );
+    println!("comm: {:?}", commutation);
     if !commutation.is_none() {
         return commutation.unwrap();
     }
@@ -288,6 +284,7 @@ fn commute_inner(
     } else {
         (cargs1, cargs2)
     };
+
 
     if first_op.name() == "annotated" || second_op.name() == "annotated" {
         return commute_matmul(first_instr, first_qargs, second_instr, second_qargs);
@@ -318,7 +315,9 @@ fn commute_matmul(
     second_instr: &CircuitInstruction,
     second_qargs: &Vec<usize>,
 ) -> bool {
+    println!("going into matmul!");
     // compute relative positioning in qarg
+
     let mut qarg: HashMap<&usize, usize> =
         HashMap::with_capacity(first_qargs.len() + second_qargs.len());
     for (i, q) in first_qargs.iter().enumerate() {
@@ -332,17 +331,22 @@ fn commute_matmul(
         }
     }
 
-    //let first_qarg: Vec<usize> = first_qargs.iter().map(|q| qarg.entry(q)).collect();
-    let first_qarg: Vec<_> = first_qargs
-        .iter()
-        .map(|q| qarg.get_item(q).unwrap().clone())
-        .collect();
-    let second_qarg: Vec<_> = second_qargs
-        .iter()
-        .map(|q| qarg.get_item(q).unwrap().clone())
-        .collect();
-    assert_eq!(&first_qarg, first_qargs, "hm, should be ok");
-    assert_eq!(&second_qarg, second_qargs, "hm, should be ok");
+   //let first_qarg: Vec<usize> = first_qargs.iter().map(|q| qarg.entry(q)).collect();
+   let first_qarg: Vec<_> = first_qargs
+       .iter()
+       .map(|q| qarg.get_item(q).unwrap().clone())
+       .collect();
+   let second_qarg: Vec<_> = second_qargs
+       .iter()
+       .map(|q| qarg.get_item(q).unwrap().clone())
+       .collect();
+
+   println!("{:?} {:?}", first_qarg, first_qargs);
+   println!("{:?} {:?}", second_qarg, second_qargs);
+    /*
+       assert_eq!(&first_qarg, first_qargs, "hm, should be ok");
+       assert_eq!(&second_qarg, second_qargs, "hm, should be ok");
+    */
     //second_qarg = tuple(qarg[q] for q in second_qargs)
 
     assert!(
@@ -352,38 +356,49 @@ fn commute_matmul(
 
     let first_op = first_instr.op();
     let second_op = second_instr.op();
+    println!("first mat");
+    //print!("getting first mat {:?}", first_op.matrix(&first_instr.params));
     let first_mat = match first_op.matrix(&first_instr.params) {
         Some(mat) => mat,
         None => return false,
     };
+    println!("second mat");
+    //print!("getting second mat {:?}", second_op.matrix(&second_instr.params));
     let second_mat = match second_op.matrix(&second_instr.params) {
         Some(mat) => mat,
         None => return false,
     };
-    let [op12, op21] = if first_qargs == second_qargs {
-        [second_mat.dot(&first_mat), first_mat.dot(&second_mat)]
+    println!("comparison");
+
+    if first_qargs == second_qargs {
+        abs_diff_eq!(
+            second_mat.dot(&first_mat),
+            first_mat.dot(&second_mat),
+            epsilon = 1e-8
+        )
     } else {
-        let first_mat = if second_op.num_qubits() > first_op.num_qubits() {
-            let extra_qarg2 = num_qubits - first_qarg.len();
-            println!("qdiff: {}", extra_qarg2);
+        let extra_qarg2 = num_qubits - first_qargs.len();
+        let first_mat = if extra_qarg2 > 0 {
             let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2 as u32));
             kron(&id_op, &first_mat)
         } else {
             first_mat
         };
-        println!(
-            "{} {} {:?} {:?}",
-            first_op.num_qubits(),
-            second_op.num_qubits(),
-            first_qargs,
-            second_qargs
-        );
-        println!("{:?}", first_mat);
         let op12 = compose_unitary(second_mat.view(), first_mat.view(), second_qargs);
         let op21 = compose_unitary(first_mat.view(), second_mat.view(), second_qargs);
-        [op12, op21]
-    };
-    op12 == op21
+        println!("a: {:?}", op12);
+        println!("b: {:?}", op21);
+        abs_diff_eq!(
+            op12,
+            op21,
+            epsilon = 1e-8
+        )
+    }
+
+    //println!("diff: {:?}", op12-op21);
+
+
+
 }
 
 #[derive(Debug, Copy, Clone)]

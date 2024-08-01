@@ -26,7 +26,11 @@ from qiskit.circuit import (
     ControlModifier,
 )
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit._accelerate.commutation_checker import CommutationChecker as ccc
 
+from qiskit.dagcircuit import DAGOpNode
+
+cc = ccc()
 from qiskit.circuit.library import (
     ZGate,
     XGate,
@@ -44,6 +48,12 @@ from qiskit.circuit.library import (
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+def commutation_rust(op1, qarg1, carg1, op2, qarg2, carg2):
+    dop1 = DAGOpNode(op1, qargs=qarg1, cargs=carg1)
+    dop2 = DAGOpNode(op2, qargs=qarg2, cargs=carg2)
+    return cc.commute_nodes(dop1, dop2)
+
+
 class TestCommutationChecker(QiskitTestCase):
     """Test CommutationChecker class."""
 
@@ -52,116 +62,82 @@ class TestCommutationChecker(QiskitTestCase):
         different orders of gates, different orders of qubits, different sets of
         qubits over which gates are defined, and so on."""
         # should commute
-        res = scc.commute(ZGate(), [0], [], CXGate(), [0, 1], [])
-        self.assertTrue(res)
+
+        self.assertTrue(scc.commute(ZGate(), [0], [], CXGate(), [0, 1], []))
+        self.assertTrue(commutation_rust(ZGate(), [0], [], CXGate(), [0, 1], []))
 
         # should not commute
-        res = scc.commute(ZGate(), [1], [], CXGate(), [0, 1], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(ZGate(), [1], [], CXGate(), [0, 1], []))
+        self.assertFalse(commutation_rust(ZGate(), [1], [], CXGate(), [0, 1], []))
 
         # should not commute
-        res = scc.commute(XGate(), [0], [], CXGate(), [0, 1], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(XGate(), [0], [], CXGate(), [0, 1], []))
+        self.assertFalse(commutation_rust(XGate(), [0], [], CXGate(), [0, 1], []))
 
         # should commute
-        res = scc.commute(XGate(), [1], [], CXGate(), [0, 1], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(XGate(), [1], [], CXGate(), [0, 1], []))
+        self.assertTrue(commutation_rust(XGate(), [1], [], CXGate(), [0, 1], []))
 
         # should not commute
-        res = scc.commute(XGate(), [1], [], CXGate(), [1, 0], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(XGate(), [1], [], CXGate(), [1, 0], []))
+        self.assertFalse(commutation_rust(XGate(), [1], [], CXGate(), [1, 0], []))
 
         # should commute
-        res = scc.commute(XGate(), [0], [], CXGate(), [1, 0], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(XGate(), [0], [], CXGate(), [1, 0], []))
+        self.assertTrue(commutation_rust(XGate(), [0], [], CXGate(), [1, 0], []))
 
         # should commute
-        res = scc.commute(CXGate(), [1, 0], [], XGate(), [0], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(CXGate(), [1, 0], [], XGate(), [0], []))
+        self.assertTrue(commutation_rust(CXGate(), [1, 0], [], XGate(), [0], []))
 
         # should not commute
-        res = scc.commute(CXGate(), [1, 0], [], XGate(), [1], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate(), [1, 0], [], XGate(), [1], []))
+        self.assertFalse(commutation_rust(CXGate(), [1, 0], [], XGate(), [1], []))
 
         # should commute
-        res = scc.commute(
-            CXGate(),
-            [1, 0],
-            [],
-            CXGate(),
-            [1, 0],
-            [],
-        )
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(CXGate(), [1, 0], [], CXGate(), [1, 0], []))
+        self.assertTrue(commutation_rust(CXGate(), [1, 0], [], CXGate(), [1, 0], []))
 
         # should not commute
-        res = scc.commute(
-            CXGate(),
-            [1, 0],
-            [],
-            CXGate(),
-            [0, 1],
-            [],
-        )
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate(), [1, 0], [], CXGate(), [0, 1], []))
+        self.assertFalse(commutation_rust(CXGate(), [1, 0], [], CXGate(), [0, 1], []))
 
         # should commute
-        res = scc.commute(
-            CXGate(),
-            [1, 0],
-            [],
-            CXGate(),
-            [1, 2],
-            [],
-        )
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(CXGate(), [1, 0], [], CXGate(), [1, 2], []))
+        self.assertTrue(commutation_rust(CXGate(), [1, 0], [], CXGate(), [1, 2], []))
 
         # should not commute
-        res = scc.commute(
-            CXGate(),
-            [1, 0],
-            [],
-            CXGate(),
-            [2, 1],
-            [],
-        )
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate(), [1, 0], [], CXGate(), [2, 1], []))
+        self.assertFalse(commutation_rust(CXGate(), [1, 0], [], CXGate(), [2, 1], []))
 
         # should commute
-        res = scc.commute(
-            CXGate(),
-            [1, 0],
-            [],
-            CXGate(),
-            [2, 3],
-            [],
-        )
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(CXGate(), [1, 0], [], CXGate(), [2, 3], []))
+        self.assertTrue(commutation_rust(CXGate(), [1, 0], [], CXGate(), [2, 3], []))
 
-        res = scc.commute(XGate(), [2], [], CCXGate(), [0, 1, 2], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(XGate(), [2], [], CCXGate(), [0, 1, 2], []))
+        self.assertTrue(commutation_rust(XGate(), [2], [], CCXGate(), [0, 1, 2], []))
 
-        res = scc.commute(CCXGate(), [0, 1, 2], [], CCXGate(), [0, 2, 1], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CCXGate(), [0, 1, 2], [], CCXGate(), [0, 2, 1], []))
+        self.assertFalse(commutation_rust(CCXGate(), [0, 1, 2], [], CCXGate(), [0, 2, 1], []))
 
     def test_passing_quantum_registers(self):
         """Check that passing QuantumRegisters works correctly."""
         qr = QuantumRegister(4)
 
         # should commute
-        res = scc.commute(CXGate(), [qr[1], qr[0]], [], CXGate(), [qr[1], qr[2]], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(CXGate(), [qr[1], qr[0]], [], CXGate(), [qr[1], qr[2]], []))
+        self.assertTrue(commutation_rust(CXGate(), [qr[1], qr[0]], [], CXGate(), [qr[1], qr[2]], []))
 
         # should not commute
-        res = scc.commute(CXGate(), [qr[0], qr[1]], [], CXGate(), [qr[1], qr[2]], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate(), [qr[0], qr[1]], [], CXGate(), [qr[1], qr[2]], []))
+        self.assertFalse(commutation_rust(CXGate(), [qr[0], qr[1]], [], CXGate(), [qr[1], qr[2]], []))
 
     def test_standard_gates_commutations(self):
         """Check that commutativity checker uses standard gates commutations as expected."""
         scc.clear_cached_commutations()
         scc.clear_cached_commutations()
-        res = scc.commute(ZGate(), [0], [], CXGate(), [0, 1], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(ZGate(), [0], [], CXGate(), [0, 1], []))
+        self.assertTrue(commutation_rust(ZGate(), [0], [], CXGate(), [0, 1], []))
         self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_caching_positive_results(self):
@@ -170,17 +146,17 @@ class TestCommutationChecker(QiskitTestCase):
         NewGateCX = type("MyClass", (CXGate,), {"content": {}})
         NewGateCX.name = "cx_new"
 
-        res = scc.commute(ZGate(), [0], [], NewGateCX(), [0, 1], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(ZGate(), [0], [], NewGateCX(), [0, 1], []))
+        self.assertTrue(commutation_rust(ZGate(), [0], [], NewGateCX(), [0, 1], []))
         self.assertGreater(len(scc._cached_commutations), 0)
 
     def test_caching_lookup_with_non_overlapping_qubits(self):
         """Check that commutation lookup with non-overlapping qubits works as expected."""
         scc.clear_cached_commutations()
-        res = scc.commute(CXGate(), [0, 2], [], CXGate(), [0, 1], [])
-        self.assertTrue(res)
-        res = scc.commute(CXGate(), [0, 1], [], CXGate(), [1, 2], [])
-        self.assertFalse(res)
+        self.assertTrue(scc.commute(CXGate(), [0, 2], [], CXGate(), [0, 1], []))
+        self.assertTrue(commutation_rust(CXGate(), [0, 2], [], CXGate(), [0, 1], []))
+        self.assertFalse(scc.commute(CXGate(), [0, 1], [], CXGate(), [1, 2], []))
+        self.assertFalse(commutation_rust(CXGate(), [0, 1], [], CXGate(), [1, 2], []))
         self.assertEqual(len(scc._cached_commutations), 0)
 
     def test_caching_store_and_lookup_with_non_overlapping_qubits(self):
@@ -188,14 +164,14 @@ class TestCommutationChecker(QiskitTestCase):
         cc_lenm = scc.num_cached_entries()
         NewGateCX = type("MyClass", (CXGate,), {"content": {}})
         NewGateCX.name = "cx_new"
-        res = scc.commute(NewGateCX(), [0, 2], [], CXGate(), [0, 1], [])
-        self.assertTrue(res)
-        res = scc.commute(NewGateCX(), [0, 1], [], CXGate(), [1, 2], [])
-        self.assertFalse(res)
-        res = scc.commute(NewGateCX(), [1, 4], [], CXGate(), [1, 6], [])
-        self.assertTrue(res)
-        res = scc.commute(NewGateCX(), [5, 3], [], CXGate(), [3, 1], [])
-        self.assertFalse(res)
+        self.assertTrue(scc.commute(NewGateCX(), [0, 2], [], CXGate(), [0, 1], []))
+        self.assertTrue(commutation_rust(NewGateCX(), [0, 2], [], CXGate(), [0, 1], []))
+        self.assertFalse(scc.commute(NewGateCX(), [0, 1], [], CXGate(), [1, 2], []))
+        self.assertFalse(commutation_rust(NewGateCX(), [0, 1], [], CXGate(), [1, 2], []))
+        self.assertTrue(scc.commute(NewGateCX(), [1, 4], [], CXGate(), [1, 6], []))
+        self.assertTrue(commutation_rust(NewGateCX(), [1, 4], [], CXGate(), [1, 6], []))
+        self.assertFalse(scc.commute(NewGateCX(), [5, 3], [], CXGate(), [3, 1], []))
+        self.assertFalse(commutation_rust(NewGateCX(), [5, 3], [], CXGate(), [3, 1], []))
         self.assertEqual(scc.num_cached_entries(), cc_lenm + 2)
 
     def test_caching_negative_results(self):
@@ -226,31 +202,32 @@ class TestCommutationChecker(QiskitTestCase):
     def test_cache_with_param_gates(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
         scc.clear_cached_commutations()
-        res = scc.commute(RZGate(0), [0], [], XGate(), [0], [])
-        self.assertTrue(res)
 
-        res = scc.commute(RZGate(np.pi / 2), [0], [], XGate(), [0], [])
-        self.assertFalse(res)
+        self.assertTrue(scc.commute(RZGate(0), [0], [], XGate(), [0], []))
+        self.assertTrue(commutation_rust(RZGate(0), [0], [], XGate(), [0], []))
 
-        res = scc.commute(RZGate(np.pi / 2), [0], [], RZGate(0), [0], [])
-        self.assertTrue(res)
+        self.assertFalse(scc.commute(RZGate(np.pi / 2), [0], [], XGate(), [0], []))
+        self.assertFalse(commutation_rust(RZGate(np.pi / 2), [0], [], XGate(), [0], []))
 
-        res = scc.commute(RZGate(np.pi / 2), [1], [], XGate(), [1], [])
-        self.assertFalse(res)
+        self.assertTrue(scc.commute(RZGate(np.pi / 2), [0], [], RZGate(0), [0], []))
+        self.assertTrue(commutation_rust(RZGate(np.pi / 2), [0], [], RZGate(0), [0], []))
+
+        self.assertFalse(scc.commute(RZGate(np.pi / 2), [1], [], XGate(), [1], []))
+        self.assertFalse(commutation_rust(RZGate(np.pi / 2), [1], [], XGate(), [1], []))
         self.assertEqual(scc.num_cached_entries(), 3)
         self.assertEqual(scc._cache_miss, 3)
         self.assertEqual(scc._cache_hit, 1)
 
     def test_gates_with_parameters(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
-        res = scc.commute(RZGate(0), [0], [], XGate(), [0], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(RZGate(0), [0], [], XGate(), [0], []))
+        self.assertTrue(commutation_rust(RZGate(0), [0], [], XGate(), [0], []))
 
-        res = scc.commute(RZGate(np.pi / 2), [0], [], XGate(), [0], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(RZGate(np.pi / 2), [0], [], XGate(), [0], []))
+        self.assertFalse(commutation_rust(RZGate(np.pi / 2), [0], [], XGate(), [0], []))
 
-        res = scc.commute(RZGate(np.pi / 2), [0], [], RZGate(0), [0], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(RZGate(np.pi / 2), [0], [], RZGate(0), [0], []))
+        self.assertTrue(commutation_rust(RZGate(np.pi / 2), [0], [], RZGate(0), [0], []))
 
     def test_parameterized_gates(self):
         """Check commutativity between parameterized gates, both with free and with
@@ -272,84 +249,84 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertFalse(cx_gate.is_parameterized())
 
         # We should detect that these gates commute
-        res = scc.commute(rz_gate, [0], [], cx_gate, [0, 1], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(rz_gate, [0], [], cx_gate, [0, 1], []))
+        self.assertTrue(commutation_rust(rz_gate, [0], [], cx_gate, [0, 1], []))
 
         # We should detect that these gates commute
-        res = scc.commute(rz_gate, [0], [], rz_gate, [0], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(rz_gate, [0], [], rz_gate, [0], []))
+        self.assertTrue(commutation_rust(rz_gate, [0], [], rz_gate, [0], []))
 
         # We should detect that parameterized gates over disjoint qubit subsets commute
-        res = scc.commute(rz_gate_theta, [0], [], rz_gate_theta, [1], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(rz_gate_theta, [0], [], rz_gate_theta, [1], []))
+        self.assertTrue(commutation_rust(rz_gate_theta, [0], [], rz_gate_theta, [1], []))
 
         # We should detect that parameterized gates over disjoint qubit subsets commute
-        res = scc.commute(rz_gate_theta, [0], [], rz_gate_phi, [1], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(rz_gate_theta, [0], [], rz_gate_phi, [1], []))
+        self.assertTrue(commutation_rust(rz_gate_theta, [0], [], rz_gate_phi, [1], []))
 
         # We should detect that parameterized gates over disjoint qubit subsets commute
-        res = scc.commute(rz_gate_theta, [2], [], cx_gate, [1, 3], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(rz_gate_theta, [2], [], cx_gate, [1, 3], []))
+        self.assertTrue(commutation_rust(rz_gate_theta, [2], [], cx_gate, [1, 3], []))
 
         # However, for now commutativity checker should return False when checking
         # commutativity between a parameterized gate and some other gate, when
         # the two gates are over intersecting qubit subsets.
         # This check should be changed if commutativity checker is extended to
         # handle parameterized gates better.
-        res = scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
+        self.assertFalse(commutation_rust(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
 
-        res = scc.commute(rz_gate_theta, [0], [], rz_gate, [0], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(rz_gate_theta, [0], [], rz_gate, [0], []))
+        self.assertFalse(commutation_rust(rz_gate_theta, [0], [], rz_gate, [0], []))
 
     def test_measure(self):
         """Check commutativity involving measures."""
         # Measure is over qubit 0, while gate is over a disjoint subset of qubits
         # We should be able to swap these.
-        res = scc.commute(Measure(), [0], [0], CXGate(), [1, 2], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(Measure(), [0], [0], CXGate(), [1, 2], []))
+        self.assertTrue(commutation_rust(Measure(), [0], [0], CXGate(), [1, 2], []))
 
         # Measure and gate have intersecting set of qubits
         # We should not be able to swap these.
-        res = scc.commute(Measure(), [0], [0], CXGate(), [0, 2], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(Measure(), [0], [0], CXGate(), [0, 2], []))
+        self.assertFalse(commutation_rust(Measure(), [0], [0], CXGate(), [0, 2], []))
 
         # Measures over different qubits and clbits
-        res = scc.commute(Measure(), [0], [0], Measure(), [1], [1])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(Measure(), [0], [0], Measure(), [1], [1]))
+        self.assertTrue(commutation_rust(Measure(), [0], [0], Measure(), [1], [1]))
 
         # Measures over different qubits but same classical bit
         # We should not be able to swap these.
-        res = scc.commute(Measure(), [0], [0], Measure(), [1], [0])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(Measure(), [0], [0], Measure(), [1], [0]))
+        self.assertFalse(commutation_rust(Measure(), [0], [0], Measure(), [1], [0]))
 
         # Measures over same qubits but different classical bit
         # ToDo: can we swap these?
         # Currently checker takes the safe approach and returns False.
-        res = scc.commute(Measure(), [0], [0], Measure(), [0], [1])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(Measure(), [0], [0], Measure(), [0], [1]))
+        self.assertFalse(commutation_rust(Measure(), [0], [0], Measure(), [0], [1]))
 
     def test_barrier(self):
         """Check commutativity involving barriers."""
         # A gate should not commute with a barrier
         # (at least if these are over intersecting qubit sets).
-        res = scc.commute(Barrier(4), [0, 1, 2, 3], [], CXGate(), [1, 2], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(Barrier(4), [0, 1, 2, 3], [], CXGate(), [1, 2], []))
+        self.assertFalse(commutation_rust(Barrier(4), [0, 1, 2, 3], [], CXGate(), [1, 2], []))
 
         # Does it even make sense to have a barrier over a subset of qubits?
         # Though in this case, it probably makes sense to say that barrier and gate can be swapped.
-        res = scc.commute(Barrier(4), [0, 1, 2, 3], [], CXGate(), [5, 6], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(Barrier(4), [0, 1, 2, 3], [], CXGate(), [5, 6], []))
+        self.assertTrue(commutation_rust(Barrier(4), [0, 1, 2, 3], [], CXGate(), [5, 6], []))
 
     def test_reset(self):
         """Check commutativity involving resets."""
         # A gate should not commute with reset when the qubits intersect.
-        res = scc.commute(Reset(), [0], [], CXGate(), [0, 2], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(Reset(), [0], [], CXGate(), [0, 2], []))
+        self.assertFalse(commutation_rust(Reset(), [0], [], CXGate(), [0, 2], []))
 
         # A gate should commute with reset when the qubits are disjoint.
-        res = scc.commute(Reset(), [0], [], CXGate(), [1, 2], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(Reset(), [0], [], CXGate(), [1, 2], []))
+        self.assertTrue(commutation_rust(Reset(), [0], [], CXGate(), [1, 2], []))
 
     def test_conditional_gates(self):
         """Check commutativity involving conditional gates."""
@@ -358,22 +335,20 @@ class TestCommutationChecker(QiskitTestCase):
 
         # Currently, in all cases commutativity checker should returns False.
         # This is definitely suboptimal.
-        res = scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], []))
+        self.assertFalse(commutation_rust(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], []))
 
-        res = scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], []))
+        self.assertFalse(commutation_rust(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], []))
 
-        res = scc.commute(
-            CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], CXGate().c_if(cr[0], 0), [qr[0], qr[1]], []
-        )
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], CXGate().c_if(cr[0], 0), [qr[0], qr[1]], []))
+        self.assertFalse(commutation_rust(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], CXGate().c_if(cr[0], 0), [qr[0], qr[1]], []))
 
-        res = scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []))
+        self.assertFalse(commutation_rust(XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []))
 
-        res = scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], []))
+        self.assertFalse(commutation_rust(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], []))
 
     def test_complex_gates(self):
         """Check commutativity involving more complex gates."""
@@ -382,16 +357,16 @@ class TestCommutationChecker(QiskitTestCase):
 
         # lf1 is equivalent to swap(0, 1), and lf2 to swap(1, 2).
         # These do not commute.
-        res = scc.commute(lf1, [0, 1, 2], [], lf2, [0, 1, 2], [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(lf1, [0, 1, 2], [], lf2, [0, 1, 2], []))
+        self.assertFalse(commutation_rust(lf1, [0, 1, 2], [], lf2, [0, 1, 2], []))
 
         lf3 = LinearFunction([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
         lf4 = LinearFunction([[0, 0, 1], [1, 0, 0], [0, 1, 0]])
         # lf3 is permutation 1->2, 2->3, 3->1.
         # lf3 is the inverse permutation 1->3, 2->1, 3->2.
         # These commute.
-        res = scc.commute(lf3, [0, 1, 2], [], lf4, [0, 1, 2], [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(lf3, [0, 1, 2], [], lf4, [0, 1, 2], []))
+        self.assertTrue(commutation_rust(lf3, [0, 1, 2], [], lf4, [0, 1, 2], []))
 
     def test_equal_annotated_operations_commute(self):
         """Check commutativity involving the same annotated operation."""
@@ -399,6 +374,7 @@ class TestCommutationChecker(QiskitTestCase):
         op2 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(1)])
         # the same, so true
         self.assertTrue(scc.commute(op1, [0, 1], [], op2, [0, 1], []))
+        self.assertTrue(commutation_rust(op1, [0, 1], [], op2, [0, 1], []))
 
     def test_annotated_operations_commute_with_unannotated(self):
         """Check commutativity involving annotated operations and unannotated operations."""
@@ -407,8 +383,11 @@ class TestCommutationChecker(QiskitTestCase):
         op3 = ZGate()
         # all true
         self.assertTrue(scc.commute(op1, [0, 1], [], op2, [1], []))
+        self.assertTrue(commutation_rust(op1, [0, 1], [], op2, [1], []))
         self.assertTrue(scc.commute(op1, [0, 1], [], op3, [1], []))
+        self.assertTrue(commutation_rust(op1, [0, 1], [], op3, [1], []))
         self.assertTrue(scc.commute(op2, [1], [], op3, [1], []))
+        self.assertTrue(commutation_rust(op2, [1], [], op3, [1], []))
 
     def test_utf8_gate_names(self):
         """Check compatibility of non-ascii quantum gate names."""
@@ -419,6 +398,7 @@ class TestCommutationChecker(QiskitTestCase):
         g1.name = "ok_0"
 
         self.assertTrue(scc.commute(g0, [0, 1], [], g1, [1, 0], []))
+        self.assertTrue(commutation_rust(g0, [0, 1], [], g1, [1, 0], []))
 
     def test_annotated_operations_no_commute(self):
         """Check non-commutativity involving annotated operations."""
@@ -426,6 +406,7 @@ class TestCommutationChecker(QiskitTestCase):
         op2 = AnnotatedOperation(XGate(), [InverseModifier()])
         # false
         self.assertFalse(scc.commute(op1, [0, 1], [], op2, [0], []))
+        self.assertFalse(commutation_rust(op1, [0, 1], [], op2, [0], []))
 
     def test_c7x_gate(self):
         """Test wide gate works correctly."""
@@ -435,17 +416,16 @@ class TestCommutationChecker(QiskitTestCase):
 
     def test_wide_gates_over_nondisjoint_qubits(self):
         """Test that checking wide gates does not lead to memory problems."""
-        res = scc.commute(MCXGate(29), list(range(30)), [], XGate(), [0], [])
-        self.assertFalse(res)
-        res = scc.commute(XGate(), [0], [], MCXGate(29), list(range(30)), [])
-        self.assertFalse(res)
+        self.assertFalse(scc.commute(MCXGate(29), list(range(30)), [], XGate(), [0], []))
+        self.assertFalse(commutation_rust(MCXGate(29), list(range(30)), [], XGate(), [0], []))
+
 
     def test_wide_gates_over_disjoint_qubits(self):
         """Test that wide gates still commute when they are over disjoint sets of qubits."""
-        res = scc.commute(MCXGate(29), list(range(30)), [], XGate(), [30], [])
-        self.assertTrue(res)
-        res = scc.commute(XGate(), [30], [], MCXGate(29), list(range(30)), [])
-        self.assertTrue(res)
+        self.assertTrue(scc.commute(MCXGate(29), list(range(30)), [], XGate(), [30], []))
+        self.assertTrue(commutation_rust(MCXGate(29), list(range(30)), [], XGate(), [30], []))
+        self.assertTrue(scc.commute(XGate(), [30], [], MCXGate(29), list(range(30)), []))
+        self.assertTrue(commutation_rust(XGate(), [30], [], MCXGate(29), list(range(30)), []))
 
 
 if __name__ == "__main__":
