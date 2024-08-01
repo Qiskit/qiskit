@@ -27,7 +27,6 @@ from qiskit.primitives.utils import _observable_key
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
-@ddt
 class TestEstimator(QiskitTestCase):
     """Test Estimator"""
 
@@ -356,12 +355,7 @@ class TestEstimator(QiskitTestCase):
         keys = [_observable_key(get_op(i)) for i in range(5)]
         self.assertEqual(len(keys), len(set(keys)))
 
-    @unpack
-    @data(
-        {"seed": 12, "expect": 1},
-        {"seed": 13, "expect": -1},
-    )
-    def test_reset(self, seed, expect):
+    def test_reset(self):
         """Test for circuits with reset."""
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -369,18 +363,18 @@ class TestEstimator(QiskitTestCase):
         qc.reset(0)
         op = SparsePauliOp("ZI")
 
-        with self.subTest("single"):
-            with self.assertWarns(DeprecationWarning):
-                estimator = Estimator(options={"seed": seed})
-                result = estimator.run(qc, op).result()
-            np.testing.assert_allclose(result.values, expect)
+        seed = 12
+        n = 250
+        with self.assertWarns(DeprecationWarning):
+            estimator = Estimator(options={"seed": seed})
+            result = estimator.run([qc for _ in range(n)], [op] * n).result()
+        # expectation values should be stochastic due to reset for subsystems
+        np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
 
-        with self.subTest("multiple"):
-            with self.assertWarns(DeprecationWarning):
-                estimator = Estimator(options={"seed": seed})
-                n = 250
-                result = estimator.run([qc for _ in range(n)], [op] * n).result()
-            np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
+        with self.assertWarns(DeprecationWarning):
+            result2 = estimator.run([qc for _ in range(n)], [op] * n).result()
+        # expectation values should be reproducible due to seed
+        np.testing.assert_allclose(result.values, result2.values)
 
 
 @ddt
