@@ -42,7 +42,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
+from qiskit.pulse.calibration_entries import CalibrationEntry
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -456,7 +456,9 @@ class Target(BaseTarget):
                         continue
                 try:
                     # Update gate error if provided.
-                    props.error = error_dict[inst_name][qargs]
+                    props.error = error_dict[  # pylint: disable=attribute-defined-outside-init
+                        inst_name
+                    ][qargs]
                 except (KeyError, TypeError):
                     pass
                 out_props[qargs] = props
