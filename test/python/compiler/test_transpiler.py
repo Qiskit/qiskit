@@ -84,6 +84,8 @@ from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
+from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
+
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import (
@@ -861,6 +863,42 @@ class TestTranspile(QiskitTestCase):
         with patch.object(GateDirection, "run", wraps=orig_pass.run) as mock_pass:
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
+
+    def tests_conditional_run_split_2q_unitaries(self):
+        """Tests running `Split2QUnitaries` when basis gate set is (non-) discrete"""
+        qc = QuantumCircuit(3)
+        qc.sx(0)
+        qc.t(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        orig_pass = Split2QUnitaries()
+        with patch.object(Split2QUnitaries, "run", wraps=orig_pass.run) as mock_pass:
+            basis = ["t", "sx", "cx"]
+            backend = GenericBackendV2(3, basis_gates=basis)
+            transpile(qc, backend=backend)
+            transpile(qc, basis_gates=basis)
+            transpile(qc, target=backend.target)
+            self.assertFalse(mock_pass.called)
+
+        orig_pass = Split2QUnitaries()
+        with patch.object(Split2QUnitaries, "run", wraps=orig_pass.run) as mock_pass:
+            basis = ["rz", "sx", "cx"]
+            backend = GenericBackendV2(3, basis_gates=basis)
+            transpile(qc, backend=backend, optimization_level=2)
+            self.assertTrue(mock_pass.called)
+            mock_pass.called = False
+            transpile(qc, basis_gates=basis, optimization_level=2)
+            self.assertTrue(mock_pass.called)
+            mock_pass.called = False
+            transpile(qc, target=backend.target, optimization_level=2)
+            self.assertTrue(mock_pass.called)
+            mock_pass.called = False
+            transpile(qc, backend=backend, optimization_level=3)
+            self.assertTrue(mock_pass.called)
+            mock_pass.called = False
+            transpile(qc, basis_gates=basis, optimization_level=3)
+            self.assertTrue(mock_pass.called)
 
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
