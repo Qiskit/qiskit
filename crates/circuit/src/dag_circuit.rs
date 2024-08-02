@@ -3503,10 +3503,9 @@ new_condition = (new_target, value)
         self.global_phase = self.global_phase.add(py, &input_dag.global_phase);
 
         let wire_map_dict = PyDict::new_bound(py);
-        let clbits = self.clbits.bits();
         for (source, target) in clbit_wire_map.iter() {
-            let source_bit = &clbits[source.0 as usize];
-            let target_bit = &clbits[target.0 as usize];
+            let source_bit = input_dag.clbits.get(*source);
+            let target_bit = self.clbits.get(*target);
             wire_map_dict.set_item(source_bit, target_bit)?;
         }
         let bound_var_map = var_map.bind(py);
@@ -3520,71 +3519,84 @@ new_condition = (new_target, value)
 
         for (old_node_index, new_node_index) in node_map.iter() {
             let old_node = &input_dag.dag[*old_node_index];
-            if let NodeType::Operation(inst) = old_node {
-                if let OperationRef::Instruction(op) = inst.op.view() {
-                    if op.name() == "switch_case" {
-                        let raw_target = op.instruction.getattr(py, "target")?;
+            if let NodeType::Operation(old_inst) = old_node {
+                if let OperationRef::Instruction(old_op) = old_inst.op.view() {
+                    if old_op.name() == "switch_case" {
+                        let raw_target = old_op.instruction.getattr(py, "target")?;
                         let target = raw_target.bind(py);
-                        let new_op = SWITCH_CASE_OP.get_bound(py).call1((
-                            variable_mapper.map_target(target)?,
-                            op.instruction.call_method0(py, "cases_specifier")?,
-                            inst.extra_attrs
+                        let kwargs = PyDict::new_bound(py);
+                        kwargs.set_item(
+                            "label",
+                            old_inst
+                                .extra_attrs
                                 .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref()),
-                        ))?;
+                                .and_then(|attrs| attrs.label.as_ref()),
+                        )?;
+                        let new_op = SWITCH_CASE_OP.get_bound(py).call(
+                            (
+                                variable_mapper.map_target(target)?,
+                                old_op.instruction.call_method0(py, "cases_specifier")?,
+                            ),
+                            Some(&kwargs),
+                        )?;
                         if let NodeType::Operation(ref mut new_inst) =
                             &mut self.dag[*new_node_index]
                         {
                             new_inst.op = PyInstruction {
-                                qubits: op.num_qubits(),
-                                clbits: op.num_clbits(),
-                                params: op.num_params(),
-                                control_flow: op.control_flow(),
-                                op_name: op.name().to_string(),
+                                qubits: old_op.num_qubits(),
+                                clbits: old_op.num_clbits(),
+                                params: old_op.num_params(),
+                                control_flow: old_op.control_flow(),
+                                op_name: old_op.name().to_string(),
                                 instruction: new_op.unbind(),
                             }
                             .into();
                         }
                     }
-                } else if let Some(condition) = inst
+                }
+                if let Some(condition) = old_inst
                     .extra_attrs
                     .as_ref()
                     .and_then(|attrs| attrs.condition.as_ref())
                 {
-                    if let OperationRef::Instruction(_op) = inst.op.view() {
-                        let new_condition: Option<PyObject> = variable_mapper
-                            .map_condition(condition.bind(py), false)?
-                            .extract()?;
-                        if let NodeType::Operation(ref mut new_inst) =
-                            &mut self.dag[*new_node_index]
-                        {
-                            match &mut new_inst.extra_attrs {
-                                Some(attrs) => attrs.condition.clone_from(&new_condition),
-                                None => {
-                                    new_inst.extra_attrs =
-                                        Some(Box::new(ExtraInstructionAttributes {
-                                            label: None,
-                                            condition: new_condition.clone(),
-                                            unit: None,
-                                            duration: None,
-                                        }))
+                    if let OperationRef::Instruction(old_op) = old_inst.op.view() {
+                        if old_op.name() != "switch_case" {
+                            let new_condition: Option<PyObject> = variable_mapper
+                                .map_condition(condition.bind(py), false)?
+                                .extract()?;
+                            if let NodeType::Operation(ref mut new_inst) =
+                                &mut self.dag[*new_node_index]
+                            {
+                                match &mut new_inst.extra_attrs {
+                                    Some(attrs) => attrs.condition.clone_from(&new_condition),
+                                    None => {
+                                        new_inst.extra_attrs =
+                                            Some(Box::new(ExtraInstructionAttributes {
+                                                label: None,
+                                                condition: new_condition.clone(),
+                                                unit: None,
+                                                duration: None,
+                                            }))
+                                    }
                                 }
-                            }
-                            match new_inst.op.view() {
-                                OperationRef::Instruction(py_inst) => {
-                                    py_inst
-                                        .instruction
-                                        .setattr(py, "condition", new_condition)?;
+                                match new_inst.op.view() {
+                                    OperationRef::Instruction(py_inst) => {
+                                        py_inst.instruction.setattr(
+                                            py,
+                                            "condition",
+                                            new_condition,
+                                        )?;
+                                    }
+                                    OperationRef::Gate(py_gate) => {
+                                        py_gate.gate.setattr(py, "condition", new_condition)?;
+                                    }
+                                    _ => (),
                                 }
-                                OperationRef::Gate(py_gate) => {
-                                    py_gate.gate.setattr(py, "condition", new_condition)?;
-                                }
-                                _ => (),
                             }
                         }
                     }
                 }
-                self.increment_op(inst.op.name().to_string());
+                self.increment_op(old_inst.op.name().to_string());
             }
         }
         let out_dict = PyDict::new_bound(py);
