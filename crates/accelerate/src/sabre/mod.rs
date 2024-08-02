@@ -106,7 +106,6 @@ impl BlockResult {
     }
 }
 
-#[pymodule]
 pub fn sabre(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(route::sabre_routing))?;
     m.add_wrapped(wrap_pyfunction!(layout::sabre_layout_and_routing))?;

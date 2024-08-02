@@ -114,7 +114,6 @@ pub fn _synth_permutation_depth_lnn_kms(
     )
 }
 
-#[pymodule]
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;

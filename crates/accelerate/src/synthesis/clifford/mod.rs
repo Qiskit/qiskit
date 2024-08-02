@@ -57,7 +57,6 @@ fn synth_clifford_bm(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<C
     CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
-#[pymodule]
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
     m.add_function(wrap_pyfunction!(synth_clifford_bm, m)?)?;
