@@ -768,9 +768,12 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         circuit.rz(theta, 0)
         circuit.rz(-np.pi / 2, 0)
 
+        expect = QuantumCircuit(1)
+        expect.rz(theta, 0)
+
         passmanager = PassManager(CommutativeInverseCancellation())
         new_circuit = passmanager.run(circuit)
-        self.assertEqual(circuit, new_circuit)
+        self.assertEqual(expect, new_circuit)
 
     @data(False, True)
     def test_parameterized_gates_do_not_cancel(self, matrix_based):
