@@ -63,7 +63,7 @@ def _generate_commutation_dict(considered_gates: List[Gate] = None) -> dict:
                     _,
                 ),
                 (second_gate, _, _),
-            ) = _order_operations(gate0, None, None, gate1, None, None)
+            ) = _order_operations(gate0, gate0.name, None, None, gate1, gate1.name, None, None)
             if (first_gate, second_gate) != (gate0, gate1) and gate0.name != gate1.name:
                 continue
 

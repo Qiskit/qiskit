@@ -131,6 +131,7 @@ class CommutationChecker:
             allow_parameters=allow_parameters,
         )
 
+    # pylint: disable=too-many-return-statements
     def commute(
         self,
         op1: Union[Operation, "DAGOpNode"],
