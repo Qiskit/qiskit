@@ -1810,7 +1810,8 @@ def _format(operand):
                 }
 
                 if self.may_have_additional_wires(py, &inst) {
-                    let (clbits, vars) = self.additional_wires(py, &inst)?;
+                    let (clbits, vars) =
+                        self.additional_wires(py, inst.op.view(), inst.condition())?;
                     for b in clbits {
                         if !self.clbit_output_map.contains_key(&b) {
                             return Err(DAGCircuitError::new_err(format!(
@@ -1908,7 +1909,8 @@ def _format(operand):
                 }
 
                 if self.may_have_additional_wires(py, &instr) {
-                    let (clbits, vars) = self.additional_wires(py, &instr)?;
+                    let (clbits, vars) =
+                        self.additional_wires(py, instr.op.view(), instr.condition())?;
                     for b in clbits {
                         if !self.clbit_output_map.contains_key(&b) {
                             return Err(DAGCircuitError::new_err(format!(
@@ -2004,7 +2006,8 @@ def _format(operand):
                 }
 
                 if self.may_have_additional_wires(py, &instr) {
-                    let (clbits, vars) = self.additional_wires(py, &instr)?;
+                    let (clbits, vars) =
+                        self.additional_wires(py, instr.op.view(), instr.condition())?;
                     for b in clbits {
                         if !self.clbit_output_map.contains_key(&b) {
                             return Err(DAGCircuitError::new_err(format!(
@@ -3208,7 +3211,8 @@ def _format(operand):
             let cargs_set = BUILTIN_SET.get_bound(py).call1((cargs_list,))?;
             let cargs_set = cargs_set.downcast::<PySet>().unwrap();
             if !propagate_condition && self.may_have_additional_wires(py, &node) {
-                let (add_cargs, _add_vars) = self.additional_wires(py, &node)?;
+                let (add_cargs, _add_vars) =
+                    self.additional_wires(py, node.op.view(), node.condition())?;
                 for wire in add_cargs.iter() {
                     let clbit = &self.clbits.get(*wire).unwrap();
                     if !cargs_set.contains(clbit.clone_ref(py))? {
@@ -3308,7 +3312,8 @@ def _format(operand):
         let input_dag_var_set: &Bound<PySet> = raw_set.downcast()?;
 
         let node_vars = if self.may_have_additional_wires(py, &node) {
-            let (_additional_clbits, additional_vars) = self.additional_wires(py, &node)?;
+            let (_additional_clbits, additional_vars) =
+                self.additional_wires(py, node.op.view(), node.condition())?;
             let var_set = PySet::new_bound(py, &additional_vars)?;
             if input_dag_var_set
                 .call_method1(intern!(py, "difference"), (var_set.clone(),))?
@@ -3673,7 +3678,14 @@ new_condition = (new_target, value)
                     .map(|x| Wire::Clbit(*x)),
             )
             .collect();
-        let (additional_clbits, additional_vars) = self.additional_wires(py, &old_packed)?;
+        let (additional_clbits, additional_vars) = self.additional_wires(
+            py,
+            new_op.operation.view(),
+            new_op
+                .extra_attrs
+                .as_ref()
+                .and_then(|attrs| attrs.condition.as_ref()),
+        )?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
         new_wires.extend(additional_vars.iter().map(|x| Wire::Var(x.clone_ref(py))));
 
@@ -5271,7 +5283,8 @@ impl DAGCircuit {
             if self.may_have_additional_wires(py, &instr) {
                 let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().copied());
-                let (additional_clbits, additional_vars) = self.additional_wires(py, &instr)?;
+                let (additional_clbits, additional_vars) =
+                    self.additional_wires(py, instr.op.view(), instr.condition())?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5336,7 +5349,8 @@ impl DAGCircuit {
             if self.may_have_additional_wires(py, &inst) {
                 let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_cache.intern(inst.clbits).iter().cloned());
-                let (additional_clbits, additional_vars) = self.additional_wires(py, &inst)?;
+                let (additional_clbits, additional_vars) =
+                    self.additional_wires(py, inst.op.view(), inst.condition())?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5492,7 +5506,8 @@ impl DAGCircuit {
     fn additional_wires(
         &self,
         py: Python,
-        instr: &PackedInstruction,
+        op: OperationRef,
+        condition: Option<&PyObject>,
     ) -> PyResult<(Vec<Clbit>, Vec<PyObject>)> {
         let wires_from_expr = |node: &Bound<PyAny>| -> PyResult<(Vec<Clbit>, Vec<PyObject>)> {
             let mut clbits = Vec::new();
@@ -5513,15 +5528,11 @@ impl DAGCircuit {
             Ok((clbits, vars))
         };
 
-        let condition = instr
-            .extra_attrs
-            .iter()
-            .flat_map(|e| e.condition.as_ref().map(|c| c.bind(py)))
-            .next();
         // let mut bits = Vec::new();
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
         if let Some(condition) = condition {
+            let condition = condition.bind(py);
             if !condition.is_none() {
                 if condition.is_instance(EXPR.get_bound(py)).unwrap() {
                     let (expr_clbits, expr_vars) = wires_from_expr(condition)?;
@@ -5544,7 +5555,7 @@ impl DAGCircuit {
             }
         }
 
-        if let OperationRef::Instruction(inst) = instr.op.view() {
+        if let OperationRef::Instruction(inst) = op {
             let op = inst.instruction.bind(py);
             if op.is_instance(CONTROL_FLOW_OP.get_bound(py))? {
                 for var in op.call_method0("iter_captured_vars")?.iter()? {
