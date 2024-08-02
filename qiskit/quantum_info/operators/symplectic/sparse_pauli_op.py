@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, List
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
 from copy import deepcopy
+import warnings
 
 import numpy as np
 import rustworkx as rx
@@ -256,8 +257,15 @@ class SparsePauliOp(LinearOp):
             raise ValueError(
                 f"incorrect number of operators: expected {len(self.paulis)}, got {len(value)}"
             )
-        self.coeffs *= (-1j) ** value.phase
-        self._pauli_list = PauliList.from_symplectic(value.z, value.x, phase=0)
+        if np.any(value.phase):
+            warnings.warn(
+                "Assigning SparsePauliOp.paulis to be a PauliList with nonzero phase sets the phase "
+                "of the given PauliList to zero, absorbing the phase into SparsePauliOp.coeffs.",
+                UserWarning,
+            )
+            self.coeffs *= (-1j) ** value.phase
+            value.phase = 0
+        self._pauli_list = value
 
     @property
     def coeffs(self):

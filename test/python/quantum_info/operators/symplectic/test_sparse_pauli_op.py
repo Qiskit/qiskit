@@ -1102,13 +1102,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         coeffs_init = np.array([1, 1j])
         op = SparsePauliOp(["XY", "ZX"], coeffs=coeffs_init)
         paulis_new = PauliList(["-1jXY", "1jZX"])
-        op.paulis = paulis_new
+        with self.assertWarns(UserWarning):
+            # Raise a warning that the RHS is mutated:
+            op.paulis = paulis_new
         # Paulis attribute should have no phase:
         self.assertEqual(op.paulis, PauliList(["XY", "ZX"]))
         # Coeffs attribute should now include that phase:
         self.assertTrue(np.allclose(op.coeffs, coeffs_init * np.array([-1j, 1j])))
-        # Do not mutate the phase of the input array:
-        self.assertTrue(np.allclose(paulis_new.phase, np.array([1, 3])))
+        # The phase of the input array is now zero:
+        self.assertTrue(np.allclose(paulis_new.phase, np.array([0, 0])))
 
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
