@@ -111,7 +111,6 @@ impl ErrorMap {
     }
 }
 
-#[pymodule]
 pub fn error_map(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<ErrorMap>()?;
     Ok(())
