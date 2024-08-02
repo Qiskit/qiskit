@@ -16,7 +16,6 @@ pub mod marginalization;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-#[pymodule]
 pub fn results(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_counts))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_distribution))?;
