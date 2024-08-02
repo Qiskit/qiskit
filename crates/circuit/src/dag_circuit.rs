@@ -2779,7 +2779,7 @@ def _format(operand):
 
                             if op1.control_flow() && op2.control_flow() {
                                 let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
-                                let n2 = self.unpack_into(py, NodeIndex::new(0), n2)?;
+                                let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
                                 let name = op1.name();
                                 if name == "if_else" || name == "while_loop" {
                                     return condition_op_check
