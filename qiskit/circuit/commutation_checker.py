@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.circuit import Qubit
+import qiskit.circuit.library as lib
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators import Operator
@@ -44,6 +45,21 @@ _supported_ops = {
     "ecr",
     "ccx",
     "cswap",
+}
+
+_rotation_representatives = {
+    "rx": lib.XGate(),
+    "ry": lib.YGate(),
+    "rz": lib.ZGate(),
+    "p": lib.ZGate(),
+    "crx": lib.CXGate(),
+    "cry": lib.CYGate(),
+    "crz": lib.CZGate(),
+    "cp": lib.CZGate(),
+    "rxx": lib.PauliGate("XX"),
+    "ryy": lib.PauliGate("YY"),
+    "rzz": lib.PauliGate("ZZ"),
+    "rzx": lib.PauliGate("XZ"),  # note difference in tensor order
 }
 
 
@@ -142,7 +158,7 @@ class CommutationChecker:
 
         # Only perform checks on gates that are specified.
         if self._gate_names is not None:
-            if name1 not in self._gate_names or name2 not in self._gate_names:
+            if name1 not in self._gate_names and name2 not in self._gate_names:
                 return False
 
         # Bug in CommutativeCancellation, e.g. see gh-8553
