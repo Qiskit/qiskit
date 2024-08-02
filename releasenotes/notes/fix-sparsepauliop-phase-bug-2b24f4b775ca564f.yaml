@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug when SparsePauliOp.paulis is set to be a PauliList with nonzero phase, where 
+    subsequent calls to several SparsePauliOp methods would produce incorrect results. Now when 
+    SparsePauliOp.paulis is set to a PauliList with nonzero phase, the phase is absorbed into 
+    SparsePauliOp.coeffs, the phase of the input PauliList is set to zero, and a warning is 
+    raised that the input PauliList has been modified.
