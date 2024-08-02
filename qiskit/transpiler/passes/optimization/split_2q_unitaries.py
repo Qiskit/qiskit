@@ -61,12 +61,12 @@ class Split2QUnitaries(TransformationPass):
 
                 ur = decomp.K1r
                 ur_node = DAGOpNode.from_instruction(
-                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=new_dag
+                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],))
                 )
 
                 ul = decomp.K1l
                 ul_node = DAGOpNode.from_instruction(
-                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=new_dag
+                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],))
                 )
                 new_dag._apply_op_node_back(ur_node)
                 new_dag._apply_op_node_back(ul_node)

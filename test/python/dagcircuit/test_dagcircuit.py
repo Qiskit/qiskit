@@ -2683,7 +2683,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(set(dag.successors(replacement_node)), successors)
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
         self.assertEqual(dag.descendants(replacement_node), descendants)
-        self.assertNotEqual(replacement_node,  node_to_be_replaced)
+        self.assertNotEqual(replacement_node, node_to_be_replaced)
 
     @data(True, False)
     def test_refuses_to_overwrite_condition(self, inplace):
