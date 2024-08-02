@@ -13,6 +13,8 @@
 # pylint: disable=missing-function-docstring
 
 """Tests basic functionality of the sequence function"""
+# TODO with the removal of pulses, this file can be removed too.
+
 import unittest
 
 from qiskit import QuantumCircuit, pulse
@@ -27,7 +29,8 @@ class TestSequence(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = Fake127QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake127QPulseV1()
         self.backend.configuration().timing_constraints = {}
 
     def test_sequence_empty(self):
@@ -38,9 +41,19 @@ class TestSequence(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        sc = transpile(qc, self.backend, scheduling_method="alap")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
-        expected = schedule(transpile(qc, self.backend), self.backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(actual, pad(expected))
 
     def test_transpile_and_sequence_agree_with_schedule_for_circuit_with_delay(self):
@@ -49,9 +62,19 @@ class TestSequence(QiskitTestCase):
         qc.delay(500, 0, unit="ns")
         qc.h(0)
         qc.measure(0, 0)
-        sc = transpile(qc, self.backend, scheduling_method="alap")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
-        expected = schedule(transpile(qc, self.backend), self.backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(
             actual.exclude(instruction_types=[pulse.Delay]),
             expected.exclude(instruction_types=[pulse.Delay]),
@@ -62,7 +85,17 @@ class TestSequence(QiskitTestCase):
         qc = QuantumCircuit(2, name="bell_without_measurement")
         qc.h(0)
         qc.cx(0, 1)
-        sc = transpile(qc, self.backend, scheduling_method="alap")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            sc = transpile(qc, self.backend, scheduling_method="alap")
         actual = sequence(sc, self.backend)
-        expected = schedule(transpile(qc, self.backend), self.backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            expected = schedule(transpile(qc, self.backend), self.backend)
         self.assertEqual(actual, pad(expected))

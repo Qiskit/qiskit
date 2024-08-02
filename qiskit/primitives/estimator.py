@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator class
+Estimator V1 reference implementation
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -37,7 +38,7 @@ from .utils import (
 
 class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """
-    Reference implementation of :class:`BaseEstimator`.
+    Reference implementation of :class:`BaseEstimator` (V1).
 
     :Run Options:
 
@@ -51,6 +52,12 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
           this option is ignored.
     """
 
+    @deprecate_func(
+        since="1.2",
+        additional_msg="All implementations of the `BaseEstimatorV1` interface "
+        "have been deprecated in favor of their V2 counterparts. "
+        "The V2 alternative for the `Estimator` class is `StatevectorEstimator`.",
+    )
     def __init__(self, *, options: dict | None = None):
         """
         Args:
