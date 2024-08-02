@@ -145,7 +145,6 @@ pub fn collect_2q_blocks_filter(node: &Bound<PyAny>) -> Option<bool> {
     }
 }
 
-#[pymodule]
 pub fn convert_2q_block_matrix(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(blocks_to_matrix))?;
     m.add_wrapped(wrap_pyfunction!(collect_2q_blocks_filter))?;
