@@ -70,26 +70,26 @@ impl InstructionProperties {
     ///
     /// .. note::
     ///
-    /// This attribute always returns a Qiskit pulse program, but it is internally
-    /// wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
-    /// and to uniformly handle different data representation,
-    /// for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
+    ///     This attribute always returns a Qiskit pulse program, but it is internally
+    ///     wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
+    ///     and to uniformly handle different data representation,
+    ///     for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
     ///
-    /// This value can be overridden through the property setter in following manner.
-    /// When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
-    /// always treated as a user-defined (custom) calibration and
-    /// the transpiler may automatically attach the calibration data to the output circuit.
-    /// This calibration data may appear in the wire format as an inline calibration,
-    /// which may further update the backend standard instruction set architecture.
+    ///     This value can be overridden through the property setter in following manner.
+    ///     When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
+    ///     always treated as a user-defined (custom) calibration and
+    ///     the transpiler may automatically attach the calibration data to the output circuit.
+    ///     This calibration data may appear in the wire format as an inline calibration,
+    ///     which may further update the backend standard instruction set architecture.
     ///
-    /// If you are a backend provider who provides a default calibration data
-    /// that is not needed to be attached to the transpiled quantum circuit,
-    /// you can directly set :class:`.CalibrationEntry` instance to this attribute,
-    /// in which you should set :code:`user_provided=False` when you define
-    /// calibration data for the entry. End users can still intentionally utilize
-    /// the calibration data, for example, to run pulse-level simulation of the circuit.
-    /// However, such entry doesn't appear in the wire format, and backend must
-    /// use own definition to compile the circuit down to the execution format.
+    ///     If you are a backend provider who provides a default calibration data
+    ///     that is not needed to be attached to the transpiled quantum circuit,
+    ///     you can directly set :class:`.CalibrationEntry` instance to this attribute,
+    ///     in which you should set :code:`user_provided=False` when you define
+    ///     calibration data for the entry. End users can still intentionally utilize
+    ///     the calibration data, for example, to run pulse-level simulation of the circuit.
+    ///     However, such entry doesn't appear in the wire format, and backend must
+    ///     use own definition to compile the circuit down to the execution format.
     #[getter]
     fn get_calibration(&self, py: Python) -> PyResult<PyObject> {
         if let Some(calib) = &self._calibration {
