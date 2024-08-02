@@ -216,7 +216,6 @@ impl NLayout {
     }
 }
 
-#[pymodule]
 pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())

@@ -347,6 +347,20 @@ class TestParameters(QiskitTestCase):
             qc.assign_parameters({a: 1, b: 2, c: 3}), qc.assign_parameters({"a": 1, "b": 2, "c": 3})
         )
 
+    def test_assign_parameters_by_iterable(self):
+        """Assignment works with weird iterables."""
+        a, b, c = Parameter("a"), Parameter("b"), Parameter("c")
+        qc = QuantumCircuit(1)
+        qc.rz(a, 0)
+        qc.rz(b + c, 0)
+
+        binds = [1.25, 2.5, 0.125]
+        expected = qc.assign_parameters(dict(zip(qc.parameters, binds)))
+        self.assertEqual(qc.assign_parameters(iter(binds)), expected)
+        self.assertEqual(qc.assign_parameters(dict.fromkeys(binds).keys()), expected)
+        self.assertEqual(qc.assign_parameters(dict(zip(qc.parameters, binds)).values()), expected)
+        self.assertEqual(qc.assign_parameters(bind for bind in binds), expected)
+
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")

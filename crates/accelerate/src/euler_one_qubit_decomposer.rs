@@ -1044,7 +1044,6 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     ];
 }
 
-#[pymodule]
 pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;

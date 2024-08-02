@@ -175,7 +175,6 @@ fn check_invertible_binary_matrix(py: Python, mat: PyReadonlyArray2<bool>) -> Py
     Ok(out.to_object(py))
 }
 
-#[pymodule]
 pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(gauss_elimination_with_perm))?;
     m.add_wrapped(wrap_pyfunction!(gauss_elimination))?;

@@ -819,7 +819,6 @@ impl_to_matrix_sparse!(
     u64
 );
 
-#[pymodule]
 pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     m.add_wrapped(wrap_pyfunction!(decompose_dense))?;

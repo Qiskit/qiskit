@@ -123,7 +123,6 @@ fn bytecode_from_file(
 /// An interface to the Rust components of the parser stack, and the types it uses to represent the
 /// output.  The principal entry points for Python are :func:`bytecode_from_string` and
 /// :func:`bytecode_from_file`, which produce iterables of :class:`Bytecode` objects.
-#[pymodule]
 pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::OpCode>()?;
     module.add_class::<bytecode::UnaryOpCode>()?;

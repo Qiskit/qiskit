@@ -153,7 +153,6 @@ pub fn load(
 
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
-#[pymodule]
 pub fn qasm3(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(loads, module)?)?;
     module.add_function(wrap_pyfunction!(load, module)?)?;

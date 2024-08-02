@@ -345,7 +345,6 @@ fn b(k: usize, s: usize) -> usize {
     k - (a(k, s) * 2_usize.pow(s as u32))
 }
 
-#[pymodule]
 pub fn isometry(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(diag_is_identity_up_to_global_phase))?;
     m.add_wrapped(wrap_pyfunction!(find_squs_for_disentangling))?;
