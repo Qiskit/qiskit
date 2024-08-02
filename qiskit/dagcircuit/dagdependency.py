@@ -461,14 +461,27 @@ class DAGDependency:
             if reachable[prev_node_id]:
                 prev_node = self.get_node(prev_node_id)
 
-                if not self.comm_checker.commute(
-                    prev_node.op,
-                    prev_node.qargs,
-                    prev_node.cargs,
-                    max_node.op,
-                    max_node.qargs,
-                    max_node.cargs,
+                # TODO For some reason, DAGDependency needs gates *not* to commute if they are
+                # parameterized, otherwise the template matching (the sole purpose of this class)
+                # fails, as there are no edges in the graph. This seems like something that should
+                # not happen.
+                if (
+                    getattr(prev_node.op, "is_parameterized", lambda: False)()
+                    or getattr(max_node.op, "is_parameterized", lambda: False)()
                 ):
+                    # Paramterized nodes only commute if they have disjoint qargs.
+                    nodes_commute = set(prev_node.qargs).isdisjoint(max_node.qargs)
+                else:
+                    nodes_commute = self.comm_checker.commute(
+                        prev_node.op,
+                        prev_node.qargs,
+                        prev_node.cargs,
+                        max_node.op,
+                        max_node.qargs,
+                        max_node.cargs,
+                    )
+
+                if not nodes_commute:
                     # If prev_node and max_node do not commute, then we add an edge
                     # between the two, and mark all direct predecessors of prev_node
                     # as not reaching max_node.

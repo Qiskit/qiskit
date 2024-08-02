@@ -160,11 +160,17 @@ class TemplateSubstitution:
         """
         cost_left = 0
         for i in left:
-            cost_left += self.cost_dict[self.template_dag_dep.get_node(i).name]
+            name = self.template_dag_dep.get_node(i).name
+            if name == "barrier":
+                continue
+            cost_left += self.cost_dict[name]
 
         cost_right = 0
         for j in right:
-            cost_right += self.cost_dict[self.template_dag_dep.get_node(j).name]
+            name = self.template_dag_dep.get_node(j).name
+            if name == "barrier":
+                continue
+            cost_right += self.cost_dict[name]
 
         return cost_left > cost_right
 
