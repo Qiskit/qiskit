@@ -14,7 +14,8 @@ from typing import Optional
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
 

@@ -1779,7 +1779,12 @@ def _format(operand):
     }
 
     #[pyo3(signature=(node, check=false))]
-    fn _apply_op_node_back(&mut self, py: Python, node: &Bound<PyAny>, check: bool) -> PyResult<()> {
+    fn _apply_op_node_back(
+        &mut self,
+        py: Python,
+        node: &Bound<PyAny>,
+        check: bool,
+    ) -> PyResult<()> {
         if let NodeType::Operation(inst) = self.pack_into(py, node)? {
             if check {
                 if let Some(condition) = inst.condition() {
@@ -1824,7 +1829,6 @@ def _format(operand):
                     }
                 }
             }
-
 
             self.push_back(py, inst)?;
             Ok(())
