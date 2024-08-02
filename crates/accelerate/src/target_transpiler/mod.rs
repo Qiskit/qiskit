@@ -1341,8 +1341,7 @@ where
     obj_bound.is_instance(other_obj.bind(py))
 }
 
-#[pymodule]
-pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
     Ok(())
