@@ -2042,7 +2042,6 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
-#[pymodule]
 pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_class::<TwoQubitGateSequence>()?;

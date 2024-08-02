@@ -27,8 +27,7 @@ pub enum SliceOrInt<'a> {
     Slice(Bound<'a, PySlice>),
 }
 
-#[pymodule]
-pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
+pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     Ok(())
