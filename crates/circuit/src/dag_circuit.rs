@@ -3394,8 +3394,8 @@ def _format(operand):
                 }
                 for (source_clbit, target_clbit) in &clbit_wire_map {
                     wire_map.set_item(
-                        in_dag.clbits.bits()[source_clbit.0 as usize].clone_ref(py),
-                        self.qubits.bits()[target_clbit.0 as usize].clone_ref(py),
+                        in_dag.clbits.get(*source_clbit).unwrap().clone_ref(py),
+                        self.clbits.get(*target_clbit).unwrap().clone_ref(py),
                     )?
                 }
                 wire_map.update(var_map.bind(py).as_mapping())?;
@@ -3553,9 +3553,13 @@ new_condition = (new_target, value)
                                 params: old_op.num_params(),
                                 control_flow: old_op.control_flow(),
                                 op_name: old_op.name().to_string(),
-                                instruction: new_op.unbind(),
+                                instruction: new_op.clone().unbind(),
                             }
                             .into();
+                           #[cfg(feature = "cache_pygates")]
+                           {
+                               *new_inst.py_op.borrow_mut() = new_op.unbind();
+                           }
                         }
                     }
                 }
@@ -3564,44 +3568,47 @@ new_condition = (new_target, value)
                     .as_ref()
                     .and_then(|attrs| attrs.condition.as_ref())
                 {
-                    if let OperationRef::Instruction(old_op) = old_inst.op.view() {
-                        if old_op.name() != "switch_case" {
-                            let new_condition: Option<PyObject> = variable_mapper
-                                .map_condition(condition.bind(py), false)?
-                                .extract()?;
-                            if let NodeType::Operation(ref mut new_inst) =
-                                &mut self.dag[*new_node_index]
-                            {
-                                match &mut new_inst.extra_attrs {
-                                    Some(attrs) => attrs.condition.clone_from(&new_condition),
-                                    None => {
-                                        new_inst.extra_attrs =
-                                            Some(Box::new(ExtraInstructionAttributes {
-                                                label: None,
-                                                condition: new_condition.clone(),
-                                                unit: None,
-                                                duration: None,
-                                            }))
-                                    }
+                    if old_inst.op.name() != "switch_case" {
+                        let new_condition: Option<PyObject> = variable_mapper
+                            .map_condition(condition.bind(py), false)?
+                            .extract()?;
+                        if let NodeType::Operation(ref mut new_inst) =
+                            &mut self.dag[*new_node_index]
+                        {
+                            match &mut new_inst.extra_attrs {
+                                Some(attrs) => attrs.condition.clone_from(&new_condition),
+                                None => {
+                                    new_inst.extra_attrs =
+                                        Some(Box::new(ExtraInstructionAttributes {
+                                            label: None,
+                                            condition: new_condition.clone(),
+                                            unit: None,
+                                            duration: None,
+                                        }))
                                 }
-                                match new_inst.op.view() {
-                                    OperationRef::Instruction(py_inst) => {
-                                        py_inst.instruction.setattr(
-                                            py,
-                                            "condition",
-                                            new_condition,
-                                        )?;
+                            }
+                            match new_inst.op.view() {
+                                OperationRef::Instruction(py_inst) => {
+                                    py_inst
+                                        .instruction
+                                        .setattr(py, "condition", new_condition)?;
+                                }
+                                OperationRef::Gate(py_gate) => {
+                                    py_gate.gate.setattr(py, "condition", new_condition)?;
+                                }
+                                OperationRef::Operation(py_op) => {
+                                    py_op.operation.setattr(py, "condition", new_condition)?;
+                                }
+                                OperationRef::Standard(_) => {
+                                    #[cfg(feature = "cache_pygates")]
+                                    {
+                                        *new_inst.py_op.borrow_mut() = None
                                     }
-                                    OperationRef::Gate(py_gate) => {
-                                        py_gate.gate.setattr(py, "condition", new_condition)?;
-                                    }
-                                    _ => (),
                                 }
                             }
                         }
                     }
                 }
-                self.increment_op(old_inst.op.name().to_string());
             }
         }
         let out_dict = PyDict::new_bound(py);
@@ -5345,7 +5352,7 @@ impl DAGCircuit {
     /// [DAGCircuit::copy_empty_like].
     fn push_front(&mut self, py: Python, inst: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = inst.op.name();
-        let (all_cbits, _vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
+        let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &inst) {
                 let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_cache.intern(inst.clbits).iter().cloned());
@@ -5367,7 +5374,7 @@ impl DAGCircuit {
 
         // Put the new node in-between the input map and the previously
         // "first" nodes on each wire.
-        let input_nodes: Vec<NodeIndex> = self
+        let mut input_nodes: Vec<NodeIndex> = self
             .qargs_cache
             .intern(qubits_id)
             .iter()
@@ -5378,6 +5385,11 @@ impl DAGCircuit {
                     .map(|c| self.clbit_input_map.get(c).copied().unwrap()),
             )
             .collect();
+        if let Some(vars) = vars {
+            for var in vars {
+                input_nodes.push(self.var_input_map.get(&var).unwrap());
+            }
+        }
 
         for input_node in input_nodes {
             let first_edges: Vec<_> = self
@@ -6112,7 +6124,13 @@ impl DAGCircuit {
         // If no nodes are copied bail here since there is nothing left
         // to do.
         if out_map.is_empty() {
-            self.remove_op_node(node);
+            match self.dag.remove_node(node) {
+                Some(NodeType::Operation(packed)) => {
+                    let op_name = packed.op.name().to_string();
+                    self.decrement_op(op_name);
+                }
+                _ => unreachable!("Must be called with valid operation node!"),
+            }
             // Return a new empty map to clear allocation from out_map
             return Ok(IndexMap::new());
         }
