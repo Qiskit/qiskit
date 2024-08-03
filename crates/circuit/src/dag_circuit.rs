@@ -535,13 +535,13 @@ impl DAGCircuit {
         let out_dict = PyDict::new_bound(py);
         for (qubit, index) in self.qubit_input_map.iter() {
             out_dict.set_item(
-                self.qubits.bits()[qubit.0 as usize].clone_ref(py),
+                self.qubits.get(*qubit).unwrap().clone_ref(py),
                 self.get_node(py, *index)?,
             )?;
         }
         for (clbit, index) in self.clbit_input_map.iter() {
             out_dict.set_item(
-                self.clbits.bits()[clbit.0 as usize].clone_ref(py),
+                self.clbits.get(*clbit).unwrap().clone_ref(py),
                 self.get_node(py, *index)?,
             )?;
         }
@@ -559,13 +559,13 @@ impl DAGCircuit {
         let out_dict = PyDict::new_bound(py);
         for (qubit, index) in self.qubit_output_map.iter() {
             out_dict.set_item(
-                self.qubits.bits()[qubit.0 as usize].clone_ref(py),
+                self.qubits.get(*qubit).unwrap().clone_ref(py),
                 self.get_node(py, *index)?,
             )?;
         }
         for (clbit, index) in self.clbit_output_map.iter() {
             out_dict.set_item(
-                self.clbits.bits()[clbit.0 as usize].clone_ref(py),
+                self.clbits.get(*clbit).unwrap().clone_ref(py),
                 self.get_node(py, *index)?,
             )?;
         }
@@ -3388,8 +3388,8 @@ def _format(operand):
                 locals.set_item("op_condition", condition)?;
                 for (source_qubit, target_qubit) in &qubit_wire_map {
                     wire_map.set_item(
-                        in_dag.qubits.bits()[source_qubit.0 as usize].clone_ref(py),
-                        self.qubits.bits()[target_qubit.0 as usize].clone_ref(py),
+                        in_dag.qubits.get(*source_qubit).unwrap().clone_ref(py),
+                        self.qubits.get(*target_qubit).unwrap().clone_ref(py),
                     )?
                 }
                 for (source_clbit, target_clbit) in &clbit_wire_map {
@@ -3556,10 +3556,10 @@ new_condition = (new_target, value)
                                 instruction: new_op.clone().unbind(),
                             }
                             .into();
-                           #[cfg(feature = "cache_pygates")]
-                           {
-                               *new_inst.py_op.borrow_mut() = new_op.unbind();
-                           }
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                *new_inst.py_op.borrow_mut() = Some(new_op.unbind());
+                            }
                         }
                     }
                 }
@@ -5084,8 +5084,8 @@ new_condition = (new_target, value)
         self.dag
             .edges_directed(NodeIndex::new(node_index), Incoming)
             .map(|wire| match wire.weight() {
-                Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
-                Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                Wire::Qubit(qubit) => &self.qubits.get(*qubit).unwrap(),
+                Wire::Clbit(clbit) => &self.clbits.get(*clbit).unwrap(),
                 Wire::Var(var) => var,
             })
             .collect()
@@ -5095,8 +5095,8 @@ new_condition = (new_target, value)
         self.dag
             .edges_directed(NodeIndex::new(node_index), Outgoing)
             .map(|wire| match wire.weight() {
-                Wire::Qubit(qubit) => &self.qubits.bits()[qubit.0 as usize],
-                Wire::Clbit(clbit) => &self.clbits.bits()[clbit.0 as usize],
+                Wire::Qubit(qubit) => &self.qubits.get(*qubit).unwrap(),
+                Wire::Clbit(clbit) => &self.clbits.get(*clbit).unwrap(),
                 Wire::Var(var) => var,
             })
             .collect()
