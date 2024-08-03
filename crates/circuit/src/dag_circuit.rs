@@ -32,7 +32,7 @@ use crate::{BitType, Clbit, Qubit, TupleLikeArg};
 
 use approx::relative_eq;
 use hashbrown::{hash_map, HashMap, HashSet};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
 
 use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
@@ -1350,7 +1350,7 @@ def _format(operand):
                 )))
             }
         };
-        let clbits: IndexSet<Clbit> = bit_iter.collect();
+        let clbits: HashSet<Clbit> = bit_iter.collect();
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
             if !self.is_wire_idle(&Wire::Clbit(*bit))? {
@@ -1558,7 +1558,7 @@ def _format(operand):
                 )))
             }
         };
-        let qubits: IndexSet<Qubit> = bit_iter.collect();
+        let qubits: HashSet<Qubit> = bit_iter.collect();
 
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
@@ -5288,8 +5288,8 @@ impl DAGCircuit {
         let op_name = instr.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
-                let mut clbits: IndexSet<Clbit> =
-                    IndexSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().copied());
+                let mut clbits: HashSet<Clbit> =
+                    HashSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     self.additional_wires(py, instr.op.view(), instr.condition())?;
                 for clbit in additional_clbits {
@@ -5308,7 +5308,7 @@ impl DAGCircuit {
 
         // Put the new node in-between the previously "last" nodes on each wire
         // and the output map.
-        let output_nodes: IndexSet<NodeIndex> = self
+        let output_nodes: HashSet<NodeIndex> = self
             .qargs_cache
             .intern(qubits_id)
             .iter()
@@ -5354,8 +5354,8 @@ impl DAGCircuit {
         let op_name = inst.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &inst) {
-                let mut clbits: IndexSet<Clbit> =
-                    IndexSet::from_iter(self.cargs_cache.intern(inst.clbits).iter().cloned());
+                let mut clbits: HashSet<Clbit> =
+                    HashSet::from_iter(self.cargs_cache.intern(inst.clbits).iter().cloned());
                 let (additional_clbits, additional_vars) =
                     self.additional_wires(py, inst.op.view(), inst.condition())?;
                 for clbit in additional_clbits {
