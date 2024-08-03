@@ -2713,7 +2713,7 @@ def _format(operand):
         let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
             match [n1, n2] {
                 [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
-                    if !inst1.op.py_eq(py, &inst2.op)? {
+                    if !inst1.py_op_eq(py, inst2)? {
                         return Ok(false);
                     }
                     let node1_qargs = self.qargs_cache.intern(inst1.qubits);
@@ -2870,6 +2870,79 @@ def _format(operand):
                         }
                         [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
                             Ok(node1_qargs == node2_qargs || node1_cargs == node2_cargs)
+                        }
+                        // Handle the case we end up with a pygate for a standardgate
+                        // this typically only happens if it's a ControlledGate in python
+                        // and we have mutable state set.
+                        [OperationRef::Standard(_op1), OperationRef::Gate(_op2)] => {
+                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+
+                            let conditions_eq = if let Some(cond1) = inst1
+                                .extra_attrs
+                                .as_ref()
+                                .and_then(|attrs| attrs.condition.as_ref())
+                            {
+                                if let Some(cond2) = inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                {
+                                    legacy_condition_eq
+                                        .call1((
+                                            cond1,
+                                            cond2,
+                                            &self_bit_indices,
+                                            &other_bit_indices,
+                                        ))?
+                                        .extract::<bool>()?
+                                } else {
+                                    false
+                                }
+                            } else {
+                                inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                    .is_none()
+                            };
+                            Ok(conditions_eq)
+                        }
+                        [OperationRef::Gate(_op1), OperationRef::Standard(_op2)] => {
+                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+
+                            let conditions_eq = if let Some(cond1) = inst1
+                                .extra_attrs
+                                .as_ref()
+                                .and_then(|attrs| attrs.condition.as_ref())
+                            {
+                                if let Some(cond2) = inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                {
+                                    legacy_condition_eq
+                                        .call1((
+                                            cond1,
+                                            cond2,
+                                            &self_bit_indices,
+                                            &other_bit_indices,
+                                        ))?
+                                        .extract::<bool>()?
+                                } else {
+                                    false
+                                }
+                            } else {
+                                inst2
+                                    .extra_attrs
+                                    .as_ref()
+                                    .and_then(|attrs| attrs.condition.as_ref())
+                                    .is_none()
+                            };
+                            Ok(conditions_eq)
                         }
                         _ => Ok(false),
                     }

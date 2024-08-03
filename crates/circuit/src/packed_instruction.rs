@@ -582,4 +582,30 @@ impl PackedInstruction {
 
         Ok(out)
     }
+
+    /// Check equality of the operation, including Python-space checks, if appropriate.
+    pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self.op.view(), other.op.view()) {
+            (OperationRef::Standard(left), OperationRef::Standard(right)) => Ok(left == right),
+            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                left.gate.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                left.instruction.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                left.operation.bind(py).eq(&right.operation)
+            }
+            // Handle the case we end up with a pygate for a standard gate
+            // this typically only happens if it's a ControlledGate in python
+            // and we have mutable state set.
+            (OperationRef::Standard(_left), OperationRef::Gate(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Gate(left), OperationRef::Standard(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+            }
+            _ => Ok(false),
+        }
+    }
 }
