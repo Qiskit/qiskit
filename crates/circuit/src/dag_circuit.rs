@@ -2720,7 +2720,6 @@ def _format(operand):
                     let node2_qargs = other.qargs_cache.intern(inst2.qubits);
                     let node1_cargs = self.cargs_cache.intern(inst1.clbits);
                     let node2_cargs = other.cargs_cache.intern(inst2.clbits);
-
                     match [inst1.op.view(), inst2.op.view()] {
                         [OperationRef::Standard(_op1), OperationRef::Standard(_op2)] => {
                             if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
@@ -3260,7 +3259,7 @@ def _format(operand):
             Ok((qubit_wire_map, clbit_wire_map, var_map.unbind()))
         };
 
-        let (qubit_wire_map, clbit_wire_map, var_map): (
+        let (mut qubit_wire_map, mut clbit_wire_map, var_map): (
             HashMap<Qubit, Qubit>,
             HashMap<Clbit, Clbit>,
             Py<PyDict>,
@@ -3367,6 +3366,9 @@ def _format(operand):
             );
         }
 
+        let mut new_input_dag: Option<DAGCircuit> = None;
+        // It doesn't make sense to try and propagate a condition from a control-flow op; a
+        // replacement for the control-flow op should implement the operation completely.
         let node_map = if propagate_condition && !node.op.control_flow() {
             // Nested until https://github.com/rust-lang/rust/issues/53667 is fixed in a stable
             // release
@@ -3435,6 +3437,22 @@ new_condition = (new_target, value)
                 let new_condition = locals.get_item("new_condition")?.unwrap();
                 let binding = locals.get_item("in_dag")?.unwrap();
                 let mut in_dag: DAGCircuit = binding.extract()?;
+                let binding = locals.get_item("wire_map")?.unwrap();
+                let wire_map = binding.downcast::<PyDict>()?;
+                qubit_wire_map.clear();
+                clbit_wire_map.clear();
+                for item in wire_map.items().iter() {
+                    let (in_bit, self_bit): (Bound<PyAny>, Bound<PyAny>) = item.extract()?;
+                    if in_bit.is_instance(self.circuit_module.qubit.bind(py))? {
+                        let in_index = in_dag.qubits.find(&in_bit).unwrap();
+                        let self_index = self.qubits.find(&self_bit).unwrap();
+                        qubit_wire_map.insert(in_index, self_index);
+                    } else {
+                        let in_index = in_dag.clbits.find(&in_bit).unwrap();
+                        let self_index = self.clbits.find(&self_bit).unwrap();
+                        clbit_wire_map.insert(in_index, self_index);
+                    }
+                }
                 for in_node_index in input_dag.topological_op_nodes()? {
                     let in_node = &input_dag.dag[in_node_index];
                     if let NodeType::Operation(inst) = in_node {
@@ -3477,14 +3495,16 @@ new_condition = (new_target, value)
                         in_dag.push_back(py, new_inst)?;
                     }
                 }
-                self.substitute_node_with_subgraph(
+                let node_map = self.substitute_node_with_subgraph(
                     py,
                     node_index,
                     &in_dag,
                     &qubit_wire_map,
                     &clbit_wire_map,
                     &var_map,
-                )?
+                )?;
+                new_input_dag = Some(in_dag);
+                node_map
             } else {
                 self.substitute_node_with_subgraph(
                     py,
@@ -3509,7 +3529,10 @@ new_condition = (new_target, value)
 
         let wire_map_dict = PyDict::new_bound(py);
         for (source, target) in clbit_wire_map.iter() {
-            let source_bit = input_dag.clbits.get(*source);
+            let source_bit = match new_input_dag {
+                Some(ref in_dag) => in_dag.clbits.get(*source),
+                None => input_dag.clbits.get(*source),
+            };
             let target_bit = self.clbits.get(*target);
             wire_map_dict.set_item(source_bit, target_bit)?;
         }
@@ -3523,7 +3546,10 @@ new_condition = (new_target, value)
         )?;
 
         for (old_node_index, new_node_index) in node_map.iter() {
-            let old_node = &input_dag.dag[*old_node_index];
+            let old_node = match new_input_dag {
+                Some(ref in_dag) => &in_dag.dag[*old_node_index],
+                None => &input_dag.dag[*old_node_index],
+            };
             if let NodeType::Operation(old_inst) = old_node {
                 if let OperationRef::Instruction(old_op) = old_inst.op.view() {
                     if old_op.name() == "switch_case" {
@@ -6042,7 +6068,6 @@ impl DAGCircuit {
                 node.index()
             )));
         }
-
         self.global_phase.add(py, &other.global_phase);
 
         // Add wire from pred to succ if no ops on mapped wire on ``other``
