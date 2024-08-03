@@ -4232,6 +4232,42 @@ new_condition = (new_target, value)
             .unbind())
     }
 
+    /// Returns iterator of "op" successors of a node in the dag.
+    fn op_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+        let predecessors: PyResult<Vec<_>> = self
+            .dag
+            .neighbors_directed(node.node.unwrap(), Outgoing)
+            .unique()
+            .filter_map(|i| match self.dag[i] {
+                NodeType::Operation(_) => Some(self.get_node(py, i)),
+                _ => None,
+            })
+            .collect();
+        Ok(PyTuple::new_bound(py, predecessors?)
+            .into_any()
+            .iter()
+            .unwrap()
+            .unbind())
+    }
+
+    /// Returns the iterator of "op" predecessors of a node in the dag.
+    fn op_predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+        let predecessors: PyResult<Vec<_>> = self
+            .dag
+            .neighbors_directed(node.node.unwrap(), Incoming)
+            .unique()
+            .filter_map(|i| match self.dag[i] {
+                NodeType::Operation(_) => Some(self.get_node(py, i)),
+                _ => None,
+            })
+            .collect();
+        Ok(PyTuple::new_bound(py, predecessors?)
+            .into_any()
+            .iter()
+            .unwrap()
+            .unbind())
+    }
+
     /// Checks if a second node is in the successors of node.
     fn is_successor(&self, node: &DAGNode, node_succ: &DAGNode) -> bool {
         self.dag
