@@ -5084,8 +5084,8 @@ new_condition = (new_target, value)
         self.dag
             .edges_directed(NodeIndex::new(node_index), Incoming)
             .map(|wire| match wire.weight() {
-                Wire::Qubit(qubit) => &self.qubits.get(*qubit).unwrap(),
-                Wire::Clbit(clbit) => &self.clbits.get(*clbit).unwrap(),
+                Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
+                Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
                 Wire::Var(var) => var,
             })
             .collect()
@@ -5095,8 +5095,8 @@ new_condition = (new_target, value)
         self.dag
             .edges_directed(NodeIndex::new(node_index), Outgoing)
             .map(|wire| match wire.weight() {
-                Wire::Qubit(qubit) => &self.qubits.get(*qubit).unwrap(),
-                Wire::Clbit(clbit) => &self.clbits.get(*clbit).unwrap(),
+                Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
+                Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
                 Wire::Var(var) => var,
             })
             .collect()
