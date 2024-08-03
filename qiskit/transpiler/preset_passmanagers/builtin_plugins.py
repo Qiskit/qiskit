@@ -47,6 +47,7 @@ from qiskit.transpiler.passes.optimization import (
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
+from qiskit.transpiler.target import Target
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -178,7 +179,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # use rz, sx, x, cx as basis, rely on physical optimziation to fix everything later one
             stdgates = get_standard_gate_name_mapping()
 
-            def _is_one_op_non_discrete(ops):
+            def _is_one_op_non_discrete(target):
                 """Checks if one operation in `ops` is not discrete, i.e. is parameterizable
                 Args:
                     ops (List(Operation)): list of operations to check
@@ -186,20 +187,27 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     True if at least one operation in `ops` is not discrete, False otherwise
                 """
                 found_one_continuous_gate = False
-                for op in ops:
-                    if isinstance(op, str):
-                        if op in _discrete_skipped_ops:
-                            continue
-                        op = stdgates.get(op, None)
-
-                    if op is not None and op.name in _discrete_skipped_ops:
+                is_target = isinstance(target, Target)
+                if is_target:
+                    op_names = target.operation_names
+                else:
+                    op_names = target
+                for op_name in op_names:
+                    if op_name in _discrete_skipped_ops:
                         continue
 
-                    if op is None or not isinstance(op, Instruction):
+                    if is_target:
+                        op = target.operation_from_name(op_name)
+                    else:
+                        op = stdgates.get(op_name, None)
+                        if op is None:
+                            return False
+                    if not isinstance(op, Instruction):
                         return False
 
                     if len(op.params) > 0:
                         found_one_continuous_gate = True
+                        break
                 return found_one_continuous_gate
 
             target = pass_manager_config.target
@@ -209,9 +217,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # * target has been specified, and we have one non-discrete gate in the target's spec
             # * basis gates have been specified, and we have one non-discrete gate in that set
             do_consolidate_blocks_init = target is None and basis is None
-            do_consolidate_blocks_init |= target is not None and _is_one_op_non_discrete(
-                target.operations
-            )
+            do_consolidate_blocks_init |= target is not None and _is_one_op_non_discrete(target)
             do_consolidate_blocks_init |= basis is not None and _is_one_op_non_discrete(basis)
 
             if do_consolidate_blocks_init:
