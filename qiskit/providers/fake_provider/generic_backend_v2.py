@@ -616,6 +616,16 @@ class GenericBackendV2(BackendV2):
                         {"date": "2000-01-01 00:00:00Z", "name": "readout_length", "unit": "ns", "value": meas.duration*1e9}
                     ] for qb, meas in zip(self.target.qubit_properties, self.target['measure'].values())
                 ],
-
+                "gates": [
+                    {
+                        "qubits": list(qb),
+                        "gate": op,
+                        "parameters": [
+                            {"date": "2000-01-01 00:00:00Z", "name": "gate_error", "unit": "", "value": inst_props.error},
+                            {"date": "2000-01-01 00:00:00Z", "name": "gate_length", "unit": "ns", "value": inst_props.duration*1e9 if inst_props.duration is not None else None}
+                        ]
+                    } for op, properties_dict in self.target.items() for qb, inst_props in properties_dict.items() if op not in ['delay', 'reset']
+                ],
+                "general": [],
                 }
         return BackendProperties.from_dict(prop)
