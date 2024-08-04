@@ -41,6 +41,7 @@ from qiskit.providers.models import (
 )
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
+from qiskit.providers.models import BackendProperties
 
 # Noise default values/ranges for duration and error of supported
 # instructions. There are two possible formats:
@@ -601,3 +602,20 @@ class GenericBackendV2(BackendV2):
         if qubits in control_channels_map:
             return control_channels_map[qubits]
         return []
+
+    def properties(self):
+        prop = {"backend_name": "GenericBackendV2",
+                "backend_version": "1.0.0",
+                "last_update_date": "2000-01-01T00:00:00Z",
+                "qubits": [
+                    [
+                        {"date": "2000-01-01 00:00:00Z", "name": "T1", "unit": "us", "value": qb.t1*1e6},
+                        {"date": "2000-01-01 00:00:00Z", "name": "T2", "unit": "us", "value": qb.t2*1e6},
+                        {"date": "2000-01-01 00:00:00Z", "name": "frequency", "unit": "GHz", "value": qb.frequency/1e9},
+                        {"date": "2000-01-01 00:00:00Z", "name": "readout_error", "unit": "", "value": meas.error},
+                        {"date": "2000-01-01 00:00:00Z", "name": "readout_length", "unit": "ns", "value": meas.duration*1e9}
+                    ] for qb, meas in zip(self.target.qubit_properties, self.target['measure'].values())
+                ],
+
+                }
+        return BackendProperties.from_dict(prop)
