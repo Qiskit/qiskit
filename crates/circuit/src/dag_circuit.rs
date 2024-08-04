@@ -2721,8 +2721,20 @@ def _format(operand):
                     let node1_cargs = self.cargs_cache.intern(inst1.clbits);
                     let node2_cargs = other.cargs_cache.intern(inst2.clbits);
                     match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::Standard(_op1), OperationRef::Standard(_op2)] => {
-                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                        [OperationRef::Standard(op1), OperationRef::Standard(_op2)] => {
+                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
+                                let node1_qargs =
+                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                                let node2_qargs =
+                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                                let node1_cargs =
+                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                                let node2_cargs =
+                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                    return Ok(false);
+                                }
+                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
                                 return Ok(false);
                             }
                             let conditions_eq = if let Some(cond1) = inst1
@@ -2833,8 +2845,20 @@ def _format(operand):
                             };
                             Ok(conditions_eq)
                         }
-                        [OperationRef::Gate(_op1), OperationRef::Gate(_op2)] => {
-                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                        [OperationRef::Gate(op1), OperationRef::Gate(_op2)] => {
+                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
+                                let node1_qargs =
+                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                                let node2_qargs =
+                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                                let node1_cargs =
+                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                                let node2_cargs =
+                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                    return Ok(false);
+                                }
+                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
                                 return Ok(false);
                             }
 
