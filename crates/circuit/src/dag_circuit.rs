@@ -1067,10 +1067,12 @@ impl DAGCircuit {
             gate = gate.getattr(intern!(py, "name"))?;
         }
 
-        if let Some(operands) = params {
+        let params_tuple = if let Some(operands) = params {
             let add_calibration = PyModule::from_code_bound(
                 py,
                 r#"
+import numpy as np
+
 def _format(operand):
     try:
         # Using float/complex value as a dict key is not good idea.
@@ -1094,10 +1096,10 @@ def _format(operand):
 
             let format = add_calibration.getattr("_format")?;
             let mapped: PyResult<Vec<_>> = operands.iter()?.map(|p| format.call1((p?,))).collect();
-            params = Some(PyTuple::new_bound(py, mapped).into_any());
+            PyTuple::new_bound(py, mapped?).into_any()
         } else {
-            params = Some(PyTuple::empty_bound(py).into_any());
-        }
+            PyTuple::empty_bound(py).into_any()
+        };
 
         let calibrations = self
             .calibrations
@@ -1110,8 +1112,8 @@ def _format(operand):
         } else {
             PyTuple::new_bound(py, [qubits]).into_any()
         };
-
-        calibrations.set_item((qubits, params.unwrap()).to_object(py), schedule)?;
+        let key = PyTuple::new_bound(py, &[qubits.unbind(), params_tuple.into_any().unbind()]);
+        calibrations.set_item(key, schedule)?;
         Ok(())
     }
 
