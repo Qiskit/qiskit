@@ -604,28 +604,73 @@ class GenericBackendV2(BackendV2):
         return []
 
     def properties(self):
-        prop = {"backend_name": "GenericBackendV2",
-                "backend_version": "1.0.0",
-                "last_update_date": "2000-01-01T00:00:00Z",
-                "qubits": [
-                    [
-                        {"date": "2000-01-01 00:00:00Z", "name": "T1", "unit": "us", "value": qb.t1*1e6},
-                        {"date": "2000-01-01 00:00:00Z", "name": "T2", "unit": "us", "value": qb.t2*1e6},
-                        {"date": "2000-01-01 00:00:00Z", "name": "frequency", "unit": "GHz", "value": qb.frequency/1e9},
-                        {"date": "2000-01-01 00:00:00Z", "name": "readout_error", "unit": "", "value": meas.error},
-                        {"date": "2000-01-01 00:00:00Z", "name": "readout_length", "unit": "ns", "value": meas.duration*1e9}
-                    ] for qb, meas in zip(self.target.qubit_properties, self.target['measure'].values())
-                ],
-                "gates": [
+        """Return GenericBackendV2 properties"""
+        prop = {
+            "backend_name": "GenericBackendV2",
+            "backend_version": "1.0.0",
+            "last_update_date": "2000-01-01T00:00:00Z",
+            "qubits": [
+                [
                     {
-                        "qubits": list(qb),
-                        "gate": op,
-                        "parameters": [
-                            {"date": "2000-01-01 00:00:00Z", "name": "gate_error", "unit": "", "value": inst_props.error},
-                            {"date": "2000-01-01 00:00:00Z", "name": "gate_length", "unit": "ns", "value": inst_props.duration*1e9 if inst_props.duration is not None else None}
-                        ]
-                    } for op, properties_dict in self.target.items() for qb, inst_props in properties_dict.items() if op not in ['delay', 'reset']
-                ],
-                "general": [],
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "T1",
+                        "unit": "us",
+                        "value": qb.t1 * 1e6,
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "T2",
+                        "unit": "us",
+                        "value": qb.t2 * 1e6,
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": qb.frequency / 1e9,
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": meas.error,
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "readout_length",
+                        "unit": "ns",
+                        "value": meas.duration * 1e9,
+                    },
+                ]
+                for qb, meas in zip(self.target.qubit_properties, self.target["measure"].values())
+            ],
+            "gates": [
+                {
+                    "qubits": list(qb),
+                    "gate": op,
+                    "parameters": [
+                        {
+                            "date": "2000-01-01 00:00:00Z",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": inst_props.error,
+                        },
+                        {
+                            "date": "2000-01-01 00:00:00Z",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": (
+                                inst_props.duration * 1e9
+                                if inst_props.duration is not None
+                                else None
+                            ),
+                        },
+                    ],
                 }
+                for op, properties_dict in self.target.items()
+                for qb, inst_props in properties_dict.items()
+                if op not in ["delay", "reset"]
+            ],
+            "general": [],
+        }
         return BackendProperties.from_dict(prop)
