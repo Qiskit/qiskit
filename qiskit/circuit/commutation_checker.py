@@ -101,14 +101,7 @@ class CommutationChecker:
         self._cache_hit = 0
         self._gate_names = gates
 
-    def commute_nodes(
-        self,
-        op1,
-        op2,
-        max_num_qubits: int = 3,
-        *,
-        allow_parameters: bool = True,
-    ) -> bool:
+    def commute_nodes(self, op1, op2, max_num_qubits: int = 3) -> bool:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
         cargs1 = op2.cargs
@@ -120,16 +113,7 @@ class CommutationChecker:
         if not op2.is_standard_gate():
             op2 = op2.op
 
-        return self.commute(
-            op1,
-            qargs1,
-            cargs1,
-            op2,
-            qargs2,
-            cargs2,
-            max_num_qubits,
-            allow_parameters=allow_parameters,
-        )
+        return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 
     # pylint: disable=too-many-return-statements
     def commute(
@@ -141,8 +125,6 @@ class CommutationChecker:
         qargs2: List,
         cargs2: List,
         max_num_qubits: int = 3,
-        *,
-        allow_parameters: bool = True,
     ) -> bool:
         """
         Checks if two Operations commute. The return value of `True` means that the operations
@@ -159,7 +141,6 @@ class CommutationChecker:
             cargs2: second operation's clbits.
             max_num_qubits: the maximum number of qubits to consider, the check may be skipped if
                 the number of qubits for either operation exceeds this amount.
-            allow_parameters: If True, allow commutation checking for parameterized gates.
 
         Returns:
             bool: whether two operations commute.
@@ -190,9 +171,8 @@ class CommutationChecker:
         # Note that we deliberatily use op1._name instead of op1.name, since (1) it is faster and
         # (2) for controlled gates we do not care about the control state, which is included in the
         # ``.name`` property.
-        if allow_parameters:
-            op1, name1 = _map_rotation(op1, name1)
-            op2, name2 = _map_rotation(op2, name2)
+        op1, name1 = _map_rotation(op1, name1)
+        op2, name2 = _map_rotation(op2, name2)
 
         if not is_commutation_supported(
             op1, name1, qargs1, max_num_qubits

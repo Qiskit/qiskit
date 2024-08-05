@@ -461,10 +461,6 @@ class DAGDependency:
             if reachable[prev_node_id]:
                 prev_node = self.get_node(prev_node_id)
 
-                # TODO For some reason, DAGDependency needs gates *not* to commute if they are
-                # parameterized, otherwise the template matching (the sole purpose of this class)
-                # fails, as there are no edges in the graph. This seems like something that should
-                # not happen.
                 if not self.comm_checker.commute(
                     prev_node.op,
                     prev_node.qargs,
@@ -472,7 +468,6 @@ class DAGDependency:
                     max_node.op,
                     max_node.qargs,
                     max_node.cargs,
-                    allow_parameters=False,
                 ):
                     # If prev_node and max_node do not commute, then we add an edge
                     # between the two, and mark all direct predecessors of prev_node
