@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.circuit import Qubit
+import qiskit.circuit.library as lib
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators import Operator
@@ -44,6 +45,21 @@ _supported_ops = {
     "ecr",
     "ccx",
     "cswap",
+}
+
+_rotation_representatives = {
+    "rx": lib.XGate(),
+    "ry": lib.YGate(),
+    "rz": lib.ZGate(),
+    "p": lib.ZGate(),
+    "crx": lib.CXGate(),
+    "cry": lib.CYGate(),
+    "crz": lib.CZGate(),
+    "cp": lib.CZGate(),
+    "rxx": lib.PauliGate("XX"),
+    "ryy": lib.PauliGate("YY"),
+    "rzz": lib.PauliGate("ZZ"),
+    "rzx": lib.PauliGate("XZ"),  # note difference in tensor order
 }
 
 
@@ -85,29 +101,27 @@ class CommutationChecker:
         self._cache_hit = 0
         self._gate_names = gates
 
-    def commute_nodes(
-        self,
-        op1,
-        op2,
-        max_num_qubits: int = 3,
-    ) -> bool:
+    def commute_nodes(self, op1, op2, max_num_qubits: int = 3) -> bool:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
         cargs1 = op2.cargs
         if not op1.is_standard_gate():
             op1 = op1.op
+
         qargs2 = op2.qargs
         cargs2 = op2.cargs
         if not op2.is_standard_gate():
             op2 = op2.op
+
         return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 
+    # pylint: disable=too-many-return-statements
     def commute(
         self,
-        op1: Operation,
+        op1: Union[Operation, "DAGOpNode"],
         qargs1: List,
         cargs1: List,
-        op2: Operation,
+        op2: Union[Operation, "DAGOpNode"],
         qargs2: List,
         cargs2: List,
         max_num_qubits: int = 3,
@@ -131,20 +145,42 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
-        # Skip gates that are not specified.
+        # Try getting _name, which works for Operations, otherwise call .name
+        # For Operations we aim for _name instead of name, since (1) it is faster and (2) for
+        # controlled operations we don't care about the control state, which is contained in
+        # ``name`` but not in ``_name``
+        name1 = getattr(op1, "_name", op1.name)
+        name2 = getattr(op2, "_name", op2.name)
+
+        # Only perform checks on gates that are specified.
         if self._gate_names is not None:
-            if op1.name not in self._gate_names or op2.name not in self._gate_names:
+            if name1 not in self._gate_names and name2 not in self._gate_names:
                 return False
 
-        structural_commutation = _commutation_precheck(
-            op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits
-        )
+        # Bug in CommutativeCancellation, e.g. see gh-8553
+        if getattr(op1, "condition", False) or getattr(op2, "condition", False):
+            return False
 
-        if structural_commutation is not None:
-            return structural_commutation
+        # check if qargs are disjoint
+        if set(qargs1).isdisjoint(qargs2) and set(cargs1).isdisjoint(cargs2):
+            return True
+
+        # The rotation gates commute like their respective generators. Additionally, if their
+        # only parameter is 0, they reduce to the identity and we return ``True``, as the
+        # identity commutes with everything.
+        # Note that we deliberatily use op1._name instead of op1.name, since (1) it is faster and
+        # (2) for controlled gates we do not care about the control state, which is included in the
+        # ``.name`` property.
+        op1, name1 = _map_rotation(op1, name1)
+        op2, name2 = _map_rotation(op2, name2)
+
+        if not is_commutation_supported(
+            op1, name1, qargs1, max_num_qubits
+        ) or not is_commutation_supported(op2, name2, qargs2, max_num_qubits):
+            return False
 
         first_op_tuple, second_op_tuple = _order_operations(
-            op1, qargs1, cargs1, op2, qargs2, cargs2
+            op1, name1, qargs1, cargs1, op2, name2, qargs2, cargs2
         )
         first_op, first_qargs, _ = first_op_tuple
         second_op, second_qargs, _ = second_op_tuple
@@ -264,12 +300,13 @@ def _hashable_parameters(params):
     return ("fallback", str(params))
 
 
-def is_commutation_supported(op, qargs, max_num_qubits):
+def is_commutation_supported(op, name, qargs, max_num_qubits):
     """
     Filter operations whose commutation is not supported due to bugs in transpiler passes invoking
     commutation analysis.
     Args:
         op (Operation): operation to be checked for commutation relation.
+        name (str): the name of the operation.
         qargs (list[Qubit]): qubits the operation acts on.
         max_num_qubits (int): The maximum number of qubits to check commutativity for.
 
@@ -282,44 +319,20 @@ def is_commutation_supported(op, qargs, max_num_qubits):
         return False
 
     # Check if the operation is pre-approved, otherwise go through the checks
-    if op.name in _supported_ops:
+    if name in _supported_ops:
         return True
 
     # Commutation of ControlFlow gates also not supported yet. This may be pending a control flow graph.
-    if op.name in CONTROL_FLOW_OP_NAMES:
+    if name in CONTROL_FLOW_OP_NAMES:
         return False
 
-    if getattr(op, "_directive", False) or op.name in _skipped_op_names:
+    if getattr(op, "_directive", False) or name in _skipped_op_names:
         return False
 
     if getattr(op, "is_parameterized", False) and op.is_parameterized():
         return False
 
     return True
-
-
-def _commutation_precheck(
-    op1: Operation,
-    qargs1: List,
-    cargs1: List,
-    op2: Operation,
-    qargs2: List,
-    cargs2: List,
-    max_num_qubits,
-):
-    # Bug in CommutativeCancellation, e.g. see gh-8553
-    if getattr(op1, "condition", False) or getattr(op2, "condition", False):
-        return False
-
-    if set(qargs1).isdisjoint(qargs2) and set(cargs1).isdisjoint(cargs2):
-        return True
-
-    if not is_commutation_supported(op1, qargs1, max_num_qubits) or not is_commutation_supported(
-        op2, qargs2, max_num_qubits
-    ):
-        return False
-
-    return None
 
 
 def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit]) -> tuple:
@@ -353,15 +366,24 @@ def _persistent_id(op_name: str) -> int:
 
 
 def _order_operations(
-    op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
+    op1: Operation,
+    name1: str,
+    qargs1: List,
+    cargs1: List,
+    op2: Operation,
+    name2: str,
+    qargs2: List,
+    cargs2: List,
 ):
     """Orders two operations in a canonical way that is persistent over
     @different python versions and executions
     Args:
         op1: first operation.
+        name1: name of first operation.
         qargs1: first operation's qubits.
         cargs1: first operation's clbits.
         op2: second operation.
+        name2: name of second operation.
         qargs2: second operation's qubits.
         cargs2: second operation's clbits.
     Return:
@@ -378,7 +400,7 @@ def _order_operations(
     else:
         return (
             (op1_tuple, op2_tuple)
-            if _persistent_id(op1.name) < _persistent_id(op2.name)
+            if _persistent_id(name1) < _persistent_id(name2)
             else (op2_tuple, op1_tuple)
         )
 
@@ -422,11 +444,7 @@ def _query_commutation(
             first_params = getattr(first_op, "params", [])
             second_params = getattr(second_op, "params", [])
             return commutation_after_placement.get(
-                (
-                    _hashable_parameters(first_params),
-                    _hashable_parameters(second_params),
-                ),
-                None,
+                (_hashable_parameters(first_params), _hashable_parameters(second_params)), None
             )
         else:
             # queried commutation is True, False or None
@@ -484,3 +502,18 @@ def _commute_matmul(
         op21 = operator_1.compose(operator_2, qargs=second_qarg, front=True)
     ret = op12 == op21
     return ret
+
+
+def _map_rotation(op, name):
+    # if we do not have the gate stored, just do nothing and return it
+    if name not in _rotation_representatives:
+        return op, name
+
+    # If the angle is 0 (mod 2pi), return the identity.
+    # Note we know the operator has exactly one parameter at this point.
+    # We additionally cast to float to capture things like ParameterExpression(2.0).
+    if not op.is_parameterized() and np.abs(float(op.params[0]) % (2 * np.pi)) < 1e-16:
+        return lib.IGate(), "id"
+
+    generator = _rotation_representatives[name]
+    return generator, generator._name

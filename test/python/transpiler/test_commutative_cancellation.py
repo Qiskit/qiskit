@@ -16,13 +16,15 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
+
+import qiskit.circuit.library as lib
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -58,8 +60,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.y(qr[0])
         circuit.rz(0.5, qr[0])
         circuit.rz(0.5, qr[0])
-        circuit.append(U1Gate(0.5), [qr[0]])  # TODO this should work with Phase gates too
-        circuit.append(U1Gate(0.5), [qr[0]])
+        circuit.append(lib.U1Gate(0.5), [qr[0]])  # TODO this should work with Phase gates too
+        circuit.append(lib.U1Gate(0.5), [qr[0]])
         circuit.rx(0.5, qr[0])
         circuit.rx(0.5, qr[0])
         circuit.cx(qr[0], qr[1])
@@ -74,7 +76,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(RZGate(2.0), [qr[0]])
+        expected.append(lib.RZGate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
 
         self.assertEqual(expected, new_circuit)
@@ -378,7 +380,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
+        expected.append(lib.RZGate(np.pi * 17 / 12), [qr[2]])
         expected.cx(qr[2], qr[1])
         expected.global_phase = (np.pi * 17 / 12 - (2 * np.pi / 3)) / 2
         self.assertEqual(expected, new_circuit)
@@ -430,8 +432,8 @@ class TestCommutativeCancellation(QiskitTestCase):
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
-        expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
+        expected.append(lib.RZGate(np.pi * 17 / 12), [qr[2]])
+        expected.append(lib.RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
 
         self.assertEqual(
@@ -596,9 +598,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rz(np.pi, 0)
         theta = Parameter("theta")
         target = Target(num_qubits=2)
-        target.add_instruction(CXGate())
-        target.add_instruction(PhaseGate(theta))
-        target.add_instruction(SXGate())
+        target.add_instruction(lib.CXGate())
+        target.add_instruction(lib.PhaseGate(theta))
+        target.add_instruction(lib.SXGate())
         passmanager = PassManager()
         passmanager.append(CommutativeCancellation(target=target))
         new_circuit = passmanager.run(circuit)
@@ -806,6 +808,42 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
         new_circuit = passmanager.run(circ)
         self.assertEqual(new_circuit, circ)
+
+    def test_supported_parameterized_gates(self):
+        """Test all supported parameterized gates."""
+
+        gates = {
+            "rx": lib.RXGate(0.41),
+            # "ry": lib.YGate(),  # commutative cancellation (CC) does not support Y gates
+            "rz": lib.ZGate(),  # note that this fails with T/S, as CC ignores Tdg/Sdg
+            "p": lib.ZGate(),
+            "crx": lib.CXGate(),
+            "cry": lib.CYGate(),
+            "crz": lib.CZGate(),
+            # These all commute but CC does not take them into account
+            # "rxx": lib.PauliGate("YY"),
+            # "ryy": lib.PauliGate("ZZ"),
+            # "rzz": lib.PauliGate("XX"),
+            # "rzx": lib.PauliGate("XZ"),
+        }
+
+        x = Parameter("x")
+        passmanager = PassManager([CommutativeCancellation()])
+
+        for method, partner in gates.items():
+            with self.subTest(method=method):
+                num_qubits = partner.num_qubits
+                circuit = QuantumCircuit(num_qubits)
+                circuit.append(partner, circuit.qubits)
+                getattr(circuit, method)(x, *list(range(num_qubits)))
+                circuit.append(partner.inverse(), circuit.qubits)
+
+                new_circuit = passmanager.run(circuit)
+
+                expect = QuantumCircuit(num_qubits)
+                getattr(expect, method)(x, *list(range(num_qubits)))
+
+                self.assertEqual(expect, new_circuit)
 
 
 if __name__ == "__main__":
