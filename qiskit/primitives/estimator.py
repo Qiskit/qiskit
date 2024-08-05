@@ -50,6 +50,13 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         - **seed** (np.random.Generator or int) --
           Set a fixed seed or generator for the normal distribution. If shots is None,
           this option is ignored.
+
+    .. note::
+        The result of this class is exact if the circuit contains only unitary operations.
+        On the other hand, the result could be stochastic if the circuit contains a non-unitary
+        operation such as a reset for a some subsystems.
+        The stochastic result can be reproducible by setting ``seed``, e.g.,
+        ``Estimator(options={"seed":123})``.
     """
 
     @deprecate_func(

@@ -316,15 +316,26 @@ class TestStatevectorEstimator(QiskitTestCase):
         op = SparsePauliOp("ZI")
 
         seed = 12
-        n = 250
+        n = 1000
         estimator = StatevectorEstimator(seed=seed)
-        result = estimator.run([(qc, [op] * n)]).result()
-        # expectation values should be stochastic due to reset for subsystems
-        np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
+        with self.subTest("precision=0"):
+            result = estimator.run([(qc, [op] * n)]).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
 
-        result2 = estimator.run([(qc, [op] * n)]).result()
-        # expectation values should be reproducible due to seed
-        np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
+            result2 = estimator.run([(qc, [op] * n)]).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
+
+        with self.subTest("precision=0.01"):
+            precision = 0.01
+            result = estimator.run([(qc, [op] * n)], precision=precision).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result[0].data.evs.mean(), 0, atol=1e-1)
+
+            result2 = estimator.run([(qc, [op] * n)], precision=precision).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result[0].data.evs, result2[0].data.evs)
 
 
 if __name__ == "__main__":

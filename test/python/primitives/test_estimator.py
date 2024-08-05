@@ -364,17 +364,31 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp("ZI")
 
         seed = 12
-        n = 250
-        with self.assertWarns(DeprecationWarning):
-            estimator = Estimator(options={"seed": seed})
-            result = estimator.run([qc for _ in range(n)], [op] * n).result()
-        # expectation values should be stochastic due to reset for subsystems
-        np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
+        n = 1000
+        with self.subTest("shots=None"):
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator(options={"seed": seed})
+                result = estimator.run([qc for _ in range(n)], [op] * n).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
 
-        with self.assertWarns(DeprecationWarning):
-            result2 = estimator.run([qc for _ in range(n)], [op] * n).result()
-        # expectation values should be reproducible due to seed
-        np.testing.assert_allclose(result.values, result2.values)
+            with self.assertWarns(DeprecationWarning):
+                result2 = estimator.run([qc for _ in range(n)], [op] * n).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result.values, result2.values)
+
+        with self.subTest("shots=10000"):
+            shots = 10000
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator(options={"seed": seed})
+                result = estimator.run([qc for _ in range(n)], [op] * n, shots=shots).result()
+            # expectation values should be stochastic due to reset for subsystems
+            np.testing.assert_allclose(result.values.mean(), 0, atol=1e-1)
+
+            with self.assertWarns(DeprecationWarning):
+                result2 = estimator.run([qc for _ in range(n)], [op] * n, shots=shots).result()
+            # expectation values should be reproducible due to seed
+            np.testing.assert_allclose(result.values, result2.values)
 
 
 @ddt
