@@ -10,12 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod heuristic;
 mod layer;
 mod layout;
 mod neighbor_table;
 mod route;
-mod sabre_dag;
-mod swap_map;
+pub mod sabre_dag;
+pub mod swap_map;
 
 use hashbrown::HashMap;
 use numpy::{IntoPyArray, ToPyArray};
@@ -28,14 +29,6 @@ use crate::nlayout::PhysicalQubit;
 use neighbor_table::NeighborTable;
 use sabre_dag::SabreDAG;
 use swap_map::SwapMap;
-
-#[pyclass]
-#[derive(Clone, Copy)]
-pub enum Heuristic {
-    Basic,
-    Lookahead,
-    Decay,
-}
 
 /// A container for Sabre mapping results.
 #[pyclass(module = "qiskit._accelerate.sabre")]
@@ -113,11 +106,14 @@ impl BlockResult {
     }
 }
 
-#[pymodule]
 pub fn sabre(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(route::sabre_routing))?;
     m.add_wrapped(wrap_pyfunction!(layout::sabre_layout_and_routing))?;
-    m.add_class::<Heuristic>()?;
+    m.add_class::<heuristic::SetScaling>()?;
+    m.add_class::<heuristic::Heuristic>()?;
+    m.add_class::<heuristic::BasicHeuristic>()?;
+    m.add_class::<heuristic::LookaheadHeuristic>()?;
+    m.add_class::<heuristic::DecayHeuristic>()?;
     m.add_class::<NeighborTable>()?;
     m.add_class::<SabreDAG>()?;
     m.add_class::<SwapMap>()?;

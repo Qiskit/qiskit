@@ -112,6 +112,8 @@ class GenericBackendV2(BackendV2):
         calibrate_instructions: bool | InstructionScheduleMap | None = None,
         dtm: float | None = None,
         seed: int | None = None,
+        pulse_channels: bool = True,
+        noise_info: bool = True,
     ):
         """
         Args:
@@ -159,6 +161,10 @@ class GenericBackendV2(BackendV2):
                 None by default.
 
             seed: Optional seed for generation of default values.
+
+            pulse_channels: If true, sets default pulse channel information on the backend.
+
+            noise_info: If true, associates gates and qubits with default noise information.
         """
 
         super().__init__(
@@ -175,6 +181,10 @@ class GenericBackendV2(BackendV2):
         self._control_flow = control_flow
         self._calibrate_instructions = calibrate_instructions
         self._supported_gates = get_standard_gate_name_mapping()
+        self._noise_info = noise_info
+
+        if calibrate_instructions and not noise_info:
+            raise QiskitError("Must set parameter noise_info when calibrating instructions.")
 
         if coupling_map is None:
             self._coupling_map = CouplingMap().from_full(num_qubits)
@@ -198,7 +208,10 @@ class GenericBackendV2(BackendV2):
                 self._basis_gates.append(name)
 
         self._build_generic_target()
-        self._build_default_channels()
+        if pulse_channels:
+            self._build_default_channels()
+        else:
+            self.channels_map = {}
 
     @property
     def target(self):
@@ -253,27 +266,36 @@ class GenericBackendV2(BackendV2):
         # Note that the calibration pulses are different for
         # 1q gates vs 2q gates vs measurement instructions.
         if inst == "measure":
-            sequence = [
-                PulseQobjInstruction(
-                    name="acquire",
-                    duration=1792,
-                    t0=0,
-                    qubits=qargs,
-                    memory_slot=qargs,
-                )
-            ] + [PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0) for i in qargs]
+            with warnings.catch_warnings():
+                # The class PulseQobjInstruction is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                sequence = [
+                    PulseQobjInstruction(
+                        name="acquire",
+                        duration=1792,
+                        t0=0,
+                        qubits=qargs,
+                        memory_slot=qargs,
+                    )
+                ] + [
+                    PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0)
+                    for i in qargs
+                ]
             return sequence
-        if num_qubits == 1:
+        with warnings.catch_warnings():
+            # The class PulseQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            if num_qubits == 1:
+                return [
+                    PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
+                    PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
+                ]
             return [
-                PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
-                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
+                PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
             ]
-        return [
-            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
-            PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
-            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
-            PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
-        ]
 
     def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate pulse calibration defaults as specified with `self._calibrate_instructions`.
@@ -340,22 +362,31 @@ class GenericBackendV2(BackendV2):
         """
         # the qubit properties are sampled from default ranges
         properties = _QUBIT_PROPERTIES
-        self._target = Target(
-            description=f"Generic Target with {self._num_qubits} qubits",
-            num_qubits=self._num_qubits,
-            dt=properties["dt"],
-            qubit_properties=[
-                QubitProperties(
-                    t1=self._rng.uniform(properties["t1"][0], properties["t1"][1]),
-                    t2=self._rng.uniform(properties["t2"][0], properties["t2"][1]),
-                    frequency=self._rng.uniform(
-                        properties["frequency"][0], properties["frequency"][1]
-                    ),
-                )
-                for _ in range(self._num_qubits)
-            ],
-            concurrent_measurements=[list(range(self._num_qubits))],
-        )
+        if not self._noise_info:
+            self._target = Target(
+                description=f"Generic Target with {self._num_qubits} qubits",
+                num_qubits=self._num_qubits,
+                dt=properties["dt"],
+                qubit_properties=None,
+                concurrent_measurements=[list(range(self._num_qubits))],
+            )
+        else:
+            self._target = Target(
+                description=f"Generic Target with {self._num_qubits} qubits",
+                num_qubits=self._num_qubits,
+                dt=properties["dt"],
+                qubit_properties=[
+                    QubitProperties(
+                        t1=self._rng.uniform(properties["t1"][0], properties["t1"][1]),
+                        t2=self._rng.uniform(properties["t2"][0], properties["t2"][1]),
+                        frequency=self._rng.uniform(
+                            properties["frequency"][0], properties["frequency"][1]
+                        ),
+                    )
+                    for _ in range(self._num_qubits)
+                ],
+                concurrent_measurements=[list(range(self._num_qubits))],
+            )
 
         # Generate instruction schedule map with calibrations to add to target.
         calibration_inst_map = None
@@ -380,8 +411,13 @@ class GenericBackendV2(BackendV2):
                     f"Provided basis gate {name} needs more qubits than {self.num_qubits}, "
                     f"which is the size of the backend."
                 )
-            noise_params = self._get_noise_defaults(name, gate.num_qubits)
-            self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
+            if self._noise_info:
+                noise_params = self._get_noise_defaults(name, gate.num_qubits)
+                self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
+            else:
+                qarg_set = self._coupling_map if gate.num_qubits > 1 else range(self.num_qubits)
+                props = {(qarg,) if isinstance(qarg, int) else qarg: None for qarg in qarg_set}
+                self._target.add_instruction(gate, properties=props, name=name)
 
         if self._control_flow:
             self._target.add_instruction(IfElseOp, name="if_else")
@@ -531,18 +567,12 @@ class GenericBackendV2(BackendV2):
 
     @classmethod
     def _default_options(cls) -> Options:
-        with warnings.catch_warnings():  # TODO remove catch once aer release without Provider ABC
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=".+abstract Provider and ProviderV1.+",
-            )
-            if _optionals.HAS_AER:
-                from qiskit_aer import AerSimulator
+        if _optionals.HAS_AER:
+            from qiskit_aer import AerSimulator
 
-                return AerSimulator._default_options()
-            else:
-                return BasicSimulator._default_options()
+            return AerSimulator._default_options()
+        else:
+            return BasicSimulator._default_options()
 
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})

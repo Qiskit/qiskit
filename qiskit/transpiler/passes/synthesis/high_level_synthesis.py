@@ -131,9 +131,38 @@ Permutation Synthesis
    ACGSynthesisPermutation
    KMSSynthesisPermutation
    TokenSwapperSynthesisPermutation
+
+
+QFT Synthesis
+'''''''''''''
+
+.. list-table:: Plugins for :class:`.QFTGate` (key = ``"qft"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+    * - ``"full"``
+      - :class:`~.QFTSynthesisFull`
+      - all-to-all
+    * - ``"line"``
+      - :class:`~.QFTSynthesisLine`
+      - linear
+    * - ``"default"``
+      - :class:`~.QFTSynthesisFull`
+      - all-to-all
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFTSynthesisFull
+   QFTSynthesisLine
 """
 
-from typing import Optional, Union, List, Tuple, Callable
+from __future__ import annotations
+
+import typing
+from typing import Optional, Union, List, Tuple, Callable, Sequence
 
 import numpy as np
 import rustworkx as rx
@@ -142,7 +171,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
+from qiskit.circuit import ControlledGate, EquivalenceLibrary, equivalence
 from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -157,6 +186,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
+from qiskit.circuit.library import QFTGate
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -176,8 +206,15 @@ from qiskit.synthesis.permutation import (
     synth_permutation_acg,
     synth_permutation_depth_lnn_kms,
 )
+from qiskit.synthesis.qft import (
+    synth_qft_full,
+    synth_qft_line,
+)
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
+
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGOpNode
 
 
 class HLSConfig:
@@ -365,6 +402,8 @@ class HighLevelSynthesis(TransformationPass):
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
+        else:
+            self._device_insts = set()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -384,11 +423,11 @@ class HighLevelSynthesis(TransformationPass):
         dag_op_nodes = dag.op_nodes()
 
         for node in dag_op_nodes:
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 node.op = control_flow.map_blocks(self.run, node.op)
                 continue
 
-            if getattr(node.op, "_directive", False):
+            if node.is_directive():
                 continue
 
             if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
@@ -397,6 +436,9 @@ class HighLevelSynthesis(TransformationPass):
             qubits = (
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
+
+            if self._definitely_skip_node(node, qubits):
+                continue
 
             decomposition, modified = self._recursively_handle_op(node.op, qubits)
 
@@ -413,6 +455,43 @@ class HighLevelSynthesis(TransformationPass):
                 dag.substitute_node(node, decomposition)
 
         return dag
+
+    def _definitely_skip_node(self, node: DAGOpNode, qubits: Sequence[int] | None) -> bool:
+        """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
+        attempt to synthesise it) without accessing its Python-space `Operation`.
+
+        This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
+        avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
+        node (which is _most_ nodes)."""
+        return (
+            # The fast path is just for Rust-space standard gates (which excludes
+            # `AnnotatedOperation`).
+            node.is_standard_gate()
+            # If it's a controlled gate, we might choose to do funny things to it.
+            and not node.is_controlled_gate()
+            # If there are plugins to try, they need to be tried.
+            and not self._methods_to_try(node.name)
+            # If all the above constraints hold, and it's already supported or the basis translator
+            # can handle it, we'll leave it be.
+            and (
+                self._instruction_supported(node.name, qubits)
+                # This uses unfortunately private details of `EquivalenceLibrary`, but so does the
+                # `BasisTranslator`, and this is supposed to just be temporary til this is moved
+                # into Rust space.
+                or (
+                    self._equiv_lib is not None
+                    and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
+                    in self._equiv_lib._key_to_node_index
+                )
+            )
+        )
+
+    def _instruction_supported(self, name: str, qubits: Sequence[int]) -> bool:
+        qubits = tuple(qubits) if qubits is not None else None
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is None or self._target.num_qubits is None:
+            return name in self._device_insts
+        return self._target.instruction_supported(operation_name=name, qargs=qubits)
 
     def _recursively_handle_op(
         self, op: Operation, qubits: Optional[List] = None
@@ -441,6 +520,9 @@ class HighLevelSynthesis(TransformationPass):
         an annotated operation.
         """
 
+        # WARNING: if adding new things in here, ensure that `_definitely_skip_node` is also
+        # up-to-date.
+
         # Try to apply plugin mechanism
         decomposition = self._synthesize_op_using_plugins(op, qubits)
         if decomposition is not None:
@@ -459,17 +541,9 @@ class HighLevelSynthesis(TransformationPass):
         # or is in equivalence library
         controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
         if not controlled_gate_open_ctrl:
-            qargs = tuple(qubits) if qubits is not None else None
-            # include path for when target exists but target.num_qubits is None (BasicSimulator)
-            inst_supported = (
-                self._target.instruction_supported(
-                    operation_name=op.name,
-                    qargs=qargs,
-                )
-                if self._target is not None and self._target.num_qubits is not None
-                else op.name in self._device_insts
-            )
-            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
+            if self._instruction_supported(op.name, qubits) or (
+                self._equiv_lib is not None and self._equiv_lib.has_entry(op)
+            ):
                 return op, False
 
         try:
@@ -490,6 +564,22 @@ class HighLevelSynthesis(TransformationPass):
         dag = self.run(dag)
         return dag, True
 
+    def _methods_to_try(self, name: str):
+        """Get a sequence of methods to try for a given op name."""
+        if (methods := self.hls_config.methods.get(name)) is not None:
+            # the operation's name appears in the user-provided config,
+            # we use the list of methods provided by the user
+            return methods
+        if (
+            self.hls_config.use_default_on_unspecified
+            and "default" in self.hls_plugin_manager.method_names(name)
+        ):
+            # the operation's name does not appear in the user-specified config,
+            # we use the "default" method when instructed to do so and the "default"
+            # method is available
+            return ["default"]
+        return []
+
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List
     ) -> Union[QuantumCircuit, None]:
@@ -500,25 +590,10 @@ class HighLevelSynthesis(TransformationPass):
         """
         hls_plugin_manager = self.hls_plugin_manager
 
-        if op.name in self.hls_config.methods.keys():
-            # the operation's name appears in the user-provided config,
-            # we use the list of methods provided by the user
-            methods = self.hls_config.methods[op.name]
-        elif (
-            self.hls_config.use_default_on_unspecified
-            and "default" in hls_plugin_manager.method_names(op.name)
-        ):
-            # the operation's name does not appear in the user-specified config,
-            # we use the "default" method when instructed to do so and the "default"
-            # method is available
-            methods = ["default"]
-        else:
-            methods = []
-
         best_decomposition = None
         best_score = np.inf
 
-        for method in methods:
+        for method in self._methods_to_try(op.name):
             # There are two ways to specify a synthesis method. The more explicit
             # way is to specify it as a tuple consisting of a synthesis algorithm and a
             # list of additional arguments, e.g.,
@@ -887,6 +962,107 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class QFTSynthesisFull(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using all-to-all connectivity.
+
+    This plugin name is :``qft.full`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
+        which is the default) or the "QFT-with-reversal" operation (if ``True``).
+        Some implementation of the ``QFTGate`` include a layer of swap gates at the end
+        of the synthesized circuit, which can in principle be dropped if the ``QFTGate``
+        itself is the last gate in the circuit.
+    * approximation_degree (int): The degree of approximation (0 for no approximation).
+        It is possible to implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle beneath a threshold. This is discussed
+        in more detail in [1] or [2].
+    * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
+    * inverse (bool): If True, the inverse Fourier transform is constructed.
+    * name (str): The name of the circuit.
+
+    References:
+        1. Adriano Barenco, Artur Ekert, Kalle-Antti Suominen, and Päivi Törmä,
+           *Approximate Quantum Fourier Transform and Decoherence*,
+           Physical Review A (1996).
+           `arXiv:quant-ph/9601018 [quant-ph] <https://arxiv.org/abs/quant-ph/9601018>`_
+        2. Donny Cheung,
+           *Improved Bounds for the Approximate QFT* (2004),
+           `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QFTGate."""
+        if not isinstance(high_level_object, QFTGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.full` only applies to objects of type QFTGate."
+            )
+
+        reverse_qubits = options.get("reverse_qubits", False)
+        approximation_degree = options.get("approximation_degree", 0)
+        insert_barriers = options.get("insert_barriers", False)
+        inverse = options.get("inverse", False)
+        name = options.get("name", None)
+
+        decomposition = synth_qft_full(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=not reverse_qubits,
+            approximation_degree=approximation_degree,
+            insert_barriers=insert_barriers,
+            inverse=inverse,
+            name=name,
+        )
+        return decomposition
+
+
+class QFTSynthesisLine(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using linear connectivity.
+
+    This plugin name is :``qft.line`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
+        which is the default) or the "QFT-with-reversal" operation (if ``True``).
+        Some implementation of the ``QFTGate`` include a layer of swap gates at the end
+        of the synthesized circuit, which can in principle be dropped if the ``QFTGate``
+        itself is the last gate in the circuit.
+    * approximation_degree (int): the degree of approximation (0 for no approximation).
+        It is possible to implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle beneath a threshold. This is discussed
+        in more detail in [1] or [2].
+
+    References:
+        1. Adriano Barenco, Artur Ekert, Kalle-Antti Suominen, and Päivi Törmä,
+           *Approximate Quantum Fourier Transform and Decoherence*,
+           Physical Review A (1996).
+           `arXiv:quant-ph/9601018 [quant-ph] <https://arxiv.org/abs/quant-ph/9601018>`_
+        2. Donny Cheung,
+           *Improved Bounds for the Approximate QFT* (2004),
+           `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QFTGate."""
+        if not isinstance(high_level_object, QFTGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.line` only applies to objects of type QFTGate."
+            )
+
+        reverse_qubits = options.get("reverse_qubits", False)
+        approximation_degree = options.get("approximation_degree", 0)
+
+        decomposition = synth_qft_line(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=not reverse_qubits,
+            approximation_degree=approximation_degree,
+        )
+        return decomposition
+
+
 class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
     """The permutation synthesis plugin based on the token swapper algorithm.
 
@@ -917,7 +1093,6 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     For more details on the token swapper algorithm, see to the paper:
     `arXiv:1902.09102 <https://arxiv.org/abs/1902.09102>`__.
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):

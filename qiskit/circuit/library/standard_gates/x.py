@@ -22,6 +22,7 @@ from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_cont
 from qiskit._accelerate.circuit import StandardGate
 
 _X_ARRAY = [[0, 1], [1, 0]]
+_SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
 
 
 @with_gate_array(_X_ARRAY)
@@ -111,7 +112,7 @@ class XGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -256,7 +257,7 @@ class CXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -452,7 +453,7 @@ class CCXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -522,6 +523,8 @@ class RCCXGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
+    _standard_gate = StandardGate.RCCXGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new simplified CCX gate."""
         super().__init__("rccx", 3, [], label=label, duration=duration, unit=unit)
@@ -569,6 +572,7 @@ class RCCXGate(SingletonGate):
         return isinstance(other, RCCXGate)
 
 
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
 class C3SXGate(SingletonControlledGate):
     """The 3-qubit controlled sqrt-X gate.
 
@@ -577,6 +581,8 @@ class C3SXGate(SingletonControlledGate):
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
+
+    _standard_gate = StandardGate.C3SXGate
 
     def __init__(
         self,
@@ -681,6 +687,8 @@ class C3XGate(SingletonControlledGate):
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
+
+    _standard_gate = StandardGate.C3XGate
 
     def __init__(
         self,
@@ -793,7 +801,7 @@ class C3XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -869,6 +877,8 @@ class RC3XGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
+    _standard_gate = StandardGate.RC3XGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new RC3X gate."""
         super().__init__("rcccx", 4, [], label=label, duration=duration, unit=unit)
@@ -942,8 +952,8 @@ class C4XGate(SingletonControlledGate):
     of the relative phase version of c3x, the rc3x [2].
 
     References:
-        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
-        [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
+        1. Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+        2. Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
     def __init__(
@@ -1037,7 +1047,7 @@ class C4XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -1212,7 +1222,7 @@ class MCXGate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -1310,9 +1320,14 @@ class MCXGrayCode(MCXGate):
 class MCXRecursive(MCXGate):
     """Implement the multi-controlled X gate using recursion.
 
-    Using a single ancilla qubit, the multi-controlled X gate is recursively split onto
-    four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
-    for these we have a concrete implementation that do not require ancillas.
+    Using a single clean ancilla qubit, the multi-controlled X gate is split into
+    four sub-registers, each one of them uses the V-chain method.
+
+    The method is based on Lemma 9 of [2], first shown in Lemma 7.3 of [1].
+
+    References:
+        1. Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+        2. Iten et al., 2015. https://arxiv.org/abs/1501.06911
     """
 
     def __init__(
@@ -1368,32 +1383,35 @@ class MCXRecursive(MCXGate):
             qc._append(C4XGate(), q[:], [])
             self.definition = qc
         else:
-            for instr, qargs, cargs in self._recurse(q[:-1], q_ancilla=q[-1]):
-                qc._append(instr, qargs, cargs)
+            num_ctrl_qubits = len(q) - 1
+            q_ancilla = q[-1]
+            q_target = q[-2]
+            middle = ceil(num_ctrl_qubits / 2)
+            first_half = [*q[:middle]]
+            second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+
             self.definition = qc
-
-    def _recurse(self, q, q_ancilla=None):
-        # recursion stop
-        if len(q) == 4:
-            return [(C3XGate(), q[:], [])]
-        if len(q) == 5:
-            return [(C4XGate(), q[:], [])]
-        if len(q) < 4:
-            raise AttributeError("Something went wrong in the recursion, have less than 4 qubits.")
-
-        # recurse
-        num_ctrl_qubits = len(q) - 1
-        middle = ceil(num_ctrl_qubits / 2)
-        first_half = [*q[:middle], q_ancilla]
-        second_half = [*q[middle:num_ctrl_qubits], q_ancilla, q[num_ctrl_qubits]]
-
-        rule = []
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-
-        return rule
 
 
 class MCXVChain(MCXGate):

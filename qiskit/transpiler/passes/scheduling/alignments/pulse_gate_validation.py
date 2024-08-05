@@ -16,7 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.pulse import Play
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler import Target
+from qiskit.transpiler.target import Target
 
 
 class ValidatePulseGates(AnalysisPass):
@@ -31,7 +31,7 @@ class ValidatePulseGates(AnalysisPass):
 
     In Qiskit SDK, we can define the pulse-level implementation of custom quantum gate
     instructions, as a `pulse gate
-    <https://docs.quantum.ibm.com/build/pulse>`__,
+    <https://docs.quantum.ibm.com/guides/pulse>`__,
     thus user gates should satisfy all waveform memory constraints imposed by the backend.
 
     This pass validates all attached calibration entries and raises ``TranspilerError`` to
