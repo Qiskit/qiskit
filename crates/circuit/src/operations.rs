@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use approx::relative_eq;
 use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
@@ -71,6 +72,13 @@ impl Param {
             [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
             [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
             [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
+        }
+    }
+
+    pub fn is_close(&self, other: &Param, py: Python, max_relative: f64) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
+            _ => self.eq(other, py),
         }
     }
 }

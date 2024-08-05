@@ -30,7 +30,6 @@ use crate::packed_instruction::PackedInstruction;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
 
-use approx::relative_eq;
 use hashbrown::{hash_map, HashMap, HashSet};
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -2767,13 +2766,11 @@ def _format(operand):
                                     .and_then(|attrs| attrs.condition.as_ref())
                                     .is_none()
                             };
-                            let params_eq = inst1.params_view().iter().zip(inst2.params_view().iter()).all(|(a, b)| {
-                                match [a, b] {
-                                    [Param::Float(float_a), Param::Float(float_b)] => relative_eq!(float_a, float_b, max_relative = 1e-10),
-                                    [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => param_a.bind(py).eq(param_b).unwrap(),
-                                    _ => false,
-                                }
-                            });
+                            let params_eq = inst1
+                                .params_view()
+                                .iter()
+                                .zip(inst2.params_view().iter())
+                                .all(|(a, b)| a.is_close(b, py, 1e-10).unwrap());
                             Ok(conditions_eq && params_eq)
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
