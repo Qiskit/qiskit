@@ -14,7 +14,6 @@
 
 import os
 
-from qiskit.circuit import Instruction
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -47,7 +46,6 @@ from qiskit.transpiler.passes.optimization import (
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
-from qiskit.transpiler.target import Target
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -67,7 +65,6 @@ from qiskit.circuit.library.standard_gates import (
     CYGate,
     SXGate,
     SXdgGate,
-    get_standard_gate_name_mapping,
 )
 from qiskit.utils.parallel import CPU_COUNT
 from qiskit import user_config
@@ -174,63 +171,16 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
-            # skip peephole optimization before routing if target basis gate set is discrete,
-            # i.e. only consists of Cliffords that an user might want to keep
-            # use rz, sx, x, cx as basis, rely on physical optimziation to fix everything later one
-            stdgates = get_standard_gate_name_mapping()
-
-            def _is_one_op_non_discrete(target):
-                """Checks if one operation in `ops` is not discrete, i.e. is parameterizable
-                Args:
-                    ops (List(Operation)): list of operations to check
-                Returns
-                    True if at least one operation in `ops` is not discrete, False otherwise
-                """
-                found_one_continuous_gate = False
-                is_target = isinstance(target, Target)
-                if is_target:
-                    op_names = target.operation_names
-                else:
-                    op_names = target
-                for op_name in op_names:
-                    if op_name in _discrete_skipped_ops:
-                        continue
-
-                    if is_target:
-                        op = target.operation_from_name(op_name)
-                    else:
-                        op = stdgates.get(op_name, None)
-                        if op is None:
-                            return False
-                    if not isinstance(op, Instruction):
-                        return False
-
-                    if len(op.params) > 0:
-                        found_one_continuous_gate = True
-                        break
-                return found_one_continuous_gate
-
-            target = pass_manager_config.target
-            basis = pass_manager_config.basis_gates
-            # consolidate gates before routing if the user did not specify a discrete basis gate, i.e.
-            # * no target or basis gate set has been specified
-            # * target has been specified, and we have one non-discrete gate in the target's spec
-            # * basis gates have been specified, and we have one non-discrete gate in that set
-            do_consolidate_blocks_init = target is None and basis is None
-            do_consolidate_blocks_init |= target is not None and _is_one_op_non_discrete(target)
-            do_consolidate_blocks_init |= basis is not None and _is_one_op_non_discrete(basis)
-
-            if do_consolidate_blocks_init:
-                init.append(Collect2qBlocks())
-                init.append(ConsolidateBlocks())
-                # If approximation degree is None that indicates a request to approximate up to the
-                # error rates in the target. However, in the init stage we don't yet know the target
-                # qubits being used to figure out the fidelity so just use the default fidelity parameter
-                # in this case.
-                if pass_manager_config.approximation_degree is not None:
-                    init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
-                else:
-                    init.append(Split2QUnitaries())
+            init.append(Collect2qBlocks())
+            init.append(ConsolidateBlocks())
+            # If approximation degree is None that indicates a request to approximate up to the
+            # error rates in the target. However, in the init stage we don't yet know the target
+            # qubits being used to figure out the fidelity so just use the default fidelity parameter
+            # in this case.
+            if pass_manager_config.approximation_degree is not None:
+                init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
+            else:
+                init.append(Split2QUnitaries())
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
