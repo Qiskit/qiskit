@@ -1528,62 +1528,17 @@ class MCXVChain(MCXGate):
             elif not self._relative_phase and self.num_ctrl_qubits == 3:
                 qc._append(C3XGate(), [*q_controls, q_target], [])
             else:
-                num_ancillas = self.num_ctrl_qubits - 2
-                targets = [q_target] + q_ancillas[:num_ancillas][::-1]
+                from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_ancillas_ICKHC
 
-                for j in range(2):
-                    for i in range(self.num_ctrl_qubits):  # action part
-                        if i < self.num_ctrl_qubits - 2:
-                            if targets[i] != q_target or self._relative_phase:
-                                # gate cancelling
+                qc = synth_mcx_n_dirty_ancillas_ICKHC(
+                    self.num_qubits,
+                    self.num_ctrl_qubits,
+                    self.label,
+                    self.ctrl_state,
+                    self._relative_phase,
+                    self._action_only,
+                )
 
-                                # cancel rightmost gates of action part
-                                # with leftmost gates of reset part
-                                if self._relative_phase and targets[i] == q_target and j == 1:
-                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
-                                    qc.t(targets[i])
-                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
-                                    qc.tdg(targets[i])
-                                    qc.h(targets[i])
-                                else:
-                                    qc.h(targets[i])
-                                    qc.t(targets[i])
-                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
-                                    qc.tdg(targets[i])
-                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
-                            else:
-                                controls = [
-                                    q_controls[self.num_ctrl_qubits - i - 1],
-                                    q_ancillas[num_ancillas - i - 1],
-                                ]
-
-                                qc.ccx(controls[0], controls[1], targets[i])
-                        else:
-                            # implements an optimized toffoli operation
-                            # up to a diagonal gate, akin to lemma 6 of arXiv:1501.06911
-                            qc.h(targets[i])
-                            qc.t(targets[i])
-                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
-                            qc.tdg(targets[i])
-                            qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
-                            qc.t(targets[i])
-                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
-                            qc.tdg(targets[i])
-                            qc.h(targets[i])
-
-                            break
-
-                    for i in range(num_ancillas - 1):  # reset part
-                        qc.cx(q_ancillas[i], q_ancillas[i + 1])
-                        qc.t(q_ancillas[i + 1])
-                        qc.cx(q_controls[2 + i], q_ancillas[i + 1])
-                        qc.tdg(q_ancillas[i + 1])
-                        qc.h(q_ancillas[i + 1])
-
-                    if self._action_only:
-                        qc.ccx(q_controls[-1], q_ancillas[-1], q_target)
-
-                        break
         else:
             qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
             i = 0
