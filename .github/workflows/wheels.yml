@@ -37,6 +37,10 @@ jobs:
           CIBW_ENVIRONMENT: 'RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
           CIBW_ENVIRONMENT_LINUX: 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
           CIBW_ENVIRONMENT_WINDOWS: 'RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=c:\\Users\\runneradmin\\merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
+      - name: Install requirements 
+        run: pip install -r requirements-dev.txt
+      - name: Runs tests
+        run: stestr run --abbreviate
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
@@ -66,6 +70,10 @@ jobs:
           CIBW_ENVIRONMENT: >-
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+      - name: Install requirements 
+        run: pip install -r requirements-dev.txt
+      - name: Runs tests
+        run: stestr run --abbreviate
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
@@ -90,6 +98,10 @@ jobs:
         uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_SKIP: 'pp* cp36-* cp37-* *musllinux* *amd64 *x86_64'
+      - name: Install requirements 
+        run: pip install -r requirements-dev.txt
+      - name: Runs tests
+        run: stestr run --abbreviate
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
@@ -137,6 +149,10 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Runs tests
+        run: stestr run --abbreviate
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}-s390x
@@ -171,6 +187,10 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
+      - name: Install requirements
+        run: pip install -r requirements-dev.txt
+      - name: Runs tests
+        run: stestr run --abbreviate
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}-ppc64le
