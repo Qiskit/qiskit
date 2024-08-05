@@ -1,7 +1,7 @@
 # Deprecation Policy
 
 Starting from the 1.0.0 release, Qiskit follows semantic versioning, with a yearly release cycle for major releases.
-[Full details of the scheduling are hosted with the external public documentation](https://docs.quantum.ibm.com/start/install#release-schedule).
+[Full details of the scheduling are hosted with the external public documentation](https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy).
 
 This document is primarily intended for developers of Qiskit themselves.
 
@@ -42,7 +42,7 @@ Similarly, while it is permissible where necessary for behavior to change with n
 ## What is the public interface?
 
 > [!NOTE]
-> This section should be in sync with [the release schedule documentation of Qiskit](https://docs.quantum.ibm.com/start/install#release-schedule).
+> This section should be in sync with [the release schedule documentation of Qiskit](https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy).
 > Please [open an issue against Qiskit](https://github.com/Qiskit/qiskit/issues/new/choose) if there are discrepancies so we can clarify them.
 
 For the purposes of semantic versioning, the Qiskit public API comprises all *publicly documented* packages, modules, classes, functions, methods, and attributes.

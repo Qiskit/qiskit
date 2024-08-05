@@ -25,7 +25,7 @@ use smallvec::smallvec;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyTuple};
+use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyTuple};
 use pyo3::{intern, IntoPy, Python};
 
 #[derive(Clone, Debug)]
@@ -37,17 +37,13 @@ pub enum Param {
 
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(
-            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
-                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
-            {
-                Param::ParameterExpression(b.clone().unbind())
-            } else if let Ok(val) = b.extract::<f64>() {
-                Param::Float(val)
-            } else {
-                Param::Obj(b.clone().unbind())
-            },
-        )
+        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
+            Param::ParameterExpression(b.clone().unbind())
+        } else if let Ok(val) = b.extract::<f64>() {
+            Param::Float(val)
+        } else {
+            Param::Obj(b.clone().unbind())
+        })
     }
 }
 
@@ -68,6 +64,52 @@ impl ToPyObject for Param {
             Self::ParameterExpression(val) => val.clone_ref(py),
             Self::Obj(val) => val.clone_ref(py),
         }
+    }
+}
+
+impl Param {
+    /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
+    pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
+        let parameters_attr = intern!(py, "parameters");
+        match self {
+            Param::Float(_) => Ok(ParamParameterIter(None)),
+            Param::ParameterExpression(expr) => Ok(ParamParameterIter(Some(
+                expr.bind(py).getattr(parameters_attr)?.iter()?,
+            ))),
+            Param::Obj(obj) => {
+                let obj = obj.bind(py);
+                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                    Ok(ParamParameterIter(Some(
+                        obj.getattr(parameters_attr)?.iter()?,
+                    )))
+                } else {
+                    Ok(ParamParameterIter(None))
+                }
+            }
+        }
+    }
+
+    /// Extract from a Python object without numeric coercion to float.  The default conversion will
+    /// coerce integers into floats, but in things like `assign_parameters`, this is not always
+    /// desirable.
+    pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
+        Ok(if ob.is_instance_of::<PyFloat>() {
+            Param::Float(ob.extract()?)
+        } else if ob.is_instance(PARAMETER_EXPRESSION.get_bound(ob.py()))? {
+            Param::ParameterExpression(ob.clone().unbind())
+        } else {
+            Param::Obj(ob.clone().unbind())
+        })
+    }
+}
+
+/// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
+pub struct ParamParameterIter<'py>(Option<Bound<'py, PyIterator>>);
+impl<'py> Iterator for ParamParameterIter<'py> {
+    type Item = PyResult<Bound<'py, PyAny>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.as_mut().and_then(|iter| iter.next())
     }
 }
 
@@ -2016,6 +2058,7 @@ pub struct PyInstruction {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
+    pub control_flow: bool,
     pub instruction: PyObject,
 }
 
@@ -2033,7 +2076,7 @@ impl Operation for PyInstruction {
         self.params
     }
     fn control_flow(&self) -> bool {
-        false
+        self.control_flow
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None

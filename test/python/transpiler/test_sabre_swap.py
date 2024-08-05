@@ -1393,7 +1393,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="sabre",
             layout_method="sabre",
             seed_transpiler=12342,
-            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP).target,
+            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=42).target,
         )
         self.assert_valid_circuit(tqc)
 
