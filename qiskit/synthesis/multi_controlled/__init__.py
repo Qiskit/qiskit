@@ -10,5 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing multi-controlled circuits"""
-from .mcx_with_ancillas_synth import synth_mcx_n_dirty_ancillas_ICKHC
+"""Module containing multi-controlled circuits synthesis"""
+
+from .mcx_with_ancillas_synth import synth_mcx_n_dirty_ancillas_ickhc

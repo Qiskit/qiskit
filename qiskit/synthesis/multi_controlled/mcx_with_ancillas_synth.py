@@ -10,15 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Module containing multi-controlled circuits synthesis with ancillary qubits."""
+
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
-def synth_mcx_n_dirty_ancillas_ICKHC(
-    num_qubits,
-    num_ctrl_qubits=None,
-    label=None,
-    ctrl_state=None,
+def synth_mcx_n_dirty_ancillas_ickhc(
+    num_qubits: int,
+    num_ctrl_qubits: int = None,
     relative_phase: bool = False,
     action_only: bool = False,
 ):

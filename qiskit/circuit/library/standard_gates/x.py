@@ -1528,13 +1528,11 @@ class MCXVChain(MCXGate):
             elif not self._relative_phase and self.num_ctrl_qubits == 3:
                 qc._append(C3XGate(), [*q_controls, q_target], [])
             else:
-                from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_ancillas_ICKHC
+                from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_ancillas_ickhc
 
-                qc = synth_mcx_n_dirty_ancillas_ICKHC(
+                qc = synth_mcx_n_dirty_ancillas_ickhc(
                     self.num_qubits,
                     self.num_ctrl_qubits,
-                    self.label,
-                    self.ctrl_state,
                     self._relative_phase,
                     self._action_only,
                 )
