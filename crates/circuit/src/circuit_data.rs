@@ -834,19 +834,19 @@ impl CircuitData {
         Ok(())
     }
 
-    /// Assign all the circuit parameters, given a sequence-like input of `Param` instances.
-    fn assign_parameters_sequence(&mut self, sequence: Bound<PyAny>) -> PyResult<()> {
-        if sequence.len()? != self.param_table.num_parameters() {
-            return Err(PyValueError::new_err(concat!(
-                "Mismatching number of values and parameters. For partial binding ",
-                "please pass a dictionary of {parameter: value} pairs."
-            )));
-        }
-        let mut old_table = std::mem::take(&mut self.param_table);
+    /// Assign all the circuit parameters, given an iterable input of `Param` instances.
+    fn assign_parameters_iterable(&mut self, sequence: Bound<PyAny>) -> PyResult<()> {
         if let Ok(readonly) = sequence.extract::<PyReadonlyArray1<f64>>() {
             // Fast path for Numpy arrays; in this case we can easily handle them without copying
             // the data across into a Rust-space `Vec` first.
             let array = readonly.as_array();
+            if array.len() != self.param_table.num_parameters() {
+                return Err(PyValueError::new_err(concat!(
+                    "Mismatching number of values and parameters. For partial binding ",
+                    "please pass a dictionary of {parameter: value} pairs."
+                )));
+            }
+            let mut old_table = std::mem::take(&mut self.param_table);
             self.assign_parameters_inner(
                 sequence.py(),
                 array
@@ -855,13 +855,23 @@ impl CircuitData {
                     .map(|(value, (param_ob, uses))| (param_ob, Param::Float(*value), uses)),
             )
         } else {
-            let values = sequence.extract::<Vec<AssignParam>>()?;
+            let values = sequence
+                .iter()?
+                .map(|ob| Param::extract_no_coerce(&ob?))
+                .collect::<PyResult<Vec<_>>>()?;
+            if values.len() != self.param_table.num_parameters() {
+                return Err(PyValueError::new_err(concat!(
+                    "Mismatching number of values and parameters. For partial binding ",
+                    "please pass a dictionary of {parameter: value} pairs."
+                )));
+            }
+            let mut old_table = std::mem::take(&mut self.param_table);
             self.assign_parameters_inner(
                 sequence.py(),
                 values
                     .into_iter()
                     .zip(old_table.drain_ordered())
-                    .map(|(value, (param_ob, uses))| (param_ob, value.0, uses)),
+                    .map(|(value, (param_ob, uses))| (param_ob, value, uses)),
             )
         }
     }
