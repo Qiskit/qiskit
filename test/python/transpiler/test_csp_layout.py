@@ -288,7 +288,9 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
     def test_multi_qubit_gates_fail(self):
-        """Toffoli need a complete connection among the involved qubits. No solution on incomplete graph."""
+        """Toffoli need a complete connection among the involved qubits.
+        No solution on incomplete graph.
+        """
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
