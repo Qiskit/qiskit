@@ -12,9 +12,6 @@
 
 """Module containing multi-controlled circuits synthesis with ancillary qubits."""
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-
 
 def synth_mcx_n_dirty_ancillas_ickhc(
     num_qubits: int,
@@ -24,6 +21,10 @@ def synth_mcx_n_dirty_ancillas_ickhc(
 ):
     """Synthesis of an MCX gate with n controls and n-2 dirty ancillary qubits,
     producing a circuit with at most 8*n-6 CX gates"""
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumregister import QuantumRegister
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
@@ -107,6 +108,10 @@ def synth_mcx_n_dirty_ancillas_ickhc(
 def synth_mcx_n_clean_ancillas(num_qubits: int, num_ctrl_qubits: int = None):
     """Synthesis of an MCX gate with n controls and n-2 clean ancillary qubits,
     producing a circuit with at most 6*n-6 CX gates"""
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumregister import QuantumRegister
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
