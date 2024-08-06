@@ -801,7 +801,7 @@ where
 }
 
 #[pymodule]
-pub fn equivalence(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EquivalenceLibrary>()?;
     m.add_class::<NodeData>()?;
     m.add_class::<EdgeData>()?;
