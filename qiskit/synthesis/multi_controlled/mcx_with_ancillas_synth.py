@@ -89,3 +89,32 @@ def synth_mcx_n_dirty_ancillas_ickhc(
             break
 
     return qc
+
+
+def synth_mcx_n_clean_ancillas(num_qubits: int, num_ctrl_qubits: int = None):
+    """Synthesis of an MCX gate with n controls and n-2 clean ancillary qubits,
+    producing a circuit with at most 6*n-6 CX gates"""
+
+    q = QuantumRegister(num_qubits, name="q")
+    qc = QuantumCircuit(q, name="mcx_vchain")
+    q_controls = q[:num_ctrl_qubits]
+    q_target = q[num_ctrl_qubits]
+    q_ancillas = q[num_ctrl_qubits + 1 :]
+
+    qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
+    i = 0
+    for j in range(2, num_ctrl_qubits - 1):
+        qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
+
+        i += 1
+
+    qc.ccx(q_controls[-1], q_ancillas[i], q_target)
+
+    for j in reversed(range(2, num_ctrl_qubits - 1)):
+        qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
+
+        i -= 1
+
+    qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
+
+    return qc

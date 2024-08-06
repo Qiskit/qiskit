@@ -823,6 +823,20 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
 
+    @data(5, 10, 15)
+    def test_mcxvchain_clean_ancilla_cx_count(self, num_ctrl_qubits):
+        """Test if cx count of the v-chain mcx with clean ancilla
+        is less than upper bound."""
+        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=False)
+        qc = QuantumCircuit(mcx_vchain.num_qubits)
+
+        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
+
+        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = tr_mcx_vchain.count_ops()["cx"]
+
+        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+
     @data(7, 10, 15)
     def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
         """Test if cx count of the mcx with one clean ancilla

@@ -12,4 +12,4 @@
 
 """Module containing multi-controlled circuits synthesis"""
 
-from .mcx_with_ancillas_synth import synth_mcx_n_dirty_ancillas_ickhc
+from .mcx_with_ancillas_synth import synth_mcx_n_dirty_ancillas_ickhc, synth_mcx_n_clean_ancillas

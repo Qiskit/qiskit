@@ -1538,20 +1538,8 @@ class MCXVChain(MCXGate):
                 )
 
         else:
-            qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
-            i = 0
-            for j in range(2, self.num_ctrl_qubits - 1):
-                qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_ancillas
 
-                i += 1
-
-            qc.ccx(q_controls[-1], q_ancillas[i], q_target)
-
-            for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-                qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
-
-                i -= 1
-
-            qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
+            qc = synth_mcx_n_clean_ancillas(self.num_qubits, self.num_ctrl_qubits)
 
         self.definition = qc
