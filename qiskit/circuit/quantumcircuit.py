@@ -4188,7 +4188,7 @@ class QuantumCircuit:
     @overload
     def assign_parameters(
         self,
-        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        parameters: Union[Mapping[Parameter, ParameterValueType], Iterable[ParameterValueType]],
         inplace: Literal[False] = ...,
         *,
         flat_input: bool = ...,
@@ -4198,7 +4198,7 @@ class QuantumCircuit:
     @overload
     def assign_parameters(
         self,
-        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        parameters: Union[Mapping[Parameter, ParameterValueType], Iterable[ParameterValueType]],
         inplace: Literal[True] = ...,
         *,
         flat_input: bool = ...,
@@ -4207,7 +4207,7 @@ class QuantumCircuit:
 
     def assign_parameters(  # pylint: disable=missing-raises-doc
         self,
-        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        parameters: Union[Mapping[Parameter, ParameterValueType], Iterable[ParameterValueType]],
         inplace: bool = False,
         *,
         flat_input: bool = False,
@@ -4317,7 +4317,7 @@ class QuantumCircuit:
             target._data.assign_parameters_mapping(parameter_binds)
         else:
             parameter_binds = _ParameterBindsSequence(target._data.parameters, parameters)
-            target._data.assign_parameters_sequence(parameters)
+            target._data.assign_parameters_iterable(parameters)
 
         # Finally, assign the parameters inside any of the calibrations.  We don't track these in
         # the `ParameterTable`, so we manually reconstruct things.
