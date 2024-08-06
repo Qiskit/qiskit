@@ -1513,31 +1513,18 @@ class MCXVChain(MCXGate):
 
     def _define(self):
         """Define the MCX gate using a V-chain of CX gates."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        q_controls = q[: self.num_ctrl_qubits]
-        q_target = q[self.num_ctrl_qubits]
-        q_ancillas = q[self.num_ctrl_qubits + 1 :]
 
         if self._dirty_ancillas:
-            if self.num_ctrl_qubits < 3:
-                qc.mcx(q_controls, q_target)
-            elif not self._relative_phase and self.num_ctrl_qubits == 3:
-                qc._append(C3XGate(), [*q_controls, q_target], [])
-            else:
-                from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_ancillas_ickhc
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_ancillas_ickhc
 
-                qc = synth_mcx_n_dirty_ancillas_ickhc(
-                    self.num_qubits,
-                    self.num_ctrl_qubits,
-                    self._relative_phase,
-                    self._action_only,
-                )
+            qc = synth_mcx_n_dirty_ancillas_ickhc(
+                self.num_qubits,
+                self.num_ctrl_qubits,
+                self._relative_phase,
+                self._action_only,
+            )
 
-        else:
+        else:  # use clean ancillas
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_ancillas
 
             qc = synth_mcx_n_clean_ancillas(self.num_qubits, self.num_ctrl_qubits)
