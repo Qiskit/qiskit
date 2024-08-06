@@ -92,6 +92,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -110,6 +111,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
                 )
             init.append(
                 InverseCancellation(
@@ -138,6 +140,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_method,
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
+                pass_manager_config.qubits_initially_zero,
             )
             init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
@@ -179,6 +182,7 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
+            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )
 
 
@@ -196,6 +200,7 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
+            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )
 
 

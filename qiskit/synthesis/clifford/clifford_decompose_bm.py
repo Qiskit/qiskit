@@ -20,6 +20,7 @@ from qiskit.quantum_info import Clifford
 from qiskit._accelerate.synthesis.clifford import (
     synth_clifford_bm as synth_clifford_bm_inner,
 )
+from qiskit.transpiler.passes import Decompose
 
 
 def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
