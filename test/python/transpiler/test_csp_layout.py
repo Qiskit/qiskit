@@ -269,6 +269,39 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(15, 18)
         circuit.cx(15, 18)
         return circuit_to_dag(circuit)
+    
+    def test_multi_qubit_gates(self):
+        """Toffoli need a complete connection among the involved qubits."""
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.ccx(qr[2], qr[0], qr[1])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2), (0,2)]), seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        self.assertEqual(layout[qr[1]], 0)
+        self.assertEqual(layout[qr[0]], 1)
+        self.assertEqual(layout[qr[2]], 2)
+        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
+            
+    
+    def test_multi_qubit_gates_fail(self):
+        """Toffoli need a complete connection among the involved qubits. No solution on incomplete graph."""
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.ccx(qr[2], qr[0], qr[1])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2)]), seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+
+        self.assertIsNone(layout)
+        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "nonexistent solution")
 
     def test_time_limit(self):
         """Hard to solve situations hit the time limit"""
@@ -320,6 +353,6 @@ class TestCSPLayout(QiskitTestCase):
 
         self.assertNotEqual(layout_1, layout_2)
 
-
+   
 if __name__ == "__main__":
     unittest.main()
