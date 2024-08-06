@@ -24,6 +24,17 @@ use crate::equivalence::{CircuitRep, EdgeData, Equivalence, EquivalenceLibrary, 
 
 #[pyfunction]
 #[pyo3(name = "basis_search")]
+/// Search for a set of transformations from source_basis to target_basis.
+/// Args:
+///     equiv_lib (EquivalenceLibrary): Source of valid translations
+///     source_basis (Set[Tuple[gate_name: str, gate_num_qubits: int]]): Starting basis.
+///     target_basis (Set[gate_name: str]): Target basis.
+///
+/// Returns:
+///     Optional[List[Tuple[gate, equiv_params, equiv_circuit]]]: List of (gate,
+///         equiv_params, equiv_circuit) tuples tuples which, if applied in order
+///         will map from source_basis to target_basis. Returns None if no path
+///         was found.
 pub(crate) fn py_basis_search(
     py: Python,
     equiv_lib: &mut EquivalenceLibrary,
@@ -43,16 +54,13 @@ pub(crate) fn py_basis_search(
 
 type BasisTransforms = Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)>;
 /// Search for a set of transformations from source_basis to target_basis.
-/// Args:
-///     equiv_lib (EquivalenceLibrary): Source of valid translations
-///     source_basis (Set[Tuple[gate_name: str, gate_num_qubits: int]]): Starting basis.
-///     target_basis (Set[gate_name: str]): Target basis.
 ///
-/// Returns:
-///     Optional[List[Tuple[gate, equiv_params, equiv_circuit]]]: List of (gate,
-///         equiv_params, equiv_circuit) tuples tuples which, if applied in order
-///         will map from source_basis to target_basis. Returns None if no path
-///         was found.
+/// Performs a Dijkstra search algorithm on the `EquivalenceLibrary`'s core graph
+/// to rate and classify different possible equivalent circuits to the provided gates.
+///
+/// This is done by connecting all the nodes represented in the `target_basis` to a dummy
+/// node, and then traversing the graph until all the nodes described in the `source
+/// basis` are reached.
 pub(crate) fn basis_search(
     equiv_lib: &mut EquivalenceLibrary,
     source_basis: HashSet<(&str, u32)>,
