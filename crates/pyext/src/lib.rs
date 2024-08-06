@@ -15,13 +15,13 @@ use pyo3::wrap_pymodule;
 
 use qiskit_accelerate::{
     convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
-    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
-    isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
-    pauli_exp_val::pauli_expval, results::results, sabre::sabre, sampled_exp_val::sampled_exp_val,
-    sparse_pauli_op::sparse_pauli_op, star_prerouting::star_prerouting,
-    stochastic_swap::stochastic_swap, synthesis::synthesis, target_transpiler::target,
-    two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate, utils::utils,
-    vf2_layout::vf2_layout,
+    equivalence::equivalence, error_map::error_map,
+    euler_one_qubit_decomposer::euler_one_qubit_decomposer, isometry::isometry, nlayout::nlayout,
+    optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval, results::results,
+    sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
+    star_prerouting::star_prerouting, stochastic_swap::stochastic_swap, synthesis::synthesis,
+    target_transpiler::target, two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate,
+    utils::utils, vf2_layout::vf2_layout,
 };
 
 #[pymodule]
@@ -31,6 +31,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(qiskit_qasm3::qasm3))?;
     m.add_wrapped(wrap_pymodule!(convert_2q_block_matrix))?;
     m.add_wrapped(wrap_pymodule!(dense_layout))?;
+    m.add_wrapped(wrap_pymodule!(equivalence))?;
     m.add_wrapped(wrap_pymodule!(error_map))?;
     m.add_wrapped(wrap_pymodule!(euler_one_qubit_decomposer))?;
     m.add_wrapped(wrap_pymodule!(isometry))?;

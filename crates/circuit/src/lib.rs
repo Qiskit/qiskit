@@ -14,7 +14,6 @@ pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod dag_node;
-pub mod equivalence;
 pub mod gate_matrix;
 pub mod imports;
 pub mod operations;
@@ -25,7 +24,7 @@ pub mod util;
 
 mod interner;
 
-use pyo3::{prelude::*, wrap_pymodule};
+use pyo3::prelude::*;
 
 pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
@@ -59,7 +58,6 @@ impl From<Clbit> for BitType {
 
 #[pymodule]
 pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(equivalence::equivalence))?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;

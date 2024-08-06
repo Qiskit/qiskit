@@ -34,12 +34,12 @@ use rustworkx_core::petgraph::{
     visit::EdgeRef,
 };
 
-use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::OperationFromPython;
-use crate::imports::ImportOnceCell;
-use crate::operations::Param;
-use crate::operations::{Operation, OperationRef};
-use crate::packed_instruction::PackedOperation;
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::imports::ImportOnceCell;
+use qiskit_circuit::operations::Param;
+use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::packed_instruction::PackedOperation;
 
 mod exceptions {
     use pyo3::import_exception_bound;
@@ -51,7 +51,7 @@ pub static QUANTUMCIRCUIT: ImportOnceCell =
 
 // Custom Structs
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -116,7 +116,7 @@ impl Display for Key {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
     #[pyo3(get)]
@@ -165,7 +165,7 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
@@ -209,7 +209,7 @@ impl Display for NodeData {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.circuit.equivalence")]
+#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
 #[derive(Debug, Clone)]
 pub struct EdgeData {
     #[pyo3(get)]
@@ -348,7 +348,7 @@ type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
-    module = "qiskit._accelerate.circuit.equivalence"
+    module = "qiskit._accelerate.equivalence"
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
