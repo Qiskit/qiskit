@@ -17,6 +17,8 @@ import unittest
 
 import numpy as np
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit._accelerate.commutation_checker import CommutationChecker
+
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator

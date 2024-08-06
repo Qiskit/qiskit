@@ -21,7 +21,8 @@ use smallvec::SmallVec;
 use std::iter::Chain;
 
 use crate::nlayout::PhysicalQubit;
-use crate::unitary_compose::compose_unitary;
+//use crate::unitary_compose::compose_unitary;
+use crate::unitary_compose::compose;
 use ndarray_einsum_beta::*;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -32,8 +33,11 @@ use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation, PackedOperationType};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::distancemap::DistanceMap;
+use qiskit_circuit::bit_data::BitData;
+use qiskit_circuit::imports::CLBIT;
+
 #[derive(Clone)]
 pub enum CommutationLibraryEntry {
     Commutes(bool),
@@ -124,6 +128,13 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
+        /*
+        bq = BitData<Qubit>::new('qubits);
+        bq.add(op1.instruction.qubits.bind(py)); as any?
+        bq.add(op2.instruction.qubits.bind(py));
+        bq.find(q).0 as usize
+        */
+        ///BitData<Clbit>
         let get_hashmap_for_bits =
             |chain: Chain<BoundTupleIterator, BoundTupleIterator>| -> HashMap<isize, usize> {
                 let mut qqmap: HashMap<isize, usize> = HashMap::new();
@@ -162,6 +173,7 @@ impl CommutationChecker {
                 })
                 .collect::<Vec<_>>()
         };
+
         let cmapping = |op: &DAGOpNode| -> Vec<_> {
             op.instruction
                 .clbits
@@ -181,11 +193,6 @@ impl CommutationChecker {
         let qargs2 = qmapping(op2);
         let cargs2 = cmapping(op2);
 
-        println!("qargs1 {:?}",qargs1);
-        println!("cargs1 {:?}",cargs1);
-
-        println!("qargs2 {:?}",qargs2);
-        println!("cargs2 {:?}",cargs2);
         Ok(commute_inner(
             &op1.instruction,
             &qargs1,
@@ -200,6 +207,7 @@ impl CommutationChecker {
 
 
 const SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
+const CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 
 fn is_commutation_skipped(instr: &CircuitInstruction, max_qubits: u32) -> bool {
     let op = instr.op();
@@ -218,20 +226,16 @@ fn commutation_precheck(
     cargs2: &Vec<usize>,
     max_num_qubits: u32,
 ) -> Option<bool> {
-    println!("going into precheck!");
-    if op1.op().control_flow() || op2.op().control_flow() {
-        println!("not supported!");
+    if op1.op().control_flow() || op2.op().control_flow() || op1.is_conditioned() || op2.is_conditioned()  {
         return Some(false);
     }
 
     // assuming the number of involved qubits to be small, this might be faster than set operations
     if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
-        println!("dishjoint!!");
         return Some(true);
     }
 
     if is_commutation_skipped(op1, max_num_qubits) || is_commutation_skipped(op2, max_num_qubits) {
-        println!("skipped!!");
         return Some(false);
     }
 
@@ -256,7 +260,6 @@ fn commute_inner(
         cargs2,
         max_num_qubits,
     );
-    println!("comm: {:?}", commutation);
     if !commutation.is_none() {
         return commutation.unwrap();
     }
@@ -315,7 +318,7 @@ fn commute_matmul(
     second_instr: &CircuitInstruction,
     second_qargs: &Vec<usize>,
 ) -> bool {
-    println!("going into matmul!");
+    //println!("going into matmul!");
     // compute relative positioning in qarg
 
     let mut qarg: HashMap<&usize, usize> =
@@ -341,8 +344,8 @@ fn commute_matmul(
        .map(|q| qarg.get_item(q).unwrap().clone())
        .collect();
 
-   println!("{:?} {:?}", first_qarg, first_qargs);
-   println!("{:?} {:?}", second_qarg, second_qargs);
+   //println!("first_qarg={:?} first_qargs={:?}", first_qarg, first_qargs);
+   //println!("second_qarg={:?} second_qarg={:?}", second_qarg, second_qargs);
     /*
        assert_eq!(&first_qarg, first_qargs, "hm, should be ok");
        assert_eq!(&second_qarg, second_qargs, "hm, should be ok");
@@ -350,55 +353,45 @@ fn commute_matmul(
     //second_qarg = tuple(qarg[q] for q in second_qargs)
 
     assert!(
-        first_qargs.len() <= second_qargs.len(),
+        first_qarg.len() <= second_qarg.len(),
         "first instructions must have at most as many qubits as the second instruction"
     );
 
     let first_op = first_instr.op();
     let second_op = second_instr.op();
-    println!("first mat");
-    //print!("getting first mat {:?}", first_op.matrix(&first_instr.params));
+    //println!("first mat");
     let first_mat = match first_op.matrix(&first_instr.params) {
         Some(mat) => mat,
         None => return false,
     };
-    println!("second mat");
-    //print!("getting second mat {:?}", second_op.matrix(&second_instr.params));
+    //println!("second mat");
     let second_mat = match second_op.matrix(&second_instr.params) {
         Some(mat) => mat,
         None => return false,
     };
-    println!("comparison");
 
-    if first_qargs == second_qargs {
+    if first_qarg == second_qarg {
         abs_diff_eq!(
             second_mat.dot(&first_mat),
             first_mat.dot(&second_mat),
             epsilon = 1e-8
         )
     } else {
-        let extra_qarg2 = num_qubits - first_qargs.len();
+        let extra_qarg2 = num_qubits - first_qarg.len();
         let first_mat = if extra_qarg2 > 0 {
             let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2 as u32));
             kron(&id_op, &first_mat)
         } else {
             first_mat
         };
-        let op12 = compose_unitary(second_mat.view(), first_mat.view(), second_qargs);
-        let op21 = compose_unitary(first_mat.view(), second_mat.view(), second_qargs);
-        println!("a: {:?}", op12);
-        println!("b: {:?}", op21);
+        let op12 = compose(first_mat.clone(), second_mat.clone(), &second_qarg, false);
+        let op21 = compose(first_mat, second_mat, &second_qarg, true);
         abs_diff_eq!(
             op12,
             op21,
             epsilon = 1e-8
         )
     }
-
-    //println!("diff: {:?}", op12-op21);
-
-
-
 }
 
 #[derive(Debug, Copy, Clone)]

@@ -277,6 +277,13 @@ impl CircuitInstruction {
             .any(|x| matches!(x, Param::ParameterExpression(_)))
     }
 
+    pub fn is_conditioned(&self) -> bool {
+        match &self.extra_attrs {
+            None => false,
+            Some(attrs) => !attrs.condition.is_none(),
+        }
+    }
+
     /// Creates a shallow copy with the given fields replaced.
     ///
     /// Returns:

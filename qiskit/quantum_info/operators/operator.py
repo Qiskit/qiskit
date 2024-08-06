@@ -467,6 +467,7 @@ class Operator(LinearOp):
         return ret
 
     def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
+        #print("self: {} other: {} qargs: {} front: {}".format(self.data, other.data, qargs, front))
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, Operator):
@@ -509,8 +510,11 @@ class Operator(LinearOp):
         mat = np.reshape(other.data, other._op_shape.tensor_shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [int(np.prod(output_dims)), int(np.prod(input_dims))]
+        #print("tensor", tensor, "mat", mat, "indices", indices, "shift", shift, "right_mul", right_mul)
+        meinsam = Operator._einsum_matmul(tensor, mat, indices, shift, right_mul)
+        #print("meinsam", meinsam)
         data = np.reshape(
-            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
+            meinsam, final_shape
         )
         ret = Operator(data, input_dims, output_dims)
         ret._op_shape = new_shape
@@ -688,17 +692,27 @@ class Operator(LinearOp):
         if rank_mat % 2 != 0:
             raise QiskitError("Contracted matrix must have an even number of indices.")
         # Get einsum indices for tensor
+        #print("rank", rank, "rank_mat", rank_mat)
         indices_tensor = list(range(rank))
+        #print("indices_ntesor", indices_tensor)
         for j, index in enumerate(indices):
             indices_tensor[index + shift] = rank + j
+        #print("indices_ntesor", indices_tensor)
         # Get einsum indices for mat
         mat_contract = list(reversed(range(rank, rank + len(indices))))
+        #print("mat_contract", mat_contract)
         mat_free = [index + shift for index in reversed(indices)]
+        #print("mat_free", mat_free)
         if right_mul:
             indices_mat = mat_contract + mat_free
         else:
             indices_mat = mat_free + mat_contract
+        #print("einstr", indices_tensor, indices_mat)
         return np.einsum(tensor, indices_tensor, mat, indices_mat)
+        ##        return np.einsum(tensor, indices_tensor, mat, indices_mat)
+        ##                        idZ,  5423, cx, 0154 ;;;;  zyab, abAB->zyAB
+
+        #return np.tensordot(tensor, mat, axes=(indices_tensor, indices_mat))
 
     @classmethod
     def _init_instruction(cls, instruction):
