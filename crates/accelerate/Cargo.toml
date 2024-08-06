@@ -26,7 +26,6 @@ qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray_einsum_beta = "0.7"
 
-
 [dependencies.smallvec]
 workspace = true
 features = ["union"]

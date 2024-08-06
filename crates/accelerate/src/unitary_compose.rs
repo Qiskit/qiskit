@@ -10,55 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::os::unix::raw::pthread_t;
-use faer::sparse::linalg::amd::order;
-use ndarray::{Array, Array2, ArrayBase, ArrayView2, CowRepr, Dim, Dimension, Ix, Ix2, IxDyn};
+use ndarray::{Array, Array2, Ix2, IxDyn};
 use ndarray_einsum_beta::*;
 use num_complex::{Complex, Complex64};
 
-static FIRSTHALF: [u8; 13] = [
-    b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+static LOWERCASE: [u8; 26] = [
+    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+    b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
 ];
-static SECONDHALF: [u8; 13] = [
-    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm'
-];
-
-fn einsum_matmul_helper(qubits: &[usize], num_qubits: usize) -> [String; 4] {
-    let tens_in: Vec<u8> = SECONDHALF[..num_qubits].iter().copied().collect();
-    let mut tens_out: Vec<u8> = tens_in.clone();
-    let mut mat_l: Vec<u8> = Vec::with_capacity(num_qubits);
-    let mut mat_r: Vec<u8> = Vec::with_capacity(num_qubits);
-    qubits.iter().rev().enumerate().for_each(|(pos, idx)| {
-        mat_r.push(tens_in[num_qubits - 1 - pos]);
-        mat_l.push(SECONDHALF[12 - pos]);
-        tens_out[num_qubits - 1 - idx] = SECONDHALF[12 - pos];
-    });
-    unsafe {
-        [
-            String::from_utf8_unchecked(mat_l),
-            String::from_utf8_unchecked(mat_r),
-            String::from_utf8_unchecked(tens_in),
-            String::from_utf8_unchecked(tens_out),
-        ]
-    }
-}
-
-fn einsum_matmul_index(qubits: &[usize], num_qubits: usize) -> String {
-    assert!(num_qubits < 13, "Can't compute unitary of > 13 qubits");
-    let tens_r: String = unsafe {
-        String::from_utf8_unchecked(FIRSTHALF[..num_qubits].iter().copied().collect::<Vec<u8>>())
-    };
-    let [mat_l, mat_r, tens_lin, tens_lout] = einsum_matmul_helper(qubits, num_qubits);
-    format!(
-        "{}{},{}{}->{}{}",
-        mat_l, mat_r, tens_lin, tens_r, tens_lout, tens_r
-    )
-}
-
 
 pub fn compose(gate_unitary: Array<Complex<f64>, Ix2>, overall_unitary: Array<Complex<f64>, Ix2>, qubits: &[usize], front: bool) -> Array2<Complex<f64>> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
-    let overall_qubits = overall_unitary.shape()[0].ilog2() as usize;
 
 
     // Full composition of operators
@@ -80,7 +42,6 @@ pub fn compose(gate_unitary: Array<Complex<f64>, Ix2>, overall_unitary: Array<Co
     //Note that we must reverse the subsystem dimension order as
     //qubit 0 corresponds to the right-most position in the tensor
     //product, which is the last tensor wire index.
-
     let tensor = per_qubit_shaped(gate_unitary.clone());
     let mat = per_qubit_shaped(overall_unitary.clone());
     let indices = qubits.iter().map(|q| num_indices-1-q).collect::<Vec<usize>>();
@@ -90,10 +51,6 @@ pub fn compose(gate_unitary: Array<Complex<f64>, Ix2>, overall_unitary: Array<Co
         into_shape((num_rows, num_rows)).unwrap().
         into_dimensionality::<ndarray::Ix2>().unwrap().to_owned()
 }
-static LOWERCASE: [u8; 26] = [
-    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
-    b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
-];
 
 fn _einsum_matmul(tensor: Array<Complex64,IxDyn>, mat: Array<Complex64, IxDyn>, indices: Vec<usize>,
                   shift: usize, right_mul: bool) -> Array<Complex64, IxDyn> {

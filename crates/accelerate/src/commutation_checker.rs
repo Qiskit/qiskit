@@ -11,32 +11,22 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use itertools::chain;
 use approx::abs_diff_eq;
 
 use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
 use smallvec::SmallVec;
-use std::iter::Chain;
 
-use crate::nlayout::PhysicalQubit;
-//use crate::unitary_compose::compose_unitary;
 use crate::unitary_compose::compose;
-use ndarray_einsum_beta::*;
-use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::iter::BoundTupleIterator;
-use pyo3::types::{PyDict, PySet, PyTuple};
-use qiskit_circuit::circuit_data::CircuitData;
+use pyo3::types::{PyDict};
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation, PackedOperationType};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::distancemap::DistanceMap;
 use qiskit_circuit::bit_data::BitData;
-use qiskit_circuit::imports::CLBIT;
 
 #[derive(Clone)]
 pub enum CommutationLibraryEntry {
@@ -96,6 +86,46 @@ type CommutationCacheEntry = HashMap<
     bool,
 >;
 
+#[derive(Debug, Copy, Clone)]
+struct ParameterKey(f64);
+
+impl ParameterKey {
+    fn key(&self) -> u64 {
+        self.0.to_bits()
+    }
+}
+
+impl std::hash::Hash for ParameterKey {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: std::hash::Hasher,
+    {
+        self.key().hash(state)
+    }
+}
+
+impl PartialEq for ParameterKey {
+    fn eq(&self, other: &ParameterKey) -> bool {
+        self.key() == other.key()
+    }
+}
+
+impl Eq for ParameterKey {}
+
+fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
+    params
+        .iter()
+        .map(|x| {
+            if let Param::Float(x) = x {
+                ParameterKey(*x)
+            } else {
+                panic!()
+            }
+        })
+        .collect()
+}
+
+
 #[pyclass]
 struct CommutationChecker {
     library: CommutationLibrary,
@@ -120,6 +150,29 @@ impl CommutationChecker {
             current_cache_entries: 0,
         }
     }
+
+    fn __getstate__(&self)  {
+
+    }
+
+    fn __setstate__(&mut self) {
+
+    }
+
+    //fn __getnewargs__(&self, py: Python) -> (String, PyObject, f64, &str, Option<bool>) {
+    fn __getnewargs__(&self, py: Python)  {
+
+    }
+
+    fn __reduce__(slf: PyRef<Self>) -> PyResult<PyObject> {
+        let py = slf.py();
+        Ok((
+            py.get_type_bound::<Self>(),
+
+        )
+            .into_py(py))
+    }
+
     #[pyo3(signature=(op1, op2, max_num_qubits=3))]
     fn commute_nodes(
         &self,
@@ -128,70 +181,17 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        /*
-        bq = BitData<Qubit>::new('qubits);
-        bq.add(op1.instruction.qubits.bind(py)); as any?
-        bq.add(op2.instruction.qubits.bind(py));
-        bq.find(q).0 as usize
-        */
-        ///BitData<Clbit>
-        let get_hashmap_for_bits =
-            |chain: Chain<BoundTupleIterator, BoundTupleIterator>| -> HashMap<isize, usize> {
-                let mut qqmap: HashMap<isize, usize> = HashMap::new();
-                for b in chain {
-                    let len = qqmap.len();
-                    qqmap
-                        .entry(b.hash().expect("Error building bit map!"))
-                        .or_insert(len);
-                }
-                qqmap
-            };
-        let mut qmap = get_hashmap_for_bits(
-            op1.instruction
-                .qubits
-                .bind(py)
-                .iter()
-                .chain(op2.instruction.qubits.bind(py).iter()),
-        );
-        let mut cmap = get_hashmap_for_bits(
-            op1.instruction
-                .clbits
-                .bind(py)
-                .iter()
-                .chain(op2.instruction.clbits.bind(py).iter()),
-        );
+        let mut bq: BitData<Qubit> = BitData::new(py, "qubits".to_string());
+        op1.instruction.qubits.bind(py).iter().for_each(|q| bq.add(py, &q, false).unwrap());
+        op2.instruction.qubits.bind(py).iter().for_each(|q| bq.add(py, &q, false).unwrap());
+        let qargs1 = op1.instruction.qubits.bind(py).iter().map(|q| bq.find(&q).unwrap().0 as usize).collect::<Vec<_>>();
+        let qargs2 = op2.instruction.qubits.bind(py).iter().map(|q| bq.find(&q).unwrap().0 as usize).collect::<Vec<_>>();
 
-        let qmapping = |op: &DAGOpNode| -> Vec<_> {
-            op.instruction
-                .qubits
-                .bind(py)
-                .iter()
-                .map(|q| {
-                    qmap.get_item(q.hash().expect("Error building qubit map!"))
-                        .unwrap()
-                        .clone()
-                })
-                .collect::<Vec<_>>()
-        };
-
-        let cmapping = |op: &DAGOpNode| -> Vec<_> {
-            op.instruction
-                .clbits
-                .bind(py)
-                .iter()
-                .map(|q| {
-                    cmap.get_item(q.hash().expect("Error building qubit map!"))
-                        .unwrap()
-                        .clone()
-                })
-                .collect::<Vec<_>>()
-        };
-
-        let qargs1 = qmapping(op1);
-        let cargs1 = cmapping(op1);
-
-        let qargs2 = qmapping(op2);
-        let cargs2 = cmapping(op2);
+        let mut bc: BitData<Clbit> = BitData::new(py, "clbits".to_string());
+        op1.instruction.clbits.bind(py).iter().for_each(|c| bc.add(py, &c, false).unwrap());
+        op2.instruction.clbits.bind(py).iter().for_each(|c| bc.add(py, &c, false).unwrap());
+        let cargs1 = op1.instruction.clbits.bind(py).iter().map(|c| bc.find(&c).unwrap().0 as usize).collect::<Vec<_>>();
+        let cargs2 = op2.instruction.clbits.bind(py).iter().map(|c| bc.find(&c).unwrap().0 as usize).collect::<Vec<_>>();
 
         Ok(commute_inner(
             &op1.instruction,
@@ -207,8 +207,6 @@ impl CommutationChecker {
 
 
 const SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
-const CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
-
 fn is_commutation_skipped(instr: &CircuitInstruction, max_qubits: u32) -> bool {
     let op = instr.op();
     op.num_qubits() > max_qubits
@@ -298,18 +296,7 @@ fn commute_inner(
     return commute_matmul(first_instr, first_qargs, second_instr, second_qargs);
 
     //TODO cache result
-    //circ: &CircuitData, //TBD <- maybe take it also now for performance reasons
-    //map qubits to indices  python objects -> indices
-    // vf2_mappings error map
-    // packed instruction pr
-    //op1.instruction.qubits[qreg, idx]
-    //qmap: &HashMap<Qubit, usize>
-    //println!()
-    // StandardGate -> rust space
-    // Otherwise -> python
-    //    match node.instruction.op() {
-    //         gate @ (OperationRef::Standard(_) | OperationRef::Gate(_)) => Some(
-    true
+
 }
 
 fn commute_matmul(
@@ -394,47 +381,8 @@ fn commute_matmul(
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-struct ParameterKey(f64);
-
-impl ParameterKey {
-    fn key(&self) -> u64 {
-        self.0.to_bits()
-    }
-}
-
-impl std::hash::Hash for ParameterKey {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: std::hash::Hasher,
-    {
-        self.key().hash(state)
-    }
-}
-
-impl PartialEq for ParameterKey {
-    fn eq(&self, other: &ParameterKey) -> bool {
-        self.key() == other.key()
-    }
-}
-
-impl Eq for ParameterKey {}
-
-fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
-    params
-        .iter()
-        .map(|x| {
-            if let Param::Float(x) = x {
-                ParameterKey(*x)
-            } else {
-                panic!()
-            }
-        })
-        .collect()
-}
-
 #[pymodule]
-pub fn commutation_checker(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;
     Ok(())
