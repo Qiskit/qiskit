@@ -1371,47 +1371,11 @@ class MCXRecursive(MCXGate):
 
     def _define(self):
         """Define the MCX gate using recursion."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        if self.num_qubits == 4:
-            qc._append(C3XGate(), q[:], [])
-            self.definition = qc
-        elif self.num_qubits == 5:
-            qc._append(C4XGate(), q[:], [])
-            self.definition = qc
-        else:
-            num_ctrl_qubits = len(q) - 1
-            q_ancilla = q[-1]
-            q_target = q[-2]
-            middle = ceil(num_ctrl_qubits / 2)
-            first_half = [*q[:middle]]
-            second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+        from qiskit.synthesis.multi_controlled import synth_mcx_one_clean_ancilla_bbcdmssw
 
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
-                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
-                cargs=[],
-            )
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
-                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
-                cargs=[],
-            )
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
-                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
-                cargs=[],
-            )
-            qc._append(
-                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
-                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
-                cargs=[],
-            )
-
-            self.definition = qc
+        qc = synth_mcx_one_clean_ancilla_bbcdmssw(self.num_qubits, self.num_ctrl_qubits)
+        self.definition = qc
 
 
 class MCXVChain(MCXGate):
@@ -1518,7 +1482,6 @@ class MCXVChain(MCXGate):
             from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_ancillas_ickhc
 
             qc = synth_mcx_n_dirty_ancillas_ickhc(
-                self.num_qubits,
                 self.num_ctrl_qubits,
                 self._relative_phase,
                 self._action_only,

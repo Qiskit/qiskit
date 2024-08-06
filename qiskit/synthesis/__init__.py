@@ -176,4 +176,5 @@ from .two_qubit.two_qubit_decompose import (
 from .multi_controlled.mcx_with_ancillas_synth import (
     synth_mcx_n_dirty_ancillas_ickhc,
     synth_mcx_n_clean_ancillas,
+    synth_mcx_one_clean_ancilla_bbcdmssw,
 )

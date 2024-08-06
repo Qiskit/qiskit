@@ -12,10 +12,11 @@
 
 """Module containing multi-controlled circuits synthesis with ancillary qubits."""
 
+from math import ceil
+
 
 def synth_mcx_n_dirty_ancillas_ickhc(
-    num_qubits: int,
-    num_ctrl_qubits: int = None,
+    num_ctrl_qubits: int,
     relative_phase: bool = False,
     action_only: bool = False,
 ):
@@ -26,6 +27,7 @@ def synth_mcx_n_dirty_ancillas_ickhc(
     from qiskit.circuit.quantumregister import QuantumRegister
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+    num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
@@ -134,5 +136,59 @@ def synth_mcx_n_clean_ancillas(num_qubits: int, num_ctrl_qubits: int = None):
         i -= 1
 
     qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
+
+    return qc
+
+
+def synth_mcx_one_clean_ancilla_bbcdmssw(num_qubits, num_ctrl: int):
+    """Implement an MCX gate with n controls using one clean ancilla qubit,
+    producing a circuit with at most 16*n-8 CX gates."""
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.quantumregister import QuantumRegister
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
+    from qiskit.circuit.library.standard_gates.x import C3XGate, C4XGate
+
+    q = QuantumRegister(num_qubits, name="q")
+    qc = QuantumCircuit(q, name="mcx_recursive")
+
+    if num_ctrl == 3:
+        qc._append(C3XGate(), q[:], [])
+        return qc
+
+    elif num_ctrl == 4:
+        qc._append(C4XGate(), q[:], [])
+        return qc
+
+    num_ctrl_qubits = len(q) - 1
+    q_ancilla = q[-1]
+    q_target = q[-2]
+    middle = ceil(num_ctrl_qubits / 2)
+    first_half = [*q[:middle]]
+    second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+
+    qc_first_half = synth_mcx_n_dirty_ancillas_ickhc(num_ctrl_qubits=len(first_half))
+    qc_second_half = synth_mcx_n_dirty_ancillas_ickhc(num_ctrl_qubits=len(second_half))
+
+    qc.append(
+        qc_first_half,
+        qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+        cargs=[],
+    )
+    qc.append(
+        qc_second_half,
+        qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+        cargs=[],
+    )
+    qc.append(
+        qc_first_half,
+        qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+        cargs=[],
+    )
+    qc.append(
+        qc_second_half,
+        qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+        cargs=[],
+    )
 
     return qc
