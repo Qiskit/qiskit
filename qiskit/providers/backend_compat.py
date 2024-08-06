@@ -19,10 +19,7 @@ from typing import List, Iterable, Any, Dict, Optional
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
-from qiskit.providers.models.backendconfiguration import BackendConfiguration
-from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 
@@ -30,9 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 def convert_to_target(
-    configuration: BackendConfiguration,
-    properties: BackendProperties = None,
-    defaults: PulseDefaults = None,
+    configuration,
+    properties=None,
+    defaults=None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
     add_delay: bool = True,
     filter_faulty: bool = True,
@@ -44,9 +41,9 @@ def convert_to_target(
     These objects are usually components of the legacy :class:`.BackendV1` model.
 
     Args:
-        configuration: Backend configuration as ``BackendConfiguration``
-        properties: Backend property dictionary or ``BackendProperties``
-        defaults: Backend pulse defaults dictionary or ``PulseDefaults``
+        configuration (BackendConfiguration): Backend configuration as ``BackendConfiguration``
+        properties (BackendProperties): Backend property dictionary or ``BackendProperties``
+        defaults (PulseDefaults): Backend pulse defaults dictionary or ``PulseDefaults``
         custom_name_mapping: A name mapping must be supplied for the operation
             not included in Qiskit Standard Gate name mapping, otherwise the operation
             will be dropped in the resulting ``Target`` object.
@@ -298,7 +295,7 @@ def convert_to_target(
 
 
 def qubit_props_list_from_props(
-    properties: BackendProperties,
+    properties,
 ) -> List[QubitProperties]:
     """Uses BackendProperties to construct
     and return a list of QubitProperties.

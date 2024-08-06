@@ -23,7 +23,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
@@ -44,7 +43,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     basis_gates: Optional[List[str]] = None,
     inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-    backend_properties: Optional[BackendProperties] = None,
+    backend_properties=None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
     layout_method: Optional[str] = None,
     routing_method: Optional[str] = None,
@@ -119,7 +118,8 @@ def transpile(  # pylint: disable=too-many-return-statements
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
-        backend_properties: properties returned by a backend, including information on gate
+        backend_properties (BackendProperties or None): properties returned by a backend,
+            including information on gate
             errors, readout errors, qubit coherence times, etc. Find a backend
             that provides this information with: ``backend.properties()``
         initial_layout: Initial position of virtual qubits on physical qubits.

@@ -54,7 +54,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import QiskitError
-from qiskit.providers.models import BackendProperties
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
@@ -318,7 +317,7 @@ class UnitarySynthesis(TransformationPass):
         basis_gates: list[str] = None,
         approximation_degree: float | None = 1.0,
         coupling_map: CouplingMap = None,
-        backend_props: BackendProperties = None,
+        backend_props=None,
         pulse_optimize: bool | None = None,
         natural_direction: bool | None = None,
         synth_gates: list[str] | None = None,
