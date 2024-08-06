@@ -31,6 +31,19 @@ def synth_mcx_n_dirty_ancillas_ickhc(
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
 
+    if num_ctrl_qubits == 1:
+        qc.cx(q_controls, q_target)
+        return qc
+    elif num_ctrl_qubits == 2:
+        qc.ccx(q_controls[0], q_controls[1], q_target)
+        return qc
+    elif not relative_phase and num_ctrl_qubits == 3:
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library.standard_gates.x import C3XGate
+
+        qc._append(C3XGate(), [*q_controls, q_target], [])
+        return qc
+
     num_ancillas = num_ctrl_qubits - 2
     targets = [q_target] + q_ancillas[:num_ancillas][::-1]
 
