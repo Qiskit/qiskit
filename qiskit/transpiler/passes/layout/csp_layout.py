@@ -22,6 +22,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils import optionals as _optionals
 from qiskit.transpiler.target import Target
+from itertools import combinations
 
 
 @_optionals.HAS_CONSTRAINT.require_in_instance
@@ -86,12 +87,11 @@ class CSPLayout(AnalysisPass):
 
         for gate in dag.two_qubit_ops():
             qubit_connections.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
-            
+
         for gate in dag.multi_qubit_ops():
-            for i in range(len(gate.qargs)):
-                for j in range(i+1,len(gate.qargs)):
-                    qubit_connections.add((qubits.index(gate.qargs[i]), qubits.index(gate.qargs[j]))) #last qubit in qargs will always be the target, thus always on the right here
-        
+            for q0, q1 in combinations(gate.qargs, 2):
+                qubit_connections.add((qubits.index(q0), qubits.index(q1)))
+
         edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
