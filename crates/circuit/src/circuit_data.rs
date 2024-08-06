@@ -859,20 +859,7 @@ impl CircuitData {
                 .iter()?
                 .map(|ob| Param::extract_no_coerce(&ob?))
                 .collect::<PyResult<Vec<_>>>()?;
-            if values.len() != self.param_table.num_parameters() {
-                return Err(PyValueError::new_err(concat!(
-                    "Mismatching number of values and parameters. For partial binding ",
-                    "please pass a dictionary of {parameter: value} pairs."
-                )));
-            }
-            let mut old_table = std::mem::take(&mut self.param_table);
-            self.assign_parameters_inner(
-                sequence.py(),
-                values
-                    .into_iter()
-                    .zip(old_table.drain_ordered())
-                    .map(|(value, (param_ob, uses))| (param_ob, value, uses)),
-            )
+            self.assign_parameters_from_slice(sequence.py(), &values)
         }
     }
 
