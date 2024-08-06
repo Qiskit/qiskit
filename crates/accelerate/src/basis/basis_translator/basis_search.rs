@@ -15,9 +15,7 @@ use std::cell::RefCell;
 use ahash::{HashMap, HashSet};
 use pyo3::prelude::*;
 
-use crate::equivalence::{
-    CircuitRep, EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData,
-};
+use crate::equivalence::{CircuitRep, EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
 use qiskit_circuit::operations::{Operation, Param};
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex, StableDiGraph};
 use rustworkx_core::petgraph::visit::Control;
