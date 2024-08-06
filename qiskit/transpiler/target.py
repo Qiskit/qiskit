@@ -71,9 +71,7 @@ class InstructionProperties(BaseInstructionProperties):
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = [
-        "_calibration",
-    ]
+    __slots__ = ("_calibration", "_view")
 
     def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
@@ -91,6 +89,7 @@ class InstructionProperties(BaseInstructionProperties):
         duration: float | None = None,  # pylint: disable=unused-argument
         error: float | None = None,  # pylint: disable=unused-argument
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
+        view: Any | None = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -104,6 +103,8 @@ class InstructionProperties(BaseInstructionProperties):
         super().__init__()
         self._calibration: CalibrationEntry | None = None
         self.calibration = calibration
+        # Optional view that allows inplace modification of the instruction in the Target
+        self._view = view
 
     @property
     def calibration(self):
@@ -146,19 +147,45 @@ class InstructionProperties(BaseInstructionProperties):
             new_entry = calibration
         self._calibration = new_entry
 
+    @property
+    def error(self):
+        """The error rate for said instruction"""
+        if self._view is None:
+            return super().error
+        else:
+            return self._view.error
+
+    @property
+    def duration(self):
+        """The duration of said instruction"""
+        if self._view is None:
+            return super().duration
+        else:
+            return self._view.duration
+
+    @error.setter
+    def error(self, new_error):
+        if self._view is None:
+            super().error = new_error
+        else:
+            self._view.error = new_error
+
+    @duration.setter
+    def duration(self, new_duration):
+        if self._view is None:
+            super().duration = new_duration
+        else:
+            self._view.duration = new_duration
+
     def __repr__(self):
         return (
             f"InstructionProperties(duration={self.duration}, error={self.error}"
             f", calibration={self._calibration})"
         )
 
-    def __getstate__(self) -> tuple:
-        return (super().__getstate__(), self.calibration, self._calibration)
-
-    def __setstate__(self, state: tuple):
-        super().__setstate__(state[0])
-        self.calibration = state[1]
-        self._calibration = state[2]
+    def __getnewargs__(self) -> tuple:
+        duration, error = super().__getnewargs__()
+        return (duration, error, self.calibration, self._calibration, None)
 
 
 class Target(BaseTarget):
@@ -427,6 +454,10 @@ class Target(BaseTarget):
         if instruction_name in self._gate_map:
             raise AttributeError(f"Instruction {instruction_name} is already in the target")
         super().add_instruction(instruction, instruction_name, properties)
+        prop_views = super().__getitem__(instruction_name)
+        for key in properties:
+            if properties[key] is not None:
+                properties[key]._view = prop_views[key]
         self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
@@ -444,6 +475,8 @@ class Target(BaseTarget):
         """
         super().update_instruction_properties(instruction, qargs, properties)
         self._gate_map[instruction][qargs] = properties
+        if self._gate_map[instruction][qargs] is not None:
+            self._gate_map[instruction][qargs]._view = super().__getitem__(instruction)[qargs]
         self._instruction_durations = None
         self._instruction_schedule_map = None
 

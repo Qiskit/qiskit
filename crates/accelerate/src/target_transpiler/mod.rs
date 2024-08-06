@@ -22,8 +22,11 @@ use ahash::RandomState;
 
 use ahash::HashSet;
 use indexmap::{IndexMap, IndexSet};
+use instruction_properties::InstructionPropertiesViewMut;
 use itertools::Itertools;
 use nullable_index_map::NullableIndexMap;
+use pyo3::exceptions::PyTypeError;
+use pyo3::types::IntoPyDict;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
@@ -897,6 +900,34 @@ impl Target {
             .unwrap()
             .extract::<Option<Vec<String>>>()?;
         Ok(())
+    }
+
+    fn __getitem__(slf: Py<Self>, key: Bound<PyAny>) -> PyResult<Py<PyDict>> {
+        let Ok(extract_key) = key.extract::<String>() else {return Err(PyTypeError::new_err(format!("Target does not support '{}' as a key.", key.get_type().repr()?)))};
+        let borrowed_self = slf.borrow(key.py());
+        if let Some(prop_map) = borrowed_self.gate_map.get(&extract_key) {
+            let dict: Vec<_> = prop_map
+                .iter()
+                .map(|(sub_key, _)| {
+                    (
+                        sub_key.map(|x| PyTuple::new_bound(key.py(), x)),
+                        InstructionPropertiesViewMut {
+                            source: slf.clone_ref(key.py()),
+                            key: extract_key.clone(),
+                            sub_key: sub_key.cloned(),
+                        }
+                        .into_py(key.py()),
+                    )
+                })
+                .collect();
+            let dict = dict.into_py_dict_bound(key.py());
+            Ok(dict.unbind())
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Key '{}' not in Target.",
+                extract_key
+            )))
+        }
     }
 }
 
