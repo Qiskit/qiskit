@@ -515,12 +515,11 @@ def _get_gate_span(qubits, node):
 
 def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node)
-    all_indices = []
-    for check_node in nodes:
-        if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
-    return any(i in gate_span for i in all_indices)
+    return bool(
+        set(_get_gate_span(qubits, node)).intersection(
+            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        )
+    )
 
 
 class _LayerSpooler(list):
