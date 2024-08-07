@@ -45,7 +45,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         The result of this class is exact if the circuit contains only unitary operations.
         On the other hand, the result could be stochastic if the circuit contains a non-unitary
         operation such as a reset for a some subsystems.
-        The stochastic result can be reproducible by setting ``seed``, e.g.,
+        The stochastic result can be made reproducible by setting ``seed``, e.g.,
         ``StatevectorEstimator(seed=123)``.
 
     .. plot::
