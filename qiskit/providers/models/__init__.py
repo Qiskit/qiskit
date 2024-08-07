@@ -38,6 +38,7 @@ Classes
    GateProperties
    Nduv
 """
+import warnings
 
 from .backendconfiguration import (
     BackendConfiguration,
@@ -50,3 +51,13 @@ from .backendproperties import BackendProperties, GateProperties, Nduv
 from .backendstatus import BackendStatus
 from .jobstatus import JobStatus
 from .pulsedefaults import PulseDefaults, Command
+
+
+warnings.warn(
+    "qiskit.providers.models is deprecated since Qiskit 1.2 and will be removed in Qiskit 2.0. "
+    "With the removal of Qobj, there is no need for these schema-conformant objects. If you still need "
+    "to use them, it could be because you are using a BackendV1, which is also deprecated in favor "
+    "of BackendV2.",
+    DeprecationWarning,
+    2,
+)

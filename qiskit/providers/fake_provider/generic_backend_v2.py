@@ -266,27 +266,36 @@ class GenericBackendV2(BackendV2):
         # Note that the calibration pulses are different for
         # 1q gates vs 2q gates vs measurement instructions.
         if inst == "measure":
-            sequence = [
-                PulseQobjInstruction(
-                    name="acquire",
-                    duration=1792,
-                    t0=0,
-                    qubits=qargs,
-                    memory_slot=qargs,
-                )
-            ] + [PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0) for i in qargs]
+            with warnings.catch_warnings():
+                # The class PulseQobjInstruction is deprecated
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                sequence = [
+                    PulseQobjInstruction(
+                        name="acquire",
+                        duration=1792,
+                        t0=0,
+                        qubits=qargs,
+                        memory_slot=qargs,
+                    )
+                ] + [
+                    PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0)
+                    for i in qargs
+                ]
             return sequence
-        if num_qubits == 1:
+        with warnings.catch_warnings():
+            # The class PulseQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            if num_qubits == 1:
+                return [
+                    PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
+                    PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
+                ]
             return [
-                PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
-                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
+                PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
+                PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
             ]
-        return [
-            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
-            PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
-            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
-            PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
-        ]
 
     def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate pulse calibration defaults as specified with `self._calibrate_instructions`.
@@ -406,7 +415,9 @@ class GenericBackendV2(BackendV2):
                 noise_params = self._get_noise_defaults(name, gate.num_qubits)
                 self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
             else:
-                self._target.add_instruction(gate, properties=None, name=name)
+                qarg_set = self._coupling_map if gate.num_qubits > 1 else range(self.num_qubits)
+                props = {(qarg,) if isinstance(qarg, int) else qarg: None for qarg in qarg_set}
+                self._target.add_instruction(gate, properties=props, name=name)
 
         if self._control_flow:
             self._target.add_instruction(IfElseOp, name="if_else")
@@ -556,18 +567,12 @@ class GenericBackendV2(BackendV2):
 
     @classmethod
     def _default_options(cls) -> Options:
-        with warnings.catch_warnings():  # TODO remove catch once aer release without Provider ABC
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=".+abstract Provider and ProviderV1.+",
-            )
-            if _optionals.HAS_AER:
-                from qiskit_aer import AerSimulator
+        if _optionals.HAS_AER:
+            from qiskit_aer import AerSimulator
 
-                return AerSimulator._default_options()
-            else:
-                return BasicSimulator._default_options()
+            return AerSimulator._default_options()
+        else:
+            return BasicSimulator._default_options()
 
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})

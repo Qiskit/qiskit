@@ -13,7 +13,7 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from functools import lru_cache
-from typing import List, Union
+from typing import List, Union, Set, Optional
 import numpy as np
 
 from qiskit import QiskitError
@@ -21,10 +21,30 @@ from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators import Operator
-from qiskit._accelerate.circuit import StandardGate
 
 _skipped_op_names = {"measure", "reset", "delay", "initialize"}
 _no_cache_op_names = {"annotated"}
+
+_supported_ops = {
+    "h",
+    "x",
+    "y",
+    "z",
+    "sx",
+    "sxdg",
+    "t",
+    "tdg",
+    "s",
+    "sdg",
+    "cx",
+    "cy",
+    "cz",
+    "swap",
+    "iswap",
+    "ecr",
+    "ccx",
+    "cswap",
+}
 
 
 @lru_cache(maxsize=None)
@@ -43,7 +63,13 @@ class CommutationChecker:
     evicting from the cache less useful entries, etc.
     """
 
-    def __init__(self, standard_gate_commutations: dict = None, cache_max_entries: int = 10**6):
+    def __init__(
+        self,
+        standard_gate_commutations: dict = None,
+        cache_max_entries: int = 10**6,
+        *,
+        gates: Optional[Set[str]] = None,
+    ):
         super().__init__()
         if standard_gate_commutations is None:
             self._standard_commutations = {}
@@ -57,6 +83,7 @@ class CommutationChecker:
         self._current_cache_entries = 0
         self._cache_miss = 0
         self._cache_hit = 0
+        self._gate_names = gates
 
     def commute_nodes(
         self,
@@ -67,11 +94,11 @@ class CommutationChecker:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
         cargs1 = op2.cargs
-        if not isinstance(op1._raw_op, StandardGate):
+        if not op1.is_standard_gate():
             op1 = op1.op
         qargs2 = op2.qargs
         cargs2 = op2.cargs
-        if not isinstance(op2._raw_op, StandardGate):
+        if not op2.is_standard_gate():
             op2 = op2.op
         return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 
@@ -104,6 +131,11 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
+        # Skip gates that are not specified.
+        if self._gate_names is not None:
+            if op1.name not in self._gate_names or op2.name not in self._gate_names:
+                return False
+
         structural_commutation = _commutation_precheck(
             op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits
         )
@@ -232,59 +264,38 @@ def _hashable_parameters(params):
     return ("fallback", str(params))
 
 
-def is_commutation_supported(op):
+def is_commutation_supported(op, qargs, max_num_qubits):
     """
     Filter operations whose commutation is not supported due to bugs in transpiler passes invoking
     commutation analysis.
     Args:
-        op (Operation): operation to be checked for commutation relation
+        op (Operation): operation to be checked for commutation relation.
+        qargs (list[Qubit]): qubits the operation acts on.
+        max_num_qubits (int): The maximum number of qubits to check commutativity for.
+
     Return:
         True if determining the commutation of op is currently supported
     """
-    # Bug in CommutativeCancellation, e.g. see gh-8553
-    if getattr(op, "condition", False):
+    # If the number of qubits is beyond what we check, stop here and do not even check in the
+    # pre-defined supported operations
+    if len(qargs) > max_num_qubits:
         return False
+
+    # Check if the operation is pre-approved, otherwise go through the checks
+    if op.name in _supported_ops:
+        return True
 
     # Commutation of ControlFlow gates also not supported yet. This may be pending a control flow graph.
     if op.name in CONTROL_FLOW_OP_NAMES:
         return False
 
-    return True
-
-
-def is_commutation_skipped(op, qargs, max_num_qubits):
-    """
-    Filter operations whose commutation will not be determined.
-    Args:
-        op (Operation): operation to be checked for commutation relation
-        qargs (List): operation qubits
-        max_num_qubits (int): the maximum number of qubits to consider, the check may be skipped if
-                the number of qubits for either operation exceeds this amount.
-    Return:
-        True if determining the commutation of op is currently not supported
-    """
-    if (
-        len(qargs) > max_num_qubits
-        or getattr(op, "_directive", False)
-        or op.name in _skipped_op_names
-    ):
-        return True
-
-    if getattr(op, "is_parameterized", False) and op.is_parameterized():
-        return True
-
-    from qiskit.dagcircuit.dagnode import DAGOpNode
-
-    # we can proceed if op has defined: to_operator, to_matrix and __array__, or if its definition can be
-    # recursively resolved by operations that have a matrix. We check this by constructing an Operator.
-    if (
-        isinstance(op, DAGOpNode)
-        or (hasattr(op, "to_matrix") and hasattr(op, "__array__"))
-        or hasattr(op, "to_operator")
-    ):
+    if getattr(op, "_directive", False) or op.name in _skipped_op_names:
         return False
 
-    return False
+    if getattr(op, "is_parameterized", False) and op.is_parameterized():
+        return False
+
+    return True
 
 
 def _commutation_precheck(
@@ -296,13 +307,14 @@ def _commutation_precheck(
     cargs2: List,
     max_num_qubits,
 ):
-    if not is_commutation_supported(op1) or not is_commutation_supported(op2):
+    # Bug in CommutativeCancellation, e.g. see gh-8553
+    if getattr(op1, "condition", False) or getattr(op2, "condition", False):
         return False
 
     if set(qargs1).isdisjoint(qargs2) and set(cargs1).isdisjoint(cargs2):
         return True
 
-    if is_commutation_skipped(op1, qargs1, max_num_qubits) or is_commutation_skipped(
+    if not is_commutation_supported(op1, qargs1, max_num_qubits) or not is_commutation_supported(
         op2, qargs2, max_num_qubits
     ):
         return False
@@ -410,7 +422,10 @@ def _query_commutation(
             first_params = getattr(first_op, "params", [])
             second_params = getattr(second_op, "params", [])
             return commutation_after_placement.get(
-                (_hashable_parameters(first_params), _hashable_parameters(second_params)),
+                (
+                    _hashable_parameters(first_params),
+                    _hashable_parameters(second_params),
+                ),
                 None,
             )
         else:

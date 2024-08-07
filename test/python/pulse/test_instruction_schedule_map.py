@@ -100,7 +100,9 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_has_from_mock(self):
         """Test `has` and `assert_has` from mock data."""
-        inst_map = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
+        inst_map = backend.defaults().instruction_schedule_map
         self.assertTrue(inst_map.has("u1", [0]))
         self.assertTrue(inst_map.has("cx", (0, 1)))
         self.assertTrue(inst_map.has("u3", 0))
@@ -229,7 +231,9 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_has_from_mock_gate(self):
         """Test `has` and `assert_has` from mock data."""
-        inst_map = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
+        inst_map = backend.defaults().instruction_schedule_map
         self.assertTrue(inst_map.has(U1Gate(0), [0]))
         self.assertTrue(inst_map.has(CXGate(), (0, 1)))
         self.assertTrue(inst_map.has(U3Gate(0, 0, 0), 0))
@@ -305,12 +309,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_sequenced_parameterized_schedule(self):
         """Test parameterized schedule consists of multiple instruction."""
 
-        converter = QobjToInstructionConverter([], buffer=0)
-        qobjs = [
-            PulseQobjInstruction(name="fc", ch="d0", t0=10, phase="P1"),
-            PulseQobjInstruction(name="fc", ch="d0", t0=20, phase="P2"),
-            PulseQobjInstruction(name="fc", ch="d0", t0=30, phase="P3"),
-        ]
+        with self.assertWarns(DeprecationWarning):
+            converter = QobjToInstructionConverter([], buffer=0)
+            qobjs = [
+                PulseQobjInstruction(name="fc", ch="d0", t0=10, phase="P1"),
+                PulseQobjInstruction(name="fc", ch="d0", t0=20, phase="P2"),
+                PulseQobjInstruction(name="fc", ch="d0", t0=30, phase="P3"),
+            ]
         converted_instruction = [converter(qobj) for qobj in qobjs]
 
         inst_map = InstructionScheduleMap()
@@ -530,14 +535,18 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_two_instmaps_equal(self):
         """Test eq method when two instmaps are identical."""
-        instmap1 = Fake7QPulseV1().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
+        instmap1 = backend.defaults().instruction_schedule_map
         instmap2 = copy.deepcopy(instmap1)
 
         self.assertEqual(instmap1, instmap2)
 
     def test_two_instmaps_different(self):
         """Test eq method when two instmaps are not identical."""
-        instmap1 = Fake7QPulseV1().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
+        instmap1 = backend.defaults().instruction_schedule_map
         instmap2 = copy.deepcopy(instmap1)
 
         # override one of instruction
@@ -547,7 +556,9 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_instmap_picklable(self):
         """Test if instmap can be pickled."""
-        instmap = Fake7QPulseV1().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
+        instmap = backend.defaults().instruction_schedule_map
 
         ser_obj = pickle.dumps(instmap)
         deser_instmap = pickle.loads(ser_obj)
@@ -561,7 +572,9 @@ class TestInstructionScheduleMap(QiskitTestCase):
         in which arguments are provided by users in the form of
         python dict key object that is not picklable.
         """
-        instmap = Fake7QPulseV1().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
+        instmap = backend.defaults().instruction_schedule_map
 
         param1 = Parameter("P1")
         param2 = Parameter("P2")
@@ -581,14 +594,18 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_check_backend_provider_cals(self):
         """Test if schedules provided by backend provider is distinguishable."""
-        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
+        instmap = backend.defaults().instruction_schedule_map
         publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
 
         self.assertEqual(publisher, CalibrationPublisher.BACKEND_PROVIDER)
 
     def test_check_user_cals(self):
         """Test if schedules provided by user is distinguishable."""
-        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
+        instmap = backend.defaults().instruction_schedule_map
 
         test_u1 = Schedule()
         test_u1 += ShiftPhase(Parameter("P0"), DriveChannel(0))
@@ -600,7 +617,8 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
     def test_has_custom_gate(self):
         """Test method to check custom gate."""
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         instmap = backend.defaults().instruction_schedule_map
 
         self.assertFalse(instmap.has_custom_gate())

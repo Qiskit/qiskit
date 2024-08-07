@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Sampler class
+Sampler V1 reference implementation
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
+from qiskit.utils.deprecation import deprecate_func
 
 from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
@@ -37,9 +38,9 @@ from .utils import (
 
 class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """
-    Sampler class.
+    Sampler V1 class.
 
-    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler`.
+    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler` (V1).
 
     :Run Options:
 
@@ -52,6 +53,12 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
           option is ignored.
     """
 
+    @deprecate_func(
+        since="1.2",
+        additional_msg="All implementations of the `BaseSamplerV1` interface "
+        "have been deprecated in favor of their V2 counterparts. "
+        "The V2 alternative for the `Sampler` class is `StatevectorSampler`.",
+    )
     def __init__(self, *, options: dict | None = None):
         """
         Args:
