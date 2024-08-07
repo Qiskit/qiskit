@@ -472,7 +472,7 @@ def _get_layered_instructions(
             if wire in clbits:
                 clbits.remove(wire)
 
-    nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
+    # nodes = [[node for node in layer if len(node.qargs) == 0 or any(q in qubits for q in node.qargs)] for layer in nodes] -> remove when confirm not needed
 
     return qubits, clbits, nodes
 
@@ -555,6 +555,13 @@ class _LayerSpooler(list):
                 dag_nodes = _sorted_nodes(dag_layer)
                 for node in dag_nodes:
                     self.add(node, current_index)
+
+        i = 0
+        # adds operators that don't work on any bit
+        for node in dag.topological_op_nodes():
+            if node.num_qubits == 0 and node.num_clbits == 0:
+                self.insert(i, [node])
+                i += 1  # used to ensure order matches that of which the user added the gates
 
     def is_found_in(self, node, nodes):
         """Is any qreq in node found in any of nodes?"""
