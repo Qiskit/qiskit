@@ -1128,6 +1128,7 @@ class MatplotlibDrawer:
 
                 # draws zero_operands
                 elif node_data[node].zero_operand == True:
+                    print(type(op))
                     self._zero_operand_gate(node, node_data, glob_data)
 
                 # draw multi-qubit gate as final default
