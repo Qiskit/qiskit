@@ -80,7 +80,10 @@ pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
 pub static VARIABLE_MAPPER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit._classical_resource_map", "VariableMapper");
+pub static IF_ELSE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "IfElseOp");
+pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "ForLoopOp");
 pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
+pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
 pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
 pub static EXPR: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classical.expr", "Expr");
 pub static ITER_VARS: ImportOnceCell =
