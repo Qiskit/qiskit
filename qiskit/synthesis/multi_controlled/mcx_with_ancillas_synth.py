@@ -30,7 +30,7 @@ def synth_mcx_n_dirty_ancillas_ickhc(
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_n_dirty_ancillas")
+    qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -118,7 +118,7 @@ def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_n_clean_ancillas")
+    qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -166,7 +166,7 @@ def synth_mcx_one_clean_ancilla_bbcdmssw(num_ctrl_qubits: int):
 
     num_qubits = num_ctrl_qubits + 2
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_one_clean_ancilla")
+    qc = QuantumCircuit(q, name="mcx_recursive")
 
     num_ctrl_qubits = len(q) - 1
     q_ancilla = q[-1]
