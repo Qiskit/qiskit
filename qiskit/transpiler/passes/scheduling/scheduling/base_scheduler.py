@@ -72,7 +72,7 @@ class BaseScheduler(AnalysisPass):
             # Note that node duration is updated (but this is analysis pass)
             op = node.op.to_mutable()
             op.duration = duration
-            dag.substitute_node(node, op)
+            dag.substitute_node(node, op, propagate_condition=False)
         else:
             duration = node.duration
 
