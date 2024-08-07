@@ -13,7 +13,7 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 from typing import Optional, Union, Type
-from math import ceil, pi
+from math import pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -1374,7 +1374,7 @@ class MCXRecursive(MCXGate):
 
         from qiskit.synthesis.multi_controlled import synth_mcx_one_clean_ancilla_bbcdmssw
 
-        qc = synth_mcx_one_clean_ancilla_bbcdmssw(self.num_qubits, self.num_ctrl_qubits)
+        qc = synth_mcx_one_clean_ancilla_bbcdmssw(self.num_ctrl_qubits)
         self.definition = qc
 
 
@@ -1490,6 +1490,6 @@ class MCXVChain(MCXGate):
         else:  # use clean ancillas
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_ancillas
 
-            qc = synth_mcx_n_clean_ancillas(self.num_qubits, self.num_ctrl_qubits)
+            qc = synth_mcx_n_clean_ancillas(self.num_ctrl_qubits)
 
         self.definition = qc

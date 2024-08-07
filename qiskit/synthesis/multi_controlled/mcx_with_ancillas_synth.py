@@ -107,7 +107,7 @@ def synth_mcx_n_dirty_ancillas_ickhc(
     return qc
 
 
-def synth_mcx_n_clean_ancillas(num_qubits: int, num_ctrl_qubits: int = None):
+def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
     """Synthesis of an MCX gate with n controls and n-2 clean ancillary qubits,
     producing a circuit with at most 6*n-6 CX gates"""
 
@@ -115,6 +115,7 @@ def synth_mcx_n_clean_ancillas(num_qubits: int, num_ctrl_qubits: int = None):
     from qiskit.circuit.quantumregister import QuantumRegister
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+    num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
@@ -140,7 +141,7 @@ def synth_mcx_n_clean_ancillas(num_qubits: int, num_ctrl_qubits: int = None):
     return qc
 
 
-def synth_mcx_one_clean_ancilla_bbcdmssw(num_qubits, num_ctrl: int):
+def synth_mcx_one_clean_ancilla_bbcdmssw(num_ctrl_qubits: int):
     """Implement an MCX gate with n controls using one clean ancilla qubit,
     producing a circuit with at most 16*n-8 CX gates."""
 
@@ -149,16 +150,21 @@ def synth_mcx_one_clean_ancilla_bbcdmssw(num_qubits, num_ctrl: int):
     from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.circuit.library.standard_gates.x import C3XGate, C4XGate
 
-    q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_recursive")
-
-    if num_ctrl == 3:
+    if num_ctrl_qubits == 3:
+        q = QuantumRegister(4, name="q")
+        qc = QuantumCircuit(q, name="mcx_recursive")
         qc._append(C3XGate(), q[:], [])
         return qc
 
-    elif num_ctrl == 4:
+    elif num_ctrl_qubits == 4:
+        q = QuantumRegister(5, name="q")
+        qc = QuantumCircuit(q, name="mcx_recursive")
         qc._append(C4XGate(), q[:], [])
         return qc
+
+    num_qubits = num_ctrl_qubits + 2
+    q = QuantumRegister(num_qubits, name="q")
+    qc = QuantumCircuit(q, name="mcx_recursive")
 
     num_ctrl_qubits = len(q) - 1
     q_ancilla = q[-1]
