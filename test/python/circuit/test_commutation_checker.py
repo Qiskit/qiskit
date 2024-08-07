@@ -23,7 +23,7 @@ from qiskit.circuit import (
     Qubit,
     AnnotatedOperation,
     InverseModifier,
-    ControlModifier,
+    ControlModifier, Gate,
 )
 from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
@@ -47,6 +47,15 @@ from qiskit.circuit.library import (
     RXXGate,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+class NewGateCX(Gate):
+    def __init__(self):
+        super().__init__("new_cx", 2, [])
+
+    def to_matrix(self):
+        return np.array([[1,0,0,0],[0,0,0,1],[0,0,1,0],[0,1,0,0]], dtype=complex)
+
 
 
 def commutation_rust(op1, qarg1, carg1, op2, qarg2, carg2):
@@ -145,8 +154,6 @@ class TestCommutationChecker(QiskitTestCase):
     def test_caching_positive_results(self):
         """Check that hashing positive results in commutativity checker works as expected."""
         cc.clear_cached_commutations()
-        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
-        NewGateCX.name = "cx_new"
 
         self.assertTrue(scc.commute(ZGate(), [0], [], NewGateCX(), [0, 1], []))
         self.assertTrue(commutation_rust(ZGate(), [0], [], NewGateCX(), [0, 1], []))
@@ -165,8 +172,7 @@ class TestCommutationChecker(QiskitTestCase):
     def test_caching_store_and_lookup_with_non_overlapping_qubits(self):
         """Check that commutations storing and lookup with non-overlapping qubits works as expected."""
         cc_lenm = cc.num_cached_entries()
-        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
-        NewGateCX.name = "cx_new"
+
         self.assertTrue(scc.commute(NewGateCX(), [0, 2], [], CXGate(), [0, 1], []))
         self.assertTrue(commutation_rust(NewGateCX(), [0, 2], [], CXGate(), [0, 1], []))
         self.assertFalse(scc.commute(NewGateCX(), [0, 1], [], CXGate(), [1, 2], []))
@@ -180,8 +186,6 @@ class TestCommutationChecker(QiskitTestCase):
     def test_caching_negative_results(self):
         """Check that hashing negative results in commutativity checker works as expected."""
         cc.clear_cached_commutations()
-        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
-        NewGateCX.name = "cx_new"
 
         self.assertFalse(scc.commute(XGate(), [0], [], NewGateCX(), [0, 1], []))
         self.assertFalse(commutation_rust(XGate(), [0], [], NewGateCX(), [0, 1], []))
@@ -191,8 +195,6 @@ class TestCommutationChecker(QiskitTestCase):
     def test_caching_different_qubit_sets(self):
         """Check that hashing same commutativity results over different qubit sets works as expected."""
         cc.clear_cached_commutations()
-        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
-        NewGateCX.name = "cx_new"
         # All the following should be cached in the same way
         # though each relation gets cached twice: (A, B) and (B, A)
         commutation_rust(XGate(), [0], [], NewGateCX(), [0, 1], [])
@@ -424,13 +426,32 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertFalse(scc.commute(MCXGate(29), list(range(30)), [], XGate(), [0], []))
         self.assertFalse(commutation_rust(MCXGate(29), list(range(30)), [], XGate(), [0], []))
 
-
     def test_wide_gates_over_disjoint_qubits(self):
         """Test that wide gates still commute when they are over disjoint sets of qubits."""
         self.assertTrue(scc.commute(MCXGate(29), list(range(30)), [], XGate(), [30], []))
         self.assertTrue(commutation_rust(MCXGate(29), list(range(30)), [], XGate(), [30], []))
         self.assertTrue(scc.commute(XGate(), [30], [], MCXGate(29), list(range(30)), []))
         self.assertTrue(commutation_rust(XGate(), [30], [], MCXGate(29), list(range(30)), []))
+
+    def test_serialization(self):
+        import pickle
+        cc.clear_cached_commutations()
+        self.assertTrue(commutation_rust(ZGate(), [0], [], NewGateCX(), [0, 1], []))
+        cc2 = pickle.loads(pickle.dumps(cc))
+        self.assertEqual(cc2._cache_miss, 1)
+        self.assertEqual(cc2._cache_hit, 0)
+        self.assertEqual(cc2.num_cached_entries(), 1)
+        dop1 = DAGOpNode(ZGate(), qargs=[0], cargs=[])
+        dop2 = DAGOpNode(NewGateCX(), qargs=[0, 1], cargs=[])
+        cc2.commute_nodes(dop1, dop2)
+        dop1 = DAGOpNode(ZGate(), qargs=[0], cargs=[])
+        dop2 = DAGOpNode(CXGate(), qargs=[0, 1], cargs=[])
+        cc2.commute_nodes(dop1, dop2)
+        self.assertEqual(cc2._cache_miss, 1)
+        self.assertEqual(cc2._cache_hit, 1)
+        self.assertEqual(cc2.num_cached_entries(), 1)
+
+
 
 
 if __name__ == "__main__":

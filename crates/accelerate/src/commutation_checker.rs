@@ -12,7 +12,8 @@
 
 use hashbrown::HashMap;
 use approx::abs_diff_eq;
-
+use faer::linalg::matmul::outer_prod::outer_prod_with_conj;
+use hashbrown::hash_map::Iter;
 use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -20,7 +21,7 @@ use smallvec::SmallVec;
 
 use crate::unitary_compose::compose;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict};
+use pyo3::types::{PyBool, PyDict, PyTuple};
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
@@ -54,11 +55,30 @@ impl<'py> FromPyObject<'py> for CommutationLibraryEntry {
     }
 }
 
+impl ToPyObject for CommutationLibraryEntry {
+    fn to_object(&self, py: Python) -> PyObject {
+
+        match self{
+            CommutationLibraryEntry::Commutes(b) => { PyBool::new_bound(py, *b).to_object(py)},
+            CommutationLibraryEntry::QubitMapping(qm) => {
+                let out_dict = PyDict::new_bound(py);
+
+                qm.iter().for_each(|(k, v)| out_dict.set_item(PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0 as u32)).collect::<Vec<Option<u32>>>()).to_object(py), PyBool::new_bound(py, true).to_object(py)).ok().unwrap());
+                //qm.get(&CommutationChecker::get_relative_placement(first_qargs, second_qargs)).copied()
+                out_dict.to_object(py)},
+        }
+        // if bool just return
+        // if qubitmapping, create new dictionary, fill dictionary return dictionary
+
+
+    }
+}
+
 
 #[derive(Clone)]
 #[pyclass]
 pub struct CommutationLibrary {
-    pub library: HashMap<[String; 2], CommutationLibraryEntry>,
+    pub library: HashMap<(String, String), CommutationLibraryEntry>,
 }
 
 impl CommutationLibrary {
@@ -70,30 +90,117 @@ impl CommutationLibrary {
         second_qargs: &Vec<usize>,
     ) -> Option<bool> {
 
-        println!("checking in lib {:?} {:?} {:?} {:?} {:?}", first_op.name(), first_qargs, second_op.name(), second_qargs, CommutationChecker::get_relative_placement(first_qargs, second_qargs));
-        match self.library.get(&[first_op.name().to_string(), second_op.name().to_string()]){
-            Some(CommutationLibraryEntry::Commutes(b)) => {println!("some b {:?}", b); Some(*b)},
-            Some(CommutationLibraryEntry::QubitMapping(qm)) => {println!("some qmn {:?}", qm); println!("some qmentry {:?}", qm.get(&CommutationChecker::get_relative_placement(first_qargs, second_qargs)).copied()); qm.get(&CommutationChecker::get_relative_placement(first_qargs, second_qargs)).copied()},
-            _ => {println!("not found! :-("); None}
+        //println!("checking in lib {:?} {:?} {:?} {:?} {:?}", first_op.name(), first_qargs, second_op.name(), second_qargs, CommutationChecker::get_relative_placement(first_qargs, second_qargs));
+        match self.library.get(&(first_op.name().to_string(), second_op.name().to_string())){
+            Some(CommutationLibraryEntry::Commutes(b)) => { Some(*b)},
+            Some(CommutationLibraryEntry::QubitMapping(qm)) => {qm.get(&CommutationChecker::get_relative_placement(first_qargs, second_qargs)).copied()},
+            _ => {None}
         }
     }
 }
 
-#[pymethods]
-impl CommutationLibrary {
-    #[new]
-    fn new(library: HashMap<[String; 2], CommutationLibraryEntry>) -> Self {
-        CommutationLibrary { library }
+
+impl ToPyObject for CommutationLibrary {
+    fn to_object(&self, py: Python) -> PyObject {
+        Python::with_gil( |py| {
+            self.library.to_object( py )
+        })
     }
 }
 
-type CommutationCacheEntry = HashMap<
+
+#[pymethods]
+impl CommutationLibrary {
+    #[new]
+    fn new(py: Python, py_any: Option<Py<PyAny>>) -> Self {
+        //let py_dict = py_any.bdowncast::<PyDict>().expect("orivuded ibhect iuwas nbit pydict");
+        match py_any {
+            Some(pyob) => {
+                CommutationLibrary { library: pyob.bind(py).extract::<HashMap<(String, String), CommutationLibraryEntry>>().expect("Input parameter standard_gate_commutations to CommutationChecker was not a dict with the right format")}
+
+            },
+            None => CommutationLibrary { library: HashMap::new() }
+        }
+
+
+    }
+}
+
+//need a struct instead of a type definition because we cannot implement serialization traits otherwise
+#[derive(Clone)]
+struct CommutationCacheEntry{
+    mapping :HashMap<
+    (
+        SmallVec<[Option<Qubit>; 2]>,
+        (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
+    ),
+    bool,
+>
+}
+impl CommutationCacheEntry{
+    fn get(
+        &self,
+        key: &(SmallVec<[Option<Qubit>; 2]>,
+               (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>)),
+    ) -> Option<&bool> {
+        self.mapping.get(key)
+    }
+    fn iter(&self) -> Iter<'_, (SmallVec<[Option<Qubit>; 2]>,
+                                (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>)), bool> {
+        self.mapping.iter()
+    }
+
+    fn insert(&mut self, k: (SmallVec<[Option<Qubit>; 2]>,
+                             (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>)), v: bool) -> Option<bool>{self.mapping.insert(k, v)}
+}
+
+
+impl ToPyObject for CommutationCacheEntry{
+    fn to_object(&self, py: Python) -> PyObject {
+        let out_dict = PyDict::new_bound(py);
+        for (k, v) in self.mapping.iter() {
+            let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0 as u32)).collect::<Vec<Option<u32>>>()).to_object(py);
+            let params0 = PyTuple::new_bound(py, k.1.0.iter().map(|pk| pk.0).collect::<Vec<f64>>()).to_object(py);
+            let params1 = PyTuple::new_bound(py, k.1.1.iter().map(|pk| pk.0).collect::<Vec<f64>>()).to_object(py);
+            out_dict.set_item(PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1].iter().collect::<Vec<&PyObject>>()).to_object(py)].iter().collect::<Vec<&PyObject>>()), PyBool::new_bound(py, *v).to_object(py)).expect("Failed to construct commutation cache for serialization");
+        }
+        //self.iter().for_each(|(k, v)| out_dict.set_item(PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0 as u32)).collect::<Vec<Option<u32>>>()).to_object(py), PyBool::new_bound(py, true).to_object(py)).ok().unwrap());
+        //qm.get(&CommutationChecker::get_relative_placement(first_qargs, second_qargs)).copied()
+        out_dict.to_object(py)
+    }
+}
+
+
+impl<'py> FromPyObject<'py> for CommutationCacheEntry{
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        let dict = b.downcast::<PyDict>()?;
+        let mut ret = hashbrown::HashMap::with_capacity(dict.len());
+        for (k, v) in dict {
+            let raw_key: (SmallVec<[Option<u32>; 2]>,
+                          (SmallVec<[f64; 3]>, SmallVec<[f64; 3]>)) = k.extract()?;
+            let qubits = raw_key.0.iter().map(|q| q.map(|t| Qubit(t))).collect();
+            let params0: SmallVec<_> = raw_key.1.0.iter().map(|p| ParameterKey(*p)).collect();
+            let params1: SmallVec<_> = raw_key.1.1.iter().map(|p| ParameterKey(*p)).collect();
+
+            let v: bool = v.extract()?;
+
+
+            ret.insert((qubits, (params0, params1)), v);
+        }
+        Ok(CommutationCacheEntry { mapping: ret})
+    }
+}
+/*
+ HashMap<
     (
         SmallVec<[Option<Qubit>; 2]>,
         [SmallVec<[ParameterKey; 3]>; 2],
     ),
     bool,
->;
+*/
+
+
+
 
 #[derive(Debug, Copy, Clone)]
 struct ParameterKey(f64);
@@ -126,23 +233,20 @@ fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
         .iter()
         .map(|x| {
             if let Param::Float(x) = x {
-                println!("ok {:?}", x);
                 ParameterKey(*x)
             } else {
-                println!("{:?}", x);
-                println!("{:?}", *x);
                 panic!()
             }
         })
         .collect()
 }
 
-
-#[pyclass]
+//#[pyclass(module = "CommutationChecker")]
+#[pyclass(module = "qiskit._accelerate.commutation_checker")]
 struct CommutationChecker {
     library: CommutationLibrary,
     cache_max_entries: usize,
-    cache: HashMap<[String; 2], CommutationCacheEntry>,
+    cache: HashMap<(String, String), CommutationCacheEntry>,
     #[pyo3(get)]
     current_cache_entries: usize,
     #[pyo3(get)]
@@ -156,12 +260,12 @@ impl CommutationChecker {
     #[pyo3(signature = (standard_gate_commutations=None, cache_max_entries=1_000_000))]
     #[new]
     fn py_new(
-        standard_gate_commutations: Option<CommutationLibrary>,
+        py: Python,
+        standard_gate_commutations: Option<Py<PyAny>>,
         cache_max_entries: usize,
     ) -> Self {
         CommutationChecker {
-            library: standard_gate_commutations
-                .unwrap_or_else(|| CommutationLibrary::new(HashMap::new())),
+            library: CommutationLibrary::new(py, standard_gate_commutations),
             cache: HashMap::with_capacity(cache_max_entries),
             cache_max_entries,
             current_cache_entries: 0,
@@ -170,26 +274,26 @@ impl CommutationChecker {
         }
     }
 
-    fn __getstate__(&self)  {
-
+    fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
+        let out_dict = PyDict::new_bound(py);
+        out_dict.set_item("cache_max_entries", self.cache_max_entries.clone())?;
+        out_dict.set_item("current_cache_entries", self.current_cache_entries.clone())?;
+        out_dict.set_item("_cache_miss", self._cache_miss.clone())?;
+        out_dict.set_item("_cache_hit", self._cache_hit.clone())?;
+        out_dict.set_item("cache", self.cache.clone())?;
+        out_dict.set_item("library", self.library.clone())?;
+        Ok(out_dict.unbind())
     }
 
-    fn __setstate__(&mut self) {
-
-    }
-
-    //fn __getnewargs__(&self, py: Python) -> (String, PyObject, f64, &str, Option<bool>) {
-    fn __getnewargs__(&self, py: Python)  {
-
-    }
-
-    fn __reduce__(slf: PyRef<Self>) -> PyResult<PyObject> {
-        let py = slf.py();
-        Ok((
-            py.get_type_bound::<Self>(),
-
-        )
-            .into_py(py))
+    fn __setstate__(&mut self, py: Python, state: PyObject) -> PyResult<()> {
+        let dict_state = state.downcast_bound::<PyDict>(py)?;
+        self.cache_max_entries = dict_state.get_item("cache_max_entries")?.unwrap().extract()?;
+        self.current_cache_entries = dict_state.get_item("current_cache_entries")?.unwrap().extract()?;
+        self._cache_miss = dict_state.get_item("_cache_miss")?.unwrap().extract()?;
+        self._cache_hit = dict_state.get_item("_cache_hit")?.unwrap().extract()?;
+        self.library = CommutationLibrary {library : dict_state.get_item("library")?.unwrap().extract()?};
+        self.cache = dict_state.get_item("cache")?.unwrap().extract()?;
+        Ok(())
     }
 
     #[pyo3(signature=())]
@@ -233,15 +337,16 @@ impl CommutationChecker {
     }
 }
 
+const SKIPPED_NAMES: [&'static str; 4] = ["measure", "reset", "delay", "initialize"];
+const NO_CACHE_NAMES: [&'static str; 2] = ["annotated", "linear_function"];
 
 impl CommutationChecker {
-    const SKIPPED_NAMES: [&'static str; 4] = ["measure", "reset", "delay", "initialize"];
-    const NO_CACHE_NAMES: [&'static str; 2] = ["annotated", "linear_function"];
+
     fn is_commutation_skipped(&self, instr: &CircuitInstruction, max_qubits: u32) -> bool {
         let op = instr.op();
         op.num_qubits() > max_qubits
             || op.directive()
-            || Self::SKIPPED_NAMES.contains(&op.name())
+            || SKIPPED_NAMES.contains(&op.name())
             || instr.is_parameterized()
     }
 
@@ -331,8 +436,8 @@ impl CommutationChecker {
             (cargs1, cargs2)
         };
 
-        let skip_cache: bool = Self::NO_CACHE_NAMES.contains(&first_op.name()) ||
-                    Self::NO_CACHE_NAMES.contains(&second_op.name()) ||
+        let skip_cache: bool = NO_CACHE_NAMES.contains(&first_op.name()) ||
+                    NO_CACHE_NAMES.contains(&second_op.name()) ||
                     //skip params that do not evaluate to floats for caching and commutation_library lookup
                     first_instr.params.iter().any(|p| !matches!(p, Param::Float(_))) ||
                     second_instr.params.iter().any(|p| !matches!(p, Param::Float(_)));
@@ -346,8 +451,8 @@ impl CommutationChecker {
             return is_commuting;
         }
         //query cache
-        if let Some(commutation_dict) = self.cache.get(&[first_op.name().to_string(), second_op.name().to_string()]){
-            if let Some(commutation) = commutation_dict.get(&(Self::get_relative_placement(first_qargs, second_qargs), [hashable_params(&first_instr.params), hashable_params(&second_instr.params)])){
+        if let Some(commutation_dict) = self.cache.get(&(first_op.name().to_string(), second_op.name().to_string())){
+            if let Some(commutation) = commutation_dict.get(&(Self::get_relative_placement(first_qargs, second_qargs), (hashable_params(&first_instr.params), hashable_params(&second_instr.params)))){
                 self._cache_hit += 1;
                 return commutation.clone();
             }
@@ -368,21 +473,21 @@ impl CommutationChecker {
         }
 
         self.cache
-            .entry([
+            .entry((
                 first_op.name().to_string(),
                 second_op.name().to_string(),
-            ])
+            ))
             .and_modify(|entries| {
-                let key = (Self::get_relative_placement(first_qargs, second_qargs), [hashable_params(&first_instr.params), hashable_params(&second_instr.params)]);
+                let key = (Self::get_relative_placement(first_qargs, second_qargs), (hashable_params(&first_instr.params), hashable_params(&second_instr.params)));
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
             })
             .or_insert_with(|| {
                 let mut entries = HashMap::with_capacity(1);
-                let key = (Self::get_relative_placement(first_qargs, second_qargs), [hashable_params(&first_instr.params), hashable_params(&second_instr.params)]);
+                let key = (Self::get_relative_placement(first_qargs, second_qargs), (hashable_params(&first_instr.params), hashable_params(&second_instr.params)));
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
-                entries
+                CommutationCacheEntry{ mapping: entries}
             });
         is_commuting
     }
