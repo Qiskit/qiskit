@@ -2608,10 +2608,82 @@ def _format(operand):
         // Try to convert to float, but in case of unbound ParameterExpressions
         // a TypeError will be raise, fallback to normal equality in those
         // cases.
-        if !self.global_phase.eq(&other.global_phase, py)? {
-            return Ok(false);
+        let phase_is_close = |self_phase: f64, other_phase: f64| -> bool {
+            ((self_phase - other_phase + PI).rem_euclid(2. * PI) - PI).abs() <= 1.0e-10
+        };
+        match [&self.global_phase, &other.global_phase] {
+            [Param::Float(self_phase), Param::Float(other_phase)] => {
+                if !phase_is_close(*self_phase, *other_phase) {
+                    return Ok(false);
+                }
+            }
+            [Param::Float(self_phase), Param::ParameterExpression(other_phase_param)] => {
+                let other_phase = if let Ok(other_phase) =
+                    other_phase_param.call_method0(py, intern!(py, "numeric"))
+                {
+                    other_phase.extract::<Param>(py)?
+                } else {
+                    Param::ParameterExpression(other_phase_param.clone_ref(py))
+                };
+                if let Param::Float(other_phase) = other_phase {
+                    if !phase_is_close(*self_phase, other_phase) {
+                        return Ok(false);
+                    }
+                } else if !self.global_phase.eq(&other.global_phase, py)? {
+                    return Ok(false);
+                }
+            }
+            [Param::ParameterExpression(self_phase_param), Param::ParameterExpression(other_phase_param)] =>
+            {
+                let self_phase = if let Ok(self_phase) =
+                    self_phase_param.call_method0(py, intern!(py, "numeric"))
+                {
+                    self_phase.extract::<Param>(py)?
+                } else {
+                    Param::ParameterExpression(self_phase_param.clone_ref(py))
+                };
+                let other_phase = if let Ok(other_phase) =
+                    other_phase_param.call_method0(py, intern!(py, "numeric"))
+                {
+                    other_phase.extract::<Param>(py)?
+                } else {
+                    Param::ParameterExpression(other_phase_param.clone_ref(py))
+                };
+                match [self_phase, other_phase] {
+                    [Param::Float(self_phase), Param::Float(other_phase)] => {
+                        if !phase_is_close(self_phase, other_phase) {
+                            return Ok(false);
+                        }
+                    }
+                    _ => {
+                        if !self.global_phase.eq(&other.global_phase, py)? {
+                            return Ok(false);
+                        }
+                    }
+                }
+            }
+            [Param::ParameterExpression(self_phase_param), Param::Float(other_phase)] => {
+                let self_phase = if let Ok(self_phase) =
+                    self_phase_param.call_method0(py, intern!(py, "numeric"))
+                {
+                    self_phase.extract::<Param>(py)?
+                } else {
+                    Param::ParameterExpression(self_phase_param.clone_ref(py))
+                };
+                if let Param::Float(self_phase) = self_phase {
+                    if !phase_is_close(self_phase, *other_phase) {
+                        return Ok(false);
+                    }
+                } else if !self.global_phase.eq(&other.global_phase, py)? {
+                    return Ok(false);
+                }
+            }
+            _ => {
+                if !self.global_phase.eq(&other.global_phase, py)? {
+                    return Ok(false);
+                }
+            }
         }
-
         if self.calibrations.len() != other.calibrations.len() {
             return Ok(false);
         }
