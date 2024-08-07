@@ -21,7 +21,8 @@ def synth_mcx_n_dirty_ancillas_ickhc(
     action_only: bool = False,
 ):
     """Synthesis of an MCX gate with n controls and n-2 dirty ancillary qubits,
-    producing a circuit with at most 8*n-6 CX gates"""
+    producing a circuit with at most 8*n-6 CX gates.
+    By Iten et. al. http://arxiv.org/abs/1501.06911"""
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -29,7 +30,7 @@ def synth_mcx_n_dirty_ancillas_ickhc(
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_vchain")
+    qc = QuantumCircuit(q, name="mcx_n_dirty_ancillas")
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -109,7 +110,7 @@ def synth_mcx_n_dirty_ancillas_ickhc(
 
 def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
     """Synthesis of an MCX gate with n controls and n-2 clean ancillary qubits,
-    producing a circuit with at most 6*n-6 CX gates"""
+    producing a circuit with at most 6*n-6 CX gates."""
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -117,7 +118,7 @@ def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_vchain")
+    qc = QuantumCircuit(q, name="mcx_n_clean_ancillas")
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -143,7 +144,8 @@ def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
 
 def synth_mcx_one_clean_ancilla_bbcdmssw(num_ctrl_qubits: int):
     """Implement an MCX gate with n controls using one clean ancilla qubit,
-    producing a circuit with at most 16*n-8 CX gates."""
+    producing a circuit with at most 16*n-8 CX gates.
+    Based on Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf"""
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -152,19 +154,19 @@ def synth_mcx_one_clean_ancilla_bbcdmssw(num_ctrl_qubits: int):
 
     if num_ctrl_qubits == 3:
         q = QuantumRegister(4, name="q")
-        qc = QuantumCircuit(q, name="mcx_recursive")
+        qc = QuantumCircuit(q, name="mcx")
         qc._append(C3XGate(), q[:], [])
         return qc
 
     elif num_ctrl_qubits == 4:
         q = QuantumRegister(5, name="q")
-        qc = QuantumCircuit(q, name="mcx_recursive")
+        qc = QuantumCircuit(q, name="mcx")
         qc._append(C4XGate(), q[:], [])
         return qc
 
     num_qubits = num_ctrl_qubits + 2
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_recursive")
+    qc = QuantumCircuit(q, name="mcx_one_clean_ancilla")
 
     num_ctrl_qubits = len(q) - 1
     q_ancilla = q[-1]
