@@ -113,8 +113,7 @@ class MatplotlibDrawer:
         self._qubits = qubits
         self._clbits = clbits
         self._nodes = nodes
-        
-        
+
         self._scale = 1.0 if scale is None else scale
 
         self._style = style
@@ -264,7 +263,6 @@ class MatplotlibDrawer:
         # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index",
         # "patches_mod", "subfont_factor"
         glob_data = {}
-        
 
         glob_data["patches_mod"] = patches
         plt_mod = plt
@@ -761,7 +759,7 @@ class MatplotlibDrawer:
                 for qarg in node.qargs:
                     if qarg in self._qubits:
                         q_indxs.append(wire_map[qarg])
-                
+
                 # get clbit indexes
                 c_indxs = []
                 for carg in node.cargs:
@@ -778,9 +776,9 @@ class MatplotlibDrawer:
                 if len(node.qargs) == 0 and len(node.cargs) == 0:
                     for qarg in self._qubits:
                         q_indxs.append(wire_map[qarg])
-                    glob_data["next_x_index"] = 0 #temp
+                    glob_data["next_x_index"] = 0  # temp
                     node_data[node].zero_operand = True
-                
+
                 flow_op = isinstance(node.op, ControlFlowOp)
 
                 # qubit coordinates
@@ -1128,10 +1126,10 @@ class MatplotlibDrawer:
                 elif isinstance(op, ControlledGate) or mod_control:
                     self._control_gate(node, node_data, glob_data, mod_control)
 
-                #draws zero_operands
+                # draws zero_operands
                 elif node_data[node].zero_operand == True:
                     self._zero_operand_gate(node, node_data, glob_data)
-                    
+
                 # draw multi-qubit gate as final default
                 else:
                     self._multiqubit_gate(node, node_data, glob_data)
@@ -1464,11 +1462,10 @@ class MatplotlibDrawer:
         op = node.op
         if xy is None:
             xy = node_data[node].q_xy
-        
+
         xpos = min(x[0] for x in xy)
         ypos = min(y[1] for y in xy)
         ypos_max = max(y[1] for y in xy)
- 
 
         wid = max(node_data[node].width + 0.21, WID)
         qubit_span = abs(ypos) - abs(ypos_max)
@@ -1511,7 +1508,7 @@ class MatplotlibDrawer:
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
-    
+
     def _multiqubit_gate(self, node, node_data, glob_data, xy=None):
         """Draw a gate covering more than one qubit"""
         op = node.op
@@ -2093,5 +2090,5 @@ class NodeData:
         self.jump_values = []  # List of jump values used for SwitchCaseOp
         self.circ_num = 0  # Which block is it in op.blocks
 
-        #used for zero_operands only
+        # used for zero_operands only
         self.zero_operand = False
