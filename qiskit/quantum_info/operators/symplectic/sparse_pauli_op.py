@@ -257,14 +257,8 @@ class SparsePauliOp(LinearOp):
             raise ValueError(
                 f"incorrect number of operators: expected {len(self.paulis)}, got {len(value)}"
             )
-        if np.any(value.phase):
-            warnings.warn(
-                "Assigning SparsePauliOp.paulis to be a PauliList with nonzero phase sets the phase "
-                "of the given PauliList to zero, absorbing the phase into SparsePauliOp.coeffs.",
-                UserWarning,
-            )
-            self.coeffs *= (-1j) ** value.phase
-            value.phase = 0
+        self.coeffs *= (-1j) ** value.phase
+        value.phase = 0
         self._pauli_list = value
 
     @property
