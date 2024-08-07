@@ -43,7 +43,6 @@ from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
 from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
@@ -212,11 +211,11 @@ class BasicSimulator(BackendV2):
                 )
         return target
 
-    def configuration(self) -> BackendConfiguration:
+    def configuration(self):
         """Return the simulator backend configuration.
 
         Returns:
-            The configuration for the backend.
+            BackendConfiguration: The configuration for the backend.
         """
         # Note: this is a custom attribute of the BasicSimulator class and
         # not part of the BackendV2 interface. It has only been added for
@@ -244,6 +243,8 @@ class BasicSimulator(BackendV2):
                 category=DeprecationWarning,
                 message=r".+qiskit\.providers\.models\.backendconfiguration\..+",
             )
+            from qiskit.providers.models import BackendConfiguration
+
             self._configuration = BackendConfiguration(
                 backend_name=self.name,
                 backend_version=self.backend_version,
