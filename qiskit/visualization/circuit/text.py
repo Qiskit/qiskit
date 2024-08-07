@@ -1685,7 +1685,7 @@ class Layer:
             )
         return bit_indices
 
-    def _set_operandbox(
+    def _set_zero_qubit_operandbox(
         self,
         label,
     ):
@@ -1842,23 +1842,18 @@ class Layer:
             controlled_edge=controlled_edge,
         )
 
-    def set_qu_operandbox(
+    def set_zero_qubit_operandbox(
         self,
         label,
     ):
-        """Sets the multi qubit box.
+        """Sets the zero-qubit operand box
 
         Args:
-            bits (list[int]): A list of affected bits.
             label (string): The label for the multi qubit box.
-            top_connect (char): None or a char connector on the top
-            bot_connect (char): None or a char connector on the bottom
-            conditional (bool): If the box has a conditional
-            controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
         Return:
             List: A list of indexes of the box.
         """
-        return self._set_operandbox(label)
+        return self._set_zero_qubit_operandbox(label)
 
     def connect_with(self, wire_char):
         """Connects the elements in the layer using wire_char.
