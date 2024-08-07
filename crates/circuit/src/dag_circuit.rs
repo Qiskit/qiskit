@@ -5385,15 +5385,15 @@ new_condition = (new_target, value)
             self.increment_op(inst.op.name().to_string());
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             let old_index: NodeIndex = NodeIndex::new(old_index);
-            let edges: Vec<(NodeIndex, EdgeIndex, Wire)> = self
+            let (parent_index, edge_index, weight) = self
                 .dag
                 .edges_directed(old_index, Incoming)
                 .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
-                .collect();
-            for (source, edge_index, weight) in edges {
-                self.dag.add_edge(source, new_index, weight);
-                self.dag.remove_edge(edge_index);
-            }
+                .next()
+                .unwrap();
+            self.dag.add_edge(parent_index, new_index, weight.clone());
+            self.dag.add_edge(new_index, old_index, weight);
+            self.dag.remove_edge(edge_index);
             Ok(())
         } else {
             Err(PyTypeError::new_err("Invalid node type input"))
