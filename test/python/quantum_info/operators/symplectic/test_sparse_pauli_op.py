@@ -1111,6 +1111,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertTrue(np.allclose(op.coeffs, coeffs_init * np.array([-1j, 1j])))
         # The phase of the input array is now zero:
         self.assertTrue(np.allclose(paulis_new.phase, np.array([0, 0])))
+    
+    def test_paulis_setter_absorbs_phase_2(self):
+        """Test that `paulis` setter followed by `simplify()` handle phase OK."""
+        spo = SparsePauliOp(['X', 'X'])
+        spo.paulis = ['X','-X']
+        self.assertEqual(spo.simplify(), SparsePauliOp(['I'], coeffs=[0.+0.j]))
 
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
