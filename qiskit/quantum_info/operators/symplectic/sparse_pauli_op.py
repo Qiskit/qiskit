@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, List
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
 from copy import deepcopy
-import warnings
 
 import numpy as np
 import rustworkx as rx
