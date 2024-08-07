@@ -116,15 +116,18 @@ class CommutationChecker:
         first_op, first_qargs, _ = first_op_tuple
         second_op, second_qargs, _ = second_op_tuple
 
-        #skip_cache = first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
-        skip_cache=True
+        skip_cache = first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
+        #skip_cache=True
         if skip_cache:
             return _commute_matmul(first_op, first_qargs, second_op, second_qargs)
 
         commutation_lookup = self.check_commutation_entries(
             first_op, first_qargs, second_op, second_qargs
         )
-
+        print("cache!")
+        print(self.num_cached_entries())
+        print(self._cache_hit)
+        print(self._cache_miss)
         if commutation_lookup is not None:
             return commutation_lookup
 
@@ -324,7 +327,9 @@ def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit])
         _get_relative_placement(CX(1, 2), CX(0, 1)) would return (1, None)
     """
     qubits_g2 = {q_g1: i_g1 for i_g1, q_g1 in enumerate(second_qargs)}
-    return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
+    ret = tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
+    print("rel pülac", ret)
+    return ret
 
 
 @lru_cache(maxsize=10**3)

@@ -25,12 +25,13 @@ from qiskit.circuit import (
     InverseModifier,
     ControlModifier,
 )
+from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit._accelerate.commutation_checker import CommutationChecker as ccc
 
 from qiskit.dagcircuit import DAGOpNode
 
-cc = ccc()
+cc = ccc(standard_gates_commutations)
 from qiskit.circuit.library import (
     ZGate,
     XGate,
@@ -135,33 +136,35 @@ class TestCommutationChecker(QiskitTestCase):
     def test_standard_gates_commutations(self):
         """Check that commutativity checker uses standard gates commutations as expected."""
         scc.clear_cached_commutations()
-        scc.clear_cached_commutations()
+        cc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], CXGate(), [0, 1], []))
         self.assertTrue(commutation_rust(ZGate(), [0], [], CXGate(), [0, 1], []))
         self.assertEqual(scc.num_cached_entries(), 0)
+        self.assertEqual(cc.num_cached_entries(), 0)
 
     def test_caching_positive_results(self):
         """Check that hashing positive results in commutativity checker works as expected."""
-        scc.clear_cached_commutations()
+        cc.clear_cached_commutations()
         NewGateCX = type("MyClass", (CXGate,), {"content": {}})
         NewGateCX.name = "cx_new"
 
         self.assertTrue(scc.commute(ZGate(), [0], [], NewGateCX(), [0, 1], []))
         self.assertTrue(commutation_rust(ZGate(), [0], [], NewGateCX(), [0, 1], []))
-        self.assertGreater(len(scc._cached_commutations), 0)
+        self.assertGreater(cc.num_cached_entries(), 0)
 
     def test_caching_lookup_with_non_overlapping_qubits(self):
         """Check that commutation lookup with non-overlapping qubits works as expected."""
+        cc.clear_cached_commutations()
         scc.clear_cached_commutations()
         self.assertTrue(scc.commute(CXGate(), [0, 2], [], CXGate(), [0, 1], []))
         self.assertTrue(commutation_rust(CXGate(), [0, 2], [], CXGate(), [0, 1], []))
         self.assertFalse(scc.commute(CXGate(), [0, 1], [], CXGate(), [1, 2], []))
         self.assertFalse(commutation_rust(CXGate(), [0, 1], [], CXGate(), [1, 2], []))
-        self.assertEqual(len(scc._cached_commutations), 0)
+        self.assertEqual(cc.num_cached_entries(), 0)
 
     def test_caching_store_and_lookup_with_non_overlapping_qubits(self):
         """Check that commutations storing and lookup with non-overlapping qubits works as expected."""
-        cc_lenm = scc.num_cached_entries()
+        cc_lenm = cc.num_cached_entries()
         NewGateCX = type("MyClass", (CXGate,), {"content": {}})
         NewGateCX.name = "cx_new"
         self.assertTrue(scc.commute(NewGateCX(), [0, 2], [], CXGate(), [0, 1], []))
@@ -172,36 +175,37 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(commutation_rust(NewGateCX(), [1, 4], [], CXGate(), [1, 6], []))
         self.assertFalse(scc.commute(NewGateCX(), [5, 3], [], CXGate(), [3, 1], []))
         self.assertFalse(commutation_rust(NewGateCX(), [5, 3], [], CXGate(), [3, 1], []))
-        self.assertEqual(scc.num_cached_entries(), cc_lenm + 2)
+        self.assertEqual(cc.num_cached_entries(), cc_lenm + 2)
 
     def test_caching_negative_results(self):
         """Check that hashing negative results in commutativity checker works as expected."""
-        scc.clear_cached_commutations()
+        cc.clear_cached_commutations()
         NewGateCX = type("MyClass", (CXGate,), {"content": {}})
         NewGateCX.name = "cx_new"
 
-        res = scc.commute(XGate(), [0], [], NewGateCX(), [0, 1], [])
-        self.assertFalse(res)
-        self.assertGreater(len(scc._cached_commutations), 0)
+        self.assertFalse(scc.commute(XGate(), [0], [], NewGateCX(), [0, 1], []))
+        self.assertFalse(commutation_rust(XGate(), [0], [], NewGateCX(), [0, 1], []))
+
+        self.assertGreater(cc.num_cached_entries(), 0)
 
     def test_caching_different_qubit_sets(self):
         """Check that hashing same commutativity results over different qubit sets works as expected."""
-        scc.clear_cached_commutations()
+        cc.clear_cached_commutations()
         NewGateCX = type("MyClass", (CXGate,), {"content": {}})
         NewGateCX.name = "cx_new"
         # All the following should be cached in the same way
         # though each relation gets cached twice: (A, B) and (B, A)
-        scc.commute(XGate(), [0], [], NewGateCX(), [0, 1], [])
-        scc.commute(XGate(), [10], [], NewGateCX(), [10, 20], [])
-        scc.commute(XGate(), [10], [], NewGateCX(), [10, 5], [])
-        scc.commute(XGate(), [5], [], NewGateCX(), [5, 7], [])
-        self.assertEqual(len(scc._cached_commutations), 1)
-        self.assertEqual(scc._cache_miss, 1)
-        self.assertEqual(scc._cache_hit, 3)
+        commutation_rust(XGate(), [0], [], NewGateCX(), [0, 1], [])
+        commutation_rust(XGate(), [10], [], NewGateCX(), [10, 20], [])
+        commutation_rust(XGate(), [10], [], NewGateCX(), [10, 5], [])
+        commutation_rust(XGate(), [5], [], NewGateCX(), [5, 7], [])
+        self.assertEqual(cc.num_cached_entries(), 1)
+        self.assertEqual(cc._cache_miss, 1)
+        self.assertEqual(cc._cache_hit, 3)
 
     def test_cache_with_param_gates(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
-        scc.clear_cached_commutations()
+        cc.clear_cached_commutations()
 
         self.assertTrue(scc.commute(RZGate(0), [0], [], XGate(), [0], []))
         self.assertTrue(commutation_rust(RZGate(0), [0], [], XGate(), [0], []))
@@ -214,9 +218,10 @@ class TestCommutationChecker(QiskitTestCase):
 
         self.assertFalse(scc.commute(RZGate(np.pi / 2), [1], [], XGate(), [1], []))
         self.assertFalse(commutation_rust(RZGate(np.pi / 2), [1], [], XGate(), [1], []))
-        self.assertEqual(scc.num_cached_entries(), 3)
-        self.assertEqual(scc._cache_miss, 3)
-        self.assertEqual(scc._cache_hit, 1)
+        self.assertEqual(cc.num_cached_entries(), 3)
+        self.assertEqual(cc._cache_miss, 3)
+        self.assertEqual(cc._cache_hit, 1)
+
 
     def test_gates_with_parameters(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
