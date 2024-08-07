@@ -329,18 +329,18 @@ class GenericBackendV2(BackendV2):
         for inst in calibration_buffer:
             num_qubits = self._supported_gates[inst].num_qubits
             qarg_set = self._coupling_map if num_qubits > 1 else list(range(self.num_qubits))
-            if inst == "measure":
-                with warnings.catch_warnings():
-                    # BackendV1 is deprecated along qiskit.providers.models.Command
-                    # They both need to be removed at the same time
-                    warnings.filterwarnings(
-                        "ignore",
-                        category=DeprecationWarning,
-                        message=r"qiskit\.providers\.models.+",
-                        module="qiskit",
-                    )
-                    from qiskit.providers.models import Command
+            with warnings.catch_warnings():
+                # BackendV1 is deprecated along qiskit.providers.models.Command
+                # They both need to be removed at the same time
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r"qiskit\.providers\.models.+",
+                    module="qiskit",
+                )
+                from qiskit.providers.models import Command
 
+                if inst == "measure":
                     cmd_def.append(
                         Command(
                             name=inst,
@@ -352,20 +352,20 @@ class GenericBackendV2(BackendV2):
                             ),
                         )
                     )
-            else:
-                for qarg in qarg_set:
-                    qubits = [qarg] if num_qubits == 1 else qarg
-                    cmd_def.append(
-                        Command(
-                            name=inst,
-                            qubits=qubits,
-                            sequence=(
-                                self._get_calibration_sequence(inst, num_qubits, qubits)
-                                if self._calibrate_instructions
-                                else []
-                            ),
+                else:
+                    for qarg in qarg_set:
+                        qubits = [qarg] if num_qubits == 1 else qarg
+                        cmd_def.append(
+                            Command(
+                                name=inst,
+                                qubits=qubits,
+                                sequence=(
+                                    self._get_calibration_sequence(inst, num_qubits, qubits)
+                                    if self._calibrate_instructions
+                                    else []
+                                ),
+                            )
                         )
-                    )
 
         qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
         meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
