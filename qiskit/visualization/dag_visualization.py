@@ -19,7 +19,10 @@ Visualization function for DAG circuit representation.
 import io
 import subprocess
 
+from rustworkx.visualization import graphviz_draw
+
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.converters import dagdependency_to_circuit
@@ -273,31 +276,41 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                 f"{IMAGE_TYPES}"
             )
 
-    dot_str = dag._to_dot(
-        graph_attrs,
-        node_attr_func,
-        edge_attr_func,
-    )
+    if isinstance(dag, DAGCircuit):
+        dot_str = dag._to_dot(
+            graph_attrs,
+            node_attr_func,
+            edge_attr_func,
+        )
 
-    prog = "dot"
-    if not filename:
-        dot_result = subprocess.run(
-            [prog, "-T", image_type],
-            input=dot_str.encode("utf-8"),
-            capture_output=True,
-            encoding=None,
-            check=True,
-            text=False,
-        )
-        dot_bytes_image = io.BytesIO(dot_result.stdout)
-        image = Image.open(dot_bytes_image)
-        return image
+        prog = "dot"
+        if not filename:
+            dot_result = subprocess.run(
+                [prog, "-T", image_type],
+                input=dot_str.encode("utf-8"),
+                capture_output=True,
+                encoding=None,
+                check=True,
+                text=False,
+            )
+            dot_bytes_image = io.BytesIO(dot_result.stdout)
+            image = Image.open(dot_bytes_image)
+            return image
+        else:
+            subprocess.run(
+                [prog, "-T", image_type, "-o", filename],
+                input=dot_str,
+                check=True,
+                encoding="utf8",
+                text=True,
+            )
+            return None
     else:
-        subprocess.run(
-            [prog, "-T", image_type, "-o", filename],
-            input=dot_str,
-            check=True,
-            encoding="utf8",
-            text=True,
+        return graphviz_draw(
+            dag._multi_graph,
+            node_attr_func,
+            edge_attr_func,
+            graph_attrs,
+            filename,
+            image_type,
         )
-        return None
