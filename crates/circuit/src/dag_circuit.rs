@@ -3705,12 +3705,27 @@ new_condition = (new_target, value)
             wire_map_dict.set_item(source_bit, target_bit)?;
         }
         let bound_var_map = var_map.bind(py);
+
+        // Note: creating this list to hold new registers created by the mapper is a temporary
+        // measure until qiskit.expr is ported to Rust. It is necessary because we cannot easily
+        // have Python call back to DAGCircuit::add_creg while we're currently borrowing
+        // the DAGCircuit.
+        let new_registers = PyList::empty_bound(py);
+        let add_new_register = new_registers.getattr("append")?.unbind();
+        let flush_new_registers = |dag: &mut DAGCircuit| -> PyResult<()> {
+            for reg in &new_registers {
+                dag.add_creg(py, &reg)?;
+            }
+            new_registers.del_slice(0, new_registers.len())?;
+            Ok(())
+        };
+
         let variable_mapper = PyVariableMapper::new(
             py,
             self.cregs.bind(py).values().into_any(),
             Some(wire_map_dict),
             Some(bound_var_map.clone()),
-            Some(wrap_pyfunction_bound!(reject_new_register, py)?.to_object(py)),
+            Some(add_new_register),
         )?;
 
         for (old_node_index, new_node_index) in node_map.iter() {
@@ -3738,6 +3753,8 @@ new_condition = (new_target, value)
                             ),
                             Some(&kwargs),
                         )?;
+                        flush_new_registers(self)?;
+
                         if let NodeType::Operation(ref mut new_inst) =
                             &mut self.dag[*new_node_index]
                         {
@@ -3766,6 +3783,8 @@ new_condition = (new_target, value)
                         let new_condition: Option<PyObject> = variable_mapper
                             .map_condition(condition.bind(py), false)?
                             .extract()?;
+                        flush_new_registers(self)?;
+
                         if let NodeType::Operation(ref mut new_inst) =
                             &mut self.dag[*new_node_index]
                         {
