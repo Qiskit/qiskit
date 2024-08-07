@@ -1059,7 +1059,6 @@ pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
         }
 }
 
-#[pymodule]
 pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;

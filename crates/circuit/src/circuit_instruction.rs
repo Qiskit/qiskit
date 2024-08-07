@@ -22,7 +22,9 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 
 use smallvec::SmallVec;
 
-use crate::imports::{GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
+use crate::imports::{
+    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
+};
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
 };
@@ -266,11 +268,36 @@ impl CircuitInstruction {
             .and_then(|attrs| attrs.unit.as_deref())
     }
 
-    #[getter]
+    /// Is the :class:`.Operation` contained in this instruction a Qiskit standard gate?
     pub fn is_standard_gate(&self) -> bool {
         self.operation.try_standard_gate().is_some()
     }
 
+    /// Is the :class:`.Operation` contained in this instruction a subclass of
+    /// :class:`.ControlledGate`?
+    pub fn is_controlled_gate(&self, py: Python) -> PyResult<bool> {
+        match self.operation.view() {
+            OperationRef::Standard(standard) => Ok(standard.num_ctrl_qubits() != 0),
+            OperationRef::Gate(gate) => gate
+                .gate
+                .bind(py)
+                .is_instance(CONTROLLED_GATE.get_bound(py)),
+            _ => Ok(false),
+        }
+    }
+
+    /// Is the :class:`.Operation` contained in this node a directive?
+    pub fn is_directive(&self) -> bool {
+        self.op().directive()
+    }
+
+    /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
+    /// instance of :class:`.ControlFlowOp`)?
+    pub fn is_control_flow(&self) -> bool {
+        self.op().control_flow()
+    }
+
+    /// Does this instruction contain any :class:`.ParameterExpression` parameters?
     pub fn is_parameterized(&self) -> bool {
         self.params
             .iter()
@@ -557,6 +584,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
                 instruction: ob.into_py(py),
             });
             return Ok(OperationFromPython {
