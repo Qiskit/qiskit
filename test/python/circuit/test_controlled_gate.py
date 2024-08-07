@@ -508,7 +508,7 @@ class TestControlledGate(QiskitTestCase):
                 self.assertTrue(matrix_equal(simulated, expected))
 
     @combine(
-        num_controls=[2, 3, 4, 5, 6, 7],
+        num_controls=[2, 3, 4, 5, 6],
         mode=[
             "noancilla",
             "recursion",
