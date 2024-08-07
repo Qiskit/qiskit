@@ -661,6 +661,25 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result2, circuit_to_dag(expected))
 
+    def test_controlled_removal_pass(self):
+        """Verify that after control removal the node is
+        handled properly
+        """
+
+        circuit1 = QuantumCircuit(2)
+        circuit1.y(0)
+        circuit1.cy(0, 1)
+        circuit1.y(1)
+
+        expected1 = QuantumCircuit(2)
+        expected1.y(0)
+
+        pass_ = HoareOptimizer()
+
+        result1 = pass_.run(circuit_to_dag(circuit1))
+
+        self.assertEqual(result1, circuit_to_dag(expected1))
+
 
 if __name__ == "__main__":
     unittest.main()
