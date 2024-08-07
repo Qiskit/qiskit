@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 @dataclass
 class QubitTracker:
-    """Track qubits per index as and their state.
+    """Track qubits (per index) and their state.
 
     The states are distinguished into clean (meaning in state :math:`|0\rangle`) or dirty (an
     unkown state).
@@ -43,51 +43,47 @@ class QubitTracker:
 
     def borrow(self, num_qubits: int, active_qubits: Iterable[int] | None = None) -> list[int]:
         """Get ``num_qubits`` qubits, excluding ``active_qubits``."""
-        if active_qubits is None:
-            active_qubits = []
+        active_qubits = set(active_qubits or [])
+        available_qubits = [qubit for qubit in self.qubits if qubit not in active_qubits]
 
-        if num_qubits > (available := len(self.qubits) - len(active_qubits)):
+        if num_qubits > (available := len(available_qubits)):
             raise RuntimeError(f"Cannot borrow {num_qubits} qubits, only {available} available.")
 
-        return [qubit for qubit in self.qubits if qubit not in active_qubits][:num_qubits]
+        return available_qubits[:num_qubits]
 
     def used(self, qubits: Iterable[int], check: bool = True) -> None:
         """Set the state of ``qubits`` to used (i.e. False)."""
+        qubits = set(qubits)
+
         if check:
-            if len(untracked := set(qubits).difference(self.qubits)) > 0:
-                raise ValueError(
-                    "Setting state of untracked qubits:", untracked, "\nTracker state:", self
-                )
+            if len(untracked := qubits.difference(self.qubits)) > 0:
+                raise ValueError(f"Setting state of untracked qubits: {untracked}. Tracker: {self}")
 
-        for qubit in qubits:
-            self.clean.discard(qubit)
-
-        self.dirty.update(qubits)
+        self.clean -= qubits
+        self.dirty |= qubits
 
     def reset(self, qubits: Iterable[int], check: bool = True) -> None:
         """Set the state of ``qubits`` to 0 (i.e. True)."""
+        qubits = set(qubits)
+
         if check:
-            if len(untracked := set(qubits).difference(self.qubits)) > 0:
-                raise ValueError(
-                    "Setting state of untracked qubits:", untracked, "\nTracker state:", self
-                )
+            if len(untracked := qubits.difference(self.qubits)) > 0:
+                raise ValueError(f"Setting state of untracked qubits: {untracked}. Tracker: {self}")
 
-        self.clean.update(qubits)
-        for qubit in qubits:
-            self.dirty.discard(qubit)
+        self.clean |= qubits
+        self.dirty -= qubits
 
-    def drop(self, qubits: set[int], check: bool = True) -> None:
+    def drop(self, qubits: Iterable[int], check: bool = True) -> None:
         """Drop qubits from the tracker, meaning that they are no longer available."""
+        qubits = set(qubits)
+
         if check:
-            if len(untracked := set(qubits).difference(self.qubits)) > 0:
-                raise ValueError(
-                    "Dropping state of untracked qubits:", untracked, "\nTracker state:", self
-                )
+            if len(untracked := qubits.difference(self.qubits)) > 0:
+                raise ValueError(f"Dropping untracked qubits: {untracked}. Tracker: {self}")
 
         self.qubits = tuple(qubit for qubit in self.qubits if qubit not in qubits)
-        for qubit in qubits:
-            self.clean.discard(qubit)
-            self.dirty.discard(qubit)
+        self.clean -= qubits
+        self.dirty -= qubits
 
     def copy(self, qubit_map: dict[int, int] | None = None) -> "QubitTracker":
         """Copy self.
@@ -109,7 +105,7 @@ class QubitTracker:
                 elif old_index in self.dirty:
                     dirty.add(new_index)
                 else:
-                    raise ValueError(f"Unknown old qubit index: {old_index}.\nTracker: {self}")
+                    raise ValueError(f"Unknown old qubit index: {old_index}. Tracker: {self}")
 
             qubits = tuple(qubit_map.values())
 

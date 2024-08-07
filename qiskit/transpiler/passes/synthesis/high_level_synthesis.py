@@ -483,10 +483,7 @@ class HighLevelSynthesis(TransformationPass):
             # next check control flow
             elif node.is_control_flow():
                 node.op = control_flow.map_blocks(
-                    partial(self._run, tracker=tracker.copy()),
-                    node.op,
-                    # self.run,
-                    # node.op,
+                    partial(self._run, tracker=tracker.copy()), node.op
                 )
 
             # now we are free to synthesize
@@ -541,11 +538,8 @@ class HighLevelSynthesis(TransformationPass):
                             sub_node.op, tuple(qubit_map[qarg] for qarg in sub_node.qargs)
                         )
                     out.global_phase += op.global_phase
-                    # handle different types of ops
-                    # out.compose(op, qargs, inplace=True)
                 else:
                     raise RuntimeError(f"Unexpected synthesized type: {type(op)}")
-                # out.apply_operation_back(op, qubits, cargs=())
             else:
                 out.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
 
@@ -567,8 +561,8 @@ class HighLevelSynthesis(TransformationPass):
         # until no further change occurred. If there was no change, we just return ``None``.
         synthesized = None
 
-        # try synthesizing via AnnotatedOperation
-        # if isinstance(operation, AnnotatedOperation):
+        # Try synthesizing via AnnotatedOperation. This is faster than an isinstance check
+        # but a bit less safe since someone could create operations with a ``modifiers`` attribute.
         if len(modifiers := getattr(operation, "modifiers", [])) > 0:
             # The base operation must be synthesized without using potential control qubits
             # used in the modifiers.
@@ -577,10 +571,7 @@ class HighLevelSynthesis(TransformationPass):
             )
             baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
             baseop_tracker = tracker.copy()
-            # dict(zip(baseop_qubits, range(operation.base_op.num_qubits)))
-            # )
             baseop_tracker.drop(qubits[:num_ctrl])  # no access to control qubits
-            # baseop_tracker.used(qubits[:num_ctrl])  # no access to control qubits
 
             # get qubits of base operation
             synthesized_base_op, _ = self._synthesize_operation(
@@ -595,7 +586,7 @@ class HighLevelSynthesis(TransformationPass):
 
         # synthesize via HLS
         elif len(hls_methods := self._methods_to_try(operation.name)) > 0:
-            # TODO just pass qubits if use_qubit_indices is removed
+            # TODO once ``use_qubit_indices`` is removed from the initializer, just pass ``qubits``
             indices = qubits if self._use_qubit_indices else None
             synthesized = self._synthesize_op_using_plugins(
                 hls_methods,
@@ -623,17 +614,14 @@ class HighLevelSynthesis(TransformationPass):
                     synthesized = re_synthesized
                 used_qubits = qubits
 
-                # if synthesized.num_qubits != len(qubits):
-                # raise RuntimeError("currently cannot annotate HLS stuff")
-
             elif isinstance(synthesized, QuantumCircuit):
                 aux_qubits = tracker.borrow(synthesized.num_qubits - len(qubits), qubits)
                 used_qubits = qubits + tuple(aux_qubits)
                 as_dag = circuit_to_dag(synthesized, copy_operations=False)
+
                 # map used qubits to subcircuit
                 new_qubits = [as_dag.find_bit(q).index for q in as_dag.qubits]
                 qubit_map = dict(zip(used_qubits, new_qubits))
-                # qubit_map = {}
 
                 synthesized = self._run(as_dag, tracker.copy(qubit_map))
                 if synthesized.num_qubits() != len(used_qubits):
@@ -767,11 +755,6 @@ class HighLevelSynthesis(TransformationPass):
                 if current_score < best_score:
                     best_decomposition = decomposition
                     best_score = current_score
-
-        # if best_decomposition is None:
-        #     raise TranspilerError(
-        #         f"HLS failed to synthesize {op.name} given the provided methods {hls_methods}."
-        #     )
 
         return best_decomposition
 
