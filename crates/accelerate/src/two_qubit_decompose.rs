@@ -1145,7 +1145,7 @@ impl TwoQubitWeylDecomposition {
                 smallvec![Qubit(1)],
             )?
         }
-        gate_sequence.global_phase = Param::Float(global_phase);
+        gate_sequence.set_global_phase(py, Param::Float(global_phase))?;
         Ok(gate_sequence)
     }
 }

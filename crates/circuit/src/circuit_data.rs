@@ -100,7 +100,7 @@ pub struct CircuitData {
     clbits: BitData<Clbit>,
     param_table: ParameterTable,
     #[pyo3(get)]
-    pub global_phase: Param,
+    global_phase: Param,
 }
 
 impl CircuitData {
