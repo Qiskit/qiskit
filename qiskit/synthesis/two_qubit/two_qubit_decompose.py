@@ -649,7 +649,10 @@ class TwoQubitBasisDecomposer:
             )
             q = QuantumRegister(2)
 
-            dag = DAGCircuit()
+            dag = DAGCircuit(
+                node_count_hint=4 + len(sequence),
+                edge_count_hint=2 + len(sequence),
+            )
             dag.global_phase = sequence.global_phase
             dag.add_qreg(q)
             for gate, params, qubits in sequence:

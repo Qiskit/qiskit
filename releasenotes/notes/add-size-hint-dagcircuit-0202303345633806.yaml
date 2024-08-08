@@ -1,0 +1,10 @@
+---
+
+features_transpiler:
+  - |
+    Added two new keyword arguments, ``node_count_hint`` and ``edge_count_hint`` to the constructor
+    of the :class:`.DAGCircuit` class. These new arguments are used to provide size hints when
+    building a new :class:`.DAGCircuit`. These hints are used to reduce the number of memory
+    allocations when working with a :class:`.DAGCircuit` and will be used to pre-allocate the
+    memory which will result in a runtime improvement. When set these arguments are used there
+    is no difference in behavior except the underyling memory is allocated up front.
