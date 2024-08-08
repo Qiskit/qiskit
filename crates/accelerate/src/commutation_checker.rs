@@ -12,7 +12,7 @@
 
 use approx::abs_diff_eq;
 use hashbrown::hash_map::Iter;
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -42,16 +42,19 @@ struct CommutationChecker {
     _cache_miss: usize,
     #[pyo3(get)]
     _cache_hit: usize,
+    #[pyo3(get)]
+    gates: Option<HashSet<String>>,
 }
 
 #[pymethods]
 impl CommutationChecker {
-    #[pyo3(signature = (standard_gate_commutations=None, cache_max_entries=1_000_000))]
+    #[pyo3(signature = (standard_gate_commutations=None, cache_max_entries=1_000_000, gates=None))]
     #[new]
     fn py_new(
         py: Python,
         standard_gate_commutations: Option<Py<PyAny>>,
         cache_max_entries: usize,
+        gates: Option<HashSet<String>>,
     ) -> Self {
         CommutationChecker {
             library: CommutationLibrary::new(py, standard_gate_commutations),
@@ -60,6 +63,7 @@ impl CommutationChecker {
             current_cache_entries: 0,
             _cache_miss: 0,
             _cache_hit: 0,
+            gates,
         }
     }
 
@@ -195,6 +199,7 @@ impl CommutationChecker {
         out_dict.set_item("_cache_hit", self._cache_hit)?;
         out_dict.set_item("cache", self.cache.clone())?;
         out_dict.set_item("library", self.library.clone())?;
+        out_dict.set_item("gates", self.gates.clone())?;
         Ok(out_dict.unbind())
     }
 
@@ -214,6 +219,7 @@ impl CommutationChecker {
             library: dict_state.get_item("library")?.unwrap().extract()?,
         };
         self.cache = dict_state.get_item("cache")?.unwrap().extract()?;
+        self.gates = dict_state.get_item("gates")?.unwrap().extract()?;
         Ok(())
     }
 }
@@ -230,6 +236,14 @@ impl CommutationChecker {
         cargs2: &Vec<usize>,
         max_num_qubits: u32,
     ) -> bool {
+        if let Some(gates) = &self.gates {
+            if !gates.is_empty()
+                && (!gates.contains(instr1.op().name()) || !gates.contains(instr2.op().name()))
+            {
+                return false;
+            }
+        }
+
         let commutation: Option<bool> = self.commutation_precheck(
             instr1,
             qargs1,
@@ -248,7 +262,11 @@ impl CommutationChecker {
             op1.num_qubits() > op2.num_qubits()
         } else {
             // TODO is this consistent between machines?
-            op1.name() > op2.name()
+            //let int_value = i64::from_be_bytes((&[0u8; 8][..(8 - op_name.len())]).iter().chain(op_name.as_bytes().iter()).cloned().collect::<Vec<u8>>().try_into().unwrap());
+            /*            i64::from_be_bytes((&[0u8; 8][..(8 - op1.name().len())]).iter().chain(op1.name().as_bytes().iter()).cloned().collect::<Vec<u8>>().try_into().unwrap()) >=
+            i64::from_be_bytes((&[0u8; 8][..(8 - op2.name().len())]).iter().chain(op2.name().as_bytes().iter()).cloned().collect::<Vec<u8>>().try_into().unwrap())
+            */
+            op1.name() >= op2.name()
         };
         let (first_instr, second_instr) = if reversed {
             (instr2, instr1)

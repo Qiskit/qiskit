@@ -348,6 +348,7 @@ class TestCommutationChecker(QiskitTestCase):
         scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], NewGateCX(), [0, 1], []))
         cc2 = pickle.loads(pickle.dumps(scc))
+        self.assertEqual(cc2.gates, scc.gates)
         self.assertEqual(cc2._cache_miss, 1)
         self.assertEqual(cc2._cache_hit, 0)
         self.assertEqual(cc2.num_cached_entries(), 1)
