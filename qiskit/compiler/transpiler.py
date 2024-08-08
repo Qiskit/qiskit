@@ -13,9 +13,10 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
+from __future__ import annotations
 import logging
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, List, Union, Dict, Callable, Any, Optional, TypeVar
 import warnings
 
 from qiskit import user_config
@@ -32,6 +33,9 @@ from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
 
+if TYPE_CHECKING:
+    from qiskit.providers.models import BackendProperties
+
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
@@ -43,7 +47,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     basis_gates: Optional[List[str]] = None,
     inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-    backend_properties=None,
+    backend_properties: Optional[BackendProperties] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
     layout_method: Optional[str] = None,
     routing_method: Optional[str] = None,
@@ -118,7 +122,7 @@ def transpile(  # pylint: disable=too-many-return-statements
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
-        backend_properties (BackendProperties or None): properties returned by a backend,
+        backend_properties: properties returned by a backend,
             including information on gate
             errors, readout errors, qubit coherence times, etc. Find a backend
             that provides this information with: ``backend.properties()``

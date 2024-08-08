@@ -779,6 +779,7 @@ with :obj:`~BackendV2`:
 There is also a :class:`~.BackendV2Converter` class available that enables you
 to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
+
 # Providers interface
 from qiskit.providers.provider import Provider
 from qiskit.providers.provider import ProviderV1

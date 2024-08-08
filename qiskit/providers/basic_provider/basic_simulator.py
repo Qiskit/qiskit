@@ -34,6 +34,7 @@ import uuid
 import time
 import logging
 import warnings
+import typing
 
 from collections import Counter
 import numpy as np
@@ -58,6 +59,9 @@ from .basic_provider_tools import (
 )
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
+
+if typing.TYPE_CHECKING:
+    from qiskit.providers.models import BackendConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +215,7 @@ class BasicSimulator(BackendV2):
                 )
         return target
 
-    def configuration(self):
+    def configuration(self) -> BackendConfiguration:
         """Return the simulator backend configuration.
 
         Returns:

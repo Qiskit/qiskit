@@ -13,6 +13,7 @@
 """Generic BackendV2 class that with a simulated ``run``."""
 
 from __future__ import annotations
+import typing
 import warnings
 
 from collections.abc import Iterable
@@ -95,6 +96,9 @@ with warnings.catch_warnings():
             name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)
         ),  # 64dt
     ]
+
+if typing.TYPE_CHECKING:
+    from qiskit.providers.models import PulseDefaults
 
 
 class GenericBackendV2(BackendV2):
@@ -307,7 +311,7 @@ class GenericBackendV2(BackendV2):
                 PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
             ]
 
-    def _generate_calibration_defaults(self):
+    def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate pulse calibration defaults as specified with `self._calibrate_instructions`.
         If `self._calibrate_instructions` is True, the pulse schedules will be generated from
         a series of default calibration sequences. If `self._calibrate_instructions` is False,
