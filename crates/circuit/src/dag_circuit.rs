@@ -2740,7 +2740,7 @@ def _format(operand):
         let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
             match [n1, n2] {
                 [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
-                    if !inst1.py_op_eq(py, inst2)? {
+                    if inst1.op.name() != inst2.op.name() {
                         return Ok(false);
                     }
                     let node1_qargs = self.qargs_cache.intern(inst1.qubits);
@@ -2749,6 +2749,9 @@ def _format(operand):
                     let node2_cargs = other.cargs_cache.intern(inst2.clbits);
                     match [inst1.op.view(), inst2.op.view()] {
                         [OperationRef::Standard(op1), OperationRef::Standard(_op2)] => {
+                            if !inst1.py_op_eq(py, inst2)? {
+                                return Ok(false);
+                            }
                             if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
                                 let node1_qargs =
                                     node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
@@ -2821,13 +2824,17 @@ def _format(operand):
                                 let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
                                 let name = op1.name();
                                 if name == "if_else" || name == "while_loop" {
+                                    if name != op2.name() {
+                                        return Ok(false);
+                                    }
                                     return condition_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
                                         .extract();
                                 } else if name == "switch_case" {
-                                    return switch_case_op_check
+                                    let res = switch_case_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
                                         .extract();
+                                    return res;
                                 } else if name == "for_loop" {
                                     return for_loop_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
@@ -2838,6 +2845,9 @@ def _format(operand):
                                         name
                                     )));
                                 }
+                            }
+                            if !inst1.py_op_eq(py, inst2)? {
+                                return Ok(false);
                             }
 
                             let conditions_eq = if let Some(cond1) = inst1
@@ -2871,6 +2881,9 @@ def _format(operand):
                             Ok(conditions_eq)
                         }
                         [OperationRef::Gate(op1), OperationRef::Gate(_op2)] => {
+                            if !inst1.py_op_eq(py, inst2)? {
+                                return Ok(false);
+                            }
                             if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
                                 let node1_qargs =
                                     node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
@@ -2918,12 +2931,18 @@ def _format(operand):
                             Ok(conditions_eq)
                         }
                         [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
+                            if !inst1.py_op_eq(py, inst2)? {
+                                return Ok(false);
+                            }
                             Ok(node1_qargs == node2_qargs || node1_cargs == node2_cargs)
                         }
                         // Handle the case we end up with a pygate for a standardgate
                         // this typically only happens if it's a ControlledGate in python
                         // and we have mutable state set.
                         [OperationRef::Standard(_op1), OperationRef::Gate(_op2)] => {
+                            if !inst1.py_op_eq(py, inst2)? {
+                                return Ok(false);
+                            }
                             if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
                                 return Ok(false);
                             }
@@ -2959,6 +2978,9 @@ def _format(operand):
                             Ok(conditions_eq)
                         }
                         [OperationRef::Gate(_op1), OperationRef::Standard(_op2)] => {
+                            if !inst1.py_op_eq(py, inst2)? {
+                                return Ok(false);
+                            }
                             if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
                                 return Ok(false);
                             }
