@@ -910,20 +910,7 @@ impl CircuitData {
                 .iter()?
                 .map(|ob| Param::extract_no_coerce(&ob?))
                 .collect::<PyResult<Vec<_>>>()?;
-            if values.len() != self.param_table.num_parameters() {
-                return Err(PyValueError::new_err(concat!(
-                    "Mismatching number of values and parameters. For partial binding ",
-                    "please pass a dictionary of {parameter: value} pairs."
-                )));
-            }
-            let mut old_table = std::mem::take(&mut self.param_table);
-            self.assign_parameters_inner(
-                sequence.py(),
-                values
-                    .into_iter()
-                    .zip(old_table.drain_ordered())
-                    .map(|(value, (param_ob, uses))| (param_ob, value, uses)),
-            )
+            self.assign_parameters_from_slice(sequence.py(), &values)
         }
     }
 
@@ -1084,6 +1071,40 @@ impl CircuitData {
     /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
+    }
+
+    /// Assigns parameters to circuit data based on a slice of `Param`.
+    pub fn assign_parameters_from_slice(&mut self, py: Python, slice: &[Param]) -> PyResult<()> {
+        if slice.len() != self.param_table.num_parameters() {
+            return Err(PyValueError::new_err(concat!(
+                "Mismatching number of values and parameters. For partial binding ",
+                "please pass a dictionary of {parameter: value} pairs."
+            )));
+        }
+        let mut old_table = std::mem::take(&mut self.param_table);
+        self.assign_parameters_inner(
+            py,
+            slice
+                .iter()
+                .cloned()
+                .zip(old_table.drain_ordered())
+                .map(|(value, (param_ob, uses))| (param_ob, value, uses)),
+        )
+    }
+
+    /// Assigns parameters to circuit data based on a mapping of `Param` : `Param`.
+    /// This mapping assumes that the provided `Param` keys are instances of `ParameterExpression`.
+    pub fn assign_parameters_from_mapping<I>(&mut self, py: Python, iter: I) -> PyResult<()>
+    where
+        I: IntoIterator<Item = (Param, Param)>,
+    {
+        let mut items = Vec::new();
+        for (param_obj, value) in iter {
+            let param_obj = param_obj.to_object(py);
+            let uuid = ParameterUuid::from_parameter(param_obj.bind(py))?;
+            items.push((param_obj, value, self.param_table.pop(uuid)?));
+        }
+        self.assign_parameters_inner(py, items)
     }
 
     fn assign_parameters_inner<I>(&mut self, py: Python, iter: I) -> PyResult<()>
