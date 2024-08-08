@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Previously, :meth:`.DAGCircuit.replace_block_with_op` allowed to place an
-    ``n``-qubit operation onto a block of ``m`` qubits, leaving the DAG in an
-    invalid state. This behavior has been fixed, and the attempt will raise
-    a :class:`.DAGCircuitError`.
+    Previously, :meth:`.DAGCircuit.replace_block_with_op` allowed an
+    ``n``-qubit operation to be placed onto a block of ``m`` qubits, leaving the DAG in an
+    invalid state. This behavior has been fixed, and any attempt to do this will now raise
+    a :class:`.DAGCircuitError` as expected.
