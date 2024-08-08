@@ -361,12 +361,6 @@ impl CircuitData {
             .map(|ob| ob.clone_ref(py))
     }
 
-    pub fn get_parameter_by_uuid(&self, py: Python, uuid: ParameterUuid) -> Option<Py<PyAny>> {
-        self.param_table
-            .py_parameter_by_uuid(uuid)
-            .map(|ob| ob.clone_ref(py))
-    }
-
     /// Return the width of the circuit. This is the number of qubits plus the
     /// number of clbits.
     ///
@@ -1238,6 +1232,11 @@ impl CircuitData {
             }
         }
         Ok(())
+    }
+
+    /// Retrieves the python `Param` object based on its `ParameterUuid`.
+    pub fn get_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
+        self.param_table.py_parameter_by_uuid(uuid)
     }
 }
 
