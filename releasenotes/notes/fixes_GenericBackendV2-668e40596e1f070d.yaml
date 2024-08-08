@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    The constructor :class:`.GenericBackendV2` was allowing to create malformed backends because it accepted basis gates that couldn't be allocated in the backend size . That is, a backend with a single qubit should not accept a basis with two-qubit gates.
+    The constructor :class:`.GenericBackendV2` previously allowed malformed backends to be constructed because it accepted basis gates that couldn't be allocated given the backend size. For example, a backend with a single qubit could previously accept a basis with two-qubit gates.
