@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 rust-version = "1.70"  # Keep in sync with README.md and rust-toolchain.toml.
 license = "Apache-2.0"
@@ -15,8 +15,9 @@ license = "Apache-2.0"
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
 bytemuck = "1.16"
-indexmap.version = "2.2.6"
+indexmap.version = "2.3.0"
 hashbrown.version = "0.14.0"
+num-bigint = "0.4"
 num-complex = "0.4"
 ndarray = "^0.15.6"
 numpy = "0.21.0"

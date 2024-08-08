@@ -387,7 +387,7 @@ def _get_valid_justify_arg(justify):
         warn(
             f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {justify}, to a "
             "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
-            "Support for invalid justify arguments is deprecated as of qiskit 1.2.0. Starting no "
+            "Support for invalid justify arguments is deprecated as of Qiskit 1.2.0. Starting no "
             "earlier than 3 months after the release date, invalid arguments will error.",
             DeprecationWarning,
             2,

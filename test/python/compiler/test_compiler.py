@@ -188,7 +188,6 @@ class TestCompiler(QiskitTestCase):
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile."""
-        backend = Fake20QV1()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -197,7 +196,9 @@ class TestCompiler(QiskitTestCase):
             qc.cx(qr[0], qr[k])
         qc.measure(qr[5], cr[0])
         qlist = [qc for k in range(10)]
-        qobj = assemble(transpile(qlist, backend=backend))
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake20QV1()
+            qobj = assemble(transpile(qlist, backend=backend))
         self.assertEqual(len(qobj.experiments), 10)
 
     def test_no_conflict_backend_passmanager(self):
@@ -240,7 +241,8 @@ class TestCompiler(QiskitTestCase):
         circuit2 = transpile(
             circuit, backend=None, coupling_map=cmap, basis_gates=["u2"], initial_layout=layout
         )
-        qobj = assemble(circuit2)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circuit2)
 
         compiled_instruction = qobj.experiments[0].instructions[0]
 
@@ -498,13 +500,15 @@ class TestCompiler(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         qr = QuantumRegister(2)
         circ1 = QuantumCircuit(qr)
         circ1.cx(qr[0], qr[1])
         circ1.rz(0.7, qr[1])
         circ1.rx(1.570796, qr[1])
-        qobj1 = assemble(transpile(circ1, backend))
+        with self.assertWarns(DeprecationWarning):
+            qobj1 = assemble(transpile(circ1, backend))
         self.assertIsInstance(qobj1, QasmQobj)
 
         circ2 = QuantumCircuit(qr)
@@ -512,7 +516,8 @@ class TestCompiler(QiskitTestCase):
         circ2.h(qr[0])
         circ2.s(qr[0])
         circ2.h(qr[0])
-        qobj2 = assemble(transpile(circ2, backend))
+        with self.assertWarns(DeprecationWarning):
+            qobj2 = assemble(transpile(circ2, backend))
         self.assertIsInstance(qobj2, QasmQobj)
 
 
