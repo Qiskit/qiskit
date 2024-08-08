@@ -15,6 +15,7 @@ use hashbrown::hash_map::Iter;
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
+use num_bigint::BigInt;
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
@@ -265,8 +266,8 @@ impl CommutationChecker {
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
-            // TODO is this consistent between machines?
-            op1.name() >= op2.name()
+            BigInt::from_signed_bytes_be(op1.name().as_bytes())
+                >= BigInt::from_signed_bytes_be(op2.name().as_bytes())
         };
         let (first_instr, second_instr) = if reversed {
             (instr2, instr1)
