@@ -20,9 +20,27 @@ def synth_mcx_n_dirty_i15(
     relative_phase: bool = False,
     action_only: bool = False,
 ):
-    """Synthesis of an MCX gate with n controls and n-2 dirty ancillary qubits,
-    producing a circuit with at most 8*n-6 CX gates.
-    By Iten et. al. http://arxiv.org/abs/1501.06911"""
+    """
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
+    dirty ancillary qubits producing a circuit with at most :math:`8 * k - 6` CX gates,
+    by Iten et. al. [1].
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+        relative_phase: when set to ``True``, the method applies the optimized multi-controlled X gate
+            up to a relative phase, in a way that, by lemma 8 of [1], the relative
+            phases of the ``action part`` cancel out with the phases of the ``reset part``.
+
+        action_only: when set to ``True``, the method applies only the ``action part`` of lemma 8 of [1].
+
+    Returns:
+        The synthesized quantum circuit.
+
+    References:
+        1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
+           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+    """
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -109,9 +127,21 @@ def synth_mcx_n_dirty_i15(
 
 
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
-    """Synthesis of an MCX gate with n controls and n-2 clean ancillary qubits,
-    producing a circuit with at most 6*n-6 CX gates.
-    Based on Maslov, https://arxiv.org/pdf/1508.03273"""
+    """
+    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
+    clean ancillary qubits producing a circuit with at most :math:`6 * k - 6` CX gates,
+    by Maslov [1].
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    References:
+        1. Maslov., Phys. Rev. A 93, 022311 (2016),
+           `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
+    """
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -144,9 +174,21 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
 
 
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
-    """Implement an MCX gate with n controls using one clean ancilla qubit,
-    producing a circuit with at most 16*n-8 CX gates.
-    Based on Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf"""
+    """
+    Synthesize a multi-controlled X gate with :math:`k` controls using a single
+    clean ancillary qubit producing a circuit with at most :math:`16 * k - 8` CX gates,
+    by Barenco et al. [1].
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    References:
+        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+           `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
+    """
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
