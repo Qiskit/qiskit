@@ -198,13 +198,13 @@ impl CircuitData {
     pub fn push_standard_gate(
         &mut self,
         operation: StandardGate,
-        params: SmallVec<[Param; 3]>,
-        qargs: SmallVec<[Qubit; 2]>,
+        params: &[Param],
+        qargs: &[Qubit],
     ) -> PyResult<()> {
         let no_clbit_index = (&mut self.cargs_interner)
             .intern(InternerKey::Value(Vec::new()))?
             .index;
-        let params = (!params.is_empty()).then(|| Box::new(params));
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = (&mut self.qargs_interner)
             .intern(InternerKey::Value(qargs.to_vec()))?
             .index;
