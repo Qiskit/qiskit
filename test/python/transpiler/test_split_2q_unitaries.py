@@ -223,3 +223,27 @@ class TestSplit2QUnitaries(QiskitTestCase):
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
         self.assertEqual(26, qc_split.num_nonlocal_gates())
+
+    def test_custom_gate(self):
+        """Test that the pass handles custom gates correctly."""
+        from qiskit.circuit import Gate
+
+        class CustomCX(Gate):
+            """Custom CX"""
+
+            def __init__(self):
+                super().__init__("custom_cx", 2, [])
+
+            def _define(self):
+                self._definition = QuantumCircuit(2)
+                self._definition.cx(0, 1)
+
+        qc = QuantumCircuit(2)
+        qc.append(CustomCX(), [0, 1])
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc)
+        self.assertEqual(1, qc_split.num_nonlocal_gates())
