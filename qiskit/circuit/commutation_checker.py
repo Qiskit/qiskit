@@ -117,7 +117,7 @@ class CommutationChecker:
         second_op, second_qargs, _ = second_op_tuple
 
         skip_cache = first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
-        #skip_cache=True
+        # skip_cache=True
         if skip_cache:
             return _commute_matmul(first_op, first_qargs, second_op, second_qargs)
 
@@ -460,8 +460,8 @@ def _commute_matmul(
 
     if first_qarg == second_qarg:
         # Use full composition if possible to get the fastest matmul paths.
-        #print("op1", operator_1)
-        #print("op2", operator_2)
+        # print("op1", operator_1)
+        # print("op2", operator_2)
         op12 = operator_1.compose(operator_2)
         op21 = operator_2.compose(operator_1)
     else:
@@ -471,9 +471,9 @@ def _commute_matmul(
         if extra_qarg2:
             id_op = _identity_op(extra_qarg2)
             operator_1 = id_op.tensor(operator_1)
-        #print("op1", operator_1)
-        #print("op2", operator_2)
-        #print("second_qarg", second_qarg)
+        # print("op1", operator_1)
+        # print("op2", operator_2)
+        # print("second_qarg", second_qarg)
         op12 = operator_1.compose(operator_2, qargs=second_qarg, front=False)
         op21 = operator_1.compose(operator_2, qargs=second_qarg, front=True)
     ret = op12 == op21

@@ -2104,26 +2104,35 @@ impl Operation for PyGate {
 
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
-            let get_op =  |py: Python, gate: &PyObject| -> Option<Array2<Complex64>> {
-                Some(QI_OPERATOR
-                    .get_bound(py)
-                    .call1((gate,)).ok()?
-                    .getattr(intern!(py, "data")).ok()?
-                    .extract::<PyReadonlyArray2<Complex64>>().ok()?
-                    .as_array()
-                    .to_owned())
+            let get_op = |py: Python, gate: &PyObject| -> Option<Array2<Complex64>> {
+                Some(
+                    QI_OPERATOR
+                        .get_bound(py)
+                        .call1((gate,))
+                        .ok()?
+                        .getattr(intern!(py, "data"))
+                        .ok()?
+                        .extract::<PyReadonlyArray2<Complex64>>()
+                        .ok()?
+                        .as_array()
+                        .to_owned(),
+                )
             };
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
-                Ok(to_matrix) => {
-                    match to_matrix.call0(py){
-                        Ok(y) => match y.extract::<Option<PyObject>>(py){
-                            Ok(x) => {Some(x.unwrap().extract::<PyReadonlyArray2<Complex64>>(py).ok()?.as_array().to_owned())}
-                            Err(_) => {get_op(py, &self.gate)},
-                        }
-                        Err(_) => {get_op(py, &self.gate)},
-                    }
-                }
-                Err(_) => {get_op(py, &self.gate)}
+                Ok(to_matrix) => match to_matrix.call0(py) {
+                    Ok(y) => match y.extract::<Option<PyObject>>(py) {
+                        Ok(x) => Some(
+                            x.unwrap()
+                                .extract::<PyReadonlyArray2<Complex64>>(py)
+                                .ok()?
+                                .as_array()
+                                .to_owned(),
+                        ),
+                        Err(_) => get_op(py, &self.gate),
+                    },
+                    Err(_) => get_op(py, &self.gate),
+                },
+                Err(_) => get_op(py, &self.gate),
             }
         })
     }

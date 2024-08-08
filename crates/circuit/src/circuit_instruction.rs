@@ -280,7 +280,7 @@ impl CircuitInstruction {
     pub fn is_conditioned(&self) -> bool {
         match &self.extra_attrs {
             None => false,
-            Some(attrs) => !attrs.condition.is_none(),
+            Some(attrs) => attrs.condition.is_some(),
         }
     }
 
