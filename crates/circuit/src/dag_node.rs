@@ -118,6 +118,7 @@ impl DAGOpNode {
     ) -> PyResult<Py<Self>> {
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs.map_or_else(|| PyTuple::empty_bound(py), |q| q.value);
+        let sort_key = qargs.str().unwrap().into();
         let cargs = cargs.map_or_else(|| PyTuple::empty_bound(py), |c| c.value);
         let instruction = CircuitInstruction {
             operation: py_op.operation,
@@ -128,7 +129,6 @@ impl DAGOpNode {
             #[cfg(feature = "cache_pygates")]
             py_op: RefCell::new(Some(op.unbind())),
         };
-        let sort_key = py.None();
 
         Py::new(
             py,
