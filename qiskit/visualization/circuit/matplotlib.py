@@ -773,11 +773,14 @@ class MatplotlibDrawer:
                         else:
                             c_indxs.append(wire_map[carg])
 
+                # special case for 0 qubit, 0 cbit gates
                 if len(node.qargs) == 0 and len(node.cargs) == 0:
                     for qarg in self._qubits:
-                        q_indxs.append(wire_map[qarg])
-                    glob_data["next_x_index"] = 0  # temp
-                    node_data[node].zero_operand = True
+                        q_indxs.append(
+                            wire_map[qarg]
+                        )  # generate a map with all qubits to reserve space in drawing
+                    glob_data["next_x_index"] = 0  # sets gate to be before first layer
+                    node_data[node].zero_qubit_gate = True
 
                 flow_op = isinstance(node.op, ControlFlowOp)
 
@@ -1126,10 +1129,9 @@ class MatplotlibDrawer:
                 elif isinstance(op, ControlledGate) or mod_control:
                     self._control_gate(node, node_data, glob_data, mod_control)
 
-                # draws zero_operands
-                elif node_data[node].zero_operand == True:
-                    print(type(op))
-                    self._zero_operand_gate(node, node_data, glob_data)
+                # draws zero qubit gate
+                elif node_data[node].zero_qubit_gate is True:
+                    self._zero_qubit_gate(node, node_data, glob_data)
 
                 # draw multi-qubit gate as final default
                 else:
@@ -1458,11 +1460,11 @@ class MatplotlibDrawer:
                 zorder=PORDER_TEXT,
             )
 
-    def _zero_operand_gate(self, node, node_data, glob_data, xy=None):
-        """Draw a zero-qubit zero_operand"""
-        op = node.op
-        if xy is None:
-            xy = node_data[node].q_xy
+    def _zero_qubit_gate(self, node, node_data, glob_data):
+        """Draw a zero-qubit operand
+        Code is similar to `_multiqubit_gate()` with wire labellings removed
+        """
+        xy = node_data[node].q_xy
 
         xpos = min(x[0] for x in xy)
         ypos = min(y[1] for y in xy)
@@ -2092,4 +2094,4 @@ class NodeData:
         self.circ_num = 0  # Which block is it in op.blocks
 
         # used for zero_operands only
-        self.zero_operand = False
+        self.zero_qubit_gate = False

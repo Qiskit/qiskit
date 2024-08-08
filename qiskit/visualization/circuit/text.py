@@ -1236,7 +1236,7 @@ class TextDrawing:
         elif len(node.qargs) >= 2 and not node.cargs:
             layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
         elif len(node.qargs) == 0 and not node.cargs:
-            layer.set_qu_operandbox(gate_text)
+            layer.set_zero_qubit_operandbox(gate_text)
         elif node.qargs and node.cargs:
             layer._set_multibox(
                 gate_text,
@@ -1689,6 +1689,14 @@ class Layer:
         self,
         label,
     ):
+        """Sets the zero qubit operand box.
+
+        Args:
+            label (str): Custom gate label
+
+        Returns:
+            List: all qubit indicies
+        """
 
         bit_indices = sorted(i for i, x in enumerate(self.qubits) if x in self.qubits)
         wire_label_len = len(str(len(self.qubits) - 1))

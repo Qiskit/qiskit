@@ -419,7 +419,7 @@ class QCircuitImage:
                     elif isinstance(op, ControlledGate):
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     elif len(wire_list) == 0 and not node.cargs:
-                        num_cols_op = self._build_zero_qubit_gate(op, gate_text, column)
+                        num_cols_op = self._build_zero_qubit_gate(gate_text, column)
                     else:
                         num_cols_op = self._build_multi_gate(
                             op, gate_text, wire_list, cwire_list, column
@@ -429,23 +429,20 @@ class QCircuitImage:
 
             column += num_cols_layer
 
-    def _build_zero_qubit_gate(self, op, gate_text, col):
-        """Add a multiple wire gate to the _latex list"""
-        cwire_start = len(self._qubits)
+    def _build_zero_qubit_gate(self, gate_text, col):
+        """Add a zero qubit wire gate to the _latex list
+        Code is mainly from `_build_multi_gate` with wire
+        numbering removed
+        """
         num_cols_op = 1
         wire_list = [self._wire_map[qarg] for qarg in self._qubits]
         wire_min = min(wire_list)
         wire_max = max(wire_list)
 
-        wire_ind = wire_list.index(wire_min)
         self._latex[wire_min][col] = f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}"
         for wire in range(wire_min + 1, wire_max + 1):
-            if wire < cwire_start:
-                ghost_box = f"\\ghost{{{gate_text}}}"
-            else:
-                ghost_box = f"\\cghost{{{gate_text}}}"
+            self._latex[wire][col] = f"\\ghost{{{gate_text}}}"
 
-            self._latex[wire][col] = ghost_box
         return num_cols_op
 
     def _build_multi_gate(self, op, gate_text, wire_list, cwire_list, col):
