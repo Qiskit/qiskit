@@ -15,8 +15,6 @@
 from collections import defaultdict
 
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-
-
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
 
