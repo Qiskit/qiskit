@@ -370,7 +370,7 @@ impl Target {
         match instruction {
             TargetOperation::Variadic(_) => {
                 qargs_val = PropsMap::with_capacity(1);
-                qargs_val.extend([(None, None)].into_iter());
+                qargs_val.extend([(None, None)]);
             }
             TargetOperation::Normal(_) => {
                 if let Some(mut properties) = properties {
@@ -942,7 +942,7 @@ impl Target {
                 .unwrap()
                 .extract::<GateMapState>()?
                 .into_iter()
-                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map.into_iter()))),
+                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map))),
         );
         self.gate_name_map = state
             .get_item("gate_name_map")?
