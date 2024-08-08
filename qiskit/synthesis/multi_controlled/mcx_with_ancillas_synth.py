@@ -15,7 +15,7 @@
 from math import ceil
 
 
-def synth_mcx_n_dirty_ancillas_ickhc(
+def synth_mcx_n_dirty_i15(
     num_ctrl_qubits: int,
     relative_phase: bool = False,
     action_only: bool = False,
@@ -108,9 +108,10 @@ def synth_mcx_n_dirty_ancillas_ickhc(
     return qc
 
 
-def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
+def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
     """Synthesis of an MCX gate with n controls and n-2 clean ancillary qubits,
-    producing a circuit with at most 6*n-6 CX gates."""
+    producing a circuit with at most 6*n-6 CX gates.
+    Based on Maslov, https://arxiv.org/pdf/1508.03273"""
 
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -142,7 +143,7 @@ def synth_mcx_n_clean_ancillas(num_ctrl_qubits: int):
     return qc
 
 
-def synth_mcx_one_clean_ancilla_bbcdmssw(num_ctrl_qubits: int):
+def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
     """Implement an MCX gate with n controls using one clean ancilla qubit,
     producing a circuit with at most 16*n-8 CX gates.
     Based on Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf"""
@@ -175,8 +176,8 @@ def synth_mcx_one_clean_ancilla_bbcdmssw(num_ctrl_qubits: int):
     first_half = [*q[:middle]]
     second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
 
-    qc_first_half = synth_mcx_n_dirty_ancillas_ickhc(num_ctrl_qubits=len(first_half))
-    qc_second_half = synth_mcx_n_dirty_ancillas_ickhc(num_ctrl_qubits=len(second_half))
+    qc_first_half = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(first_half))
+    qc_second_half = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(second_half))
 
     qc.append(
         qc_first_half,
