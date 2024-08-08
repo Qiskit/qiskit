@@ -225,6 +225,11 @@ impl ParameterTable {
             .map(|uuid| &self.by_uuid[uuid].object)
     }
 
+    /// Lookup the Python parameter object by uuid.
+    pub fn py_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
+        self.by_uuid.get(&uuid).map(|param| &param.object)
+    }
+
     /// Get the (maybe cached) Python list of the sorted `Parameter` objects.
     pub fn py_parameters<'py>(&mut self, py: Python<'py>) -> Bound<'py, PyList> {
         if let Some(py_parameters) = self.py_parameters.as_ref() {

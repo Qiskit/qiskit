@@ -1284,6 +1284,11 @@ impl CircuitData {
         }
         Ok(())
     }
+
+    /// Retrieves the python `Param` object based on its `ParameterUuid`.
+    pub fn get_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
+        self.param_table.py_parameter_by_uuid(uuid)
+    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in
