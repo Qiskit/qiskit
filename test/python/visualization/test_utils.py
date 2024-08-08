@@ -61,6 +61,9 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual(
             exp, [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops]
         )
+        
+    def test_get_layered_instructions_zero_qubit_gates(self):
+        pass #TODO!
 
     def test_get_layered_instructions_reverse_bits(self):
         """_get_layered_instructions with reverse_bits=True"""

@@ -827,6 +827,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.append(CPhaseGate(pi / 2), [qr[2], qr[0]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
+    def test_text_globalphasegate(self):
+        pass #TODO!
+
     def test_text_cu1_condition(self):
         """Test cu1 with condition"""
         expected = "\n".join(
