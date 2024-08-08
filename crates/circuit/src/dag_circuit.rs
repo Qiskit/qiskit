@@ -761,6 +761,7 @@ impl DAGCircuit {
                     .add_edge(NodeIndex::new(edge_p), NodeIndex::new(edge_c), edge_w);
             }
         }
+        self.dag.remove_node(tmp_node);
         Ok(())
     }
 
