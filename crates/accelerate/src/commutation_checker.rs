@@ -30,6 +30,8 @@ use rustworkx_core::distancemap::DistanceMap;
 
 const SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
 const NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
+const SUPPORTED_OP: [&str; 18] = ["h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx",
+    "cy", "cz", "swap", "iswap", "ecr", "ccx", "cswap"];
 
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 struct CommutationChecker {
@@ -452,8 +454,16 @@ impl CommutationChecker {
             return Some(true);
         }
 
-        if self.is_commutation_skipped(op1, max_num_qubits)
-            || self.is_commutation_skipped(op2, max_num_qubits)
+        if op1.num_qubits() > max_num_qubits || op2.num_qubits() > max_num_qubits{
+            return Some(false);
+        }
+
+        if SUPPORTED_OP.contains(op1.name()) && SUPPORTED_OP.contains(op2.name()){
+            return None;
+        }
+
+        if self.is_commutation_skipped(op1)
+            || self.is_commutation_skipped(op2)
         {
             return Some(false);
         }
@@ -461,10 +471,9 @@ impl CommutationChecker {
         None
     }
 
-    fn is_commutation_skipped(&self, instr: &CircuitInstruction, max_qubits: u32) -> bool {
+    fn is_commutation_skipped(&self, instr: &CircuitInstruction) -> bool {
         let op = instr.op();
-        op.num_qubits() > max_qubits
-            || op.directive()
+            op.directive()
             || SKIPPED_NAMES.contains(&op.name())
             || instr.is_parameterized()
     }

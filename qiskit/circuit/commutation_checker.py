@@ -64,11 +64,11 @@ class CommutationChecker:
     """
 
     def __init__(
-        self,
-        standard_gate_commutations: dict = None,
-        cache_max_entries: int = 10**6,
-        *,
-        gates: Optional[Set[str]] = None,
+            self,
+            standard_gate_commutations: dict = None,
+            cache_max_entries: int = 10**6,
+            *,
+            gates: Optional[Set[str]] = None,
     ):
         super().__init__()
         if standard_gate_commutations is None:
@@ -86,10 +86,10 @@ class CommutationChecker:
         self._gate_names = gates
 
     def commute_nodes(
-        self,
-        op1,
-        op2,
-        max_num_qubits: int = 3,
+            self,
+            op1,
+            op2,
+            max_num_qubits: int = 3,
     ) -> bool:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
@@ -103,14 +103,14 @@ class CommutationChecker:
         return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 
     def commute(
-        self,
-        op1: Operation,
-        qargs1: List,
-        cargs1: List,
-        op2: Operation,
-        qargs2: List,
-        cargs2: List,
-        max_num_qubits: int = 3,
+            self,
+            op1: Operation,
+            qargs1: List,
+            cargs1: List,
+            op2: Operation,
+            qargs2: List,
+            cargs2: List,
+            max_num_qubits: int = 3,
     ) -> bool:
         """
         Checks if two Operations commute. The return value of `True` means that the operations
@@ -150,17 +150,14 @@ class CommutationChecker:
         second_op, second_qargs, _ = second_op_tuple
 
         skip_cache = first_op.name in _no_cache_op_names or second_op.name in _no_cache_op_names
-        # skip_cache=True
+
         if skip_cache:
             return _commute_matmul(first_op, first_qargs, second_op, second_qargs)
 
         commutation_lookup = self.check_commutation_entries(
             first_op, first_qargs, second_op, second_qargs
         )
-        print("cache!")
-        print(self.num_cached_entries())
-        print(self._cache_hit)
-        print(self._cache_miss)
+
         if commutation_lookup is not None:
             return commutation_lookup
 
@@ -201,11 +198,11 @@ class CommutationChecker:
         self._cached_commutations = {}
 
     def check_commutation_entries(
-        self,
-        first_op: Operation,
-        first_qargs: List,
-        second_op: Operation,
-        second_qargs: List,
+            self,
+            first_op: Operation,
+            first_qargs: List,
+            second_op: Operation,
+            second_qargs: List,
     ) -> Union[bool, None]:
         """Returns stored commutation relation if any
 
@@ -302,13 +299,13 @@ def is_commutation_supported(op, qargs, max_num_qubits):
 
 
 def _commutation_precheck(
-    op1: Operation,
-    qargs1: List,
-    cargs1: List,
-    op2: Operation,
-    qargs2: List,
-    cargs2: List,
-    max_num_qubits,
+        op1: Operation,
+        qargs1: List,
+        cargs1: List,
+        op2: Operation,
+        qargs2: List,
+        cargs2: List,
+        max_num_qubits,
 ):
     # Bug in CommutativeCancellation, e.g. see gh-8553
     if getattr(op1, "condition", False) or getattr(op2, "condition", False):
@@ -318,7 +315,7 @@ def _commutation_precheck(
         return True
 
     if not is_commutation_supported(op1, qargs1, max_num_qubits) or not is_commutation_supported(
-        op2, qargs2, max_num_qubits
+            op2, qargs2, max_num_qubits
     ):
         return False
 
@@ -340,9 +337,7 @@ def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit])
         _get_relative_placement(CX(1, 2), CX(0, 1)) would return (1, None)
     """
     qubits_g2 = {q_g1: i_g1 for i_g1, q_g1 in enumerate(second_qargs)}
-    ret = tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
-    print("rel pülac", ret)
-    return ret
+    return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
 
 
 @lru_cache(maxsize=10**3)
@@ -358,7 +353,7 @@ def _persistent_id(op_name: str) -> int:
 
 
 def _order_operations(
-    op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
+        op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
 ):
     """Orders two operations in a canonical way that is persistent over
     @different python versions and executions
@@ -389,11 +384,11 @@ def _order_operations(
 
 
 def _query_commutation(
-    first_op: Operation,
-    first_qargs: List,
-    second_op: Operation,
-    second_qargs: List,
-    _commutation_lib: dict,
+        first_op: Operation,
+        first_qargs: List,
+        second_op: Operation,
+        second_qargs: List,
+        _commutation_lib: dict,
 ) -> Union[bool, None]:
     """Queries and returns the commutation of a pair of operations from a provided commutation library
     Args:
@@ -441,7 +436,7 @@ def _query_commutation(
 
 
 def _commute_matmul(
-    first_ops: Operation, first_qargs: List, second_op: Operation, second_qargs: List
+        first_ops: Operation, first_qargs: List, second_op: Operation, second_qargs: List
 ):
     qarg = {q: i for i, q in enumerate(first_qargs)}
     num_qubits = len(qarg)
@@ -476,8 +471,6 @@ def _commute_matmul(
 
     if first_qarg == second_qarg:
         # Use full composition if possible to get the fastest matmul paths.
-        # print("op1", operator_1)
-        # print("op2", operator_2)
         op12 = operator_1.compose(operator_2)
         op21 = operator_2.compose(operator_1)
     else:
@@ -487,9 +480,6 @@ def _commute_matmul(
         if extra_qarg2:
             id_op = _identity_op(extra_qarg2)
             operator_1 = id_op.tensor(operator_1)
-        # print("op1", operator_1)
-        # print("op2", operator_2)
-        # print("second_qarg", second_qarg)
         op12 = operator_1.compose(operator_2, qargs=second_qarg, front=False)
         op21 = operator_1.compose(operator_2, qargs=second_qarg, front=True)
     ret = op12 == op21
