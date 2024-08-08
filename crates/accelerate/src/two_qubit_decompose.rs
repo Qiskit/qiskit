@@ -2254,7 +2254,6 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
     Ok([g0_equiv + 0., g1_equiv + 0., g2_equiv + 0.])
 }
 
-#[pymodule]
 pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_decompose_up_to_diagonal))?;

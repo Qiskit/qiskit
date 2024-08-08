@@ -24,12 +24,12 @@ from qiskit.transpiler.passes import SabreLayout, DenseLayout, StochasticSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.compiler.transpiler import transpile
-from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import ALMADEN_CMAP
+from ..legacy_cmaps import ALMADEN_CMAP, MUMBAI_CMAP
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -195,8 +195,14 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
+        backend = GenericBackendV2(
+            num_qubits=27,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
         res = transpile(
-            qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234, optimization_level=1
+            qc, backend, layout_method="sabre", seed_transpiler=1234, optimization_level=1
         )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
@@ -247,9 +253,15 @@ barrier q18585[0],q18585[3],q18585[7],q18585[4],q18585[1],q18585[8],q18585[6],q1
 barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
 """
         )
+        backend = GenericBackendV2(
+            num_qubits=27,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            coupling_map=MUMBAI_CMAP,
+            seed=42,
+        )
         res = transpile(
             qc,
-            Fake27QPulseV1(),
+            backend,
             layout_method="sabre",
             routing_method="stochastic",
             seed_transpiler=12345,

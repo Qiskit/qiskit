@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator class
+Statevector Estimator V2 class
 """
 
 from __future__ import annotations
@@ -136,7 +136,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         return job
 
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
-        return PrimitiveResult([self._run_pub(pub) for pub in pubs])
+        return PrimitiveResult([self._run_pub(pub) for pub in pubs], metadata={"version": 2})
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
         rng = np.random.default_rng(self._seed)
@@ -162,4 +162,6 @@ class StatevectorEstimator(BaseEstimatorV2):
             evs[index] = expectation_value
 
         data = DataBin(evs=evs, stds=stds, shape=evs.shape)
-        return PubResult(data, metadata={"precision": precision})
+        return PubResult(
+            data, metadata={"target_precision": precision, "circuit_metadata": pub.circuit.metadata}
+        )

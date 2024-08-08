@@ -130,10 +130,15 @@ class BitArray(ShapedMixin):
         return f"BitArray({desc})"
 
     def __getitem__(self, indices):
-        if isinstance(indices, tuple) and len(indices) >= self.ndim + 2:
-            raise ValueError(
-                "BitArrays cannot be sliced along the bits axis, see slice_bits() instead."
-            )
+        if isinstance(indices, tuple):
+            if len(indices) == self.ndim + 1:
+                raise IndexError(
+                    "BitArray cannot be sliced along the shots axis, use slice_shots() instead."
+                )
+            if len(indices) >= self.ndim + 2:
+                raise IndexError(
+                    "BitArray cannot be sliced along the bits axis, use slice_bits() instead."
+                )
         return BitArray(self._array[indices], self.num_bits)
 
     @property
@@ -430,13 +435,13 @@ class BitArray(ShapedMixin):
             A bit array sliced along the bit axis.
 
         Raises:
-            ValueError: If there are any invalid indices of the bit axis.
+            IndexError: If there are any invalid indices of the bit axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_bits:
-                raise ValueError(
+                raise IndexError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
         # This implementation introduces a temporary 8x memory overhead due to bit
@@ -457,18 +462,109 @@ class BitArray(ShapedMixin):
             A bit array sliced along the shots axis.
 
         Raises:
-            ValueError: If there are any invalid indices of the shots axis.
+            IndexError: If there are any invalid indices of the shots axis.
         """
         if isinstance(indices, int):
             indices = (indices,)
         for index in indices:
             if index < 0 or index >= self.num_shots:
-                raise ValueError(
+                raise IndexError(
                     f"index {index} is out of bounds for the number of shots {self.num_shots}."
                 )
         arr = self._array
         arr = arr[..., indices, :]
         return BitArray(arr, self.num_bits)
+
+    def postselect(
+        self,
+        indices: Sequence[int] | int,
+        selection: Sequence[bool | int] | bool | int,
+    ) -> BitArray:
+        """Post-select this bit array based on sliced equality with a given bitstring.
+
+        .. note::
+            If this bit array contains any shape axes, it is first flattened into a long list of shots
+            before applying post-selection. This is done because :class:`~BitArray` cannot handle
+            ragged numbers of shots across axes.
+
+        Args:
+            indices: A list of the indices of the cbits on which to postselect.
+                If this bit array was produced by a sampler, then an index ``i`` corresponds to the
+                :class:`~.ClassicalRegister` location ``creg[i]`` (as in :meth:`~slice_bits`).
+                Negative indices are allowed.
+
+            selection: A list of binary values (will be cast to ``bool``) of length matching
+                ``indices``, with ``indices[i]`` corresponding to ``selection[i]``. Shots will be
+                discarded unless all cbits specified by ``indices`` have the values given by
+                ``selection``.
+
+        Returns:
+            A new bit array with ``shape=(), num_bits=data.num_bits, num_shots<=data.num_shots``.
+
+        Raises:
+            IndexError: If ``max(indices)`` is greater than or equal to :attr:`num_bits`.
+            IndexError: If ``min(indices)`` is less than negative :attr:`num_bits`.
+            ValueError: If the lengths of ``selection`` and ``indices`` do not match.
+        """
+        if isinstance(indices, int):
+            indices = (indices,)
+        if isinstance(selection, (bool, int)):
+            selection = (selection,)
+        selection = np.asarray(selection, dtype=bool)
+
+        num_indices = len(indices)
+
+        if len(selection) != num_indices:
+            raise ValueError("Lengths of indices and selection do not match.")
+
+        num_bytes = self._array.shape[-1]
+        indices = np.asarray(indices)
+
+        if num_indices > 0:
+            if indices.max() >= self.num_bits:
+                raise IndexError(
+                    f"index {int(indices.max())} out of bounds for the number of bits {self.num_bits}."
+                )
+            if indices.min() < -self.num_bits:
+                raise IndexError(
+                    f"index {int(indices.min())} out of bounds for the number of bits {self.num_bits}."
+                )
+
+        flattened = self.reshape((), self.size * self.num_shots)
+
+        # If no conditions, keep all data, but flatten as promised:
+        if num_indices == 0:
+            return flattened
+
+        # Make negative bit indices positive:
+        indices %= self.num_bits
+
+        # Handle special-case of contradictory conditions:
+        if np.intersect1d(indices[selection], indices[np.logical_not(selection)]).size > 0:
+            return BitArray(np.empty((0, num_bytes), dtype=np.uint8), num_bits=self.num_bits)
+
+        # Recall that creg[0] is the LSb:
+        byte_significance, bit_significance = np.divmod(indices, 8)
+        # least-significant byte is at last position:
+        byte_idx = (num_bytes - 1) - byte_significance
+        # least-significant bit is at position 0:
+        bit_offset = bit_significance.astype(np.uint8)
+
+        # Get bitpacked representation of `indices` (bitmask):
+        bitmask = np.zeros(num_bytes, dtype=np.uint8)
+        np.bitwise_or.at(bitmask, byte_idx, np.uint8(1) << bit_offset)
+
+        # Get bitpacked representation of `selection` (desired bitstring):
+        selection_bytes = np.zeros(num_bytes, dtype=np.uint8)
+        ## This assumes no contradictions present, since those were already checked for:
+        np.bitwise_or.at(
+            selection_bytes, byte_idx, np.asarray(selection, dtype=np.uint8) << bit_offset
+        )
+
+        return BitArray(
+            flattened._array[((flattened._array & bitmask) == selection_bytes).all(axis=-1)],
+            num_bits=self.num_bits,
+        )
 
     def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
         """Compute the expectation values of the provided observables, broadcasted against
