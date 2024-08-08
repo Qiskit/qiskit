@@ -154,7 +154,7 @@ class AnnotatedOperation(Operation):
                 operator = operator.power(modifier.power)
             else:
                 raise CircuitError(f"Unknown modifier {modifier}.")
-        return operator.data
+        return operator
 
     def control(
         self,
