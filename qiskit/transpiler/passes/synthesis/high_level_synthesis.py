@@ -481,7 +481,7 @@ class HighLevelSynthesis(TransformationPass):
                 or (
                     self._equiv_lib is not None
                     and equivalence.Key(name=node.name, num_qubits=node.num_qubits)
-                    in self._equiv_lib._key_to_node_index
+                    in self._equiv_lib.keys()
                 )
             )
         )
