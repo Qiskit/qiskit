@@ -780,7 +780,6 @@ class MatplotlibDrawer:
                             wire_map[qarg]
                         )  # generate a map with all qubits to reserve space in drawing
                     glob_data["next_x_index"] = 0  # sets gate to be before first layer
-                    node_data[node].zero_qubit_gate = True
 
                 flow_op = isinstance(node.op, ControlFlowOp)
 
@@ -1130,7 +1129,7 @@ class MatplotlibDrawer:
                     self._control_gate(node, node_data, glob_data, mod_control)
 
                 # draws zero qubit gate
-                elif node_data[node].zero_qubit_gate is True:
+                elif len(node.qargs) == 0 and len(node.cargs) == 0:
                     self._zero_qubit_gate(node, node_data, glob_data)
 
                 # draw multi-qubit gate as final default
@@ -2092,6 +2091,3 @@ class NodeData:
         self.indexset = ()  # List of indices used for ForLoopOp
         self.jump_values = []  # List of jump values used for SwitchCaseOp
         self.circ_num = 0  # Which block is it in op.blocks
-
-        # used for zero_operands only
-        self.zero_qubit_gate = False

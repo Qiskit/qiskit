@@ -828,7 +828,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_globalphasegate(self):
-        pass #TODO!
+        """Test correct render of GlobalPhaseGate"""
+        pass  # TODO!
 
     def test_text_cu1_condition(self):
         """Test cu1 with condition"""
