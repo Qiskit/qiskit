@@ -216,7 +216,7 @@ impl ParameterTable {
                     None
                 };
                 self.by_name.insert(name.clone(), uuid);
-                self.order_cache.borrow_mut().invalidate();
+                self.order_cache.get_mut().invalidate();
                 let mut uses = HashSet::new();
                 if let Some(usage) = usage {
                     uses.insert_unique_unchecked(usage);
@@ -335,7 +335,7 @@ impl ParameterTable {
                     vec_entry.remove_entry();
                 }
             }
-            self.order_cache.borrow_mut().invalidate();
+            self.order_cache.get_mut().invalidate();
             entry.remove_entry();
         }
         Ok(())
@@ -361,7 +361,7 @@ impl ParameterTable {
                     (vector_info.refcount > 0).then_some(vector_info)
                 });
         }
-        self.order_cache.borrow_mut().invalidate();
+        self.order_cache.get_mut().invalidate();
         Ok(info.uses)
     }
 
@@ -371,7 +371,7 @@ impl ParameterTable {
     pub fn drain_ordered(
         &mut self,
     ) -> impl ExactSizeIterator<Item = (Py<PyAny>, HashSet<ParameterUse>)> {
-        let mut cache = self.order_cache.borrow_mut();
+        let cache = self.order_cache.get_mut();
         cache.py_parameters = None;
         let order = if cache.uuids.is_empty() {
             self.sorted_order()
@@ -393,7 +393,7 @@ impl ParameterTable {
         self.by_uuid.clear();
         self.by_name.clear();
         self.vectors.clear();
-        self.order_cache.borrow_mut().invalidate();
+        self.order_cache.get_mut().invalidate();
     }
 
     /// Expose the tracked data for a given parameter as directly as possible to Python space.
