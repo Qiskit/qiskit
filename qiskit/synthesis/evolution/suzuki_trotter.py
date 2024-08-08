@@ -24,7 +24,7 @@ from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
 
-from .product_formula import ProductFormula
+from .product_formula import ProductFormula, reorder_paulis
 
 
 class SuzukiTrotter(ProductFormula):
@@ -82,6 +82,7 @@ class SuzukiTrotter(ProductFormula):
             | None
         ) = None,
         wrap: bool = False,
+        reorder: bool = False,
     ) -> None:
         """
         Args:
@@ -101,6 +102,9 @@ class SuzukiTrotter(ProductFormula):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            reorder: Whether to allow reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         Raises:
             ValueError: If order is not even
         """
@@ -110,11 +114,21 @@ class SuzukiTrotter(ProductFormula):
                 "Suzuki product formulae are symmetric and therefore only defined "
                 "for even orders."
             )
-        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
+        super().__init__(
+            order,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            reorder=reorder,
+        )
 
     def synthesize(self, evolution):
         # get operators and time to evolve
         operators = evolution.operator
+        if self.reorder:
+            operators = reorder_paulis(operators)
         time = evolution.time
 
         if not isinstance(operators, list):
@@ -150,6 +164,8 @@ class SuzukiTrotter(ProductFormula):
                 order - 2, time=reduction * time, pauli_list=pauli_list
             )
             inner = SuzukiTrotter._recurse(
-                order - 2, time=(1 - 4 * reduction) * time, pauli_list=pauli_list
+                order - 2,
+                time=(1 - 4 * reduction) * time,
+                pauli_list=pauli_list,
             )
             return outer + inner + outer

@@ -16,9 +16,12 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
+from collections import defaultdict
+from itertools import combinations
 from typing import Any
 from functools import partial
 import numpy as np
+import rustworkx as rx
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Pauli
@@ -60,6 +63,7 @@ class ProductFormula(EvolutionSynthesis):
             | None
         ) = None,
         wrap: bool = False,
+        reorder: bool = False,
     ) -> None:
         """
         Args:
@@ -80,11 +84,15 @@ class ProductFormula(EvolutionSynthesis):
                 built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            reorder: Whether to allow reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
         """
         super().__init__()
         self.order = order
         self.reps = reps
         self.insert_barriers = insert_barriers
+        self.reorder = reorder
 
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
@@ -129,6 +137,7 @@ class ProductFormula(EvolutionSynthesis):
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
+            "reorder": self.reorder,
         }
 
 
@@ -175,6 +184,64 @@ def evolve_pauli(
     # otherwise do basis transformation and CX chains
     else:
         _multi_qubit_evolution(output, pauli, time, cx_structure, wrap)
+
+
+def reorder_paulis(
+    operators: SparsePauliOp | list[SparsePauliOp],
+) -> SparsePauliOp | list[SparsePauliOp]:
+    r"""
+    Creates an equivalent operator by reordering terms in order to yield a
+    shallower circuit after evolution synthesis. The original operator remains
+    unchanged.
+
+    This method works in three steps. First, a graph is constructed, where the
+    nodes are the terms of the operator and where two nodes are connected if
+    their term acts on the same qubit (for example, the terms $IXX$ and $IYI$
+    would be connected, but not $IXX$ and $YII$). Then, the graph is colored.
+    Two terms with the same color thus do not act on the same qubit, and in
+    particular, their evolution subcircuits can be run in parallel in the
+    greater evolution circuit of ``operator``. Finally, a new
+    :class:`~qiskit.quantum_info.SparsePauliOp` is created where terms of the
+    same color are grouped together.
+
+    If the input is in fact a list of
+    :class:`~qiskit.quantum_info.SparsePauliOp`, then the terms of all operators
+    will be coalesced and reordered into a single
+    :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Args:
+        operators: The operator or list of operators whose terms to reorder.
+    """
+    if not isinstance(operators, list):
+        operators = [operators]
+    # Do nothing in trivial cases
+    if not (
+        # operators is a list of > 1 SparsePauliOp
+        len(operators) > 1
+        # operators has a single SparsePauliOp, which has > 1 terms
+        or (len(operators) == 1 and len(operators[0]) > 1)
+    ):
+        return operators
+    graph = rx.PyGraph()
+    graph.add_nodes_from(sum((o.to_list() for o in operators), []))
+    indexed_nodes = list(enumerate(graph.nodes()))
+    for (idx1, term1), (idx2, term2) in combinations(indexed_nodes, 2):
+        # Add an edge between term1 and term2 if they touch the same qubit
+        for a, b in zip(term1[0], term2[0]):
+            if not (a == "I" or b == "I"):
+                graph.add_edge(idx1, idx2, None)
+                break
+    # TODO: The graph is likely not very big, so an exact coloring could be
+    # computed in a reasonable time.
+    coloring = rx.graph_greedy_color(graph)
+    indices_by_color = defaultdict(list)
+    for term, color in coloring.items():
+        indices_by_color[color].append(term)
+    terms: list[tuple[str, complex]] = []
+    for color, indices in indices_by_color.items():
+        for i in indices:
+            terms.append(graph.nodes()[i])
+    return SparsePauliOp.from_list(terms)
 
 
 def _single_qubit_evolution(output, pauli, time, wrap):
