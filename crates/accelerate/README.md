@@ -14,6 +14,7 @@ the following steps:
 1. Add a module function to your to your `my_module.rs` file, it should look similar to this:
   
      ```rust
+     #[pymodule]
      pub fn my_module(m: &Bound<PyModule>) -> PyResult<()> {}
      ```
      The body of this function should add each class/method/function that you want to be exposed to python through this module. It should look similar to this:
@@ -29,6 +30,6 @@ the following steps:
    ...
 3. To `crates/pyext/src/lib.rs` 
    * Add my_module::my_module to `use qiskit_accelerate::{`
-   * Add `add_submodule(m, my_module, "my_module")?;`
+   * Add `m.add_wrapped(wrap_pyfunction!(my_module))?;` to `fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {`
 4. To `qiskit/__init__.py` add `sys.modules["qiskit._accelerate.my_module”] = _accelerate.module`
 5. Compile, and you should be done. Within Python you can now `import qiskit._accelerate.my_module`
