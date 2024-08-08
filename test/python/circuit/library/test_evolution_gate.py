@@ -19,8 +19,16 @@ from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
-from qiskit.synthesis.evolution.product_formula import cnot_chain, diagonalizing_clifford
+from qiskit.synthesis import (
+    LieTrotter,
+    SuzukiTrotter,
+    MatrixExponential,
+    QDrift,
+)
+from qiskit.synthesis.evolution.product_formula import (
+    cnot_chain,
+    diagonalizing_clifford,
+)
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -131,6 +139,23 @@ class TestEvolutionGate(QiskitTestCase):
             expected.ry(2 * p_4 * time, 0)
             expected.rx(p_4 * time, 0)
 
+        self.assertEqual(evo_gate.definition, expected)
+
+    def test_suzuki_trotter_reordered_manual(self):
+        """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
+        op = (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
+        time, reps = 0.1, 1
+        evo_gate = PauliEvolutionGate(
+            op,
+            time,
+            synthesis=SuzukiTrotter(order=2, reps=reps, reorder=True),
+        )
+        expected = QuantumCircuit(4)
+        expected.ryy(time, 1, 2)
+        expected.rxx(time, 2, 3)
+        expected.rzz(2 * time, 0, 1)
+        expected.rxx(time, 2, 3)
+        expected.ryy(time, 1, 2)
         self.assertEqual(evo_gate.definition, expected)
 
     @data(
@@ -299,6 +324,23 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(lie_trotter).equiv(exact))
 
+    def test_lie_trotter_reordered_manual(self):
+        """Test the evolution circuit of Lie Trotter against a manually constructed circuit."""
+        op = (X ^ I ^ I ^ I) + (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
+        time, reps = 0.1, 1
+        evo_gate = PauliEvolutionGate(
+            op,
+            time,
+            synthesis=LieTrotter(reps=reps, reorder=True),
+        )
+        # manually construct expected evolution
+        expected = QuantumCircuit(4)
+        expected.rxx(2 * time, 2, 3)
+        expected.rzz(2 * time, 0, 1)
+        expected.rx(2 * time, 3)
+        expected.ryy(2 * time, 1, 2)
+        self.assertEqual(evo_gate.definition, expected)
+
     def test_complex_op_raises(self):
         """Test an operator with complex coefficient raises an error."""
         with self.assertRaises(ValueError):
@@ -359,7 +401,9 @@ class TestEvolutionGate(QiskitTestCase):
         reps = 4
         with self.assertWarns(PendingDeprecationWarning):
             evo_gate = PauliEvolutionGate(
-                op, time, synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution)
+                op,
+                time,
+                synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution),
             )
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
