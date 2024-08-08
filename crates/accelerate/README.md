@@ -29,6 +29,6 @@ the following steps:
    ...
 3. To `crates/pyext/src/lib.rs` 
    * Add my_module::my_module to `use qiskit_accelerate::{`
-   * Add `m.add_wrapped(wrap_pymodule!(my_module))?;`
+   * Add `add_submodule(m, my_module, "my_module")?;`
 4. To `qiskit/__init__.py` add `sys.modules["qiskit._accelerate.my_module”] = _accelerate.module`
 5. Compile, and you should be done. Within Python you can now `import qiskit._accelerate.my_module`
