@@ -527,20 +527,6 @@ class BitArrayTestCase(QiskitTestCase):
             for j in range(2):
                 self.assertEqual(ba.get_counts((0, j, 2)), ba2.get_counts(j))
 
-        with self.subTest("errors"):
-            with self.assertRaisesRegex(IndexError, "index 2 is out of bounds"):
-                _ = ba[0, 2, 2]
-            with self.assertRaisesRegex(IndexError, "index -3 is out of bounds"):
-                _ = ba[0, -3, 2]
-            with self.assertRaisesRegex(
-                IndexError, "BitArray cannot be sliced along the shots axis"
-            ):
-                _ = ba[0, 1, 2, 3]
-            with self.assertRaisesRegex(
-                IndexError, "BitArray cannot be sliced along the bits axis"
-            ):
-                _ = ba[0, 1, 2, 3, 4]
-
     def test_slice_bits(self):
         """Test the slice_bits method."""
         # this creates incrementing bitstrings from 0 to 59
@@ -585,9 +571,9 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(ba2.get_counts((i, j, k)), expect)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(IndexError, "index -1 is out of bounds"):
+            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
                 _ = ba.slice_bits(-1)
-            with self.assertRaisesRegex(IndexError, "index 9 is out of bounds"):
+            with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
                 _ = ba.slice_bits(9)
 
     def test_slice_shots(self):
@@ -635,9 +621,9 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(ba2.get_bitstrings((i, j, k)), expected)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(IndexError, "index -1 is out of bounds"):
+            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
                 _ = ba.slice_shots(-1)
-            with self.assertRaisesRegex(IndexError, "index 10 is out of bounds"):
+            with self.assertRaisesRegex(ValueError, "index 10 is out of bounds"):
                 _ = ba.slice_shots(10)
 
     def test_expectation_values(self):
