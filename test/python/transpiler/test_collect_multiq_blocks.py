@@ -92,7 +92,11 @@ class TestCollect2qBlocks(QiskitTestCase):
         # we have to convert them to sets as the ordering can be different
         # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
-        dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
+        dag_nodes = [
+            {dag_nodes[0], dag_nodes[1], dag_nodes[3], dag_nodes[4]},
+            {dag_nodes[2], dag_nodes[5]},
+        ]
+
         pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]
 
         self.assertEqual(dag_nodes, pass_nodes)
