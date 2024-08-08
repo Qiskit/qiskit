@@ -16,9 +16,9 @@
 import unittest
 
 import numpy as np
-from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit._accelerate.commutation_checker import CommutationChecker
-
+from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
+scc = CommutationChecker(standard_gates_commutations)
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator

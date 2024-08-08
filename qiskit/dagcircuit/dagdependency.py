@@ -22,7 +22,10 @@ from collections.abc import Iterator
 
 import rustworkx as rx
 
-from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit._accelerate.commutation_checker import CommutationChecker
+from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
+
+scc = CommutationChecker(standard_gates_commutations)
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
