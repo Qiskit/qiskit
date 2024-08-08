@@ -266,10 +266,6 @@ impl CommutationChecker {
             op1.num_qubits() > op2.num_qubits()
         } else {
             // TODO is this consistent between machines?
-            //let int_value = i64::from_be_bytes((&[0u8; 8][..(8 - op_name.len())]).iter().chain(op_name.as_bytes().iter()).cloned().collect::<Vec<u8>>().try_into().unwrap());
-            /*            i64::from_be_bytes((&[0u8; 8][..(8 - op1.name().len())]).iter().chain(op1.name().as_bytes().iter()).cloned().collect::<Vec<u8>>().try_into().unwrap()) >=
-            i64::from_be_bytes((&[0u8; 8][..(8 - op2.name().len())]).iter().chain(op2.name().as_bytes().iter()).cloned().collect::<Vec<u8>>().try_into().unwrap())
-            */
             op1.name() >= op2.name()
         };
         let (first_instr, second_instr) = if reversed {
