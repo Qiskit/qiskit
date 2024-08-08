@@ -223,7 +223,7 @@ where
 }
 
 pub struct Iter<'a, T> {
-    data: &'a BitData<T>,
+    _data: &'a BitData<T>,
     index: usize,
 }
 
@@ -250,7 +250,7 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            data: self,
+            _data: self,
             index: 0,
         }
     }
