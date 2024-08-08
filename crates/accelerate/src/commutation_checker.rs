@@ -30,8 +30,10 @@ use rustworkx_core::distancemap::DistanceMap;
 
 const SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
 const NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
-const SUPPORTED_OP: [&str; 18] = ["h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx",
-    "cy", "cz", "swap", "iswap", "ecr", "ccx", "cswap"];
+const SUPPORTED_OP: [&str; 18] = [
+    "h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx", "cy", "cz", "swap", "iswap",
+    "ecr", "ccx", "cswap",
+];
 
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 struct CommutationChecker {
@@ -454,17 +456,15 @@ impl CommutationChecker {
             return Some(true);
         }
 
-        if op1.num_qubits() > max_num_qubits || op2.num_qubits() > max_num_qubits{
+        if qargs1.len() > max_num_qubits as usize || qargs2.len() > max_num_qubits as usize {
             return Some(false);
         }
 
-        if SUPPORTED_OP.contains(op1.name()) && SUPPORTED_OP.contains(op2.name()){
+        if SUPPORTED_OP.contains(&op1.op().name()) && SUPPORTED_OP.contains(&op2.op().name()) {
             return None;
         }
 
-        if self.is_commutation_skipped(op1)
-            || self.is_commutation_skipped(op2)
-        {
+        if self.is_commutation_skipped(op1) || self.is_commutation_skipped(op2) {
             return Some(false);
         }
 
@@ -473,9 +473,7 @@ impl CommutationChecker {
 
     fn is_commutation_skipped(&self, instr: &CircuitInstruction) -> bool {
         let op = instr.op();
-            op.directive()
-            || SKIPPED_NAMES.contains(&op.name())
-            || instr.is_parameterized()
+        op.directive() || SKIPPED_NAMES.contains(&op.name()) || instr.is_parameterized()
     }
 
     fn get_relative_placement(

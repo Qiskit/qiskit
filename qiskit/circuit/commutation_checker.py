@@ -64,11 +64,11 @@ class CommutationChecker:
     """
 
     def __init__(
-            self,
-            standard_gate_commutations: dict = None,
-            cache_max_entries: int = 10**6,
-            *,
-            gates: Optional[Set[str]] = None,
+        self,
+        standard_gate_commutations: dict = None,
+        cache_max_entries: int = 10**6,
+        *,
+        gates: Optional[Set[str]] = None,
     ):
         super().__init__()
         if standard_gate_commutations is None:
@@ -86,10 +86,10 @@ class CommutationChecker:
         self._gate_names = gates
 
     def commute_nodes(
-            self,
-            op1,
-            op2,
-            max_num_qubits: int = 3,
+        self,
+        op1,
+        op2,
+        max_num_qubits: int = 3,
     ) -> bool:
         """Checks if two DAGOpNodes commute."""
         qargs1 = op1.qargs
@@ -103,14 +103,14 @@ class CommutationChecker:
         return self.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
 
     def commute(
-            self,
-            op1: Operation,
-            qargs1: List,
-            cargs1: List,
-            op2: Operation,
-            qargs2: List,
-            cargs2: List,
-            max_num_qubits: int = 3,
+        self,
+        op1: Operation,
+        qargs1: List,
+        cargs1: List,
+        op2: Operation,
+        qargs2: List,
+        cargs2: List,
+        max_num_qubits: int = 3,
     ) -> bool:
         """
         Checks if two Operations commute. The return value of `True` means that the operations
@@ -198,11 +198,11 @@ class CommutationChecker:
         self._cached_commutations = {}
 
     def check_commutation_entries(
-            self,
-            first_op: Operation,
-            first_qargs: List,
-            second_op: Operation,
-            second_qargs: List,
+        self,
+        first_op: Operation,
+        first_qargs: List,
+        second_op: Operation,
+        second_qargs: List,
     ) -> Union[bool, None]:
         """Returns stored commutation relation if any
 
@@ -299,13 +299,13 @@ def is_commutation_supported(op, qargs, max_num_qubits):
 
 
 def _commutation_precheck(
-        op1: Operation,
-        qargs1: List,
-        cargs1: List,
-        op2: Operation,
-        qargs2: List,
-        cargs2: List,
-        max_num_qubits,
+    op1: Operation,
+    qargs1: List,
+    cargs1: List,
+    op2: Operation,
+    qargs2: List,
+    cargs2: List,
+    max_num_qubits,
 ):
     # Bug in CommutativeCancellation, e.g. see gh-8553
     if getattr(op1, "condition", False) or getattr(op2, "condition", False):
@@ -315,7 +315,7 @@ def _commutation_precheck(
         return True
 
     if not is_commutation_supported(op1, qargs1, max_num_qubits) or not is_commutation_supported(
-            op2, qargs2, max_num_qubits
+        op2, qargs2, max_num_qubits
     ):
         return False
 
@@ -353,7 +353,7 @@ def _persistent_id(op_name: str) -> int:
 
 
 def _order_operations(
-        op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
+    op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
 ):
     """Orders two operations in a canonical way that is persistent over
     @different python versions and executions
@@ -384,11 +384,11 @@ def _order_operations(
 
 
 def _query_commutation(
-        first_op: Operation,
-        first_qargs: List,
-        second_op: Operation,
-        second_qargs: List,
-        _commutation_lib: dict,
+    first_op: Operation,
+    first_qargs: List,
+    second_op: Operation,
+    second_qargs: List,
+    _commutation_lib: dict,
 ) -> Union[bool, None]:
     """Queries and returns the commutation of a pair of operations from a provided commutation library
     Args:
@@ -436,7 +436,7 @@ def _query_commutation(
 
 
 def _commute_matmul(
-        first_ops: Operation, first_qargs: List, second_op: Operation, second_qargs: List
+    first_ops: Operation, first_qargs: List, second_op: Operation, second_qargs: List
 ):
     qarg = {q: i for i, q in enumerate(first_qargs)}
     num_qubits = len(qarg)
