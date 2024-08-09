@@ -2144,7 +2144,6 @@ impl Operation for PyGate {
     fn control_flow(&self) -> bool {
         false
     }
-
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
