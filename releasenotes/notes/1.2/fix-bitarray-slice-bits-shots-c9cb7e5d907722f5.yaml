@@ -7,5 +7,5 @@ upgrade_primitives:
   - |
     :meth:`.BitArray.__getitem__` will now raise ``IndexError``
     when indices are out of bounds or the number of dimensions
-    of indices does not match that of BitArray.
+    of indices does not match that of :class:`.BitArray`.
     They used to raise ``ValueError`` in the case.

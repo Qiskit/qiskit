@@ -1,4 +1,4 @@
 fixes:
   - |
-    The :class:`.VF2Layout` pass would raise an exception when provided with a :class:`.Target` instance without connectivity constraints.
-    This would be the case with targets from Aer 0.13. The issue is now fixed.
+    Fixed the :class:`.VF2Layout` for :class:`.Target`\s without connectivity constraints 
+    (such as present in Qiskit Aer 0.13), which previosuly raised an exception.

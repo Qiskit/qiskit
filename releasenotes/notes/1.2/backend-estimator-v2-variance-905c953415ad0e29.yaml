@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Changes the way in which the :class:`.BackendEstimatorV2` class calculates the ``std`` to ensure that
-    it matches the correct formula.
+    Fix the calculation of the standard deviation in :class:`.BackendEstimatorV2`, by taking
+    into account co-variance of non-commuting Paulis. 
+    Fixed `Qiskit/qiskit-ibm-runtime#1751 <https://github.com/Qiskit/qiskit-ibm-runtime/issues/1751>`__.

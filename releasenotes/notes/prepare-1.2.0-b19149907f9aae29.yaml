@@ -1,0 +1,29 @@
+---
+prelude: >
+    The Qiskit 1.2.0 release focuses mainly on improving performance
+    and quality of the compiler. Also, it is the last release supporting
+    Python 3.8. By Qiskit 1.3.0 the minimal required Python version
+    will be 3.9.
+
+    Among a wide range of new features, improvements, and fixes, the release highlights are:
+
+      * The circuit infrastructure, including gates and operations, is moved
+        to Rust. This enables a series of speedups in circuit construction
+        and circuit manipulation.
+
+      * Leveraging the above point, parts of the synthesis library are now
+        constructing circuits in Rust. This produces a significant speedup
+        when synthesizing operations such as Cliffords, permutations, or linear functions.
+        As example, decomposing 50+ qubit Cliffords benefit from an
+        approximate 1000-fold speedup in runtime.
+
+      * The default ``optimization`` level has changed from 1 to 2 in
+        :func:`.transpile` and :func:`.generate_preset_passmanager`.
+        This will generally improve the quality of the compiled circuits,
+        at an additional runtime cost. For most users, level 2 is likely to
+        present the optimal trade-off.
+
+      * The default quality of compiled circuits is improved by optimizing
+        with a unitary peephole optimization and using a dense layout as a
+        Sabre trial.
+

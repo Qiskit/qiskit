@@ -1,4 +1,5 @@
 ---
 features_synthesis:
   - |
-    Port :func:`.synth_permutation_depth_lnn_kms`, used to synthesize permutations for linear connectivity, to Rust.
+    Improved the performance of :func:`.synth_permutation_depth_lnn_kms`, used to synthesize 
+    permutations for linear connectivity, by porting it to Rust.

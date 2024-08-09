@@ -9,5 +9,5 @@ features_primitives:
     * ``shots`` is added for :class:`.BackendSamplerV2` and :class:`.BackendEstimatorV2`
     * ``precision`` is renamed with ``target_precision`` for :class:`.StatevectorEstimator`
 
-    Note that metadata of :class:`.StatevectorEstimator` does not have ``shots`` because
+    Note that the metadata of :class:`.StatevectorEstimator` does not have ``shots`` because
     the class computes expectation values with :class:`.Statevector` and shots are not used.
