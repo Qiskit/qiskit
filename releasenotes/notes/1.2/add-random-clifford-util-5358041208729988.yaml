@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    Added a new function to ``qiskit.circuit.random`` that allows to generate a pseudo-random
+    Added a new function to :mod:`qiskit.circuit.random` that allows to generate a pseudo-random
     Clifford circuit with gates from the standard library: :func:`.random_clifford_circuit`.
     Example usage:
     

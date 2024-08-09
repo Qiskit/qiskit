@@ -15,9 +15,8 @@ deprecations_primitives:
     * :class:`.BaseEstimator`, alias for :class:`.BaseEstimatorV1`
     * :class:`.BaseSampler`, alias for :class:`.BaseSamplerV1`
 
-    This deprecation does NOT affect the explicitly-versioned :class:`BaseEstimatorV1` 
-    and :class:`BaseSamplerV1` abstract
-    interface definitions or related result and job classes.
+    This deprecation does **not** affect the explicitly-versioned :class:`BaseEstimatorV1` 
+    and :class:`BaseSamplerV1` abstract interface definitions or related result and job classes.
 
     In addition, the following utility functions are deprecated:
 
