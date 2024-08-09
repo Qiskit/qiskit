@@ -131,9 +131,7 @@ class PassManagerConfig:
         """
         res = cls(**pass_manager_options)
         backend_version = getattr(backend, "version", 0)
-        if not isinstance(backend_version, int):
-            backend_version = 0
-        if backend_version < 2:
+        if backend_version == 1:
             warnings.warn(
                 "The method PassManagerConfig.from_backend will stop supporting inputs of "
                 f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
@@ -142,6 +140,9 @@ class PassManagerConfig:
                 category=DeprecationWarning,
                 stacklevel=2,
             )
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version < 2:
             config = backend.configuration()
         if res.basis_gates is None:
             if backend_version < 2:
