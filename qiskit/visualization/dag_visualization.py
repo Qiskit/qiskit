@@ -174,10 +174,13 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         label = register_bit_labels.get(
                             node.wire, f"q_{dag.find_bit(node.wire).index}"
                         )
-                    else:
+                    elif isinstance(node.wire, Clbit):
                         label = register_bit_labels.get(
                             node.wire, f"c_{dag.find_bit(node.wire).index}"
                         )
+                    else:
+                        label = str(node.wire.name)
+
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
@@ -187,10 +190,12 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         label = register_bit_labels.get(
                             node.wire, f"q[{dag.find_bit(node.wire).index}]"
                         )
-                    else:
+                    elif isinstance(node.wire, Clbit):
                         label = register_bit_labels.get(
                             node.wire, f"c[{dag.find_bit(node.wire).index}]"
                         )
+                    else:
+                        label = str(node.wire.name)
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
@@ -203,8 +208,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             e = {}
             if isinstance(edge, Qubit):
                 label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")
-            else:
+            elif isinstance(edge, Clbit):
                 label = register_bit_labels.get(edge, f"c_{dag.find_bit(edge).index}")
+            else:
+                label = str(edge.name)
             e["label"] = label
             return e
 
