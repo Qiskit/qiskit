@@ -13,6 +13,7 @@
 """Pass Manager Configuration class."""
 
 import pprint
+import warnings
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -109,11 +110,17 @@ class PassManagerConfig:
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
-        This method automatically gererates a PassManagerConfig object based on the backend's
+        This method automatically generates a PassManagerConfig object based on the backend's
         features. User options can be used to overwrite the configuration.
 
+        .. deprecated:: 1.3
+            The method ``PassManagerConfig.from_backend`` will stop supporting inputs of type
+            :class:`.BackendV1` in the `backend` parameter in a future release no
+            earlier than 2.0. :class:`.BackendV1` is deprecated and implementations should move
+            to :class:`.BackendV2`.
+
         Args:
-            backend (BackendV1): The backend that provides the configuration.
+            backend (BackendV1 or BackendV2): The backend that provides the configuration.
             pass_manager_options: User-defined option-value pairs.
 
         Returns:
@@ -127,6 +134,14 @@ class PassManagerConfig:
         if not isinstance(backend_version, int):
             backend_version = 0
         if backend_version < 2:
+            warnings.warn(
+                "The method PassManagerConfig.from_backend will stop supporting inputs of "
+                f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+                "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+                "should move to `BackendV2`.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
             config = backend.configuration()
         if res.basis_gates is None:
             if backend_version < 2:
