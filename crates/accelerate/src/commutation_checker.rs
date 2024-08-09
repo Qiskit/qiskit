@@ -17,6 +17,8 @@ use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_bigint::BigInt;
 use num_complex::Complex64;
+use numpy::PyReadonlyArray2;
+use pyo3::intern;
 use smallvec::SmallVec;
 
 use crate::unitary_compose::compose;
@@ -25,6 +27,8 @@ use pyo3::types::{PyBool, PyDict, PySequence, PyString, PyTuple};
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::dag_node::DAGOpNode;
+use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::distancemap::DistanceMap;
@@ -399,13 +403,47 @@ impl CommutationChecker {
 
         let first_op = first_instr.op();
         let second_op = second_instr.op();
+
         let first_mat = match first_op.matrix(&first_instr.params) {
             Some(mat) => mat,
-            None => return false,
+            None => match first_op {
+                PyGateType(gate) => match Python::with_gil(|py| -> Option<Array2<Complex64>> {
+                    Self::get_op(py, &gate.gate)
+                }) {
+                    Some(x) => x,
+                    _ => return false,
+                },
+                PyOperationType(operation) => {
+                    match Python::with_gil(|py| -> Option<Array2<Complex64>> {
+                        Self::get_op(py, &operation.operation)
+                    }) {
+                        Some(x) => x,
+                        _ => return false,
+                    }
+                }
+                _ => return false,
+            },
         };
+
         let second_mat = match second_op.matrix(&second_instr.params) {
             Some(mat) => mat,
-            None => return false,
+            None => match second_op {
+                PyGateType(gate) => match Python::with_gil(|py| -> Option<Array2<Complex64>> {
+                    Self::get_op(py, &gate.gate)
+                }) {
+                    Some(x) => x,
+                    _ => return false,
+                },
+                PyOperationType(operation) => {
+                    match Python::with_gil(|py| -> Option<Array2<Complex64>> {
+                        Self::get_op(py, &operation.operation)
+                    }) {
+                        Some(x) => x,
+                        _ => return false,
+                    }
+                }
+                _ => return false,
+            },
         };
 
         if first_qarg == second_qarg {
@@ -468,6 +506,21 @@ impl CommutationChecker {
         None
     }
 
+    fn get_op(py: Python, gate: &PyObject) -> Option<Array2<Complex64>> {
+        Some(
+            QI_OPERATOR
+                .get_bound(py)
+                .call1((gate,))
+                .ok()?
+                .getattr(intern!(py, "data"))
+                .ok()?
+                .extract::<PyReadonlyArray2<Complex64>>()
+                .ok()?
+                .as_array()
+                .to_owned(),
+        )
+    }
+
     fn is_commutation_skipped(&self, instr: &CircuitInstruction) -> bool {
         let op = instr.op();
         op.directive() || SKIPPED_NAMES.contains(&op.name()) || instr.is_parameterized()
@@ -493,6 +546,7 @@ impl CommutationChecker {
         self.cache.clear();
         self.current_cache_entries = 0;
         self._cache_miss = 0;
+        self._cache_hit = 0;
         self._cache_hit = 0;
     }
 }

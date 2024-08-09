@@ -51,7 +51,6 @@ pub fn compose(
     //Note that we must reverse the subsystem dimension order as
     //qubit 0 corresponds to the right-most position in the tensor
     //product, which is the last tensor wire index.
-    //TODO can we reshape in-place?
     let tensor = per_qubit_shaped(gate_unitary);
     let mat = per_qubit_shaped(overall_unitary);
     let indices = qubits
