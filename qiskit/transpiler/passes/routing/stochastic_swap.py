@@ -215,7 +215,7 @@ class StochasticSwap(TransformationPass):
         int_layout = nlayout.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
-        trial_circuit.add_qubits(layout.get_virtual_bits())
+        trial_circuit.add_qubits(list(layout.get_virtual_bits()))
 
         edges = np.asarray(coupling.get_edges(), dtype=np.uint32).ravel()
         cdist = coupling._dist_matrix
@@ -265,9 +265,7 @@ class StochasticSwap(TransformationPass):
         # Output any swaps
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, depth %d", best_depth)
-            dag.compose(
-                best_circuit, qubits={bit: bit for bit in best_circuit.qubits}, inline_captures=True
-            )
+            dag.compose(best_circuit, qubits=list(best_circuit.qubits), inline_captures=True)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
         # Output this layer

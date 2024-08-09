@@ -16,7 +16,7 @@ use std::cell::RefCell;
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
-use crate::interner::{IndexedInterner, Interner, InternerKey};
+use crate::interner::{IndexedInterner, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::PackedInstruction;
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
@@ -138,13 +138,9 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
-        let no_clbit_index = (&mut res.cargs_interner)
-            .intern(InternerKey::Value(Vec::new()))?
-            .index;
+        let no_clbit_index = (&mut res.cargs_interner).intern(Vec::new())?;
         for (operation, params, qargs) in instruction_iter {
-            let qubits = (&mut res.qargs_interner)
-                .intern(InternerKey::Value(qargs.to_vec()))?
-                .index;
+            let qubits = (&mut res.qargs_interner).intern(qargs.to_vec())?;
             let params = (!params.is_empty()).then(|| Box::new(params));
             res.data.push(PackedInstruction {
                 op: operation.into(),
@@ -201,13 +197,9 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) -> PyResult<()> {
-        let no_clbit_index = (&mut self.cargs_interner)
-            .intern(InternerKey::Value(Vec::new()))?
-            .index;
+        let no_clbit_index = (&mut self.cargs_interner).intern(Vec::new())?;
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
-        let qubits = (&mut self.qargs_interner)
-            .intern(InternerKey::Value(qargs.to_vec()))?
-            .index;
+        let qubits = (&mut self.qargs_interner).intern(qargs.to_vec())?;
         self.data.push(PackedInstruction {
             op: operation.into(),
             qubits,
@@ -432,7 +424,8 @@ impl CircuitData {
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
     pub fn add_qubit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
-        self.qubits.add(py, bit, strict)
+        self.qubits.add(py, bit, strict)?;
+        Ok(())
     }
 
     /// Registers a :class:`.Clbit` instance.
@@ -446,7 +439,8 @@ impl CircuitData {
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
     pub fn add_clbit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
-        self.clbits.add(py, bit, strict)
+        self.clbits.add(py, bit, strict)?;
+        Ok(())
     }
 
     /// Performs a shallow copy.
@@ -517,10 +511,10 @@ impl CircuitData {
         let qubits = PySet::empty_bound(py)?;
         let clbits = PySet::empty_bound(py)?;
         for inst in self.data.iter() {
-            for b in self.qargs_interner.intern(inst.qubits).value.iter() {
+            for b in self.qargs_interner.intern(inst.qubits) {
                 qubits.add(self.qubits.get(*b).unwrap().clone_ref(py))?;
             }
-            for b in self.cargs_interner.intern(inst.clbits).value.iter() {
+            for b in self.cargs_interner.intern(inst.clbits) {
                 clbits.add(self.clbits.get(*b).unwrap().clone_ref(py))?;
             }
         }
@@ -686,8 +680,8 @@ impl CircuitData {
             let clbits = self.cargs_interner.intern(inst.clbits);
             CircuitInstruction {
                 operation: inst.op.clone(),
-                qubits: PyTuple::new_bound(py, self.qubits.map_indices(qubits.value)).unbind(),
-                clbits: PyTuple::new_bound(py, self.clbits.map_indices(clbits.value)).unbind(),
+                qubits: PyTuple::new_bound(py, self.qubits.map_indices(qubits)).unbind(),
+                clbits: PyTuple::new_bound(py, self.clbits.map_indices(clbits)).unbind(),
                 params: inst.params_view().iter().cloned().collect(),
                 extra_attrs: inst.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
@@ -840,7 +834,6 @@ impl CircuitData {
                 let qubits = other
                     .qargs_interner
                     .intern(inst.qubits)
-                    .value
                     .iter()
                     .map(|b| {
                         Ok(self
@@ -852,7 +845,6 @@ impl CircuitData {
                 let clbits = other
                     .cargs_interner
                     .intern(inst.clbits)
-                    .value
                     .iter()
                     .map(|b| {
                         Ok(self
@@ -862,14 +854,12 @@ impl CircuitData {
                     })
                     .collect::<PyResult<Vec<Clbit>>>()?;
                 let new_index = self.data.len();
-                let qubits_id =
-                    Interner::intern(&mut self.qargs_interner, InternerKey::Value(qubits))?;
-                let clbits_id =
-                    Interner::intern(&mut self.cargs_interner, InternerKey::Value(clbits))?;
+                let qubits_id = Interner::intern(&mut self.qargs_interner, qubits)?;
+                let clbits_id = Interner::intern(&mut self.cargs_interner, clbits)?;
                 self.data.push(PackedInstruction {
                     op: inst.op.clone(),
-                    qubits: qubits_id.index,
-                    clbits: clbits_id.index,
+                    qubits: qubits_id,
+                    clbits: clbits_id,
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
@@ -1041,7 +1031,7 @@ impl CircuitData {
     pub fn num_nonlocal_gates(&self) -> usize {
         self.data
             .iter()
-            .filter(|inst| inst.op().num_qubits() > 1 && !inst.op().directive())
+            .filter(|inst| inst.op.num_qubits() > 1 && !inst.op.directive())
             .count()
     }
 }
@@ -1064,16 +1054,16 @@ impl CircuitData {
     fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = Interner::intern(
             &mut self.qargs_interner,
-            InternerKey::Value(self.qubits.map_bits(inst.qubits.bind(py))?.collect()),
+            self.qubits.map_bits(inst.qubits.bind(py))?.collect(),
         )?;
         let clbits = Interner::intern(
             &mut self.cargs_interner,
-            InternerKey::Value(self.clbits.map_bits(inst.clbits.bind(py))?.collect()),
+            self.clbits.map_bits(inst.clbits.bind(py))?.collect(),
         )?;
         Ok(PackedInstruction {
             op: inst.operation.clone(),
-            qubits: qubits.index,
-            clbits: clbits.index,
+            qubits,
+            clbits,
             params: (!inst.params.is_empty()).then(|| Box::new(inst.params.clone())),
             extra_attrs: inst.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]

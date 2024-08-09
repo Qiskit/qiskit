@@ -424,7 +424,9 @@ class HighLevelSynthesis(TransformationPass):
 
         for node in dag_op_nodes:
             if node.is_control_flow():
-                node.op = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(
+                    node, control_flow.map_blocks(self.run, node.op), propagate_condition=False
+                )
                 continue
 
             if node.is_directive():

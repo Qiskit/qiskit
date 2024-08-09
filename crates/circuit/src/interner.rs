@@ -17,36 +17,12 @@ use hashbrown::HashMap;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Index(u32);
-
-pub enum InternerKey<T> {
-    Index(Index),
-    Value(T),
-}
-
-impl<T> From<Index> for InternerKey<T> {
-    fn from(value: Index) -> Self {
-        InternerKey::Index(value)
-    }
-}
-
-pub struct InternerValue<'a, T> {
-    pub index: Index,
-    pub value: &'a T,
-}
 
 impl IntoPy<PyObject> for Index {
     fn into_py(self, py: Python<'_>) -> PyObject {
         self.0.into_py(py)
-    }
-}
-
-pub struct CacheFullError;
-
-impl From<CacheFullError> for PyErr {
-    fn from(_: CacheFullError) -> Self {
-        PyRuntimeError::new_err("The bit operands cache is full!")
     }
 }
 
@@ -58,25 +34,20 @@ pub struct IndexedInterner<T> {
     index_lookup: HashMap<Arc<T>, Index>,
 }
 
-pub trait Interner<T> {
-    type Key;
+pub trait Interner<K> {
     type Output;
 
     /// Takes ownership of the provided key and returns the interned
     /// type.
-    fn intern(self, value: Self::Key) -> Self::Output;
+    fn intern(self, value: K) -> Self::Output;
 }
 
-impl<'a, T> Interner<T> for &'a IndexedInterner<T> {
-    type Key = Index;
-    type Output = InternerValue<'a, T>;
+impl<'a, T> Interner<Index> for &'a IndexedInterner<T> {
+    type Output = &'a T;
 
     fn intern(self, index: Index) -> Self::Output {
         let value = self.entries.get(index.0 as usize).unwrap();
-        InternerValue {
-            index,
-            value: value.as_ref(),
-        }
+        value.as_ref()
     }
 }
 
@@ -84,35 +55,19 @@ impl<'a, T> Interner<T> for &'a mut IndexedInterner<T>
 where
     T: Eq + Hash,
 {
-    type Key = InternerKey<T>;
-    type Output = Result<InternerValue<'a, T>, CacheFullError>;
+    type Output = PyResult<Index>;
 
-    fn intern(self, key: Self::Key) -> Self::Output {
-        match key {
-            InternerKey::Index(index) => {
-                let value = self.entries.get(index.0 as usize).unwrap();
-                Ok(InternerValue {
-                    index,
-                    value: value.as_ref(),
-                })
-            }
-            InternerKey::Value(value) => {
-                if let Some(index) = self.index_lookup.get(&value).copied() {
-                    Ok(InternerValue {
-                        index,
-                        value: self.entries.get(index.0 as usize).unwrap(),
-                    })
-                } else {
-                    let args = Arc::new(value);
-                    let index: Index =
-                        Index(self.entries.len().try_into().map_err(|_| CacheFullError)?);
-                    self.entries.push(args.clone());
-                    Ok(InternerValue {
-                        index,
-                        value: self.index_lookup.insert_unique_unchecked(args, index).0,
-                    })
-                }
-            }
+    fn intern(self, key: T) -> Self::Output {
+        if let Some(index) = self.index_lookup.get(&key).copied() {
+            Ok(index)
+        } else {
+            let args = Arc::new(key);
+            let index: Index = Index(self.entries.len().try_into().map_err(|_| {
+                PyRuntimeError::new_err("The interner has run out of indices (cache is full)!")
+            })?);
+            self.entries.push(args.clone());
+            self.index_lookup.insert_unique_unchecked(args, index);
+            Ok(index)
         }
     }
 }

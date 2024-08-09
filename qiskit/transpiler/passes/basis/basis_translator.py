@@ -313,10 +313,7 @@ class BasisTranslator(TransformationPass):
         if node.params:
             parameter_map = dict(zip(target_params, node.params))
             for inner_node in target_dag.topological_op_nodes():
-                new_node = DAGOpNode.from_instruction(
-                    inner_node._to_circuit_instruction(),
-                    dag=target_dag,
-                )
+                new_node = DAGOpNode.from_instruction(inner_node._to_circuit_instruction())
                 new_node.qargs = tuple(
                     node.qargs[target_dag.find_bit(x).index] for x in inner_node.qargs
                 )
@@ -366,7 +363,6 @@ class BasisTranslator(TransformationPass):
             for inner_node in target_dag.topological_op_nodes():
                 new_node = DAGOpNode.from_instruction(
                     inner_node._to_circuit_instruction(),
-                    dag=target_dag,
                 )
                 new_node.qargs = tuple(
                     node.qargs[target_dag.find_bit(x).index] for x in inner_node.qargs
