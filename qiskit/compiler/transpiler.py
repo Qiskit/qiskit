@@ -13,9 +13,10 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
+from __future__ import annotations
 import logging
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, List, Union, Dict, Callable, Any, Optional, TypeVar
 import warnings
 
 from qiskit import user_config
@@ -23,7 +24,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
@@ -32,6 +32,9 @@ from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
+
+if TYPE_CHECKING:
+    from qiskit.providers.models import BackendProperties
 
 logger = logging.getLogger(__name__)
 

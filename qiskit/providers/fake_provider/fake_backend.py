@@ -19,7 +19,6 @@ Base class for dummy backends.
 import warnings
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
@@ -122,8 +121,18 @@ class FakeBackend(BackendV1):
             ],
             "general": [],
         }
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models.BackendProperties
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models import BackendProperties
 
-        return BackendProperties.from_dict(properties)
+            return BackendProperties.from_dict(properties)
 
     @classmethod
     def _default_options(cls):

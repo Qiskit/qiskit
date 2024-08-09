@@ -19,7 +19,6 @@ import os
 import warnings
 
 from qiskit.exceptions import QiskitError
-from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
 
 from .utils.json_decoder import (
     decode_backend_configuration,
@@ -64,6 +63,8 @@ class FakeQasmBackend(FakeBackend):
         decode_backend_properties(props)
         with warnings.catch_warnings():
             # This raises the BackendProperties deprecation warning internally
+            from qiskit.providers.models import BackendProperties
+
             warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             self._properties = BackendProperties.from_dict(props)
 
@@ -73,4 +74,15 @@ class FakeQasmBackend(FakeBackend):
         return the_json
 
     def _get_config_from_dict(self, conf):
-        return QasmBackendConfiguration.from_dict(conf)
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models.QasmBackendConfiguration
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models import QasmBackendConfiguration
+
+            return QasmBackendConfiguration.from_dict(conf)

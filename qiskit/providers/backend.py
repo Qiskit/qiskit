@@ -19,9 +19,9 @@ from abc import ABC
 from abc import abstractmethod
 import datetime
 from typing import List, Union, Iterable, Tuple
+import warnings
 
 from qiskit.providers.provider import Provider
-from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
 from qiskit.utils import deprecate_func
 
@@ -172,13 +172,24 @@ class BackendV1(Backend, ABC):
         Returns:
             BackendStatus: the status of the backend.
         """
-        return BackendStatus(
-            backend_name=self.name(),
-            backend_version="1",
-            operational=True,
-            pending_jobs=0,
-            status_msg="",
-        )
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models.backendstatus.BackendStatus
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models.backendstatus import BackendStatus
+
+            return BackendStatus(
+                backend_name=self.name(),
+                backend_version="1",
+                operational=True,
+                pending_jobs=0,
+                status_msg="",
+            )
 
     def name(self):
         """Return the backend name.

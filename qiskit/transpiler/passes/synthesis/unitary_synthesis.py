@@ -23,7 +23,7 @@ Unitary Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.unitary_sy
 
 from __future__ import annotations
 from math import pi, inf, isclose
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from itertools import product
 from functools import partial
 import numpy as np
@@ -54,7 +54,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import QiskitError
-from qiskit.providers.models import BackendProperties
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
@@ -72,6 +71,8 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
 
+if TYPE_CHECKING:
+    from qiskit.providers.models import BackendProperties
 
 GATE_NAME_MAP = {
     "cx": CXGate._standard_gate,

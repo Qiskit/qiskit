@@ -22,7 +22,7 @@ from __future__ import annotations
 import itertools
 import warnings
 
-from typing import Optional, List, Any
+from typing import TYPE_CHECKING, Optional, List, Any
 from collections.abc import Mapping
 import datetime
 import io
@@ -55,8 +55,10 @@ from qiskit.exceptions import QiskitError
 # import QubitProperties here to provide convenience alias for building a
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
-from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.utils import deprecate_func
+
+if TYPE_CHECKING:
+    from qiskit.providers.models.backendproperties import BackendProperties
 
 logger = logging.getLogger(__name__)
 
@@ -973,7 +975,8 @@ class Target(BaseTarget):
                on the instructions from the pair of ``basis_gates`` and
                ``coupling_map``. If you want to define a custom gate for
                a particular qubit or qubit pair, you can manually build :class:`.Target`.
-            backend_properties: The :class:`~.BackendProperties` object which is
+            backend_properties: The :class:`~.BackendProperties` object
+                which is
                 used for instruction properties and qubit properties.
                 If specified and instruction properties are intended to be used
                 then the ``coupling_map`` argument must be specified. This is
@@ -1256,6 +1259,8 @@ def target_to_backend_properties(target: Target):
         with warnings.catch_warnings():
             # This raises BackendProperties internally
             warnings.filterwarnings("ignore", category=DeprecationWarning)
+            from qiskit.providers.models.backendproperties import BackendProperties
+
             return BackendProperties.from_dict(properties_dict)
     else:
         return None

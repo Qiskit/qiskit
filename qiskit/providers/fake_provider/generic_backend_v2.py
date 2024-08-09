@@ -13,6 +13,7 @@
 """Generic BackendV2 class that with a simulated ``run``."""
 
 from __future__ import annotations
+import typing
 import warnings
 
 from collections.abc import Iterable
@@ -35,10 +36,6 @@ from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitP
 from qiskit.providers import Options
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import (
-    PulseDefaults,
-    Command,
-)
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
 
@@ -74,17 +71,34 @@ _QUBIT_PROPERTIES = {
     "frequency": (5e9, 5.5e9),
 }
 
-# The number of samples determines the pulse durations of the corresponding
-# instructions. This default defines pulses with durations in multiples of
-# 16 dt for consistency with the pulse granularity of real IBM devices, but
-# keeps the number smaller than what would be realistic for
-# manageability. If needed, more realistic durations could be added in the
-# future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
-_PULSE_LIBRARY = [
-    PulseLibraryItem(name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)),  # 16dt
-    PulseLibraryItem(name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)),  # 32dt
-    PulseLibraryItem(name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)),  # 64dt
-]
+with warnings.catch_warnings():
+    # Qobj is deprecated
+    warnings.filterwarnings(
+        "ignore",
+        category=DeprecationWarning,
+        message=r".+qiskit\.qobj\..+",
+        module="qiskit",
+    )
+    # The number of samples determines the pulse durations of the corresponding
+    # instructions. This default defines pulses with durations in multiples of
+    # 16 dt for consistency with the pulse granularity of real IBM devices, but
+    # keeps the number smaller than what would be realistic for
+    # manageability. If needed, more realistic durations could be added in the
+    # future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
+    _PULSE_LIBRARY = [
+        PulseLibraryItem(
+            name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)
+        ),  # 16dt
+        PulseLibraryItem(
+            name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)
+        ),  # 32dt
+        PulseLibraryItem(
+            name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)
+        ),  # 64dt
+    ]
+
+if typing.TYPE_CHECKING:
+    from qiskit.providers.models import PulseDefaults
 
 
 class GenericBackendV2(BackendV2):
@@ -319,42 +333,64 @@ class GenericBackendV2(BackendV2):
         for inst in calibration_buffer:
             num_qubits = self._supported_gates[inst].num_qubits
             qarg_set = self._coupling_map if num_qubits > 1 else list(range(self.num_qubits))
-            if inst == "measure":
-                cmd_def.append(
-                    Command(
-                        name=inst,
-                        qubits=qarg_set,
-                        sequence=(
-                            self._get_calibration_sequence(inst, num_qubits, qarg_set)
-                            if self._calibrate_instructions
-                            else []
-                        ),
-                    )
+            with warnings.catch_warnings():
+                # BackendV1 is deprecated along qiskit.providers.models.Command
+                # They both need to be removed at the same time
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r"qiskit\.providers\.models.+",
+                    module="qiskit",
                 )
-            else:
-                for qarg in qarg_set:
-                    qubits = [qarg] if num_qubits == 1 else qarg
+                from qiskit.providers.models import Command
+
+                if inst == "measure":
                     cmd_def.append(
                         Command(
                             name=inst,
-                            qubits=qubits,
+                            qubits=qarg_set,
                             sequence=(
-                                self._get_calibration_sequence(inst, num_qubits, qubits)
+                                self._get_calibration_sequence(inst, num_qubits, qarg_set)
                                 if self._calibrate_instructions
                                 else []
                             ),
                         )
                     )
+                else:
+                    for qarg in qarg_set:
+                        qubits = [qarg] if num_qubits == 1 else qarg
+                        cmd_def.append(
+                            Command(
+                                name=inst,
+                                qubits=qubits,
+                                sequence=(
+                                    self._get_calibration_sequence(inst, num_qubits, qubits)
+                                    if self._calibrate_instructions
+                                    else []
+                                ),
+                            )
+                        )
 
         qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
         meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
-        return PulseDefaults(
-            qubit_freq_est=qubit_freq_est,
-            meas_freq_est=meas_freq_est,
-            buffer=0,
-            pulse_library=_PULSE_LIBRARY,
-            cmd_def=cmd_def,
-        )
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models.pulsedefaults import PulseDefaults
+
+            return PulseDefaults(
+                qubit_freq_est=qubit_freq_est,
+                meas_freq_est=meas_freq_est,
+                buffer=0,
+                pulse_library=_PULSE_LIBRARY,
+                cmd_def=cmd_def,
+            )
 
     def _build_generic_target(self):
         """This method generates a :class:`~.Target` instance with

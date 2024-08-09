@@ -15,13 +15,6 @@ Fake backend supporting OpenPulse.
 """
 import warnings
 
-from qiskit.providers.models import (
-    GateConfig,
-    PulseBackendConfiguration,
-    PulseDefaults,
-    Command,
-    UchannelLO,
-)
 from qiskit.qobj import PulseQobjInstruction
 
 from .fake_backend import FakeBackend
@@ -31,88 +24,114 @@ class FakeOpenPulse3Q(FakeBackend):
     """Trivial extension of the FakeOpenPulse2Q."""
 
     def __init__(self):
-        configuration = PulseBackendConfiguration(
-            backend_name="fake_openpulse_3q",
-            backend_version="0.0.0",
-            n_qubits=3,
-            meas_levels=[0, 1, 2],
-            basis_gates=["u1", "u2", "u3", "cx", "id"],
-            simulator=False,
-            local=True,
-            conditional=True,
-            open_pulse=True,
-            memory=False,
-            max_shots=65536,
-            gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
-            coupling_map=[[0, 1], [1, 2]],
-            n_registers=3,
-            n_uchannels=3,
-            u_channel_lo=[
-                [UchannelLO(q=0, scale=1.0 + 0.0j)],
-                [UchannelLO(q=0, scale=-1.0 + 0.0j), UchannelLO(q=1, scale=1.0 + 0.0j)],
-                [UchannelLO(q=0, scale=1.0 + 0.0j)],
-            ],
-            qubit_lo_range=[[4.5, 5.5], [4.5, 5.5], [4.5, 5.5]],
-            meas_lo_range=[[6.0, 7.0], [6.0, 7.0], [6.0, 7.0]],
-            dt=1.3333,
-            dtm=10.5,
-            rep_times=[100, 250, 500, 1000],
-            meas_map=[[0, 1, 2]],
-            channel_bandwidth=[
-                [-0.2, 0.4],
-                [-0.3, 0.3],
-                [-0.3, 0.3],
-                [-0.02, 0.02],
-                [-0.02, 0.02],
-                [-0.02, 0.02],
-                [-0.2, 0.4],
-                [-0.3, 0.3],
-                [-0.3, 0.3],
-            ],
-            meas_kernels=["kernel1"],
-            discriminators=["max_1Q_fidelity"],
-            acquisition_latency=[[100, 100], [100, 100], [100, 100]],
-            conditional_latency=[
-                [100, 1000],
-                [1000, 100],
-                [100, 1000],
-                [100, 1000],
-                [1000, 100],
-                [100, 1000],
-                [1000, 100],
-                [100, 1000],
-                [1000, 100],
-            ],
-            channels={
-                "acquire0": {"type": "acquire", "purpose": "acquire", "operates": {"qubits": [0]}},
-                "acquire1": {"type": "acquire", "purpose": "acquire", "operates": {"qubits": [1]}},
-                "acquire2": {"type": "acquire", "purpose": "acquire", "operates": {"qubits": [2]}},
-                "d0": {"type": "drive", "purpose": "drive", "operates": {"qubits": [0]}},
-                "d1": {"type": "drive", "purpose": "drive", "operates": {"qubits": [1]}},
-                "d2": {"type": "drive", "purpose": "drive", "operates": {"qubits": [2]}},
-                "m0": {"type": "measure", "purpose": "measure", "operates": {"qubits": [0]}},
-                "m1": {"type": "measure", "purpose": "measure", "operates": {"qubits": [1]}},
-                "m2": {"type": "measure", "purpose": "measure", "operates": {"qubits": [2]}},
-                "u0": {
-                    "type": "control",
-                    "purpose": "cross-resonance",
-                    "operates": {"qubits": [0, 1]},
-                },
-                "u1": {
-                    "type": "control",
-                    "purpose": "cross-resonance",
-                    "operates": {"qubits": [1, 0]},
-                },
-                "u2": {
-                    "type": "control",
-                    "purpose": "cross-resonance",
-                    "operates": {"qubits": [2, 1]},
-                },
-            },
-        )
         with warnings.catch_warnings():
-            # The class PulseQobjInstruction is deprecated
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            # BackendV1 is deprecated along qiskit.providers.models.BackendProperties
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models import (
+                GateConfig,
+                PulseBackendConfiguration,
+                PulseDefaults,
+                Command,
+                UchannelLO,
+            )
+
+            configuration = PulseBackendConfiguration(
+                backend_name="fake_openpulse_3q",
+                backend_version="0.0.0",
+                n_qubits=3,
+                meas_levels=[0, 1, 2],
+                basis_gates=["u1", "u2", "u3", "cx", "id"],
+                simulator=False,
+                local=True,
+                conditional=True,
+                open_pulse=True,
+                memory=False,
+                max_shots=65536,
+                gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
+                coupling_map=[[0, 1], [1, 2]],
+                n_registers=3,
+                n_uchannels=3,
+                u_channel_lo=[
+                    [UchannelLO(q=0, scale=1.0 + 0.0j)],
+                    [UchannelLO(q=0, scale=-1.0 + 0.0j), UchannelLO(q=1, scale=1.0 + 0.0j)],
+                    [UchannelLO(q=0, scale=1.0 + 0.0j)],
+                ],
+                qubit_lo_range=[[4.5, 5.5], [4.5, 5.5], [4.5, 5.5]],
+                meas_lo_range=[[6.0, 7.0], [6.0, 7.0], [6.0, 7.0]],
+                dt=1.3333,
+                dtm=10.5,
+                rep_times=[100, 250, 500, 1000],
+                meas_map=[[0, 1, 2]],
+                channel_bandwidth=[
+                    [-0.2, 0.4],
+                    [-0.3, 0.3],
+                    [-0.3, 0.3],
+                    [-0.02, 0.02],
+                    [-0.02, 0.02],
+                    [-0.02, 0.02],
+                    [-0.2, 0.4],
+                    [-0.3, 0.3],
+                    [-0.3, 0.3],
+                ],
+                meas_kernels=["kernel1"],
+                discriminators=["max_1Q_fidelity"],
+                acquisition_latency=[[100, 100], [100, 100], [100, 100]],
+                conditional_latency=[
+                    [100, 1000],
+                    [1000, 100],
+                    [100, 1000],
+                    [100, 1000],
+                    [1000, 100],
+                    [100, 1000],
+                    [1000, 100],
+                    [100, 1000],
+                    [1000, 100],
+                ],
+                channels={
+                    "acquire0": {
+                        "type": "acquire",
+                        "purpose": "acquire",
+                        "operates": {"qubits": [0]},
+                    },
+                    "acquire1": {
+                        "type": "acquire",
+                        "purpose": "acquire",
+                        "operates": {"qubits": [1]},
+                    },
+                    "acquire2": {
+                        "type": "acquire",
+                        "purpose": "acquire",
+                        "operates": {"qubits": [2]},
+                    },
+                    "d0": {"type": "drive", "purpose": "drive", "operates": {"qubits": [0]}},
+                    "d1": {"type": "drive", "purpose": "drive", "operates": {"qubits": [1]}},
+                    "d2": {"type": "drive", "purpose": "drive", "operates": {"qubits": [2]}},
+                    "m0": {"type": "measure", "purpose": "measure", "operates": {"qubits": [0]}},
+                    "m1": {"type": "measure", "purpose": "measure", "operates": {"qubits": [1]}},
+                    "m2": {"type": "measure", "purpose": "measure", "operates": {"qubits": [2]}},
+                    "u0": {
+                        "type": "control",
+                        "purpose": "cross-resonance",
+                        "operates": {"qubits": [0, 1]},
+                    },
+                    "u1": {
+                        "type": "control",
+                        "purpose": "cross-resonance",
+                        "operates": {"qubits": [1, 0]},
+                    },
+                    "u2": {
+                        "type": "control",
+                        "purpose": "cross-resonance",
+                        "operates": {"qubits": [2, 1]},
+                    },
+                },
+            )
             self._defaults = PulseDefaults.from_dict(
                 {
                     "qubit_freq_est": [4.9, 5.0, 4.8],

@@ -34,6 +34,7 @@ import uuid
 import time
 import logging
 import warnings
+import typing
 
 from collections import Counter
 import numpy as np
@@ -43,7 +44,6 @@ from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
 from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
@@ -59,6 +59,9 @@ from .basic_provider_tools import (
 )
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
+
+if typing.TYPE_CHECKING:
+    from qiskit.providers.models import BackendConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +219,7 @@ class BasicSimulator(BackendV2):
         """Return the simulator backend configuration.
 
         Returns:
-            The configuration for the backend.
+            BackendConfiguration: The configuration for the backend.
         """
         # Note: this is a custom attribute of the BasicSimulator class and
         # not part of the BackendV2 interface. It has only been added for
@@ -244,6 +247,8 @@ class BasicSimulator(BackendV2):
                 category=DeprecationWarning,
                 message=r".+qiskit\.providers\.models\.backendconfiguration\..+",
             )
+            from qiskit.providers.models import BackendConfiguration
+
             self._configuration = BackendConfiguration(
                 backend_name=self.name,
                 backend_version=self.backend_version,

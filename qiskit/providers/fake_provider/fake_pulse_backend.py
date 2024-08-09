@@ -13,9 +13,9 @@
 """
 Fake backend abstract class for mock backends supporting OpenPulse.
 """
+import warnings
 
 from qiskit.exceptions import QiskitError
-from qiskit.providers.models import PulseBackendConfiguration, PulseDefaults
 
 from .fake_qasm_backend import FakeQasmBackend
 from .utils.json_decoder import decode_pulse_defaults
@@ -37,7 +37,29 @@ class FakePulseBackend(FakeQasmBackend):
             raise QiskitError("No properties file has been defined")
         defs = self._load_json(self.defs_filename)
         decode_pulse_defaults(defs)
-        self._defaults = PulseDefaults.from_dict(defs)
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models.PulseDefaults
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models import PulseDefaults
+
+            self._defaults = PulseDefaults.from_dict(defs)
 
     def _get_config_from_dict(self, conf):
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models.PulseBackendConfiguration,
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+        from qiskit.providers.models import PulseBackendConfiguration
+
         return PulseBackendConfiguration.from_dict(conf)

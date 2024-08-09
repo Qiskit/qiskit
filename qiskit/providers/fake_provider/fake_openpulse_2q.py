@@ -16,14 +16,6 @@ Fake backend supporting OpenPulse.
 import datetime
 import warnings
 
-from qiskit.providers.models import (
-    GateConfig,
-    PulseBackendConfiguration,
-    PulseDefaults,
-    Command,
-    UchannelLO,
-)
-from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
 from qiskit.qobj import PulseQobjInstruction
 
 from .fake_backend import FakeBackend
@@ -33,103 +25,125 @@ class FakeOpenPulse2Q(FakeBackend):
     """A fake 2 qubit backend for pulse test."""
 
     def __init__(self):
-        configuration = PulseBackendConfiguration(
-            backend_name="fake_openpulse_2q",
-            backend_version="0.0.0",
-            n_qubits=2,
-            meas_levels=[0, 1, 2],
-            basis_gates=["u1", "u2", "u3", "cx", "id"],
-            simulator=False,
-            local=True,
-            conditional=True,
-            open_pulse=True,
-            memory=False,
-            max_shots=65536,
-            gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
-            coupling_map=[[0, 1]],
-            n_registers=2,
-            n_uchannels=2,
-            u_channel_lo=[
-                [UchannelLO(q=0, scale=1.0 + 0.0j)],
-                [UchannelLO(q=0, scale=-1.0 + 0.0j), UchannelLO(q=1, scale=1.0 + 0.0j)],
-            ],
-            qubit_lo_range=[[4.5, 5.5], [4.5, 5.5]],
-            meas_lo_range=[[6.0, 7.0], [6.0, 7.0]],
-            dt=1.3333,
-            dtm=10.5,
-            rep_times=[100, 250, 500, 1000],
-            meas_map=[[0, 1]],
-            channel_bandwidth=[
-                [-0.2, 0.4],
-                [-0.3, 0.3],
-                [-0.3, 0.3],
-                [-0.02, 0.02],
-                [-0.02, 0.02],
-                [-0.02, 0.02],
-            ],
-            meas_kernels=["kernel1"],
-            discriminators=["max_1Q_fidelity"],
-            acquisition_latency=[[100, 100], [100, 100]],
-            conditional_latency=[
-                [100, 1000],
-                [1000, 100],
-                [100, 1000],
-                [1000, 100],
-                [100, 1000],
-                [1000, 100],
-            ],
-            hamiltonian={
-                "h_str": [
-                    "np.pi*(2*v0-alpha0)*O0",
-                    "np.pi*alpha0*O0*O0",
-                    "2*np.pi*r*X0||D0",
-                    "2*np.pi*r*X0||U1",
-                    "2*np.pi*r*X1||U0",
-                    "np.pi*(2*v1-alpha1)*O1",
-                    "np.pi*alpha1*O1*O1",
-                    "2*np.pi*r*X1||D1",
-                    "2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)",
-                ],
-                "description": "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.",
-                "qub": {"0": 3, "1": 3},
-                "vars": {
-                    "v0": 5.00,
-                    "v1": 5.1,
-                    "j": 0.01,
-                    "r": 0.02,
-                    "alpha0": -0.33,
-                    "alpha1": -0.33,
-                },
-            },
-            channels={
-                "acquire0": {"operates": {"qubits": [0]}, "purpose": "acquire", "type": "acquire"},
-                "acquire1": {"operates": {"qubits": [1]}, "purpose": "acquire", "type": "acquire"},
-                "d0": {"operates": {"qubits": [0]}, "purpose": "drive", "type": "drive"},
-                "d1": {"operates": {"qubits": [1]}, "purpose": "drive", "type": "drive"},
-                "m0": {"type": "measure", "purpose": "measure", "operates": {"qubits": [0]}},
-                "m1": {"type": "measure", "purpose": "measure", "operates": {"qubits": [1]}},
-                "u0": {
-                    "operates": {"qubits": [0, 1]},
-                    "purpose": "cross-resonance",
-                    "type": "control",
-                },
-                "u1": {
-                    "operates": {"qubits": [1, 0]},
-                    "purpose": "cross-resonance",
-                    "type": "control",
-                },
-            },
-            processor_type={
-                "family": "Canary",
-                "revision": "1.0",
-                "segment": "A",
-            },
-            description="A fake test backend with pulse defaults",
-        )
-
         with warnings.catch_warnings():
-            # The class PulseQobjInstruction is deprecated
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            # BackendV1 is deprecated along qiskit.providers.models
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models import (
+                GateConfig,
+                PulseBackendConfiguration,
+                PulseDefaults,
+                Command,
+                UchannelLO,
+            )
+
+            configuration = PulseBackendConfiguration(
+                backend_name="fake_openpulse_2q",
+                backend_version="0.0.0",
+                n_qubits=2,
+                meas_levels=[0, 1, 2],
+                basis_gates=["u1", "u2", "u3", "cx", "id"],
+                simulator=False,
+                local=True,
+                conditional=True,
+                open_pulse=True,
+                memory=False,
+                max_shots=65536,
+                gates=[GateConfig(name="TODO", parameters=[], qasm_def="TODO")],
+                coupling_map=[[0, 1]],
+                n_registers=2,
+                n_uchannels=2,
+                u_channel_lo=[
+                    [UchannelLO(q=0, scale=1.0 + 0.0j)],
+                    [UchannelLO(q=0, scale=-1.0 + 0.0j), UchannelLO(q=1, scale=1.0 + 0.0j)],
+                ],
+                qubit_lo_range=[[4.5, 5.5], [4.5, 5.5]],
+                meas_lo_range=[[6.0, 7.0], [6.0, 7.0]],
+                dt=1.3333,
+                dtm=10.5,
+                rep_times=[100, 250, 500, 1000],
+                meas_map=[[0, 1]],
+                channel_bandwidth=[
+                    [-0.2, 0.4],
+                    [-0.3, 0.3],
+                    [-0.3, 0.3],
+                    [-0.02, 0.02],
+                    [-0.02, 0.02],
+                    [-0.02, 0.02],
+                ],
+                meas_kernels=["kernel1"],
+                discriminators=["max_1Q_fidelity"],
+                acquisition_latency=[[100, 100], [100, 100]],
+                conditional_latency=[
+                    [100, 1000],
+                    [1000, 100],
+                    [100, 1000],
+                    [1000, 100],
+                    [100, 1000],
+                    [1000, 100],
+                ],
+                hamiltonian={
+                    "h_str": [
+                        "np.pi*(2*v0-alpha0)*O0",
+                        "np.pi*alpha0*O0*O0",
+                        "2*np.pi*r*X0||D0",
+                        "2*np.pi*r*X0||U1",
+                        "2*np.pi*r*X1||U0",
+                        "np.pi*(2*v1-alpha1)*O1",
+                        "np.pi*alpha1*O1*O1",
+                        "2*np.pi*r*X1||D1",
+                        "2*np.pi*j*(Sp0*Sm1+Sm0*Sp1)",
+                    ],
+                    "description": "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.",
+                    "qub": {"0": 3, "1": 3},
+                    "vars": {
+                        "v0": 5.00,
+                        "v1": 5.1,
+                        "j": 0.01,
+                        "r": 0.02,
+                        "alpha0": -0.33,
+                        "alpha1": -0.33,
+                    },
+                },
+                channels={
+                    "acquire0": {
+                        "operates": {"qubits": [0]},
+                        "purpose": "acquire",
+                        "type": "acquire",
+                    },
+                    "acquire1": {
+                        "operates": {"qubits": [1]},
+                        "purpose": "acquire",
+                        "type": "acquire",
+                    },
+                    "d0": {"operates": {"qubits": [0]}, "purpose": "drive", "type": "drive"},
+                    "d1": {"operates": {"qubits": [1]}, "purpose": "drive", "type": "drive"},
+                    "m0": {"type": "measure", "purpose": "measure", "operates": {"qubits": [0]}},
+                    "m1": {"type": "measure", "purpose": "measure", "operates": {"qubits": [1]}},
+                    "u0": {
+                        "operates": {"qubits": [0, 1]},
+                        "purpose": "cross-resonance",
+                        "type": "control",
+                    },
+                    "u1": {
+                        "operates": {"qubits": [1, 0]},
+                        "purpose": "cross-resonance",
+                        "type": "control",
+                    },
+                },
+                processor_type={
+                    "family": "Canary",
+                    "revision": "1.0",
+                    "segment": "A",
+                },
+                description="A fake test backend with pulse defaults",
+            )
+
             self._defaults = PulseDefaults.from_dict(
                 {
                     "qubit_freq_est": [4.9, 5.0],
@@ -283,100 +297,111 @@ class FakeOpenPulse2Q(FakeBackend):
 
         mock_time = datetime.datetime.now()
         dt = 1.3333
-        self._properties = BackendProperties(
-            backend_name="fake_openpulse_2q",
-            backend_version="0.0.0",
-            last_update_date=mock_time,
-            qubits=[
-                [
-                    Nduv(date=mock_time, name="T1", unit="µs", value=71.9500421005539),
-                    Nduv(date=mock_time, name="T2", unit="µs", value=69.4240447362455),
-                    Nduv(date=mock_time, name="frequency", unit="MHz", value=4919.96800692),
-                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+        with warnings.catch_warnings():
+            # BackendV1 is deprecated along qiskit.providers.models.BackendProperties
+            # They both need to be removed at the same time
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r"qiskit\.providers\.models.+",
+                module="qiskit",
+            )
+            from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
+
+            self._properties = BackendProperties(
+                backend_name="fake_openpulse_2q",
+                backend_version="0.0.0",
+                last_update_date=mock_time,
+                qubits=[
+                    [
+                        Nduv(date=mock_time, name="T1", unit="µs", value=71.9500421005539),
+                        Nduv(date=mock_time, name="T2", unit="µs", value=69.4240447362455),
+                        Nduv(date=mock_time, name="frequency", unit="MHz", value=4919.96800692),
+                        Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+                    ],
+                    [
+                        Nduv(date=mock_time, name="T1", unit="µs", value=81.9500421005539),
+                        Nduv(date=mock_time, name="T2", unit="µs", value=75.5598482446578),
+                        Nduv(date=mock_time, name="frequency", unit="GHz", value=5.01996800692),
+                        Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+                    ],
                 ],
-                [
-                    Nduv(date=mock_time, name="T1", unit="µs", value=81.9500421005539),
-                    Nduv(date=mock_time, name="T2", unit="µs", value=75.5598482446578),
-                    Nduv(date=mock_time, name="frequency", unit="GHz", value=5.01996800692),
-                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+                gates=[
+                    Gate(
+                        gate="id",
+                        qubits=[0],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                        ],
+                    ),
+                    Gate(
+                        gate="id",
+                        qubits=[1],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                        ],
+                    ),
+                    Gate(
+                        gate="u1",
+                        qubits=[0],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
+                        ],
+                    ),
+                    Gate(
+                        gate="u1",
+                        qubits=[1],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
+                        ],
+                    ),
+                    Gate(
+                        gate="u2",
+                        qubits=[0],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                        ],
+                    ),
+                    Gate(
+                        gate="u2",
+                        qubits=[1],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                        ],
+                    ),
+                    Gate(
+                        gate="u3",
+                        qubits=[0],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=4 * dt),
+                        ],
+                    ),
+                    Gate(
+                        gate="u3",
+                        qubits=[1],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=4 * dt),
+                        ],
+                    ),
+                    Gate(
+                        gate="cx",
+                        qubits=[0, 1],
+                        parameters=[
+                            Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
+                            Nduv(date=mock_time, name="gate_length", unit="ns", value=22 * dt),
+                        ],
+                    ),
                 ],
-            ],
-            gates=[
-                Gate(
-                    gate="id",
-                    qubits=[0],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
-                    ],
-                ),
-                Gate(
-                    gate="id",
-                    qubits=[1],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
-                    ],
-                ),
-                Gate(
-                    gate="u1",
-                    qubits=[0],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
-                    ],
-                ),
-                Gate(
-                    gate="u1",
-                    qubits=[1],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
-                    ],
-                ),
-                Gate(
-                    gate="u2",
-                    qubits=[0],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
-                    ],
-                ),
-                Gate(
-                    gate="u2",
-                    qubits=[1],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
-                    ],
-                ),
-                Gate(
-                    gate="u3",
-                    qubits=[0],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=4 * dt),
-                    ],
-                ),
-                Gate(
-                    gate="u3",
-                    qubits=[1],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=4 * dt),
-                    ],
-                ),
-                Gate(
-                    gate="cx",
-                    qubits=[0, 1],
-                    parameters=[
-                        Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
-                        Nduv(date=mock_time, name="gate_length", unit="ns", value=22 * dt),
-                    ],
-                ),
-            ],
-            general=[],
-        )
+                general=[],
+            )
 
         super().__init__(configuration)
 
