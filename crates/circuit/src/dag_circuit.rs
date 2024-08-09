@@ -2803,22 +2803,6 @@ def _format(operand):
                             Ok(conditions_eq && params_eq)
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
-                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
-                                let node1_qargs =
-                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node2_qargs =
-                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node1_cargs =
-                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                let node2_cargs =
-                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                    return Ok(false);
-                                }
-                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-
                             if op1.control_flow() && op2.control_flow() {
                                 let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
                                 let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
@@ -2849,6 +2833,22 @@ def _format(operand):
                             if !inst1.py_op_eq(py, inst2)? {
                                 return Ok(false);
                             }
+                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
+                                let node1_qargs =
+                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                                let node2_qargs =
+                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                                let node1_cargs =
+                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                                let node2_cargs =
+                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                    return Ok(false);
+                                }
+                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return Ok(false);
+                            }
+
 
                             let conditions_eq = if let Some(cond1) = inst1
                                 .extra_attrs
