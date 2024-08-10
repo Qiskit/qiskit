@@ -162,7 +162,8 @@ class BasisTranslator(TransformationPass):
         # If the source basis is a subset of the target basis and we have no circuit
         # instructions on qargs that have non-global operations there is nothing to
         # translate and we can exit early.
-        if source_basis.issubset(target_basis) and not qargs_local_source_basis:
+        source_basis_names = {x[0] for x in source_basis}
+        if source_basis_names.issubset(target_basis) and not qargs_local_source_basis:
             return dag
 
         logger.info(
