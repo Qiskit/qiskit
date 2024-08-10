@@ -1222,6 +1222,7 @@ dependencies = [
 name = "qiskit-qasm3"
 version = "1.3.0"
 dependencies = [
+ "ahash 0.8.11",
  "hashbrown 0.14.5",
  "indexmap",
  "oq3_semantics",
