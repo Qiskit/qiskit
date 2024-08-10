@@ -12,7 +12,7 @@
 
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayViewMut2, Axis};
-use numpy::PyReadonlyArray2;
+use numpy::{PyReadonlyArray2, PyReadonlyArray1};
 use smallvec::smallvec;
 use std::cmp;
 
@@ -23,6 +23,7 @@ use qiskit_circuit::Qubit;
 use pyo3::prelude::*;
 
 use super::utils::_add_row_or_col;
+use std::f64::consts::PI;
 
 /// This helper function allows transposed access to a matrix.
 fn _index(transpose: bool, i: usize, j: usize) -> (usize, usize) {
@@ -193,3 +194,63 @@ pub fn synth_cnot_count_full_pmh(
 
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
+
+
+#[pyfunction]
+#[pyo3(signature = (cnots, angles, section_size=2))]
+pub fn synth_cnot_phase_aam(
+    py:Python,
+    cnots: PyReadonlyArray2<u8>,
+    angles: PyReadonlyArray1<PyObject>,
+    section_size: Option<u8>,
+) -> PyResult<CircuitData> {
+
+    let cnots_arr = cnots.as_array().to_owned();
+    let angles_arr = angles.as_array().to_owned();
+    let num_qubits = cnots_arr.shape()[0];
+    let mut cnots_arr_cpy = cnots_arr.clone();
+    let mut instructions = vec![];
+
+    let mut rust_angles = Vec::new();
+    for obj in angles_arr
+    {
+        rust_angles.push(obj.extract::<String>(py)?);
+    }
+
+    let state = Array2::<u8>::eye(num_qubits);
+
+    for qubit_idx in 0..num_qubits
+    {
+        let mut index = 0 as usize;
+
+        while index != cnots_arr_cpy.shape()[1]
+        {
+
+            let icnot = cnots_arr_cpy.column(index).to_vec();
+
+            if icnot == state.row(qubit_idx as usize).to_vec()
+            {
+                   match rust_angles.get(index)
+                {
+                    Some(gate) if gate == "t" => instructions.push((StandardGate::TGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
+                    Some(gate) if gate == "tdg" => instructions.push((StandardGate::TdgGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
+                    Some(gate) if gate == "s" => instructions.push((StandardGate::SGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
+                    Some(gate) if gate == "sdg" => instructions.push((StandardGate::SdgGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
+                    Some(gate) if gate == "z" => instructions.push((StandardGate::ZGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
+                    Some(angles_in_pi) => instructions.push((StandardGate::PhaseGate, smallvec![Param::Float((angles_in_pi.parse::<f64>()?) % PI)], smallvec![Qubit(qubit_idx as u32)])),
+                    None => (),
+                };
+
+                   rust_angles.remove(index);
+                   cnots_arr_cpy.remove_index(numpy::ndarray::Axis(1), index);
+                   index -=1;
+            }
+            index +=1;
+        }
+    }   
+
+
+
+    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+}
+

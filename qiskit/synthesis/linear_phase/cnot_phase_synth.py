@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
+from qiskit._accelerate.synthesis.linear import synth_cnot_phase_aam
 
 def synth_cnot_phase_aam(
     cnots: list[list[int]], angles: list[str], section_size: int = 2
