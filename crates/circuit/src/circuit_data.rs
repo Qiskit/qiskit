@@ -1092,17 +1092,22 @@ impl CircuitData {
         )
     }
 
-    /// Assigns parameters to circuit data based on a mapping of `Param` : `Param`.
-    /// This mapping assumes that the provided `Param` keys are instances of `ParameterExpression`.
+    /// Assigns parameters to circuit data based on a mapping of `ParameterUuid` : `Param`.
+    /// This mapping assumes that the provided `ParameterUuid` keys are instances
+    /// of `ParameterExpression`.
     pub fn assign_parameters_from_mapping<I>(&mut self, py: Python, iter: I) -> PyResult<()>
     where
-        I: IntoIterator<Item = (Param, Param)>,
+        I: IntoIterator<Item = (ParameterUuid, Param)>,
     {
         let mut items = Vec::new();
-        for (param_obj, value) in iter {
-            let param_obj = param_obj.to_object(py);
-            let uuid = ParameterUuid::from_parameter(param_obj.bind(py))?;
-            items.push((param_obj, value, self.param_table.pop(uuid)?));
+        for (param_uuid, value) in iter {
+            // Assume all the Parameters are already in the circuit
+            let param_obj = self.get_parameter_by_uuid(param_uuid);
+            items.push((
+                param_obj.unwrap().clone_ref(py),
+                value,
+                self.param_table.pop(param_uuid)?,
+            ));
         }
         self.assign_parameters_inner(py, items)
     }
