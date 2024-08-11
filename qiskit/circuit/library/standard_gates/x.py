@@ -1372,6 +1372,7 @@ class MCXRecursive(MCXGate):
     def _define(self):
         """Define the MCX gate using recursion."""
 
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.multi_controlled import synth_mcx_1_clean_b95
 
         qc = synth_mcx_1_clean_b95(self.num_ctrl_qubits)
@@ -1479,6 +1480,7 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
 
         if self._dirty_ancillas:
+            # pylint: disable=cyclic-import
             from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
 
             qc = synth_mcx_n_dirty_i15(
@@ -1488,6 +1490,7 @@ class MCXVChain(MCXGate):
             )
 
         else:  # use clean ancillas
+            # pylint: disable=cyclic-import
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
             qc = synth_mcx_n_clean_m15(self.num_ctrl_qubits)

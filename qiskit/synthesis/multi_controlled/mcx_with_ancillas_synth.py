@@ -13,6 +13,9 @@
 """Module containing multi-controlled circuits synthesis with ancillary qubits."""
 
 from math import ceil
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.library.standard_gates.x import C3XGate, C4XGate
 
 
 def synth_mcx_n_dirty_i15(
@@ -42,10 +45,6 @@ def synth_mcx_n_dirty_i15(
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
-    # pylint: disable=cyclic-import
-    from qiskit.circuit.quantumregister import QuantumRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
-
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
@@ -60,9 +59,6 @@ def synth_mcx_n_dirty_i15(
         qc.ccx(q_controls[0], q_controls[1], q_target)
         return qc
     elif not relative_phase and num_ctrl_qubits == 3:
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.standard_gates.x import C3XGate
-
         qc._append(C3XGate(), [*q_controls, q_target], [])
         return qc
 
@@ -143,10 +139,6 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
            `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
     """
 
-    # pylint: disable=cyclic-import
-    from qiskit.circuit.quantumregister import QuantumRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
-
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
@@ -189,11 +181,6 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
         1. Barenco et. al., Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
     """
-
-    # pylint: disable=cyclic-import
-    from qiskit.circuit.quantumregister import QuantumRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
-    from qiskit.circuit.library.standard_gates.x import C3XGate, C4XGate
 
     if num_ctrl_qubits == 3:
         q = QuantumRegister(4, name="q")
