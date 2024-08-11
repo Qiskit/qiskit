@@ -18,6 +18,7 @@ import qiskit.circuit
 from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
+from qiskit.providers.backend import BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
 
@@ -62,7 +63,7 @@ class InstructionDurations:
         return string
 
     @classmethod
-    def from_backend(cls, backend: Backend):
+    def from_backend(cls, backend: Backend | BackendV2):
         """Construct an :class:`InstructionDurations` object from the backend.
 
         Args:
@@ -76,24 +77,51 @@ class InstructionDurations:
         """
         # All durations in seconds in gate_length
         instruction_durations = []
-        backend_properties = backend.properties()
-        if hasattr(backend_properties, "_gates"):
-            for gate, insts in backend_properties._gates.items():
-                for qubits, props in insts.items():
-                    if "gate_length" in props:
-                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                        instruction_durations.append((gate, qubits, gate_length, "s"))
-            for q, props in backend.properties()._qubits.items():
-                if "readout_length" in props:
-                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append(("measure", [q], readout_length, "s"))
+        if hasattr(backend, "properties"):
+            backend_properties = backend.properties()
+            if hasattr(backend_properties, "_gates"):
+                for gate, insts in backend_properties._gates.items():
+                    for qubits, props in insts.items():
+                        if "gate_length" in props:
+                            gate_length = props["gate_length"][0]  # Throw away datetime at index 1
+                            instruction_durations.append((gate, qubits, gate_length, "s"))
+                for q, props in backend.properties()._qubits.items():
+                    if "readout_length" in props:
+                        readout_length = props["readout_length"][
+                            0
+                        ]  # Throw away datetime at index 1
+                        instruction_durations.append(("measure", [q], readout_length, "s"))
 
-        try:
-            dt = backend.configuration().dt
-        except AttributeError:
-            dt = None
+            try:
+                dt = backend.configuration().dt
+            except AttributeError:
+                dt = None
 
-        return cls(instruction_durations, dt=dt)
+            return cls(instruction_durations, dt=dt)
+
+        elif isinstance(backend, BackendV2):
+            for gate, insts in backend.target.items():
+                for qb, inst_prop in insts.items():
+                    # `duration` and `error` are defined as `None` for `delay` and `reset` in
+                    # `GenericBackendV2`and due to that the `update()` method from `InstructionDurations`
+                    # raises an error, so here we will skip adding instructions whose duration is `None`.
+                    # Also, the `target` of `GenericBackendV2` includes the duration of `measure` so
+                    # there is no need to access `readout_length` separately (like above).
+                    if inst_prop.duration is not None:
+                        gate_length = inst_prop.duration
+                        instruction_durations.append((gate, qb, gate_length, "s"))
+
+            try:
+                dt = backend.target.dt
+            except AttributeError:
+                dt = None
+
+            return cls(instruction_durations, dt=dt)
+
+        else:
+            raise TranspilerError(
+                "Unsupported backend type. The backend has to to be either a backend V1 or a backend V2"
+            )
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
