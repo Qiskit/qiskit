@@ -125,9 +125,9 @@ Two-Qubit Synthesis
 Multi Controlled Synthesis
 ==========================
 
-.. autofunction:: synth_mcx_n_dirty_i15,
-.. autofunction:: synth_mcx_n_clean_m15,
-.. autofunction:: synth_mcx_1_clean_b95,
+.. autofunction:: synth_mcx_n_dirty_i15
+.. autofunction:: synth_mcx_n_clean_m15
+.. autofunction:: synth_mcx_1_clean_b95
 
 """
 
