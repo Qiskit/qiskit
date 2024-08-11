@@ -22,8 +22,8 @@ def synth_mcx_n_dirty_i15(
 ):
     """
     Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
-    dirty ancillary qubits producing a circuit with at most :math:`8 * k - 6` CX gates,
-    by Iten et. al. [1].
+    dirty ancillary qubits producing a circuit with :math:`2 * k - 1` qubits and at most
+    :math:`8 * k - 6` CX gates, by Iten et. al. [1].
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -129,8 +129,8 @@ def synth_mcx_n_dirty_i15(
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
     """
     Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
-    clean ancillary qubits producing a circuit with at most :math:`6 * k - 6` CX gates,
-    by Maslov [1].
+    clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
+    and at most :math:`6 * k - 6` CX gates, by Maslov [1].
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -176,8 +176,8 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
     """
     Synthesize a multi-controlled X gate with :math:`k` controls using a single
-    clean ancillary qubit producing a circuit with at most :math:`16 * k - 8` CX gates,
-    by Barenco et al. [1].
+    clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
+    :math:`16 * k - 8` CX gates, by Barenco et al. [1].
 
     Args:
         num_ctrl_qubits: The number of control qubits.
