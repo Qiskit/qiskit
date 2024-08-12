@@ -28,8 +28,6 @@ notifications:
     ".*\\.rs$|^Cargo":
         - "`@mtreinish`"
         - "`@kevinhartman`"
-    "(?!.*pulse.*)\\bvisualization\\b":
-        - "@enavarro51"
     "^docs/":
         - "@javabster"
         - "@Eric-Arellano"
