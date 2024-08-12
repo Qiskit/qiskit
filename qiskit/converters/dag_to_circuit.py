@@ -66,7 +66,7 @@ def dag_to_circuit(dag, copy_operations=True):
     )
     for var in dag.iter_declared_vars():
         circuit.add_uninitialized_var(var)
-    circuit.metadata = dict(dag.metadata)
+    circuit.metadata = dag.metadata
     circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
