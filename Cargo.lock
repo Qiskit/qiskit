@@ -1187,12 +1187,18 @@ dependencies = [
 name = "qiskit-circuit"
 version = "1.3.0"
 dependencies = [
+ "ahash 0.8.11",
+ "approx",
  "bytemuck",
  "hashbrown 0.14.5",
+ "indexmap",
+ "itertools 0.13.0",
  "ndarray",
  "num-complex",
  "numpy",
  "pyo3",
+ "rayon",
+ "rustworkx-core",
  "smallvec",
  "thiserror",
 ]

@@ -743,7 +743,7 @@ pub fn compute_error_list(
         .iter()
         .map(|node| {
             (
-                node.instruction.op().name().to_string(),
+                node.instruction.operation.name().to_string(),
                 smallvec![], // Params not needed in this path
             )
         })
@@ -988,10 +988,11 @@ pub fn optimize_1q_gates_decomposition(
                 .iter()
                 .map(|node| {
                     if let Some(err_map) = error_map {
-                        error *= compute_error_term(node.instruction.op().name(), err_map, qubit)
+                        error *=
+                            compute_error_term(node.instruction.operation.name(), err_map, qubit)
                     }
                     node.instruction
-                        .op()
+                        .operation
                         .matrix(&node.instruction.params)
                         .expect("No matrix defined for operation")
                 })
@@ -1043,22 +1044,6 @@ fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     ];
 }
 
-#[pyfunction]
-pub fn collect_1q_runs_filter(node: &Bound<PyAny>) -> bool {
-    let Ok(node) = node.downcast::<DAGOpNode>() else {
-        return false;
-    };
-    let node = node.borrow();
-    let op = node.instruction.op();
-    op.num_qubits() == 1
-        && op.num_clbits() == 0
-        && op.matrix(&node.instruction.params).is_some()
-        && match &node.instruction.extra_attrs {
-            None => true,
-            Some(attrs) => attrs.condition.is_none(),
-        }
-}
-
 pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;
@@ -1072,7 +1057,6 @@ pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(compute_error_one_qubit_sequence))?;
     m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
     m.add_wrapped(wrap_pyfunction!(optimize_1q_gates_decomposition))?;
-    m.add_wrapped(wrap_pyfunction!(collect_1q_runs_filter))?;
     m.add_class::<OneQubitGateSequence>()?;
     m.add_class::<OneQubitGateErrorMap>()?;
     m.add_class::<EulerBasis>()?;
