@@ -183,6 +183,9 @@ impl DAGOpNode {
                     _ => false,
                 })
         } else {
+            // We've already evaluated the parameters are equal here via the Python space equality
+            // check so if we're not comparing standard gates and we've reached this point we know
+            // the parameters are already equal.
             true
         };
 
