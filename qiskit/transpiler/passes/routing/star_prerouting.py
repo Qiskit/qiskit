@@ -330,7 +330,7 @@ class StarPreRouting(TransformationPass):
         }
 
         def tie_breaker_key(node):
-            return processing_order_index_map.get(node, node.sort_key or "")
+            return processing_order_index_map.get(node, node.sort_key)
 
         rust_processing_order = _extract_nodes(dag.topological_op_nodes(key=tie_breaker_key), dag)
 

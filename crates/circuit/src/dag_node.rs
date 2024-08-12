@@ -206,7 +206,7 @@ impl DAGOpNode {
         mut instruction: CircuitInstruction,
         deepcopy: bool,
     ) -> PyResult<PyObject> {
-        let sort_key = py.None();
+        let sort_key = instruction.qubits.bind(py).str().unwrap().into();
         if deepcopy {
             instruction.operation = instruction.operation.py_deepcopy(py, None)?;
             #[cfg(feature = "cache_pygates")]
@@ -470,7 +470,7 @@ impl DAGInNode {
         (
             DAGInNode {
                 wire,
-                sort_key: py.None(),
+                sort_key: intern!(py, "[]").clone().into(),
             },
             DAGNode { node: Some(node) },
         )
@@ -484,7 +484,7 @@ impl DAGInNode {
         Ok((
             DAGInNode {
                 wire,
-                sort_key: py.None(),
+                sort_key: intern!(py, "[]").clone().into(),
             },
             DAGNode { node: None },
         ))
@@ -543,7 +543,7 @@ impl DAGOutNode {
         (
             DAGOutNode {
                 wire,
-                sort_key: py.None(),
+                sort_key: intern!(py, "[]").clone().into(),
             },
             DAGNode { node: Some(node) },
         )
@@ -557,7 +557,7 @@ impl DAGOutNode {
         Ok((
             DAGOutNode {
                 wire,
-                sort_key: py.None(),
+                sort_key: intern!(py, "[]").clone().into(),
             },
             DAGNode { node: None },
         ))
