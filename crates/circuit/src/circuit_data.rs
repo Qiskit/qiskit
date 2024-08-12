@@ -149,10 +149,10 @@ impl CircuitData {
         )?;
         for (operation, params, qargs, cargs) in instruction_iter {
             let qubits = (&mut res.qargs_interner)
-                .intern(InternerKey::Value(qargs.to_vec()))?
+                .intern(InternerKey::Value(qargs))?
                 .index;
             let clbits = (&mut res.cargs_interner)
-                .intern(InternerKey::Value(cargs.to_vec()))?
+                .intern(InternerKey::Value(cargs))?
                 .index;
             let params = (!params.is_empty()).then(|| Box::new(params));
             res.data.push(PackedInstruction {
