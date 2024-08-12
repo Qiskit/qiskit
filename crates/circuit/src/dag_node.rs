@@ -68,15 +68,13 @@ impl DAGNode {
         })
     }
 
-    #[allow(non_snake_case)]
-    #[getter]
-    fn get__node_id(&self) -> isize {
+    #[getter(_node_id)]
+    fn get_py_node_id(&self) -> isize {
         self.py_nid()
     }
 
-    #[allow(non_snake_case)]
-    #[setter]
-    fn set__node_id(&mut self, nid: isize) {
+    #[setter(_node_id)]
+    fn set_py_node_id(&mut self, nid: isize) {
         self.node = match nid {
             -1 => None,
             nid => Some(NodeIndex::new(nid.try_into().unwrap())),
