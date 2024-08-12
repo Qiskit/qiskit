@@ -940,6 +940,13 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertIsInstance(predecessor1, DAGInNode)
         self.assertIsInstance(predecessor1.wire, Clbit)
 
+    def test_apply_operation_reject_invalid_qarg_carg(self):
+        """Test that we can't add a carg to qargs and vice versa on apply methods"""
+        with self.assertRaises(KeyError):
+            self.dag.apply_operation_back(Measure(), [self.clbit1], [self.qubit1])
+        with self.assertRaises(KeyError):
+            self.dag.apply_operation_front(Measure(), [self.clbit1], [self.qubit1])
+
     def test_classical_successors(self):
         """The method dag.classical_successors() returns successors connected by classical edges"""
 
