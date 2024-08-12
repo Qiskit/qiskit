@@ -17,7 +17,7 @@ use hashbrown::HashMap;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Index(u32);
 
 impl IntoPy<PyObject> for Index {
