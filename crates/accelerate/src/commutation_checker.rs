@@ -22,6 +22,7 @@ use pyo3::intern;
 use smallvec::SmallVec;
 
 use crate::unitary_compose::compose;
+use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyString, PyTuple};
 use qiskit_circuit::bit_data::BitData;
@@ -31,14 +32,17 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::{Clbit, Qubit};
-use rustworkx_core::distancemap::DistanceMap;
 
-const SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
-const NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
-const SUPPORTED_OP: [&str; 18] = [
-    "h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx", "cy", "cz", "swap", "iswap",
-    "ecr", "ccx", "cswap",
-];
+static SKIPPED_NAMES: Lazy<HashSet<&str>> =
+    Lazy::new(|| HashSet::from(["measure", "reset", "delay", "initialize"]));
+static NO_CACHE_NAMES: Lazy<HashSet<&str>> =
+    Lazy::new(|| HashSet::from(["annotated", "linear_function"]));
+static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
+    HashSet::from([
+        "h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx", "cy", "cz", "swap",
+        "iswap", "ecr", "ccx", "cswap",
+    ])
+});
 
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 struct CommutationChecker {
@@ -64,8 +68,13 @@ impl CommutationChecker {
         cache_max_entries: usize,
         gates: Option<HashSet<String>>,
     ) -> Self {
+        // Initialize sets before they are used in the commutation checker
+        Lazy::force(&SKIPPED_NAMES);
+        Lazy::force(&NO_CACHE_NAMES);
+        Lazy::force(&SUPPORTED_OP);
+
         CommutationChecker {
-            library: CommutationLibrary::new(py, standard_gate_commutations),
+            library: CommutationLibrary::new(standard_gate_commutations),
             cache: HashMap::with_capacity(cache_max_entries),
             cache_max_entries,
             current_cache_entries: 0,
@@ -103,27 +112,22 @@ impl CommutationChecker {
             .collect::<Vec<_>>();
 
         let mut bc: BitData<Clbit> = BitData::new(py, "clbits".to_string());
-        op1.instruction
-            .clbits
-            .bind(py)
+        let op1_bound_clbit = op1.instruction.clbits.bind(py);
+        let op2_bound_clbit = op2.instruction.clbits.bind(py);
+
+        op1_bound_clbit
             .iter()
             .for_each(|c| bc.add(py, &c, false).unwrap());
-        op2.instruction
-            .clbits
-            .bind(py)
+
+        op2_bound_clbit
             .iter()
             .for_each(|c| bc.add(py, &c, false).unwrap());
-        let cargs1 = op1
-            .instruction
-            .clbits
-            .bind(py)
+
+        let cargs1 = op1_bound_clbit
             .iter()
             .map(|c| bc.find(&c).unwrap().0 as usize)
             .collect::<Vec<_>>();
-        let cargs2 = op2
-            .instruction
-            .clbits
-            .bind(py)
+        let cargs2 = op2_bound_clbit
             .iter()
             .map(|c| bc.find(&c).unwrap().0 as usize)
             .collect::<Vec<_>>();
@@ -244,7 +248,7 @@ impl CommutationChecker {
             }
         }
 
-        let commutation: Option<bool> = self.commutation_precheck(
+        let commutation: Option<bool> = commutation_precheck(
             instr1,
             qargs1,
             cargs1,
@@ -304,7 +308,7 @@ impl CommutationChecker {
             .get(&(first_op.name().to_string(), second_op.name().to_string()))
         {
             if let Some(commutation) = commutation_dict.get(&(
-                Self::get_relative_placement(first_qargs, second_qargs),
+                get_relative_placement(first_qargs, second_qargs),
                 (
                     hashable_params(&first_instr.params),
                     hashable_params(&second_instr.params),
@@ -332,7 +336,7 @@ impl CommutationChecker {
             .entry((first_op.name().to_string(), second_op.name().to_string()))
             .and_modify(|entries| {
                 let key = (
-                    Self::get_relative_placement(first_qargs, second_qargs),
+                    get_relative_placement(first_qargs, second_qargs),
                     (
                         hashable_params(&first_instr.params),
                         hashable_params(&second_instr.params),
@@ -344,7 +348,7 @@ impl CommutationChecker {
             .or_insert_with(|| {
                 let mut entries = HashMap::with_capacity(1);
                 let key = (
-                    Self::get_relative_placement(first_qargs, second_qargs),
+                    get_relative_placement(first_qargs, second_qargs),
                     (
                         hashable_params(&first_instr.params),
                         hashable_params(&second_instr.params),
@@ -392,20 +396,14 @@ impl CommutationChecker {
         let first_mat = match first_op.matrix(&first_instr.params) {
             Some(mat) => mat,
             None => match first_op {
-                PyGateType(gate) => match Python::with_gil(|py| -> Option<Array2<Complex64>> {
-                    Self::get_op(py, &gate.gate)
-                }) {
+                PyGateType(gate) => match get_op(&gate.gate) {
                     Some(x) => x,
                     _ => return false,
                 },
-                PyOperationType(operation) => {
-                    match Python::with_gil(|py| -> Option<Array2<Complex64>> {
-                        Self::get_op(py, &operation.operation)
-                    }) {
-                        Some(x) => x,
-                        _ => return false,
-                    }
-                }
+                PyOperationType(operation) => match get_op(&operation.operation) {
+                    Some(x) => x,
+                    _ => return false,
+                },
                 _ => return false,
             },
         };
@@ -413,20 +411,14 @@ impl CommutationChecker {
         let second_mat = match second_op.matrix(&second_instr.params) {
             Some(mat) => mat,
             None => match second_op {
-                PyGateType(gate) => match Python::with_gil(|py| -> Option<Array2<Complex64>> {
-                    Self::get_op(py, &gate.gate)
-                }) {
+                PyGateType(gate) => match get_op(&gate.gate) {
                     Some(x) => x,
                     _ => return false,
                 },
-                PyOperationType(operation) => {
-                    match Python::with_gil(|py| -> Option<Array2<Complex64>> {
-                        Self::get_op(py, &operation.operation)
-                    }) {
-                        Some(x) => x,
-                        _ => return false,
-                    }
-                }
+                PyOperationType(operation) => match get_op(&operation.operation) {
+                    Some(x) => x,
+                    _ => return false,
+                },
                 _ => return false,
             },
         };
@@ -451,47 +443,54 @@ impl CommutationChecker {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn commutation_precheck(
-        &self,
-        op1: &CircuitInstruction,
-        qargs1: &[usize],
-        cargs1: &[usize],
-        op2: &CircuitInstruction,
-        qargs2: &[usize],
-        cargs2: &[usize],
-        max_num_qubits: u32,
-    ) -> Option<bool> {
-        if op1.op().control_flow()
-            || op2.op().control_flow()
-            || op1.is_conditioned()
-            || op2.is_conditioned()
-        {
-            return Some(false);
-        }
+    fn clear_cache(&mut self) {
+        self.cache.clear();
+        self.current_cache_entries = 0;
+        self._cache_miss = 0;
+        self._cache_hit = 0;
+    }
+}
 
-        // assuming the number of involved qubits to be small, this might be faster than set operations
-        if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e))
-        {
-            return Some(true);
-        }
-
-        if qargs1.len() > max_num_qubits as usize || qargs2.len() > max_num_qubits as usize {
-            return Some(false);
-        }
-
-        if SUPPORTED_OP.contains(&op1.op().name()) && SUPPORTED_OP.contains(&op2.op().name()) {
-            return None;
-        }
-
-        if self.is_commutation_skipped(op1) || self.is_commutation_skipped(op2) {
-            return Some(false);
-        }
-
-        None
+#[allow(clippy::too_many_arguments)]
+fn commutation_precheck(
+    op1: &CircuitInstruction,
+    qargs1: &[usize],
+    cargs1: &[usize],
+    op2: &CircuitInstruction,
+    qargs2: &[usize],
+    cargs2: &[usize],
+    max_num_qubits: u32,
+) -> Option<bool> {
+    if op1.op().control_flow()
+        || op2.op().control_flow()
+        || op1.is_conditioned()
+        || op2.is_conditioned()
+    {
+        return Some(false);
     }
 
-    fn get_op(py: Python, gate: &PyObject) -> Option<Array2<Complex64>> {
+    // assuming the number of involved qubits to be small, this might be faster than set operations
+    if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
+        return Some(true);
+    }
+
+    if qargs1.len() > max_num_qubits as usize || qargs2.len() > max_num_qubits as usize {
+        return Some(false);
+    }
+
+    if SUPPORTED_OP.contains(&op1.op().name()) && SUPPORTED_OP.contains(&op2.op().name()) {
+        return None;
+    }
+
+    if is_commutation_skipped(op1) || is_commutation_skipped(op2) {
+        return Some(false);
+    }
+
+    None
+}
+
+fn get_op(gate: &PyObject) -> Option<Array2<Complex64>> {
+    Python::with_gil(|py| -> Option<Array2<Complex64>> {
         Some(
             QI_OPERATOR
                 .get_bound(py)
@@ -504,38 +503,31 @@ impl CommutationChecker {
                 .as_array()
                 .to_owned(),
         )
-    }
-
-    fn is_commutation_skipped(&self, instr: &CircuitInstruction) -> bool {
-        let op = instr.op();
-        op.directive() || SKIPPED_NAMES.contains(&op.name()) || instr.is_parameterized()
-    }
-
-    fn get_relative_placement(
-        first_qargs: &[usize],
-        second_qargs: &[usize],
-    ) -> SmallVec<[Option<Qubit>; 2]> {
-        let qubits_g2: HashMap<_, _> = second_qargs
-            .iter()
-            .enumerate()
-            .map(|(i_g1, q_g1)| (q_g1, Qubit(i_g1 as u32)))
-            .collect();
-
-        first_qargs
-            .iter()
-            .map(|q_g0| qubits_g2.get(q_g0).copied())
-            .collect()
-    }
-
-    fn clear_cache(&mut self) {
-        self.cache.clear();
-        self.current_cache_entries = 0;
-        self._cache_miss = 0;
-        self._cache_hit = 0;
-    }
+    })
 }
 
-#[derive(Clone)]
+fn is_commutation_skipped(instr: &CircuitInstruction) -> bool {
+    let op = instr.op();
+    op.directive() || SKIPPED_NAMES.contains(&op.name()) || instr.is_parameterized()
+}
+
+fn get_relative_placement(
+    first_qargs: &[usize],
+    second_qargs: &[usize],
+) -> SmallVec<[Option<Qubit>; 2]> {
+    let qubits_g2: HashMap<_, _> = second_qargs
+        .iter()
+        .enumerate()
+        .map(|(i_g1, q_g1)| (q_g1, Qubit(i_g1 as u32)))
+        .collect();
+
+    first_qargs
+        .iter()
+        .map(|q_g0| qubits_g2.get(q_g0).copied())
+        .collect()
+}
+
+#[derive(Clone, Debug)]
 #[pyclass]
 pub struct CommutationLibrary {
     pub library: HashMap<(String, String), CommutationLibraryEntry>,
@@ -555,10 +547,7 @@ impl CommutationLibrary {
         {
             Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
             Some(CommutationLibraryEntry::QubitMapping(qm)) => qm
-                .get(&CommutationChecker::get_relative_placement(
-                    first_qargs,
-                    second_qargs,
-                ))
+                .get(&get_relative_placement(first_qargs, second_qargs))
                 .copied(),
             _ => None,
         }
@@ -574,10 +563,10 @@ impl ToPyObject for CommutationLibrary {
 #[pymethods]
 impl CommutationLibrary {
     #[new]
-    fn new(py: Python, py_any: Option<Py<PyAny>>) -> Self {
+    fn new(py_any: Option<Bound<PyAny>>) -> Self {
         match py_any {
             Some(pyob) => {
-                CommutationLibrary { library: pyob.bind(py).extract::<HashMap<(String, String), CommutationLibraryEntry>>().expect("Input parameter standard_gate_commutations to CommutationChecker was not a dict with the right format")}
+                CommutationLibrary { library: pyob.extract::<HashMap<(String, String), CommutationLibraryEntry>>().expect("Input parameter standard_gate_commutations to CommutationChecker was not a dict with the right format")}
 
             },
             None => CommutationLibrary { library: HashMap::new() }
@@ -585,7 +574,7 @@ impl CommutationLibrary {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum CommutationLibraryEntry {
     Commutes(bool),
     QubitMapping(HashMap<SmallVec<[Option<Qubit>; 2]>, bool>),
@@ -632,6 +621,7 @@ impl ToPyObject for CommutationLibraryEntry {
                 out_dict.unbind().into_any()
             }
         }
+    }
 }
 
 type CacheKey = (
@@ -639,7 +629,7 @@ type CacheKey = (
     (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
 );
 // Need a struct instead of a type definition because we cannot implement serialization traits otherwise
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct CommutationCacheEntry {
     mapping: HashMap<CacheKey, bool>,
 }
@@ -660,7 +650,7 @@ impl ToPyObject for CommutationCacheEntry {
     fn to_object(&self, py: Python) -> PyObject {
         let out_dict = PyDict::new_bound(py);
         for (k, v) in self.iter() {
-let qubits = PyTuple::new_bound(
+            let qubits = PyTuple::new_bound(
                 py,
                 k.0.iter()
                     .map(|q| q.map(|t| t.0))
@@ -678,6 +668,7 @@ let qubits = PyTuple::new_bound(
                 .expect("Failed to construct commutation cache for serialization");
         }
         out_dict.into_any().unbind()
+    }
 }
 
 type CacheKeyRaw = (
