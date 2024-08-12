@@ -163,7 +163,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library import LinearFunction, QFTGate
+from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
@@ -189,6 +189,13 @@ from qiskit.synthesis.permutation import (
 from qiskit.synthesis.qft import (
     synth_qft_full,
     synth_qft_line,
+)
+from qiskit.synthesis.multi_controlled import (
+    synth_mcx_n_dirty_i15,
+    synth_mcx_n_clean_m15,
+    synth_mcx_1_clean_b95,
+    synth_mcx_gray_code,
+    synth_mcx_mcphase,
 )
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
@@ -610,3 +617,209 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
             return decomposition
 
         return None
+
+
+class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on [1].
+
+    This plugin name is :``mcx.n_dirty_i15`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis
+    method requires :math:`k - 2` additional dirty auxiliary qubits. The synthesized
+    circuit consists of :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean auxiliary qubits available.
+    * num_dirty_ancillas: The number of dirty auxiliary qubits available.
+    * relative_phase: When set to ``True``, the method applies the optimized multi-controlled
+      X gate up to a relative phase, in a way that, by lemma 8 of [1], the relative
+      phases of the ``action part`` cancel out with the phases of the ``reset part``.
+    * action_only: when set to ``True``, the method applies only the ``action part``
+      of lemma 8 of [1].
+
+    References:
+        1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
+           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, MCXGate):
+            raise TranspilerError("MCXSynthesisNDirtyI15 only accepts objects of type MCXGate")
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        relative_phase = options.get("relative_phase", False)
+        action_only = options.get("actions_only", False)
+
+        if num_ctrl_qubits >= 3 and num_dirty_ancillas + num_clean_ancillas < num_ctrl_qubits - 2:
+            # This synthesis method is not applicable as there are not enough ancilla qubits
+            return None
+
+        decomposition = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase, action_only)
+        return decomposition
+
+
+class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on [1].
+
+    This plugin name is :``mcx.n_clean_m15`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis
+    method requires :math:`k - 2` additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean auxiliary qubits available.
+
+    References:
+        1. Maslov., Phys. Rev. A 93, 022311 (2016),
+           `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, MCXGate):
+            raise TranspilerError("MCXSynthesisNCleanM15 only accepts objects of type MCXGate")
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+
+        if num_ctrl_qubits >= 3 and num_clean_ancillas < num_ctrl_qubits - 2:
+            # This synthesis method is not applicable as there are not enough ancilla qubits
+            return None
+
+        decomposition = synth_mcx_n_clean_m15(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on [1].
+
+    This plugin name is :``mcx.1_clean_b95`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 5` control qubits this synthesis
+    method requires a single additional clean auxiliary qubit. The synthesized
+    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 8` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean auxiliary qubits available.
+
+    References:
+        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+           `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, MCXGate):
+            raise TranspilerError("MCXSynthesis1CleanB95 only accepts objects of type MCXGate")
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+
+        if num_ctrl_qubits <= 2:
+            # The method requires at least 3 control qubits
+            return None
+
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+
+        if num_ctrl_qubits >= 5 and num_clean_ancillas == 0:
+            # This synthesis method is not applicable as there are not enough ancilla qubits
+            return None
+
+        decomposition = synth_mcx_1_clean_b95(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the Gray code.
+
+    This plugin name is :``mcx.gray_code`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits.
+
+    It is not recommended to use this method for large values of :math:`k + 1`
+    as it produces exponentially many gates.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, MCXGate):
+            raise TranspilerError("MCXSynthesisGrayCode only accepts objects of type MCXGate")
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_gray_code(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesisMCPhase(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the
+    implementation for MCPhaseGate.
+
+    This plugin name is :``mcx.mcphase`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, MCXGate):
+            raise TranspilerError("MCXSynthesisMCPhase only accepts objects of type MCXGate")
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_mcphase(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesisDefault(HighLevelSynthesisPlugin):
+    r"""The default synthesis plugin for a multi-controlled X gate.
+
+    This plugin name is :``mcx.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        # Iteratively run other synthesis methods available
+
+        if (
+            decomposition := MCXSynthesisNCleanM15().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        if (
+            decomposition := MCXSynthesisNDirtyI15().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        if (
+            decomposition := MCXSynthesis1CleanB95().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        return MCXSynthesisMCPhase().run(high_level_object, coupling_map, target, qubits, **options)

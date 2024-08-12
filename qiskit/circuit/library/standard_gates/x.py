@@ -1185,23 +1185,10 @@ class MCXGate(ControlledGate):
     def _define(self):
         """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.synthesis.multi_controlled import synth_mcx_mcphase
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q)
-        if self.num_qubits == 4:
-            qc._append(C3XGate(), q[:], [])
-            self.definition = qc
-        elif self.num_qubits == 5:
-            qc._append(C4XGate(), q[:], [])
-            self.definition = qc
-        else:
-            q_controls = list(range(self.num_ctrl_qubits))
-            q_target = self.num_ctrl_qubits
-            qc.h(q_target)
-            qc.mcp(numpy.pi, q_controls, q_target)
-            qc.h(q_target)
-            self.definition = qc
+        qc = synth_mcx_mcphase(self.num_ctrl_qubits)
+        self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
@@ -1305,15 +1292,9 @@ class MCXGrayCode(MCXGate):
     def _define(self):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import MCU1Gate
-        from .h import HGate
+        from qiskit.synthesis.multi_controlled import synth_mcx_gray_code
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc._append(HGate(), [q[-1]], [])
-        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
-        qc._append(HGate(), [q[-1]], [])
+        qc = synth_mcx_gray_code(self.num_ctrl_qubits)
         self.definition = qc
 
 

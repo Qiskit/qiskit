@@ -10,12 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing multi-controlled circuits synthesis with ancillary qubits."""
+"""Module containing multi-controlled circuits synthesis with and without ancillary qubits."""
 
 from math import ceil
+import numpy as np
+
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates.x import C3XGate, C4XGate
+from qiskit.circuit.library.standard_gates import C3XGate, C4XGate, HGate, MCU1Gate
 
 
 def synth_mcx_n_dirty_i15(
@@ -23,7 +25,7 @@ def synth_mcx_n_dirty_i15(
     relative_phase: bool = False,
     action_only: bool = False,
 ):
-    """
+    r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
     dirty ancillary qubits producing a circuit with :math:`2 * k - 1` qubits and at most
     :math:`8 * k - 6` CX gates, by Iten et. al. [1].
@@ -123,7 +125,7 @@ def synth_mcx_n_dirty_i15(
 
 
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
-    """
+    r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
@@ -166,7 +168,7 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
 
 
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
-    """
+    r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
     :math:`16 * k - 8` CX gates, by Barenco et al. [1].
@@ -229,4 +231,54 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
         cargs=[],
     )
 
+    return qc
+
+
+def synth_mcx_gray_code(num_ctrl_qubits: int):
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls using the Gray code.
+
+    Produces a quantum circuit with :math:`num_ctrl_qubits + 1` qubits.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+    """
+    num_qubits = num_ctrl_qubits + 1
+    q = QuantumRegister(num_qubits, name="q")
+    qc = QuantumCircuit(q, name="mcx_gray")
+    qc._append(HGate(), [q[-1]], [])
+    qc._append(MCU1Gate(np.pi, num_ctrl_qubits=num_ctrl_qubits), q[:], [])
+    qc._append(HGate(), [q[-1]], [])
+    return qc
+
+
+def synth_mcx_mcphase(num_ctrl_qubits: int):
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on
+    the implementation for MCPhaseGate.
+
+    Produces a quantum circuit with :math:`num_ctrl_qubits + 1` qubits.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+    """
+    num_qubits = num_ctrl_qubits + 1
+    q = QuantumRegister(num_qubits, name="q")
+    qc = QuantumCircuit(q)
+    if num_ctrl_qubits == 3:
+        qc._append(C3XGate(), q[:], [])
+    elif num_ctrl_qubits == 4:
+        qc._append(C4XGate(), q[:], [])
+    else:
+        q_controls = list(range(num_ctrl_qubits))
+        q_target = num_ctrl_qubits
+        qc.h(q_target)
+        qc.mcp(np.pi, q_controls, q_target)
+        qc.h(q_target)
     return qc
