@@ -24,6 +24,7 @@ use approx::relative_eq;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use numpy::IntoPyArray;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyString, PyTuple};
 use pyo3::{intern, IntoPy, PyObject, PyResult, ToPyObject};
@@ -48,13 +49,23 @@ impl DAGNode {
 impl DAGNode {
     #[new]
     #[pyo3(signature=(nid=-1))]
-    fn py_new(nid: isize) -> Self {
-        DAGNode {
+    fn py_new(nid: isize) -> PyResult<Self> {
+        Ok(DAGNode {
             node: match nid {
                 -1 => None,
-                nid => Some(NodeIndex::new(nid.try_into().unwrap())),
+                nid => {
+                    let index: usize = match nid.try_into() {
+                        Ok(index) => index,
+                        Err(_) => {
+                            return Err(PyValueError::new_err(
+                                "Invalid node index, must be -1 or a non-negative integer",
+                            ))
+                        }
+                    };
+                    Some(NodeIndex::new(index))
+                }
             },
-        }
+        })
     }
 
     #[allow(non_snake_case)]
