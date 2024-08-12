@@ -3778,11 +3778,10 @@ def _format(operand):
         &mut self,
         node: &Bound<PyAny>,
         op: &Bound<PyAny>,
-        // Unused in Rust space because `DAGOpNode` is no longer the data-at-rest format.
-        #[allow(unused_variables)] inplace: bool,
+        inplace: bool,
         propagate_condition: bool,
     ) -> PyResult<Py<PyAny>> {
-        let node: PyRefMut<DAGOpNode> = match node.downcast() {
+        let mut node: PyRefMut<DAGOpNode> = match node.downcast() {
             Ok(node) => node.borrow_mut(),
             Err(_) => return Err(DAGCircuitError::new_err("Only DAGOpNodes can be replaced.")),
         };
@@ -3906,6 +3905,15 @@ def _format(operand):
             )));
         }
 
+        if inplace {
+            node.instruction.operation = new_op.operation.clone();
+            node.instruction.params = new_op.params.clone();
+            node.instruction.extra_attrs = extra_attrs.clone();
+            #[cfg(feature = "cache_pygates")]
+            {
+                *node.instruction.py_op.borrow_mut() = py_op_cache.clone();
+            }
+        }
         // Clone op data, as it will be moved into the PackedInstruction
         let new_weight = NodeType::Operation(PackedInstruction {
             op: new_op.operation.clone(),
@@ -3916,7 +3924,6 @@ def _format(operand):
             #[cfg(feature = "cache_pygates")]
             py_op: RefCell::new(py_op_cache),
         });
-
         let node_index = node.as_ref().node.unwrap();
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
@@ -3926,7 +3933,11 @@ def _format(operand):
         self.decrement_op(old_packed.op.name().to_string());
         self.increment_op(new_op.operation.name().to_string());
 
-        self.get_node(py, node_index)
+        if inplace {
+            Ok(node.into_py(py))
+        } else {
+            self.get_node(py, node_index)
+        }
     }
 
     /// Decompose the circuit into sets of qubits with no gates connecting them.
