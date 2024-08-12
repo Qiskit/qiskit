@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    Added support for :meth:`.AnnotatedOperation.params` and
+    Added support for :attr:`.AnnotatedOperation.params` and
     :meth:`.AnnotatedOperation.validate_parameter`, which enable
     circuit-level parameter handling (such as binding parameters) for
     annotated operations.

@@ -18,7 +18,7 @@ prelude: >
         approximate 1000-fold speedup in runtime.
 
       * The default ``optimization`` level has changed from 1 to 2 in
-        :func:`.transpile` and :func:`.generate_preset_passmanager`.
+        :func:`.transpile` and :func:`.generate_preset_pass_manager`.
         This will generally improve the quality of the compiled circuits,
         at an additional runtime cost. For most users, level 2 is likely to
         present the optimal trade-off.

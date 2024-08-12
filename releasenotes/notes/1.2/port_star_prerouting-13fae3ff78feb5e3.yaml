@@ -1,9 +1,9 @@
 ---
 features_transpiler:
   - |
-    Port part of the logic from the :class:`.StarPrerouting`, used to 
+    Port part of the logic from the :class:`.StarPreRouting`, used to 
     find a star graph connectivity subcircuit and replaces it with a 
     linear routing equivalent.
   - | 
-    The performance of :func:`star_preroute` is improved by performing the heavily lifting
-    to transform the DAG by in the Rust space.
+    The performance of :meth:`.StartPreRouting.star_preroute` is improved by performing the heavy 
+    lifting to transform the DAG in Rust space.

@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed a bug in :func:`plot_coupling_map` that caused the edges of the coupling map to be colored incorrectly.
+    Fixed a bug in :func:`.plot_coupling_map` that caused the edges of the coupling map to be colored incorrectly.
     Fixed `#12354 <https://github.com/Qiskit/qiskit/issues/12354>`__.
