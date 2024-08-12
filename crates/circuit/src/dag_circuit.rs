@@ -2514,7 +2514,7 @@ def _format(operand):
                     if !phase_is_close(*self_phase, other_phase) {
                         return Ok(false);
                     }
-                } else if !self.global_phase.eq(&other.global_phase, py)? {
+                } else if !self.global_phase.eq(py, &other.global_phase)? {
                     return Ok(false);
                 }
             }
@@ -2541,7 +2541,7 @@ def _format(operand):
                         }
                     }
                     _ => {
-                        if !self.global_phase.eq(&other.global_phase, py)? {
+                        if !self.global_phase.eq(py, &other.global_phase)? {
                             return Ok(false);
                         }
                     }
@@ -2559,12 +2559,12 @@ def _format(operand):
                     if !phase_is_close(self_phase, *other_phase) {
                         return Ok(false);
                     }
-                } else if !self.global_phase.eq(&other.global_phase, py)? {
+                } else if !self.global_phase.eq(py, &other.global_phase)? {
                     return Ok(false);
                 }
             }
             _ => {
-                if !self.global_phase.eq(&other.global_phase, py)? {
+                if !self.global_phase.eq(py, &other.global_phase)? {
                     return Ok(false);
                 }
             }
@@ -2730,7 +2730,7 @@ def _format(operand):
                                 .params_view()
                                 .iter()
                                 .zip(inst2.params_view().iter())
-                                .all(|(a, b)| a.is_close(b, py, 1e-10).unwrap());
+                                .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap());
                             Ok(conditions_eq && params_eq)
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {

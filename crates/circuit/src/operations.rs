@@ -61,7 +61,7 @@ impl Param {
         }
     }
 
-    pub fn eq(&self, other: &Param, py: Python) -> PyResult<bool> {
+    pub fn eq(&self, py: Python, other: &Param) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
             [Self::Float(a), Self::ParameterExpression(b)] => b.bind(py).eq(a),
@@ -75,10 +75,10 @@ impl Param {
         }
     }
 
-    pub fn is_close(&self, other: &Param, py: Python, max_relative: f64) -> PyResult<bool> {
+    pub fn is_close(&self, py: Python, other: &Param, max_relative: f64) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
-            _ => self.eq(other, py),
+            _ => self.eq(py, other),
         }
     }
 }
