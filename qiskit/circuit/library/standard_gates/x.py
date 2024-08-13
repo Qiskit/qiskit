@@ -1277,6 +1277,7 @@ class MCXGrayCode(MCXGate):
             "the gate directly."
         ),
         since="1.3",
+        pending=True,
     )
     def __init__(
         self,
@@ -1331,6 +1332,7 @@ class MCXRecursive(MCXGate):
             "the gate directly."
         ),
         since="1.3",
+        pending=True,
     )
     def __init__(
         self,
@@ -1420,6 +1422,7 @@ class MCXVChain(MCXGate):
             "synth_mcx_n_clean_m15 to construct the gate directly."
         ),
         since="1.3",
+        pending=True,
     )
     def __init__(
         self,
