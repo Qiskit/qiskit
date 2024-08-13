@@ -54,7 +54,7 @@ def trivial_recurse(method):
         def bound_wrapped_method(dag):
             return out(self, dag)
 
-        for node in dag.op_nodes(ControlFlowOp):
+        for node in dag.control_flow_op_nodes():
             dag.substitute_node(
                 node, map_blocks(bound_wrapped_method, node.op), propagate_condition=False
             )
