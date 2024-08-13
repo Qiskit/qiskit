@@ -127,6 +127,30 @@ fn _append_cx_stage2(gates: &mut LnnGatesVec, n: isize) {
     }
 }
 
+// Appends correct phase gate during CZ synthesis
+fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
+    // Add phase gates: s, sdg or z
+    if pat_val % 4 == 1 {
+        gates.push((
+            StandardGate::SdgGate,
+            smallvec![],
+            smallvec![Qubit(qubit as u32)],
+        ))
+    } else if pat_val % 4 == 2 {
+        gates.push((
+            StandardGate::ZGate,
+            smallvec![],
+            smallvec![Qubit(qubit as u32)],
+        ))
+    } else if pat_val % 4 == 3 {
+        gates.push((
+            StandardGate::SGate,
+            smallvec![],
+            smallvec![Qubit(qubit as u32)],
+        ))
+    }
+}
+
 // Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
 // based on Maslov and Roetteler.
 pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGatesVec) {
@@ -156,27 +180,13 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
 
     for i in 0..((num_qubits + 1) / 2) {
         for j in 0..num_qubits {
-            if patlist.contains(&pats[&(i as isize, j as isize)]) {
-                let patcnt = patlist
-                    .iter()
-                    .filter(|val| **val == pats[&(i as isize, j as isize)])
-                    .count();
-
+            let pat_val = pats[&(i as isize, j as isize)];
+            if patlist.contains(&pat_val) {
+                let patcnt = patlist.iter().filter(|val| **val == pat_val).count();
                 s_gates[[j]] += patcnt; // qc.sdg[j]
             }
 
-            // Add phase gates: s, sdg or z
-            if s_gates[[j]] % 4 == 1 {
-                gates.push((
-                    StandardGate::SdgGate,
-                    smallvec![],
-                    smallvec![Qubit(j as u32)],
-                ))
-            } else if s_gates[[j]] % 4 == 2 {
-                gates.push((StandardGate::ZGate, smallvec![], smallvec![Qubit(j as u32)]))
-            } else if s_gates[[j]] % 4 == 3 {
-                gates.push((StandardGate::SGate, smallvec![], smallvec![Qubit(j as u32)]))
-            }
+            _append_phase_gate(s_gates[[j]], &mut gates, j)
         }
 
         _append_cx_stage1(&mut gates, num_qubits as isize);
@@ -188,29 +198,14 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
         let i = num_qubits / 2;
 
         for j in 0..num_qubits {
-            if patlist.contains(&pats[&(i as isize, j as isize)])
-                && pats[&(i as isize, j as isize)].0 != pats[&(i as isize, j as isize)].1
-            {
-                let patcnt = patlist
-                    .iter()
-                    .filter(|val| **val == pats[&(i as isize, j as isize)])
-                    .count();
+            let pat_val = pats[&(i as isize, j as isize)];
+            if patlist.contains(&pat_val) && pat_val.0 != pat_val.1 {
+                let patcnt = patlist.iter().filter(|val| **val == pat_val).count();
 
                 s_gates[[j]] += patcnt; // qc.sdg[j]
             }
 
-            // Add phase gates: s, sdg or z
-            if s_gates[[j]] % 4 == 1 {
-                gates.push((
-                    StandardGate::SdgGate,
-                    smallvec![],
-                    smallvec![Qubit(j as u32)],
-                ))
-            } else if s_gates[[j]] % 4 == 2 {
-                gates.push((StandardGate::ZGate, smallvec![], smallvec![Qubit(j as u32)]))
-            } else if s_gates[[j]] % 4 == 3 {
-                gates.push((StandardGate::SGate, smallvec![], smallvec![Qubit(j as u32)]))
-            }
+            _append_phase_gate(s_gates[[j]], &mut gates, j)
         }
 
         _append_cx_stage1(&mut gates, num_qubits as isize);
