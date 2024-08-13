@@ -657,6 +657,13 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
+        # Before we add the node, we set its node ID to be globally unique
+        # within this spooler. This is necessary because nodes may span
+        # layers (which are separate DAGs), and thus can falsely compare
+        # as equal if their contents and node IDs happen to be the same.
+        # This is particularly important for the matplotlib drawer, which
+        # keys several of its internal data structures with these nodes.
+        node._node_id = len(self)
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:

@@ -642,6 +642,7 @@ def _generate_latex_source(
 
 _GLOBAL_NID = 0
 
+
 def _matplotlib_circuit_drawer(
     circuit,
     scale=None,
@@ -707,22 +708,6 @@ def _matplotlib_circuit_drawer(
     )
     if fold is None:
         fold = 25
-
-    # At its inception, the matplotlib drawer was written under the assumption
-    # that DAGNode equality would be referential, i.e. it uses dictionaries
-    # keyed by node instance for internal tracking. However, DAGNode now
-    # overrides __eq__ such that different instances can compare as equivalent.
-    # If all nodes were from the same DAG, we wouldn't have any problem here
-    # since nodes would be distinct by node ID. However, since each input layer
-    # comes from its own DAG, we can run into cases where two nodes in different
-    # layers compare as equivalent, and thus clobber each other in the drawer.
-    # To work around this, we assign new unique IDs to the nodes. Since DAGNode
-    # instances are ephemeral, this does not mutate the DAG.
-    global _GLOBAL_NID
-    for layer in nodes:
-        for node in layer:
-            node._node_id = _GLOBAL_NID
-            _GLOBAL_NID += 1
 
     qcd = _matplotlib.MatplotlibDrawer(
         qubits,
