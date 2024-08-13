@@ -1040,7 +1040,7 @@ def get_entangler_map(
         ValueError: If the entanglement mode ist not supported.
     """
     try:
-        return fast_entangler_map(num_block_qubits, num_circuit_qubits, entanglement, offset)
+        return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)
     except Exception as exc:
         # need this as Rust is now raising a QiskitError, where this function was raising ValueError
         raise ValueError("Something went wrong in Rust space, here's the error:") from exc
