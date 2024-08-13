@@ -157,6 +157,63 @@ QFT Synthesis
 
    QFTSynthesisFull
    QFTSynthesisLine
+
+
+MCX Synthesis
+'''''''''''''
+
+The following table lists synthesis plugins available for an :class:`.MCXGate` gate
+with `k` control qubits. If the available number of clean/dirty auxiliary qubits is
+not sufficient, the corresponding synthesis method will return `None`.
+
+.. list-table:: Plugins for :class:`.MCXGate` (key = ``"mcx"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Number of clean ancillas
+      - Number of dirty ancillas
+      - Description
+    * - ``"gray_code"``
+      - :class:`~.MCXSynthesisGrayCode`
+      - `0`
+      - `0`
+      - exponentially many CX gates; use only for small values of `k`
+    * - ``"mcphase"``
+      - :class:`~.MCXSynthesisMCPhase`
+      - `0`
+      - `0`
+      - quadratic number of CX gates; use instead of ``"gray_code"`` for large values of `k`
+    * - ``"n_clean_m15"``
+      - :class:`~.MCXSynthesisNCleanM15`
+      - `k-2`
+      - `0`
+      - at most `6*k-6` CX gates
+    * - ``"n_dirty_i15"``
+      - :class:`~.MCXSynthesisNDirtyI15`
+      - `0`
+      - `k-2`
+      - at most `8*k-6` CX gates
+    * - ``"1_clean_b95"``
+      - :class:`~.MCXSynthesis1CleanB95`
+      - `1`
+      - `0`
+      - at most `16*k-8` CX gates
+    * - ``"default"``
+      - :class:`~.MCXSynthesisDefault`
+      - any
+      - any
+      - chooses the best algorithm based on the ancillas available
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MCXSynthesisGrayCode
+   MCXSynthesisMCPhase
+   MCXSynthesisNCleanM15
+   MCXSynthesisNDirtyI15
+   MCXSynthesis1CleanB95
+   MCXSynthesisDefault
 """
 
 import numpy as np
