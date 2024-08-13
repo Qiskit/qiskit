@@ -1,0 +1,203 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2024
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
+use crate::QiskitError;
+use pyo3::{
+    types::{PyAnyMethods, PyInt, PyList, PyListMethods, PyString, PyTuple},
+    Bound, PyAny, PyResult,
+};
+use qiskit_circuit::slice::PySequenceIndex;
+
+fn _combinations(n: u32, repetitions: u32) -> Vec<Vec<u32>> {
+    if repetitions == 1 {
+        (0..n).map(|index| vec![index]).collect()
+    } else {
+        let mut result = Vec::new();
+        for indices in _combinations(n, repetitions - 1) {
+            let last_element = indices[indices.len() - 1];
+            for index in last_element + 1..n {
+                let mut extended_indices = indices.clone();
+                extended_indices.push(index);
+                result.push(extended_indices);
+            }
+        }
+        result
+    }
+}
+
+pub fn full(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
+    // this should be equivalent to itertools.combinations(list(range(n)), m)
+    _combinations(num_qubits, block_size).into_iter()
+}
+
+/// Return the qubit indices for linear entanglement.
+/// For a block_size of ``m``, this is defined as [(0..m-1), (1..m), (2..m+1), ..., (n-m..n-1)]
+pub fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item = Vec<u32>> {
+    (0..num_qubits - block_size + 1)
+        .map(move |start_index| (start_index..start_index + block_size).collect())
+}
+
+/// Return the qubit indices for a reversed linear entanglement.
+pub fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
+    linear(num_qubits, block_size).rev()
+}
+
+/// Return the qubit indices for circular entanglement. This is defined as tuples of length ``m``
+/// starting at each possible index ``(0..n)``. Historically, Qiskit starts with index ``n-m+1``.
+/// This is probably easiest understood for a concerete example of 4 qubits and block size 3:
+/// [(2,3,0), (3,0,1), (0,1,2), (1,2,3)]
+pub fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec<u32>>> {
+    if block_size == 1 || num_qubits == block_size {
+        Box::new(linear(num_qubits, block_size))
+    } else {
+        let historic_offset = num_qubits - block_size + 1;
+        Box::new((0..num_qubits).map(move |start_index| {
+            (0..block_size)
+                .map(|i| (historic_offset + start_index + i) % num_qubits)
+                .collect()
+        }))
+    }
+}
+
+pub fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
+    // for Python-folks (like me): pairwise is equal to linear[::2] + linear[1::2]
+    linear(num_qubits, 2)
+        .step_by(2)
+        .chain(linear(num_qubits, 2).skip(1).step_by(2))
+}
+
+pub fn shift_circular_alternating(
+    num_qubits: u32,
+    block_size: u32,
+    offset: usize,
+) -> Box<dyn Iterator<Item = Vec<u32>>> {
+    // index at which we split the circular iterator -- remember that circular entanglement is a
+    // list of length ``num_qubits``, which is what we use in the ``convert_idx`` function here
+    let split = PySequenceIndex::convert_idx(
+        -((offset % num_qubits as usize) as isize),
+        num_qubits as usize,
+    )
+    .expect("Something went wrong converting the offset to a negative index.");
+    let shifted = circular(num_qubits, block_size)
+        .skip(split)
+        .chain(circular(num_qubits, block_size).take(split));
+    if offset % 2 == 0 {
+        Box::new(shifted)
+    } else {
+        // if the offset is odd, reverse the indices inside the qubit block (e.g. turn CX
+        // gates upside down)
+        Box::new(shifted.map(|indices| indices.into_iter().rev().collect()))
+    }
+}
+
+/// Get an entangler map for an arbitrary number of qubits.
+///
+/// Args:
+///     num_qubits: The number of qubits of the circuit.
+///     block_size: The number of qubits of the entangling block.
+///     entanglement: The entanglement strategy as string.
+///     offset: The block offset, can be used if the entanglements differ per block,
+///         for example used in the "sca" mode.
+///
+/// Returns:
+///     The entangler map using mode ``entanglement`` to scatter a block of ``block_size``
+///     qubits on ``num_qubits`` qubits.
+pub fn get_entanglement_from_str(
+    num_qubits: u32,
+    block_size: u32,
+    entanglement: &str,
+    offset: usize,
+) -> PyResult<Box<dyn Iterator<Item = Vec<u32>>>> {
+    if block_size > num_qubits {
+        return Err(QiskitError::new_err(format!(
+            "block_size ({}) cannot be larger than number of qubits ({})",
+            block_size, num_qubits
+        )));
+    }
+
+    if entanglement == "pairwise" && block_size > 2 {
+        return Err(QiskitError::new_err(format!(
+            "block_size ({}) can be at most 2 for pairwise entanglement",
+            block_size
+        )));
+    }
+
+    // if block size is 2 and pairwise, this is just linear: [0, 1, 2, ...]
+    match (entanglement, block_size) {
+        ("full", _) => Ok(Box::new(full(num_qubits, block_size))),
+        ("linear", _) => Ok(Box::new(linear(num_qubits, block_size))),
+        ("reverse_linear", _) => Ok(Box::new(reverse_linear(num_qubits, block_size))),
+        ("sca", _) => Ok(shift_circular_alternating(num_qubits, block_size, offset)),
+        ("circular", _) => Ok(circular(num_qubits, block_size)),
+        ("pairwise", 1) => Ok(Box::new(linear(num_qubits, 1))),
+        ("pairwise", 2) => Ok(Box::new(pairwise(num_qubits))),
+        _ => Err(QiskitError::new_err(format!(
+            "Unsupported entanglement: {}",
+            entanglement
+        ))),
+    }
+}
+
+/// Get an entangler map for an arbitrary number of qubits.
+///
+/// Args:
+///     num_qubits: The number of qubits of the circuit.
+///     block_size: The number of qubits of the entangling block.
+///     entanglement: The entanglement strategy.
+///     offset: The block offset, can be used if the entanglements differ per block,
+///         for example used in the "sca" mode.
+///
+/// Returns:
+///     The entangler map using mode ``entanglement`` to scatter a block of ``block_size``
+///     qubits on ``num_qubits`` qubits.
+pub fn get_entanglement<'a>(
+    num_qubits: u32,
+    block_size: u32,
+    entanglement: &'a Bound<PyAny>,
+    offset: usize,
+) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<u32>>> + 'a>> {
+    // unwrap the callable, if it is one
+    let entanglement = if entanglement.is_callable() {
+        entanglement.call1((offset,))?
+    } else {
+        entanglement.to_owned()
+    };
+
+    if let Ok(strategy) = entanglement.downcast::<PyString>() {
+        let as_str = strategy.to_string();
+        return Ok(Box::new(
+            get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?
+                .map(|connections| Ok(connections)),
+        ));
+    } else if let Ok(list) = entanglement.downcast::<PyList>() {
+        let entanglement_iter = list.iter().map(move |el| {
+            let connections = el
+                .downcast::<PyTuple>()
+                .expect("Entanglement must be list of tuples") // clearer error message than `?`
+                .iter()?
+                .map(|index| index?.downcast::<PyInt>()?.extract())
+                .collect::<Result<Vec<u32>, _>>()?;
+
+            if connections.len() != block_size as usize {
+                return Err(QiskitError::new_err(format!(
+                    "Entanglement {:?} does not match block size {}",
+                    connections, block_size
+                )));
+            }
+            Ok(connections)
+        });
+        return Ok(Box::new(entanglement_iter));
+    }
+    Err(QiskitError::new_err(
+        "Entanglement must be a string or list of qubit indices.",
+    ))
+}
