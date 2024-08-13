@@ -55,7 +55,7 @@ pub fn compose(
     let mat = per_qubit_shaped(overall_unitary);
     let indices = qubits
         .iter()
-        .map(|q| num_indices - 1 - q)
+        .map(|q| num_indices - 1 - *q as usize)
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
@@ -80,7 +80,7 @@ fn per_qubit_shaped<'a>(array: &ArrayView2<'a, Complex<f64>>) -> ArrayView<'a, C
 fn _einsum_matmul(
     tensor: &ArrayView<Complex64, IxDyn>,
     mat: &ArrayView<Complex64, IxDyn>,
-    indices: &Vec<usize>,
+    indices: &[usize],
     shift: usize,
     right_mul: bool,
 ) -> Array<Complex64, IxDyn> {
@@ -126,7 +126,7 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
     qubits.iter().rev().enumerate().for_each(|(pos, idx)| {
         mat_r.push(tens_in[num_qubits - 1 - pos]);
         mat_l.push(LOWERCASE[25 - pos]);
-        tens_out[num_qubits - 1 - idx] = LOWERCASE[25 - pos];
+        tens_out[num_qubits - 1 - *idx as usize] = LOWERCASE[25 - pos];
     });
     unsafe {
         [
@@ -138,7 +138,7 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
     }
 }
 
-fn _einsum_matmul_index(qubits: &[usize], num_qubits: usize) -> String {
+fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
     let tens_r: String = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);

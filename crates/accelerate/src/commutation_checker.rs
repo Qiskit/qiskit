@@ -104,11 +104,11 @@ impl CommutationChecker {
             .for_each(|q| bq.add(py, &q, false).unwrap());
         let qargs1 = op1_bound_qubits
             .iter()
-            .map(|q| bq.find(&q).unwrap().0 as usize)
+            .map(|q| bq.find(&q).unwrap().0)
             .collect::<Vec<_>>();
         let qargs2 = op2_bound_qubits
             .iter()
-            .map(|q| bq.find(&q).unwrap().0 as usize)
+            .map(|q| bq.find(&q).unwrap().0)
             .collect::<Vec<_>>();
 
         let mut bc: BitData<Clbit> = BitData::new(py, "clbits".to_string());
@@ -125,11 +125,11 @@ impl CommutationChecker {
 
         let cargs1 = op1_bound_clbit
             .iter()
-            .map(|c| bc.find(&c).unwrap().0 as usize)
+            .map(|c| bc.find(&c).unwrap().0)
             .collect::<Vec<_>>();
         let cargs2 = op2_bound_clbit
             .iter()
-            .map(|c| bc.find(&c).unwrap().0 as usize)
+            .map(|c| bc.find(&c).unwrap().0)
             .collect::<Vec<_>>();
 
         Ok(self.commute_inner(
@@ -369,12 +369,12 @@ impl CommutationChecker {
         second_qargs: &[u32],
     ) -> bool {
         // compute relative positioning of qargs of the second gate to the first gate
-        let mut qarg: HashMap<&usize, usize> =
+        let mut qarg: HashMap<&u32, u32> =
             HashMap::with_capacity(first_qargs.len() + second_qargs.len());
         for (i, q) in first_qargs.iter().enumerate() {
-            qarg.entry(q).or_insert(i);
+            qarg.entry(q).or_insert(i as u32);
         }
-        let mut num_qubits = first_qargs.len();
+        let mut num_qubits = first_qargs.len() as u32;
         for q in second_qargs {
             if !qarg.contains_key(q) {
                 qarg.insert(q, num_qubits);
@@ -430,9 +430,9 @@ impl CommutationChecker {
                 epsilon = 1e-8
             )
         } else {
-            let extra_qarg2 = num_qubits - first_qarg.len();
+            let extra_qarg2 = num_qubits - first_qarg.len() as u32;
             let first_mat = if extra_qarg2 > 0 {
-                let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2 as u32));
+                let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
                 kron(&id_op, &first_mat)
             } else {
                 first_mat
@@ -530,7 +530,7 @@ fn get_relative_placement(
 #[derive(Clone, Debug)]
 #[pyclass]
 pub struct CommutationLibrary {
-    pub library: HashMap<(String, String), CommutationLibraryEntry>,
+    pub library: Option<HashMap<(String, String), CommutationLibraryEntry>>,
 }
 
 impl CommutationLibrary {
@@ -541,15 +541,16 @@ impl CommutationLibrary {
         second_op: &OperationRef,
         second_qargs: &[u32],
     ) -> Option<bool> {
-        match self
-            .library
-            .get(&(first_op.name().to_string(), second_op.name().to_string()))
-        {
-            Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
-            Some(CommutationLibraryEntry::QubitMapping(qm)) => qm
-                .get(&get_relative_placement(first_qargs, second_qargs))
-                .copied(),
-            _ => None,
+        if let Some(library) = &self.library {
+            match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
+                Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
+                Some(CommutationLibraryEntry::QubitMapping(qm)) => qm
+                    .get(&get_relative_placement(first_qargs, second_qargs))
+                    .copied(),
+                _ => None,
+            }
+        } else {
+            None
         }
     }
 }
@@ -565,11 +566,14 @@ impl CommutationLibrary {
     #[new]
     fn new(py_any: Option<Bound<PyAny>>) -> Self {
         match py_any {
-            Some(pyob) => {
-                CommutationLibrary { library: pyob.extract::<HashMap<(String, String), CommutationLibraryEntry>>().expect("Input parameter standard_gate_commutations to CommutationChecker was not a dict with the right format")}
-
+            Some(pyob) => CommutationLibrary {
+                library: pyob
+                    .extract::<Option<HashMap<(String, String), CommutationLibraryEntry>>>()
+                    .unwrap(),
             },
-            None => CommutationLibrary { library: HashMap::new() }
+            None => CommutationLibrary {
+                library: Some(HashMap::new()),
+            },
         }
     }
 }
