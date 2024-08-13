@@ -29,6 +29,8 @@ from qiskit.synthesis.permutation.permutation_reverse_lnn import (
     _append_cx_stage2,
 )
 
+from qiskit._accelerate.synthesis.linear import synth_cz_depth_line_mr as synth_cz_depth_line_mr_inner
+
 
 def _odd_pattern1(n):
     """A pattern denoted by Pj in [1] for odd number of qubits:
@@ -139,6 +141,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
            *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
     """
+    return QuantumCircuit._from_circuit_data(synth_cz_depth_line_mr_inner(mat.astype(bool)))
     num_qubits = mat.shape[0]
     pats = _create_patterns(num_qubits)
     patlist = []
@@ -191,4 +194,4 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
                 qc.s(j)
         qc = _append_cx_stage1(qc, num_qubits)
 
-    return qc
+    
