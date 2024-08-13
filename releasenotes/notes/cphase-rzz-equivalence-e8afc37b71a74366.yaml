@@ -1,0 +1,6 @@
+---
+features_circuits:
+  - |
+    New equivalence rules in the standard equivalence library mean that the transpiler can now
+    directly convert between two-qubit continuous Pauli rotations, rather than always decomposing
+    into a discrete two-CX-based solution.
