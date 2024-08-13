@@ -10,7 +10,7 @@ name = "qiskit_circuit"
 doctest = false
 
 [dependencies]
-rayon = "1.10"
+rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
 bytemuck.workspace = true

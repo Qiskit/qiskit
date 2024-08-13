@@ -10,7 +10,7 @@ name = "qiskit_accelerate"
 doctest = false
 
 [dependencies]
-rayon = "1.10"
+rayon.workspace = true
 numpy.workspace = true
 rand = "0.8"
 rand_pcg = "0.3"
