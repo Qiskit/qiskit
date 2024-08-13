@@ -142,7 +142,7 @@ struct TargetInterner<T>
 where
     T: Hash + Clone + Eq,
 {
-    gate_name_map: IndexSet<T, RandomState>,
+    inner_set: IndexSet<T, RandomState>,
 }
 
 impl<T> TargetInterner<T>
@@ -152,17 +152,17 @@ where
     /// Creates a new interner instance.
     pub fn new() -> Self {
         Self {
-            gate_name_map: IndexSet::default(),
+            inner_set: IndexSet::default(),
         }
     }
 
     /// Internalizes a gate name
     pub fn intern_item(&mut self, item: T) -> u16 {
-        if let Some(index) = self.gate_name_map.get_index_of(&item) {
+        if let Some(index) = self.inner_set.get_index_of(&item) {
             index as u16
         } else {
-            let new_index = self.gate_name_map.len();
-            self.gate_name_map.insert(item);
+            let new_index = self.inner_set.len();
+            self.inner_set.insert(item);
             new_index as u16
         }
     }
@@ -172,16 +172,16 @@ where
     where
         Q: ?Sized + Hash + Equivalent<T>,
     {
-        self.gate_name_map.get_index_of(item).map(|x| x as u16)
+        self.inner_set.get_index_of(item).map(|x| x as u16)
     }
 
     /// Decodes the gate
     pub fn intern_index(&self, gate_index: u16) -> Option<&T> {
-        self.gate_name_map.get_index(gate_index as usize)
+        self.inner_set.get_index(gate_index as usize)
     }
 
     pub fn reduce(&self) -> Vec<T> {
-        self.gate_name_map.iter().cloned().collect()
+        self.inner_set.iter().cloned().collect()
     }
 
     pub fn from_reduced<I>(reduced: I) -> Self
@@ -189,7 +189,7 @@ where
         I: IntoIterator<Item = T>,
     {
         Self {
-            gate_name_map: IndexSet::from_iter(reduced),
+            inner_set: IndexSet::from_iter(reduced),
         }
     }
 
@@ -197,7 +197,7 @@ where
     where
         Q: ?Sized + Hash + Equivalent<T>,
     {
-        self.gate_name_map.contains(item)
+        self.inner_set.contains(item)
     }
 }
 
