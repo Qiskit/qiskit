@@ -134,7 +134,7 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
     let pats = _create_patterns(num_qubits as isize);
 
     // s_gates[i] = 0, 1, 2 or 3 for a gate id, sdg, z or s on qubit i respectively
-    let mut s_gates = Array1::<isize>::zeros(num_qubits);
+    let mut s_gates = Array1::<usize>::zeros(num_qubits);
 
     let mut patlist: Vec<(isize, isize)> = Vec::new();
 
@@ -157,18 +157,15 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
     for i in 0..((num_qubits + 1) / 2) {
         for j in 0..num_qubits {
             if patlist.contains(&pats[&(i as isize, j as isize)]) {
-                let pacnt = patlist
+                let patcnt = patlist
                     .iter()
                     .filter(|val| **val == pats[&(i as isize, j as isize)])
                     .count();
-                for _ in 0..pacnt {
-                    s_gates[[j]] += 1; // qc.sdg[j]
-                }
-            }
-        }
 
-        // Add phase gates: s, sdg or z
-        for j in 0..num_qubits {
+                s_gates[[j]] += patcnt; // qc.sdg[j]
+            }
+
+            // Add phase gates: s, sdg or z
             if s_gates[[j]] % 4 == 1 {
                 gates.push((
                     StandardGate::SdgGate,
@@ -184,7 +181,7 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
 
         _append_cx_stage1(&mut gates, num_qubits as isize);
         _append_cx_stage2(&mut gates, num_qubits as isize);
-        s_gates = Array1::<isize>::zeros(num_qubits);
+        s_gates = Array1::<usize>::zeros(num_qubits);
     }
 
     if num_qubits % 2 == 0 {
@@ -194,18 +191,15 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
             if patlist.contains(&pats[&(i as isize, j as isize)])
                 && pats[&(i as isize, j as isize)].0 != pats[&(i as isize, j as isize)].1
             {
-                let pacnt = patlist
+                let patcnt = patlist
                     .iter()
                     .filter(|val| **val == pats[&(i as isize, j as isize)])
                     .count();
-                for _ in 0..pacnt {
-                    s_gates[[j]] += 1; // qc.sdg[j]
-                }
-            }
-        }
 
-        // Add phase gates: s, sdg or z
-        for j in 0..num_qubits {
+                s_gates[[j]] += patcnt; // qc.sdg[j]
+            }
+
+            // Add phase gates: s, sdg or z
             if s_gates[[j]] % 4 == 1 {
                 gates.push((
                     StandardGate::SdgGate,
