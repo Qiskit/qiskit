@@ -19,10 +19,10 @@ from dataclasses import dataclass
 
 @dataclass
 class QubitTracker:
-    """Track qubits (per index) and their state.
+    """Track qubits (by global index) and their state.
 
     The states are distinguished into clean (meaning in state :math:`|0\rangle`) or dirty (an
-    unkown state).
+    unknown state).
     """
 
     # This could in future be extended to track different state types, if necessary.
@@ -49,7 +49,12 @@ class QubitTracker:
         if num_qubits > (available := len(available_qubits)):
             raise RuntimeError(f"Cannot borrow {num_qubits} qubits, only {available} available.")
 
-        return available_qubits[:num_qubits]
+        # for now, prioritize returning clean qubits
+        available_clean = [qubit for qubit in available_qubits if qubit in self.clean]
+        available_dirty = [qubit for qubit in available_qubits if qubit in self.dirty]
+
+        borrowed = available_clean[:num_qubits]
+        return borrowed + available_dirty[: (num_qubits - len(borrowed))]
 
     def used(self, qubits: Iterable[int], check: bool = True) -> None:
         """Set the state of ``qubits`` to used (i.e. False)."""
@@ -85,14 +90,22 @@ class QubitTracker:
         self.clean -= qubits
         self.dirty -= qubits
 
-    def copy(self, qubit_map: dict[int, int] | None = None) -> "QubitTracker":
+    def copy(
+        self, qubit_map: dict[int, int] | None = None, drop: Iterable[int] | None = None
+    ) -> "QubitTracker":
         """Copy self.
 
         Args:
             qubit_map: If provided, apply the mapping ``{old_qubit: new_qubit}`` to
                 the qubits in the tracker. Only those old qubits in the mapping will be
                 part of the new one.
+            drop: If provided, drop these qubits in the copied tracker. This argument is ignored
+                if ``qubit_map`` is given, since the qubits can then just be dropped in the map.
         """
+        if qubit_map is None and drop is not None:
+            remaining_qubits = [qubit for qubit in self.qubits if qubit not in drop]
+            qubit_map = dict(zip(remaining_qubits, remaining_qubits))
+
         if qubit_map is None:
             clean = self.clean.copy()
             dirty = self.dirty.copy()

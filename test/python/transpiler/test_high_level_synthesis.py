@@ -222,7 +222,7 @@ class MockPluginManager:
         return self.plugins[plugin_name]()
 
 
-class MockHLS(HighLevelSynthesisPlugin):
+class MockPlugin(HighLevelSynthesisPlugin):
     """A mock HLS using auxiliary qubits."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -244,6 +244,14 @@ class MockHLS(HighLevelSynthesisPlugin):
             decomposition.t(range(num_action_qubits + num_clean, num_qubits))
 
         return decomposition
+
+
+class EmptyPlugin(HighLevelSynthesisPlugin):
+    """A mock plugin returning None (i.e. a failed synthesis)."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Elaborate code to return None :)"""
+        return None
 
 
 @ddt
@@ -544,7 +552,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
     def test_ancilla_arguments(self):
         """Test ancillas are correctly labelled."""
         gate = Gate(name="duckling", num_qubits=5, params=[])
-        hls_config = HLSConfig(duckling=[MockHLS()])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
 
         qc = QuantumCircuit(10)
         qc.h([0, 8, 9])  # the two last H gates yield two dirty ancillas
@@ -563,7 +571,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
     def test_ancilla_noop(self):
         """Test ancillas states are not affected by no-ops."""
         gate = Gate(name="duckling", num_qubits=1, params=[])
-        hls_config = HLSConfig(duckling=[MockHLS()])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
         pm = PassManager([HighLevelSynthesis(hls_config)])
 
         noops = [Delay(100), IGate()]
@@ -584,7 +592,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
     def test_ancilla_reset(self, reset):
         """Test ancillas are correctly freed after a reset operation."""
         gate = Gate(name="duckling", num_qubits=1, params=[])
-        hls_config = HLSConfig(duckling=[MockHLS()])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
         pm = PassManager([HighLevelSynthesis(hls_config)])
 
         qc = QuantumCircuit(2)
@@ -607,7 +615,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
     def test_ancilla_state_maintained(self):
         """Test ancillas states are still dirty/clean after they've been used."""
         gate = Gate(name="duckling", num_qubits=1, params=[])
-        hls_config = HLSConfig(duckling=[MockHLS()])
+        hls_config = HLSConfig(duckling=[MockPlugin()])
         pm = PassManager([HighLevelSynthesis(hls_config)])
 
         qc = QuantumCircuit(3)
@@ -627,6 +635,24 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             ref.t(2)
 
         self.assertEqual(ref, pm.run(qc))
+
+    def test_synth_fails_definition_exists(self):
+        """Test the case that a synthesis fails but the operation can be unrolled."""
+
+        circuit = QuantumCircuit(1)
+        circuit.ry(0.2, 0)
+
+        config = HLSConfig(ry=[EmptyPlugin()])
+        hls = HighLevelSynthesis(hls_config=config)
+
+        with self.subTest("nothing happened w/o basis gates"):
+            out = hls(circuit)
+            self.assertEqual(out, circuit)
+
+        hls = HighLevelSynthesis(hls_config=config, basis_gates=["u"])
+        with self.subTest("unrolled w/ basis gates"):
+            out = hls(circuit)
+            self.assertEqual(out.count_ops(), {"u": 1})
 
 
 class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
@@ -1856,6 +1882,20 @@ class TestUnrollerCompatability(QiskitTestCase):
         expected.p(gamma, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
+
+    def test_unroll_with_clbit(self):
+        """Test unrolling a custom definition that has qubits and clbits."""
+        block = QuantumCircuit(1, 1)
+        block.h(0)
+        block.measure(0, 0)
+
+        circuit = QuantumCircuit(1, 1)
+        circuit.append(block.to_instruction(), [0], [0])
+
+        hls = HighLevelSynthesis(basis_gates=["h", "measure"])
+        out = hls(circuit)
+
+        self.assertEqual(block, out)
 
 
 class TestGate(Gate):

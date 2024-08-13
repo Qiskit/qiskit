@@ -182,7 +182,6 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
-from qiskit.utils.deprecation import deprecate_arg
 
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -367,12 +366,6 @@ class HighLevelSynthesis(TransformationPass):
 
     """
 
-    @deprecate_arg(
-        "use_qubit_indices",
-        since="1.3",
-        additional_msg="The qubit indices will then always be used.",
-        pending=True,
-    )
     def __init__(
         self,
         hls_config: HLSConfig | None = None,
@@ -533,9 +526,12 @@ class HighLevelSynthesis(TransformationPass):
                     qubit_map = {
                         qubit: index_to_qubit[index] for index, qubit in zip(qubits, op.qubits)
                     }
+                    clbit_map = dict(zip(op.clbits, node.cargs))
                     for sub_node in op.op_nodes():
                         out.apply_operation_back(
-                            sub_node.op, tuple(qubit_map[qarg] for qarg in sub_node.qargs)
+                            sub_node.op,
+                            tuple(qubit_map[qarg] for qarg in sub_node.qargs),
+                            tuple(clbit_map[carg] for carg in sub_node.cargs),
                         )
                     out.global_phase += op.global_phase
                 else:
@@ -570,8 +566,7 @@ class HighLevelSynthesis(TransformationPass):
                 mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier)
             )
             baseop_qubits = qubits[num_ctrl:]  # reminder: control qubits are the first ones
-            baseop_tracker = tracker.copy()
-            baseop_tracker.drop(qubits[:num_ctrl])  # no access to control qubits
+            baseop_tracker = tracker.copy(drop=qubits[:num_ctrl])  # no access to control qubits
 
             # get qubits of base operation
             synthesized_base_op, _ = self._synthesize_operation(
@@ -584,21 +579,22 @@ class HighLevelSynthesis(TransformationPass):
 
             synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
 
-        # synthesize via HLS
-        elif len(hls_methods := self._methods_to_try(operation.name)) > 0:
-            # TODO once ``use_qubit_indices`` is removed from the initializer, just pass ``qubits``
+        # If it was no AnnotatedOperation, try synthesizing via HLS or by unrolling.
+        else:
+            # Try synthesis via HLS -- which will return ``None`` if unsuccessful.
             indices = qubits if self._use_qubit_indices else None
-            synthesized = self._synthesize_op_using_plugins(
-                hls_methods,
-                operation,
-                indices,
-                tracker.num_clean(qubits),
-                tracker.num_dirty(qubits),
-            )
+            if len(hls_methods := self._methods_to_try(operation.name)) > 0:
+                synthesized = self._synthesize_op_using_plugins(
+                    hls_methods,
+                    operation,
+                    indices,
+                    tracker.num_clean(qubits),
+                    tracker.num_dirty(qubits),
+                )
 
-        # try unrolling custom definitions
-        elif not self._top_level_only:
-            synthesized = self._unroll_custom_definition(operation, qubits)
+            # If HLS did not apply, or was unsuccessful, try unrolling custom definitions.
+            if synthesized is None and not self._top_level_only:
+                synthesized = self._unroll_custom_definition(operation, indices)
 
         if synthesized is None:
             # if we didn't synthesize, there was nothing to unroll, so just set the used qubits
