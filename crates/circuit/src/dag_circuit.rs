@@ -2066,7 +2066,7 @@ def _format(operand):
             Py::new(py, slf.clone())?.into_bound(py).borrow_mut()
         };
 
-        dag.global_phase = dag.global_phase.add(py, &other.global_phase);
+        dag.global_phase = add_global_phase(py, &dag.global_phase, &other.global_phase)?;
 
         for (gate, cals) in other.calibrations.iter() {
             let calibrations = match dag.calibrations.get(gate) {
@@ -3612,7 +3612,7 @@ def _format(operand):
                 &var_map,
             )?
         };
-        self.global_phase = self.global_phase.add(py, &input_dag.global_phase);
+        self.global_phase = add_global_phase(py, &self.global_phase, &input_dag.global_phase)?;
 
         let wire_map_dict = PyDict::new_bound(py);
         for (source, target) in clbit_wire_map.iter() {
@@ -6184,7 +6184,6 @@ impl DAGCircuit {
                 node.index()
             )));
         }
-        self.global_phase.add(py, &other.global_phase);
 
         // Add wire from pred to succ if no ops on mapped wire on ``other``
         for (in_dag_wire, self_wire) in qubit_map.iter() {
@@ -6446,6 +6445,30 @@ impl DAGCircuit {
         );
         Ok(())
     }
+}
+
+/// Add to global phase. Global phase can only be Float or ParameterExpression so this
+/// does not handle the full possibility of parameter values.
+fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param> {
+    Ok(match [phase, other] {
+        [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
+        [Param::Float(a), Param::ParameterExpression(b)] => Param::ParameterExpression(
+            b.clone_ref(py)
+                .call_method1(py, intern!(py, "__radd__"), (*a,))?,
+        ),
+        [Param::ParameterExpression(a), Param::Float(b)] => Param::ParameterExpression(
+            a.clone_ref(py)
+                .call_method1(py, intern!(py, "__add__"), (*b,))?,
+        ),
+        [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
+            Param::ParameterExpression(a.clone_ref(py).call_method1(
+                py,
+                intern!(py, "__add__"),
+                (b,),
+            )?)
+        }
+        _ => panic!("Invalid global phase"),
+    })
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);

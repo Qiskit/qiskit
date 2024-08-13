@@ -37,30 +37,6 @@ pub enum Param {
 }
 
 impl Param {
-    pub fn add(&self, py: Python, other: &Param) -> Param {
-        match [self, other] {
-            [Self::Float(a), Self::Float(b)] => Param::Float(a + b),
-            [Self::Float(a), Self::ParameterExpression(b)] => Param::ParameterExpression(
-                b.clone_ref(py)
-                    .call_method1(py, intern!(py, "__radd__"), (*a,))
-                    .expect("Parameter expression addition failed"),
-            ),
-            [Self::ParameterExpression(a), Self::Float(b)] => Param::ParameterExpression(
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (*b,))
-                    .expect("Parameter expression addition failed"),
-            ),
-            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => {
-                Param::ParameterExpression(
-                    a.clone_ref(py)
-                        .call_method1(py, intern!(py, "__add__"), (b,))
-                        .expect("Parameter expression addition failed"),
-                )
-            }
-            _ => unreachable!(),
-        }
-    }
-
     pub fn eq(&self, py: Python, other: &Param) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
