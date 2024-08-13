@@ -25,7 +25,10 @@ References:
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
-from qiskit._accelerate.synthesis.linear import synth_cz_depth_line_mr as synth_cz_depth_line_mr_inner
+from qiskit._accelerate.synthesis.linear import (
+    synth_cz_depth_line_mr as synth_cz_depth_line_mr_inner,
+)
+
 
 def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
     r"""Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
@@ -51,6 +54,3 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
 
     # Call Rust implementaton
     return QuantumCircuit._from_circuit_data(synth_cz_depth_line_mr_inner(mat.astype(bool)))
-    
-
-    
