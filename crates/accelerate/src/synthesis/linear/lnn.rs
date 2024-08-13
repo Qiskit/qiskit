@@ -91,6 +91,7 @@ fn _create_patterns(n: isize) -> HashMap<(isize, isize), (isize, isize)> {
     ))
 }
 
+// A single layer of CX gates.
 fn _append_cx_stage1(gates: &mut LnnGatesVec, n: isize) {
     for i in 0..(n / 2) {
         gates.push((
@@ -109,6 +110,7 @@ fn _append_cx_stage1(gates: &mut LnnGatesVec, n: isize) {
     }
 }
 
+// A single layer of CX gates.
 fn _append_cx_stage2(gates: &mut LnnGatesVec, n: isize) {
     for i in 0..(n / 2) {
         gates.push((
