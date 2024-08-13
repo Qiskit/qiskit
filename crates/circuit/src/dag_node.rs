@@ -160,6 +160,13 @@ impl DAGOpNode {
     }
 
     fn __eq__(slf: PyRef<Self>, py: Python, other: &Bound<PyAny>) -> PyResult<bool> {
+        // This check is more restrictive by design as it's intended to replace
+        // object identitity for set/dict membership and not be a semantic equivalence
+        // check. We have an implementation of that as part of `DAGCircuit.__eq__` and
+        // this method is specifically to ensure nodes are the same. This means things
+        // like parameter equality are stricter to reject things like
+        // Param::Float(0.1) == Param::ParameterExpression(0.1) (if the expression was
+        // a python parameter equivalent to a bound value).
         let Ok(other) = other.downcast::<Self>() else {
             return Ok(false);
         };
@@ -178,19 +185,29 @@ impl DAGOpNode {
             return Ok(false);
         }
         let params_eq = if slf.instruction.operation.try_standard_gate().is_some() {
-            slf.instruction
+            let mut params_eq = true;
+            for (a, b) in slf
+                .instruction
                 .params
                 .iter()
                 .zip(borrowed_other.instruction.params.iter())
-                .all(|(a, b)| match [a, b] {
+            {
+                let res = match [a, b] {
                     [Param::Float(float_a), Param::Float(float_b)] => {
                         relative_eq!(float_a, float_b, max_relative = 1e-10)
                     }
                     [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
-                        param_a.bind(py).eq(param_b).unwrap()
+                        param_a.bind(py).eq(param_b)?
                     }
+                    [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
                     _ => false,
-                })
+                };
+                if !res {
+                    params_eq = false;
+                    break;
+                }
+            }
+            params_eq
         } else {
             // We've already evaluated the parameters are equal here via the Python space equality
             // check so if we're not comparing standard gates and we've reached this point we know

@@ -640,6 +640,7 @@ def _generate_latex_source(
 # matplotlib_circuit_drawer
 # -----------------------------------------------------------------------------
 
+_GLOBAL_NID = 0
 
 def _matplotlib_circuit_drawer(
     circuit,
@@ -717,11 +718,11 @@ def _matplotlib_circuit_drawer(
     # layers compare as equivalent, and thus clobber each other in the drawer.
     # To work around this, we assign new unique IDs to the nodes. Since DAGNode
     # instances are ephemeral, this does not mutate the DAG.
-    global_nid = 0
+    global _GLOBAL_NID
     for layer in nodes:
         for node in layer:
-            node._node_id = global_nid
-            global_nid += 1
+            node._node_id = _GLOBAL_NID
+            _GLOBAL_NID += 1
 
     qcd = _matplotlib.MatplotlibDrawer(
         qubits,
