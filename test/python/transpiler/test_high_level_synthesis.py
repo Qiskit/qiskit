@@ -2133,5 +2133,15 @@ class TestQFTSynthesisPlugins(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(qct))
 
 
+@ddt
+class TestMCXSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for MCXGate."""
+
+    def test_supported_names(self):
+        """Test that there is a default synthesis plugin for MCXGate."""
+        supported_plugin_names = high_level_synthesis_plugin_names("mcx")
+        self.assertIn("default", supported_plugin_names)
+
+
 if __name__ == "__main__":
     unittest.main()
