@@ -175,8 +175,7 @@ pub fn get_entanglement<'a>(
     if let Ok(strategy) = entanglement.downcast::<PyString>() {
         let as_str = strategy.to_string();
         return Ok(Box::new(
-            get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?
-                .map(|connections| Ok(connections)),
+            get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
         ));
     } else if let Ok(list) = entanglement.downcast::<PyList>() {
         let entanglement_iter = list.iter().map(move |el| {
