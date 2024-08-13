@@ -20,7 +20,7 @@ use std::ops::Index;
 
 use ahash::RandomState;
 
-use ahash::HashSet;
+use hashbrown::HashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nullable_index_map::NullableIndexMap;
