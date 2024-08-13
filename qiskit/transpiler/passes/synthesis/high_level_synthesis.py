@@ -546,15 +546,18 @@ class HighLevelSynthesis(TransformationPass):
         operation: Operation,
         qubits: tuple[int],
         tracker: QubitTracker,
-    ) -> QuantumCircuit | Operation | DAGCircuit | None:
+    ) -> tuple[QuantumCircuit | Operation | DAGCircuit | None, list[int] | None]:
         # Try to synthesize the operation. We'll go through the following options:
         #  (1) Annotations: if the operator is annotated, synthesize the base operation
-        #       and then apply the modifiers.
-        #  (2) High-level objects: try running the battery of high-level synthesis plugins
+        #       and then apply the modifiers. Returns a circuit (e.g. applying a power)
+        #       or operation (e.g adding control on an X gate).
+        #  (2) High-level objects: try running the battery of high-level synthesis plugins (e.g.
+        #       if the operation is a Clifford). Returns a circuit.
         #  (3) Unrolling custom definitions: try defining the operation if it is not yet
-        #       in the set of supported instructions
+        #       in the set of supported instructions. Returns a circuit.
         # If any of the above were triggered, we will recurse and go again through these steps
-        # until no further change occurred. If there was no change, we just return ``None``.
+        # until no further change occurred. At this point, we convert circuits to DAGs (the final
+        # possible return type). If there was no change, we just return ``None``.
         synthesized = None
 
         # Try synthesizing via AnnotatedOperation. This is faster than an isinstance check
