@@ -29,7 +29,7 @@ static _UPPERCASE: [u8; 26] = [
 pub fn compose(
     gate_unitary: &ArrayView2<Complex<f64>>,
     overall_unitary: &ArrayView2<Complex<f64>>,
-    qubits: &[usize],
+    qubits: &[u32],
     front: bool,
 ) -> Array2<Complex<f64>> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
@@ -118,7 +118,7 @@ fn _einsum_matmul(
     .unwrap()
 }
 
-fn _einsum_matmul_helper(qubits: &[usize], num_qubits: usize) -> [String; 4] {
+fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
     let tens_in: Vec<u8> = LOWERCASE[..num_qubits].to_vec();
     let mut tens_out: Vec<u8> = tens_in.clone();
     let mut mat_l: Vec<u8> = Vec::with_capacity(num_qubits);

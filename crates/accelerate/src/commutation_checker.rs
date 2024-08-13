@@ -233,11 +233,11 @@ impl CommutationChecker {
     fn commute_inner(
         &mut self,
         instr1: &CircuitInstruction,
-        qargs1: &Vec<usize>,
-        cargs1: &Vec<usize>,
+        qargs1: &[u32],
+        cargs1: &[u32],
         instr2: &CircuitInstruction,
-        qargs2: &Vec<usize>,
-        cargs2: &Vec<usize>,
+        qargs2: &[u32],
+        cargs2: &[u32],
         max_num_qubits: u32,
     ) -> bool {
         if let Some(gates) = &self.gates {
@@ -364,9 +364,9 @@ impl CommutationChecker {
     fn commute_matmul(
         &self,
         first_instr: &CircuitInstruction,
-        first_qargs: &[usize],
+        first_qargs: &[u32],
         second_instr: &CircuitInstruction,
-        second_qargs: &[usize],
+        second_qargs: &[u32],
     ) -> bool {
         // compute relative positioning of qargs of the second gate to the first gate
         let mut qarg: HashMap<&usize, usize> =
@@ -454,11 +454,11 @@ impl CommutationChecker {
 #[allow(clippy::too_many_arguments)]
 fn commutation_precheck(
     op1: &CircuitInstruction,
-    qargs1: &[usize],
-    cargs1: &[usize],
+    qargs1: &[u32],
+    cargs1: &[u32],
     op2: &CircuitInstruction,
-    qargs2: &[usize],
-    cargs2: &[usize],
+    qargs2: &[u32],
+    cargs2: &[u32],
     max_num_qubits: u32,
 ) -> Option<bool> {
     if op1.op().control_flow()
@@ -512,8 +512,8 @@ fn is_commutation_skipped(instr: &CircuitInstruction) -> bool {
 }
 
 fn get_relative_placement(
-    first_qargs: &[usize],
-    second_qargs: &[usize],
+    first_qargs: &[u32],
+    second_qargs: &[u32],
 ) -> SmallVec<[Option<Qubit>; 2]> {
     let qubits_g2: HashMap<_, _> = second_qargs
         .iter()
@@ -537,9 +537,9 @@ impl CommutationLibrary {
     fn check_commutation_entries(
         &self,
         first_op: &OperationRef,
-        first_qargs: &[usize],
+        first_qargs: &[u32],
         second_op: &OperationRef,
-        second_qargs: &[usize],
+        second_qargs: &[u32],
     ) -> Option<bool> {
         match self
             .library
