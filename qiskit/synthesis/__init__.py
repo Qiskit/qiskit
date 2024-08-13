@@ -180,8 +180,10 @@ from .two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
 )
-from .multi_controlled.mcx_with_ancillas_synth import (
+from .multi_controlled import (
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
+    synth_mcx_mcphase,
+    synth_mcx_gray_code,
 )
