@@ -92,7 +92,7 @@ fn _create_patterns(n: isize) -> HashMap<(isize, isize), (isize, isize)> {
 }
 
 // A single layer of CX gates.
-fn _append_cx_stage1(gates: &mut LnnGatesVec, n: isize) {
+fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
     for i in 0..(n / 2) {
         gates.push((
             StandardGate::CXGate,
@@ -111,7 +111,7 @@ fn _append_cx_stage1(gates: &mut LnnGatesVec, n: isize) {
 }
 
 // A single layer of CX gates.
-fn _append_cx_stage2(gates: &mut LnnGatesVec, n: isize) {
+fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
     for i in 0..(n / 2) {
         gates.push((
             StandardGate::CXGate,
@@ -191,8 +191,8 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
             _append_phase_gate(s_gates[[j]], &mut gates, j)
         }
 
-        _append_cx_stage1(&mut gates, num_qubits as isize);
-        _append_cx_stage2(&mut gates, num_qubits as isize);
+        _append_cx_stage1(&mut gates, num_qubits);
+        _append_cx_stage2(&mut gates, num_qubits);
         s_gates = Array1::<usize>::zeros(num_qubits);
     }
 
@@ -210,8 +210,8 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
             _append_phase_gate(s_gates[[j]], &mut gates, j)
         }
 
-        _append_cx_stage1(&mut gates, num_qubits as isize);
+        _append_cx_stage1(&mut gates, num_qubits);
     }
 
-    (num_qubits as usize, gates)
+    (num_qubits, gates)
 }
