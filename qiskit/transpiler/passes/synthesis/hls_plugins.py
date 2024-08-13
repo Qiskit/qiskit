@@ -704,7 +704,7 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if not isinstance(high_level_object, MCXGate):
+        if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisNDirtyI15 only accepts objects of type MCXGate")
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
@@ -743,7 +743,7 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if not isinstance(high_level_object, MCXGate):
+        if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisNCleanM15 only accepts objects of type MCXGate")
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
@@ -779,7 +779,7 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if not isinstance(high_level_object, MCXGate):
+        if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesis1CleanB95 only accepts objects of type MCXGate")
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
@@ -815,7 +815,7 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if not isinstance(high_level_object, MCXGate):
+        if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisGrayCode only accepts objects of type MCXGate")
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
@@ -838,7 +838,7 @@ class MCXSynthesisMCPhase(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if not isinstance(high_level_object, MCXGate):
+        if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisMCPhase only accepts objects of type MCXGate")
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
