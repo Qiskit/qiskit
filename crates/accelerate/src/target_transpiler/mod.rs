@@ -305,7 +305,7 @@ impl Target {
         match instruction {
             TargetOperation::Variadic(_) => {
                 qargs_val = PropsMap::with_capacity(1);
-                qargs_val.extend([(None, None)].into_iter());
+                qargs_val.extend([(None, None)]);
                 self.variable_class_operations.insert(name.to_string());
             }
             TargetOperation::Normal(_) => {
@@ -872,7 +872,7 @@ impl Target {
                 .unwrap()
                 .extract::<GateMapState>()?
                 .into_iter()
-                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map.into_iter()))),
+                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map))),
         );
         self._gate_name_map = state
             .get_item("gate_name_map")?
