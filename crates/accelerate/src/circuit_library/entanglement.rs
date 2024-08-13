@@ -17,6 +17,8 @@ use pyo3::{
 };
 use qiskit_circuit::slice::PySequenceIndex;
 
+/// Get all combinations of length ``repetitions`` of numbers ``(0..n)``. This is like
+/// Python's ``itertools.combinations``.
 fn _combinations(n: u32, repetitions: u32) -> Vec<Vec<u32>> {
     if repetitions == 1 {
         (0..n).map(|index| vec![index]).collect()
@@ -34,19 +36,24 @@ fn _combinations(n: u32, repetitions: u32) -> Vec<Vec<u32>> {
     }
 }
 
+/// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
+/// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 pub fn full(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
     // this should be equivalent to itertools.combinations(list(range(n)), m)
     _combinations(num_qubits, block_size).into_iter()
 }
 
-/// Return the qubit indices for linear entanglement.
-/// For a block_size of ``m``, this is defined as [(0..m-1), (1..m), (2..m+1), ..., (n-m..n-1)]
+/// Get a linear entanglement structure. For ``n`` qubits and block size ``m`` we have:
+/// [(0..m-1), (1..m), (2..m+1), ..., (n-m..n-1)]
 pub fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item = Vec<u32>> {
     (0..num_qubits - block_size + 1)
         .map(move |start_index| (start_index..start_index + block_size).collect())
 }
 
-/// Return the qubit indices for a reversed linear entanglement.
+/// Get a reversed linear entanglement. This is like linear entanglement but in reversed order:
+/// [(n-m..n-1), ..., (1..m), (0..m-1)]
+/// This is particularly interesting, as CX+"full" equals CX+"reverse_linear", even though the
+/// latter uses a quadratically less number of gates.
 pub fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
     linear(num_qubits, block_size).rev()
 }
@@ -68,6 +75,9 @@ pub fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec
     }
 }
 
+/// Get pairwise entanglement. This is typically used on 2 qubits and only has a depth of 2, as
+/// first all odd pairs, and then even pairs are entangled. For example on 6 qubits:
+/// [(0, 1), (2, 3), (4, 5), /* now the even pairs */ (1, 2), (3, 4)]
 pub fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
     // for Python-folks (like me): pairwise is equal to linear[::2] + linear[1::2]
     linear(num_qubits, 2)
@@ -75,6 +85,14 @@ pub fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
         .chain(linear(num_qubits, 2).skip(1).step_by(2))
 }
 
+/// The shifted, circular, alternating (sca) entanglement is motivated from circuits 14/15 of
+/// https://arxiv.org/abs/1905.10876. It corresponds to circular entanglement, with the difference
+/// that in each layer (controlled by ``offset``) the entanglement gates are shifted by one, plus
+/// in each second layer, the entanglement gate is turned upside down.
+/// Offset 0 -> [(2,3,0), (3,0,1), (0,1,2), (1,2,3)]
+/// Offset 1 -> [(3,2,1), (0,3,2), (1,0,3), (2,1,0)]
+/// Offset 2 -> [(0,1,2), (1,2,3), (2,3,0), (3,0,1)]
+/// ...
 pub fn shift_circular_alternating(
     num_qubits: u32,
     block_size: u32,
