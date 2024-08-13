@@ -15,10 +15,10 @@ use std::cell::RefCell;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT, QUBIT};
+use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
-use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{Clbit, Qubit};
@@ -105,6 +105,71 @@ pub struct CircuitData {
 
 impl CircuitData {
     /// An alternate constructor to build a new `CircuitData` from an iterator
+    /// of packed operations. This can be used to build a circuit from a sequence
+    /// of `PackedOperation` without needing to involve Python.
+    ///
+    /// This can be connected with the Python space
+    /// QuantumCircuit.from_circuit_data() constructor to build a full
+    /// QuantumCircuit from Rust.
+    ///
+    /// # Arguments
+    ///
+    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
+    /// * num_qubits: The number of qubits in the circuit. These will be created
+    ///     in Python as loose bits without a register.
+    /// * num_clbits: The number of classical bits in the circuit. These will be created
+    ///     in Python as loose bits without a register.
+    /// * instructions: An iterator of the (packed operation, params, qubits, clbits) to
+    ///     add to the circuit
+    /// * global_phase: The global phase to use for the circuit
+    pub fn from_packed_operations<I>(
+        py: Python,
+        num_qubits: u32,
+        num_clbits: u32,
+        instructions: I,
+        global_phase: Param,
+    ) -> PyResult<Self>
+    where
+        I: IntoIterator<
+            Item = (
+                PackedOperation,
+                SmallVec<[Param; 3]>,
+                Vec<Qubit>,
+                Vec<Clbit>,
+            ),
+        >,
+    {
+        let instruction_iter = instructions.into_iter();
+        let mut res = Self::with_capacity(
+            py,
+            num_qubits,
+            num_clbits,
+            instruction_iter.size_hint().0,
+            global_phase,
+        )?;
+        for (operation, params, qargs, cargs) in instruction_iter {
+            let qubits = (&mut res.qargs_interner)
+                .intern(InternerKey::Value(qargs))?
+                .index;
+            let clbits = (&mut res.cargs_interner)
+                .intern(InternerKey::Value(cargs))?
+                .index;
+            let params = (!params.is_empty()).then(|| Box::new(params));
+            res.data.push(PackedInstruction {
+                op: operation,
+                qubits,
+                clbits,
+                params,
+                extra_attrs: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: RefCell::new(None),
+            });
+            res.track_instruction_parameters(py, res.data.len() - 1)?;
+        }
+        Ok(res)
+    }
+
+    /// An alternate constructor to build a new `CircuitData` from an iterator
     /// of standard gates. This can be used to build a circuit from a sequence
     /// of standard gates, such as for a `StandardGate` definition or circuit
     /// synthesis without needing to involve Python.
@@ -131,22 +196,13 @@ impl CircuitData {
         I: IntoIterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>,
     {
         let instruction_iter = instructions.into_iter();
-        let mut res = CircuitData {
-            data: Vec::with_capacity(instruction_iter.size_hint().0),
-            qargs_interner: IndexedInterner::new(),
-            cargs_interner: IndexedInterner::new(),
-            qubits: BitData::new(py, "qubits".to_string()),
-            clbits: BitData::new(py, "clbits".to_string()),
-            param_table: ParameterTable::new(),
+        let mut res = Self::with_capacity(
+            py,
+            num_qubits,
+            0,
+            instruction_iter.size_hint().0,
             global_phase,
-        };
-        if num_qubits > 0 {
-            let qubit_cls = QUBIT.get_bound(py);
-            for _i in 0..num_qubits {
-                let bit = qubit_cls.call0()?;
-                res.add_qubit(py, &bit, true)?;
-            }
-        }
+        )?;
         let no_clbit_index = (&mut res.cargs_interner)
             .intern(InternerKey::Value(Vec::new()))?
             .index;
@@ -167,6 +223,66 @@ impl CircuitData {
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
         Ok(res)
+    }
+
+    /// Build an empty CircuitData object with an initially allocated instruction capacity
+    pub fn with_capacity(
+        py: Python,
+        num_qubits: u32,
+        num_clbits: u32,
+        instruction_capacity: usize,
+        global_phase: Param,
+    ) -> PyResult<Self> {
+        let mut res = CircuitData {
+            data: Vec::with_capacity(instruction_capacity),
+            qargs_interner: IndexedInterner::new(),
+            cargs_interner: IndexedInterner::new(),
+            qubits: BitData::new(py, "qubits".to_string()),
+            clbits: BitData::new(py, "clbits".to_string()),
+            param_table: ParameterTable::new(),
+            global_phase,
+        };
+        if num_qubits > 0 {
+            let qubit_cls = QUBIT.get_bound(py);
+            for _i in 0..num_qubits {
+                let bit = qubit_cls.call0()?;
+                res.add_qubit(py, &bit, true)?;
+            }
+        }
+        if num_clbits > 0 {
+            let clbit_cls = CLBIT.get_bound(py);
+            for _i in 0..num_clbits {
+                let bit = clbit_cls.call0()?;
+                res.add_clbit(py, &bit, true)?;
+            }
+        }
+        Ok(res)
+    }
+
+    /// Append a standard gate to this CircuitData
+    pub fn push_standard_gate(
+        &mut self,
+        operation: StandardGate,
+        params: &[Param],
+        qargs: &[Qubit],
+    ) -> PyResult<()> {
+        let no_clbit_index = (&mut self.cargs_interner)
+            .intern(InternerKey::Value(Vec::new()))?
+            .index;
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = (&mut self.qargs_interner)
+            .intern(InternerKey::Value(qargs.to_vec()))?
+            .index;
+        self.data.push(PackedInstruction {
+            op: operation.into(),
+            qubits,
+            clbits: no_clbit_index,
+            params,
+            extra_attrs: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: RefCell::new(None),
+        });
+        Ok(())
     }
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
@@ -1232,6 +1348,11 @@ impl CircuitData {
             }
         }
         Ok(())
+    }
+
+    /// Retrieves the python `Param` object based on its `ParameterUuid`.
+    pub fn get_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
+        self.param_table.py_parameter_by_uuid(uuid)
     }
 }
 
