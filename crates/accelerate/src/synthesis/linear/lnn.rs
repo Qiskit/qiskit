@@ -10,7 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::iter::once;
+
 use hashbrown::HashMap;
+use itertools::Itertools;
 use ndarray::{Array1, ArrayView2};
 
 use qiskit_circuit::{
@@ -19,76 +22,49 @@ use qiskit_circuit::{
 };
 use smallvec::{smallvec, SmallVec};
 
+// A sequence of Lnn gates
+// Represents the return type for Lnn Synthesis algorithms
 type LnnGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
+// A pattern denoted by Pj in [1] for odd number of qubits:
+// [n-2, n-4, n-4, ..., 3, 3, 1, 1, 0, 0, 2, 2, ..., n-3, n-3]
 fn _odd_pattern1(n: isize) -> Vec<isize> {
-    let mut pat = Vec::new();
-
-    pat.push(n - 2);
-    for i in 0..((n - 3) / 2) {
-        pat.push(n - 2 * i - 4);
-        pat.push(n - 2 * i - 4)
-    }
-
-    for i in 0..((n - 1) / 2) {
-        pat.push(2 * i);
-        pat.push(2 * i);
-    }
-
-    pat
+    once(n - 2)
+        .chain((0..((n - 3) / 2)).flat_map(|i| [(n - 2 * i - 4); 2]))
+        .chain((0..((n - 1) / 2)).flat_map(|i| [2 * i; 2]))
+        .collect()
 }
 
+// A pattern denoted by Pk in [1] for odd number of qubits:
+// [2, 2, 4, 4, ..., n-1, n-1, n-2, n-2, n-4, n-4, ..., 5, 5, 3, 3, 1]
 fn _odd_pattern2(n: isize) -> Vec<isize> {
-    let mut pat = Vec::new();
-
-    for i in 0..((n - 1) / 2) {
-        pat.push(2 * i + 2);
-        pat.push(2 * i + 2);
-    }
-
-    for i in 0..((n - 3) / 2) {
-        pat.push(n - 2 * i - 2);
-        pat.push(n - 2 * i - 2);
-    }
-
-    pat.push(1);
-    pat
+    (0..((n - 1) / 2))
+        .flat_map(|i| [(2 * i + 2); 2])
+        .chain((0..((n - 3) / 2)).flat_map(|i| [n - 2 * i - 2; 2]))
+        .chain(once(1))
+        .collect()
 }
 
+// A pattern denoted by Pj in [1] for even number of qubits:
+// [n-1, n-3, n-3, n-5, n-5, ..., 1, 1, 0, 0, 2, 2, ..., n-4, n-4, n-2]
 fn _even_pattern1(n: isize) -> Vec<isize> {
-    let mut pat = Vec::new();
-
-    pat.push(n - 1);
-
-    for i in 0..((n - 2) / 2) {
-        pat.push(n - 2 * i - 3);
-        pat.push(n - 2 * i - 3);
-    }
-
-    for i in 0..((n - 2) / 2) {
-        pat.push(2 * i);
-        pat.push(2 * i);
-    }
-
-    pat.push(n - 2);
-    pat
+    once(n - 1)
+        .chain((0..((n - 2) / 2)).flat_map(|i| [n - 2 * i - 3; 2]))
+        .chain((0..((n - 2) / 2)).flat_map(|i| [2 * i; 2]))
+        .chain(once(n - 2))
+        .collect()
 }
 
+// A pattern denoted by Pk in [1] for even number of qubits:
+// [2, 2, 4, 4, ..., n-2, n-2, n-1, n-1, ..., 3, 3, 1, 1]
 fn _even_pattern2(n: isize) -> Vec<isize> {
-    let mut pat = Vec::new();
-
-    for i in 0..((n - 2) / 2) {
-        pat.push(2 * (i + 1));
-        pat.push(2 * (i + 1));
-    }
-    for i in 0..(n / 2) {
-        pat.push(n - 2 * i - 1);
-        pat.push(n - 2 * i - 1);
-    }
-
-    pat
+    (0..((n - 2) / 2))
+        .flat_map(|i| [2 * (i + 1); 2])
+        .chain((0..(n / 2)).flat_map(|i| [(n - 2 * i - 1); 2]))
+        .collect()
 }
 
+// Creating the patterns for the phase layers.
 fn _create_patterns(n: isize) -> HashMap<(isize, isize), (isize, isize)> {
     let (pat1, pat2) = if n % 2 == 0 {
         (_even_pattern1(n), _even_pattern2(n))
@@ -96,28 +72,23 @@ fn _create_patterns(n: isize) -> HashMap<(isize, isize), (isize, isize)> {
         (_odd_pattern1(n), _odd_pattern2(n))
     };
 
-    let mut pats = HashMap::from_iter((0..n).map(|i| ((0, i), (i, i))));
-
-    let mut ind2 = 0;
-
-    let mut ind1 = if n % 2 == 0 {
+    let ind = if n % 2 == 0 {
         (2 * n - 4) / 2
     } else {
         (2 * n - 4) / 2 - 1
     };
 
-    for layer in 0..(n / 2) {
-        for i in 0..n {
-            pats.insert(
+    HashMap::from_iter((0..n).map(|i| ((0, i), (i, i))).chain(
+        (0..(n / 2)).cartesian_product(0..n).map(|(layer, i)| {
+            (
                 (layer + 1, i),
-                (pat1[(ind1 + i) as usize], pat2[(ind2 + i) as usize]),
-            );
-        }
-        ind1 -= 2;
-        ind2 += 2;
-    }
-
-    pats
+                (
+                    pat1[(ind - (2 * layer) + i) as usize],
+                    pat2[((2 * layer) + i) as usize],
+                ),
+            )
+        }),
+    ))
 }
 
 fn _append_cx_stage1(gates: &mut LnnGatesVec, n: isize) {
@@ -155,10 +126,14 @@ fn _append_cx_stage2(gates: &mut LnnGatesVec, n: isize) {
         ))
     }
 }
+
+// Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
+// based on Maslov and Roetteler.
 pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGatesVec) {
     let num_qubits = matrix.raw_dim()[0];
     let pats = _create_patterns(num_qubits as isize);
 
+    // s_gates[i] = 0, 1, 2 or 3 for a gate id, sdg, z or s on qubit i respectively
     let mut s_gates = Array1::<isize>::zeros(num_qubits);
 
     let mut patlist: Vec<(isize, isize)> = Vec::new();
@@ -168,8 +143,9 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
     for i in 0..num_qubits {
         for j in (i + 1)..num_qubits {
             if matrix[[i, j]] {
-                s_gates[[i]] += 2;
-                s_gates[[j]] += 2;
+                // CZ(i,j) gate
+                s_gates[[i]] += 2; // qc.z[i]
+                s_gates[[j]] += 2; // qc.z[j]
                 patlist.push((i as isize, j as isize - 1));
                 patlist.push((i as isize, j as isize));
                 patlist.push((i as isize + 1, j as isize - 1));
@@ -186,11 +162,12 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
                     .filter(|val| **val == pats[&(i as isize, j as isize)])
                     .count();
                 for _ in 0..pacnt {
-                    s_gates[[j]] += 1;
+                    s_gates[[j]] += 1; // qc.sdg[j]
                 }
             }
         }
 
+        // Add phase gates: s, sdg or z
         for j in 0..num_qubits {
             if s_gates[[j]] % 4 == 1 {
                 gates.push((
@@ -222,11 +199,12 @@ pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGat
                     .filter(|val| **val == pats[&(i as isize, j as isize)])
                     .count();
                 for _ in 0..pacnt {
-                    s_gates[[j]] += 1;
+                    s_gates[[j]] += 1; // qc.sdg[j]
                 }
             }
         }
 
+        // Add phase gates: s, sdg or z
         for j in 0..num_qubits {
             if s_gates[[j]] % 4 == 1 {
                 gates.push((
