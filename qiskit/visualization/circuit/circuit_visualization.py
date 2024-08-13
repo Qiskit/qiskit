@@ -640,8 +640,6 @@ def _generate_latex_source(
 # matplotlib_circuit_drawer
 # -----------------------------------------------------------------------------
 
-_GLOBAL_NID = 0
-
 
 def _matplotlib_circuit_drawer(
     circuit,
