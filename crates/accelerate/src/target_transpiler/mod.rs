@@ -82,19 +82,17 @@ impl ToPyObject for TargetOperation {
 }
 
 impl TargetOperation {
-    fn num_qubits(&self) -> u32 {
+    fn num_qubits(&self) -> Option<u32> {
         match &self {
-            Self::Normal(normal) => normal.operation.view().num_qubits(),
-            Self::Variadic(_) => {
-                unreachable!("'num_qubits' property is reserved for normal operations only.")
-            }
+            Self::Normal(normal) => Some(normal.operation.view().num_qubits()),
+            Self::Variadic(_) => None,
         }
     }
 
-    fn params(&self) -> &[Param] {
+    fn params(&self) -> Option<&[Param]> {
         match &self {
-            TargetOperation::Normal(normal) => normal.params.as_slice(),
-            TargetOperation::Variadic(_) => &[],
+            TargetOperation::Normal(normal) => Some(normal.params.as_slice()),
+            TargetOperation::Variadic(_) => None,
         }
     }
 }
@@ -302,16 +300,16 @@ impl Target {
             )));
         }
         let mut qargs_val: PropsMap;
-        match instruction {
+        match &instruction {
             TargetOperation::Variadic(_) => {
                 qargs_val = PropsMap::with_capacity(1);
                 qargs_val.extend([(None, None)]);
                 self.variable_class_operations.insert(name.to_string());
             }
-            TargetOperation::Normal(_) => {
+            TargetOperation::Normal(normal) => {
                 if let Some(mut properties) = properties {
                     qargs_val = PropsMap::with_capacity(properties.len());
-                    let inst_num_qubits = instruction.num_qubits();
+                    let inst_num_qubits = normal.operation.view().num_qubits();
                     if properties.contains_key(None) {
                         self.global_operations
                             .entry(inst_num_qubits)
@@ -596,14 +594,14 @@ impl Target {
                                     if gate_map_name.contains_key(None) {
                                         let qubit_comparison =
                                             self._gate_name_map[op_name].num_qubits();
-                                        return Ok(qubit_comparison == _qargs.len() as u32
+                                        return Ok(qubit_comparison == Some(_qargs.len() as u32)
                                             && _qargs.iter().all(|x| {
                                                 x.index() < self.num_qubits.unwrap_or_default()
                                             }));
                                     }
                                 } else {
                                     let qubit_comparison = obj.num_qubits();
-                                    return Ok(qubit_comparison == _qargs.len() as u32
+                                    return Ok(qubit_comparison == Some(_qargs.len() as u32)
                                         && _qargs.iter().all(|x| {
                                             x.index() < self.num_qubits.unwrap_or_default()
                                         }));
@@ -632,14 +630,14 @@ impl Target {
                     }
 
                     let obj_params = obj.params();
-                    if parameters.len() != obj_params.len() {
+                    if Some(parameters.len()) != obj_params.map(|x| x.len()) {
                         return Ok(false);
                     }
                     for (index, params) in parameters.iter().enumerate() {
                         let mut matching_params = false;
-                        let obj_at_index = &obj_params[index];
-                        if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, &params, &obj_params[index])?
+                        let obj_at_index = obj_params.map(|x| &x[index]);
+                        if matches!(obj_at_index, Some(Param::ParameterExpression(_)))
+                            || python_compare(py, &params, &obj_params.map(|x| &x[index]))?
                         {
                             matching_params = true;
                         }
@@ -1156,7 +1154,7 @@ impl Target {
                                 }) && qarg_set.len() == _qargs.len();
                         } else {
                             let qubit_comparison = obj.num_qubits();
-                            return qubit_comparison == _qargs.len() as u32
+                            return qubit_comparison == Some(_qargs.len() as u32)
                                 && _qargs.iter().all(|qarg| {
                                     qarg.index() < self.num_qubits.unwrap_or_default()
                                 });
@@ -1172,7 +1170,7 @@ impl Target {
                                 && qarg_set.len() == _qargs.len();
                     } else {
                         let qubit_comparison = self._gate_name_map[operation_name].num_qubits();
-                        return qubit_comparison == _qargs.len() as u32
+                        return qubit_comparison == Some(_qargs.len() as u32)
                             && _qargs
                                 .iter()
                                 .all(|qarg| qarg.index() < self.num_qubits.unwrap_or_default());
