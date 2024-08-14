@@ -17,7 +17,6 @@ use pyo3::prelude::*;
 use pyo3::types::PyList;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use std::mem::swap;
 
 /// Private wrapper for Python-side Bit instances that implements
 /// [Hash] and [Eq], allowing them to be used in Rust hash-based
@@ -219,39 +218,5 @@ where
     pub fn dispose(&mut self) {
         self.indices.clear();
         self.bits.clear();
-    }
-}
-
-pub struct Iter<'a, T> {
-    _data: &'a BitData<T>,
-    index: usize,
-}
-
-impl<'a, T> Iterator for Iter<'a, T>
-where
-    T: From<BitType>,
-{
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut index = self.index + 1;
-        swap(&mut self.index, &mut index);
-        let index: Option<BitType> = index.try_into().ok();
-        index.map(|i| From::from(i))
-    }
-}
-
-impl<'a, T> IntoIterator for &'a BitData<T>
-where
-    T: From<BitType>,
-{
-    type Item = T;
-    type IntoIter = Iter<'a, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        Iter {
-            _data: self,
-            index: 0,
-        }
     }
 }
