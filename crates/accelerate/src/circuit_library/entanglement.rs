@@ -10,37 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::QiskitError;
+use itertools::Itertools;
 use pyo3::{
     types::{PyAnyMethods, PyInt, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
 };
 use qiskit_circuit::slice::PySequenceIndex;
 
-/// Get all combinations of length ``repetitions`` of numbers ``(0..n)``. This is like
-/// Python's ``itertools.combinations``.
-fn _combinations(n: u32, repetitions: u32) -> Vec<Vec<u32>> {
-    if repetitions == 1 {
-        (0..n).map(|index| vec![index]).collect()
-    } else {
-        let mut result = Vec::new();
-        for indices in _combinations(n, repetitions - 1) {
-            let last_element = indices[indices.len() - 1];
-            for index in last_element + 1..n {
-                let mut extended_indices = indices.clone();
-                extended_indices.push(index);
-                result.push(extended_indices);
-            }
-        }
-        result
-    }
-}
+use crate::QiskitError;
 
 /// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
 /// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
 pub fn full(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
-    // this should be equivalent to itertools.combinations(list(range(n)), m)
-    _combinations(num_qubits, block_size).into_iter()
+    (0..num_qubits).combinations(block_size as usize)
 }
 
 /// Get a linear entanglement structure. For ``n`` qubits and block size ``m`` we have:
