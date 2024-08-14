@@ -459,7 +459,7 @@ impl CircuitData {
     /// Get a (cached) sorted list of the Python-space `Parameter` instances tracked by this circuit
     /// data's parameter table.
     #[getter]
-    pub fn get_parameters<'py>(&mut self, py: Python<'py>) -> Bound<'py, PyList> {
+    pub fn get_parameters<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
         self.param_table.py_parameters(py)
     }
 
