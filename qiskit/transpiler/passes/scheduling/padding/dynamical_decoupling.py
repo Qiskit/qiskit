@@ -20,7 +20,7 @@ from qiskit.circuit import Gate, ParameterExpression, Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode, DAGOutNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
@@ -331,8 +331,7 @@ class PadDynamicalDecoupling(BasePadding):
         if time_interval % self._alignment != 0:
             raise TranspilerError(
                 f"Time interval {time_interval} is not divisible by alignment {self._alignment} "
-                f"between DAGNode {prev_node.name} on qargs {prev_node.qargs} and {next_node.name} "
-                f"on qargs {next_node.qargs}."
+                f"between {_format_node(prev_node)} and {_format_node(next_node)}."
             )
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
@@ -433,3 +432,10 @@ class PadDynamicalDecoupling(BasePadding):
             else:
                 params.append(p)
         return tuple(params)
+
+
+def _format_node(node: DAGNode) -> str:
+    """Util to format the DAGNode, DAGInNode, and DAGOutNode."""
+    if isinstance(node, (DAGInNode, DAGOutNode)):
+        return f"{node.__class__.__name__} on qarg {node.wire}"
+    return f"DAGNode {node.name} on qargs {node.qargs}"
