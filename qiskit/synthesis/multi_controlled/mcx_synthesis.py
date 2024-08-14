@@ -17,14 +17,22 @@ import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import C3XGate, C4XGate, HGate, MCU1Gate
+from qiskit.circuit.library.standard_gates import (
+    HGate,
+    MCU1Gate,
+    CU1Gate,
+    RC3XGate,
+    C3SXGate,
+    C3XGate,
+    C4XGate,
+)
 
 
 def synth_mcx_n_dirty_i15(
     num_ctrl_qubits: int,
     relative_phase: bool = False,
     action_only: bool = False,
-):
+) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
     dirty ancillary qubits producing a circuit with :math:`2 * k - 1` qubits and at most
@@ -124,7 +132,7 @@ def synth_mcx_n_dirty_i15(
     return qc
 
 
-def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
+def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
@@ -167,7 +175,7 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int):
     return qc
 
 
-def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
+def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
@@ -234,7 +242,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int):
     return qc
 
 
-def synth_mcx_gray_code(num_ctrl_qubits: int):
+def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using the Gray code.
 
@@ -255,7 +263,7 @@ def synth_mcx_gray_code(num_ctrl_qubits: int):
     return qc
 
 
-def synth_mcx_mcphase(num_ctrl_qubits: int):
+def synth_mcx_mcphase(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls based on
     the implementation for MCPhaseGate.
@@ -281,4 +289,63 @@ def synth_mcx_mcphase(num_ctrl_qubits: int):
         qc.h(q_target)
         qc.mcp(np.pi, q_controls, q_target)
         qc.h(q_target)
+    return qc
+
+
+def synth_c3x() -> QuantumCircuit:
+    """Efficient synthesis of 3-controlled X-gate."""
+
+    q = QuantumRegister(4, name="q")
+    qc = QuantumCircuit(q, name="c3x")
+    qc.h(3)
+    qc.p(np.pi / 8, [0, 1, 2, 3])
+    qc.cx(0, 1)
+    qc.p(-np.pi / 8, 1)
+    qc.cx(0, 1)
+    qc.cx(1, 2)
+    qc.p(-np.pi / 8, 2)
+    qc.cx(0, 2)
+    qc.p(np.pi / 8, 2)
+    qc.cx(1, 2)
+    qc.p(-np.pi / 8, 2)
+    qc.cx(0, 2)
+    qc.cx(2, 3)
+    qc.p(-np.pi / 8, 3)
+    qc.cx(1, 3)
+    qc.p(np.pi / 8, 3)
+    qc.cx(2, 3)
+    qc.p(-np.pi / 8, 3)
+    qc.cx(0, 3)
+    qc.p(np.pi / 8, 3)
+    qc.cx(2, 3)
+    qc.p(-np.pi / 8, 3)
+    qc.cx(1, 3)
+    qc.p(np.pi / 8, 3)
+    qc.cx(2, 3)
+    qc.p(-np.pi / 8, 3)
+    qc.cx(0, 3)
+    qc.h(3)
+    return qc
+
+
+def synth_c4x() -> QuantumCircuit:
+    """Efficient synthesis of 4-controlled X-gate."""
+
+    q = QuantumRegister(5, name="q")
+    qc = QuantumCircuit(q, name="c4x")
+
+    rules = [
+        (HGate(), [q[4]], []),
+        (CU1Gate(np.pi / 2), [q[3], q[4]], []),
+        (HGate(), [q[4]], []),
+        (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
+        (HGate(), [q[4]], []),
+        (CU1Gate(-np.pi / 2), [q[3], q[4]], []),
+        (HGate(), [q[4]], []),
+        (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
+        (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
+    ]
+    for instr, qargs, cargs in rules:
+        qc._append(instr, qargs, cargs)
+
     return qc

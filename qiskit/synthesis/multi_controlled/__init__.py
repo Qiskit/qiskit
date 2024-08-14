@@ -18,4 +18,6 @@ from .mcx_synthesis import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_mcphase,
+    synth_c3x,
+    synth_c4x,
 )
