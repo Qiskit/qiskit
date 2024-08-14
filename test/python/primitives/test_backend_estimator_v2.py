@@ -331,7 +331,13 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS_V1, abelian_grouping=[True, False])
     def test_run_single_circuit_observable_v1(self, backend, abelian_grouping):
         """Test for single circuit and single observable case."""
-        est = BackendEstimatorV2(backend=backend, options=self._options)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The method PassManagerConfig\.from_backend will stop supporting inputs of "
+            "type `BackendV1`",
+        ):
+            # BackendEstimatorV2 wont allow BackendV1
+            est = BackendEstimatorV2(backend=backend, options=self._options)
         est.options.abelian_grouping = abelian_grouping
         with self.assertWarnsRegex(
             DeprecationWarning,
@@ -624,7 +630,13 @@ class TestBackendEstimatorV2(QiskitTestCase):
         statevector_estimator = StatevectorEstimator(seed=123)
         target = statevector_estimator.run([(qc, op, params_list)]).result()
 
-        backend_estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The method PassManagerConfig\.from_backend will stop supporting inputs of "
+            "type `BackendV1`",
+        ):
+            # BackendEstimatorV2 wont allow BackendV1
+            backend_estimator = BackendEstimatorV2(backend=backend, options=self._options)
         backend_estimator.options.abelian_grouping = abelian_grouping
 
         with self.subTest("ndarrary"):
