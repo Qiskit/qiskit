@@ -15,7 +15,7 @@ license = "Apache-2.0"
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
 bytemuck = "1.16"
-indexmap.version = "2.3.0"
+indexmap.version = "2.4.0"
 hashbrown.version = "0.14.0"
 num-bigint = "0.4"
 num-complex = "0.4"
@@ -23,6 +23,7 @@ ndarray = "^0.15.6"
 numpy = "0.21.0"
 smallvec = "1.13"
 thiserror = "1.0"
+ahash = "0.8.11"
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python
