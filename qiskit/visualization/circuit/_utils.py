@@ -520,6 +520,9 @@ def _any_crossover(qubits, node, nodes):
     )
 
 
+_GLOBAL_NID = 0
+
+
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
@@ -663,7 +666,9 @@ class _LayerSpooler(list):
         # as equal if their contents and node IDs happen to be the same.
         # This is particularly important for the matplotlib drawer, which
         # keys several of its internal data structures with these nodes.
-        node._node_id = len(self)
+        global _GLOBAL_NID  # pylint: disable=global-statement
+        node._node_id = _GLOBAL_NID
+        _GLOBAL_NID += 1
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:
