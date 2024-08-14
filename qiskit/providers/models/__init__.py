@@ -41,17 +41,6 @@ Classes
 import importlib
 import warnings
 
-from .backendconfiguration import (
-    BackendConfiguration,
-    PulseBackendConfiguration,
-    QasmBackendConfiguration,
-    UchannelLO,
-    GateConfig,
-)
-from .backendproperties import BackendProperties, GateProperties, Nduv
-from .backendstatus import BackendStatus
-from .jobstatus import JobStatus
-from .pulsedefaults import PulseDefaults, Command
 
 _NAME_MAP = {
     # public object name mapped to containing module
