@@ -74,17 +74,25 @@ _QUBIT_PROPERTIES = {
     "frequency": (5e9, 5.5e9),
 }
 
-# The number of samples determines the pulse durations of the corresponding
-# instructions. This default defines pulses with durations in multiples of
-# 16 dt for consistency with the pulse granularity of real IBM devices, but
-# keeps the number smaller than what would be realistic for
-# manageability. If needed, more realistic durations could be added in the
-# future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
-_PULSE_LIBRARY = [
-    PulseLibraryItem(name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)),  # 16dt
-    PulseLibraryItem(name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)),  # 32dt
-    PulseLibraryItem(name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)),  # 64dt
-]
+
+def _pulse_library():
+    # The number of samples determines the pulse durations of the corresponding
+    # instructions. This default defines pulses with durations in multiples of
+    # 16 dt for consistency with the pulse granularity of real IBM devices, but
+    # keeps the number smaller than what would be realistic for
+    # manageability. If needed, more realistic durations could be added in the
+    # future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
+    return [
+        PulseLibraryItem(
+            name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)
+        ),  # 16dt
+        PulseLibraryItem(
+            name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)
+        ),  # 32dt
+        PulseLibraryItem(
+            name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)
+        ),  # 64dt
+    ]
 
 
 class GenericBackendV2(BackendV2):
@@ -262,7 +270,7 @@ class GenericBackendV2(BackendV2):
         acting on qargs.
         """
 
-        pulse_library = _PULSE_LIBRARY
+        pulse_library = _pulse_library()
         # Note that the calibration pulses are different for
         # 1q gates vs 2q gates vs measurement instructions.
         if inst == "measure":
@@ -352,7 +360,7 @@ class GenericBackendV2(BackendV2):
             qubit_freq_est=qubit_freq_est,
             meas_freq_est=meas_freq_est,
             buffer=0,
-            pulse_library=_PULSE_LIBRARY,
+            pulse_library=_pulse_library(),
             cmd_def=cmd_def,
         )
 
