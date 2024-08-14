@@ -5110,6 +5110,10 @@ def _format(operand):
         Ok(PyString::new_bound(py, std::str::from_utf8(&buffer)?))
     }
 
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
     fn add_input_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         if !self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
@@ -5122,6 +5126,10 @@ def _format(operand):
         self.add_var(py, var, DAGVarType::Input)
     }
 
+    /// Add a captured variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
     fn add_captured_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
         if !self.vars_by_type[DAGVarType::Input as usize]
             .bind(py)
@@ -5134,20 +5142,27 @@ def _format(operand):
         self.add_var(py, var, DAGVarType::Capture)
     }
 
+    /// Add a declared local variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
     fn add_declared_var(&mut self, var: &Bound<PyAny>) -> PyResult<()> {
         self.add_var(var.py(), var, DAGVarType::Declare)
     }
 
+    /// Total number of classical variables tracked by the circuit.
     #[getter]
     fn num_vars(&self) -> usize {
         self.vars_info.len()
     }
 
+    /// Number of input classical variables tracked by the circuit.
     #[getter]
     fn num_input_vars(&self, py: Python) -> usize {
         self.vars_by_type[DAGVarType::Input as usize].bind(py).len()
     }
 
+    /// Number of captured classical variables tracked by the circuit.
     #[getter]
     fn num_captured_vars(&self, py: Python) -> usize {
         self.vars_by_type[DAGVarType::Capture as usize]
@@ -5155,6 +5170,7 @@ def _format(operand):
             .len()
     }
 
+    /// Number of declared local classical variables tracked by the circuit.
     #[getter]
     fn num_declared_vars(&self, py: Python) -> usize {
         self.vars_by_type[DAGVarType::Declare as usize]
@@ -5162,6 +5178,10 @@ def _format(operand):
             .len()
     }
 
+    /// Is this realtime variable in the DAG?
+    ///
+    /// Args:
+    ///     var: the variable or name to check.
     fn has_var(&self, var: &Bound<PyAny>) -> PyResult<bool> {
         match var.extract::<String>() {
             Ok(name) => Ok(self.vars_info.contains_key(&name)),
@@ -5176,6 +5196,7 @@ def _format(operand):
         }
     }
 
+    /// Iterable over the input classical variables tracked by the circuit.
     fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self.vars_by_type[DAGVarType::Input as usize]
             .bind(py)
@@ -5185,6 +5206,7 @@ def _format(operand):
             .unbind())
     }
 
+    /// Iterable over the captured classical variables tracked by the circuit.
     fn iter_captured_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self.vars_by_type[DAGVarType::Capture as usize]
             .bind(py)
@@ -5194,6 +5216,7 @@ def _format(operand):
             .unbind())
     }
 
+    /// Iterable over the declared classical variables tracked by the circuit.
     fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         Ok(self.vars_by_type[DAGVarType::Declare as usize]
             .bind(py)
@@ -5203,6 +5226,7 @@ def _format(operand):
             .unbind())
     }
 
+    /// Iterable over all the classical variables tracked by the circuit.
     fn iter_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let out_set = PySet::empty_bound(py)?;
         for var_type_set in &self.vars_by_type {
