@@ -38,6 +38,22 @@ Classes
    GateProperties
    Nduv
 """
+# pylint: disable=undefined-all-variable
+__all__ = [
+    "BackendConfiguration",
+    "PulseBackendConfiguration",
+    "QasmBackendConfiguration",
+    "UchannelLO",
+    "GateConfig",
+    "BackendProperties",
+    "GateProperties",
+    "Nduv",
+    "BackendStatus",
+    "JobStatus",
+    "PulseDefaults",
+    "Command",
+]
+
 import importlib
 import warnings
 
