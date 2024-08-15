@@ -15,7 +15,7 @@
 
 import numpy as np
 
-from qiskit.providers.models import PulseDefaults
+from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.compiler import schedule
 from qiskit.circuit import QuantumCircuit, Gate
 
