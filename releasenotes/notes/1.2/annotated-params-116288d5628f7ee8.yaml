@@ -24,7 +24,7 @@ fixes:
 upgrade_circuits:
   - |
     The ``annotated`` argument of the :meth:`.Gate.control` method is now 
-    ``None`` per default, which allows Qiskit to choose whether to annotate a controlled operation.
+    ``None`` by default, which allows Qiskit to choose whether to annotate a controlled operation.
     If the concrete implementation (``annotated=False``) is available, it will be returned by
     default. Otherwise, the annotated implementation will be returned (``annotated=True``). 
     This allows, for example, to defer the synthesis of controlled, parameterized gates.

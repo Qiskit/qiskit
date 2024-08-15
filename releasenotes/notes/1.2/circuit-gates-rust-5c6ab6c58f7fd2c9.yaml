@@ -25,13 +25,7 @@ upgrade_circuits:
     Due to the internal refactor of the :class:`.QuantumCircuit` and
     :class:`.DAGCircuit` to store standard gates in Rust, the output object from
     :attr:`.DAGOpNode.op` will now likely be a copy instead of a shared instance. If you
-    need to mutate an element should ensure that you either do::
-
-      op = dag_node.op
-      op.params[0] = 3.14159
-      dag_node.op = op
-
-    or::
+    need to mutate an element should ensure that you do::
 
       op = dag_node.op
       op.params[0] = 3.14159

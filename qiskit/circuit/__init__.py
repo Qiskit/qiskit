@@ -301,9 +301,10 @@ assist compilation workflows.  These include:
 * :data:`SessionEquivalenceLibrary`, a mutable instance of :class:`EquivalenceLibrary` which is used
   by default by the compiler's :class:`.BasisTranslator`.
 
-There is also a utility for generating random circuits:
+There are also utilities for generating random circuits:
 
-* :func:`random.random_circuit`
+* :func:`.random_circuit`
+* :func:`.random_clifford_circuit`
 
 Finally, the circuit module has its own exception class, to indicate when things went wrong in
 circuit-specific manners:
@@ -1004,6 +1005,7 @@ Generating random circuits
 
 .. currentmodule:: qiskit.circuit.random
 .. autofunction:: random_circuit
+.. autofunction:: random_clifford_circuit
 .. currentmodule:: qiskit.circuit
 
 
@@ -1250,3 +1252,4 @@ from .controlflow import (
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from .random import random_circuit, random_clifford_circuit
