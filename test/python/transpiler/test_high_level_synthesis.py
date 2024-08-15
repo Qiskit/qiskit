@@ -46,7 +46,7 @@ from qiskit.circuit.library import (
     IGate,
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.quantum_info import Clifford
+from qiskit.quantum_info import Clifford, Operator, Statevector
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -65,7 +65,6 @@ from qiskit.circuit.annotated_operation import (
     InverseModifier,
     PowerModifier,
 )
-from qiskit.quantum_info import Operator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -1364,13 +1363,23 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
         circuit = QuantumCircuit(6)
         circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
-        # When synthesizing with clean ancillas, we no longer have that the Operators before and after
-        # are equal, it should only be true on the subspace where clean ancillas are 0. We need to
-        # implement operator equality with clean ancillas method.
-        transpiled_circuit = HighLevelSynthesis(
-            basis_gates=["cx", "u"], qubits_initially_zero=False
-        )(circuit)
-        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+        with self.subTest(qubits_initially_zero=False):
+            # When transpiling without assuming that qubits are initially zero,
+            # we should have that the Operators before and after are equal.
+            transpiled_circuit = HighLevelSynthesis(
+                basis_gates=["cx", "u"], qubits_initially_zero=False
+            )(circuit)
+            self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+        with self.subTest(qubits_initially_zero=True):
+            # When transpiling assuming that qubits are initially zero,
+            # we should have that the Statevectors before and after
+            # are equal (but not the full Operators).
+            transpiled_circuit = HighLevelSynthesis(
+                basis_gates=["cx", "u"], qubits_initially_zero=True
+            )(circuit)
+            self.assertEqual(Statevector(circuit), Statevector(transpiled_circuit))
 
     def test_definition_with_high_level_objects(self):
         """Test annotated gates with definitions involving annotations and
