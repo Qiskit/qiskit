@@ -1,4 +1,0 @@
-fixes:
-  - |
-    Fixed the :class:`.VF2Layout` for :class:`.Target`\s without connectivity constraints 
-    (such as present in Qiskit Aer 0.13), which previosuly raised an exception.
