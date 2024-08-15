@@ -220,7 +220,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate
+from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate, C3XGate, C4XGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
@@ -707,6 +707,13 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
         if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisNDirtyI15 only accepts objects of type MCXGate")
 
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
         num_clean_ancillas = options.get("num_clean_ancillas", 0)
         num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
@@ -746,6 +753,13 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
         if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisNCleanM15 only accepts objects of type MCXGate")
 
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
         num_clean_ancillas = options.get("num_clean_ancillas", 0)
 
@@ -781,6 +795,13 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
 
         if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesis1CleanB95 only accepts objects of type MCXGate")
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
 
@@ -818,6 +839,13 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
         if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisGrayCode only accepts objects of type MCXGate")
 
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
         decomposition = synth_mcx_gray_code(num_ctrl_qubits)
         return decomposition
@@ -841,6 +869,13 @@ class MCXSynthesisMCPhase(HighLevelSynthesisPlugin):
         if high_level_object.name != "mcx":
             raise TranspilerError("MCXSynthesisMCPhase only accepts objects of type MCXGate")
 
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
         decomposition = synth_mcx_mcphase(num_ctrl_qubits)
         return decomposition
@@ -855,6 +890,13 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
 
         # Iteratively run other synthesis methods available
 
