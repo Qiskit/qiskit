@@ -68,7 +68,7 @@ def synth_mcx_n_dirty_i15(
         return qc
     elif not relative_phase and num_ctrl_qubits == 3:
         circuit = synth_c3x()
-        qc.compose(circuit, [*q_controls, q_target])
+        qc.append(circuit, [*q_controls, q_target])
         return qc
 
     num_ancillas = num_ctrl_qubits - 2
