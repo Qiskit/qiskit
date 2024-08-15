@@ -23,8 +23,6 @@ from qiskit.circuit.library.standard_gates import (
     CU1Gate,
     RC3XGate,
     C3SXGate,
-    C3XGate,
-    C4XGate,
 )
 
 
@@ -69,7 +67,8 @@ def synth_mcx_n_dirty_i15(
         qc.ccx(q_controls[0], q_controls[1], q_target)
         return qc
     elif not relative_phase and num_ctrl_qubits == 3:
-        qc._append(C3XGate(), [*q_controls, q_target], [])
+        circuit = synth_c3x()
+        qc.compose(circuit, [*q_controls, q_target])
         return qc
 
     num_ancillas = num_ctrl_qubits - 2
@@ -193,16 +192,10 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     """
 
     if num_ctrl_qubits == 3:
-        q = QuantumRegister(4, name="q")
-        qc = QuantumCircuit(q, name="mcx")
-        qc._append(C3XGate(), q[:], [])
-        return qc
+        return synth_c3x()
 
     elif num_ctrl_qubits == 4:
-        q = QuantumRegister(5, name="q")
-        qc = QuantumCircuit(q, name="mcx")
-        qc._append(C4XGate(), q[:], [])
-        return qc
+        return synth_c4x()
 
     num_qubits = num_ctrl_qubits + 2
     q = QuantumRegister(num_qubits, name="q")
@@ -276,19 +269,20 @@ def synth_mcx_mcphase(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
     """
+    if num_ctrl_qubits == 3:
+        return synth_c3x()
+
+    if num_ctrl_qubits == 4:
+        return synth_c4x()
+
     num_qubits = num_ctrl_qubits + 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q)
-    if num_ctrl_qubits == 3:
-        qc._append(C3XGate(), q[:], [])
-    elif num_ctrl_qubits == 4:
-        qc._append(C4XGate(), q[:], [])
-    else:
-        q_controls = list(range(num_ctrl_qubits))
-        q_target = num_ctrl_qubits
-        qc.h(q_target)
-        qc.mcp(np.pi, q_controls, q_target)
-        qc.h(q_target)
+    q_controls = list(range(num_ctrl_qubits))
+    q_target = num_ctrl_qubits
+    qc.h(q_target)
+    qc.mcp(np.pi, q_controls, q_target)
+    qc.h(q_target)
     return qc
 
 
