@@ -154,6 +154,19 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
     }
 }
 
+// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
+// using Kutin, Moulton, Smithline method.
+fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
+    (0..(num_qubits + 1) / 2).for_each(|_| {
+        _append_cx_stage1(gates, num_qubits);
+        _append_cx_stage2(gates, num_qubits);
+    });
+
+    if num_qubits % 2 == 0 {
+        _append_cx_stage1(gates, num_qubits);
+    }
+}
+
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
