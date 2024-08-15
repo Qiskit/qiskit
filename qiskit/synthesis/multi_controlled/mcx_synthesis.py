@@ -290,7 +290,7 @@ def synth_c3x() -> QuantumCircuit:
     """Efficient synthesis of 3-controlled X-gate."""
 
     q = QuantumRegister(4, name="q")
-    qc = QuantumCircuit(q, name="c3x")
+    qc = QuantumCircuit(q, name="mcx")
     qc.h(3)
     qc.p(np.pi / 8, [0, 1, 2, 3])
     qc.cx(0, 1)
@@ -326,7 +326,7 @@ def synth_c4x() -> QuantumCircuit:
     """Efficient synthesis of 4-controlled X-gate."""
 
     q = QuantumRegister(5, name="q")
-    qc = QuantumCircuit(q, name="c4x")
+    qc = QuantumCircuit(q, name="mcx")
 
     rules = [
         (HGate(), [q[4]], []),
