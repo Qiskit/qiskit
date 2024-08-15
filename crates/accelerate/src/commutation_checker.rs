@@ -133,6 +133,7 @@ impl CommutationChecker {
             .collect::<Vec<_>>();
 
         Ok(self.commute_inner(
+            py,
             &op1.instruction,
             &qargs1,
             &cargs1,
@@ -232,6 +233,7 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     fn commute_inner(
         &mut self,
+        py: Python,
         instr1: &CircuitInstruction,
         qargs1: &[u32],
         cargs1: &[u32],
@@ -292,7 +294,7 @@ impl CommutationChecker {
             second_instr.params.iter().any(|p| !matches!(p, Param::Float(_)));
 
         if skip_cache {
-            return self.commute_matmul(first_instr, first_qargs, second_instr, second_qargs);
+            return self.commute_matmul(py, first_instr, first_qargs, second_instr, second_qargs);
         }
 
         // Query commutation library
@@ -325,7 +327,7 @@ impl CommutationChecker {
 
         // Perform matrix multiplication to determine commutation
         let is_commuting =
-            self.commute_matmul(first_instr, first_qargs, second_instr, second_qargs);
+            self.commute_matmul(py, first_instr, first_qargs, second_instr, second_qargs);
 
         // TODO: implement a LRU cache for this
         if self.current_cache_entries >= self.cache_max_entries {
@@ -363,6 +365,7 @@ impl CommutationChecker {
 
     fn commute_matmul(
         &self,
+        py: Python,
         first_instr: &CircuitInstruction,
         first_qargs: &[u32],
         second_instr: &CircuitInstruction,
@@ -396,11 +399,11 @@ impl CommutationChecker {
         let first_mat = match first_op.matrix(&first_instr.params) {
             Some(mat) => mat,
             None => match first_op {
-                PyGateType(gate) => match get_op(&gate.gate) {
+                PyGateType(gate) => match get_op(py, &gate.gate) {
                     Some(x) => x,
                     _ => return false,
                 },
-                PyOperationType(operation) => match get_op(&operation.operation) {
+                PyOperationType(operation) => match get_op(py, &operation.operation) {
                     Some(x) => x,
                     _ => return false,
                 },
@@ -411,11 +414,11 @@ impl CommutationChecker {
         let second_mat = match second_op.matrix(&second_instr.params) {
             Some(mat) => mat,
             None => match second_op {
-                PyGateType(gate) => match get_op(&gate.gate) {
+                PyGateType(gate) => match get_op(py, &gate.gate) {
                     Some(x) => x,
                     _ => return false,
                 },
-                PyOperationType(operation) => match get_op(&operation.operation) {
+                PyOperationType(operation) => match get_op(py, &operation.operation) {
                     Some(x) => x,
                     _ => return false,
                 },
@@ -489,21 +492,19 @@ fn commutation_precheck(
     None
 }
 
-fn get_op(gate: &PyObject) -> Option<Array2<Complex64>> {
-    Python::with_gil(|py| -> Option<Array2<Complex64>> {
-        Some(
-            QI_OPERATOR
-                .get_bound(py)
-                .call1((gate,))
-                .ok()?
-                .getattr(intern!(py, "data"))
-                .ok()?
-                .extract::<PyReadonlyArray2<Complex64>>()
-                .ok()?
-                .as_array()
-                .to_owned(),
-        )
-    })
+fn get_op(py: Python, gate: &PyObject) -> Option<Array2<Complex64>> {
+    Some(
+        QI_OPERATOR
+            .get_bound(py)
+            .call1((gate,))
+            .ok()?
+            .getattr(intern!(py, "data"))
+            .ok()?
+            .extract::<PyReadonlyArray2<Complex64>>()
+            .ok()?
+            .as_array()
+            .to_owned(),
+    )
 }
 
 fn is_commutation_skipped(instr: &CircuitInstruction) -> bool {
