@@ -17,6 +17,6 @@ features:
     Added two high-level-synthesis plugins for synthesizing a
     :class:`~qiskit.circuit.library.QFTGate`.
     The class :class:`.QFTSynthesisFull` is based on :func:`.synth_qft_full` and synthesizes
-    a QFT gate assuming all-to-all connectivity.
+    a QFT gate assuming an all-to-all connectivity.
     The class :class:`.QFTSynthesisLine` is based on :func:`.synth_qft_line` and synthesizes
-    a QFT gate assuming linear nearest neighbor connectivity.
+    a QFT gate assuming a linear-nearest-neighbor connectivity.

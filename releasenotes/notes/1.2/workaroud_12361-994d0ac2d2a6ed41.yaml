@@ -11,4 +11,4 @@ features_visualization:
       [default]
       circuit_idle_wires = false
 
-    will change the default to display the bits in reverse order.
+    will change the default to not display idle wires.

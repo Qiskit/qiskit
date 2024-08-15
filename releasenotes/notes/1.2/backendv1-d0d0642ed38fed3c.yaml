@@ -1,0 +1,6 @@
+---
+deprecations_providers:
+  - |
+    The :class:`.BackendV1` class is deprecated and it will be removed no earlier than the next major release,
+    2.0.0. See `the migration guide <https://qisk.it/backendV1-to-V2>`__ for details on how to update
+    to :class:`.BackendV2`.
