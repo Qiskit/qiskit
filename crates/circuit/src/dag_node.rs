@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::RefCell;
+use std::cell::OnceCell;
 use std::hash::Hasher;
 
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -136,7 +136,7 @@ impl DAGOpNode {
             params: py_op.params,
             extra_attrs: py_op.extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(Some(op.unbind())),
+            py_op: op.unbind().into(),
         };
 
         Py::new(
@@ -240,7 +240,7 @@ impl DAGOpNode {
             instruction.operation = instruction.operation.py_deepcopy(py, None)?;
             #[cfg(feature = "cache_pygates")]
             {
-                *instruction.py_op.borrow_mut() = None;
+                instruction.py_op = OnceCell::new();
             }
         }
         let base = PyClassInitializer::from(DAGNode { node: None });
@@ -292,7 +292,7 @@ impl DAGOpNode {
             params: self.instruction.params.clone(),
             extra_attrs: self.instruction.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(None),
+            py_op: OnceCell::new(),
         })
     }
 
@@ -309,7 +309,7 @@ impl DAGOpNode {
         self.instruction.extra_attrs = res.extra_attrs;
         #[cfg(feature = "cache_pygates")]
         {
-            *self.instruction.py_op.borrow_mut() = Some(op.into_py(op.py()));
+            self.instruction.py_op = op.clone().unbind().into();
         }
         Ok(())
     }
@@ -468,7 +468,7 @@ impl DAGOpNode {
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
     fn set_name(&mut self, py: Python, new_name: PyObject) -> PyResult<()> {
-        let op = self.instruction.get_operation_mut(py)?.into_bound(py);
+        let op = self.instruction.get_operation_mut(py)?;
         op.setattr(intern!(py, "name"), new_name)?;
         self.instruction.operation = op.extract::<OperationFromPython>()?.operation;
         Ok(())

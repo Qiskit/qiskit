@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::RefCell;
+use std::cell::OnceCell;
 
 use numpy::IntoPyArray;
 use pyo3::basic::CompareOp;
@@ -110,24 +110,25 @@ pub struct CircuitInstruction {
     pub params: SmallVec<[Param; 3]>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
     #[cfg(feature = "cache_pygates")]
-    pub py_op: RefCell<Option<PyObject>>,
+    pub py_op: OnceCell<Py<PyAny>>,
 }
 
 impl CircuitInstruction {
     /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
     /// gates might not necessarily satisfy this otherwise).
     ///
-    /// This returns the cached instruction if valid, and replaces the cached instruction if not.
-    pub fn get_operation_mut(&self, py: Python) -> PyResult<Py<PyAny>> {
-        let mut out = self.get_operation(py)?.into_bound(py);
-        if !out.getattr(intern!(py, "mutable"))?.extract::<bool>()? {
-            out = out.call_method0(intern!(py, "to_mutable"))?;
+    /// This returns the cached instruction if valid, but does not replace the cache if it created a
+    /// new mutable object; the expectation is that any mutations to the Python object need
+    /// assigning back to the `CircuitInstruction` completely to ensure data coherence between Rust
+    /// and Python spaces.  We can't protect entirely against that, but we can make it a bit harder
+    /// for standard-gate getters to accidentally do the wrong thing.
+    pub fn get_operation_mut<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let out = self.get_operation(py)?.into_bound(py);
+        if out.getattr(intern!(py, "mutable"))?.is_truthy()? {
+            Ok(out)
+        } else {
+            out.call_method0(intern!(py, "to_mutable"))
         }
-        #[cfg(feature = "cache_pygates")]
-        {
-            *self.py_op.borrow_mut() = Some(out.to_object(py));
-        }
-        Ok(out.unbind())
     }
 
     pub fn condition(&self) -> Option<&PyObject> {
@@ -156,7 +157,7 @@ impl CircuitInstruction {
             params: op_parts.params,
             extra_attrs: op_parts.extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(Some(operation.into_py(py))),
+            py_op: operation.into_py(py).into(),
         })
     }
 
@@ -183,7 +184,7 @@ impl CircuitInstruction {
                 })
             }),
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(None),
+            py_op: OnceCell::new(),
         })
     }
 
@@ -198,9 +199,14 @@ impl CircuitInstruction {
     /// The logical operation that this instruction represents an execution of.
     #[getter]
     pub fn get_operation(&self, py: Python) -> PyResult<PyObject> {
+        // This doesn't use `get_or_init` because a) the initialiser is fallible and
+        // `get_or_try_init` isn't stable, and b) the initialiser can yield to the Python
+        // interpreter, which might suspend the thread and allow another to inadvertantly attempt to
+        // re-enter the cache setter, which isn't safe.
+
         #[cfg(feature = "cache_pygates")]
         {
-            if let Ok(Some(cached_op)) = self.py_op.try_borrow().as_deref() {
+            if let Some(cached_op) = self.py_op.get() {
                 return Ok(cached_op.clone_ref(py));
             }
         }
@@ -216,9 +222,7 @@ impl CircuitInstruction {
 
         #[cfg(feature = "cache_pygates")]
         {
-            if let Ok(mut cell) = self.py_op.try_borrow_mut() {
-                cell.get_or_insert_with(|| out.clone_ref(py));
-            }
+            self.py_op.get_or_init(|| out.clone_ref(py));
         }
 
         Ok(out)
@@ -338,7 +342,7 @@ impl CircuitInstruction {
                 params: params.unwrap_or(op_parts.params),
                 extra_attrs: op_parts.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: RefCell::new(Some(operation.into_py(py))),
+                py_op: operation.into_py(py).into(),
             })
         } else {
             Ok(Self {
@@ -348,12 +352,7 @@ impl CircuitInstruction {
                 params: params.unwrap_or_else(|| self.params.clone()),
                 extra_attrs: self.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: RefCell::new(
-                    self.py_op
-                        .try_borrow()
-                        .ok()
-                        .and_then(|opt| opt.as_ref().map(|op| op.clone_ref(py))),
-                ),
+                py_op: self.py_op.clone(),
             })
         }
     }

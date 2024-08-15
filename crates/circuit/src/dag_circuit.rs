@@ -64,7 +64,7 @@ use std::convert::Infallible;
 use std::f64::consts::PI;
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::RefCell;
+use std::cell::OnceCell;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
@@ -1767,7 +1767,7 @@ def _format(operand):
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 extra_attrs: py_op.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: RefCell::new(Some(op.unbind())),
+                py_op: op.unbind().into(),
             };
 
             if check {
@@ -1864,7 +1864,7 @@ def _format(operand):
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 extra_attrs: py_op.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: RefCell::new(Some(op.unbind())),
+                py_op: op.unbind().into(),
             };
 
             if check {
@@ -3209,7 +3209,7 @@ def _format(operand):
             params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
             extra_attrs: py_op.extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(Some(op.unbind())),
+            py_op: op.unbind().into(),
         });
 
         let new_node = self
@@ -3688,7 +3688,7 @@ def _format(operand):
                             .into();
                             #[cfg(feature = "cache_pygates")]
                             {
-                                *new_inst.py_op.borrow_mut() = Some(new_op.unbind());
+                                new_inst.py_op = new_op.unbind().into();
                             }
                         }
                     }
@@ -3719,6 +3719,10 @@ def _format(operand):
                                         }))
                                 }
                             }
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
                             match new_inst.op.view() {
                                 OperationRef::Instruction(py_inst) => {
                                     py_inst
@@ -3731,12 +3735,7 @@ def _format(operand):
                                 OperationRef::Operation(py_op) => {
                                     py_op.operation.setattr(py, "condition", new_condition)?;
                                 }
-                                OperationRef::Standard(_) => {
-                                    #[cfg(feature = "cache_pygates")]
-                                    {
-                                        *new_inst.py_op.borrow_mut() = None
-                                    }
-                                }
+                                OperationRef::Standard(_) => {}
                             }
                         }
                     }
@@ -3911,7 +3910,10 @@ def _format(operand):
             node.instruction.extra_attrs = extra_attrs.clone();
             #[cfg(feature = "cache_pygates")]
             {
-                *node.instruction.py_op.borrow_mut() = py_op_cache.clone();
+                node.instruction.py_op = py_op_cache
+                    .as_ref()
+                    .map(|ob| OnceCell::from(ob.clone_ref(py)))
+                    .unwrap_or_default();
             }
         }
         // Clone op data, as it will be moved into the PackedInstruction
@@ -3922,7 +3924,7 @@ def _format(operand):
             params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(py_op_cache),
+            py_op: py_op_cache.map(OnceCell::from).unwrap_or_default(),
         });
         let node_index = node.as_ref().node.unwrap();
         if let Some(weight) = self.dag.node_weight_mut(node_index) {

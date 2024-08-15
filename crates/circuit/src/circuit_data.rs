@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::RefCell;
+use std::cell::OnceCell;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -158,7 +158,7 @@ impl CircuitData {
                 params,
                 extra_attrs: None,
                 #[cfg(feature = "cache_pygates")]
-                py_op: RefCell::new(None),
+                py_op: OnceCell::new(),
             });
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
@@ -210,7 +210,7 @@ impl CircuitData {
                 params,
                 extra_attrs: None,
                 #[cfg(feature = "cache_pygates")]
-                py_op: RefCell::new(None),
+                py_op: OnceCell::new(),
             });
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
@@ -268,7 +268,7 @@ impl CircuitData {
             params,
             extra_attrs: None,
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(None),
+            py_op: OnceCell::new(),
         });
         Ok(())
     }
@@ -447,7 +447,7 @@ impl CircuitData {
     /// Get a (cached) sorted list of the Python-space `Parameter` instances tracked by this circuit
     /// data's parameter table.
     #[getter]
-    pub fn get_parameters<'py>(&mut self, py: Python<'py>) -> Bound<'py, PyList> {
+    pub fn get_parameters<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
         self.param_table.py_parameters(py)
     }
 
@@ -532,7 +532,7 @@ impl CircuitData {
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: RefCell::new(None),
+                    py_op: OnceCell::new(),
                 });
             }
         } else if copy_instructions {
@@ -544,7 +544,7 @@ impl CircuitData {
                     params: inst.params.clone(),
                     extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: RefCell::new(None),
+                    py_op: OnceCell::new(),
                 });
             }
         } else {
@@ -640,7 +640,7 @@ impl CircuitData {
             inst.extra_attrs = result.extra_attrs;
             #[cfg(feature = "cache_pygates")]
             {
-                *inst.py_op.borrow_mut() = Some(py_op.unbind());
+                inst.py_op = py_op.unbind().into();
             }
         }
         Ok(())
@@ -1128,7 +1128,7 @@ impl CircuitData {
             params: (!inst.params.is_empty()).then(|| Box::new(inst.params.clone())),
             extra_attrs: inst.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
-            py_op: RefCell::new(inst.py_op.borrow().as_ref().map(|obj| obj.clone_ref(py))),
+            py_op: inst.py_op.clone(),
         })
     }
 
@@ -1219,7 +1219,7 @@ impl CircuitData {
                             {
                                 // Standard gates can all rebuild their definitions, so if the
                                 // cached py_op exists, just clear out any existing cache.
-                                if let Some(borrowed) = previous.py_op.borrow().as_ref() {
+                                if let Some(borrowed) = previous.py_op.get() {
                                     borrowed.bind(py).setattr("_definition", py.None())?
                                 }
                             }
@@ -1288,7 +1288,7 @@ impl CircuitData {
                             previous.extra_attrs = new_op.extra_attrs;
                             #[cfg(feature = "cache_pygates")]
                             {
-                                *previous.py_op.borrow_mut() = Some(op.into_py(py));
+                                previous.py_op = op.into_py(py).into();
                             }
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
