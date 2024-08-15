@@ -20,6 +20,8 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 
+use super::linear_phase::cz_depth_lnn::LnnGatesVec;
+
 mod utils;
 
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
@@ -112,6 +114,44 @@ pub fn _synth_permutation_depth_lnn_kms(
         }),
         Param::Float(0.0),
     )
+}
+
+// A single layer of CX gates.
+pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
+    for i in 0..(n / 2) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i) as u32), Qubit((2 * i + 1) as u32)],
+        ))
+    }
+
+    for i in 0..((n + 1) / 2 - 1) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i + 2) as u32), Qubit((2 * i + 1) as u32)],
+        ))
+    }
+}
+
+// A single layer of CX gates.
+pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
+    for i in 0..(n / 2) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i) as u32)],
+        ))
+    }
+
+    for i in 0..((n + 1) / 2 - 1) {
+        gates.push((
+            StandardGate::CXGate,
+            smallvec![],
+            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i + 2) as u32)],
+        ))
+    }
 }
 
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {

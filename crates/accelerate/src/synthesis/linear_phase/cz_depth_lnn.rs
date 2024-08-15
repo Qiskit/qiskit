@@ -22,9 +22,11 @@ use qiskit_circuit::{
 };
 use smallvec::{smallvec, SmallVec};
 
+use crate::synthesis::permutation::{_append_cx_stage1, _append_cx_stage2};
+
 // A sequence of Lnn gates
 // Represents the return type for Lnn Synthesis algorithms
-type LnnGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
+pub(crate) type LnnGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
 // A pattern denoted by Pj in [1] for odd number of qubits:
 // [n-2, n-4, n-4, ..., 3, 3, 1, 1, 0, 0, 2, 2, ..., n-3, n-3]
@@ -89,44 +91,6 @@ fn _create_patterns(n: isize) -> HashMap<(isize, isize), (isize, isize)> {
             )
         }),
     ))
-}
-
-// A single layer of CX gates.
-fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
-    for i in 0..(n / 2) {
-        gates.push((
-            StandardGate::CXGate,
-            smallvec![],
-            smallvec![Qubit((2 * i) as u32), Qubit((2 * i + 1) as u32)],
-        ))
-    }
-
-    for i in 0..((n + 1) / 2 - 1) {
-        gates.push((
-            StandardGate::CXGate,
-            smallvec![],
-            smallvec![Qubit((2 * i + 2) as u32), Qubit((2 * i + 1) as u32)],
-        ))
-    }
-}
-
-// A single layer of CX gates.
-fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
-    for i in 0..(n / 2) {
-        gates.push((
-            StandardGate::CXGate,
-            smallvec![],
-            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i) as u32)],
-        ))
-    }
-
-    for i in 0..((n + 1) / 2 - 1) {
-        gates.push((
-            StandardGate::CXGate,
-            smallvec![],
-            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i + 2) as u32)],
-        ))
-    }
 }
 
 // Appends correct phase gate during CZ synthesis

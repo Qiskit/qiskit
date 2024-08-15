@@ -25,7 +25,7 @@ References:
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
-from qiskit._accelerate.synthesis.linear import (
+from qiskit._accelerate.synthesis.linear_phase import (
     synth_cz_depth_line_mr as synth_cz_depth_line_mr_inner,
 )
 

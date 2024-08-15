@@ -13,9 +13,7 @@
 use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
 use pyo3::prelude::*;
-use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
 
-mod lnn;
 mod pmh;
 pub mod utils;
 
@@ -177,14 +175,6 @@ fn check_invertible_binary_matrix(py: Python, mat: PyReadonlyArray2<bool>) -> Py
     Ok(out.to_object(py))
 }
 
-#[pyfunction]
-#[pyo3(signature = (mat))]
-fn synth_cz_depth_line_mr(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
-    let view = mat.as_array();
-    let (num_qubits, lnn_gates) = lnn::synth_cz_depth_line_mr_inner(view);
-    CircuitData::from_standard_gates(py, num_qubits as u32, lnn_gates, Param::Float(0.0))
-}
-
 pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(gauss_elimination_with_perm))?;
     m.add_wrapped(wrap_pyfunction!(gauss_elimination))?;
@@ -197,6 +187,5 @@ pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(random_invertible_binary_matrix))?;
     m.add_wrapped(wrap_pyfunction!(check_invertible_binary_matrix))?;
     m.add_wrapped(wrap_pyfunction!(pmh::synth_cnot_count_full_pmh))?;
-    m.add_wrapped(wrap_pyfunction!(synth_cz_depth_line_mr))?;
     Ok(())
 }
