@@ -155,7 +155,7 @@ fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
 
 // Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
 // based on Maslov and Roetteler.
-pub(super) fn synth_cz_depth_line_mr(matrix: ArrayView2<bool>) -> (usize, LnnGatesVec) {
+pub(super) fn synth_cz_depth_line_mr_inner(matrix: ArrayView2<bool>) -> (usize, LnnGatesVec) {
     let num_qubits = matrix.raw_dim()[0];
     let pats = _create_patterns(num_qubits as isize);
 

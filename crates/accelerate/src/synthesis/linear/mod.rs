@@ -181,7 +181,7 @@ fn check_invertible_binary_matrix(py: Python, mat: PyReadonlyArray2<bool>) -> Py
 #[pyo3(signature = (mat))]
 fn synth_cz_depth_line_mr(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
     let view = mat.as_array();
-    let (num_qubits, lnn_gates) = lnn::synth_cz_depth_line_mr(view);
+    let (num_qubits, lnn_gates) = lnn::synth_cz_depth_line_mr_inner(view);
     CircuitData::from_standard_gates(py, num_qubits as u32, lnn_gates, Param::Float(0.0))
 }
 
