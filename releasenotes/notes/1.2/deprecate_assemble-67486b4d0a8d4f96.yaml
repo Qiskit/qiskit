@@ -3,8 +3,9 @@ deprecations_providers:
   - |
     The Qobj structure and related classes (see :mod:`qiskit.qobj`) are now deprecated. They were 
     introduced as part of the :class:`.BackendV1` workflow and are no longer necessary for 
-    interacting with  :class:`.BackendV2`  backends. Remote backend interaction should be done via 
-    QPY (see :mod:`qiskit.qpy`) or OpenQASM (see :mod:`qiskit.qasm2` and :mod:`qiskit.qasm3`) instead.
+    interacting with  :class:`.BackendV2`  backends. :class:`.QuantumCircuit` serialiaztion should be 
+    done via QPY (see :mod:`qiskit.qpy`) or OpenQASM (see :mod:`qiskit.qasm2` and :mod:`qiskit.qasm3`) 
+    instead.
 deprecations_transpiler:
   - |
     The :func:`.assemble` function is now deprecated and will be removed in the 2.0 release.

@@ -11,12 +11,15 @@ features_circuits:
     be generated. If both ``num_operand_distribution`` and ``max_operands`` are specified at the same 
     time then ``num_operand_distribution`` will be used to generate the random circuit.
 
-    Example usage::
+    Example usage:
+        
+    .. plot::
+       :include-source:
 
-      from qiskit.circuit.random import random_circuit
+       from qiskit.circuit.random import random_circuit
 
-      circ = random_circuit(
-        num_qubits=6, depth=5, num_operand_distribution={1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25}
-      )
-      circ.draw(output="mpl")
+       circ = random_circuit(
+         num_qubits=6, depth=5, num_operand_distribution={1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25}
+       )
+       circ.draw(output="mpl")
 

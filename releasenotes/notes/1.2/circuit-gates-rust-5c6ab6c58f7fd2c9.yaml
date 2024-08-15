@@ -9,9 +9,9 @@ features_circuits:
 features_misc:
   - |
     Added a new build-time environment variable ``QISKIT_NO_CACHE_GATES`` which
-    when set to a value of ``1`` (i.e. ``QISKIT_NO_CACHE_GATES=1``) which
+    when set to a value of ``1`` (i.e. ``QISKIT_NO_CACHE_GATES=1``) 
     decreases the memory overhead of a :class:`.CircuitInstruction` and
-    :class:`.DAGOpNode` object at the cost of decreased runtime on multiple
+    :class:`.DAGOpNode` object at the cost of increased runtime on multiple
     accesses to :attr:`.CircuitInstruction.operation` and :attr:`.DAGOpNode.op`.
     If this environment variable is set when building the Qiskit Python package
     from source the caching of the return of these attributes will be disabled.
