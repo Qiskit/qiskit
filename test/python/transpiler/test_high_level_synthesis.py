@@ -1364,7 +1364,12 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
         circuit = QuantumCircuit(6)
         circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
-        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
+        # When synthesizing with clean ancillas, we no longer have that the Operators before and after
+        # are equal, it should only be true on the subspace where clean ancillas are 0. We need to
+        # implement operator equality with clean ancillas method.
+        transpiled_circuit = HighLevelSynthesis(
+            basis_gates=["cx", "u"], qubits_initially_zero=False
+        )(circuit)
         self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
 
     def test_definition_with_high_level_objects(self):
