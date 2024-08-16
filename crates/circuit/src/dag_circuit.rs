@@ -5253,7 +5253,9 @@ impl DAGCircuit {
             match node {
                 NodeType::Operation(inst) => Ok(inst.op.num_qubits() == 1
                     && inst.op.num_clbits() == 0
-                    && inst.op.matrix(inst.params_view()).is_some()
+                    && !inst.is_parameterized()
+                    && (inst.op.try_standard_gate().is_some()
+                        || inst.op.matrix(inst.params_view()).is_some())
                     && inst.condition().is_none()),
                 _ => Ok(false),
             }
