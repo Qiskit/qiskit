@@ -70,7 +70,7 @@ static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", 
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 #[derive(Clone, Debug)]
-pub(crate) enum NodeType {
+pub enum NodeType {
     QubitIn(Qubit),
     QubitOut(Qubit),
     ClbitIn(Clbit),
@@ -81,7 +81,7 @@ pub(crate) enum NodeType {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum Wire {
+pub enum Wire {
     Qubit(Qubit),
     Clbit(Clbit),
     Var(PyObject),
@@ -99,6 +99,8 @@ impl PartialEq for Wire {
         }
     }
 }
+
+impl Eq for Wire {}
 
 impl Hash for Wire {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -145,8 +147,6 @@ impl<'py> FromPyObject<'py> for Wire {
         }
     }
 }
-
-impl Eq for Wire {}
 
 // TODO: Remove me.
 // This is a temporary map type used to store a mapping of
@@ -238,7 +238,7 @@ pub struct DAGCircuit {
 
     calibrations: HashMap<String, Py<PyDict>>,
 
-    pub(crate) dag: StableDiGraph<NodeType, Wire>,
+    pub dag: StableDiGraph<NodeType, Wire>,
 
     #[pyo3(get)]
     qregs: Py<PyDict>,
@@ -2466,12 +2466,12 @@ def _format(operand):
     /// num_qubits() replaces former use of width().
     /// DAGCircuit.width() now returns qubits + clbits for
     /// consistency with Circuit.width() [qiskit-terra #2564].
-    fn num_qubits(&self) -> usize {
+    pub fn num_qubits(&self) -> usize {
         self.qubits.len()
     }
 
     /// Return the total number of classical bits used by the circuit.
-    fn num_clbits(&self) -> usize {
+    pub fn num_clbits(&self) -> usize {
         self.clbits.len()
     }
 
