@@ -704,10 +704,6 @@ impl DAGCircuit {
         Ok(())
     }
 
-    pub fn _get_node(&self, py: Python, index: usize) -> PyResult<PyObject> {
-        self.get_node(py, NodeIndex::new(index))
-    }
-
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
     ///
     /// .. warning::
