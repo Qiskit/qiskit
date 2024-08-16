@@ -112,28 +112,16 @@ impl Hash for Wire {
     }
 }
 
-impl IntoPy<PyObject> for Wire {
-    fn into_py(self, py: Python) -> PyObject {
+impl Wire {
+    fn to_picke(&self, py: Python) -> PyObject {
         match self {
             Self::Qubit(bit) => (0, bit.0.into_py(py)).into_py(py),
             Self::Clbit(bit) => (1, bit.0.into_py(py)).into_py(py),
             Self::Var(var) => (2, var.clone_ref(py)).into_py(py),
         }
     }
-}
 
-impl ToPyObject for Wire {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            Self::Qubit(bit) => (0, bit.0.into_py(py)).to_object(py),
-            Self::Clbit(bit) => (1, bit.0.into_py(py)).to_object(py),
-            Self::Var(var) => (2, var.clone_ref(py)).to_object(py),
-        }
-    }
-}
-
-impl<'py> FromPyObject<'py> for Wire {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+    fn from_pickle(b: &Bound<PyAny>) -> PyResult<Self> {
         let tuple: Bound<PyTuple> = b.extract()?;
         let wire_type: usize = tuple.get_item(0)?.extract()?;
         if wire_type == 0 {
@@ -598,7 +586,12 @@ impl DAGCircuit {
             let edge = match self.dag.edge_weight(idx) {
                 Some(edge_w) => {
                     let endpoints = self.dag.edge_endpoints(idx).unwrap();
-                    (endpoints.0.index(), endpoints.1.index(), edge_w.clone()).to_object(py)
+                    (
+                        endpoints.0.index(),
+                        endpoints.1.index(),
+                        edge_w.clone().to_picke(py),
+                    )
+                        .to_object(py)
                 }
                 None => py.None(),
             };
@@ -753,7 +746,7 @@ impl DAGCircuit {
                 let triple = item.downcast::<PyTuple>().unwrap();
                 let edge_p: usize = triple.get_item(0).unwrap().extract().unwrap();
                 let edge_c: usize = triple.get_item(1).unwrap().extract().unwrap();
-                let edge_w = triple.get_item(2).unwrap().extract::<Wire>()?;
+                let edge_w = Wire::from_pickle(&triple.get_item(2).unwrap())?;
                 self.dag
                     .add_edge(NodeIndex::new(edge_p), NodeIndex::new(edge_c), edge_w);
             }
