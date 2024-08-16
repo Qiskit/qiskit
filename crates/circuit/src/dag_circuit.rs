@@ -363,14 +363,6 @@ impl PyVariableMapper {
             .bind(py)
             .call_method1(intern!(py, "map_target"), (target,))
     }
-
-    #[allow(dead_code)]
-    fn map_expr<'py>(&self, node: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = node.py();
-        self.mapper
-            .bind(py)
-            .call_method1(intern!(py, "map_expr"), (node,))
-    }
 }
 
 #[pyfunction]
