@@ -4257,8 +4257,8 @@ def _format(operand):
     fn classical_predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let edges = self.dag.edges_directed(node.node.unwrap(), Incoming);
         let filtered = edges.filter_map(|e| match e.weight() {
-            Wire::Clbit(_) => Some(e.source()),
-            _ => None,
+            Wire::Qubit(_) => None,
+            _ => Some(e.source()),
         });
         let predecessors: PyResult<Vec<_>> =
             filtered.unique().map(|i| self.get_node(py, i)).collect();
