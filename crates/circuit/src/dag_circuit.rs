@@ -809,7 +809,7 @@ impl DAGCircuit {
             Param::ParameterExpression(angle) => {
                 self.global_phase = Param::ParameterExpression(angle);
             }
-            Param::Obj(_) => return Err(PyValueError::new_err("Invalid type for global phase")),
+            Param::Obj(_) => return Err(PyTypeError::new_err("Invalid type for global phase")),
         }
         Ok(())
     }
