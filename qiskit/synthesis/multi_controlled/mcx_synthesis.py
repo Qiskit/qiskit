@@ -239,7 +239,9 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using the Gray code.
 
-    Produces a quantum circuit with :math:`num_ctrl_qubits + 1` qubits.
+    Produces a quantum circuit with :math:`k + 1` qubits. This method
+    produces exponentially many CX gates and should be used only for small
+    values of :math:`k`.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -261,7 +263,8 @@ def synth_mcx_mcphase(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k` controls based on
     the implementation for MCPhaseGate.
 
-    Produces a quantum circuit with :math:`num_ctrl_qubits + 1` qubits.
+    Produces a quantum circuit with :math:`k + 1` qubits.
+    The number of CX-gates is quadratic in :math:`k`.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
