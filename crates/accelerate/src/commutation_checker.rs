@@ -655,15 +655,9 @@ impl ToPyObject for CommutationCacheEntry {
     fn to_object(&self, py: Python) -> PyObject {
         let out_dict = PyDict::new_bound(py);
         for (k, v) in self.iter() {
-            let qubits = PyTuple::new_bound(
-                py,
-                k.0.iter()
-                    .map(|q| q.map(|t| t.0))
-            );
-            let params0 =
-                PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
-            let params1 =
-                PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
+            let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0)));
+            let params0 = PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
+            let params1 = PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
             out_dict
                 .set_item(
                     PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1])]),
