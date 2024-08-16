@@ -134,7 +134,7 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings(
             "ignore",  # If "default", it floods the CI output
             category=DeprecationWarning,
-            message=r"The class ``qiskit\.providers\.models\..*`",
+            message=r".*qiskit\.providers\.models.*",
             module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
         )
 
