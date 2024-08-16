@@ -365,6 +365,12 @@ impl PyVariableMapper {
     }
 }
 
+impl IntoPy<Py<PyAny>> for PyVariableMapper {
+    fn into_py(self, _py: Python<'_>) -> Py<PyAny> {
+        self.mapper
+    }
+}
+
 #[pyfunction]
 fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
     Err(DAGCircuitError::new_err(format!(
@@ -373,25 +379,13 @@ fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
     )))
 }
 
-impl IntoPy<Py<PyAny>> for PyVariableMapper {
-    fn into_py(self, _py: Python<'_>) -> Py<PyAny> {
-        self.mapper
-    }
-}
-
 #[pyclass(module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 struct BitLocations {
     #[pyo3(get)]
-    pub index: usize,
+    index: usize,
     #[pyo3(get)]
     registers: Py<PyList>,
-}
-
-impl BitLocations {
-    fn set_index(&mut self, index: usize) {
-        self.index = index
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -1245,7 +1239,7 @@ def _format(operand):
         for (i, bit) in self.clbits.bits().iter().enumerate() {
             let raw_loc = bit_locations.get_item(bit)?.unwrap();
             let loc = raw_loc.downcast::<BitLocations>().unwrap();
-            loc.borrow_mut().set_index(i);
+            loc.borrow_mut().index = i;
             bit_locations.set_item(bit, loc)?;
         }
         Ok(())
@@ -1454,7 +1448,7 @@ def _format(operand):
         for (i, bit) in self.qubits.bits().iter().enumerate() {
             let raw_loc = bit_locations.get_item(bit)?.unwrap();
             let loc = raw_loc.downcast::<BitLocations>().unwrap();
-            loc.borrow_mut().set_index(i);
+            loc.borrow_mut().index = i;
             bit_locations.set_item(bit, loc)?;
         }
         Ok(())
