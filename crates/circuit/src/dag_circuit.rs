@@ -5765,12 +5765,12 @@ impl DAGCircuit {
     fn remove_idle_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => (
-                self.qubit_input_map.shift_remove(&qubit),
-                self.qubit_output_map.shift_remove(&qubit),
+                self.qubit_input_map.swap_remove(&qubit),
+                self.qubit_output_map.swap_remove(&qubit),
             ),
             Wire::Clbit(clbit) => (
-                self.clbit_input_map.shift_remove(&clbit),
-                self.clbit_output_map.shift_remove(&clbit),
+                self.clbit_input_map.swap_remove(&clbit),
+                self.clbit_output_map.swap_remove(&clbit),
             ),
             Wire::Var(var) => (
                 self.var_input_map.remove(py, &var),
