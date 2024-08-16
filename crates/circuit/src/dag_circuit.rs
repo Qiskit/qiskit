@@ -5507,10 +5507,7 @@ impl DAGCircuit {
         let OperationRef::Instruction(inst) = instr.op.view() else {
             return false;
         };
-        inst.instruction
-            .bind(py)
-            .is_instance(imports::CONTROL_FLOW_OP.get_bound(py))
-            .unwrap()
+        inst.control_flow()
             || inst
                 .instruction
                 .bind(py)
@@ -5571,7 +5568,7 @@ impl DAGCircuit {
 
         if let OperationRef::Instruction(inst) = op {
             let op = inst.instruction.bind(py);
-            if op.is_instance(imports::CONTROL_FLOW_OP.get_bound(py))? {
+            if inst.control_flow() {
                 for var in op.call_method0("iter_captured_vars")?.iter()? {
                     vars.push(var?.unbind())
                 }
