@@ -5543,7 +5543,6 @@ impl DAGCircuit {
             Ok((clbits, vars))
         };
 
-        // let mut bits = Vec::new();
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
         if let Some(condition) = condition {
