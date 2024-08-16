@@ -230,9 +230,9 @@ pub struct DAGCircuit {
     /// The cache used to intern instruction cargs.
     cargs_cache: IndexedInterner<Vec<Clbit>>,
     /// Qubits registered in the circuit.
-    pub(crate) qubits: BitData<Qubit>,
+    pub qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    pub(crate) clbits: BitData<Clbit>,
+    pub clbits: BitData<Clbit>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -5942,7 +5942,7 @@ impl DAGCircuit {
         Ok(clbit)
     }
 
-    pub(crate) fn get_node(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
+    pub fn get_node(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
         self.unpack_into(py, node, self.dag.node_weight(node).unwrap())
     }
 
