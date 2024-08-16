@@ -2112,7 +2112,7 @@ def _format(operand):
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn size(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        let mut length = self.dag.node_count() - (self.width() + self.num_vars()) * 2;
+        let mut length = self.dag.node_count() - (self.width() * 2);
         if !recurse {
             if CONTROL_FLOW_OP_NAMES
                 .iter()
@@ -2260,7 +2260,7 @@ def _format(operand):
     /// with the new function DAGCircuit.num_qubits replacing the former
     /// semantic of DAGCircuit.width().
     fn width(&self) -> usize {
-        self.qubits.len() + self.clbits.len()
+        self.qubits.len() + self.clbits.len() + self.vars_info.len()
     }
 
     /// Return the total number of qubits used by the circuit.
