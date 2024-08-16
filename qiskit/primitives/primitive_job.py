@@ -27,7 +27,7 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
     Primitive job class for the reference implementations of Primitives.
     """
 
-    def __init__(self, *args, function=None, **kwargs):
+    def __init__(self, function=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
         """
         Args:
             function: A callable function to execute the job.
