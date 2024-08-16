@@ -1649,48 +1649,7 @@ def _format(operand):
     ) -> PyResult<()> {
         if let NodeType::Operation(inst) = self.pack_into(py, node)? {
             if check {
-                if let Some(condition) = inst.condition() {
-                    self._check_condition(py, inst.op.name(), condition.bind(py))?;
-                }
-
-                for b in self.qargs_cache.intern(inst.qubits) {
-                    if !self.qubit_output_map.contains_key(b) {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "qubit {} not found in output map",
-                            self.qubits.get(*b).unwrap()
-                        )));
-                    }
-                }
-
-                for b in self.cargs_cache.intern(inst.clbits) {
-                    if !self.clbit_output_map.contains_key(b) {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "clbit {} not found in output map",
-                            self.clbits.get(*b).unwrap()
-                        )));
-                    }
-                }
-
-                if self.may_have_additional_wires(py, &inst) {
-                    let (clbits, vars) =
-                        self.additional_wires(py, inst.op.view(), inst.condition())?;
-                    for b in clbits {
-                        if !self.clbit_output_map.contains_key(&b) {
-                            return Err(DAGCircuitError::new_err(format!(
-                                "clbit {} not found in output map",
-                                self.clbits.get(b).unwrap()
-                            )));
-                        }
-                    }
-                    for v in vars {
-                        if !self.var_output_map.contains_key(py, &v) {
-                            return Err(DAGCircuitError::new_err(format!(
-                                "var {} not found in output map",
-                                v
-                            )));
-                        }
-                    }
-                }
+                self.check_op_addition(py, &inst)?;
             }
 
             self.push_back(py, inst)?;
@@ -1748,48 +1707,7 @@ def _format(operand):
             };
 
             if check {
-                if let Some(condition) = instr.condition() {
-                    self._check_condition(py, instr.op.name(), condition.bind(py))?;
-                }
-
-                for b in self.qargs_cache.intern(instr.qubits) {
-                    if !self.qubit_output_map.contains_key(b) {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "qubit {} not found in output map",
-                            self.qubits.get(*b).unwrap()
-                        )));
-                    }
-                }
-
-                for b in self.cargs_cache.intern(instr.clbits) {
-                    if !self.clbit_output_map.contains_key(b) {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "clbit {} not found in output map",
-                            self.clbits.get(*b).unwrap()
-                        )));
-                    }
-                }
-
-                if self.may_have_additional_wires(py, &instr) {
-                    let (clbits, vars) =
-                        self.additional_wires(py, instr.op.view(), instr.condition())?;
-                    for b in clbits {
-                        if !self.clbit_output_map.contains_key(&b) {
-                            return Err(DAGCircuitError::new_err(format!(
-                                "clbit {} not found in output map",
-                                self.clbits.get(b).unwrap()
-                            )));
-                        }
-                    }
-                    for v in vars {
-                        if !self.var_output_map.contains_key(py, &v) {
-                            return Err(DAGCircuitError::new_err(format!(
-                                "var {} not found in output map",
-                                v
-                            )));
-                        }
-                    }
-                }
+                self.check_op_addition(py, &instr)?;
             }
             self.push_back(py, instr)?
         };
@@ -1845,48 +1763,7 @@ def _format(operand):
             };
 
             if check {
-                if let Some(condition) = instr.condition() {
-                    self._check_condition(py, instr.op.name(), condition.bind(py))?;
-                }
-
-                for b in self.qargs_cache.intern(instr.qubits) {
-                    if !self.qubit_output_map.contains_key(b) {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "qubit {} not found in output map",
-                            self.qubits.get(*b).unwrap()
-                        )));
-                    }
-                }
-
-                for b in self.cargs_cache.intern(instr.clbits) {
-                    if !self.clbit_output_map.contains_key(b) {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "clbit {} not found in output map",
-                            self.clbits.get(*b).unwrap()
-                        )));
-                    }
-                }
-
-                if self.may_have_additional_wires(py, &instr) {
-                    let (clbits, vars) =
-                        self.additional_wires(py, instr.op.view(), instr.condition())?;
-                    for b in clbits {
-                        if !self.clbit_output_map.contains_key(&b) {
-                            return Err(DAGCircuitError::new_err(format!(
-                                "clbit {} not found in output map",
-                                self.clbits.get(b).unwrap()
-                            )));
-                        }
-                    }
-                    for v in vars {
-                        if !self.var_output_map.contains_key(py, &v) {
-                            return Err(DAGCircuitError::new_err(format!(
-                                "var {} not found in output map",
-                                v
-                            )));
-                        }
-                    }
-                }
+                self.check_op_addition(py, &instr)?;
             }
             self.push_front(py, instr)?
         };
@@ -6449,6 +6326,51 @@ impl DAGCircuit {
                 out_node: out_index,
             },
         );
+        Ok(())
+    }
+
+    fn check_op_addition(&self, py: Python, inst: &PackedInstruction) -> PyResult<()> {
+        if let Some(condition) = inst.condition() {
+            self._check_condition(py, inst.op.name(), condition.bind(py))?;
+        }
+
+        for b in self.qargs_cache.intern(inst.qubits) {
+            if !self.qubit_output_map.contains_key(b) {
+                return Err(DAGCircuitError::new_err(format!(
+                    "qubit {} not found in output map",
+                    self.qubits.get(*b).unwrap()
+                )));
+            }
+        }
+
+        for b in self.cargs_cache.intern(inst.clbits) {
+            if !self.clbit_output_map.contains_key(b) {
+                return Err(DAGCircuitError::new_err(format!(
+                    "clbit {} not found in output map",
+                    self.clbits.get(*b).unwrap()
+                )));
+            }
+        }
+
+        if self.may_have_additional_wires(py, inst) {
+            let (clbits, vars) = self.additional_wires(py, inst.op.view(), inst.condition())?;
+            for b in clbits {
+                if !self.clbit_output_map.contains_key(&b) {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "clbit {} not found in output map",
+                        self.clbits.get(b).unwrap()
+                    )));
+                }
+            }
+            for v in vars {
+                if !self.var_output_map.contains_key(py, &v) {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "var {} not found in output map",
+                        v
+                    )));
+                }
+            }
+        }
         Ok(())
     }
 }
