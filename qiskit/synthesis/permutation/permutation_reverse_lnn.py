@@ -15,26 +15,8 @@ Synthesis of a reverse permutation for LNN connectivity.
 
 from qiskit.circuit import QuantumCircuit
 from qiskit._accelerate.synthesis.permutation import (
-    synth_permutation_reverse_lnn_kms as synth_permutation_reverse_lnn_kms_inner
+    synth_permutation_reverse_lnn_kms as synth_permutation_reverse_lnn_kms_inner,
 )
-
-
-def _append_cx_stage1(qc, n):
-    """A single layer of CX gates."""
-    for i in range(n // 2):
-        qc.cx(2 * i, 2 * i + 1)
-    for i in range((n + 1) // 2 - 1):
-        qc.cx(2 * i + 2, 2 * i + 1)
-    return qc
-
-
-def _append_cx_stage2(qc, n):
-    """A single layer of CX gates."""
-    for i in range(n // 2):
-        qc.cx(2 * i + 1, 2 * i)
-    for i in range((n + 1) // 2 - 1):
-        qc.cx(2 * i + 1, 2 * i + 2)
-    return qc
 
 
 def synth_permutation_reverse_lnn_kms(num_qubits: int) -> QuantumCircuit:
