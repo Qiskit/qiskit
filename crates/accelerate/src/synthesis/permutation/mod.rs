@@ -154,21 +154,8 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
     }
 }
 
-/// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
-/// using Kutin, Moulton, Smithline method.
-//
-/// Synthesis algorithm for reverse permutation from [1], section 5.
-/// This algorithm synthesizes the reverse permutation on :math:`n` qubits over
-/// a linear nearest-neighbor architecture using CX gates with depth :math:`2 * n + 2`.
-///
-///    Args:
-///        gates: Vector of gates representing the original quantum circuit to be modified.
-///        num_qubits: The number of qubits.
-///
-///    References:
-///        1. Kutin, S., Moulton, D. P., Smithline, L.,
-///          *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
-///          `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
+// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
+// using Kutin, Moulton, Smithline method.
 fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
     (0..(num_qubits + 1) / 2).for_each(|_| {
         _append_cx_stage1(gates, num_qubits);
