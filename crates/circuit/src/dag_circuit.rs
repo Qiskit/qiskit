@@ -768,14 +768,20 @@ impl DAGCircuit {
 
     /// Return a list of the wires in order.
     #[getter]
-    fn get_wires(&self, py: Python<'_>) -> Py<PyList> {
+    fn get_wires(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
         let wires: Vec<&PyObject> = self
             .qubits
             .bits()
             .iter()
             .chain(self.clbits.bits().iter())
             .collect();
-        PyList::new_bound(py, wires).unbind()
+        let out_list = PyList::new_bound(py, wires);
+        for var_type_set in &self.vars_by_type {
+            for var in var_type_set.bind(py).iter() {
+                out_list.append(var)?;
+            }
+        }
+        Ok(out_list.unbind())
     }
 
     /// Returns the number of nodes in the dag.
@@ -3346,7 +3352,8 @@ def _format(operand):
             },
             None => {
                 let raw_wires = input_dag.get_wires(py);
-                let wires = raw_wires.bind(py);
+                let binding = raw_wires?;
+                let wires = binding.bind(py);
                 build_wire_map(wires)?
             }
         };
