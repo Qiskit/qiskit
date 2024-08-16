@@ -14,6 +14,9 @@ Synthesis of a reverse permutation for LNN connectivity.
 """
 
 from qiskit.circuit import QuantumCircuit
+from qiskit._accelerate.synthesis.permutation import (
+    synth_permutation_reverse_lnn_kms as synth_permutation_reverse_lnn_kms_inner
+)
 
 
 def _append_cx_stage1(qc, n):
@@ -32,35 +35,6 @@ def _append_cx_stage2(qc, n):
     for i in range((n + 1) // 2 - 1):
         qc.cx(2 * i + 1, 2 * i + 2)
     return qc
-
-
-def _append_reverse_permutation_lnn_kms(qc: QuantumCircuit, num_qubits: int) -> None:
-    """
-    Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
-    using Kutin, Moulton, Smithline method.
-
-    Synthesis algorithm for reverse permutation from [1], section 5.
-    This algorithm synthesizes the reverse permutation on :math:`n` qubits over
-    a linear nearest-neighbor architecture using CX gates with depth :math:`2 * n + 2`.
-
-    Args:
-        qc: The original quantum circuit.
-        num_qubits: The number of qubits.
-
-    Returns:
-        The quantum circuit with appended reverse permutation.
-
-    References:
-        1. Kutin, S., Moulton, D. P., Smithline, L.,
-           *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
-           `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
-    """
-
-    for _ in range((num_qubits + 1) // 2):
-        _append_cx_stage1(qc, num_qubits)
-        _append_cx_stage2(qc, num_qubits)
-    if (num_qubits % 2) == 0:
-        _append_cx_stage1(qc, num_qubits)
 
 
 def synth_permutation_reverse_lnn_kms(num_qubits: int) -> QuantumCircuit:
@@ -84,7 +58,5 @@ def synth_permutation_reverse_lnn_kms(num_qubits: int) -> QuantumCircuit:
            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
     """
 
-    qc = QuantumCircuit(num_qubits)
-    _append_reverse_permutation_lnn_kms(qc, num_qubits)
-
-    return qc
+    # Call Rust implementation
+    return QuantumCircuit._from_circuit_data(synth_permutation_reverse_lnn_kms_inner(num_qubits))
