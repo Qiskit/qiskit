@@ -3018,9 +3018,9 @@ def _format(operand):
                 ),
             })?;
 
-        self.increment_op(op_name);
+        self.increment_op(op_name.as_str());
         for name in block_op_names {
-            self.decrement_op(name);
+            self.decrement_op(name.as_str());
         }
 
         self.get_node(py, new_node)
@@ -3730,8 +3730,8 @@ def _format(operand):
         }
 
         // Update self.op_names
-        self.decrement_op(old_packed.op.name().to_string());
-        self.increment_op(new_op.operation.name().to_string());
+        self.decrement_op(old_packed.op.name());
+        self.increment_op(new_op.operation.name());
 
         if inplace {
             Ok(node.into_py(py))
@@ -3805,7 +3805,7 @@ def _format(operand):
                         }
                         NodeType::Operation(pi) => {
                             let new_node = new_dag.dag.add_node(NodeType::Operation(pi.clone()));
-                            new_dag.increment_op(pi.op.name().to_string());
+                            new_dag.increment_op(pi.op.name());
                             node_map.insert(*node, new_node);
                             non_classical = true;
                         }
@@ -5138,7 +5138,7 @@ def _format(operand):
         old_index: usize,
     ) -> PyResult<()> {
         if let NodeType::Operation(inst) = self.pack_into(py, node)? {
-            self.increment_op(inst.op.name().to_string());
+            self.increment_op(inst.op.name());
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             let old_index: NodeIndex = NodeIndex::new(old_index);
             let (parent_index, edge_index, weight) = self
@@ -5242,23 +5242,27 @@ impl DAGCircuit {
         rustworkx_core::dag_algo::collect_bicolor_runs(&self.dag, filter_fn, color_fn).unwrap()
     }
 
-    fn increment_op(&mut self, op: String) {
-        self.op_names
-            .entry(op)
-            .and_modify(|count| *count += 1)
-            .or_insert(1);
+    fn increment_op(&mut self, op: &str) {
+        match self.op_names.get_mut(op) {
+            Some(count) => {
+                *count += 1;
+            }
+            None => {
+                self.op_names.insert(op.to_string(), 1);
+            }
+        }
     }
 
-    fn decrement_op(&mut self, op: String) {
-        match self.op_names.entry(op) {
-            Entry::Occupied(mut o) => {
-                if *o.get() > 1usize {
-                    *o.get_mut() -= 1;
+    fn decrement_op(&mut self, op: &str) {
+        match self.op_names.get_mut(op) {
+            Some(count) => {
+                if *count > 1 {
+                    *count -= 1;
                 } else {
-                    o.swap_remove();
+                    self.op_names.swap_remove(op);
                 }
             }
-            _ => panic!("Cannot decrement something not added!"),
+            None => panic!("Cannot decrement something not added!"),
         }
     }
 
@@ -5308,7 +5312,7 @@ impl DAGCircuit {
             }
         };
 
-        self.increment_op(op_name.to_string());
+        self.increment_op(op_name);
 
         let qubits_id = instr.qubits;
         let new_node = self.dag.add_node(NodeType::Operation(instr));
@@ -5374,7 +5378,7 @@ impl DAGCircuit {
             }
         };
 
-        self.increment_op(op_name.to_string());
+        self.increment_op(op_name);
 
         let qubits_id = inst.qubits;
         let new_node = self.dag.add_node(NodeType::Operation(inst));
@@ -5622,7 +5626,7 @@ impl DAGCircuit {
     fn add_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => match self.qubit_io_map.entry(qubit) {
-                indexmap::map::Entry::Vacant(input) => {
+                Entry::Vacant(input) => {
                     let input_node = self.dag.add_node(NodeType::QubitIn(qubit));
                     let output_node = self.dag.add_node(NodeType::QubitOut(qubit));
                     input.insert([input_node, output_node]);
@@ -5631,7 +5635,7 @@ impl DAGCircuit {
                 _ => Err(DAGCircuitError::new_err("qubit wire already exists!")),
             },
             Wire::Clbit(clbit) => match self.clbit_io_map.entry(clbit) {
-                indexmap::map::Entry::Vacant(input) => {
+                Entry::Vacant(input) => {
                     let input_node = self.dag.add_node(NodeType::ClbitIn(clbit));
                     let output_node = self.dag.add_node(NodeType::ClbitOut(clbit));
                     input.insert([input_node, output_node]);
@@ -5766,7 +5770,7 @@ impl DAGCircuit {
 
         match self.dag.remove_node(index) {
             Some(NodeType::Operation(packed)) => {
-                let op_name = packed.op.name().to_string();
+                let op_name = packed.op.name();
                 self.decrement_op(op_name);
             }
             _ => panic!("Must be called with valid operation node!"),
@@ -6095,7 +6099,7 @@ impl DAGCircuit {
                     .collect();
                 new_inst.qubits = Interner::intern(&mut self.qargs_cache, new_qubit_indices)?;
                 new_inst.clbits = Interner::intern(&mut self.cargs_cache, new_clbit_indices)?;
-                self.increment_op(new_inst.op.name().to_string());
+                self.increment_op(new_inst.op.name());
             }
             let new_index = self.dag.add_node(new_node);
             out_map.insert(old_index, new_index);
@@ -6105,7 +6109,7 @@ impl DAGCircuit {
         if out_map.is_empty() {
             match self.dag.remove_node(node) {
                 Some(NodeType::Operation(packed)) => {
-                    let op_name = packed.op.name().to_string();
+                    let op_name = packed.op.name();
                     self.decrement_op(op_name);
                 }
                 _ => unreachable!("Must be called with valid operation node!"),
@@ -6202,7 +6206,7 @@ impl DAGCircuit {
         }
         // Remove node
         if let NodeType::Operation(inst) = &self.dag[node] {
-            self.decrement_op(inst.op.name().to_string());
+            self.decrement_op(inst.op.name().to_string().as_str());
         }
         self.dag.remove_node(node);
         Ok(out_map)
