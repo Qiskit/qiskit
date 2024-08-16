@@ -1255,6 +1255,29 @@ class TestOperator(OperatorTestCase):
         op2 = op.apply_permutation([2, 0, 1], front=True)
         self.assertEqual(op2.input_dims(), (4, 2, 3))
 
+    def test_equality_with_ancillas(self):
+        """Check correctness of the equal_with_ancillas method."""
+
+        # The two circuits below are equal provided that qubit 1 is initially |0>.
+        qc1 = QuantumCircuit(4)
+        qc1.x(0)
+        qc1.x(2)
+        qc1.cx(1, 0)
+        qc1.cx(1, 2)
+        qc1.cx(1, 3)
+        op1 = Operator(qc1)
+
+        qc2 = QuantumCircuit(4)
+        qc2.x(0)
+        qc2.x(2)
+        op2 = Operator(qc2)
+
+        self.assertNotEqual(op1, op2)
+        self.assertFalse(op1.equal_with_ancillas(op2, []))
+        self.assertTrue(op1.equal_with_ancillas(op2, [1]))
+        self.assertFalse(op1.equal_with_ancillas(op2, [2]))
+        self.assertTrue(op1.equal_with_ancillas(op2, [2, 1]))
+
 
 if __name__ == "__main__":
     unittest.main()
