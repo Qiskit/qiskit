@@ -2192,7 +2192,7 @@ def _format(operand):
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn depth(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        if self.qubits.is_empty() {
+        if self.qubits.is_empty() && self.clbits.is_empty() {
             return Ok(0);
         }
 
