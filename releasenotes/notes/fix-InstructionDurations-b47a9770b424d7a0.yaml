@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The `from_backend` method of :class:`.InstructionDurations` now allows extracting instruction durations from both `BackendV1` and `BackendV2`.
