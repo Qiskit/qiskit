@@ -1,0 +1,21 @@
+---
+prelude: >
+    A new heuristic, `DepthHeuristic`, has been added to the `SabreSwap` pass
+    in Qiskit. This heuristic allows users to prioritize swaps that do not
+    increase the overall circuit depth, potentially leading to a more optimized
+    circuit with a much lower depth.
+
+features_transpiler:
+  - |
+    A new `DepthHeuristic` has been introduced in the `SabreSwap` pass within the 
+    Qiskit transpiler. This heuristic works similarly to the existing heuristics 
+    like "basic," "lookahead," or "decay," but with a focus on minimizing the circuit 
+    depth. By penalizing swaps that would increase the circuit depth, this feature 
+    helps in routing quantum circuits more efficiently with a potentially lower depth.
+
+    To use this feature, you can add `DepthHeuristic` to the set of heuristics used 
+    in `SabreSwap`, just as you would with "basic," "lookahead," or "decay." For example:
+
+    This enhancement gives users the flexibility to choose the heuristic best suited for 
+    their circuit, helping to improve performance by reducing the overall circuit depth 
+    when necessary.
