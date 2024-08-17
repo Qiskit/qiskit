@@ -1,4 +1,5 @@
 ---
 fixes:
   - |
-    The `from_backend` method of :class:`.InstructionDurations` now allows extracting instruction durations from both `BackendV1` and `BackendV2`.
+    Fixed a bug where :meth:`.InstructionDurations.from_backend` did not work for :class:`.BackendV2` backends.
+    Fixed `#12760 <https://github.com/Qiskit/qiskit/issues/12760>`.
