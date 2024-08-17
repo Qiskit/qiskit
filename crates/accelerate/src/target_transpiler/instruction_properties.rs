@@ -23,9 +23,9 @@ use pyo3::{prelude::*, pyclass};
 )]
 #[derive(Clone, Debug)]
 pub struct InstructionProperties {
-    #[pyo3(get, set)]
+    #[pyo3(get, set, name = "_duration")]
     pub duration: Option<f64>,
-    #[pyo3(get, set)]
+    #[pyo3(get, set, name = "_error")]
     pub error: Option<f64>,
 }
 
@@ -45,8 +45,13 @@ impl InstructionProperties {
         Self { error, duration }
     }
 
-    fn __getnewargs__(&self) -> PyResult<(Option<f64>, Option<f64>)> {
-        Ok((self.duration, self.error))
+    fn __getstate__(&self) -> (Option<f64>, Option<f64>) {
+        (self.duration, self.error)
+    }
+
+    fn __setstate__(&mut self, state: (Option<f64>, Option<f64>)) {
+        self.duration = state.0;
+        self.error = state.1;
     }
 
     fn __repr__(&self, _py: Python<'_>) -> String {
@@ -68,11 +73,16 @@ impl InstructionProperties {
 
 /// A mutable view of an `InstructionProperties` object that's stored solely in Rust.
 /// Only exposed to python when accessing the gate map in the `Target`.
-#[pyclass(frozen, weakref, mapping)]
+#[pyclass(
+    weakref,
+    mapping,
+    name = "InstructionPropertiesViewMut",
+    module = "qiskit._accelerate.target"
+)]
 pub(super) struct InstructionPropertiesViewMut {
     pub(super) source: Py<Target>,
     pub(super) key: String,
-    pub(super) sub_key: Option<Qargs>,
+    pub(super) sub_key: Box<Option<Qargs>>,
 }
 
 #[pymethods]
@@ -80,7 +90,8 @@ impl InstructionPropertiesViewMut {
     #[getter]
     fn get_duration(&self, py: Python) -> Option<f64> {
         let borrowed_source = self.source.borrow(py);
-        if let Some(inst_prop) = borrowed_source[&self.key][self.sub_key.as_ref()].as_ref() {
+        if let Some(inst_prop) = borrowed_source[&self.key][self.sub_key.as_ref().as_ref()].as_ref()
+        {
             inst_prop.duration.as_ref().copied()
         } else {
             None
@@ -90,7 +101,8 @@ impl InstructionPropertiesViewMut {
     #[getter]
     fn get_error(&self, py: Python) -> Option<f64> {
         let borrowed_source = self.source.borrow(py);
-        if let Some(inst_prop) = borrowed_source[&self.key][self.sub_key.as_ref()].as_ref() {
+        if let Some(inst_prop) = borrowed_source[&self.key][self.sub_key.as_ref().as_ref()].as_ref()
+        {
             inst_prop.error.as_ref().copied()
         } else {
             None
@@ -101,7 +113,7 @@ impl InstructionPropertiesViewMut {
     fn set_duration(&self, py: Python, new_val: Option<f64>) {
         let mut borrowed_source = self.source.borrow_mut(py);
         if let Some(Some(inst_prop)) =
-            borrowed_source.gate_map[&self.key].get_mut(self.sub_key.as_ref())
+            borrowed_source.gate_map[&self.key].get_mut(self.sub_key.as_ref().as_ref())
         {
             inst_prop.duration = new_val;
         } else {
@@ -113,7 +125,7 @@ impl InstructionPropertiesViewMut {
     fn set_error(&self, py: Python, new_val: Option<f64>) {
         let mut borrowed_source = self.source.borrow_mut(py);
         if let Some(Some(inst_prop)) =
-            borrowed_source.gate_map[&self.key].get_mut(self.sub_key.as_ref())
+            borrowed_source.gate_map[&self.key].get_mut(self.sub_key.as_ref().as_ref())
         {
             inst_prop.error = new_val;
         } else {

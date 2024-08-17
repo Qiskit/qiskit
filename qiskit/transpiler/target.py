@@ -150,30 +150,30 @@ class InstructionProperties(BaseInstructionProperties):
     @property
     def error(self):
         """The error rate for said instruction"""
-        if self._view is None:
-            return super().error
+        if getattr(self, "_view", None) is None:
+            return self._error
         else:
             return self._view.error
 
     @property
     def duration(self):
         """The duration of said instruction"""
-        if self._view is None:
-            return super().duration
+        if getattr(self, "_view", None) is None:
+            return self._duration
         else:
             return self._view.duration
 
     @error.setter
     def error(self, new_error):
-        if self._view is None:
-            super().error = new_error
+        if getattr(self, "_view", None) is None:
+            self._error = new_error
         else:
             self._view.error = new_error
 
     @duration.setter
     def duration(self, new_duration):
-        if self._view is None:
-            super().duration = new_duration
+        if getattr(self, "_view", None) is None:
+            self._duration = new_duration
         else:
             self._view.duration = new_duration
 
@@ -183,9 +183,13 @@ class InstructionProperties(BaseInstructionProperties):
             f", calibration={self._calibration})"
         )
 
-    def __getnewargs__(self) -> tuple:
-        duration, error = super().__getnewargs__()
-        return (duration, error, self.calibration, self._calibration, None)
+    def __getstate__(self) -> tuple:
+        return (self.duration, self.error, self._calibration, None)
+
+    def __setstate__(self, state: tuple):
+        super().__setstate__((state[0], state[1]))
+        self._calibration = state[2]
+        self._view = None
 
 
 class Target(BaseTarget):
@@ -953,11 +957,15 @@ class Target(BaseTarget):
         }
 
     def __setstate__(self, state: tuple):
+        super().__setstate__(state["base"])
         self._gate_map = state["_gate_map"]
+        for gate_name, props_map in self._gate_map.items():
+            for qargs, inst_prop in props_map.items():
+                if inst_prop is not None:
+                    inst_prop._view = super().__getitem__(gate_name)[qargs]
         self._coupling_graph = state["coupling_graph"]
         self._instruction_durations = state["instruction_durations"]
         self._instruction_schedule_map = state["instruction_schedule_map"]
-        super().__setstate__(state["base"])
 
     @classmethod
     def from_configuration(

@@ -914,7 +914,7 @@ impl Target {
                         InstructionPropertiesViewMut {
                             source: slf.clone_ref(key.py()),
                             key: extract_key.clone(),
-                            sub_key: sub_key.cloned(),
+                            sub_key: Box::new(sub_key.cloned()),
                         }
                         .into_py(key.py()),
                     )
