@@ -79,6 +79,13 @@ impl<T: Eq + Hash> IndexedInterner<T> {
             index_lookup: HashMap::new(),
         }
     }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            entries: Vec::with_capacity(capacity),
+            index_lookup: HashMap::with_capacity(capacity),
+        }
+    }
 }
 
 impl<T: Eq + Hash> Default for IndexedInterner<T> {
