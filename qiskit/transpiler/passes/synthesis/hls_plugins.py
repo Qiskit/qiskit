@@ -864,7 +864,7 @@ class MCXSynthesisMCPhase(HighLevelSynthesisPlugin):
 
     References:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
-            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
+           Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
 
