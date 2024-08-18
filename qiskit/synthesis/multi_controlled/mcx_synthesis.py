@@ -263,6 +263,9 @@ def synth_mcx_mcphase(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k` controls based on
     the implementation for MCPhaseGate.
 
+    In turn, the MCPhase gate uses the decomposition for multi-controlled
+    special unitaries described in [1].
+
     Produces a quantum circuit with :math:`k + 1` qubits.
     The number of CX-gates is quadratic in :math:`k`.
 
@@ -271,6 +274,11 @@ def synth_mcx_mcphase(num_ctrl_qubits: int) -> QuantumCircuit:
 
     Returns:
         The synthesized quantum circuit.
+
+    References:
+        1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
+            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
+           `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
     if num_ctrl_qubits == 3:
         return synth_c3x()

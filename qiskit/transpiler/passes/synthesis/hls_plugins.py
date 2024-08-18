@@ -853,7 +853,7 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
 
 class MCXSynthesisMCPhase(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the
-    implementation for MCPhaseGate.
+    implementation for MCPhaseGate, which is in turn based on [1].
 
     This plugin name is :``mcx.mcphase`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
@@ -861,6 +861,11 @@ class MCXSynthesisMCPhase(HighLevelSynthesisPlugin):
     For a multi-controlled X gate with :math:`k` control qubits this synthesis
     method requires no additional clean auxiliary qubits. The synthesized
     circuit consists of :math:`k + 1` qubits.
+
+    References:
+        1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
+            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
+           `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
