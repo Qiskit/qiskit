@@ -615,10 +615,11 @@ class Operator(LinearOp):
         ret._data = other * self._data
         return ret
 
-    def equal_with_ancillas(
+    def _equal_with_ancillas(
         self,
         other: Operator,
         ancilla_qubits: list,
+        ignore_phase: bool = False,
         rtol: float | None = None,
         atol: float | None = None,
     ) -> bool:
@@ -630,6 +631,7 @@ class Operator(LinearOp):
             ancilla_qubits: a list of clean ancilla qubits.
             rtol (float): relative tolerance value for comparison.
             atol (float): absolute tolerance value for comparison.
+            ignore_phase (bool): ignore complex-phase difference between matrices.
 
         Returns:
             bool: True if operators are equal up to clean ancilla qubits.
@@ -666,7 +668,7 @@ class Operator(LinearOp):
         restricted_other = permuted_other.data[: 2**num_non_ancillas, : 2**num_qubits]
 
         return matrix_equal(
-            restricted_self, restricted_other.data, ignore_phase=False, rtol=rtol, atol=atol
+            restricted_self, restricted_other.data, ignore_phase=ignore_phase, rtol=rtol, atol=atol
         )
 
     def equiv(self, other: Operator, rtol: float | None = None, atol: float | None = None) -> bool:

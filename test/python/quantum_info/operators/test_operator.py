@@ -1273,10 +1273,10 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(qc2)
 
         self.assertNotEqual(op1, op2)
-        self.assertFalse(op1.equal_with_ancillas(op2, []))
-        self.assertTrue(op1.equal_with_ancillas(op2, [1]))
-        self.assertFalse(op1.equal_with_ancillas(op2, [2]))
-        self.assertTrue(op1.equal_with_ancillas(op2, [2, 1]))
+        self.assertFalse(op1._equal_with_ancillas(op2, []))
+        self.assertTrue(op1._equal_with_ancillas(op2, [1]))
+        self.assertFalse(op1._equal_with_ancillas(op2, [2]))
+        self.assertTrue(op1._equal_with_ancillas(op2, [2, 1]))
 
 
 if __name__ == "__main__":
