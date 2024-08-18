@@ -1169,6 +1169,19 @@ class MCXGate(ControlledGate):
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     @staticmethod
+    @deprecate_func(
+        additional_msg=(
+            "For an MCXGate it is no longer possible to know the number of ancilla qubits "
+            "that would be eventually used by the transpiler when the gate is created. "
+            "Instead, it is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "However, if a specific synthesis method using a specific number of ancilla "
+            "qubits is require, one can create a custom gate by calling the corresponding "
+            "synthesis function directly."
+        ),
+        since="1.3",
+        pending=True,
+    )
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
 
@@ -1270,11 +1283,11 @@ class MCXGrayCode(MCXGate):
 
     @deprecate_func(
         additional_msg=(
-            "It is recommended to use :class:`.MCXGate` and let :class:`.HighLevelSynthesis` choose "
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
             "the best synthesis method depending on the number of ancilla qubits available. "
-            "If this specific synthesis method is required, one can specify it using the plugin "
-            "interface. Alternatively, one can use :func:`.synth_mcx_gray_code` to construct "
-            "the gate directly."
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugin `gray_code` for MCX gates, or, alternatively, "
+            "one can use synth_mcx_gray_code to construct the gate directly."
         ),
         since="1.3",
         pending=True,
@@ -1325,11 +1338,11 @@ class MCXRecursive(MCXGate):
 
     @deprecate_func(
         additional_msg=(
-            "It is recommended to use :class:`.MCXGate` and let :class:`.HighLevelSynthesis` choose "
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
             "the best synthesis method depending on the number of ancilla qubits available. "
-            "If this specific synthesis method is required, one can specify it using the plugin "
-            "interface. Alternatively, one can use :func:`.synth_mcx_1_clean_b95` to construct "
-            "the gate directly."
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugin `mcx_1_clean` for MCX gates, or, alternatively, "
+            "one can use synch_mcx_1_clean to construct the gate directly."
         ),
         since="1.3",
         pending=True,
@@ -1415,11 +1428,12 @@ class MCXVChain(MCXGate):
 
     @deprecate_func(
         additional_msg=(
-            "It is recommended to use :class:`.MCXGate` and let :class:`.HighLevelSynthesis` choose "
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
             "the best synthesis method depending on the number of ancilla qubits available. "
-            "If this specific synthesis method is required, one can specify it using the plugin "
-            "interface. Alternatively, one can use :func:`.synth_mcx_n_dirty_i15` and "
-            "synth_mcx_n_clean_m15 to construct the gate directly."
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugins `n_clean_m15` (using clean ancillas) or "
+            "`n_dirty_i15` (using dirty ancillas) for MCX gates. Alternatively, one can "
+            "use synth_mcx_n_dirty_i15 and synth_mcx_n_clean_m15 to construct the gate directly."
         ),
         since="1.3",
         pending=True,
