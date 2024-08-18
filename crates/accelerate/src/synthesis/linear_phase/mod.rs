@@ -21,6 +21,17 @@ use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
 
 pub(crate) mod cz_depth_lnn;
 
+/// Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
+/// based on Maslov and Roetteler.
+///
+///  Note that this method *reverts* the order of qubits in the circuit,
+///  and returns a circuit containing :class:`.CXGate`\s and phase gates
+/// (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
+///
+/// References:
+///     1. Dmitri Maslov, Martin Roetteler,
+///        *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
+///        `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
 #[pyfunction]
 #[pyo3(signature = (mat))]
 fn synth_cz_depth_line_mr(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {

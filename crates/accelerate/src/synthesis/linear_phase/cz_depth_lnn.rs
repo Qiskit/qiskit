@@ -28,8 +28,8 @@ use crate::synthesis::permutation::{_append_cx_stage1, _append_cx_stage2};
 // Represents the return type for Lnn Synthesis algorithms
 pub(crate) type LnnGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
-// A pattern denoted by Pj in [1] for odd number of qubits:
-// [n-2, n-4, n-4, ..., 3, 3, 1, 1, 0, 0, 2, 2, ..., n-3, n-3]
+/// A pattern denoted by Pj in [1] for odd number of qubits:
+/// [n-2, n-4, n-4, ..., 3, 3, 1, 1, 0, 0, 2, 2, ..., n-3, n-3]
 fn _odd_pattern1(n: usize) -> Vec<usize> {
     once(n - 2)
         .chain((0..((n - 3) / 2)).flat_map(|i| [(n - 2 * i - 4); 2]))
@@ -37,8 +37,8 @@ fn _odd_pattern1(n: usize) -> Vec<usize> {
         .collect()
 }
 
-// A pattern denoted by Pk in [1] for odd number of qubits:
-// [2, 2, 4, 4, ..., n-1, n-1, n-2, n-2, n-4, n-4, ..., 5, 5, 3, 3, 1]
+/// A pattern denoted by Pk in [1] for odd number of qubits:
+/// [2, 2, 4, 4, ..., n-1, n-1, n-2, n-2, n-4, n-4, ..., 5, 5, 3, 3, 1]
 fn _odd_pattern2(n: usize) -> Vec<usize> {
     (0..((n - 1) / 2))
         .flat_map(|i| [(2 * i + 2); 2])
@@ -47,8 +47,8 @@ fn _odd_pattern2(n: usize) -> Vec<usize> {
         .collect()
 }
 
-// A pattern denoted by Pj in [1] for even number of qubits:
-// [n-1, n-3, n-3, n-5, n-5, ..., 1, 1, 0, 0, 2, 2, ..., n-4, n-4, n-2]
+/// A pattern denoted by Pj in [1] for even number of qubits:
+/// [n-1, n-3, n-3, n-5, n-5, ..., 1, 1, 0, 0, 2, 2, ..., n-4, n-4, n-2]
 fn _even_pattern1(n: usize) -> Vec<usize> {
     once(n - 1)
         .chain((0..((n - 2) / 2)).flat_map(|i| [n - 2 * i - 3; 2]))
@@ -57,8 +57,8 @@ fn _even_pattern1(n: usize) -> Vec<usize> {
         .collect()
 }
 
-// A pattern denoted by Pk in [1] for even number of qubits:
-// [2, 2, 4, 4, ..., n-2, n-2, n-1, n-1, ..., 3, 3, 1, 1]
+/// A pattern denoted by Pk in [1] for even number of qubits:
+/// [2, 2, 4, 4, ..., n-2, n-2, n-1, n-1, ..., 3, 3, 1, 1]
 fn _even_pattern2(n: usize) -> Vec<usize> {
     (0..((n - 2) / 2))
         .flat_map(|i| [2 * (i + 1); 2])
@@ -66,7 +66,7 @@ fn _even_pattern2(n: usize) -> Vec<usize> {
         .collect()
 }
 
-// Creating the patterns for the phase layers.
+/// Creating the patterns for the phase layers.
 fn _create_patterns(n: usize) -> HashMap<(usize, usize), (usize, usize)> {
     let (pat1, pat2) = if n % 2 == 0 {
         (_even_pattern1(n), _even_pattern2(n))
@@ -90,7 +90,7 @@ fn _create_patterns(n: usize) -> HashMap<(usize, usize), (usize, usize)> {
     ))
 }
 
-// Appends correct phase gate during CZ synthesis
+/// Appends correct phase gate during CZ synthesis
 fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
     // Add phase gates: s, sdg or z
     let gate_id = pat_val % 4;
@@ -106,8 +106,8 @@ fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
     }
 }
 
-// Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
-// based on Maslov and Roetteler.
+/// Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
+/// based on Maslov and Roetteler.
 pub(super) fn synth_cz_depth_line_mr_inner(matrix: ArrayView2<bool>) -> (usize, LnnGatesVec) {
     let num_qubits = matrix.raw_dim()[0];
     let pats = _create_patterns(num_qubits);

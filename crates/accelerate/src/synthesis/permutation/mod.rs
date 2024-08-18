@@ -116,7 +116,7 @@ pub fn _synth_permutation_depth_lnn_kms(
     )
 }
 
-// A single layer of CX gates.
+/// A single layer of CX gates.
 pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
     for i in 0..(n / 2) {
         gates.push((
@@ -135,7 +135,7 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
     }
 }
 
-// A single layer of CX gates.
+/// A single layer of CX gates.
 pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
     for i in 0..(n / 2) {
         gates.push((
@@ -154,8 +154,8 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
     }
 }
 
-// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
-// using Kutin, Moulton, Smithline method.
+/// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
+/// using Kutin, Moulton, Smithline method.
 fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
     (0..(num_qubits + 1) / 2).for_each(|_| {
         _append_cx_stage1(gates, num_qubits);
@@ -167,6 +167,17 @@ fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usiz
     }
 }
 
+/// Synthesize reverse permutation for linear nearest-neighbor architectures using
+/// Kutin, Moulton, Smithline method.
+///
+/// Synthesis algorithm for reverse permutation from [1], section 5.
+/// This algorithm synthesizes the reverse permutation on :math:`n` qubits over
+/// a linear nearest-neighbor architecture using CX gates with depth :math:`2 * n + 2`.
+///
+/// References:
+///     1. Kutin, S., Moulton, D. P., Smithline, L.,
+///        *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
+///        `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
 #[pyfunction]
 #[pyo3(signature = (num_qubits))]
 fn synth_permutation_reverse_lnn_kms(py: Python, num_qubits: usize) -> PyResult<CircuitData> {
