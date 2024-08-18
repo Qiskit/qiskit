@@ -466,7 +466,7 @@ class TestInitialize(QiskitTestCase):
         self.assertEqual(decom_circ.data[2].operation.params, ["0", "0"])
 
     def test_gates_to_uncompute(self):
-        """Initialize a uniform superposition on 2 qubits."""
+        """Test the gates_to_uncompute() method."""
         desired_vector = [0.5, 0.5, 0.5, 0.5]
         initialize = Initialize(desired_vector)
         qc = initialize.gates_to_uncompute().inverse()
