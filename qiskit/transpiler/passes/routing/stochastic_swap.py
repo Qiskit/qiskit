@@ -59,6 +59,7 @@ class StochasticSwap(TransformationPass):
         2. We do not use the fact that the input state is zero to simplify
            the circuit.
     """
+
     @deprecate_func(
         since="1.3",
         removal_timeline="in the 2.0 release",

@@ -1573,11 +1573,11 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
         circuit = random_circuit(size, 3, measure=True, seed=12342)
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            circuit,
-            self.backend,
-            routing_method="stochastic",
-            layout_method="dense",
-            seed_transpiler=12342,
+                circuit,
+                self.backend,
+                routing_method="stochastic",
+                layout_method="dense",
+                seed_transpiler=12342,
             )
         self.assert_valid_circuit(tqc)
 
@@ -1587,14 +1587,14 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
         circuit = random_circuit(size, 3, measure=True, seed=12342)
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            circuit,
-            routing_method="stochastic",
-            layout_method="dense",
-            seed_transpiler=12342,
-            target=GenericBackendV2(
-                num_qubits=27,
-                coupling_map=MUMBAI_CMAP,
-            ).target,
+                circuit,
+                routing_method="stochastic",
+                layout_method="dense",
+                seed_transpiler=12342,
+                target=GenericBackendV2(
+                    num_qubits=27,
+                    coupling_map=MUMBAI_CMAP,
+                ).target,
             )
         self.assert_valid_circuit(tqc)
 
@@ -1612,12 +1612,12 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            circuit,
-            self.backend,
-            basis_gates=list(self.basis_gates),
-            routing_method="stochastic",
-            layout_method="dense",
-            seed_transpiler=12342,
+                circuit,
+                self.backend,
+                basis_gates=list(self.basis_gates),
+                routing_method="stochastic",
+                layout_method="dense",
+                seed_transpiler=12342,
             )
         self.assert_valid_circuit(tqc)
 
@@ -1642,12 +1642,12 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            circuit,
-            self.backend,
-            basis_gates=list(self.basis_gates),
-            routing_method="stochastic",
-            layout_method="dense",
-            seed_transpiler=12342,
+                circuit,
+                self.backend,
+                basis_gates=list(self.basis_gates),
+                routing_method="stochastic",
+                layout_method="dense",
+                seed_transpiler=12342,
             )
         self.assert_valid_circuit(tqc)
 
