@@ -538,6 +538,6 @@ def _parse_approximation_degree(approximation_degree):
 def _parse_seed_transpiler(seed_transpiler):
     if seed_transpiler is None:
         return None
-    if not type(seed_transpiler) == int or seed_transpiler < 0:
+    if not isinstance(seed_transpiler, int) or seed_transpiler < 0:
         raise ValueError("Expected non-negative integer as seed for transpiler.")
     return seed_transpiler
