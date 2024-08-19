@@ -1531,10 +1531,14 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
 
     def test_negative_seed_transpiler_raises_value_error(self):
         """Test that negative seed for transpiler raises a ValueError"""
-        with self.assertRaisesRegex(ValueError, "Expected non-negative integer as seed for transpiler."):
+        with self.assertRaisesRegex(
+            ValueError, "Expected non-negative integer as seed for transpiler."
+        ):
             generate_preset_pass_manager(optimization_level=1, seed_transpiler=-1)
 
-        with self.assertRaisesRegex(ValueError, "Expected non-negative integer as seed for transpiler."):
+        with self.assertRaisesRegex(
+            ValueError, "Expected non-negative integer as seed for transpiler."
+        ):
             generate_preset_pass_manager(seed_transpiler=-1)
 
 
