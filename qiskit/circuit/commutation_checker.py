@@ -21,6 +21,7 @@ from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators import Operator
+from qiskit.utils import deprecate_func
 
 _skipped_op_names = {"measure", "reset", "delay", "initialize"}
 _no_cache_op_names = {"annotated"}
@@ -63,6 +64,13 @@ class CommutationChecker:
     evicting from the cache less useful entries, etc.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "This Python implementation will stop to be maintained in the future. Instead, use the Rust"
+            " implementation at :data:`~.SessionCommutationChecker`."
+        ),
+        since="1.2.0",
+    )
     def __init__(
         self,
         standard_gate_commutations: dict = None,
