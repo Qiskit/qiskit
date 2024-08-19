@@ -3159,6 +3159,10 @@ def _format(operand):
                                     unit: None,
                                 }));
                             }
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
                         }
                         in_dag.push_back(py, new_inst)?;
                     }
