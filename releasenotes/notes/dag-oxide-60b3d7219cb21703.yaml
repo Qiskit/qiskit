@@ -4,9 +4,9 @@ features_transpiler:
     The implementation of the :class:`.DAGCircuit` has been rewritten in Rust. This rewrite of
     the Python class should be fully API compatible with the previous Python implementation of
     the class. While the class was previously implemented using
-    `rustworkx <https://www.rustworkx.org/>`__ and it's underlying data graph structure existed
+    `rustworkx <https://www.rustworkx.org/>`__ and its underlying data graph structure existed
     in Rust, the implementation of the class and all the data was stored in Python. This new
-    version of :class:`.DAGCircuit` stores a Rust native representation for all it's data and
+    version of :class:`.DAGCircuit` stores a Rust native representation for all its data and
     is fully implemented in Rust. This new implementation should be more efficient in memory
     usage as it compresses     the qubit and clbit representation for instructions at rest.
     It also enables speed up for     transpiler passes as they can fully manipulate a
@@ -14,7 +14,7 @@ features_transpiler:
 upgrade_transpiler:
   - |
     :class:`.DAGNode` objects (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and
-    :class:`.DAGOpNode`) are no longer returning references to the same underlying object from
+    :class:`.DAGOpNode`) no longer return references to the same underlying object from
     :class:`.DAGCircuit` methods. This was never a guarantee before that all returned nodes would
     be shared reference to the same object, but with the migration of the :class:`.DAGCircuit` to
     Rust when a :class:`.DAGNode` a new :class:`.DAGNode` instance is generated on the fly when
