@@ -3,6 +3,7 @@ deprecations_transpiler:
   - |
     Deprecated ``StochasticSwap`` which has been superseded by :class:`.SabreSwap`. 
     If the class is called from the transpile method, the change would be, for example:: 
+
       tqc = transpile(
         circuit,
         routing_method="stochastic",
@@ -13,7 +14,9 @@ deprecations_transpiler:
             coupling_map=MUMBAI_CMAP,
         ).target,
         ) 
+    
     to::
+
       tqc = transpile(
         circuit,
         routing_method="sabre",
@@ -26,14 +29,18 @@ deprecations_transpiler:
         )   
 
     While for a pass mananager change::
+
       qr = QuantumRegister(4, "q")
       qc = QuantumCircuit(qr)
       passmanager = StochasticSwap(coupling, 20, 13)
       new_qc = passmanager.run(qc)
+
     to::
+
       qr = QuantumRegister(5, "q")
       qc = QuantumCircuit(qr) 
       passmanager = PassManager(SabreSwap(target, "basic"))
       new_qc = passmanager.run(qc)
+      
 
 
