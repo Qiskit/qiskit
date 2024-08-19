@@ -40,7 +40,6 @@ use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
 };
 
-use rustworkx_core::connectivity::connected_components as core_connected_components;
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
 use rustworkx_core::graph_ext::ContractNodesDirected;
@@ -50,7 +49,7 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex};
 use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
-    EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeIndexable,
+    EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,
 };
 use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::traversal::{
@@ -197,6 +196,13 @@ impl _VarIndexMap {
     pub fn values<'py>(&self, py: Python<'py>) -> impl Iterator<Item = NodeIndex> + 'py {
         let values = self.dict.bind(py).values();
         values.iter().map(|x| NodeIndex::new(x.extract().unwrap()))
+    }
+
+    pub fn iter<'py>(&self, py: Python<'py>) -> impl Iterator<Item = (PyObject, NodeIndex)> + 'py {
+        self.dict
+            .bind(py)
+            .iter()
+            .map(|(var, index)| (var.unbind(), NodeIndex::new(index.extract().unwrap())))
     }
 }
 
@@ -3548,7 +3554,7 @@ def _format(operand):
         remove_idle_qubits: bool,
         vars_mode: &str,
     ) -> PyResult<Py<PyList>> {
-        let connected_components = core_connected_components(&self.dag);
+        let connected_components = rustworkx_core::connectivity::connected_components(&self.dag);
         let dags = PyList::empty_bound(py);
 
         for comp_nodes in connected_components.iter() {
@@ -3603,35 +3609,42 @@ def _format(operand):
             if !non_classical {
                 continue;
             }
+            let node_filter = |node: NodeIndex| -> bool { node_map.contains_key(&node) };
 
-            // Handling the edges in the new dag
-            for node in comp_nodes {
-                // Since the nodes comprise an SCC, it's enough to just look at the (e.g.) outgoing edges
-                let outgoing_edges = self.dag.edges_directed(*node, Direction::Outgoing);
+            let filtered = NodeFiltered(&self.dag, node_filter);
 
-                // Remove the edges added by copy_empty_like (as idle wires) to avoid duplication
-                if let Some(NodeType::QubitIn(_)) | Some(NodeType::ClbitIn(_)) =
-                    self.dag.node_weight(*node)
-                {
-                    let edges: Vec<EdgeIndex> = new_dag.dag.edges(*node).map(|e| e.id()).collect();
-                    for edge in edges {
-                        new_dag.dag.remove_edge(edge);
-                    }
-                }
-
-                for e in outgoing_edges {
-                    let (source, target) = (e.source(), e.target());
-                    let edge_weight = e.weight();
-                    let (source_new, target_new) = (
-                        node_map.get(&source).unwrap(),
-                        node_map.get(&target).unwrap(),
-                    );
+            // Remove the edges added by copy_empty_like (as idle wires) to avoid duplication
+            new_dag.dag.clear_edges();
+            for edge in filtered.edge_references() {
+                let new_source = node_map[&edge.source()];
+                let new_target = node_map[&edge.target()];
+                new_dag
+                    .dag
+                    .add_edge(new_source, new_target, edge.weight().clone());
+            }
+            // Add back any edges for idle wires
+            for (qubit, [in_node, out_node]) in new_dag.qubit_io_map.iter() {
+                if new_dag.dag.edges(*in_node).next().is_none() {
                     new_dag
                         .dag
-                        .add_edge(*source_new, *target_new, edge_weight.clone());
+                        .add_edge(*in_node, *out_node, Wire::Qubit(*qubit));
                 }
             }
-
+            for (clbit, [in_node, out_node]) in new_dag.clbit_io_map.iter() {
+                if new_dag.dag.edges(*in_node).next().is_none() {
+                    new_dag
+                        .dag
+                        .add_edge(*in_node, *out_node, Wire::Clbit(*clbit));
+                }
+            }
+            for (var, in_node) in new_dag.var_input_map.iter(py) {
+                if new_dag.dag.edges(in_node).next().is_none() {
+                    let out_node = new_dag.var_output_map.get(py, &var).unwrap();
+                    new_dag
+                        .dag
+                        .add_edge(in_node, out_node, Wire::Var(var.clone_ref(py)));
+                }
+            }
             if remove_idle_qubits {
                 let idle_wires: Vec<Bound<PyAny>> = new_dag
                     .idle_wires(py, None)?
