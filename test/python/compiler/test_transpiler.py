@@ -3808,7 +3808,8 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     # Lookahead swap skipped for performance reasons
     @data("stochastic")
     def test_six_component_circuit_dense_layout_stochastic(self, routing_method):
-        """Test input circuit with more than 1 component per backend component for deprecated ``StochasticSwap``."""
+        """Test input circuit with more than 1 component per backend component
+        for deprecated ``StochasticSwap``."""
         # TODO remove when StochasticSwap will is removed
         qc = QuantumCircuit(42)
         qc.h(0)
