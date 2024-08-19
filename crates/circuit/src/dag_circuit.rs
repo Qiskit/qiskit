@@ -4700,7 +4700,7 @@ def _format(operand):
         if !recurse
             || !CONTROL_FLOW_OP_NAMES
                 .iter()
-                .any(|x| self.op_names.contains_key(&x.to_string()))
+                .any(|x| self.op_names.contains_key(*x))
         {
             Ok(self.op_names.to_object(py))
         } else {
