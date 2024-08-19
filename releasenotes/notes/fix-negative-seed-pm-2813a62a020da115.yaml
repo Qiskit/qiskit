@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Raise a `ValueError` if :meth:`.generate_preset_pass_manager` is provided
-    with a negative value for the `seed_transpiler` argument.
+    Raise a `ValueError` exception if :meth:`.generate_preset_pass_manager` is
+    not provided with a non-negative integer `seed_transpiler` argument.
