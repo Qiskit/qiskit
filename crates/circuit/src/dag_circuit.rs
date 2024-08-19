@@ -4858,15 +4858,15 @@ def _format(operand):
     }
 
     /// Return a dictionary of circuit properties.
-    fn properties(&self, py: Python) -> PyResult<HashMap<&str, usize>> {
+    fn properties(&self, py: Python) -> PyResult<HashMap<&str, PyObject>> {
         Ok(HashMap::from_iter([
-            ("size", self.size(py, false)?),
-            ("depth", self.depth(py, false)?),
-            ("width", self.width()),
-            ("qubits", self.num_qubits()),
-            ("bits", self.num_clbits()),
-            ("factors", self.num_tensor_factors()),
-            //          ("operations", self.count_ops(true)?),
+            ("size", self.size(py, false)?.into_py(py)),
+            ("depth", self.depth(py, false)?.into_py(py)),
+            ("width", self.width().into_py(py)),
+            ("qubits", self.num_qubits().into_py(py)),
+            ("bits", self.num_clbits().into_py(py)),
+            ("factors", self.num_tensor_factors().into_py(py)),
+            ("operations", self.count_ops(py, true)?),
         ]))
     }
 
