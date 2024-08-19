@@ -4041,17 +4041,28 @@ def _format(operand):
         include_directives: bool,
     ) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
+        let filter_is_nonstandard = if let Some(op) = op {
+            op.getattr(intern!(py, "_standard_gate")).ok().is_none()
+        } else {
+            true
+        };
         for (node, weight) in self.dag.node_references() {
             if let NodeType::Operation(packed) = &weight {
                 if !include_directives && packed.op.directive() {
                     continue;
                 }
                 if let Some(op_type) = op {
-                    if !packed.op.py_op_is_instance(op_type)? {
-                        continue;
+                    // This middle catch is to avoid Python-space operation creation for most uses of
+                    // `op`; we're usually just looking for control-flow ops, and standard gates
+                    // aren't control-flow ops.
+                    if !(filter_is_nonstandard && packed.op.try_standard_gate().is_some())
+                        && packed.op.py_op_is_instance(op_type)?
+                    {
+                        nodes.push(self.unpack_into(py, node, weight)?);
                     }
+                } else {
+                    nodes.push(self.unpack_into(py, node, weight)?);
                 }
-                nodes.push(self.unpack_into(py, node, weight)?);
             }
         }
         Ok(nodes)
