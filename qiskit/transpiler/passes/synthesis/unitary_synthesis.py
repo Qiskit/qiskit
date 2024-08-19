@@ -54,7 +54,7 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import QiskitError
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
