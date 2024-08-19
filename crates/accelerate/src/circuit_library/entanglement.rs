@@ -15,7 +15,6 @@ use pyo3::{
     types::{PyAnyMethods, PyInt, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
 };
-use qiskit_circuit::slice::PySequenceIndex;
 
 use crate::QiskitError;
 
@@ -80,16 +79,12 @@ pub fn shift_circular_alternating(
     block_size: u32,
     offset: usize,
 ) -> Box<dyn Iterator<Item = Vec<u32>>> {
-    // index at which we split the circular iterator -- remember that circular entanglement is a
-    // list of length ``num_qubits``, which is what we use in the ``convert_idx`` function here
-    let split = PySequenceIndex::convert_idx(
-        -((offset % num_qubits as usize) as isize),
-        num_qubits as usize,
-    )
-    .expect("Something went wrong converting the offset to a negative index.");
+    // index at which we split the circular iterator -- we use Python-like indexing here,
+    // and define ``split`` as equivalent to a Python index of ``-offset``
+    let split = (num_qubits - (offset as u32 % num_qubits)) % num_qubits;
     let shifted = circular(num_qubits, block_size)
-        .skip(split)
-        .chain(circular(num_qubits, block_size).take(split));
+        .skip(split as usize)
+        .chain(circular(num_qubits, block_size).take(split as usize));
     if offset % 2 == 0 {
         Box::new(shifted)
     } else {
