@@ -60,9 +60,9 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        with self.assetWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         self.assertEqual(dag, after)
 
@@ -84,9 +84,9 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = circuit_to_dag(circuit)
-        with self.assetWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         self.assertEqual(dag, after)
 
@@ -111,9 +111,9 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-        with self.assetWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 11)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[0], qr[2])
@@ -143,9 +143,9 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
-        with self.assetWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 11)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[1], qr[2])
@@ -180,9 +180,9 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        with self.assetWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[0], qr[1])
@@ -220,9 +220,9 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        with self.assetWarns(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
         expected.h(qr[3])
@@ -262,7 +262,7 @@ class TestStochasticSwap(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[0], qr[1])
@@ -292,7 +292,7 @@ class TestStochasticSwap(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
         self.assertEqual(dag, after)
 
     def test_overoptimization_case(self):
@@ -373,7 +373,7 @@ class TestStochasticSwap(QiskitTestCase):
         #  qr[3]: 3}
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 19)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         self.assertEqual(expected_dag, after)
 
@@ -400,7 +400,7 @@ class TestStochasticSwap(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 13)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
         self.assertEqual(circuit_to_dag(circ), after)
 
     def test_congestion(self):
@@ -477,7 +477,7 @@ class TestStochasticSwap(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 999)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
         self.assertEqual(expected_dag, after)
 
     def test_only_output_cx_and_swaps_in_coupling_map(self):
@@ -496,7 +496,7 @@ class TestStochasticSwap(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, 20, 5)
-        after = pass_.run(dag)
+            after = pass_.run(dag)
 
         valid_couplings = [{qr[a], qr[b]} for (a, b) in coupling.get_edges()]
 
@@ -564,7 +564,7 @@ class TestStochasticSwap(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             stochastic = StochasticSwap(CouplingMap(coupling_map), seed=0)
-        after = PassManager(stochastic).run(circuit)
+            after = PassManager(stochastic).run(circuit)
         after = circuit_to_dag(after)
         self.assertEqual(expected_dag, after)
 
@@ -594,8 +594,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=82).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -635,8 +635,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=431).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -678,8 +678,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=6508).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -719,8 +719,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=38).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -758,8 +758,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=8).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -802,8 +802,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=2, trials=20).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -851,8 +851,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=1).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -894,8 +894,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=58).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
     def test_if_else_expr(self):
@@ -916,8 +916,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=58).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
     def test_standalone_vars(self):
@@ -960,7 +960,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         cm = CouplingMap.from_line(5)
         with self.assertWarns(DeprecationWarning):
             pm = PassManager([StochasticSwap(cm, seed=0), CheckMap(cm)])
-        _ = pm.run(qc)
+            _ = pm.run(qc)
         self.assertTrue(pm.property_set["is_swap_mapped"])
 
     def test_no_layout_change(self):
@@ -985,8 +985,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=23).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -1026,8 +1026,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=687).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -1061,8 +1061,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=58).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -1094,8 +1094,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=58).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
     def test_switch_single_case(self):
@@ -1113,7 +1113,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         coupling = CouplingMap.from_line(len(qreg))
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, seed=58)
-        test = pass_(qc)
+            test = pass_(qc)
 
         check = CheckMap(coupling)
         check(test)
@@ -1153,7 +1153,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         coupling = CouplingMap.from_line(len(qreg))
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, seed=58)
-        test = pass_(qc)
+            test = pass_(qc)
 
         check = CheckMap(coupling)
         check(test)
@@ -1199,7 +1199,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         coupling = CouplingMap.from_line(len(qreg))
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, seed=58)
-        test = pass_(qc)
+            test = pass_(qc)
 
         check = CheckMap(coupling)
         check(test)
@@ -1238,7 +1238,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         coupling = CouplingMap.from_line(len(qreg))
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, seed=58)
-        test = pass_(qc)
+            test = pass_(qc)
 
         check = CheckMap(coupling)
         check(test)
@@ -1284,7 +1284,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         coupling = CouplingMap.from_line(len(qreg))
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, seed=58)
-        test = pass_(qc)
+            test = pass_(qc)
 
         check = CheckMap(coupling)
         check(test)
@@ -1330,8 +1330,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=seed).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -1386,8 +1386,8 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         dag = circuit_to_dag(qc)
         with self.assertWarns(DeprecationWarning):
             cdag = StochasticSwap(coupling, seed=seed).run(dag)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(cdag)
+            check_map_pass = CheckMap(coupling)
+            check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
@@ -1505,7 +1505,7 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         coupling = CouplingMap.from_line(8)
         with self.assertWarns(DeprecationWarning):
             pass_ = StochasticSwap(coupling, seed=2022_10_13)
-        transpiled = pass_(qc)
+            transpiled = pass_(qc)
 
         # Check the pass claims to have done things right.
         initial_layout = Layout.generate_trivial_layout(*qc.qubits)
