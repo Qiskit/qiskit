@@ -2293,78 +2293,29 @@ def _format(operand):
         let phase_is_close = |self_phase: f64, other_phase: f64| -> bool {
             ((self_phase - other_phase + PI).rem_euclid(2. * PI) - PI).abs() <= 1.0e-10
         };
-        match [&self.global_phase, &other.global_phase] {
+        let normalize_param = |param: &Param| {
+            if let Param::ParameterExpression(ob) = param {
+                ob.bind(py)
+                    .call_method0(intern!(py, "numeric"))
+                    .ok()
+                    .map(|ob| ob.extract::<Param>())
+                    .unwrap_or_else(|| Ok(param.clone()))
+            } else {
+                Ok(param.clone())
+            }
+        };
+
+        let phase_eq = match [
+            normalize_param(&self.global_phase)?,
+            normalize_param(&other.global_phase)?,
+        ] {
             [Param::Float(self_phase), Param::Float(other_phase)] => {
-                if !phase_is_close(*self_phase, *other_phase) {
-                    return Ok(false);
-                }
+                Ok(phase_is_close(self_phase, other_phase))
             }
-            [Param::Float(self_phase), Param::ParameterExpression(other_phase_param)] => {
-                let other_phase = if let Ok(other_phase) =
-                    other_phase_param.call_method0(py, intern!(py, "numeric"))
-                {
-                    other_phase.extract::<Param>(py)?
-                } else {
-                    Param::ParameterExpression(other_phase_param.clone_ref(py))
-                };
-                if let Param::Float(other_phase) = other_phase {
-                    if !phase_is_close(*self_phase, other_phase) {
-                        return Ok(false);
-                    }
-                } else if !self.global_phase.eq(py, &other.global_phase)? {
-                    return Ok(false);
-                }
-            }
-            [Param::ParameterExpression(self_phase_param), Param::ParameterExpression(other_phase_param)] =>
-            {
-                let self_phase = if let Ok(self_phase) =
-                    self_phase_param.call_method0(py, intern!(py, "numeric"))
-                {
-                    self_phase.extract::<Param>(py)?
-                } else {
-                    Param::ParameterExpression(self_phase_param.clone_ref(py))
-                };
-                let other_phase = if let Ok(other_phase) =
-                    other_phase_param.call_method0(py, intern!(py, "numeric"))
-                {
-                    other_phase.extract::<Param>(py)?
-                } else {
-                    Param::ParameterExpression(other_phase_param.clone_ref(py))
-                };
-                match [self_phase, other_phase] {
-                    [Param::Float(self_phase), Param::Float(other_phase)] => {
-                        if !phase_is_close(self_phase, other_phase) {
-                            return Ok(false);
-                        }
-                    }
-                    _ => {
-                        if !self.global_phase.eq(py, &other.global_phase)? {
-                            return Ok(false);
-                        }
-                    }
-                }
-            }
-            [Param::ParameterExpression(self_phase_param), Param::Float(other_phase)] => {
-                let self_phase = if let Ok(self_phase) =
-                    self_phase_param.call_method0(py, intern!(py, "numeric"))
-                {
-                    self_phase.extract::<Param>(py)?
-                } else {
-                    Param::ParameterExpression(self_phase_param.clone_ref(py))
-                };
-                if let Param::Float(self_phase) = self_phase {
-                    if !phase_is_close(self_phase, *other_phase) {
-                        return Ok(false);
-                    }
-                } else if !self.global_phase.eq(py, &other.global_phase)? {
-                    return Ok(false);
-                }
-            }
-            _ => {
-                if !self.global_phase.eq(py, &other.global_phase)? {
-                    return Ok(false);
-                }
-            }
+            _ => self.global_phase.eq(py, &other.global_phase),
+        }?;
+        if !phase_eq {
+            return Ok(false);
         }
         if self.calibrations.len() != other.calibrations.len() {
             return Ok(false);
@@ -2471,64 +2422,64 @@ def _format(operand):
                     if inst1.op.name() != inst2.op.name() {
                         return Ok(false);
                     }
-                    let node1_qargs = self.qargs_cache.intern(inst1.qubits);
-                    let node2_qargs = other.qargs_cache.intern(inst2.qubits);
-                    let node1_cargs = self.cargs_cache.intern(inst1.clbits);
-                    let node2_cargs = other.cargs_cache.intern(inst2.clbits);
-                    match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::Standard(op1), OperationRef::Standard(_op2)] => {
-                            if !inst1.py_op_eq(py, inst2)? {
-                                return Ok(false);
+                    let check_args = || -> bool {
+                        let node1_qargs = self.qargs_cache.intern(inst1.qubits);
+                        let node2_qargs = other.qargs_cache.intern(inst2.qubits);
+                        let node1_cargs = self.cargs_cache.intern(inst1.clbits);
+                        let node2_cargs = other.cargs_cache.intern(inst2.clbits);
+                        if SEMANTIC_EQ_SYMMETRIC.contains(&inst1.op.name()) {
+                            let node1_qargs =
+                                node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                            let node2_qargs =
+                                node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
+                            let node1_cargs =
+                                node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                            let node2_cargs =
+                                node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
+                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                return false;
                             }
-                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
-                                let node1_qargs =
-                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node2_qargs =
-                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node1_cargs =
-                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                let node2_cargs =
-                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                    return Ok(false);
-                                }
-                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-                            let conditions_eq = if let Some(cond1) = inst1
+                        } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                            return false;
+                        }
+                        true
+                    };
+                    let check_conditions = || -> PyResult<bool> {
+                        if let Some(cond1) = inst1
+                            .extra_attrs
+                            .as_ref()
+                            .and_then(|attrs| attrs.condition.as_ref())
+                        {
+                            if let Some(cond2) = inst2
                                 .extra_attrs
                                 .as_ref()
                                 .and_then(|attrs| attrs.condition.as_ref())
                             {
-                                if let Some(cond2) = inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                {
-                                    legacy_condition_eq
-                                        .call1((
-                                            cond1,
-                                            cond2,
-                                            &self_bit_indices,
-                                            &other_bit_indices,
-                                        ))?
-                                        .extract::<bool>()?
-                                } else {
-                                    false
-                                }
+                                legacy_condition_eq
+                                    .call1((cond1, cond2, &self_bit_indices, &other_bit_indices))?
+                                    .extract::<bool>()
                             } else {
-                                inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                    .is_none()
-                            };
-                            let params_eq = inst1
-                                .params_view()
-                                .iter()
-                                .zip(inst2.params_view().iter())
-                                .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap());
-                            Ok(conditions_eq && params_eq)
+                                Ok(false)
+                            }
+                        } else {
+                            Ok(inst2
+                                .extra_attrs
+                                .as_ref()
+                                .and_then(|attrs| attrs.condition.as_ref())
+                                .is_none())
+                        }
+                    };
+
+                    match [inst1.op.view(), inst2.op.view()] {
+                        [OperationRef::Standard(_op1), OperationRef::Standard(_op2)] => {
+                            Ok(inst1.py_op_eq(py, inst2)?
+                                && check_args()
+                                && check_conditions()?
+                                && inst1
+                                    .params_view()
+                                    .iter()
+                                    .zip(inst2.params_view().iter())
+                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
                             if op1.control_flow() && op2.control_flow() {
@@ -2536,211 +2487,43 @@ def _format(operand):
                                 let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
                                 let name = op1.name();
                                 if name == "if_else" || name == "while_loop" {
-                                    if name != op2.name() {
-                                        return Ok(false);
-                                    }
-                                    return condition_op_check
+                                    condition_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract();
+                                        .extract()
                                 } else if name == "switch_case" {
-                                    let res = switch_case_op_check
+                                    switch_case_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract();
-                                    return res;
+                                        .extract()
                                 } else if name == "for_loop" {
-                                    return for_loop_op_check
+                                    for_loop_op_check
                                         .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract();
+                                        .extract()
                                 } else {
-                                    return Err(PyRuntimeError::new_err(format!(
+                                    Err(PyRuntimeError::new_err(format!(
                                         "unhandled control-flow operation: {}",
                                         name
-                                    )));
-                                }
-                            }
-                            if !inst1.py_op_eq(py, inst2)? {
-                                return Ok(false);
-                            }
-                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
-                                let node1_qargs =
-                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node2_qargs =
-                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node1_cargs =
-                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                let node2_cargs =
-                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                    return Ok(false);
-                                }
-                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-
-                            let conditions_eq = if let Some(cond1) = inst1
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref())
-                            {
-                                if let Some(cond2) = inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                {
-                                    legacy_condition_eq
-                                        .call1((
-                                            cond1,
-                                            cond2,
-                                            &self_bit_indices,
-                                            &other_bit_indices,
-                                        ))?
-                                        .extract::<bool>()?
-                                } else {
-                                    false
+                                    )))
                                 }
                             } else {
-                                inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                    .is_none()
-                            };
-                            Ok(conditions_eq)
+                                Ok(inst1.py_op_eq(py, inst2)?
+                                    && check_args()
+                                    && check_conditions()?)
+                            }
                         }
-                        [OperationRef::Gate(op1), OperationRef::Gate(_op2)] => {
-                            if !inst1.py_op_eq(py, inst2)? {
-                                return Ok(false);
-                            }
-                            if SEMANTIC_EQ_SYMMETRIC.contains(&op1.name()) {
-                                let node1_qargs =
-                                    node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node2_qargs =
-                                    node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                                let node1_cargs =
-                                    node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                let node2_cargs =
-                                    node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                    return Ok(false);
-                                }
-                            } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-
-                            let conditions_eq = if let Some(cond1) = inst1
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref())
-                            {
-                                if let Some(cond2) = inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                {
-                                    legacy_condition_eq
-                                        .call1((
-                                            cond1,
-                                            cond2,
-                                            &self_bit_indices,
-                                            &other_bit_indices,
-                                        ))?
-                                        .extract::<bool>()?
-                                } else {
-                                    false
-                                }
-                            } else {
-                                inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                    .is_none()
-                            };
-                            Ok(conditions_eq)
+                        [OperationRef::Gate(_op1), OperationRef::Gate(_op2)] => {
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
                         }
                         [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
-                            if !inst1.py_op_eq(py, inst2)? {
-                                return Ok(false);
-                            }
-                            Ok(node1_qargs == node2_qargs || node1_cargs == node2_cargs)
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
                         // Handle the case we end up with a pygate for a standardgate
                         // this typically only happens if it's a ControlledGate in python
                         // and we have mutable state set.
                         [OperationRef::Standard(_op1), OperationRef::Gate(_op2)] => {
-                            if !inst1.py_op_eq(py, inst2)? {
-                                return Ok(false);
-                            }
-                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-
-                            let conditions_eq = if let Some(cond1) = inst1
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref())
-                            {
-                                if let Some(cond2) = inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                {
-                                    legacy_condition_eq
-                                        .call1((
-                                            cond1,
-                                            cond2,
-                                            &self_bit_indices,
-                                            &other_bit_indices,
-                                        ))?
-                                        .extract::<bool>()?
-                                } else {
-                                    false
-                                }
-                            } else {
-                                inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                    .is_none()
-                            };
-                            Ok(conditions_eq)
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
                         }
                         [OperationRef::Gate(_op1), OperationRef::Standard(_op2)] => {
-                            if !inst1.py_op_eq(py, inst2)? {
-                                return Ok(false);
-                            }
-                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                return Ok(false);
-                            }
-
-                            let conditions_eq = if let Some(cond1) = inst1
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref())
-                            {
-                                if let Some(cond2) = inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                {
-                                    legacy_condition_eq
-                                        .call1((
-                                            cond1,
-                                            cond2,
-                                            &self_bit_indices,
-                                            &other_bit_indices,
-                                        ))?
-                                        .extract::<bool>()?
-                                } else {
-                                    false
-                                }
-                            } else {
-                                inst2
-                                    .extra_attrs
-                                    .as_ref()
-                                    .and_then(|attrs| attrs.condition.as_ref())
-                                    .is_none()
-                            };
-                            Ok(conditions_eq)
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args() && check_conditions()?)
                         }
                         _ => Ok(false),
                     }
