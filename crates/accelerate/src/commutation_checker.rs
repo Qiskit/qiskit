@@ -203,7 +203,7 @@ impl CommutationChecker {
         out_dict.set_item("_cache_miss", self._cache_miss)?;
         out_dict.set_item("_cache_hit", self._cache_hit)?;
         out_dict.set_item("cache", self.cache.clone())?;
-        out_dict.set_item("library", self.library.clone())?;
+        out_dict.set_item("library", self.library.library.to_object(py))?;
         out_dict.set_item("gates", self.gates.clone())?;
         Ok(out_dict.unbind())
     }
@@ -553,12 +553,6 @@ impl CommutationLibrary {
         } else {
             None
         }
-    }
-}
-
-impl ToPyObject for CommutationLibrary {
-    fn to_object(&self, py: Python) -> PyObject {
-        self.library.to_object(py)
     }
 }
 
