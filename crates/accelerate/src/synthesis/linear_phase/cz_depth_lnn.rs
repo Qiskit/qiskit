@@ -99,7 +99,6 @@ fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
             1 => StandardGate::SdgGate,
             2 => StandardGate::ZGate,
             3 => StandardGate::SGate,
-            // cover 2 and 3
             _ => unreachable!(), // unreachable as we have modulo 4
         };
         gates.push((gate, smallvec![], smallvec![Qubit(qubit as u32)]));
