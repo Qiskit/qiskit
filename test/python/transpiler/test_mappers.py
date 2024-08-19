@@ -280,6 +280,7 @@ class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
 
     pass_class = LookaheadSwap
 
+
 ### Commented out as StochasticSwap is deprecated
 # class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
 #     """Test SwapperCommonTestCases using StochasticSwap."""

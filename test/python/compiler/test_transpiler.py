@@ -929,7 +929,9 @@ class TestTranspile(QiskitTestCase):
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
         with self.assertWarns(DeprecationWarning):
-            out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic")
+            out = transpile(
+                circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic"
+            )
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
@@ -3536,11 +3538,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure_all()
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            qc,
-            self.backend,
-            layout_method="dense",
-            routing_method=routing_method,
-            seed_transpiler=42,
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
             )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
@@ -3638,11 +3640,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure_all()
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            qc,
-            self.backend,
-            layout_method="dense",
-            routing_method=routing_method,
-            seed_transpiler=42,
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
             )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
@@ -3698,7 +3700,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     @data("stochastic")
     def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
         """Test a split circuit with one circuit component per chip for deprecated ``StochasticSwap``"""
-        #TODO remove when StochasticSwap deprecated
+        # TODO remove when StochasticSwap deprecated
         qc = QuantumCircuit(30)
         qc.h(0)
         qc.h(10)
@@ -3739,7 +3741,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 routing_method=routing_method,
                 seed_transpiler=42,
             )
-
 
     # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
     @data("sabre", "basic")
@@ -3807,7 +3808,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     @data("stochastic")
     def test_six_component_circuit_dense_layout_stochastic(self, routing_method):
         """Test input circuit with more than 1 component per backend component for deprecated ``StochasticSwap``."""
-        #TODO remove when StochasticSwap will is removed
+        # TODO remove when StochasticSwap will is removed
         qc = QuantumCircuit(42)
         qc.h(0)
         qc.h(10)
@@ -3854,11 +3855,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.measure_all()
         with self.assertWarns(DeprecationWarning):
             tqc = transpile(
-            qc,
-            self.backend,
-            layout_method="dense",
-            routing_method=routing_method,
-            seed_transpiler=42,
+                qc,
+                self.backend,
+                layout_method="dense",
+                routing_method=routing_method,
+                seed_transpiler=42,
             )
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
