@@ -70,7 +70,7 @@ class CommutationChecker:
             " implementation at :data:`~.SessionCommutationChecker`."
         ),
         since="1.2.0",
-        pending=True
+        pending=True,
     )
     def __init__(
         self,
