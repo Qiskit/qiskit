@@ -28,9 +28,8 @@ deprecations_transpiler:
     While for a pass mananager change::
       qr = QuantumRegister(4, "q")
       qc = QuantumCircuit(qr)
-      dag = circuit_to_dag(qc)
       passmanager = StochasticSwap(coupling, 20, 13)
-      new_qc = passmanager.run(dag)
+      new_qc = passmanager.run(qc)
     to::
       qr = QuantumRegister(5, "q")
       qc = QuantumCircuit(qr) 
