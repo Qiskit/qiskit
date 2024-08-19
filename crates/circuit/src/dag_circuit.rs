@@ -4667,6 +4667,8 @@ def _format(operand):
             self.qubits.find(wire).map(Wire::Qubit)
         } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
             self.clbits.find(wire).map(Wire::Clbit)
+        } else if self.var_input_map.contains_key(py, &wire.clone().unbind()) {
+            Some(Wire::Var(wire.clone().unbind()))
         } else {
             None
         }
