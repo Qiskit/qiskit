@@ -579,8 +579,8 @@ The :class:`Store` instruction is particularly special, in that it allows writin
 :class:`Qubit` nor :class:`Clbit` operands, but has an explicit :attr:`~Store.lvalue` and
 :attr:`~Store.rvalue`.
 
-For example, to determine the parity of a bitstring cr and store it in another register creg, the :class:`Store`
-instruction can be used in the following way::
+For example, to determine the parity of a bitstring cr and store it in another register creg,
+the :class:`Store` instruction can be used in the following way::
 
     parity = expr.lift(cr[0])
     for i in range(1,n):
