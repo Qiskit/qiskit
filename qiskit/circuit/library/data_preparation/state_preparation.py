@@ -243,20 +243,6 @@ class StatePreparation(Gate):
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
 
-    ### helper functions for initializer.gates_to_uncompute() method ###
-
-    def _gates_to_uncompute(self):
-        """Call to create a circuit with gates that take the desired vector to zero.
-        Returns:
-            QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
-        """
-        q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q, name="disentangler")
-
-        isom = Isometry(self._params_arg, 0, 0)
-        circuit.append(isom, q[:])
-        return circuit.inverse()
-
 
 class UniformSuperpositionGate(Gate):
     r"""Implements a uniform superposition state.
