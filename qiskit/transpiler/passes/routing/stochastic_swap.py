@@ -63,8 +63,8 @@ class StochasticSwap(TransformationPass):
     @deprecate_func(
         since="1.3",
         removal_timeline="in the 2.0 release",
-        additional_msg="The `StochasticSwap` transpilation pass is a suboptimal "
-        "routing algorithm and has been superseded by the :class:`.SabreSwap` pass.",
+        additional_msg="The StochasticSwap transpilation pass is a suboptimal "
+        "routing algorithm and has been superseded by the SabreSwap pass.",
     )
     def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
