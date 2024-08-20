@@ -22,17 +22,24 @@ features_transpiler:
     * :class:`.MCXSynthesisDefault`, choosing the most efficient synthesis
       method based on the number of clean and dirty ancilla qubits available.
 
-deprecations:
-  - |
-    The classes :class:`~qiskit.circuit.library.MCXGrayCode`,
-    :class:`~qiskit.circuit.library.MCXRecursive`, and
-    :class:`~qiskit.circuit.library.MCXVChain` are pending deprecation.
-    They will be deprecated in the future release and subsequently removed
-    after that.
-    One will still be able to create custom MCX decompositions using the
-    functions :func:`.synth_mcx_n_clean_m15`, :func:`.synth_mcx_n_dirty_i15`,
-    :func:`.synth_mcx_1_clean_b95`, and :func:`.synth_mcx_gray_code`.
-    In most cases, however, it should be better to define an :class:`.MCXGate`
-    specifying only the control and target qubits (but not the ancillas), and
-    let the :class:`.HighLevelSynthesis` pass choose the most efficient synthesis
-    method based on the number of clean and dirty qubits available.
+    As an example, consider how the transpilation of the following circuit::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.compiler import transpile
+
+      qc = QuantumCircuit(7)
+      qc.x(0)
+      qc.mcx([0, 1, 2, 3], [4])
+      qc.mcx([0, 1, 2, 3, 4], [5])
+      qc.mcx([0, 1, 2, 3, 4, 5], [6])
+
+      transpile(qc)
+
+    For the first MCX gate, qubits ``5`` and ``6`` can be used as clean
+    ancillas, and the best available synthesis method ``synth_mcx_n_clean_m15``
+    will get chosen.
+    For the second MCX gate, qubit ``6`` can be used as a clean ancilla,
+    the method ``synth_mcx_n_clean_m15`` no longer applies, so the method
+    ``synth_mcx_1_clean_b95`` will get chosen.
+    For the third MCX gate, there are no ancilla qubits, and the method
+    ``synth_mcx_noaux_v24`` will get chosen.
