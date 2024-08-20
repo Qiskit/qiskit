@@ -508,6 +508,38 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_cregs_equal(self.original_cregs)
         self.assert_clbits_equal(self.original_clbits)
 
+    def test_remove_clbit_with_control_flow(self):
+        """Test clbit removal in the middle of clbits with control flow."""
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2, "a")
+        cr2 = ClassicalRegister(2, "b")
+        clbit = Clbit()
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        dag.add_clbits([clbit])
+
+        inner = QuantumCircuit(1)
+        inner.h(0)
+        inner.z(0)
+
+        op = IfElseOp(expr.logic_and(expr.equal(cr1, 3), expr.logic_not(clbit)), inner, None)
+        dag.apply_operation_back(op, qr, ())
+        dag.remove_clbits(*cr2)
+        self.assertEqual(dag.clbits, list(cr1) + [clbit])
+        self.assertEqual(dag.cregs, {"a": cr1})
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_creg(cr1)
+        expected.add_clbits([clbit])
+
+        op = IfElseOp(expr.logic_and(expr.equal(cr1, 3), expr.logic_not(clbit)), inner, None)
+        expected.apply_operation_back(op, qr, ())
+
+        self.assertEqual(dag, expected)
+
 
 class TestDagApplyOperation(QiskitTestCase):
     """Test adding an op node to a dag."""
