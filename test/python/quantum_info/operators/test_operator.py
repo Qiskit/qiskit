@@ -31,6 +31,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import Permutation, PermutationGate
@@ -1273,10 +1274,10 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(qc2)
 
         self.assertNotEqual(op1, op2)
-        self.assertFalse(op1._equal_with_ancillas(op2, []))
-        self.assertTrue(op1._equal_with_ancillas(op2, [1]))
-        self.assertFalse(op1._equal_with_ancillas(op2, [2]))
-        self.assertTrue(op1._equal_with_ancillas(op2, [2, 1]))
+        self.assertFalse(_equal_with_ancillas(op1, op2, []))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [1]))
+        self.assertFalse(_equal_with_ancillas(op1, op2, [2]))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [2, 1]))
 
 
 if __name__ == "__main__":

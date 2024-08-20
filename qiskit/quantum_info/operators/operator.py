@@ -615,62 +615,6 @@ class Operator(LinearOp):
         ret._data = other * self._data
         return ret
 
-    def _equal_with_ancillas(
-        self,
-        other: Operator,
-        ancilla_qubits: list,
-        ignore_phase: bool = False,
-        rtol: float | None = None,
-        atol: float | None = None,
-    ) -> bool:
-        r"""Test if two Operators are equal on the subspace where ancilla qubits
-        are :math:`|0\rangle`.
-
-        Args:
-            other (Operator): an operator object.
-            ancilla_qubits: a list of clean ancilla qubits.
-            rtol (float): relative tolerance value for comparison.
-            atol (float): absolute tolerance value for comparison.
-            ignore_phase (bool): ignore complex-phase difference between matrices.
-
-        Returns:
-            bool: True if operators are equal up to clean ancilla qubits.
-        """
-        if self.dim != other.dim:
-            return False
-
-        if atol is None:
-            atol = self.atol
-        if rtol is None:
-            rtol = self.rtol
-
-        num_qubits = self._op_shape._num_qargs_l
-        num_non_ancillas = num_qubits - len(ancilla_qubits)
-
-        # Find a permutation that moves all ancilla qubits to the back
-        pattern = [0] * num_qubits
-        pos = 0
-        for q in range(num_qubits):
-            if q not in ancilla_qubits:
-                pattern[pos] = q
-                pos += 1
-        for q in range(num_qubits):
-            if q in ancilla_qubits:
-                pattern[pos] = q
-                pos += 1
-
-        # Apply this permutation to both operators
-        permuted_self = self.apply_permutation(pattern)
-        permuted_other = other.apply_permutation(pattern)
-
-        # Restrict to the subspace where ancillas are 0
-        restricted_self = permuted_self.data[: 2**num_non_ancillas, : 2**num_qubits]
-        restricted_other = permuted_other.data[: 2**num_non_ancillas, : 2**num_qubits]
-
-        return matrix_equal(
-            restricted_self, restricted_other.data, ignore_phase=ignore_phase, rtol=rtol, atol=atol
-        )
-
     def equiv(self, other: Operator, rtol: float | None = None, atol: float | None = None) -> bool:
         """Return True if operators are equivalent up to global phase.
 
