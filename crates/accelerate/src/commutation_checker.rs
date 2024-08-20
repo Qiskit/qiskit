@@ -609,8 +609,7 @@ impl ToPyObject for CommutationLibraryEntry {
                             PyTuple::new_bound(
                                 py,
                                 k.iter()
-                                    .map(|q| q.map(|t| t.0))
-                                    .collect::<Vec<Option<u32>>>(),
+                                    .map(|q| q.map(|t| t.0)),
                             ),
                             PyBool::new_bound(py, *v),
                         )
