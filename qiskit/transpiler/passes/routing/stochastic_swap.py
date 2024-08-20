@@ -59,6 +59,15 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
+<<<<<<< HEAD
+=======
+    @deprecate_func(
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The StochasticSwap transpilation pass is a suboptimal "
+        "routing algorithm and has been superseded by the SabreSwap pass.",
+    )
+>>>>>>> b90c7a706 (Tiny follow up to #12983 (#12999))
     def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
 
