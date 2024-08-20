@@ -19,7 +19,7 @@ features_transpiler:
 
     As well:
 
-    * :class:`.MCXSynthesisGrayDefault`, choosing the most efficient synthesis
+    * :class:`.MCXSynthesisDefault`, choosing the most efficient synthesis
       method based on the number of clean and dirty ancilla qubits available.
 
 deprecations:
