@@ -179,8 +179,8 @@ not sufficient, the corresponding synthesis method will return `None`.
       - `0`
       - `0`
       - exponentially many CX gates; use only for small values of `k`
-    * - ``"v24"``
-      - :class:`~.MCXSynthesisV24`
+    * - ``"noaux_v24"``
+      - :class:`~.MCXSynthesisNoAuxV24`
       - `0`
       - `0`
       - quadratic number of CX gates; use instead of ``"gray_code"`` for large values of `k`
@@ -209,7 +209,7 @@ not sufficient, the corresponding synthesis method will return `None`.
    :toctree: ../stubs/
 
    MCXSynthesisGrayCode
-   MCXSynthesisV24
+   MCXSynthesisNoAuxV24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
    MCXSynthesis1CleanB95
@@ -252,7 +252,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
-    synth_mcx_v24,
+    synth_mcx_noaux_v24,
 )
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
@@ -839,11 +839,11 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class MCXSynthesisV24(HighLevelSynthesisPlugin):
+class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the
     implementation for MCPhaseGate, which is in turn based on [1].
 
-    This plugin name is :``mcx.v24`` which can be used as the key on
+    This plugin name is :``mcx.noaux_v24`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     For a multi-controlled X gate with :math:`k` control qubits this synthesis
@@ -867,7 +867,7 @@ class MCXSynthesisV24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        decomposition = synth_mcx_v24(num_ctrl_qubits)
+        decomposition = synth_mcx_noaux_v24(num_ctrl_qubits)
         return decomposition
 
 
@@ -911,4 +911,4 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
         ) is not None:
             return decomposition
 
-        return MCXSynthesisV24().run(high_level_object, coupling_map, target, qubits, **options)
+        return MCXSynthesisNoAuxV24().run(high_level_object, coupling_map, target, qubits, **options)

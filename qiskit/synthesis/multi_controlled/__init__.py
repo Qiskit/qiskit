@@ -17,7 +17,7 @@ from .mcx_synthesis import (
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
-    synth_mcx_v24,
+    synth_mcx_noaux_v24,
     synth_c3x,
     synth_c4x,
 )

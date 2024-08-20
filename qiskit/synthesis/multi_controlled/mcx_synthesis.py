@@ -258,7 +258,7 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     return qc
 
 
-def synth_mcx_v24(num_ctrl_qubits: int) -> QuantumCircuit:
+def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls based on
     the implementation for MCPhaseGate.
