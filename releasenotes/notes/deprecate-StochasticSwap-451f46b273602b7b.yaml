@@ -36,7 +36,7 @@ deprecations_transpiler:
           target=backend.target
       )
 
-    While for a pass manager change::
+    While for a pass manager, the change would be::
 
       passmanager = PassManager(StochasticSwap(coupling, 20, 13))
       new_qc = passmanager.run(qc)
