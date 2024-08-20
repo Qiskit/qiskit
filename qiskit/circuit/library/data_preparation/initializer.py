@@ -89,12 +89,9 @@ class Initialize(Instruction):
         Returns:
             QuantumCircuit: circuit to take ``self.params`` vector to :math:`|{00\\ldots0}\\rangle`
         """
-        q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q, name="disentangler")
 
         isom = Isometry(self.params, 0, 0)
-        circuit.append(isom, q[:])
-        return circuit.inverse()
+        return isom._gates_to_uncompute()
 
     @property
     def params(self):
