@@ -91,13 +91,13 @@ pub struct CircuitData {
     /// The packed instruction listing.
     data: Vec<PackedInstruction>,
     /// The cache used to intern instruction bits.
-    qargs_interner: IndexedInterner<Vec<Qubit>>,
+    pub(crate) qargs_interner: IndexedInterner<Vec<Qubit>>,
     /// The cache used to intern instruction bits.
-    cargs_interner: IndexedInterner<Vec<Clbit>>,
+    pub(crate) cargs_interner: IndexedInterner<Vec<Clbit>>,
     /// Qubits registered in the circuit.
-    qubits: BitData<Qubit>,
+    pub(crate) qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    clbits: BitData<Clbit>,
+    pub(crate) clbits: BitData<Clbit>,
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
@@ -1133,7 +1133,7 @@ impl CircuitData {
     }
 
     /// Returns an iterator over all the instructions present in the circuit.
-    pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &PackedInstruction> {
         self.data.iter()
     }
 
