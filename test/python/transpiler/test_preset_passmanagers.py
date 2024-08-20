@@ -1521,7 +1521,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         with self.assertRaisesRegex(
             ValueError, "Expected non-negative integer as seed for transpiler."
         ):
-            generate_preset_pass_manager(seed_transpiler=0.1)
+            generate_preset_pass_manager(optimiazation_level=2, seed_transpiler=0.1)
 
 
 @ddt
