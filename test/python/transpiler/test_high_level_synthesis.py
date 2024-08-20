@@ -2374,12 +2374,16 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
 
         with self.subTest(method="noaux_v24", num_clean_ancillas=1, num_dirty_ancillas=1):
             # should have a decomposition
-            decomposition = MCXSynthesisNoAuxV24().run(gate, num_clean_ancillas=1, num_dirty_ancillas=1)
+            decomposition = MCXSynthesisNoAuxV24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
             self.assertIsNotNone(decomposition)
 
         with self.subTest(method="noaux_v24", num_clean_ancillas=0, num_dirty_ancillas=0):
             # should have a decomposition
-            decomposition = MCXSynthesisNoAuxV24().run(gate, num_clean_ancillas=0, num_dirty_ancillas=0)
+            decomposition = MCXSynthesisNoAuxV24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
             self.assertIsNotNone(decomposition)
 
         with self.subTest(method="gray_code", num_clean_ancillas=1, num_dirty_ancillas=1):

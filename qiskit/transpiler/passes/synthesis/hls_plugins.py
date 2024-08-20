@@ -911,4 +911,6 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
         ) is not None:
             return decomposition
 
-        return MCXSynthesisNoAuxV24().run(high_level_object, coupling_map, target, qubits, **options)
+        return MCXSynthesisNoAuxV24().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
