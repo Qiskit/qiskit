@@ -606,11 +606,7 @@ impl ToPyObject for CommutationLibraryEntry {
                 qm.iter().for_each(|(k, v)| {
                     out_dict
                         .set_item(
-                            PyTuple::new_bound(
-                                py,
-                                k.iter()
-                                    .map(|q| q.map(|t| t.0)),
-                            ),
+                            PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
                             PyBool::new_bound(py, *v),
                         )
                         .ok()
