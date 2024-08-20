@@ -174,7 +174,7 @@ class StatePreparation(Gate):
         initialize_circuit = QuantumCircuit(q, name="init_def")
 
         isom = Isometry(self.params, 0, 0)
-        initialize_circuit.append(isom, q[:])
+        initialize_circuit.compose(isom.definition, copy=False, inplace=True)
 
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
