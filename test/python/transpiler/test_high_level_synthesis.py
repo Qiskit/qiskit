@@ -66,7 +66,7 @@ from qiskit.transpiler.passes.synthesis.hls_plugins import (
     MCXSynthesisNDirtyI15,
     MCXSynthesisGrayCode,
     MCXSynthesisDefault,
-    MCXSynthesisMCPhase,
+    MCXSynthesisV24,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -2372,16 +2372,16 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNone(decomposition)
 
-        with self.subTest(method="mcphase", num_clean_ancillas=1, num_dirty_ancillas=1):
+        with self.subTest(method="v24", num_clean_ancillas=1, num_dirty_ancillas=1):
             # should have a decomposition
-            decomposition = MCXSynthesisMCPhase().run(
+            decomposition = MCXSynthesisV24().run(
                 gate, num_clean_ancillas=1, num_dirty_ancillas=1
             )
             self.assertIsNotNone(decomposition)
 
-        with self.subTest(method="mcphase", num_clean_ancillas=0, num_dirty_ancillas=0):
+        with self.subTest(method="v24", num_clean_ancillas=0, num_dirty_ancillas=0):
             # should have a decomposition
-            decomposition = MCXSynthesisMCPhase().run(
+            decomposition = MCXSynthesisV24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
             self.assertIsNotNone(decomposition)
@@ -2414,7 +2414,7 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
-    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "mcphase", "gray_code", "default")
+    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "v24", "gray_code", "default")
     def test_mcx_plugins_correctness_from_arbitrary(self, mcx_plugin_name):
         """Test that all plugins return a correct Operator when qubits are not
         initially zero."""
@@ -2429,7 +2429,7 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         qct = hls_pass(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
-    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "mcphase", "gray_code", "default")
+    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "v24", "gray_code", "default")
     def test_mcx_plugins_correctness_from_zero(self, mcx_plugin_name):
         """Test that all plugins return a correct Statevector when qubits are
         initially zero."""

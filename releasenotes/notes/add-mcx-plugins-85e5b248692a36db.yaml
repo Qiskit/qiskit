@@ -1,7 +1,7 @@
 ---
 features_synthesis:
   - |
-    Added synthesis functions :func:`.synth_mcx_gray_code` and :func:`.synth_mcx_mcphase`
+    Added synthesis functions :func:`.synth_mcx_gray_code` and :func:`.synth_mcx_v24`
     that synthesize multi-controlled X gates. These functions do not require additional
     ancilla qubits.
   - |
@@ -14,7 +14,7 @@ features_transpiler:
     * :class:`.MCXSynthesisNCleanM15`, based on :func:`.synth_mcx_n_clean_m15`.
     * :class:`.MCXSynthesisNDirtyI15`, based on :func:`.synth_mcx_n_dirty_i15`.
     * :class:`.MCXSynthesis1CleanB95`, based on :func:`.synth_mcx_1_clean_b95`.
-    * :class:`.MCXSynthesisMCPhase`, based on :func:`.synth_mcx_mcphase`.
+    * :class:`.MCXSynthesisV24`, based on :func:`.synth_mcx_v24`.
     * :class:`.MCXSynthesisGrayCode`, based on :func:`.synth_mcx_gray_code`.
 
     As well:
