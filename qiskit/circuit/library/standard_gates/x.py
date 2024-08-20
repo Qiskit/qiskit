@@ -1342,7 +1342,7 @@ class MCXRecursive(MCXGate):
             "the best synthesis method depending on the number of ancilla qubits available. "
             "If this specific synthesis method is required, one can specify it using the "
             "high-level-synthesis plugin `mcx_1_clean` for MCX gates, or, alternatively, "
-            "one can use synch_mcx_1_clean to construct the gate directly."
+            "one can use synth_mcx_1_clean to construct the gate directly."
         ),
         since="1.3",
         pending=True,
