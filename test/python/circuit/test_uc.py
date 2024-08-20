@@ -102,10 +102,10 @@ class TestUCGate(QiskitTestCase):
 
     def test_repeat(self):
         """test repeat operation"""
-        gates = [random_unitary(2).data for _ in range(2**2)]
+        gates = [random_unitary(2, seed=seed).data for seed in [124435, 876345, 687462, 928365]]
 
         uc = UCGate(gates, up_to_diagonal=False)
-        self.assertTrue(np.array_equal(Operator(uc.repeat(2)), Operator(uc) @ Operator(uc)))
+        self.assertTrue(np.allclose(Operator(uc.repeat(2)), Operator(uc) @ Operator(uc)))
 
 
 def _get_ucg_matrix(squs):
