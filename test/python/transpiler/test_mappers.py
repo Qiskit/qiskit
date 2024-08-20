@@ -106,7 +106,7 @@ class CommonUtilitiesMixin:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
         with warnings.catch_warnings():
-            # TODO remove this filter when StochasticSwap is removed,
+            # TODO: remove this filter when StochasticSwap is removed
             warnings.filterwarnings(
                 "ignore",
                 category=DeprecationWarning,

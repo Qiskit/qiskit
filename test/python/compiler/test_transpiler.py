@@ -3528,7 +3528,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     @data("stochastic")
     def test_basic_connected_circuit_dense_layout_stochastic(self, routing_method):
         """Test basic connected circuit on disjoint backend for deprecated stochastic swap"""
-        # Remove when stochastic is deprecated
+        # TODO: Remove when StochasticSwap is removed
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cx(0, 1)
@@ -3604,7 +3604,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     @data("stochastic")
     def test_triple_circuit_dense_layout_stochastic(self, routing_method):
         """Test a split circuit with one circuit component per chip for deprecated StochasticSwap."""
-        # Remove when stochastic swap deprecated
+        # TODO: Remove when StochasticSwap is removed
         qc = QuantumCircuit(30)
         qc.h(0)
         qc.h(10)
@@ -3699,7 +3699,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     @data("stochastic")
     def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
         """Test a split circuit with one circuit component per chip for deprecated ``StochasticSwap``"""
-        # TODO remove when StochasticSwap deprecated
+        # TODO: Remove when StochasticSwap is removed
         qc = QuantumCircuit(30)
         qc.h(0)
         qc.h(10)
@@ -3809,7 +3809,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
     def test_six_component_circuit_dense_layout_stochastic(self, routing_method):
         """Test input circuit with more than 1 component per backend component
         for deprecated ``StochasticSwap``."""
-        # TODO remove when StochasticSwap will is removed
+        # TODO: Remove when StochasticSwap is removed
         qc = QuantumCircuit(42)
         qc.h(0)
         qc.h(10)
