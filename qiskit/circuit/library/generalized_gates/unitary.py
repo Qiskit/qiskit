@@ -134,9 +134,6 @@ class UnitaryGate(Gate):
         """Return the transpose of the unitary."""
         return UnitaryGate(numpy.transpose(self.to_matrix()))
 
-    def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
-
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:

@@ -72,6 +72,7 @@ class TestUnitaryGate(QiskitTestCase):
         uni = UnitaryGate([[1, 0], [0, 1j]])
         self.assertTrue(numpy.array_equal(Operator(uni.repeat(2)), Operator(uni) @ Operator(uni)))
 
+
 class TestUnitaryCircuit(QiskitTestCase):
     """Matrix gate circuit tests."""
 

@@ -100,6 +100,13 @@ class TestUCGate(QiskitTestCase):
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
 
+    def test_repeat(self):
+        """test repeat operation"""
+        gates = [random_unitary(2).data for _ in range(2**2)]
+
+        uc = UCGate(gates, up_to_diagonal=False)
+        self.assertTrue(np.array_equal(Operator(uc.repeat(2)), Operator(uc) @ Operator(uc)))
+
 
 def _get_ucg_matrix(squs):
     return block_diag(*squs)
