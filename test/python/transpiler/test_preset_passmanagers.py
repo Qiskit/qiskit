@@ -1511,6 +1511,18 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         self.assertIsInstance(pm_object, PassManager)
         self.assertEqual(tqc_list, tqc_obj)
 
+    def test_parse_seed_transpiler_raises_value_error(self):
+        """Test that seed for transpiler is non-negative integer."""
+        with self.assertRaisesRegex(
+            ValueError, "Expected non-negative integer as seed for transpiler."
+        ):
+            generate_preset_pass_manager(optimization_level=1, seed_transpiler=-1)
+
+        with self.assertRaisesRegex(
+            ValueError, "Expected non-negative integer as seed for transpiler."
+        ):
+            generate_preset_pass_manager(seed_transpiler=0.1)
+
 
 @ddt
 class TestIntegrationControlFlow(QiskitTestCase):
