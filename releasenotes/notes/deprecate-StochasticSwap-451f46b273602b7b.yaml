@@ -2,7 +2,7 @@
 deprecations_transpiler:
   - |
     Deprecated ``StochasticSwap`` which has been superseded by :class:`.SabreSwap`. 
-    If the class is called from the transpile method, the change would be, for example:: 
+    If the class is called from the transpile function, the change would be, for example:: 
 
       tqc = transpile(
         circuit,
