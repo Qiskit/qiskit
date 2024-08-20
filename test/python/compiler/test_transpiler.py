@@ -3601,7 +3601,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    # Lookahead swap skipped for performance
     @data("stochastic")
     def test_triple_circuit_dense_layout_stochastic(self, routing_method):
         """Test a split circuit with one circuit component per chip for deprecated StochasticSwap."""
