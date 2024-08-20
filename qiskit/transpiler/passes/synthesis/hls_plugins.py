@@ -704,9 +704,6 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if high_level_object.name != "mcx":
-            raise TranspilerError("MCXSynthesisNDirtyI15 only accepts objects of type MCXGate")
-
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -750,9 +747,6 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if high_level_object.name != "mcx":
-            raise TranspilerError("MCXSynthesisNCleanM15 only accepts objects of type MCXGate")
-
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -792,9 +786,6 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
-
-        if high_level_object.name != "mcx":
-            raise TranspilerError("MCXSynthesis1CleanB95 only accepts objects of type MCXGate")
 
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
@@ -836,9 +827,6 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
 
-        if high_level_object.name != "mcx":
-            raise TranspilerError("MCXSynthesisGrayCode only accepts objects of type MCXGate")
-
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -870,9 +858,6 @@ class MCXSynthesisV24(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
-
-        if high_level_object.name != "mcx":
-            raise TranspilerError("MCXSynthesisV24 only accepts objects of type MCXGate")
 
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
