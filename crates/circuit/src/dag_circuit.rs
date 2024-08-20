@@ -250,9 +250,9 @@ pub struct DAGCircuit {
     /// The cache used to intern instruction cargs.
     cargs_cache: IndexedInterner<Vec<Clbit>>,
     /// Qubits registered in the circuit.
-    pub(crate) qubits: BitData<Qubit>,
+    pub qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    pub(crate) clbits: BitData<Clbit>,
+    pub clbits: BitData<Clbit>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -272,7 +272,7 @@ pub struct DAGCircuit {
     clbit_locations: Py<PyDict>,
 
     /// Map from qubit to input nodes of the graph.
-    qubit_input_map: IndexMap<Qubit, NodeIndex, RandomState>,
+    pub qubit_input_map: IndexMap<Qubit, NodeIndex, RandomState>,
     /// Map from qubit to output nodes of the graph.
     qubit_output_map: IndexMap<Qubit, NodeIndex, RandomState>,
 
@@ -5844,7 +5844,7 @@ impl DAGCircuit {
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    fn nodes_on_wire(&self, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    pub fn nodes_on_wire(&self, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_input_map.get(qubit).copied(),
@@ -5926,7 +5926,7 @@ impl DAGCircuit {
         Ok(clbit)
     }
 
-    pub(crate) fn get_node(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
+    pub fn get_node(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
         self.unpack_into(py, node, self.dag.node_weight(node).unwrap())
     }
 
@@ -6444,6 +6444,11 @@ impl DAGCircuit {
     /// Get qargs/qubits from an intern index
     pub fn get_qubits(&self, index: Index) -> &[Qubit] {
         self.qargs_cache.intern(index)
+    }
+
+    /// Get cargs/clbits from an intern index
+    pub fn get_clbits(&self, index: Index) -> &[Clbit] {
+        self.cargs_cache.intern(index)
     }
 
     /// Insert a new 1q standard gate on incoming qubit

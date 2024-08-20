@@ -86,6 +86,7 @@ sys.modules["qiskit._accelerate.synthesis.permutation"] = _accelerate.synthesis.
 sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linear
 sys.modules["qiskit._accelerate.synthesis.clifford"] = _accelerate.synthesis.clifford
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
+sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

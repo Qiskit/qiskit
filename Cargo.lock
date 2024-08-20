@@ -1227,7 +1227,7 @@ name = "qiskit-circuit"
 version = "1.3.0"
 dependencies = [
  "ahash 0.8.11",
- "approx",
+ "approx 0.5.1",
  "bytemuck",
  "hashbrown 0.14.5",
  "indexmap",

@@ -45,7 +45,7 @@ static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
 });
 
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
-struct CommutationChecker {
+pub struct CommutationChecker {
     library: CommutationLibrary,
     cache_max_entries: usize,
     cache: HashMap<(String, String), CommutationCacheEntry>,
@@ -86,7 +86,7 @@ impl CommutationChecker {
 
     #[pyo3(signature=(op1, op2, max_num_qubits=3))]
     #[allow(clippy::too_many_arguments)]
-    fn commute_nodes(
+    pub fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
@@ -96,12 +96,12 @@ impl CommutationChecker {
         let mut bq: BitData<Qubit> = BitData::new(py, "qubits".to_string());
         let op1_bound_qubits = op1.instruction.qubits.bind(py);
         let op2_bound_qubits = op2.instruction.qubits.bind(py);
-        op1_bound_qubits
-            .iter()
-            .for_each(|q| bq.add(py, &q, false).unwrap());
-        op2_bound_qubits
-            .iter()
-            .for_each(|q| bq.add(py, &q, false).unwrap());
+        op1_bound_qubits.iter().for_each(|q| {
+            bq.add(py, &q, false).unwrap();
+        });
+        op2_bound_qubits.iter().for_each(|q| {
+            bq.add(py, &q, false).unwrap();
+        });
         let qargs1 = op1_bound_qubits
             .iter()
             .map(|q| bq.find(&q).unwrap().0)
@@ -115,13 +115,13 @@ impl CommutationChecker {
         let op1_bound_clbit = op1.instruction.clbits.bind(py);
         let op2_bound_clbit = op2.instruction.clbits.bind(py);
 
-        op1_bound_clbit
-            .iter()
-            .for_each(|c| bc.add(py, &c, false).unwrap());
+        op1_bound_clbit.iter().for_each(|c| {
+            bc.add(py, &c, false).unwrap();
+        });
 
-        op2_bound_clbit
-            .iter()
-            .for_each(|c| bc.add(py, &c, false).unwrap());
+        op2_bound_clbit.iter().for_each(|c| {
+            bc.add(py, &c, false).unwrap();
+        });
 
         let cargs1 = op1_bound_clbit
             .iter()
@@ -244,7 +244,8 @@ impl CommutationChecker {
     ) -> bool {
         if let Some(gates) = &self.gates {
             if !gates.is_empty()
-                && (!gates.contains(instr1.op().name()) || !gates.contains(instr2.op().name()))
+                && (!gates.contains(instr1.operation.view().name())
+                    || !gates.contains(instr2.operation.view().name()))
             {
                 return false;
             }
@@ -262,8 +263,8 @@ impl CommutationChecker {
         if let Some(is_commuting) = commutation {
             return is_commuting;
         }
-        let op1 = instr1.op();
-        let op2 = instr2.op();
+        let op1 = instr1.operation.view();
+        let op2 = instr2.operation.view();
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -393,8 +394,8 @@ impl CommutationChecker {
             "first instructions must have at most as many qubits as the second instruction"
         );
 
-        let first_op = first_instr.op();
-        let second_op = second_instr.op();
+        let first_op = first_instr.operation.view();
+        let second_op = second_instr.operation.view();
 
         let first_mat = match first_op.matrix(&first_instr.params) {
             Some(mat) => mat,
@@ -464,8 +465,8 @@ fn commutation_precheck(
     cargs2: &[u32],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.op().control_flow()
-        || op2.op().control_flow()
+    if op1.operation.view().control_flow()
+        || op2.operation.view().control_flow()
         || op1.is_conditioned()
         || op2.is_conditioned()
     {
@@ -481,7 +482,9 @@ fn commutation_precheck(
         return Some(false);
     }
 
-    if SUPPORTED_OP.contains(&op1.op().name()) && SUPPORTED_OP.contains(&op2.op().name()) {
+    if SUPPORTED_OP.contains(&op1.operation.view().name())
+        && SUPPORTED_OP.contains(&op2.operation.view().name())
+    {
         return None;
     }
 
@@ -508,7 +511,7 @@ fn get_op(py: Python, gate: &PyObject) -> Option<Array2<Complex64>> {
 }
 
 fn is_commutation_skipped(instr: &CircuitInstruction) -> bool {
-    let op = instr.op();
+    let op = instr.operation.view();
     op.directive() || SKIPPED_NAMES.contains(&op.name()) || instr.is_parameterized()
 }
 
