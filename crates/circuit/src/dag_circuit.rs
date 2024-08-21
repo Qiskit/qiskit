@@ -4340,9 +4340,7 @@ def _format(operand):
 
             let mut new_layer = self.copy_empty_like(py, vars_mode)?;
 
-            for (node, _) in op_nodes {
-                new_layer.push_back(py, node.clone())?;
-            }
+            new_layer.add_from_iter(py, op_nodes.iter().map(|(inst, _)| (*inst).clone()))?;
 
             let new_layer_op_nodes = new_layer.op_nodes(false).filter_map(|node_index| {
                 match new_layer.dag.node_weight(node_index) {
@@ -6303,7 +6301,7 @@ impl DAGCircuit {
                 };
                 qubit_last_nodes
                     .entry(*qubit)
-                    .and_modify(|val| *val = (new_node, qubit_last_node.1.clone()));
+                    .or_insert((new_node, qubit_last_node.1.clone()));
                 nodes_to_connect.insert(qubit_last_node);
             }
 
@@ -6324,7 +6322,7 @@ impl DAGCircuit {
                 };
                 clbit_last_nodes
                     .entry(clbit)
-                    .and_modify(|val| *val = (new_node, clbit_last_node.1.clone()));
+                    .or_insert((new_node, clbit_last_node.1.clone()));
                 nodes_to_connect.insert(clbit_last_node);
             }
 
