@@ -142,9 +142,6 @@ class TestIsometry(QiskitTestCase):
     )
     def test_isometry_repeat(self, iso):
         """Tests for the repeat of isometries from n to n qubits"""
-        if len(iso.shape) == 1:
-            iso = iso.reshape((len(iso), 1))
-
         iso_gate = Isometry(iso, 0, 0)
 
         op = Operator(iso_gate)
