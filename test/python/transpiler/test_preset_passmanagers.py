@@ -497,7 +497,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn("SabreSwap", self.passes)
 
     def test_level1_runs_vf2post_layout_when_routing_method_set_and_required(self):
-        """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
+        """Test that if we run routing as part of sabre layout then VF2PostLayout runs."""
         target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         qc = QuantumCircuit(5)
         qc.h(0)
@@ -507,7 +507,7 @@ class TestPassesInspection(QiskitTestCase):
         qc.cy(0, 4)
         qc.measure_all()
         _ = transpile(
-            qc, target, optimization_level=1, routing_method="stochastic", callback=self.callback
+            qc, target, optimization_level=1, routing_method="sabre", callback=self.callback
         )
         # Expected call path for layout and routing is:
         # 1. TrivialLayout (no perfect match)
@@ -518,7 +518,6 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn("VF2Layout", self.passes)
         self.assertIn("SabreLayout", self.passes)
         self.assertIn("VF2PostLayout", self.passes)
-        self.assertIn("StochasticSwap", self.passes)
 
     def test_level1_not_runs_vf2post_layout_when_layout_method_set(self):
         """Test that if we don't run VF2PostLayout with custom layout_method."""
