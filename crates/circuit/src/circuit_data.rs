@@ -16,7 +16,7 @@ use std::cell::OnceCell;
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
-use crate::interner::{IndexedInterner, Interner};
+use crate::interner::{Index, IndexedInterner, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
@@ -91,13 +91,13 @@ pub struct CircuitData {
     /// The packed instruction listing.
     data: Vec<PackedInstruction>,
     /// The cache used to intern instruction bits.
-    pub(crate) qargs_interner: IndexedInterner<Vec<Qubit>>,
+    qargs_interner: IndexedInterner<Vec<Qubit>>,
     /// The cache used to intern instruction bits.
-    pub(crate) cargs_interner: IndexedInterner<Vec<Clbit>>,
+    cargs_interner: IndexedInterner<Vec<Clbit>>,
     /// Qubits registered in the circuit.
-    pub(crate) qubits: BitData<Qubit>,
+    qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    pub(crate) clbits: BitData<Clbit>,
+    clbits: BitData<Clbit>,
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
@@ -1133,8 +1133,49 @@ impl CircuitData {
     }
 
     /// Returns an iterator over all the instructions present in the circuit.
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = &PackedInstruction> {
+    pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
+    }
+
+    /// Returns an immutable view of the Interner used for Qargs
+    pub(crate) fn view_qargs_interner(&self) -> &IndexedInterner<Vec<Qubit>> {
+        &self.qargs_interner
+    }
+
+    /// Returns an immutable view of the Interner used for Qargs
+    pub(crate) fn view_cargs_interner(&self) -> &IndexedInterner<Vec<Clbit>> {
+        &self.cargs_interner
+    }
+
+    // TODO: Remove once consumed
+    #[allow(dead_code)]
+    /// Returns an immutable view of the Global Phase `Param` of the circuit
+    pub(crate) fn view_global_phase(&self) -> &Param {
+        &self.global_phase
+    }
+
+    // TODO: Remove once consumed
+    #[allow(dead_code)]
+    /// Returns an immutable view of the Qubit register of the circuit
+    pub(crate) fn view_qubits(&self) -> &BitData<Qubit> {
+        &self.qubits
+    }
+
+    // TODO: Remove once consumed
+    #[allow(dead_code)]
+    /// Returns an immutable view of the Classical register of the circuit
+    pub(crate) fn view_clbits(&self) -> &BitData<Clbit> {
+        &self.clbits
+    }
+
+    /// Unpacks from InternerIndex to `[Qubit]`
+    pub fn get_qargs(&self, index: Index) -> &[Qubit] {
+        self.view_qargs_interner().intern(index)
+    }
+
+    /// Unpacks from InternerIndex to `[Clbit]`
+    pub fn get_cargs(&self, index: Index) -> &[Clbit] {
+        self.view_cargs_interner().intern(index)
     }
 
     fn assign_parameters_inner<I>(&mut self, py: Python, iter: I) -> PyResult<()>
