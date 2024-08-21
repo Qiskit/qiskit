@@ -358,6 +358,7 @@ def generate_preset_pass_manager(
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
     approximation_degree = _parse_approximation_degree(approximation_degree)
+    seed_transpiler = _parse_seed_transpiler(seed_transpiler)
 
     pm_options = {
         "target": target,
@@ -532,3 +533,11 @@ def _parse_approximation_degree(approximation_degree):
     if approximation_degree < 0.0 or approximation_degree > 1.0:
         raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
+
+
+def _parse_seed_transpiler(seed_transpiler):
+    if seed_transpiler is None:
+        return None
+    if not isinstance(seed_transpiler, int) or seed_transpiler < 0:
+        raise ValueError("Expected non-negative integer as seed for transpiler.")
+    return seed_transpiler
