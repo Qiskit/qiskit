@@ -1194,24 +1194,18 @@ impl CircuitData {
         &self.cargs_interner
     }
 
-    // TODO: Remove once consumed
-    #[allow(dead_code)]
     /// Returns an immutable view of the Global Phase `Param` of the circuit
-    pub(crate) fn view_global_phase(&self) -> &Param {
+    pub fn global_phase(&self) -> &Param {
         &self.global_phase
     }
 
-    // TODO: Remove once consumed
-    #[allow(dead_code)]
     /// Returns an immutable view of the Qubit register of the circuit
-    pub(crate) fn view_qubits(&self) -> &BitData<Qubit> {
+    pub fn qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
-    // TODO: Remove once consumed
-    #[allow(dead_code)]
     /// Returns an immutable view of the Classical register of the circuit
-    pub(crate) fn view_clbits(&self) -> &BitData<Clbit> {
+    pub fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
 
