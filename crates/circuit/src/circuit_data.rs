@@ -1142,7 +1142,7 @@ impl CircuitData {
         &self.qargs_interner
     }
 
-    /// Returns an immutable view of the Interner used for Qargs
+    /// Returns an immutable view of the Interner used for Cargs
     pub(crate) fn view_cargs_interner(&self) -> &IndexedInterner<Vec<Clbit>> {
         &self.cargs_interner
     }
