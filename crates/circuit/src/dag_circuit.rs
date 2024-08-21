@@ -6382,12 +6382,73 @@ impl DAGCircuit {
         Ok(new_nodes)
     }
 
-    /// Creates an instance of DAGCircuit from an iterator over `PackedInstruction`.
-    pub fn from_iter<I>(_py: Python, _iter: I) -> PyResult<Self>
+    /// Creates an instance of DAGCircuit from an iterator over [PackedInstruction].
+    ///
+    /// # Arguments:
+    /// - `py`: Python GIL token
+    /// - `iter`: Sequence of [PackedInstruction]
+    /// - `qarg_interner`: Reference to the source qubit interner.
+    /// - `carg_interner`: Reference to the source clbit interner.
+    pub fn from_iter<I>(
+        py: Python,
+        iter: I,
+        qarg_interner: &IndexedInterner<Vec<Qubit>>,
+        carg_interner: &IndexedInterner<Vec<Clbit>>,
+    ) -> PyResult<Self>
     where
         I: IntoIterator<Item = PackedInstruction>,
     {
-        todo!()
+        // Pre-parse the instructions to obtain metrics
+
+        // Collect all the qubits and clbits in use.
+        let mut qubit_set: HashSet<Qubit> = HashSet::default();
+        let mut clbit_set: HashSet<Clbit> = HashSet::default();
+
+        // Take ownership of the interners by cloning.
+        let cloned_qarg_interner = qarg_interner.clone();
+        let cloned_carg_interner = carg_interner.clone();
+
+        // Keep track of the necessary number of edges.
+        let mut num_edges = 0;
+
+        // Populate pre-processing fields.
+        let taken_instructions: Vec<PackedInstruction> = iter
+            .into_iter()
+            .map(|inst| {
+                let qargs = cloned_qarg_interner.intern(inst.qubits);
+                let cargs = cloned_carg_interner.intern(inst.clbits);
+
+                // Increase number of edges by the amount of incoming qubits and clbits
+                num_edges += qargs.len() + cargs.len();
+
+                // Extend the collection of qubits and clbits
+                qubit_set.extend(qargs);
+                clbit_set.extend(cargs);
+
+                inst
+            })
+            .collect();
+
+        // Increase the number of edges by the amount of qubits and clbits used.
+        num_edges += qubit_set.len() + clbit_set.len();
+
+        // Create a new DAGCircuit instance with the pre-parsed capacity.
+        let mut new_dag = DAGCircuit::with_capacity(
+            py,
+            qubit_set.len(),
+            clbit_set.len(),
+            Some(taken_instructions.len()),
+            None,
+            Some(num_edges),
+        )?;
+        // Set the interners to be the same as before.
+        new_dag.qargs_cache = cloned_qarg_interner;
+        new_dag.cargs_cache = cloned_carg_interner;
+
+        // Add all the valid instructions to the DAGCircuit.
+        new_dag.add_from_iter(py, taken_instructions)?;
+
+        Ok(new_dag)
     }
 }
 
