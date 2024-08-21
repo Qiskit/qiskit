@@ -6241,6 +6241,121 @@ impl DAGCircuit {
             ],
         })
     }
+
+    /// Adds valid instances of [PackedInstruction] to the back of the Circuit.
+    pub fn add_from_iter<I>(&mut self, py: Python, iter: I) -> PyResult<Vec<NodeIndex>>
+    where
+        I: IntoIterator<Item = PackedInstruction>,
+    {
+        // Create HashSets to keep track of each bit/var's last node
+        let mut qubit_last_nodes: HashMap<Qubit, (NodeIndex, Wire)> = HashMap::default();
+        let mut clbit_last_nodes: HashMap<Clbit, (NodeIndex, Wire)> = HashMap::default();
+        // TODO: Keep track of vars
+
+        // Store new nodes to return
+        let mut new_nodes = vec![];
+        for instr in iter {
+            let op_name = instr.op.name();
+            // TODO: Use _vars
+            let (all_cbits, _vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
+                // Check if the clbits are already included
+                if self.may_have_additional_wires(py, &instr) {
+                    let mut clbits: HashSet<Clbit> =
+                        HashSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().copied());
+                    let (additional_clbits, additional_vars) =
+                        self.additional_wires(py, instr.op.view(), instr.condition())?;
+                    for clbit in additional_clbits {
+                        clbits.insert(clbit);
+                    }
+                    (clbits.into_iter().collect(), Some(additional_vars))
+                } else {
+                    (self.cargs_cache.intern(instr.clbits).to_vec(), None)
+                }
+            };
+
+            // Increment the operation count
+            self.increment_op(op_name);
+
+            // Get the correct qubit indices
+            let qubits_id = instr.qubits;
+
+            // Insert op-node to graph.
+            let new_node = self.dag.add_node(NodeType::Operation(instr));
+            new_nodes.push(new_node);
+
+            // For each qubit and cl_bit retrieve the last_nodes
+            let mut nodes_to_connect: HashSet<(NodeIndex, Wire)> = HashSet::default();
+            // Check all the qubits in this instruction.
+            for qubit in self.qargs_cache.intern(qubits_id) {
+                // Retrieve each qubit's last node
+                let qubit_last_node = if let Some((node, wire)) = qubit_last_nodes.remove(qubit) {
+                    (node, wire)
+                } else {
+                    let output_node = self.qubit_io_map[qubit][1];
+                    let (edge_id, predecessor_node) = self
+                        .dag
+                        .edges_directed(output_node, Incoming)
+                        .next()
+                        .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
+                        .unwrap();
+                    self.dag.remove_edge(edge_id);
+                    predecessor_node
+                };
+                qubit_last_nodes
+                    .entry(*qubit)
+                    .and_modify(|val| *val = (new_node, qubit_last_node.1.clone()));
+                nodes_to_connect.insert(qubit_last_node);
+            }
+
+            // Check all the clbits in this instruction.
+            for clbit in all_cbits {
+                let clbit_last_node = if let Some((node, wire)) = clbit_last_nodes.remove(&clbit) {
+                    (node, wire)
+                } else {
+                    let output_node = self.clbit_io_map[&clbit][1];
+                    let (edge_id, predecessor_node) = self
+                        .dag
+                        .edges_directed(output_node, Incoming)
+                        .next()
+                        .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
+                        .unwrap();
+                    self.dag.remove_edge(edge_id);
+                    predecessor_node
+                };
+                clbit_last_nodes
+                    .entry(clbit)
+                    .and_modify(|val| *val = (new_node, clbit_last_node.1.clone()));
+                nodes_to_connect.insert(clbit_last_node);
+            }
+
+            // TODO: Check all the vars in this instruction.
+
+            for (node, wire) in nodes_to_connect {
+                self.dag.add_edge(node, new_node, wire);
+            }
+        }
+
+        // Add the output_nodes back
+        for (qubit, (node, wire)) in qubit_last_nodes {
+            let output_node = self.qubit_io_map[&qubit][1];
+            self.dag.add_edge(node, output_node, wire);
+        }
+
+        for (clbit, (node, wire)) in clbit_last_nodes {
+            let output_node = self.clbit_io_map[&clbit][1];
+            self.dag.add_edge(node, output_node, wire);
+        }
+
+        Ok(new_nodes)
+    }
+
+    /// Creates an instance of DAGCircuit from an iterator over `PackedInstruction`.
+    fn from_iter<I>(_py: Python, _iter: I) -> PyResult<Self>
+    where
+        I: IntoIterator<Item = PackedInstruction>,
+    {
+        todo!()
+    }
 }
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
