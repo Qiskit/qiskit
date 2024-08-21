@@ -399,8 +399,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
-    #[getter]
-    pub fn qubits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter("qubits")]
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
         self.qubits.cached().clone_ref(py)
     }
 
@@ -424,8 +424,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
-    #[getter]
-    pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter("clbits")]
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
         self.clbits.cached().clone_ref(py)
     }
 
@@ -1138,44 +1138,38 @@ impl CircuitData {
     }
 
     /// Returns an immutable view of the Interner used for Qargs
-    pub(crate) fn view_qargs_interner(&self) -> &IndexedInterner<Vec<Qubit>> {
+    pub fn qargs_interner(&self) -> &IndexedInterner<Vec<Qubit>> {
         &self.qargs_interner
     }
 
     /// Returns an immutable view of the Interner used for Cargs
-    pub(crate) fn view_cargs_interner(&self) -> &IndexedInterner<Vec<Clbit>> {
+    pub fn cargs_interner(&self) -> &IndexedInterner<Vec<Clbit>> {
         &self.cargs_interner
     }
 
-    // TODO: Remove once consumed
-    #[allow(dead_code)]
     /// Returns an immutable view of the Global Phase `Param` of the circuit
-    pub(crate) fn view_global_phase(&self) -> &Param {
+    pub fn global_phase(&self) -> &Param {
         &self.global_phase
     }
 
-    // TODO: Remove once consumed
-    #[allow(dead_code)]
     /// Returns an immutable view of the Qubit register of the circuit
-    pub(crate) fn view_qubits(&self) -> &BitData<Qubit> {
+    pub fn qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
-    // TODO: Remove once consumed
-    #[allow(dead_code)]
     /// Returns an immutable view of the Classical register of the circuit
-    pub(crate) fn view_clbits(&self) -> &BitData<Clbit> {
+    pub fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
 
     /// Unpacks from InternerIndex to `[Qubit]`
     pub fn get_qargs(&self, index: Index) -> &[Qubit] {
-        self.view_qargs_interner().intern(index)
+        self.qargs_interner().intern(index)
     }
 
     /// Unpacks from InternerIndex to `[Clbit]`
     pub fn get_cargs(&self, index: Index) -> &[Clbit] {
-        self.view_cargs_interner().intern(index)
+        self.cargs_interner().intern(index)
     }
 
     fn assign_parameters_inner<I>(&mut self, py: Python, iter: I) -> PyResult<()>
