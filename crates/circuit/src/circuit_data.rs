@@ -96,9 +96,9 @@ pub struct CircuitData {
     /// The cache used to intern instruction bits.
     cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    pub(crate) qubits: BitData<Qubit>,
+    qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    pub(crate) clbits: BitData<Clbit>,
+    clbits: BitData<Clbit>,
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
@@ -1136,7 +1136,7 @@ impl CircuitData {
     }
 
     /// Returns an iterator over all the instructions present in the circuit.
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = &PackedInstruction> {
+    pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
     }
 
@@ -1194,18 +1194,24 @@ impl CircuitData {
         &self.cargs_interner
     }
 
+    // TODO: Remove once consumed
+    #[allow(dead_code)]
     /// Returns an immutable view of the Global Phase `Param` of the circuit
-    pub fn global_phase(&self) -> &Param {
+    pub(crate) fn view_global_phase(&self) -> &Param {
         &self.global_phase
     }
 
-    /// Returns an immutable view of the Qubits registered in the circuit
-    pub fn qubits(&self) -> &BitData<Qubit> {
+    // TODO: Remove once consumed
+    #[allow(dead_code)]
+    /// Returns an immutable view of the Qubit register of the circuit
+    pub(crate) fn view_qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
-    /// Returns an immutable view of the Classical bits registered in the circuit
-    pub fn clbits(&self) -> &BitData<Clbit> {
+    // TODO: Remove once consumed
+    #[allow(dead_code)]
+    /// Returns an immutable view of the Classical register of the circuit
+    pub(crate) fn view_clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
 
