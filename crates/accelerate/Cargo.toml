@@ -15,7 +15,7 @@ numpy.workspace = true
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-ahash = "0.8.11"
+ahash.workspace = true
 num-traits = "0.2"
 num-complex.workspace = true
 num-bigint.workspace = true
@@ -54,5 +54,5 @@ version = "0.2.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.18.21"
+version = "0.18.22"
 features = ["macro"]
