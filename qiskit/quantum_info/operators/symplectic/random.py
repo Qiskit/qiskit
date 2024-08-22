@@ -23,6 +23,8 @@ from .clifford import Clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
 
+from qiskit._accelerate.synthesis.clifford import random_clifford_tableau
+
 
 def random_pauli(
     num_qubits: int, group_phase: bool = False, seed: int | np.random.Generator | None = None
@@ -111,49 +113,8 @@ def random_clifford(num_qubits: int, seed: int | np.random.Generator | None = No
     else:
         rng = default_rng(seed)
 
-    had, perm = _sample_qmallows(num_qubits, rng)
-
-    gamma1 = np.diag(rng.integers(2, size=num_qubits, dtype=np.int8))
-    gamma2 = np.diag(rng.integers(2, size=num_qubits, dtype=np.int8))
-    delta1 = np.eye(num_qubits, dtype=np.int8)
-    delta2 = delta1.copy()
-
-    _fill_tril(gamma1, rng, symmetric=True)
-    _fill_tril(gamma2, rng, symmetric=True)
-    _fill_tril(delta1, rng)
-    _fill_tril(delta2, rng)
-
-    # For large num_qubits numpy.inv function called below can
-    # return invalid output leading to a non-symplectic Clifford
-    # being generated. This can be prevented by manually forcing
-    # block inversion of the matrix.
-    block_inverse_threshold = 50
-
-    # Compute stabilizer table
-    zero = np.zeros((num_qubits, num_qubits), dtype=np.int8)
-    prod1 = np.matmul(gamma1, delta1) % 2
-    prod2 = np.matmul(gamma2, delta2) % 2
-    inv1 = _inverse_tril(delta1, block_inverse_threshold).transpose()
-    inv2 = _inverse_tril(delta2, block_inverse_threshold).transpose()
-    table1 = np.block([[delta1, zero], [prod1, inv1]])
-    table2 = np.block([[delta2, zero], [prod2, inv2]])
-
-    # Apply qubit permutation
-    table = table2[np.concatenate([perm, num_qubits + perm])]
-
-    # Apply layer of Hadamards
-    inds = had * np.arange(1, num_qubits + 1)
-    inds = inds[inds > 0] - 1
-    lhs_inds = np.concatenate([inds, inds + num_qubits])
-    rhs_inds = np.concatenate([inds + num_qubits, inds])
-    table[lhs_inds, :] = table[rhs_inds, :]
-
-    # Apply table
-    tableau = np.zeros((2 * num_qubits, 2 * num_qubits + 1), dtype=bool)
-    tableau[:, :-1] = np.mod(np.matmul(table1, table), 2)
-
-    # Generate random phases
-    tableau[:, -1] = rng.integers(2, size=2 * num_qubits)
+    seed = rng.integers(100000, size=1, dtype=np.uint64)[0]
+    tableau = random_clifford_tableau(num_qubits, seed=seed)
     return Clifford(tableau, validate=False)
 
 
