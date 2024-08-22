@@ -677,7 +677,10 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
 
 class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
-    r"""Synthesis plugin for a multi-controlled X gate based on [1].
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper
+    by Iten et al. (2016).
+
+    See [1] for details.
 
     This plugin name is :``mcx.n_dirty_i15`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
@@ -726,7 +729,10 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
 
 
 class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
-    r"""Synthesis plugin for a multi-controlled X gate based on [1].
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by
+    Maslov (2016).
+
+    See [1] for details.
 
     This plugin name is :``mcx.n_clean_m15`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
@@ -766,7 +772,10 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
 
 
 class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
-    r"""Synthesis plugin for a multi-controlled X gate based on [1].
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by
+    Barenco et al. (1995).
+
+    See [1] for details.
 
     This plugin name is :``mcx.1_clean_b95`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
@@ -841,7 +850,10 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
 
 class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the
-    implementation for MCPhaseGate, which is in turn based on [1].
+    implementation for MCPhaseGate, which is in turn based on the
+    paper by Vale et al. (2024).
+
+    See [1] for details.
 
     This plugin name is :``mcx.noaux_v24`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
