@@ -10,19 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod clifford;
-pub mod linear;
-pub mod linear_phase;
-mod permutation;
-
-use pyo3::prelude::*;
-use pyo3::wrap_pymodule;
+mod cnot_phase_synth;
 
 #[pymodule]
-pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(linear::linear))?;
-    m.add_wrapped(wrap_pymodule!(linear_phase::linear_phase))?;
-    m.add_wrapped(wrap_pymodule!(permutation::permutation))?;
-    m.add_wrapped(wrap_pymodule!(clifford::clifford))?;
+pub fn linear_phase(m: &Bound<PyModule>) -> PyResult<()>
+{
+    m.add_wrapped(wrap_pyfunction!(cnot_phase_synth::synth_cnot_phase_aam))?;
     Ok(())
 }

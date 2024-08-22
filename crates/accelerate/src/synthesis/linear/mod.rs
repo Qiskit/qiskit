@@ -188,6 +188,5 @@ pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(random_invertible_binary_matrix))?;
     m.add_wrapped(wrap_pyfunction!(check_invertible_binary_matrix))?;
     m.add_wrapped(wrap_pyfunction!(pmh::synth_cnot_count_full_pmh))?;
-    m.add_wrapped(wrap_pyfunction!(pmh::synth_cnot_phase_aam))?;
     Ok(())
 }
