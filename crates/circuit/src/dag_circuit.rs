@@ -2318,6 +2318,10 @@ def _format(operand):
 
     /// Compute how many components the circuit can decompose into.
     fn num_tensor_factors(&self) -> usize {
+        // This function was forked from rustworkx's
+        // number_weekly_connected_components() function as of 0.15.0:
+        // https://github.com/Qiskit/rustworkx/blob/0.15.0/src/connectivity/mod.rs#L215-L235
+
         let mut weak_components = self.dag.node_count();
         let mut vertex_sets = UnionFind::new(self.dag.node_bound());
         for edge in self.dag.edge_references() {
