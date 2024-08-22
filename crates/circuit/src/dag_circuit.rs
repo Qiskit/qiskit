@@ -1947,7 +1947,7 @@ def _format(operand):
             }
         }
         for var in other.iter_declared_vars(py)?.bind(py) {
-            dag.add_declared_var(&var?)?;
+            dag.add_declared_var(py, &var?)?;
         }
 
         let variable_mapper = PyVariableMapper::new(
@@ -4814,8 +4814,8 @@ def _format(operand):
     ///
     /// Args:
     ///     var: the variable to add.
-    fn add_declared_var(&mut self, var: &Bound<PyAny>) -> PyResult<()> {
-        self.add_var(var.py(), var, DAGVarType::Declare)
+    fn add_declared_var(&mut self, py: Python, var: &Bound<PyAny>) -> PyResult<()> {
+        self.add_var(py, var, DAGVarType::Declare)
     }
 
     /// Total number of classical variables tracked by the circuit.
