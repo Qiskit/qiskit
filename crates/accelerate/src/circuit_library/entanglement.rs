@@ -33,8 +33,8 @@ pub fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item
 
 /// Get a reversed linear entanglement. This is like linear entanglement but in reversed order:
 /// [(n-m..n-1), ..., (1..m), (0..m-1)]
-/// This is particularly interesting, as CX+"full" equals CX+"reverse_linear", even though the
-/// latter uses a quadratically less number of gates.
+/// This is particularly interesting, as CX+"full" uses n(n-1)/2 gates, but operationally equals
+/// CX+"reverse_linear", which needs only n-1 gates.
 pub fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
     linear(num_qubits, block_size).rev()
 }

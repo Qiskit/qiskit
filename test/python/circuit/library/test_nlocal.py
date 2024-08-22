@@ -1006,7 +1006,7 @@ class TestEntanglement(QiskitTestCase):
             _ = fast_entangler_map(num_qubits=2, block_size=3, entanglement="linear", offset=0)
 
     def test_invalid_entanglement_str(self):
-        """Go drunk, you're home"""
+        """Test invalid entanglement string."""
         with self.assertRaises(QiskitError):
             _ = fast_entangler_map(num_qubits=4, block_size=2, entanglement="lniaer", offset=0)
 

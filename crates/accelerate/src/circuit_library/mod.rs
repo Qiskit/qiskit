@@ -22,8 +22,8 @@ mod entanglement;
 ///     block_size: The entanglement block size (e.g. 2 for CX or 3 for CCX).
 ///     entanglement: The entanglement strategy. This can be one of:
 ///
-///         * string: Available options are ``"linear"``, ``"reverse_linear"``, ``"circular"``,
-///             ``"pairwise"`` or ``"sca"``.
+///         * string: Available options are ``"full"``, ``"linear"``, ``"pairwise"``
+///             ``"reverse_linear"``, ``"circular"``, or ``"sca"``.
 ///         * list of tuples: A list of entanglements given as tuple, e.g. [(0, 1), (1, 2)].
 ///         * callable: A callable that takes as input an offset as ``int`` (usually the layer
 ///             in the variational circuit) and returns a string or list of tuples to use as
