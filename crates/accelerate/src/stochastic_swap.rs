@@ -335,7 +335,6 @@ pub fn swap_trials(
     Ok((best_edges, best_layout, best_depth))
 }
 
-#[pymodule]
 pub fn stochastic_swap(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(swap_trials))?;
     m.add_class::<EdgeCollection>()?;

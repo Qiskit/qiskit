@@ -18,6 +18,7 @@ import dataclasses
 from typing import Union, List
 
 from qiskit.circuit.operation import Operation
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.circuit.exceptions import CircuitError
 
@@ -132,7 +133,7 @@ class AnnotatedOperation(Operation):
 
     def copy(self) -> "AnnotatedOperation":
         """Return a copy of the :class:`~.AnnotatedOperation`."""
-        return AnnotatedOperation(base_op=self.base_op, modifiers=self.modifiers.copy())
+        return AnnotatedOperation(base_op=self.base_op.copy(), modifiers=self.modifiers.copy())
 
     def to_matrix(self):
         """Return a matrix representation (allowing to construct Operator)."""
@@ -218,6 +219,27 @@ class AnnotatedOperation(Operation):
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(PowerModifier(exponent))
         return AnnotatedOperation(self.base_op, extended_modifiers)
+
+    @property
+    def params(self) -> list[ParameterValueType]:
+        """The params of the underlying base operation."""
+        return getattr(self.base_op, "params", [])
+
+    @params.setter
+    def params(self, value: list[ParameterValueType]):
+        if hasattr(self.base_op, "params"):
+            self.base_op.params = value
+        else:
+            raise AttributeError(
+                f"Cannot set attribute ``params`` on the base operation {self.base_op}."
+            )
+
+    def validate_parameter(self, parameter: ParameterValueType) -> ParameterValueType:
+        """Validate a parameter for the underlying base operation."""
+        if hasattr(self.base_op, "validate_parameter"):
+            return self.base_op.validate_parameter(parameter)
+
+        raise AttributeError(f"Cannot validate parameters on the base operation {self.base_op}.")
 
 
 def _canonicalize_modifiers(modifiers):

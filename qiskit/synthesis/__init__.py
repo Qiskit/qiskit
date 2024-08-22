@@ -91,6 +91,7 @@ Basis Change Synthesis
 ======================
 
 .. autofunction:: synth_qft_line
+.. autofunction:: synth_qft_full
 
 Unitary Synthesis
 =================
@@ -120,6 +121,13 @@ Two-Qubit Synthesis
    TwoQubitWeylDecomposition
 
 .. autofunction:: two_qubit_cnot_decompose
+
+Multi Controlled Synthesis
+==========================
+
+.. autofunction:: synth_mcx_n_dirty_i15
+.. autofunction:: synth_mcx_n_clean_m15
+.. autofunction:: synth_mcx_1_clean_b95
 
 """
 
@@ -162,7 +170,7 @@ from .stabilizer import (
     synth_circuit_from_stabilizers,
 )
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
-from .qft import synth_qft_line
+from .qft import synth_qft_line, synth_qft_full
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
 from .one_qubit import OneQubitEulerDecomposer
@@ -171,4 +179,9 @@ from .two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
+)
+from .multi_controlled.mcx_with_ancillas_synth import (
+    synth_mcx_n_dirty_i15,
+    synth_mcx_n_clean_m15,
+    synth_mcx_1_clean_b95,
 )

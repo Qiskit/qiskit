@@ -72,7 +72,7 @@ class _PreprocessedData:
 
 
 class BackendEstimatorV2(BaseEstimatorV2):
-    """Evaluates expectation values for provided quantum circuit and observable combinations
+    r"""Evaluates expectation values for provided quantum circuit and observable combinations.
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
@@ -87,7 +87,19 @@ class BackendEstimatorV2(BaseEstimatorV2):
     precludes doing any provider- or backend-specific optimizations.
 
     This class does not perform any measurement or gate mitigation, and, presently, is only
-    compatible with Pauli-based observables.
+    compatible with Pauli-based observables. More formally, given an observable of the type
+    :math:`O=\sum_{i=1}^Na_iP_i`, where :math:`a_i` is a complex number and :math:`P_i` is a
+    Pauli operator, the estimator calculates the expectation :math:`\mathbb{E}(P_i)` of each
+    :math:`P_i` and finally calculates the expectation value of :math:`O` as
+    :math:`\mathbb{E}(O)=\sum_{i=1}^Na_i\mathbb{E}(P_i)`. The reported ``std`` is calculated
+    as
+
+    .. math::
+
+        \frac{\sum_{i=1}^{n}|a_i|\sqrt{\textrm{Var}\big(P_i\big)}}{\sqrt{N}}\:,
+
+    where :math:`\textrm{Var}(P_i)` is the variance of :math:`P_i`, :math:`N=O(\epsilon^{-2})` is
+    the number of shots, and :math:`\epsilon` is the target precision [1].
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
@@ -104,6 +116,12 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     * ``seed_simulator``: The seed to use in the simulator. If None, a random seed will be used.
       Default: None.
+
+    **Reference:**
+
+    [1] O. Crawford, B. van Straaten, D. Wang, T. Parks, E. Campbell, St. Brierley,
+    Efficient quantum measurement of Pauli operators in the presence of finite sampling error.
+    `Quantum 5, 385 <https://doi.org/10.22331/q-2021-01-20-385>`_
     """
 
     def __init__(
@@ -172,7 +190,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[EstimatorPub], shots: int) -> list[PubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""
@@ -220,7 +238,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
         param_indices = np.fromiter(np.ndindex(param_shape), dtype=object).reshape(param_shape)
         bc_param_ind, bc_obs = np.broadcast_arrays(param_indices, observables)
 
-        # calculate expectation values for each pair of parameter value set and pauli
         param_obs_map = defaultdict(set)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
@@ -254,10 +271,17 @@ class BackendEstimatorV2(BaseEstimatorV2):
             for pauli, coeff in bc_obs[index].items():
                 expval, variance = expval_map[param_index, pauli]
                 evs[index] += expval * coeff
-                variances[index] += variance * coeff**2
-        stds = np.sqrt(variances / shots)
+                variances[index] += np.abs(coeff) * variance**0.5
+        stds = variances / np.sqrt(shots)
         data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
-        return PubResult(data_bin, metadata={"target_precision": pub.precision})
+        return PubResult(
+            data_bin,
+            metadata={
+                "target_precision": pub.precision,
+                "shots": shots,
+                "circuit_metadata": pub.circuit.metadata,
+            },
+        )
 
     def _bind_and_add_measurements(
         self,

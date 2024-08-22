@@ -63,7 +63,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.circ.cx(qr[0], qr[1])
         self.circ.measure(qr, cr)
 
-        self.backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake5QV1()
         self.backend_config = self.backend.configuration()
         self.num_qubits = self.backend_config.n_qubits
 
@@ -80,7 +81,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_single_circuit(self):
         """Test assembling a single circuit."""
-        qobj = assemble(self.circ, shots=2000, memory=True)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, shots=2000, memory=True)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 2000)
@@ -105,7 +107,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ1.cx(qr1[0], qr1[2])
         circ1.measure(qr1, qc1)
 
-        qobj = assemble([circ0, circ1], shots=100, memory=False, seed_simulator=6)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([circ0, circ1], shots=100, memory=False, seed_simulator=6)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.seed_simulator, 6)
@@ -116,29 +119,34 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_no_run_config(self):
         """Test assembling with no run_config, relying on default."""
-        qobj = assemble(self.circ)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 1024)
 
     def test_shots_greater_than_max_shots(self):
         """Test assembling with shots greater than max shots"""
-        self.assertRaises(QiskitError, assemble, self.backend, shots=1024000)
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, assemble, self.backend, shots=1024000)
 
     def test_shots_not_of_type_int(self):
         """Test assembling with shots having type other than int"""
-        self.assertRaises(QiskitError, assemble, self.backend, shots="1024")
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, assemble, self.backend, shots="1024")
 
     def test_shots_of_type_numpy_int64(self):
         """Test assembling with shots having type numpy.int64"""
-        qobj = assemble(self.circ, shots=np.int64(2048))
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, shots=np.int64(2048))
         self.assertEqual(qobj.config.shots, 2048)
 
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         self.backend_config.max_shots = 5
 
-        qobj = assemble(self.circ, self.backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 5)
@@ -149,7 +157,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ = QuantumCircuit(q, name="circ")
         circ.initialize([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], q[:])
 
-        qobj = assemble(circ)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.experiments[0].instructions[0].name, "initialize")
@@ -159,14 +168,16 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_meas_level_meas_return(self):
         """Test assembling a circuit schedule with `meas_level`."""
-        qobj = assemble(self.circ, meas_level=1, meas_return="single")
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, meas_level=1, meas_return="single")
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.meas_level, 1)
         self.assertEqual(qobj.config.meas_return, "single")
 
         # no meas_level set
-        qobj = assemble(self.circ)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.meas_level, 2)
@@ -181,12 +192,14 @@ class TestCircuitAssembler(QiskitTestCase):
 
         # dynamic rep rates off
         setattr(self.backend_config, "dynamic_reprate_enabled", False)
-        qobj = assemble(self.circ, self.backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend)
         self.assertEqual(hasattr(qobj.config, "rep_delay"), False)
 
         # dynamic rep rates on
         setattr(self.backend_config, "dynamic_reprate_enabled", True)
-        qobj = assemble(self.circ, self.backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend)
         self.assertEqual(qobj.config.rep_delay, default_rep_delay * 1e6)
 
     def test_assemble_user_rep_time_delay(self):
@@ -198,22 +211,26 @@ class TestCircuitAssembler(QiskitTestCase):
 
         # dynamic rep rates off (no default so shouldn't be in qobj config)
         setattr(self.backend_config, "dynamic_reprate_enabled", False)
-        qobj = assemble(self.circ, self.backend, rep_delay=rep_delay)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend, rep_delay=rep_delay)
         self.assertEqual(hasattr(qobj.config, "rep_delay"), False)
 
         # turn on dynamic rep rates, rep_delay should be set
         setattr(self.backend_config, "dynamic_reprate_enabled", True)
-        qobj = assemble(self.circ, self.backend, rep_delay=rep_delay)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend, rep_delay=rep_delay)
         self.assertEqual(qobj.config.rep_delay, 2.2)
 
         # test ``rep_delay=0``
-        qobj = assemble(self.circ, self.backend, rep_delay=0)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend, rep_delay=0)
         self.assertEqual(qobj.config.rep_delay, 0)
 
         # use ``rep_delay`` outside of ``rep_delay_range```
         rep_delay_large = 5.0e-6
-        with self.assertRaises(QiskitError):
-            assemble(self.circ, self.backend, rep_delay=rep_delay_large)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(self.circ, self.backend, rep_delay=rep_delay_large)
 
     def test_assemble_opaque_inst(self):
         """Test opaque instruction is assembled as-is"""
@@ -223,7 +240,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ = QuantumCircuit(q, c, name="circ")
         circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
 
-        qobj = assemble(circ)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ)
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(len(qobj.experiments[0].instructions), 1)
@@ -245,7 +263,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qc.assign_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
 
-        qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
 
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.experiments[0].instructions[0].params[0], 0.100000000000000)
@@ -267,7 +286,8 @@ class TestCircuitAssembler(QiskitTestCase):
         qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
         qc.h(qr[1]).c_if(cr2, 3)
 
-        qobj = assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc)
 
         first_measure, second_measure = (
             op for op in qobj.experiments[0].instructions if op.name == "measure"
@@ -286,7 +306,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qc.h(qr[0]).c_if(cr, 1)
 
-        qobj = assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc)
 
         bfunc_op, h_op = qobj.experiments[0].instructions
 
@@ -306,7 +327,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qc.h(qr[0]).c_if(cr[2], 1)
 
-        qobj = assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc)
 
         inst_set = qobj.experiments[0].instructions
         [bfunc_op, h_op] = inst_set
@@ -331,7 +353,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qc.h(qr[0]).c_if(cr2, 2)
 
-        qobj = assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc)
 
         bfunc_op, h_op = qobj.experiments[0].instructions
 
@@ -363,23 +386,24 @@ class TestCircuitAssembler(QiskitTestCase):
         full_bind_args = {"parameter_binds": [{x: 1, y: 1}, {x: 0, y: 0}]}
         inconsistent_bind_args = {"parameter_binds": [{x: 1}, {x: 0, y: 0}]}
 
-        # Raise when parameters passed for non-parametric circuit
-        self.assertRaises(QiskitError, assemble, full_bound_circ, **partial_bind_args)
+        with self.assertWarns(DeprecationWarning):
+            # Raise when parameters passed for non-parametric circuit
+            self.assertRaises(QiskitError, assemble, full_bound_circ, **partial_bind_args)
 
-        # Raise when no parameters passed for parametric circuit
-        self.assertRaises(QiskitError, assemble, partial_param_circ)
-        self.assertRaises(QiskitError, assemble, full_param_circ)
+            # Raise when no parameters passed for parametric circuit
+            self.assertRaises(QiskitError, assemble, partial_param_circ)
+            self.assertRaises(QiskitError, assemble, full_param_circ)
 
-        # Raise when circuit has more parameters than run_config
-        self.assertRaises(QiskitError, assemble, full_param_circ, **partial_bind_args)
+            # Raise when circuit has more parameters than run_config
+            self.assertRaises(QiskitError, assemble, full_param_circ, **partial_bind_args)
 
-        # Raise when not all circuits have all parameters
-        self.assertRaises(
-            QiskitError, assemble, [full_param_circ, partial_param_circ], **full_bind_args
-        )
+            # Raise when not all circuits have all parameters
+            self.assertRaises(
+                QiskitError, assemble, [full_param_circ, partial_param_circ], **full_bind_args
+            )
 
-        # Raise when not all binds have all circuit params
-        self.assertRaises(QiskitError, assemble, full_param_circ, **inconsistent_bind_args)
+            # Raise when not all binds have all circuit params
+            self.assertRaises(QiskitError, assemble, full_param_circ, **inconsistent_bind_args)
 
     def test_assemble_circuits_rases_for_bind_mismatch_over_expressions(self):
         """Verify assemble_circuits raises for invalid binds for circuit including
@@ -395,11 +419,13 @@ class TestCircuitAssembler(QiskitTestCase):
 
         partial_bind_args = {"parameter_binds": [{x: 1}, {x: 0}]}
 
-        # Raise when no parameters passed for parametric circuit
-        self.assertRaises(QiskitError, assemble, expr_circ)
+        with self.assertWarns(DeprecationWarning):
+            # Raise when no parameters passed for parametric circuit
+            self.assertRaises(QiskitError, assemble, expr_circ)
 
-        # Raise when circuit has more parameters than run_config
-        self.assertRaises(QiskitError, assemble, expr_circ, **partial_bind_args)
+        with self.assertWarns(DeprecationWarning):
+            # Raise when circuit has more parameters than run_config
+            self.assertRaises(QiskitError, assemble, expr_circ, **partial_bind_args)
 
     def test_assemble_circuits_binds_parameters(self):
         """Verify assemble_circuits applies parameter bindings and output circuits are bound."""
@@ -422,7 +448,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         bind_args = {"parameter_binds": [{x: 0, y: 0}, {x: 1, y: 0}, {x: 1, y: 1}]}
 
-        qobj = assemble([qc1, qc2, qc3], **bind_args)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([qc1, qc2, qc3], **bind_args)
 
         self.assertEqual(len(qobj.experiments), 9)
         self.assertEqual(
@@ -451,17 +478,20 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
-        qobj = assemble(self.circ)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ)
         self.assertEqual(qobj.config.init_qubits, True)
 
     def test_init_qubits_true(self):
         """Check that the init_qubits=True assemble option is passed on to the qobj."""
-        qobj = assemble(self.circ, init_qubits=True)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, init_qubits=True)
         self.assertEqual(qobj.config.init_qubits, True)
 
     def test_init_qubits_false(self):
         """Check that the init_qubits=False assemble option is passed on to the qobj."""
-        qobj = assemble(self.circ, init_qubits=False)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
     def test_circuit_with_global_phase(self):
@@ -471,7 +501,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.cx(0, 1)
         circ.measure_all()
         circ.global_phase = 0.3 * np.pi
-        qobj = assemble([circ, self.circ])
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([circ, self.circ])
         self.assertEqual(getattr(qobj.experiments[1].header, "global_phase"), 0)
         self.assertEqual(getattr(qobj.experiments[0].header, "global_phase"), 0.3 * np.pi)
 
@@ -493,10 +524,12 @@ class TestCircuitAssembler(QiskitTestCase):
         gate = TestGate()
         circ = QuantumCircuit(1)
         circ.append(gate, [0])
-        qobj = assemble([circ])
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([circ])
         self.assertEqual(getattr(qobj.experiments[0].header, "global_phase"), 0)
         circ.global_phase = np.pi / 2
-        qobj = assemble([circ])
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([circ])
         self.assertEqual(getattr(qobj.experiments[0].header, "global_phase"), np.pi / 2)
 
     def test_pulse_gates_single_circ(self):
@@ -518,7 +551,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.add_calibration(RxGate(3.14), [0], x180)
         circ.add_calibration(RxGate(3.14), [1], x180)
 
-        qobj = assemble(circ, FakeOpenPulse2Q())
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, FakeOpenPulse2Q())
         # Only one circuit, so everything is stored at the job level
         cals = qobj.config.calibrations
         lib = qobj.config.pulse_library
@@ -539,7 +573,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         circ.add_calibration("h", [0], custom_h_schedule)
 
-        qobj = assemble(circ, FakeOpenPulse2Q())
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, FakeOpenPulse2Q())
         lib = qobj.config.pulse_library
         self.assertEqual(len(lib), 1)
         np.testing.assert_almost_equal(
@@ -557,9 +592,11 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.h(0)
         circ.add_calibration("h", [0], custom_h_schedule)
 
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         backend.configuration().parametric_pulses = ["drag"]
-        qobj = assemble(circ, backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, backend)
         self.assertFalse(hasattr(qobj.config, "pulse_library"))
         self.assertTrue(hasattr(qobj.config, "calibrations"))
 
@@ -577,7 +614,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ2 = QuantumCircuit(2)
         circ2.h(0)
 
-        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([circ, circ2], FakeOpenPulse2Q())
         self.assertEqual(len(qobj.config.pulse_library), 1)
         self.assertEqual(len(qobj.experiments[0].config.calibrations.gates), 2)
         self.assertFalse(hasattr(qobj.config, "calibrations"))
@@ -598,7 +636,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ2.h(0)
         circ2.add_calibration(RxGate(3.14), [1], dummy_sched)
 
-        qobj = assemble([circ, circ2], FakeOpenPulse2Q())
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble([circ, circ2], FakeOpenPulse2Q())
         # Identical pulses are only added once
         self.assertEqual(len(qobj.config.pulse_library), 1)
         # Identical calibrations are only added once
@@ -611,7 +650,8 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_assemble_adds_circuit_metadata_to_experiment_header(self):
         """Verify that any circuit metadata is added to the experiment header."""
         circ = QuantumCircuit(2, metadata={"experiment_type": "gst", "execution_number": "1234"})
-        qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
         self.assertEqual(
             qobj.experiments[0].header.metadata,
             {"experiment_type": "gst", "execution_number": "1234"},
@@ -623,7 +663,8 @@ class TestCircuitAssembler(QiskitTestCase):
         circ.append(Gate("test", 1, []), [0])
         test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
         circ.add_calibration("test", [0], test_sched)
-        qobj = assemble(circ, FakeOpenPulse2Q())
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(circ, FakeOpenPulse2Q())
         self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
         self.assertEqual(
             qobj.config.calibrations.gates[0].instructions[1].to_dict(),
@@ -633,12 +674,13 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_job_qubit_meas_los_no_range(self):
         """Test that adding job qubit/meas lo freq lists are assembled into the qobj.config, w/ out
         any lo range."""
-        qobj = assemble(
-            self.circ,
-            backend=self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.circ,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+            )
 
         # convert to ghz
         qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
@@ -653,73 +695,79 @@ class TestCircuitAssembler(QiskitTestCase):
         meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_meas_lo_freq]
 
         # lo range not a nested list
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=[4.995e9 for i in range(self.num_qubits)],
-                meas_lo_range=meas_lo_range,
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(
+                    self.circ,
+                    backend=self.backend,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    qubit_lo_range=[4.995e9 for i in range(self.num_qubits)],
+                    meas_lo_range=meas_lo_range,
+                )
 
         # qubit lo range inner list not 2d
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=qubit_lo_range,
-                meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(
+                    self.circ,
+                    backend=self.backend,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    qubit_lo_range=qubit_lo_range,
+                    meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
+                )
 
         # meas lo range inner list not 2d
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=qubit_lo_range,
-                meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(
+                    self.circ,
+                    backend=self.backend,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    qubit_lo_range=qubit_lo_range,
+                    meas_lo_range=[[6.695e9] for i in range(self.num_qubits)],
+                )
 
         # qubit lo out of range
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=[[5.005e9, 5.010e9] for i in range(self.num_qubits)],
-                meas_lo_range=meas_lo_range,
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(
+                    self.circ,
+                    backend=self.backend,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    qubit_lo_range=[[5.005e9, 5.010e9] for i in range(self.num_qubits)],
+                    meas_lo_range=meas_lo_range,
+                )
 
         # meas lo out of range
-        with self.assertRaises(QiskitError):
-            assemble(
-                self.circ,
-                backend=self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                qubit_lo_range=qubit_lo_range,
-                meas_lo_range=[[6.705e9, 6.710e9] for i in range(self.num_qubits)],
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(
+                    self.circ,
+                    backend=self.backend,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    qubit_lo_range=qubit_lo_range,
+                    meas_lo_range=[[6.705e9, 6.710e9] for i in range(self.num_qubits)],
+                )
 
     def test_job_qubit_meas_los_w_range(self):
         """Test that adding job qubit/meas lo freq lists are assembled into the qobj.config, w/ lo
         ranges input. Verify that lo ranges do not enter into the config."""
         qubit_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_qubit_lo_freq]
         meas_lo_range = [[freq - 5e6, freq + 5e6] for freq in self.default_meas_lo_freq]
-        qobj = assemble(
-            self.circ,
-            backend=self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            qubit_lo_range=qubit_lo_range,
-            meas_lo_range=meas_lo_range,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.circ,
+                backend=self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                qubit_lo_range=qubit_lo_range,
+                meas_lo_range=meas_lo_range,
+            )
 
         # convert to ghz
         qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
@@ -731,13 +779,14 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_single_circ_single_lo_config(self):
         """Test assembling a single circuit, with a single experiment level lo config."""
-        qobj = assemble(
-            self.circ,
-            self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=self.user_lo_config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.circ,
+                self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=self.user_lo_config,
+            )
 
         self.assertListEqual(qobj.config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
         self.assertListEqual(qobj.config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
@@ -746,13 +795,14 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_assemble_single_circ_single_lo_config_dict(self):
         """Test assembling a single circuit, with a single experiment level lo config supplied as
         dictionary."""
-        qobj = assemble(
-            self.circ,
-            self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=self.user_lo_config_dict,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.circ,
+                self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=self.user_lo_config_dict,
+            )
 
         self.assertListEqual(qobj.config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
         self.assertListEqual(qobj.config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
@@ -769,13 +819,14 @@ class TestCircuitAssembler(QiskitTestCase):
             pulse.MeasureChannel(3): 6.1e9,
         }
         user_lo_config2 = pulse.LoConfig(user_lo_config_dict2)
-        qobj = assemble(
-            self.circ,
-            self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[self.user_lo_config, user_lo_config2],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.circ,
+                self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[self.user_lo_config, user_lo_config2],
+            )
 
         qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
         meas_lo_freq_ghz = [freq / 1e9 for freq in self.default_meas_lo_freq]
@@ -800,13 +851,14 @@ class TestCircuitAssembler(QiskitTestCase):
             pulse.MeasureChannel(3): 6.1e9,
         }
         user_lo_config2 = pulse.LoConfig(user_lo_config_dict2)
-        qobj = assemble(
-            [self.circ, self.circ],
-            self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[self.user_lo_config, user_lo_config2],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                [self.circ, self.circ],
+                self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[self.user_lo_config, user_lo_config2],
+            )
 
         qubit_lo_freq_ghz = [freq / 1e9 for freq in self.default_qubit_lo_freq]
         meas_lo_freq_ghz = [freq / 1e9 for freq in self.default_meas_lo_freq]
@@ -824,13 +876,14 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_assemble_multi_circ_single_lo_config(self):
         """Test assembling multiple circuits, with a single experiment level lo config (should
         override job level)."""
-        qobj = assemble(
-            [self.circ, self.circ],
-            self.backend,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=self.user_lo_config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                [self.circ, self.circ],
+                self.backend,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=self.user_lo_config,
+            )
 
         self.assertListEqual(qobj.config.qubit_lo_freq, [5.55, 5, 5, 4.91, 5])
         self.assertListEqual(qobj.config.meas_lo_freq, [6.64, 6.7, 6.7, 6.7, 6.1])
@@ -840,14 +893,15 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test assembling circuits, with a different number of experiment level lo configs (n:m
         setup).
         """
-        with self.assertRaises(QiskitError):
-            assemble(
-                [self.circ, self.circ, self.circ],
-                self.backend,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                schedule_los=[self.user_lo_config, self.user_lo_config],
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                assemble(
+                    [self.circ, self.circ, self.circ],
+                    self.backend,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    schedule_los=[self.user_lo_config, self.user_lo_config],
+                )
 
     def test_assemble_circ_lo_config_errors(self):
         """Test that lo config errors are raised properly if experiment level los are provided and
@@ -867,7 +921,8 @@ class TestCircuitAssembler(QiskitTestCase):
             pulse.MeasureChannel(4): 7e9,
         }
 
-        qobj = assemble(self.circ, self.backend, schedule_los=full_lo_config_dict)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.circ, self.backend, schedule_los=full_lo_config_dict)
 
         self.assertListEqual(qobj.config.qubit_lo_freq, [4.85, 4.9, 4.95, 5, 5.05])
         self.assertListEqual(qobj.config.meas_lo_freq, [6.8, 6.85, 6.9, 6.95, 7])
@@ -876,14 +931,16 @@ class TestCircuitAssembler(QiskitTestCase):
         # no defaults and missing experiment level drive lo raises
         missing_drive_lo_config_dict = copy.deepcopy(full_lo_config_dict)
         missing_drive_lo_config_dict.pop(pulse.DriveChannel(0))
-        with self.assertRaises(QiskitError):
-            qobj = assemble(self.circ, self.backend, schedule_los=missing_drive_lo_config_dict)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                qobj = assemble(self.circ, self.backend, schedule_los=missing_drive_lo_config_dict)
 
         # no defaults and missing experiment level meas lo raises
         missing_meas_lo_config_dict = copy.deepcopy(full_lo_config_dict)
         missing_meas_lo_config_dict.pop(pulse.MeasureChannel(0))
-        with self.assertRaises(QiskitError):
-            qobj = assemble(self.circ, self.backend, schedule_los=missing_meas_lo_config_dict)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                qobj = assemble(self.circ, self.backend, schedule_los=missing_meas_lo_config_dict)
 
         # verify lo ranges are checked at experiment level
         lo_values = list(full_lo_config_dict.values())
@@ -892,24 +949,26 @@ class TestCircuitAssembler(QiskitTestCase):
 
         # out of range drive lo
         full_lo_config_dict[pulse.DriveChannel(0)] -= 5.5e6
-        with self.assertRaises(QiskitError):
-            qobj = assemble(
-                self.circ,
-                self.backend,
-                qubit_lo_range=qubit_lo_range,
-                schedule_los=full_lo_config_dict,
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                qobj = assemble(
+                    self.circ,
+                    self.backend,
+                    qubit_lo_range=qubit_lo_range,
+                    schedule_los=full_lo_config_dict,
+                )
         full_lo_config_dict[pulse.DriveChannel(0)] += 5.5e6  # reset drive value
 
         # out of range meas lo
         full_lo_config_dict[pulse.MeasureChannel(0)] += 5.5e6
-        with self.assertRaises(QiskitError):
-            qobj = assemble(
-                self.circ,
-                self.backend,
-                meas_lo_range=meas_lo_range,
-                schedule_los=full_lo_config_dict,
-            )
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(QiskitError):
+                qobj = assemble(
+                    self.circ,
+                    self.backend,
+                    meas_lo_range=meas_lo_range,
+                    schedule_los=full_lo_config_dict,
+                )
 
 
 class TestPulseAssembler(QiskitTestCase):
@@ -917,7 +976,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
 
         test_pulse = pulse.Waveform(
@@ -945,13 +1005,14 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_adds_schedule_metadata_to_experiment_header(self):
         """Verify that any circuit metadata is added to the experiment header."""
         self.schedule.metadata = {"experiment_type": "gst", "execution_number": "1234"}
-        qobj = assemble(
-            self.schedule,
-            shots=100,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                shots=100,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[],
+            )
         self.assertEqual(
             qobj.experiments[0].header.metadata,
             {"experiment_type": "gst", "execution_number": "1234"},
@@ -969,14 +1030,15 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += pulse.Play(
             pulse.Waveform([0.5] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
         )
-        qobj = assemble(
-            schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[],
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[],
+                **self.config,
+            )
 
         test_dict = qobj.to_dict()
         experiment = test_dict["experiments"][0]
@@ -994,14 +1056,15 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_without_lo_config(self):
         """Test assembling a single schedule, no lo config."""
-        qobj = assemble(
-            self.schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[],
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[],
+                **self.config,
+            )
 
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict["config"]["qubit_lo_freq"], [4.9, 5.0])
@@ -1010,13 +1073,14 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_multi_schedules_without_lo_config(self):
         """Test assembling schedules, no lo config."""
-        qobj = assemble(
-            [self.schedule, self.schedule],
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                [self.schedule, self.schedule],
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                **self.config,
+            )
 
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict["config"]["qubit_lo_freq"], [4.9, 5.0])
@@ -1025,14 +1089,15 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_lo_config(self):
         """Test assembling a single schedule, with a single lo config."""
-        qobj = assemble(
-            self.schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=self.user_lo_config,
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=self.user_lo_config,
+                **self.config,
+            )
 
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict["config"]["qubit_lo_freq"], [4.91, 5.0])
@@ -1041,14 +1106,15 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_lo_config_dict(self):
         """Test assembling a single schedule, with a single lo config supplied as dictionary."""
-        qobj = assemble(
-            self.schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=self.user_lo_config_dict,
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=self.user_lo_config_dict,
+                **self.config,
+            )
 
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict["config"]["qubit_lo_freq"], [4.91, 5.0])
@@ -1057,14 +1123,15 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
         """Test assembling a single schedule, with multiple lo configs (frequency sweep)."""
-        qobj = assemble(
-            self.schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[self.user_lo_config, self.user_lo_config],
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[self.user_lo_config, self.user_lo_config],
+                **self.config,
+            )
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict["config"]["qubit_lo_freq"], [4.9, 5.0])
@@ -1074,14 +1141,15 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_multi_schedules_with_multi_lo_configs(self):
         """Test assembling schedules, with the same number of lo configs (n:n setup)."""
-        qobj = assemble(
-            [self.schedule, self.schedule],
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[self.user_lo_config, self.user_lo_config],
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                [self.schedule, self.schedule],
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[self.user_lo_config, self.user_lo_config],
+                **self.config,
+            )
 
         test_dict = qobj.to_dict()
         self.assertListEqual(test_dict["config"]["qubit_lo_freq"], [4.9, 5.0])
@@ -1092,14 +1160,15 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_multi_schedules_with_wrong_number_of_multi_lo_configs(self):
         """Test assembling schedules, with a different number of lo configs (n:m setup)."""
         with self.assertRaises(QiskitError):
-            assemble(
-                [self.schedule, self.schedule, self.schedule],
-                qobj_header=self.header,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                schedule_los=[self.user_lo_config, self.user_lo_config],
-                **self.config,
-            )
+            with self.assertWarns(DeprecationWarning):
+                assemble(
+                    [self.schedule, self.schedule, self.schedule],
+                    qobj_header=self.header,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    schedule_los=[self.user_lo_config, self.user_lo_config],
+                    **self.config,
+                )
 
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
@@ -1107,20 +1176,22 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.insert(5, Acquire(5, AcquireChannel(0), MemorySlot(0)))
         schedule = schedule.insert(5, Acquire(5, AcquireChannel(1), MemorySlot(1)))
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0], [1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0], [1]],
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1, 2]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1, 2]],
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_assemble_memory_slots(self):
@@ -1132,12 +1203,13 @@ class TestPulseAssembler(QiskitTestCase):
             5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
         )
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0], [1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0], [1]],
+            )
 
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
         # this should be in experimental header as well
@@ -1153,13 +1225,13 @@ class TestPulseAssembler(QiskitTestCase):
                 5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
             ),
         )
-
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0], [1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0], [1]],
+            )
 
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
         # this should be in experimental header as well
@@ -1176,12 +1248,13 @@ class TestPulseAssembler(QiskitTestCase):
             )
             schedules.append(schedule)
 
-        qobj = assemble(
-            schedules,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0], [1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedules,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0], [1]],
+            )
 
         self.assertEqual(qobj.config.memory_slots, max(n_memoryslots))
         self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots[0])
@@ -1198,20 +1271,22 @@ class TestPulseAssembler(QiskitTestCase):
             1, Play(name_conflict_pulse, self.backend_config.drive(1))
         )
 
-        qobj = assemble(
-            self.schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[],
-            **self.config,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[],
+                **self.config,
+            )
 
         self.assertNotEqual(qobj.config.pulse_library[0].name, qobj.config.pulse_library[1].name)
 
     def test_pulse_name_conflicts_in_other_schedule(self):
         """Test two pulses with the same name in different schedule can be resolved."""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         defaults = backend.defaults()
 
         schedules = []
@@ -1222,9 +1297,12 @@ class TestPulseAssembler(QiskitTestCase):
             sched += measure(qubits=[0], backend=backend) << 100
             schedules.append(sched)
 
-        qobj = assemble(
-            schedules, qubit_lo_freq=defaults.qubit_freq_est, meas_lo_freq=defaults.meas_freq_est
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedules,
+                qubit_lo_freq=defaults.qubit_freq_est,
+                meas_lo_freq=defaults.meas_freq_est,
+            )
 
         # two user pulses and one measurement pulse should be contained
         self.assertEqual(len(qobj.config.pulse_library), 3)
@@ -1233,7 +1311,9 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that delay instruction is not ignored in assembly."""
         delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
         delay_schedule += self.schedule
-        delay_qobj = assemble(delay_schedule, self.backend)
+
+        with self.assertWarns(DeprecationWarning):
+            delay_qobj = assemble(delay_schedule, self.backend)
 
         self.assertEqual(delay_qobj.experiments[0].instructions[0].name, "delay")
         self.assertEqual(delay_qobj.experiments[0].instructions[0].duration, 10)
@@ -1258,7 +1338,8 @@ class TestPulseAssembler(QiskitTestCase):
         sched2 += delay1
         sched2 += self.schedule  # includes ``Acquire`` instr
 
-        delay_qobj = assemble([sched0, sched1, sched2], self.backend)
+        with self.assertWarns(DeprecationWarning):
+            delay_qobj = assemble([sched0, sched1, sched2], self.backend)
 
         # check that no delay instrs occur on acquire channels
         is_acq_delay = False
@@ -1279,15 +1360,16 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_schedule_enum(self):
         """Test assembling a schedule with enum input values to assemble."""
-        qobj = assemble(
-            self.schedule,
-            qobj_header=self.header,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            schedule_los=[],
-            meas_level=MeasLevel.CLASSIFIED,
-            meas_return=MeasReturnType.AVERAGE,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qobj_header=self.header,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                schedule_los=[],
+                meas_level=MeasLevel.CLASSIFIED,
+                meas_return=MeasReturnType.AVERAGE,
+            )
 
         test_dict = qobj.to_dict()
         self.assertEqual(test_dict["config"]["meas_return"], "avg")
@@ -1312,14 +1394,16 @@ class TestPulseAssembler(QiskitTestCase):
             )
             << sched.duration
         )
-        backend = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = [
             "gaussian",
             "drag",
             "gaussian_square",
             "constant",
         ]
-        qobj = assemble(sched, backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(sched, backend)
 
         self.assertEqual(qobj.config.pulse_library, [])
         qobj_insts = qobj.experiments[0].instructions
@@ -1358,10 +1442,12 @@ class TestPulseAssembler(QiskitTestCase):
         )
         sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
-        backend = FakeOpenPulse3Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = ["something_extra"]
 
-        qobj = assemble(sched, backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(sched, backend)
 
         self.assertNotEqual(qobj.config.pulse_library, [])
         qobj_insts = qobj.experiments[0].instructions
@@ -1369,7 +1455,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg over backend"""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1379,12 +1466,14 @@ class TestPulseAssembler(QiskitTestCase):
 
         qc.add_calibration("x", (0,), x_q0)
 
-        qobj = assemble(qc, backend, parametric_pulses=["gaussian"])
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc, backend, parametric_pulses=["gaussian"])
         self.assertEqual(qobj.config.parametric_pulses, ["gaussian"])
 
     def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg as empty list over backend"""
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1394,22 +1483,26 @@ class TestPulseAssembler(QiskitTestCase):
 
         qc.add_calibration("x", (0,), x_q0)
 
-        qobj = assemble(qc, backend, parametric_pulses=[])
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(qc, backend, parametric_pulses=[])
         self.assertEqual(qobj.config.parametric_pulses, [])
 
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
-        qobj = assemble(self.schedule, self.backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend)
         self.assertEqual(qobj.config.init_qubits, True)
 
     def test_init_qubits_true(self):
         """Check that the init_qubits=True assemble option is passed on to the qobj."""
-        qobj = assemble(self.schedule, self.backend, init_qubits=True)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend, init_qubits=True)
         self.assertEqual(qobj.config.init_qubits, True)
 
     def test_init_qubits_false(self):
         """Check that the init_qubits=False assemble option is passed on to the qobj."""
-        qobj = assemble(self.schedule, self.backend, init_qubits=False)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend, init_qubits=False)
         self.assertEqual(qobj.config.init_qubits, False)
 
     def test_assemble_backend_rep_times_delays(self):
@@ -1423,14 +1516,15 @@ class TestPulseAssembler(QiskitTestCase):
         setattr(self.backend_config, "default_rep_delay", default_rep_delay)
 
         # dynamic rep rates off
-        qobj = assemble(self.schedule, self.backend)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend)
         self.assertEqual(qobj.config.rep_time, int(rep_times[0] * 1e6))
         self.assertEqual(hasattr(qobj.config, "rep_delay"), False)
 
         # dynamic rep rates on
         setattr(self.backend_config, "dynamic_reprate_enabled", True)
         # RuntimeWarning bc ``rep_time`` is specified`` when dynamic rep rates not enabled
-        with self.assertWarns(RuntimeWarning):
+        with self.assertWarns(DeprecationWarning):
             qobj = assemble(self.schedule, self.backend)
         self.assertEqual(qobj.config.rep_time, int(rep_times[0] * 1e6))
         self.assertEqual(qobj.config.rep_delay, default_rep_delay * 1e6)
@@ -1445,7 +1539,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         # dynamic rep rates off
         # RuntimeWarning bc using ``rep_delay`` when dynamic rep rates off
-        with self.assertWarns(RuntimeWarning):
+        with self.assertWarns(DeprecationWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_time * 1e6))
         self.assertEqual(hasattr(qobj.config, "rep_delay"), False)
@@ -1454,7 +1548,7 @@ class TestPulseAssembler(QiskitTestCase):
         # RuntimeWarning bc using ``rep_time`` when dynamic rep rates are enabled
         del self.config["rep_delay"]
         setattr(self.backend_config, "dynamic_reprate_enabled", True)
-        with self.assertWarns(RuntimeWarning):
+        with self.assertWarns(DeprecationWarning):
             qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_time * 1e6))
         self.assertEqual(hasattr(qobj.config, "rep_delay"), False)
@@ -1466,19 +1560,21 @@ class TestPulseAssembler(QiskitTestCase):
         setattr(self.backend_config, "rep_delay_range", [0, 3.0e-6])
         setattr(self.backend_config, "default_rep_delay", 2.2e-6)
         del self.config["rep_time"]
-        qobj = assemble(self.schedule, self.backend, **self.config)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_times[0] * 1e6))
         self.assertEqual(qobj.config.rep_delay, 2.2)
 
         # use qobj ``default_rep_delay``
         self.config["rep_delay"] = 1.5e-6
-        qobj = assemble(self.schedule, self.backend, **self.config)
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(self.schedule, self.backend, **self.config)
         self.assertEqual(qobj.config.rep_time, int(rep_times[0] * 1e6))
         self.assertEqual(qobj.config.rep_delay, 1.5)
 
         # use ``rep_delay`` outside of ``rep_delay_range
         self.config["rep_delay"] = 5.0e-6
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(DeprecationWarning):
             assemble(self.schedule, self.backend, **self.config)
 
     def test_assemble_with_individual_discriminators(self):
@@ -1494,12 +1590,13 @@ class TestPulseAssembler(QiskitTestCase):
             Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two),
         )
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1]],
+            )
 
         qobj_discriminators = qobj.experiments[0].instructions[0].discriminators
         self.assertEqual(len(qobj_discriminators), 2)
@@ -1520,12 +1617,13 @@ class TestPulseAssembler(QiskitTestCase):
             Acquire(5, AcquireChannel(1), MemorySlot(1)),
         )
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1]],
+            )
 
         qobj_discriminators = qobj.experiments[0].instructions[0].discriminators
         self.assertEqual(len(qobj_discriminators), 1)
@@ -1543,7 +1641,7 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two)
         schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
                 schedule,
                 qubit_lo_freq=self.default_qubit_lo_freq,
@@ -1564,12 +1662,13 @@ class TestPulseAssembler(QiskitTestCase):
             Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two),
         )
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1]],
+            )
 
         qobj_kernels = qobj.experiments[0].instructions[0].kernels
         self.assertEqual(len(qobj_kernels), 2)
@@ -1590,12 +1689,13 @@ class TestPulseAssembler(QiskitTestCase):
             Acquire(5, AcquireChannel(1), MemorySlot(1)),
         )
 
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1]],
+            )
 
         qobj_kernels = qobj.experiments[0].instructions[0].kernels
         self.assertEqual(len(qobj_kernels), 1)
@@ -1613,7 +1713,7 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two)
         schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
                 schedule,
                 qubit_lo_freq=self.default_qubit_lo_freq,
@@ -1624,7 +1724,8 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_single_instruction(self):
         """Test assembling schedules, no lo config."""
         inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
-        self.assertIsInstance(assemble(inst, self.backend), PulseQobj)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsInstance(assemble(inst, self.backend), PulseQobj)
 
     def test_assemble_overlapping_time(self):
         """Test that assembly errors when qubits are measured in overlapping time."""
@@ -1636,12 +1737,13 @@ class TestPulseAssembler(QiskitTestCase):
             Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
         )
         with self.assertRaises(QiskitError):
-            assemble(
-                schedule,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                meas_map=[[0, 1]],
-            )
+            with self.assertWarns(DeprecationWarning):
+                assemble(
+                    schedule,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    meas_map=[[0, 1]],
+                )
 
     def test_assemble_meas_map_vs_insts(self):
         """Test that assembly errors when the qubits are measured in overlapping time
@@ -1653,12 +1755,13 @@ class TestPulseAssembler(QiskitTestCase):
         schedule += Acquire(5, AcquireChannel(3), MemorySlot(3)) << 2
 
         with self.assertRaises(QiskitError):
-            assemble(
-                schedule,
-                qubit_lo_freq=self.default_qubit_lo_freq,
-                meas_lo_freq=self.default_meas_lo_freq,
-                meas_map=[[0], [1, 2], [3]],
-            )
+            with self.assertWarns(DeprecationWarning):
+                assemble(
+                    schedule,
+                    qubit_lo_freq=self.default_qubit_lo_freq,
+                    meas_lo_freq=self.default_meas_lo_freq,
+                    meas_map=[[0], [1, 2], [3]],
+                )
 
     def test_assemble_non_overlapping_time_single_meas_map(self):
         """Test that assembly works when qubits are measured in non-overlapping
@@ -1670,12 +1773,13 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.append(
             Acquire(5, AcquireChannel(1), MemorySlot(1)) << 5,
         )
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1]],
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_assemble_disjoint_time(self):
@@ -1687,12 +1791,13 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.append(
             Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
         )
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 2], [1, 3]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 2], [1, 3]],
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_assemble_valid_qubits(self):
@@ -1708,12 +1813,13 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.append(
             Acquire(5, AcquireChannel(3), MemorySlot(3)),
         )
-        qobj = assemble(
-            schedule,
-            qubit_lo_freq=self.default_qubit_lo_freq,
-            meas_lo_freq=self.default_meas_lo_freq,
-            meas_map=[[0, 1, 2], [3]],
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                schedule,
+                qubit_lo_freq=self.default_qubit_lo_freq,
+                meas_lo_freq=self.default_meas_lo_freq,
+                meas_map=[[0, 1, 2], [3]],
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
 
@@ -1724,7 +1830,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         super().setUp()
         self.schedule = pulse.Schedule(name="fake_experiment")
 
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.qubit_lo_freq = list(self.defaults.qubit_freq_est)
@@ -1746,24 +1853,26 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_defaults(self):
         """Test defaults work."""
-        qobj = assemble(
-            self.schedule,
-            qubit_lo_freq=self.qubit_lo_freq,
-            meas_lo_freq=self.meas_lo_freq,
-            qubit_lo_range=self.qubit_lo_range,
-            meas_lo_range=self.meas_lo_range,
-            schedule_los=self.schedule_los,
-            meas_map=self.meas_map,
-            memory_slots=self.memory_slots,
-            rep_time=self.rep_time,
-            rep_delay=self.rep_delay,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qubit_lo_freq=self.qubit_lo_freq,
+                meas_lo_freq=self.meas_lo_freq,
+                qubit_lo_range=self.qubit_lo_range,
+                meas_lo_range=self.meas_lo_range,
+                schedule_los=self.schedule_los,
+                meas_map=self.meas_map,
+                memory_slots=self.memory_slots,
+                rep_time=self.rep_time,
+                rep_delay=self.rep_delay,
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_missing_qubit_lo_freq(self):
         """Test error raised if qubit_lo_freq missing."""
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+
             assemble(
                 self.schedule,
                 qubit_lo_freq=None,
@@ -1779,7 +1888,7 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
     def test_missing_meas_lo_freq(self):
         """Test error raised if meas_lo_freq missing."""
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
                 self.schedule,
                 qubit_lo_freq=self.qubit_lo_freq,
@@ -1794,74 +1903,79 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_missing_memory_slots(self):
         """Test error is not raised if memory_slots are missing."""
-        qobj = assemble(
-            self.schedule,
-            qubit_lo_freq=self.qubit_lo_freq,
-            meas_lo_freq=self.meas_lo_freq,
-            qubit_lo_range=self.qubit_lo_range,
-            meas_lo_range=self.meas_lo_range,
-            schedule_los=self.schedule_los,
-            meas_map=self.meas_map,
-            memory_slots=None,
-            rep_time=self.rep_time,
-            rep_delay=self.rep_delay,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qubit_lo_freq=self.qubit_lo_freq,
+                meas_lo_freq=self.meas_lo_freq,
+                qubit_lo_range=self.qubit_lo_range,
+                meas_lo_range=self.meas_lo_range,
+                schedule_los=self.schedule_los,
+                meas_map=self.meas_map,
+                memory_slots=None,
+                rep_time=self.rep_time,
+                rep_delay=self.rep_delay,
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_missing_rep_time_and_delay(self):
         """Test qobj is valid if rep_time and rep_delay are missing."""
-        qobj = assemble(
-            self.schedule,
-            qubit_lo_freq=self.qubit_lo_freq,
-            meas_lo_freq=self.meas_lo_freq,
-            qubit_lo_range=self.qubit_lo_range,
-            meas_lo_range=self.meas_lo_range,
-            schedule_los=self.schedule_los,
-            meas_map=self.meas_map,
-            memory_slots=None,
-            rep_time=None,
-            rep_delay=None,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qubit_lo_freq=self.qubit_lo_freq,
+                meas_lo_freq=self.meas_lo_freq,
+                qubit_lo_range=self.qubit_lo_range,
+                meas_lo_range=self.meas_lo_range,
+                schedule_los=self.schedule_los,
+                meas_map=self.meas_map,
+                memory_slots=None,
+                rep_time=None,
+                rep_delay=None,
+            )
         self.assertEqual(hasattr(qobj, "rep_time"), False)
         self.assertEqual(hasattr(qobj, "rep_delay"), False)
 
     def test_missing_meas_map(self):
         """Test that assembly still works if meas_map is missing."""
-        qobj = assemble(
-            self.schedule,
-            qubit_lo_freq=self.qubit_lo_freq,
-            meas_lo_freq=self.meas_lo_freq,
-            qubit_lo_range=self.qubit_lo_range,
-            meas_lo_range=self.meas_lo_range,
-            schedule_los=self.schedule_los,
-            meas_map=None,
-            memory_slots=self.memory_slots,
-            rep_time=self.rep_time,
-            rep_delay=self.rep_delay,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qubit_lo_freq=self.qubit_lo_freq,
+                meas_lo_freq=self.meas_lo_freq,
+                qubit_lo_range=self.qubit_lo_range,
+                meas_lo_range=self.meas_lo_range,
+                schedule_los=self.schedule_los,
+                meas_map=None,
+                memory_slots=self.memory_slots,
+                rep_time=self.rep_time,
+                rep_delay=self.rep_delay,
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_missing_lo_ranges(self):
         """Test that assembly still works if lo_ranges are missing."""
-        qobj = assemble(
-            self.schedule,
-            qubit_lo_freq=self.qubit_lo_freq,
-            meas_lo_freq=self.meas_lo_freq,
-            qubit_lo_range=None,
-            meas_lo_range=None,
-            schedule_los=self.schedule_los,
-            meas_map=self.meas_map,
-            memory_slots=self.memory_slots,
-            rep_time=self.rep_time,
-            rep_delay=self.rep_delay,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qobj = assemble(
+                self.schedule,
+                qubit_lo_freq=self.qubit_lo_freq,
+                meas_lo_freq=self.meas_lo_freq,
+                qubit_lo_range=None,
+                meas_lo_range=None,
+                schedule_los=self.schedule_los,
+                meas_map=self.meas_map,
+                memory_slots=self.memory_slots,
+                rep_time=self.rep_time,
+                rep_delay=self.rep_delay,
+            )
         self.assertIsInstance(qobj, PulseQobj)
 
     def test_unsupported_meas_level(self):
         """Test that assembly raises an error if meas_level is not supported"""
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         backend.configuration().meas_levels = [1, 2]
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             assemble(
                 self.schedule,
                 backend,
@@ -1879,7 +1993,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_single_and_deprecated_acquire_styles(self):
         """Test that acquires are identically combined with Acquires that take a single channel."""
-        backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         new_style_schedule = Schedule()
         acq_dur = 1200
         for i in range(2):
@@ -1890,10 +2005,12 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
             deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
 
         # The Qobj IDs will be different
-        n_qobj = assemble(new_style_schedule, backend)
+        with self.assertWarns(DeprecationWarning):
+            n_qobj = assemble(new_style_schedule, backend)
         n_qobj.qobj_id = None
         n_qobj.experiments[0].header.name = None
-        d_qobj = assemble(deprecated_style_schedule, backend)
+        with self.assertWarns(DeprecationWarning):
+            d_qobj = assemble(deprecated_style_schedule, backend)
         d_qobj.qobj_id = None
         d_qobj.experiments[0].header.name = None
         self.assertEqual(n_qobj, d_qobj)
@@ -1924,7 +2041,8 @@ class TestLogAssembler(QiskitTestCase):
 
     def assertAssembleLog(self, log_msg):
         """Runs assemble and checks for logs containing specified message"""
-        assemble(self.circuit, shots=2000, memory=True)
+        with self.assertWarns(DeprecationWarning):
+            assemble(self.circuit, shots=2000, memory=True)
         self.output.seek(0)
         # Filter unrelated log lines
         output_lines = self.output.readlines()

@@ -14,6 +14,7 @@
 
 import unittest
 
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -22,7 +23,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
     _canonicalize_modifiers,
 )
-from qiskit.circuit.library import SGate, SdgGate
+from qiskit.circuit.library import SGate, SdgGate, UGate, RXGate
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -156,6 +157,63 @@ class TestAnnotatedOperationClass(QiskitTestCase):
         canonical_list = _canonicalize_modifiers(original_list)
         expected_list = []
         self.assertEqual(canonical_list, expected_list)
+
+    def test_params_access(self):
+        """Test access to the params field."""
+        p, q = Parameter("p"), Parameter("q")
+        params = [0.2, -1, p]
+        gate = UGate(*params)
+        annotated = gate.control(10, annotated=True)
+
+        with self.subTest(msg="reading params"):
+            self.assertListEqual(annotated.params, params)
+
+        new_params = [q, 131, -1.2]
+        with self.subTest(msg="setting params"):
+            annotated.params = new_params
+            self.assertListEqual(annotated.params, new_params)
+
+    def test_binding_annotated_gate(self):
+        """Test binding an annotated gate in a circuit."""
+        p = Parameter("p")
+        annotated = RXGate(p).control(2, annotated=True)
+        circuit = QuantumCircuit(annotated.num_qubits)
+        circuit.h(circuit.qubits)
+        circuit.append(annotated, circuit.qubits)
+
+        with self.subTest(msg="test parameter is reported"):
+            self.assertEqual(circuit.num_parameters, 1)
+
+        with self.subTest(msg="test binding parameters worked"):
+            bound = circuit.assign_parameters([0.321])
+            self.assertEqual(bound.num_parameters, 0)
+
+    def test_invalid_params_access(self):
+        """Test params access to a operation not providing params."""
+        op = Operator(SGate())
+        annotated = AnnotatedOperation(op, InverseModifier())
+
+        with self.subTest(msg="accessing params returns an empty list"):
+            self.assertEqual(len(annotated.params), 0)
+
+        with self.subTest(msg="setting params fails"):
+            with self.assertRaises(AttributeError):
+                annotated.params = [1.2]
+
+        with self.subTest(msg="validating params fails"):
+            with self.assertRaises(AttributeError):
+                _ = annotated.validate_parameter(1.2)
+
+    def test_invariant_under_assign(self):
+        """Test the annotated operation is not changed by assigning."""
+        p = Parameter("p")
+        annotated = RXGate(p).control(2, annotated=True)
+        circuit = QuantumCircuit(annotated.num_qubits)
+        circuit.append(annotated, circuit.qubits)
+        bound = circuit.assign_parameters([1.23])
+
+        self.assertEqual(list(circuit.parameters), [p])
+        self.assertEqual(len(bound.parameters), 0)
 
 
 if __name__ == "__main__":

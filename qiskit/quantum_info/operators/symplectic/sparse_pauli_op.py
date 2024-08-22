@@ -256,6 +256,8 @@ class SparsePauliOp(LinearOp):
             raise ValueError(
                 f"incorrect number of operators: expected {len(self.paulis)}, got {len(value)}"
             )
+        self.coeffs *= (-1j) ** value.phase
+        value.phase = 0
         self._pauli_list = value
 
     @property
@@ -937,7 +939,7 @@ class SparsePauliOp(LinearOp):
                 array (the default).
             force_serial: if ``True``, use an unthreaded implementation, regardless of the state of
                 the `Qiskit threading-control environment variables
-                <https://docs.quantum.ibm.com/start/configure-qiskit-local#environment-variables>`__.
+                <https://docs.quantum.ibm.com/guides/configure-qiskit-local#environment-variables>`__.
                 By default, this will use threaded parallelism over the available CPUs.
 
         Returns:

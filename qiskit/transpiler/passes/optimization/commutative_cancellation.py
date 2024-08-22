@@ -16,15 +16,17 @@ from collections import defaultdict
 import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
 from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGOutNode
+from qiskit.circuit.commutation_library import CommutationChecker, StandardGateCommutations
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
 
 _CUTOFF_PRECISION = 1e-5
@@ -61,7 +63,18 @@ class CommutativeCancellation(TransformationPass):
             self.basis = set(target.operation_names)
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
-        self.requires.append(CommutationAnalysis())
+
+        self._z_rotations = {"p", "z", "u1", "rz", "t", "s"}
+        self._x_rotations = {"x", "rx"}
+        self._gates = {"cx", "cy", "cz", "h", "y"}  # Now the gates supported are hard-coded
+
+        # build a commutation checker restricted to the gates we cancel -- the others we
+        # do not have to investigate, which allows to save time
+        commutation_checker = CommutationChecker(
+            StandardGateCommutations, gates=self._gates | self._z_rotations | self._x_rotations
+        )
+
+        self.requires.append(CommutationAnalysis(_commutation_checker=commutation_checker))
 
     def run(self, dag):
         """Run the CommutativeCancellation pass on `dag`.
@@ -82,9 +95,6 @@ class CommutativeCancellation(TransformationPass):
             if z_var_gates:
                 var_z_gate = self._var_z_map[next(iter(z_var_gates))]
 
-        # Now the gates supported are hard-coded
-        q_gate_list = ["cx", "cy", "cz", "h", "y"]
-
         # Gate sets to be cancelled
         cancellation_sets = defaultdict(lambda: [])
 
@@ -103,9 +113,11 @@ class CommutativeCancellation(TransformationPass):
                     continue
                 for node in com_set:
                     num_qargs = len(node.qargs)
-                    if num_qargs == 1 and node.name in q_gate_list:
+                    if any(isinstance(p, ParameterExpression) for p in node.params):
+                        continue  # no support for cancellation of parameterized gates
+                    if num_qargs == 1 and node.name in self._gates:
                         cancellation_sets[(node.name, wire, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ["p", "z", "u1", "rz", "t", "s"]:
+                    if num_qargs == 1 and node.name in self._z_rotations:
                         cancellation_sets[("z_rotation", wire, com_set_idx)].append(node)
                     if num_qargs == 1 and node.name in ["rx", "x"]:
                         cancellation_sets[("x_rotation", wire, com_set_idx)].append(node)
@@ -126,7 +138,7 @@ class CommutativeCancellation(TransformationPass):
             if cancel_set_key[0] == "z_rotation" and var_z_gate is None:
                 continue
             set_len = len(cancellation_sets[cancel_set_key])
-            if set_len > 1 and cancel_set_key[0] in q_gate_list:
+            if set_len > 1 and cancel_set_key[0] in self._gates:
                 gates_to_cancel = cancellation_sets[cancel_set_key]
                 for c_node in gates_to_cancel[: (set_len // 2) * 2]:
                     dag.remove_op_node(c_node)
@@ -138,14 +150,14 @@ class CommutativeCancellation(TransformationPass):
                 total_phase = 0.0
                 for current_node in run:
                     if (
-                        getattr(current_node.op, "condition", None) is not None
+                        current_node.condition is not None
                         or len(current_node.qargs) != 1
                         or current_node.qargs[0] != run_qarg
                     ):
                         raise RuntimeError("internal error")
 
                     if current_node.name in ["p", "u1", "rz", "rx"]:
-                        current_angle = float(current_node.op.params[0])
+                        current_angle = float(current_node.params[0])
                     elif current_node.name in ["z", "x"]:
                         current_angle = np.pi
                     elif current_node.name == "t":
@@ -159,8 +171,8 @@ class CommutativeCancellation(TransformationPass):
 
                     # Compose gates
                     total_angle = current_angle + total_angle
-                    if current_node.op.definition:
-                        total_phase += current_node.op.definition.global_phase
+                    if current_node.definition:
+                        total_phase += current_node.definition.global_phase
 
                 # Replace the data of the first node in the run
                 if cancel_set_key[0] == "z_rotation":
@@ -200,7 +212,9 @@ class CommutativeCancellation(TransformationPass):
         """
 
         pass_manager = PassManager([CommutationAnalysis(), self])
-        for node in dag.op_nodes(ControlFlowOp):
+        for node in dag.op_nodes():
+            if node.name not in CONTROL_FLOW_OP_NAMES:
+                continue
             mapped_blocks = []
             for block in node.op.blocks:
                 new_circ = pass_manager.run(block)

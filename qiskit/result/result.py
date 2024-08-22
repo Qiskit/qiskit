@@ -125,7 +125,9 @@ class Result:
         in_data = copy.copy(data)
         in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
         if in_data.get("header") is not None:
-            in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
         return cls(**in_data)
 
     def data(self, experiment=None):

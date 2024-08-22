@@ -17,6 +17,7 @@ import datetime
 import itertools
 import operator
 import unittest
+import warnings
 
 from test import combine
 from ddt import ddt, data
@@ -36,8 +37,8 @@ from qiskit.providers.fake_provider import (
 )
 from qiskit.providers.backend_compat import BackendV2Converter, convert_to_target
 from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import GateConfig
 from qiskit.utils import optionals
 from qiskit.circuit.library import (
     SXGate,
@@ -77,12 +78,13 @@ from qiskit.circuit.controlflow import (
 from qiskit.transpiler.coupling import CouplingMap
 from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
 
-BACKENDS = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
+with warnings.catch_warnings():
+    BACKENDS = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
 
 BACKENDS_V2 = []
 for n in [5, 7, 16, 20, 27, 65, 127]:
     cmap = CouplingMap.from_ring(n)
-    BACKENDS_V2.append(GenericBackendV2(num_qubits=n, coupling_map=cmap))
+    BACKENDS_V2.append(GenericBackendV2(num_qubits=n, coupling_map=cmap, seed=42))
 
 
 @ddt
@@ -128,12 +130,15 @@ class TestFakeBackends(QiskitTestCase):
             self.skipTest(
                 f"Unable to run fake_backend {backend.configuration().backend_name} without qiskit-aer"
             )
-        job = backend.run(
-            transpile(
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            transpiled = transpile(
                 self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
-            ),
-            seed_simulator=42,
-        )
+            )
+        job = backend.run(transpiled, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
@@ -141,14 +146,18 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_qobj_failure(self):
         backend = BACKENDS[-1]
-        tqc = transpile(self.circuit, backend)
-        qobj = assemble(tqc, backend)
+        with self.assertWarns(DeprecationWarning):
+            tqc = transpile(self.circuit, backend)
+            qobj = assemble(tqc, backend)
         with self.assertRaises(QiskitError):
             backend.run(qobj)
 
     @data(*BACKENDS)
     def test_to_dict_properties(self, backend):
-        properties = backend.properties()
+        with warnings.catch_warnings():
+            # The class QobjExperimentHeader is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            properties = backend.properties()
         if properties:
             self.assertIsInstance(backend.properties().to_dict(), dict)
         else:
@@ -187,7 +196,7 @@ class TestFakeBackends(QiskitTestCase):
 
         self.assertIsInstance(configuration.to_dict(), dict)
 
-    @data(BACKENDS)
+    @data(*BACKENDS)
     def test_defaults_to_dict(self, backend):
         if hasattr(backend, "defaults"):
             defaults = backend.defaults()
@@ -204,7 +213,8 @@ class TestFakeBackends(QiskitTestCase):
             self.skipTest(f"Backend {backend} does not have defaults")
 
     def test_delay_circuit(self):
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         backend.configuration().timing_constraints = {
             "acquire_alignment": 1,
             "granularity": 1,
@@ -216,23 +226,33 @@ class TestFakeBackends(QiskitTestCase):
         qc.x(1)
         qc.delay(250, 1, unit="ns")
         qc.measure_all()
-        res = transpile(qc, backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            res = transpile(qc, backend)
         self.assertIn("delay", res.count_ops())
 
     @data(0, 1, 2, 3)
     def test_converter(self, opt_level):
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         backend_v2 = BackendV2Converter(backend)
         self.assertIsInstance(backend_v2, BackendV2)
         res = transpile(self.circuit, backend_v2, optimization_level=opt_level)
         job = backend_v2.run(res)
-        result = job.result()
+        with warnings.catch_warnings():
+            # TODO remove this catch once Aer stops using QobjDictField
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            result = job.result()
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
 
     def test_converter_delay_circuit(self):
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         backend.configuration().timing_constraints = {
             "acquire_alignment": 1,
             "granularity": 1,
@@ -251,8 +271,8 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_converter_with_missing_gate_property(self):
         """Test converting to V2 model with irregular backend data."""
-        backend = FakeOpenPulse2Q()
-
+        with self.assertWarns(DeprecationWarning):
+            backend = FakeOpenPulse2Q()
         # The backend includes pulse calibration definition for U2, but its property is gone.
         # Note that u2 is a basis gate of this device.
         # Since gate property is not provided, the gate broadcasts to all qubits as ideal instruction.
@@ -263,9 +283,11 @@ class TestFakeBackends(QiskitTestCase):
         self.assertDictEqual(backend_v2.target["u2"], {None: None})
 
     def test_non_cx_tests(self):
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cz", "x", "sx", "id", "rz"])
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["cz", "x", "sx", "id", "rz"], seed=42)
         self.assertIsInstance(backend.target.operation_from_name("cz"), CZGate)
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["ecr", "x", "sx", "id", "rz"])
+        backend = GenericBackendV2(
+            num_qubits=5, basis_gates=["ecr", "x", "sx", "id", "rz"], seed=42
+        )
         self.assertIsInstance(backend.target.operation_from_name("ecr"), ECRGate)
 
     @unittest.skipUnless(optionals.HAS_AER, "Aer required for this test")
@@ -516,11 +538,12 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_qubits_backend_v2_converter(self):
         """Test faulty qubits in v2 conversion."""
-        backend = Fake127QPulseV1()
-        # Get properties dict to make it easier to work with the properties API
-        # is difficult to edit because of the multiple layers of nesting and
-        # different object types
-        props_dict = backend.properties().to_dict()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
+            # Get properties dict to make it easier to work with the properties API
+            # is difficult to edit because of the multiple layers of nesting and
+            # different object types
+            props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
                 "date": datetime.datetime.now(datetime.timezone.utc),
@@ -529,7 +552,8 @@ class TestFakeBackends(QiskitTestCase):
                 "value": 0,
             }
             props_dict["qubits"][i].append(non_operational)
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
@@ -537,11 +561,12 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_qubits_backend_v2_converter_with_delay(self):
         """Test faulty qubits in v2 conversion."""
-        backend = Fake127QPulseV1()
-        # Get properties dict to make it easier to work with the properties API
-        # is difficult to edit because of the multiple layers of nesting and
-        # different object types
-        props_dict = backend.properties().to_dict()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
+            # Get properties dict to make it easier to work with the properties API
+            # is difficult to edit because of the multiple layers of nesting and
+            # different object types
+            props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
                 "date": datetime.datetime.now(datetime.timezone.utc),
@@ -550,7 +575,8 @@ class TestFakeBackends(QiskitTestCase):
                 "value": 0,
             }
             props_dict["qubits"][i].append(non_operational)
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True, add_delay=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
@@ -579,17 +605,19 @@ class TestFakeBackends(QiskitTestCase):
             (4, 2),
             (4, 3),
         }
-
-        backend = BackendV2Converter(backend=Fake5QV1(), filter_faulty=True, add_delay=False)
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+        backend = BackendV2Converter(backend=backend, filter_faulty=True, add_delay=False)
 
         self.assertEqual(backend.target.qargs, expected)
 
     def test_backend_v2_converter_with_meaningless_gate_config(self):
         """Test backend with broken gate config can be converted only with properties data."""
-        backend_v1 = Fake5QV1()
-        backend_v1.configuration().gates = [
-            GateConfig(name="NotValidGate", parameters=[], qasm_def="not_valid_gate")
-        ]
+        with self.assertWarns(DeprecationWarning):
+            backend_v1 = Fake5QV1()
+            backend_v1.configuration().gates = [
+                GateConfig(name="NotValidGate", parameters=[], qasm_def="not_valid_gate")
+            ]
         backend_v2 = BackendV2Converter(
             backend=backend_v1,
             filter_faulty=True,
@@ -603,11 +631,12 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
         """Test faulty gates and qubits."""
-        backend = Fake127QPulseV1()
-        # Get properties dict to make it easier to work with the properties API
-        # is difficult to edit because of the multiple layers of nesting and
-        # different object types
-        props_dict = backend.properties().to_dict()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
+            # Get properties dict to make it easier to work with the properties API
+            # is difficult to edit because of the multiple layers of nesting and
+            # different object types
+            props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
                 "date": datetime.datetime.now(datetime.timezone.utc),
@@ -636,7 +665,8 @@ class TestFakeBackends(QiskitTestCase):
             if tuple(gate["qubits"]) in invalid_cx_edges:
                 gate["parameters"].append(non_operational_gate)
 
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
@@ -646,7 +676,8 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_gates_v2_converter(self):
         """Test just faulty gates in conversion."""
-        backend = Fake127QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
         # Get properties dict to make it easier to work with the properties API
         # is difficult to edit because of the multiple layers of nesting and
         # different object types
@@ -671,7 +702,8 @@ class TestFakeBackends(QiskitTestCase):
             if tuple(gate["qubits"]) in invalid_cx_edges:
                 gate["parameters"].append(non_operational_gate)
 
-        backend._properties = BackendProperties.from_dict(props_dict)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(62, 67):
             self.assertIn((i,), v2_backend.target.qargs)
@@ -680,25 +712,29 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_no_faults_v2_converter(self):
         """Test that faulty qubit filtering does nothing with all operational qubits and gates."""
-        backend = Fake127QPulseV1()
-        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
+            v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(v2_backend.num_qubits):
             self.assertIn((i,), v2_backend.target.qargs)
 
     @data(0, 1, 2, 3)
     def test_faulty_full_path_transpile_connected_cmap(self, opt_level):
-        backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
+            props = backend.properties().to_dict()
+
         non_operational_gate = {
             "date": datetime.datetime.now(datetime.timezone.utc),
             "name": "operational",
             "unit": "",
             "value": 0,
         }
-        props = backend.properties().to_dict()
         for gate in props["gates"]:
             if tuple(sorted(gate["qubits"])) == (0, 1):
                 gate["parameters"].append(non_operational_gate)
-        backend._properties = BackendProperties.from_dict(props)
+        with self.assertWarns(DeprecationWarning):
+            backend._properties = BackendProperties.from_dict(props)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         qc = QuantumCircuit(5)
         for x, y in itertools.product(range(5), range(5)):
@@ -710,7 +746,8 @@ class TestFakeBackends(QiskitTestCase):
         self.assertNotIn((0, 1), connections)
 
     def test_convert_to_target_control_flow(self):
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         properties = backend.properties()
         configuration = backend.configuration()
         configuration.supported_instructions = [
@@ -734,7 +771,8 @@ class TestFakeBackends(QiskitTestCase):
         self.assertTrue(target.instruction_supported("switch_case", ()))
 
     def test_convert_unrelated_supported_instructions(self):
-        backend = Fake27QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake27QPulseV1()
         properties = backend.properties()
         configuration = backend.configuration()
         configuration.supported_instructions = [
