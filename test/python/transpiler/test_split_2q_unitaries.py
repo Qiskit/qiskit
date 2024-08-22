@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import UnitaryGate, XGate, ZGate, HGate
-from qiskit.circuit import Parameter, CircuitInstruction
+from qiskit.circuit import Parameter, CircuitInstruction, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import PassManager
@@ -223,3 +223,38 @@ class TestSplit2QUnitaries(QiskitTestCase):
         pm.append(Split2QUnitaries())
         qc_split = pm.run(qc)
         self.assertEqual(26, qc_split.num_nonlocal_gates())
+
+    def test_gate_no_array(self):
+        """
+        Test that the pass doesn't fail when the circuit contains a custom gate
+        with no ``__array__`` implementation.
+
+        Reproduce from: https://github.com/Qiskit/qiskit/issues/12970
+        """
+
+        class MyGate(Gate):
+            def __init__(self):
+                super().__init__("mygate", 2, [])
+
+            def to_matrix(self):
+                return np.eye(4, dtype=complex)
+                # return np.eye(4, dtype=float)
+
+        def mygate(self, qubit1, qubit2):
+            return self.append(MyGate(), [qubit1, qubit2], [])
+
+        QuantumCircuit.mygate = mygate
+
+        qc = QuantumCircuit(2)
+        qc.mygate(0, 1)
+
+        pm = PassManager()
+        pm.append(Collect2qBlocks())
+        pm.append(ConsolidateBlocks())
+        pm.append(Split2QUnitaries())
+        qc_split = pm.run(qc)
+
+        self.assertTrue(Operator(qc).equiv(qc_split))
+        self.assertTrue(
+            matrix_equal(Operator(qc).data, Operator(qc_split).data, ignore_phase=False)
+        )
