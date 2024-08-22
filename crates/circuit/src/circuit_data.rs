@@ -1199,12 +1199,12 @@ impl CircuitData {
         &self.global_phase
     }
 
-    /// Returns an immutable view of the Qubit register of the circuit
+    /// Returns an immutable view of the Qubits registered in the circuit
     pub fn qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
-    /// Returns an immutable view of the Classical register of the circuit
+    /// Returns an immutable view of the Classical bits registered in the circuit
     pub fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
