@@ -1270,6 +1270,15 @@ class TestTwoQubitDecompose(CheckDecompositions):
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
 
+    def test_non_std_gate(self):
+        """Test that the TwoQubitBasisDecomposer class can be correctly instantiated with a
+        non-standard gate.
+
+        Reproduce from: https://github.com/Qiskit/qiskit/issues/12998
+        """
+        # note that `CXGate(ctrl_state=0)` is not handled as a "standard" gate.
+        TwoQubitBasisDecomposer(CXGate(ctrl_state=0))(CXGate())
+
 
 @ddt
 class TestPulseOptimalDecompose(CheckDecompositions):
