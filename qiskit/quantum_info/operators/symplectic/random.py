@@ -19,11 +19,11 @@ import math
 import numpy as np
 from numpy.random import default_rng
 
+from qiskit._accelerate.synthesis.clifford import random_clifford_tableau
+
 from .clifford import Clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
-
-from qiskit._accelerate.synthesis.clifford import random_clifford_tableau
 
 
 def random_pauli(
