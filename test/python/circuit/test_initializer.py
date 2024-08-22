@@ -465,6 +465,14 @@ class TestInitialize(QiskitTestCase):
         self.assertEqual(decom_circ.data[2].operation.name, "state_preparation")
         self.assertEqual(decom_circ.data[2].operation.params, ["0", "0"])
 
+    def test_gates_to_uncompute(self):
+        """Test the gates_to_uncompute() method."""
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        initialize = Initialize(desired_vector)
+        qc = initialize.gates_to_uncompute().inverse()
+        vec = Statevector(qc)
+        self.assertTrue(vec == Statevector(desired_vector))
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
