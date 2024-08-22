@@ -964,9 +964,8 @@ def _format(operand):
     }
 
     /// Add individual qubit wires.
-    fn add_clbits(&mut self, py: Python, clbits: &Bound<PySequence>) -> PyResult<()> {
-        let bits: Vec<Bound<PyAny>> = clbits.extract()?;
-        for bit in bits.iter() {
+    fn add_clbits(&mut self, py: Python, clbits: Vec<Bound<PyAny>>) -> PyResult<()> {
+        for bit in clbits.iter() {
             if !bit.is_instance(imports::CLBIT.get_bound(py))? {
                 return Err(DAGCircuitError::new_err("not a Clbit instance."));
             }
@@ -979,7 +978,7 @@ def _format(operand):
             }
         }
 
-        for bit in bits.iter() {
+        for bit in clbits.iter() {
             self.add_clbit_unchecked(py, bit)?;
         }
         Ok(())
