@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use itertools::Itertools;
+use pyo3::prelude::*;
 use pyo3::{
     types::{PyAnyMethods, PyInt, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
@@ -20,13 +21,13 @@ use crate::QiskitError;
 
 /// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
 /// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-pub fn full(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
+fn full(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
     (0..num_qubits).combinations(block_size as usize)
 }
 
 /// Get a linear entanglement structure. For ``n`` qubits and block size ``m`` we have:
 /// [(0..m-1), (1..m), (2..m+1), ..., (n-m..n-1)]
-pub fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item = Vec<u32>> {
+fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item = Vec<u32>> {
     (0..num_qubits - block_size + 1)
         .map(move |start_index| (start_index..start_index + block_size).collect())
 }
@@ -35,7 +36,7 @@ pub fn linear(num_qubits: u32, block_size: u32) -> impl DoubleEndedIterator<Item
 /// [(n-m..n-1), ..., (1..m), (0..m-1)]
 /// This is particularly interesting, as CX+"full" uses n(n-1)/2 gates, but operationally equals
 /// CX+"reverse_linear", which needs only n-1 gates.
-pub fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
+fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = Vec<u32>> {
     linear(num_qubits, block_size).rev()
 }
 
@@ -43,7 +44,7 @@ pub fn reverse_linear(num_qubits: u32, block_size: u32) -> impl Iterator<Item = 
 /// starting at each possible index ``(0..n)``. Historically, Qiskit starts with index ``n-m+1``.
 /// This is probably easiest understood for a concerete example of 4 qubits and block size 3:
 /// [(2,3,0), (3,0,1), (0,1,2), (1,2,3)]
-pub fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec<u32>>> {
+fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec<u32>>> {
     if block_size == 1 || num_qubits == block_size {
         Box::new(linear(num_qubits, block_size))
     } else {
@@ -59,7 +60,7 @@ pub fn circular(num_qubits: u32, block_size: u32) -> Box<dyn Iterator<Item = Vec
 /// Get pairwise entanglement. This is typically used on 2 qubits and only has a depth of 2, as
 /// first all odd pairs, and then even pairs are entangled. For example on 6 qubits:
 /// [(0, 1), (2, 3), (4, 5), /* now the even pairs */ (1, 2), (3, 4)]
-pub fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
+fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
     // for Python-folks (like me): pairwise is equal to linear[::2] + linear[1::2]
     linear(num_qubits, 2)
         .step_by(2)
@@ -74,7 +75,7 @@ pub fn pairwise(num_qubits: u32) -> impl Iterator<Item = Vec<u32>> {
 /// Offset 1 -> [(3,2,1), (0,3,2), (1,0,3), (2,1,0)]
 /// Offset 2 -> [(0,1,2), (1,2,3), (2,3,0), (3,0,1)]
 /// ...
-pub fn shift_circular_alternating(
+fn shift_circular_alternating(
     num_qubits: u32,
     block_size: u32,
     offset: usize,
@@ -112,6 +113,10 @@ pub fn get_entanglement_from_str(
     entanglement: &str,
     offset: usize,
 ) -> PyResult<Box<dyn Iterator<Item = Vec<u32>>>> {
+    if num_qubits == 0 || block_size == 0 {
+        return Ok(Box::new(std::iter::empty()));
+    }
+
     if block_size > num_qubits {
         return Err(QiskitError::new_err(format!(
             "block_size ({}) cannot be larger than number of qubits ({})",
@@ -119,14 +124,6 @@ pub fn get_entanglement_from_str(
         )));
     }
 
-    if entanglement == "pairwise" && block_size > 2 {
-        return Err(QiskitError::new_err(format!(
-            "block_size ({}) can be at most 2 for pairwise entanglement",
-            block_size
-        )));
-    }
-
-    // if block size is 2 and pairwise, this is just linear: [0, 1, 2, ...]
     match (entanglement, block_size) {
         ("full", _) => Ok(Box::new(full(num_qubits, block_size))),
         ("linear", _) => Ok(Box::new(linear(num_qubits, block_size))),
@@ -135,6 +132,10 @@ pub fn get_entanglement_from_str(
         ("circular", _) => Ok(circular(num_qubits, block_size)),
         ("pairwise", 1) => Ok(Box::new(linear(num_qubits, 1))),
         ("pairwise", 2) => Ok(Box::new(pairwise(num_qubits))),
+        ("pairwise", _) => Err(QiskitError::new_err(format!(
+            "block_size ({}) can be at most 2 for pairwise entanglement",
+            block_size
+        ))),
         _ => Err(QiskitError::new_err(format!(
             "Unsupported entanglement: {}",
             entanglement
@@ -175,10 +176,10 @@ pub fn get_entanglement<'a>(
     } else if let Ok(list) = entanglement.downcast::<PyList>() {
         let entanglement_iter = list.iter().map(move |el| {
             let connections = el
-                .downcast::<PyTuple>()
-                .expect("Entanglement must be list of tuples") // clearer error message than `?`
-                .iter()?
-                .map(|index| index?.downcast::<PyInt>()?.extract())
+                .downcast::<PyTuple>()?
+                // .expect("Entanglement must be list of tuples") // clearer error message than `?`
+                .iter()
+                .map(|index| index.downcast::<PyInt>()?.extract())
                 .collect::<Result<Vec<u32>, _>>()?;
 
             if connections.len() != block_size as usize {
@@ -194,4 +195,51 @@ pub fn get_entanglement<'a>(
     Err(QiskitError::new_err(
         "Entanglement must be a string or list of qubit indices.",
     ))
+}
+
+/// Get the entanglement for given number of qubits and block size.
+///
+/// Args:
+///     num_qubits: The number of qubits to entangle.
+///     block_size: The entanglement block size (e.g. 2 for CX or 3 for CCX).
+///     entanglement: The entanglement strategy. This can be one of:
+///
+///         * string: Available options are ``"full"``, ``"linear"``, ``"pairwise"``
+///             ``"reverse_linear"``, ``"circular"``, or ``"sca"``.
+///         * list of tuples: A list of entanglements given as tuple, e.g. [(0, 1), (1, 2)].
+///         * callable: A callable that takes as input an offset as ``int`` (usually the layer
+///             in the variational circuit) and returns a string or list of tuples to use as
+///             entanglement in this layer.
+///
+///     offset: An offset used by certain entanglement strategies (e.g. ``"sca"``) or if the
+///         entanglement is given as callable. This is typically used to have different
+///         entanglement structures in different layers of variational quantum circuits.
+///
+/// Returns:
+///     The entanglement as list of tuples.
+///
+/// Raises:
+///     QiskitError: In case the entanglement is invalid.
+#[pyfunction]
+#[pyo3(signature = (num_qubits, block_size, entanglement, offset=0))]
+pub fn get_entangler_map<'py>(
+    py: Python<'py>,
+    num_qubits: u32,
+    block_size: u32,
+    entanglement: &Bound<PyAny>,
+    offset: usize,
+) -> PyResult<Vec<Bound<'py, PyTuple>>> {
+    // The entanglement is Result<impl Iterator<Item = Result<Vec<u32>>>>, so there's two
+    // levels of errors we must handle: the outer error is handled by the outer match statement,
+    // and the inner (Result<Vec<u32>>) is handled upon the PyTuple creation.
+    match get_entanglement(num_qubits, block_size, entanglement, offset) {
+        Ok(entanglement) => entanglement
+            .into_iter()
+            .map(|vec| match vec {
+                Ok(vec) => Ok(PyTuple::new_bound(py, vec)),
+                Err(e) => Err(e),
+            })
+            .collect::<Result<Vec<_>, _>>(),
+        Err(e) => Err(e),
+    }
 }
