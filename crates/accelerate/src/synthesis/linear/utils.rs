@@ -13,6 +13,12 @@
 use ndarray::{azip, concatenate, s, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
+use rayon::iter::{IndexedParallelIterator, ParallelIterator};
+use rayon::prelude::IntoParallelIterator;
+
+use crate::getenv_use_multiple_threads;
+
+const PARALLEL_THRESHOLD: usize = 10;
 
 /// Binary matrix multiplication
 pub fn binary_matmul_inner(
@@ -30,11 +36,29 @@ pub fn binary_matmul_inner(
         ));
     }
 
-    Ok(Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
-        (0..n2_rows)
-            .map(|k| mat1[[i, k]] & mat2[[k, j]])
-            .fold(false, |acc, v| acc ^ v)
-    }))
+    let run_in_parallel = getenv_use_multiple_threads();
+
+    if n1_rows < PARALLEL_THRESHOLD || !run_in_parallel {
+        Ok(Array2::from_shape_fn((n1_rows, n2_cols), |(i, j)| {
+            (0..n2_rows)
+                .map(|k| mat1[[i, k]] & mat2[[k, j]])
+                .fold(false, |acc, v| acc ^ v)
+        }))
+    } else {
+        let mut result = Array2::from_elem((n1_rows, n2_cols), false);
+        result
+            .axis_iter_mut(Axis(0))
+            .into_par_iter()
+            .enumerate()
+            .for_each(|(i, mut row)| {
+                for j in 0..n2_cols {
+                    row[j] = (0..n2_rows)
+                        .map(|k| mat1[[i, k]] & mat2[[k, j]])
+                        .fold(false, |acc, v| acc ^ v)
+                }
+            });
+        Ok(result)
+    }
 }
 
 /// Gauss elimination of a matrix mat with m rows and n columns.
