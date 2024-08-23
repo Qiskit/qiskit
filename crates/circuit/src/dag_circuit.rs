@@ -111,7 +111,7 @@ impl Hash for Wire {
 }
 
 impl Wire {
-    fn to_picke(&self, py: Python) -> PyObject {
+    fn to_pickle(&self, py: Python) -> PyObject {
         match self {
             Self::Qubit(bit) => (0, bit.0.into_py(py)).into_py(py),
             Self::Clbit(bit) => (1, bit.0.into_py(py)).into_py(py),
@@ -574,7 +574,7 @@ impl DAGCircuit {
                     (
                         endpoints.0.index(),
                         endpoints.1.index(),
-                        edge_w.clone().to_picke(py),
+                        edge_w.clone().to_pickle(py),
                     )
                         .to_object(py)
                 }
