@@ -65,7 +65,13 @@ class FakeBackend(BackendV1):
 
             self.sim = AerSimulator()
             if self.properties():
-                noise_model = NoiseModel.from_backend(self)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=DeprecationWarning,
+                        message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
+                    )
+                    noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default options too to avoid overwriting
                 # it when run() is called
