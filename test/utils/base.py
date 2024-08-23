@@ -156,6 +156,14 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit_aer",
         )
 
+        # Safe to remove once `FakeBackend` is removed (2.0)
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
+            module="qiskit.providers.fake_provider.fake_backend",
+        )
+
         allow_DeprecationWarning_message = [
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
         ]
