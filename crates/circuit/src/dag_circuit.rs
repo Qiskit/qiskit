@@ -5292,7 +5292,7 @@ impl DAGCircuit {
         Ok(nodes.into_iter())
     }
 
-    fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
+    pub fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
         Ok(self.topological_nodes()?.filter(|node: &NodeIndex| {
             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
         }))
@@ -6226,6 +6226,60 @@ impl DAGCircuit {
                 _ => panic!("Must be called with valid operation node!"),
             }
         }
+    }
+
+    /// Insert an op given by callback on each individual qubit into a node
+
+    #[allow(unused_variables)]
+    pub fn replace_on_incoming_qubits<F>(
+        &mut self,
+        py: Python, // Unused if cache_pygates isn't enabled
+        node: NodeIndex,
+        mut insert: F,
+    ) -> PyResult<()>
+    where
+        F: FnMut(&Wire) -> PyResult<OperationFromPython>,
+    {
+        let edges: Vec<(NodeIndex, EdgeIndex, Wire)> = self
+            .dag
+            .edges_directed(node, Incoming)
+            .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
+            .collect();
+        for (edge_source, edge_index, edge_weight) in edges {
+            let new_op = insert(&edge_weight)?;
+            self.increment_op(new_op.operation.name());
+            let qubits = if let Wire::Qubit(qubit) = edge_weight {
+                vec![qubit]
+            } else {
+                panic!("This method only works if the gate being replaced")
+            };
+            #[cfg(feature = "cache_pygates")]
+            let py_op = match new_op.operation.view() {
+                OperationRef::Standard(_) => OnceCell::new(),
+                OperationRef::Gate(gate) => OnceCell::from(gate.gate.clone_ref(py)),
+                OperationRef::Instruction(instruction) => {
+                    OnceCell::from(instruction.instruction.clone_ref(py))
+                }
+                OperationRef::Operation(op) => OnceCell::from(op.operation.clone_ref(py)),
+            };
+            let inst = PackedInstruction {
+                op: new_op.operation,
+                qubits: self.qargs_interner.insert_owned(qubits),
+                clbits: self.cargs_interner.get_default(),
+                params: (!new_op.params.is_empty()).then(|| Box::new(new_op.params)),
+                extra_attrs: new_op.extra_attrs,
+                #[cfg(feature = "cache_pygates")]
+                py_op: py_op,
+            };
+            let new_index = self.dag.add_node(NodeType::Operation(inst));
+            let parent_index = edge_source;
+            self.dag
+                .add_edge(parent_index, new_index, edge_weight.clone());
+            self.dag.add_edge(new_index, node, edge_weight);
+            self.dag.remove_edge(edge_index);
+        }
+        self.remove_op_node(node);
+        Ok(())
     }
 
     pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
