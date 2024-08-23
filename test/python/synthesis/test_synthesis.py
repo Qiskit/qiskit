@@ -1278,9 +1278,12 @@ class TestTwoQubitDecompose(CheckDecompositions):
         """
         # note that `CXGate(ctrl_state=0)` is not handled as a "standard" gate.
         decomposer = TwoQubitBasisDecomposer(CXGate(ctrl_state=0))
-        unitary = CXGate()
+        unitary = SwapGate().to_matrix()
         decomposed_unitary = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(decomposed_unitary))
+        self.assertNotIn("swap", decomposed_unitary.count_ops())
+        self.assertNotIn("cx", decomposed_unitary.count_ops())
+        self.assertEqual(3, decomposed_unitary.count_ops()["cx_o0"])
 
 
 @ddt
