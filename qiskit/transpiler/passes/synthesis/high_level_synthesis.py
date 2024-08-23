@@ -303,8 +303,10 @@ class HighLevelSynthesis(TransformationPass):
 
             # next check control flow
             elif node.is_control_flow():
-                node.op = control_flow.map_blocks(
-                    partial(self._run, tracker=tracker.copy()), node.op
+                dag.substitute_node(
+                    node,
+                    control_flow.map_blocks(partial(self._run, tracker=tracker.copy()), node.op),
+                    propagate_condition=False,
                 )
 
             # now we are free to synthesize

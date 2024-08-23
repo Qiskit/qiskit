@@ -16,13 +16,18 @@ use std::ptr::NonNull;
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyType};
 
+use ndarray::Array2;
+use num_complex::Complex64;
 use smallvec::SmallVec;
 
+use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
-use crate::imports::DEEPCOPY;
-use crate::operations::{OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate};
+use crate::imports::{get_std_gate_class, DEEPCOPY};
+use crate::operations::{
+    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+};
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -331,6 +336,78 @@ impl PackedOperation {
             .into()),
         }
     }
+
+    /// Whether the Python class that we would use to represent the inner `Operation` object in
+    /// Python space would be an instance of the given Python type.  This does not construct the
+    /// Python-space `Operator` instance if it can be avoided (i.e. for standard gates).
+    pub fn py_op_is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
+        let py = py_type.py();
+        let py_op = match self.view() {
+            OperationRef::Standard(standard) => {
+                return get_std_gate_class(py, standard)?
+                    .bind(py)
+                    .downcast::<PyType>()?
+                    .is_subclass(py_type)
+            }
+            OperationRef::Gate(gate) => gate.gate.bind(py),
+            OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
+            OperationRef::Operation(operation) => operation.operation.bind(py),
+        };
+        py_op.is_instance(py_type)
+    }
+}
+
+impl Operation for PackedOperation {
+    fn name(&self) -> &str {
+        let view = self.view();
+        let name = match view {
+            OperationRef::Standard(ref standard) => standard.name(),
+            OperationRef::Gate(gate) => gate.name(),
+            OperationRef::Instruction(instruction) => instruction.name(),
+            OperationRef::Operation(operation) => operation.name(),
+        };
+        // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
+        // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
+        // just to avoid a further _potential_ unsafeness, were its implementation to start doing
+        // something weird with the lifetimes.  `str::from_utf8_unchecked` and
+        // `slice::from_raw_parts` are both trivially safe because they're being called on immediate
+        // values from a validated `str`.
+        unsafe {
+            ::std::str::from_utf8_unchecked(::std::slice::from_raw_parts(name.as_ptr(), name.len()))
+        }
+    }
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        self.view().num_qubits()
+    }
+    #[inline]
+    fn num_clbits(&self) -> u32 {
+        self.view().num_clbits()
+    }
+    #[inline]
+    fn num_params(&self) -> u32 {
+        self.view().num_params()
+    }
+    #[inline]
+    fn control_flow(&self) -> bool {
+        self.view().control_flow()
+    }
+    #[inline]
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+        self.view().matrix(params)
+    }
+    #[inline]
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        self.view().definition(params)
+    }
+    #[inline]
+    fn standard_gate(&self) -> Option<StandardGate> {
+        self.view().standard_gate()
+    }
+    #[inline]
+    fn directive(&self) -> bool {
+        self.view().directive()
+    }
 }
 
 impl From<StandardGate> for PackedOperation {
@@ -435,15 +512,6 @@ pub struct PackedInstruction {
 }
 
 impl PackedInstruction {
-    /// Immutably view the contained operation.
-    ///
-    /// If you only care whether the contained operation is a `StandardGate` or not, you can use
-    /// `PackedInstruction::standard_gate`, which is a bit cheaper than this function.
-    #[inline]
-    pub fn op(&self) -> OperationRef {
-        self.op.view()
-    }
-
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
     /// refers to a Python-space object, `None` is returned.
     #[inline]
@@ -467,6 +535,20 @@ impl PackedInstruction {
             .as_deref_mut()
             .map(SmallVec::as_mut_slice)
             .unwrap_or(&mut [])
+    }
+
+    /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
+    pub fn is_parameterized(&self) -> bool {
+        self.params_view()
+            .iter()
+            .any(|x| matches!(x, Param::ParameterExpression(_)))
+    }
+
+    #[inline]
+    pub fn condition(&self) -> Option<&Py<PyAny>> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|extra| extra.condition.as_ref())
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
@@ -509,5 +591,31 @@ impl PackedInstruction {
             let _ = self.py_op.set(out.clone_ref(py));
         }
         Ok(out)
+    }
+
+    /// Check equality of the operation, including Python-space checks, if appropriate.
+    pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self.op.view(), other.op.view()) {
+            (OperationRef::Standard(left), OperationRef::Standard(right)) => Ok(left == right),
+            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                left.gate.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                left.instruction.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                left.operation.bind(py).eq(&right.operation)
+            }
+            // Handle the case we end up with a pygate for a standard gate
+            // this typically only happens if it's a ControlledGate in python
+            // and we have mutable state set.
+            (OperationRef::Standard(_left), OperationRef::Gate(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Gate(left), OperationRef::Standard(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+            }
+            _ => Ok(false),
+        }
     }
 }
