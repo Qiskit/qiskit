@@ -4974,7 +4974,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubits to apply the gate to.
+            qubit2: The qubits to apply the gate to.
             label: Label of the gate in the circuit.
 
         Returns:
@@ -5092,7 +5093,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubits to apply the gate to.
+            qubit2: The qubits to apply the gate to.
             label: Label of the gate in the circuit.
 
         Returns:
@@ -5113,7 +5115,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubits to apply the gate to.
+            qubit2: The qubits to apply the gate to.
             label: Label of the gate in the circuit.
 
         Returns:
