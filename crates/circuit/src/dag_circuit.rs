@@ -5371,12 +5371,7 @@ impl DAGCircuit {
     }
 
     fn may_have_additional_wires(&self, py: Python, instr: &PackedInstruction) -> bool {
-        let has_condition = match instr.condition() {
-            None => false,
-            Some(condition) => !condition.bind(py).is_none(),
-        };
-
-        if has_condition {
+        if instr.condition().is_some() {
             return true;
         }
         let OperationRef::Instruction(inst) = instr.op.view() else {
