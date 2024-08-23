@@ -6389,11 +6389,15 @@ impl DAGCircuit {
     /// - `iter`: Sequence of [PackedInstruction]
     /// - `qarg_interner`: Reference to the source qubit interner.
     /// - `carg_interner`: Reference to the source clbit interner.
+    /// - `qubit_data`: Reference to the source qubit data.
+    /// - `clbit_data`: Reference to the source clbit data.
     pub fn from_iter<I>(
         py: Python,
         iter: I,
         qarg_interner: &IndexedInterner<Vec<Qubit>>,
         carg_interner: &IndexedInterner<Vec<Clbit>>,
+        qubit_data: &BitData<Qubit>,
+        clbit_data: &BitData<Clbit>,
     ) -> PyResult<Self>
     where
         I: IntoIterator<Item = PackedInstruction>,
@@ -6445,7 +6449,24 @@ impl DAGCircuit {
         new_dag.qargs_cache = cloned_qarg_interner;
         new_dag.cargs_cache = cloned_carg_interner;
 
-        // Add all the valid instructions to the DAGCircuit.
+        // Set the bitdata to be the same as before
+        new_dag.add_qubits(
+            py,
+            qubit_data
+                .bits()
+                .iter()
+                .map(|bit| bit.clone_ref(py).into_bound(py))
+                .collect(),
+        )?;
+        new_dag.add_clbits(
+            py,
+            clbit_data
+                .bits()
+                .to_object(py)
+                .downcast_bound::<PySequence>(py)?,
+        )?;
+
+        // Finally, add all the valid instructions to the DAGCircuit.
         new_dag.add_from_iter(py, taken_instructions)?;
 
         Ok(new_dag)
