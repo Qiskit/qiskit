@@ -23,7 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
-from qiskit._accelerate.synthesis.linear import synth_cnot_phase_aam as synth_cnot_phase_aam_xlated
+from qiskit._accelerate.synthesis.linear_phase import synth_cnot_phase_aam as synth_cnot_phase_aam_xlated
 
 
 def synth_cnot_phase_aam(

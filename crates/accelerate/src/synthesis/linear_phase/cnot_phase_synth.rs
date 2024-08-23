@@ -1,4 +1,23 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2024
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
 
+use ndarray::{Array2};
+use numpy::{PyReadonlyArray2, PyReadonlyArray1};
+use smallvec::smallvec;
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::Qubit;
+use pyo3::prelude::*;
+use std::f64::consts::PI;
 
 #[pyfunction]
 #[pyo3(signature = (cnots, angles, section_size=2))]
@@ -9,10 +28,10 @@ pub fn synth_cnot_phase_aam(
     section_size: Option<u8>,
 ) -> PyResult<CircuitData> {
 
-    let S = cnots.as_array().to_owned();
+    let s = cnots.as_array().to_owned();
     let angles_arr = angles.as_array().to_owned();
-    let num_qubits = S.shape()[0];
-    let mut S_cpy = S.clone();
+    let num_qubits = s.shape()[0];
+    let mut s_cpy = s.clone();
     let mut instructions = vec![];
 
     let mut rust_angles = Vec::new();
@@ -25,13 +44,13 @@ pub fn synth_cnot_phase_aam(
 
     for qubit_idx in 0..num_qubits
     {
-        let mut index = 0 as usize;
+        let mut index = 0_usize;
 
         loop
         {
-            let icnot = S_cpy.column(index).to_vec();
+            let icnot = s_cpy.column(index).to_vec();
 
-            if icnot == state.row(qubit_idx as usize).to_vec()
+            if icnot == state.row(qubit_idx).to_vec()
             {
                    match rust_angles.get(index)
                 {
@@ -45,8 +64,8 @@ pub fn synth_cnot_phase_aam(
                 };
 
                    rust_angles.remove(index);
-                   S_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                   if index == S_cpy.shape()[1] {break;}
+                   s_cpy.remove_index(numpy::ndarray::Axis(1), index);
+                   if index == s_cpy.shape()[1] {break;}
                    index -=1;
             }
             index +=1;
@@ -55,57 +74,57 @@ pub fn synth_cnot_phase_aam(
 
 
     let epsilion = num_qubits;
-    let mut Q = vec![(S, 0..num_qubits, epsilion)];
+    let mut q = vec![(s, 0..num_qubits, epsilion)];
 
-    while Q.len() != 0
+    while !q.is_empty()
        {
 
-        let (_S, _I, _i) = Q.pop().unwrap();
+        let (_s, _i, _ep) = q.pop().unwrap();
 
-        if _S.len() == 0 {continue;}
+        if _s.is_empty() {continue;}
 
-        if 0 <= _i &&  _i < num_qubits
+        if 0 <= _ep &&  _ep < num_qubits
         {
-            let condition = true;
+            let mut condition = true;
             while condition
             {
-                let mut condition = false;
+                condition = false;
 
                 for _j in 0..num_qubits
                 {
-                    if (_j != _i) && (u32::from(_S.row(_j as usize).sum()) == _S.row(_j).len() as u32)
+                    if (_j != _ep) && (u32::from(_s.row(_j).sum()) == _s.row(_j).len() as u32)
                     {
                         condition = true;
-                        instructions.push((StandardGate::CXGate, smallvec![], smallvec![Qubit(_i as u32), Qubit(_i as u32)]));
+                        instructions.push((StandardGate::CXGate, smallvec![], smallvec![Qubit(_ep as u32), Qubit(_ep as u32)]));
 
                         for _k in 0..state.ncols()
                         {
-                            state[(_i, _k)] ^= state[(_j, _k)];
+                            state[(_ep, _k)] ^= state[(_j, _k)];
                         }
 
-                        let mut index = 0 as usize;
+                        let mut index = 0_usize;
 
                         loop
                         {
-                            let icnot = S_cpy.column(index).to_vec();
+                            let icnot = s_cpy.column(index).to_vec();
 
-                            if icnot == state.row(_i as usize).to_vec()
+                            if icnot == state.row(_ep).to_vec()
                             {
 
                                 match rust_angles.get(index)
                                 {
-                                    Some(gate) if gate == "t" => instructions.push((StandardGate::TGate, smallvec![], smallvec![Qubit(_i as u32)])),
-                                    Some(gate) if gate == "tdg" => instructions.push((StandardGate::TdgGate, smallvec![], smallvec![Qubit(_i as u32)])),
-                                    Some(gate) if gate == "s" => instructions.push((StandardGate::SGate, smallvec![], smallvec![Qubit(_i as u32)])),
-                                    Some(gate) if gate == "sdg" => instructions.push((StandardGate::SdgGate, smallvec![], smallvec![Qubit(_i as u32)])),
-                                    Some(gate) if gate == "z" => instructions.push((StandardGate::ZGate, smallvec![], smallvec![Qubit(_i as u32)])),
-                                    Some(angles_in_pi) => instructions.push((StandardGate::PhaseGate, smallvec![Param::Float((angles_in_pi.parse::<f64>()?) % PI)], smallvec![Qubit(_i as u32)])),
+                                    Some(gate) if gate == "t" => instructions.push((StandardGate::TGate, smallvec![], smallvec![Qubit(_ep as u32)])),
+                                    Some(gate) if gate == "tdg" => instructions.push((StandardGate::TdgGate, smallvec![], smallvec![Qubit(_ep as u32)])),
+                                    Some(gate) if gate == "s" => instructions.push((StandardGate::SGate, smallvec![], smallvec![Qubit(_ep as u32)])),
+                                    Some(gate) if gate == "sdg" => instructions.push((StandardGate::SdgGate, smallvec![], smallvec![Qubit(_ep as u32)])),
+                                    Some(gate) if gate == "z" => instructions.push((StandardGate::ZGate, smallvec![], smallvec![Qubit(_ep as u32)])),
+                                    Some(angles_in_pi) => instructions.push((StandardGate::PhaseGate, smallvec![Param::Float((angles_in_pi.parse::<f64>()?) % PI)], smallvec![Qubit(_ep as u32)])),
                                     None => (),
                                 };
 
                                 rust_angles.remove(index);
-                                S_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                                if index == S_cpy.shape()[1] { break; }
+                                s_cpy.remove_index(numpy::ndarray::Axis(1), index);
+                                if index == s_cpy.shape()[1] { break; }
                                 index -=1;
                             }
                             index +=1;
@@ -119,7 +138,7 @@ pub fn synth_cnot_phase_aam(
                 }
             }
         }
-        if _I.len() == 0 {continue;}
+        if _i.is_empty() {continue;}
     }
 
 

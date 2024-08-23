@@ -12,7 +12,7 @@
 
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayViewMut2, Axis};
-use numpy::{PyReadonlyArray2, PyReadonlyArray1};
+use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use std::cmp;
 
@@ -23,7 +23,6 @@ use qiskit_circuit::Qubit;
 use pyo3::prelude::*;
 
 use super::utils::_add_row_or_col;
-use std::f64::consts::PI;
 
 /// This helper function allows transposed access to a matrix.
 fn _index(transpose: bool, i: usize, j: usize) -> (usize, usize) {
