@@ -6290,7 +6290,7 @@ impl DAGCircuit {
                 let qubit_last_node = if let Some((node, wire)) = qubit_last_nodes.remove(qubit) {
                     (node, wire)
                 } else {
-                    let output_node = self.qubit_io_map[qubit][1];
+                    let output_node = self.qubit_io_map[qubit.0 as usize][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
@@ -6311,7 +6311,7 @@ impl DAGCircuit {
                 let clbit_last_node = if let Some((node, wire)) = clbit_last_nodes.remove(&clbit) {
                     (node, wire)
                 } else {
-                    let output_node = self.clbit_io_map[&clbit][1];
+                    let output_node = self.clbit_io_map[clbit.0 as usize][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
@@ -6361,13 +6361,13 @@ impl DAGCircuit {
 
         // Add the output_nodes back to qargs
         for (qubit, (node, wire)) in qubit_last_nodes {
-            let output_node = self.qubit_io_map[&qubit][1];
+            let output_node = self.qubit_io_map[qubit.0 as usize][1];
             self.dag.add_edge(node, output_node, wire);
         }
 
         // Add the output_nodes back to cargs
         for (clbit, (node, wire)) in clbit_last_nodes {
-            let output_node = self.clbit_io_map[&clbit][1];
+            let output_node = self.clbit_io_map[clbit.0 as usize][1];
             self.dag.add_edge(node, output_node, wire);
         }
 
@@ -6462,8 +6462,9 @@ impl DAGCircuit {
             py,
             clbit_data
                 .bits()
-                .to_object(py)
-                .downcast_bound::<PySequence>(py)?,
+                .iter()
+                .map(|bit| bit.clone_ref(py).into_bound(py))
+                .collect(),
         )?;
 
         // Finally, add all the valid instructions to the DAGCircuit.
