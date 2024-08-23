@@ -3923,21 +3923,31 @@ def _format(operand):
     /// Get a list of "op" nodes in the dag that contain control flow instructions.
     ///
     /// Returns:
-    ///     list[DAGOpNode]: The list of dag nodes containing control flow ops.
-    fn control_flow_op_nodes(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
-        self.dag
-            .node_references()
-            .filter_map(|(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => {
-                    if node.op.control_flow() {
-                        Some(self.unpack_into(py, node_index, node_type))
-                    } else {
-                        None
+    ///     list[DAGOpNode] | None: The list of dag nodes containing control flow ops. If there
+    ///         are no control flow nodes None is returned
+    fn control_flow_op_nodes(&self, py: Python) -> PyResult<Option<Vec<Py<PyAny>>>> {
+        if CONTROL_FLOW_OP_NAMES
+            .iter()
+            .any(|name| self.op_names.contains_key(*name))
+        {
+            let result: PyResult<Vec<Py<PyAny>>> = self
+                .dag
+                .node_references()
+                .filter_map(|(node_index, node_type)| match node_type {
+                    NodeType::Operation(ref node) => {
+                        if node.op.control_flow() {
+                            Some(self.unpack_into(py, node_index, node_type))
+                        } else {
+                            None
+                        }
                     }
-                }
-                _ => None,
-            })
-            .collect()
+                    _ => None,
+                })
+                .collect();
+            Ok(Some(result?))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Get the list of gate nodes in the dag.
