@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -25,12 +25,15 @@ fn recurse<'py>(
     py: Python<'py>,
     dag: &'py DAGCircuit,
     edge_set: &'py HashSet<[u32; 2]>,
-    wire_map: Option<&'py HashMap<Qubit, Qubit>>,
+    wire_map: Option<&'py [Qubit]>,
 ) -> PyResult<Option<(String, [u32; 2])>> {
     let check_qubits = |qubits: &[Qubit]| -> bool {
         match wire_map {
             Some(wire_map) => {
-                let mapped_bits = [wire_map[&qubits[0]], wire_map[&qubits[1]]];
+                let mapped_bits = [
+                    wire_map[qubits[0].0 as usize],
+                    wire_map[qubits[1].0 as usize],
+                ];
                 edge_set.contains(&[mapped_bits[0].into(), mapped_bits[1].into()])
             }
             None => edge_set.contains(&[qubits[0].into(), qubits[1].into()]),
@@ -51,13 +54,14 @@ fn recurse<'py>(
                         let new_dag: DAGCircuit =
                             circuit_to_dag.call1((block_obj.clone(),))?.extract()?;
                         let wire_map = (0..block.num_qubits())
-                            .map(|x| Qubit(x as u32))
-                            .zip(qubits)
-                            .map(|(inner, outer)| match wire_map {
-                                Some(wire_map) => (inner, wire_map[outer]),
-                                None => (inner, *outer),
+                            .map(|inner| {
+                                let outer = qubits[inner];
+                                match wire_map {
+                                    Some(wire_map) => wire_map[outer.0 as usize],
+                                    None => outer,
+                                }
                             })
-                            .collect();
+                            .collect::<Vec<_>>();
                         let res = recurse(py, &new_dag, edge_set, Some(&wire_map))?;
                         if res.is_some() {
                             return Ok(res);
