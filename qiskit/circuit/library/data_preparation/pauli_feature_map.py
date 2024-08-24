@@ -12,9 +12,7 @@
 
 """The Pauli expansion circuit module."""
 
-import itertools
-
-from typing import Optional, Callable, List, Union, Sequence
+from typing import Optional, Callable, List, Union, Sequence, Dict, Tuple
 from functools import reduce
 import numpy as np
 
@@ -118,7 +116,7 @@ class PauliFeatureMap(NLocal):
         self,
         feature_dimension: Optional[int] = None,
         reps: int = 2,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: Union[str, Dict[int, List[Tuple[int]]], Dict[int, List[List[int]]]] = "full",
         alpha: float = 2.0,
         paulis: Optional[List[str]] = None,
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
@@ -284,89 +282,30 @@ class PauliFeatureMap(NLocal):
         basis_change(evo, inverse=True)
         return evo
 
-    # helper function to generate correct entangler map
-    def _selective_entangler_map(self, num_block_qubits, entanglement):
-        # if entanglement is not specified for a pauli then use 'full' entanglement
-        if all(num_block_qubits != len(ent_block) for ent_block in entanglement):
-            entanglement_map = list(
-                itertools.combinations(list(range(self.feature_dimension)), num_block_qubits)
-            )
-            return entanglement_map
-        # if any entanglement is specified then it will only be used for
-        # the correct size of block, like for entanglement=[(0,1), (1,2,3)]
-        # only [(0,1)] will be used by 2-qubit pauli (like 'ZZ') and [(1,2,3)]
-        # will be used by 3-qubit pauli (like 'ZZZ')
-        else:
-            entanglement_map = [ent for ent in entanglement if len(ent) == num_block_qubits]
-            return entanglement_map
-
     def get_entangler_map(
         self, rep_num: int, block_num: int, num_block_qubits: int
     ) -> Sequence[Sequence[int]]:
-        i, j = rep_num, block_num
-        num_i = len(self.entanglement)
-        num_j = len(self.entanglement[i % num_i])
 
-        # entanglement is List[List[int]]
-        if all(isinstance(e2, (int, np.int32, np.int64)) for en in self.entanglement for e2 in en):
-            for ind, en in enumerate(self.entanglement):
-                if not any(len(en) == len(pauli) for pauli in self.paulis):
-                    raise ValueError(f"Invalid value of entanglement:{en}")
-                self.entanglement[ind] = tuple(map(int, en))
-            return self._selective_entangler_map(num_block_qubits, self.entanglement)
-
-        # entanglement is List[List[List[int]]]
-        elif all(
-            isinstance(e3, (int, np.int32, np.int64))
-            for en in self.entanglement
-            for e2 in en
-            for e3 in e2
-        ):
-            for en in self.entanglement:
-                for ind, e2 in enumerate(en):
-                    if not any(len(e2) == len(pauli) for pauli in self.paulis):
-                        raise ValueError(f"Invalid value of entanglement:{e2}")
-                    en[ind] = tuple(map(int, e2))
-
-            # choose the entanglement based on the reps
-            chosen_entanglement = self.entanglement[i % num_i]
-            return self._selective_entangler_map(num_block_qubits, chosen_entanglement)
-
-        # entanglement is List[List[List[List[int]]]]
-        elif all(
-            isinstance(e4, (int, np.int32, np.int64))
-            for en in self.entanglement
-            for e2 in en
-            for e3 in e2
-            for e4 in e3
-        ):
-            for en in self.entanglement:
-                for e2 in en:
-                    for ind, e3 in enumerate(e2):
-                        if not any(len(e3) == len(pauli) for pauli in self.paulis):
-                            raise ValueError(f"Invalid value of entanglement:{e3}")
-                        e2[ind] = tuple(map(int, e3))
-
-            # Unlike Twolocal where we can specify entanglement blocks and rotation
-            # blocks separately, for PauliFeatureMap, all the paulis are specified
-            # as a single list (like ['Z', 'ZZ', 'YY']) and so if we just use
-            # self.entanglement[i % num_i][j % num_j] as the entanglement we will be
-            # choosing incorrect entanglement from the specified entanglement. So,
-            # here we subtract the number of single-qubit paulis from the j % num_j
-            # to pick correct entanglement from the specified List[List[List[List[int]]]]
-            count_single_qubit_paulis = 0
-            for pauli in self.paulis:
-                if len(pauli) == 1:
-                    count_single_qubit_paulis += 1
-
-            chosen_entanglement = self.entanglement[i % num_i][
-                (j % num_j) - count_single_qubit_paulis
-            ]
-            return self._selective_entangler_map(num_block_qubits, chosen_entanglement)
+        # entanglement is Dict[int, List[List[int]]]
+        if isinstance(self.entanglement, dict):
+            if all(
+                isinstance(e2, (int, np.int32, np.int64))
+                for key in self.entanglement.keys()
+                for en in self.entanglement[key]
+                for e2 in en
+            ):
+                for qb, ent in self.entanglement.items():
+                    for ind, en in enumerate(ent):
+                        if len(en) > qb:
+                            raise ValueError(
+                                f"Length of entanglement {en} cannot be greater than num_qubits {qb}"
+                            )
+                        self.entanglement[qb][ind] = tuple(map(int, en))
+            return self.entanglement[num_block_qubits]
 
         else:
-            # if the entanglement is not List[List[int]] or List[List[List[int]]] or
-            # List[List[List[List[int]]]] then we fall back on the original
+            # if the entanglement is not Dict[int, List[List[int]]] or
+            # Dict[int, List[Tuple[int]]] then we fall back on the original
             # `get_entangler_map()` method from NLocal
             return super().get_entangler_map(rep_num, block_num, num_block_qubits)
 
