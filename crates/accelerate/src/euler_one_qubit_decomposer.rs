@@ -13,9 +13,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::upper_case_acronyms)]
 
-use ahash::RandomState;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexSet;
 use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
@@ -579,21 +577,116 @@ pub fn generate_circuit(
     Ok(res)
 }
 
+const EULER_BASIS_SIZE: usize = 12;
+
+static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
+    &["u3"],
+    &["u3", "u2", "u1"],
+    &["u"],
+    &["p", "sx"],
+    &["u1", "rx"],
+    &["r"],
+    &["rz", "ry"],
+    &["rz", "rx"],
+    &["rz", "rx"],
+    &["rx", "ry"],
+    &["rz", "sx", "x"],
+    &["rz", "sx"],
+];
+static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
+    EulerBasis::U3,
+    EulerBasis::U321,
+    EulerBasis::U,
+    EulerBasis::PSX,
+    EulerBasis::U1X,
+    EulerBasis::RR,
+    EulerBasis::ZYZ,
+    EulerBasis::ZXZ,
+    EulerBasis::XZX,
+    EulerBasis::XYX,
+    EulerBasis::ZSXX,
+    EulerBasis::ZSX,
+];
+
+/// A structure containing a set of supported `EulerBasis` for running 1q synthesis
+#[derive(Debug, Clone)]
+pub struct EulerBasisSet {
+    basis: [bool; EULER_BASIS_SIZE],
+    initialized: bool,
+}
+
+impl EulerBasisSet {
+    // Instantiate a new EulerBasisSet
+    pub fn new() -> Self {
+        EulerBasisSet {
+            basis: [false; EULER_BASIS_SIZE],
+            initialized: false,
+        }
+    }
+
+    /// Return true if this has been initialized any basis is supported
+    pub fn initialized(&self) -> bool {
+        self.initialized
+    }
+
+    /// Add a basis to the set
+    pub fn add_basis(&mut self, basis: EulerBasis) {
+        self.basis[basis as usize] = true;
+        self.initialized = true;
+    }
+
+    /// Get an iterator of all the supported EulerBasis
+    pub fn get_bases(&self) -> impl Iterator<Item = EulerBasis> + '_ {
+        self.basis
+            .iter()
+            .enumerate()
+            .filter_map(|(index, supported)| {
+                if *supported {
+                    Some(EULER_BASIS_NAMES[index])
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Check if a basis is supported by this set
+    pub fn basis_supported(&self, basis: EulerBasis) -> bool {
+        self.basis[basis as usize]
+    }
+
+    /// Modify this set to support all EulerBasis
+    pub fn support_all(&mut self) {
+        self.basis = [true; 12];
+        self.initialized = true;
+    }
+
+    /// Remove an basis from the set
+    pub fn remove(&mut self, basis: EulerBasis) {
+        self.basis[basis as usize] = false;
+    }
+}
+
+impl Default for EulerBasisSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
 #[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
 pub enum EulerBasis {
-    U321,
-    U3,
-    U,
-    PSX,
-    ZSX,
-    ZSXX,
-    U1X,
-    RR,
-    ZYZ,
-    ZXZ,
-    XYX,
-    XZX,
+    U3 = 0,
+    U321 = 1,
+    U = 2,
+    PSX = 3,
+    U1X = 4,
+    RR = 5,
+    ZYZ = 6,
+    ZXZ = 7,
+    XZX = 8,
+    XYX = 9,
+    ZSXX = 10,
+    ZSX = 11,
 }
 
 impl EulerBasis {
@@ -742,13 +835,16 @@ pub fn unitary_to_gate_sequence(
     simplify: bool,
     atol: Option<f64>,
 ) -> PyResult<Option<OneQubitGateSequence>> {
-    let target_basis_vec: PyResult<Vec<EulerBasis>> = target_basis_list
+    let mut target_basis_set = EulerBasisSet::new();
+    for basis in target_basis_list
         .iter()
         .map(|basis| EulerBasis::__new__(basis))
-        .collect();
+    {
+        target_basis_set.add_basis(basis?);
+    }
     Ok(unitary_to_gate_sequence_inner(
         unitary.as_array(),
-        &target_basis_vec?,
+        &target_basis_set,
         qubit,
         error_map,
         simplify,
@@ -759,17 +855,17 @@ pub fn unitary_to_gate_sequence(
 #[inline]
 pub fn unitary_to_gate_sequence_inner(
     unitary_mat: ArrayView2<Complex64>,
-    target_basis_list: &[EulerBasis],
+    target_basis_list: &EulerBasisSet,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
     atol: Option<f64>,
 ) -> Option<OneQubitGateSequence> {
     target_basis_list
-        .iter()
+        .get_bases()
         .map(|target_basis| {
-            let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, *target_basis);
-            generate_circuit(target_basis, theta, phi, lam, phase, simplify, atol).unwrap()
+            let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
+            generate_circuit(&target_basis, theta, phi, lam, phase, simplify, atol).unwrap()
         })
         .min_by(|a, b| {
             let error_a = compare_error_fn(a, &error_map, qubit);
@@ -789,13 +885,16 @@ pub fn unitary_to_circuit(
     simplify: bool,
     atol: Option<f64>,
 ) -> PyResult<Option<CircuitData>> {
-    let target_basis_vec: PyResult<Vec<EulerBasis>> = target_basis_list
+    let mut target_basis_set = EulerBasisSet::new();
+    for basis in target_basis_list
         .iter()
         .map(|basis| EulerBasis::__new__(basis))
-        .collect();
+    {
+        target_basis_set.add_basis(basis?);
+    }
     let circuit_sequence = unitary_to_gate_sequence_inner(
         unitary.as_array(),
-        &target_basis_vec?,
+        &target_basis_set,
         qubit,
         error_map,
         simplify,
@@ -980,8 +1079,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
 ) -> PyResult<()> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
     let dag_qubits = dag.num_qubits();
-    let mut target_basis_per_qubit: Vec<Option<IndexSet<EulerBasis, RandomState>>> =
-        vec![None; dag_qubits];
+    let mut target_basis_per_qubit: Vec<EulerBasisSet> = vec![EulerBasisSet::new(); dag_qubits];
     let mut basis_gates_per_qubit: Vec<Option<HashSet<&str>>> = vec![None; dag_qubits];
     for raw_run in runs {
         let mut error = match target {
@@ -1021,9 +1119,10 @@ pub(crate) fn optimize_1q_gates_decomposition(
         }
         let basis_gates = &basis_gates_per_qubit[qubit.0 as usize].as_ref();
 
-        if target_basis_per_qubit[qubit.0 as usize].is_none() {
-            let mut target_basis_set: IndexSet<EulerBasis, RandomState> = match target {
-                Some(_target) => EULER_BASIS_MAP
+        let target_basis_set = &mut target_basis_per_qubit[qubit.0 as usize];
+        if !target_basis_set.initialized() {
+            match target {
+                Some(_target) => EULER_BASES
                     .iter()
                     .enumerate()
                     .filter_map(|(idx, gates)| {
@@ -1036,14 +1135,14 @@ pub(crate) fn optimize_1q_gates_decomposition(
                         let basis = EULER_BASIS_NAMES[idx];
                         Some(basis)
                     })
-                    .collect(),
+                    .for_each(|basis| target_basis_set.add_basis(basis)),
                 None => match &global_decomposers {
                     Some(bases) => bases
                         .iter()
                         .map(|basis| EulerBasis::__new__(basis).unwrap())
-                        .collect(),
+                        .for_each(|basis| target_basis_set.add_basis(basis)),
                     None => match basis_gates {
-                        Some(gates) => EULER_BASIS_MAP
+                        Some(gates) => EULER_BASES
                             .iter()
                             .enumerate()
                             .filter_map(|(idx, basis_gates)| {
@@ -1053,25 +1152,23 @@ pub(crate) fn optimize_1q_gates_decomposition(
                                 let basis = EULER_BASIS_NAMES[idx];
                                 Some(basis)
                             })
-                            .collect(),
-                        None => EULER_BASIS_NAMES.iter().copied().collect(),
+                            .for_each(|basis| target_basis_set.add_basis(basis)),
+                        None => target_basis_set.support_all(),
                     },
                 },
             };
-            if target_basis_set.contains(&EulerBasis::U3)
-                && target_basis_set.contains(&EulerBasis::U321)
+            if target_basis_set.basis_supported(EulerBasis::U3)
+                && target_basis_set.basis_supported(EulerBasis::U321)
             {
-                target_basis_set.swap_remove(&EulerBasis::U3);
+                target_basis_set.remove(EulerBasis::U3);
             }
-            if target_basis_set.contains(&EulerBasis::ZSX)
-                && target_basis_set.contains(&EulerBasis::ZSXX)
+            if target_basis_set.basis_supported(EulerBasis::ZSX)
+                && target_basis_set.basis_supported(EulerBasis::ZSXX)
             {
-                target_basis_set.swap_remove(&EulerBasis::ZSX);
+                target_basis_set.remove(EulerBasis::ZSX);
             }
-            target_basis_per_qubit[qubit.0 as usize] = Some(target_basis_set);
         }
-        let target_basis_set = target_basis_per_qubit[qubit.0 as usize].as_ref().unwrap();
-        let target_basis_vec: Vec<EulerBasis> = target_basis_set.iter().copied().collect();
+        let target_basis_set = &target_basis_per_qubit[qubit.0 as usize];
         let operator = raw_run
             .iter()
             .map(|node_index| {
@@ -1103,7 +1200,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         };
         let sequence = unitary_to_gate_sequence_inner(
             aview2(&operator),
-            &target_basis_vec,
+            target_basis_set,
             qubit.0 as usize,
             None,
             true,
@@ -1141,35 +1238,6 @@ pub(crate) fn optimize_1q_gates_decomposition(
     }
     Ok(())
 }
-
-static EULER_BASIS_MAP: [&[&str]; 12] = [
-    &["u3"],
-    &["u3", "u2", "u1"],
-    &["u"],
-    &["p", "sx"],
-    &["u1", "rx"],
-    &["r"],
-    &["rz", "ry"],
-    &["rz", "rx"],
-    &["rz", "rx"],
-    &["rx", "ry"],
-    &["rz", "sx", "x"],
-    &["rz", "sx"],
-];
-static EULER_BASIS_NAMES: [EulerBasis; 12] = [
-    EulerBasis::U3,
-    EulerBasis::U321,
-    EulerBasis::U,
-    EulerBasis::PSX,
-    EulerBasis::U1X,
-    EulerBasis::RR,
-    EulerBasis::ZYZ,
-    EulerBasis::ZXZ,
-    EulerBasis::XZX,
-    EulerBasis::XYX,
-    EulerBasis::ZSXX,
-    EulerBasis::ZSX,
-];
 
 fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     *operator = [
