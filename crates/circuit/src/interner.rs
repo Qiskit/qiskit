@@ -97,6 +97,13 @@ where
     pub fn new() -> Self {
         Self(Default::default())
     }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            entries: Vec::with_capacity(capacity),
+            index_lookup: HashMap::with_capacity(capacity),
+        }
+    }
 }
 
 impl<T> Interner<T>

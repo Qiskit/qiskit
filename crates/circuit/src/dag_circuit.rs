@@ -1556,7 +1556,14 @@ def _format(operand):
     ///     DAGCircuit: An empty copy of self.
     #[pyo3(signature = (*, vars_mode="alike"))]
     fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
-        let mut target_dag = DAGCircuit::new(py)?;
+        let mut target_dag = DAGCircuit::with_capacity(
+            py,
+            self.num_qubits(),
+            self.num_clbits(),
+            Some(self.num_vars()),
+            None,
+            None,
+        )?;
         target_dag.name = self.name.as_ref().map(|n| n.clone_ref(py));
         target_dag.global_phase = self.global_phase.clone();
         target_dag.duration = self.duration.as_ref().map(|d| d.clone_ref(py));
@@ -6156,6 +6163,68 @@ impl DAGCircuit {
             }
         }
         Ok(())
+    }
+
+    /// Alternative constructor, builds a DAGCircuit with a fixed capacity.
+    ///
+    /// # Arguments:
+    /// - `py`: Python GIL token
+    /// - `num_qubits`: Number of qubits in the circuit
+    /// - `num_clbits`: Number of classical bits in the circuit.
+    /// - `num_vars`: (Optional) number of variables in the circuit.
+    /// - `num_ops`: (Optional) number of operations in the circuit.
+    /// - `num_edges`: (Optional) If known, number of edges in the circuit.
+    pub fn with_capacity(
+        py: Python,
+        num_qubits: usize,
+        num_clbits: usize,
+        num_ops: Option<usize>,
+        num_vars: Option<usize>,
+        num_edges: Option<usize>,
+    ) -> PyResult<Self> {
+        let num_ops: usize = num_ops.unwrap_or_default();
+        let num_vars = num_vars.unwrap_or_default();
+        let num_edges = num_edges.unwrap_or(
+            num_qubits +    // 1 edge between the input node and the output node or 1st op node.
+            num_clbits +    // 1 edge between the input node and the output node or 1st op node.
+            num_vars +      // 1 edge between the input node and the output node or 1st op node.
+            num_ops, // In Average there will be 3 edges (2 qubits and 1 clbit, or 3 qubits) per op_node.
+        );
+
+        let num_nodes = num_qubits * 2 + // One input + One output node per qubit
+            num_clbits * 2 +    // One input + One output node per clbit
+            num_vars * 2 +  // One input + output node per variable
+            num_ops;
+
+        Ok(Self {
+            name: None,
+            metadata: Some(PyDict::new_bound(py).unbind().into()),
+            calibrations: HashMap::default(),
+            dag: StableDiGraph::with_capacity(num_nodes, num_edges),
+            qregs: PyDict::new_bound(py).unbind(),
+            cregs: PyDict::new_bound(py).unbind(),
+            qargs_cache: IndexedInterner::with_capacity(num_qubits),
+            cargs_cache: IndexedInterner::with_capacity(num_clbits),
+            qubits: BitData::with_capacity(py, "qubits".to_string(), num_qubits),
+            clbits: BitData::with_capacity(py, "clbits".to_string(), num_clbits),
+            global_phase: Param::Float(0.),
+            duration: None,
+            unit: "dt".to_string(),
+            qubit_locations: PyDict::new_bound(py).unbind(),
+            clbit_locations: PyDict::new_bound(py).unbind(),
+            qubit_io_map: Vec::with_capacity(num_qubits),
+            clbit_io_map: Vec::with_capacity(num_clbits),
+            var_input_map: _VarIndexMap::new(py),
+            var_output_map: _VarIndexMap::new(py),
+            op_names: IndexMap::default(),
+            control_flow_module: PyControlFlowModule::new(py)?,
+            vars_info: HashMap::with_capacity(num_vars),
+            vars_by_type: [
+                PySet::empty_bound(py)?.unbind(),
+                PySet::empty_bound(py)?.unbind(),
+                PySet::empty_bound(py)?.unbind(),
+            ],
+        })
     }
 }
 
