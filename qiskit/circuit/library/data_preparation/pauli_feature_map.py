@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """The Pauli expansion circuit module."""
+import itertools
 
 from typing import Optional, Callable, List, Union, Sequence, Dict, Tuple
 from functools import reduce
@@ -296,12 +297,19 @@ class PauliFeatureMap(NLocal):
             ):
                 for qb, ent in self.entanglement.items():
                     for ind, en in enumerate(ent):
-                        if len(en) > qb:
+                        if len(en) != qb:
                             raise ValueError(
-                                f"Length of entanglement {en} cannot be greater than num_qubits {qb}"
+                                f"For num_qubits = {qb}, entanglement must be a "
+                                f"tuple of length {qb}. You specified {en}."
                             )
                         self.entanglement[qb][ind] = tuple(map(int, en))
-            return self.entanglement[num_block_qubits]
+
+            # if there is no entanglement specified for a pauli block then
+            # assume `full` entanglement (which is default for `PauliFeatureMap`)
+            if any(num_block_qubits == qb for qb in self.entanglement.keys()):
+                return self.entanglement[num_block_qubits]
+            else:
+                return itertools.combinations(list(range(self.feature_dimension)), num_block_qubits)
 
         else:
             # if the entanglement is not Dict[int, List[List[int]]] or
