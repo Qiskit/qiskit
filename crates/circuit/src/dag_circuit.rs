@@ -6460,19 +6460,17 @@ impl DAGCircuit {
         I: IntoIterator<Item = PackedInstruction>,
     {
         // Create HashSets to keep track of each bit/var's last node
-        let mut qubit_last_nodes: HashMap<Qubit, NodeIndex> = HashMap::default();
-        let mut clbit_last_nodes: HashMap<Clbit, NodeIndex> = HashMap::default();
-        // TODO: Refactor once Vars are in rust
-        // Dict [ Var: (int, VarWeight)]
-        let vars_last_nodes: Bound<PyDict> = PyDict::new_bound(py);
+        let mut qubit_last_nodes: HashMap<Qubit, (NodeIndex, Wire)> = HashMap::default();
+        let mut clbit_last_nodes: HashMap<Clbit, (NodeIndex, Wire)> = HashMap::default();
+        // TODO: Keep track of vars
 
-        // Consume into iterator to obtain size hint
-        let iter = iter.into_iter();
         // Store new nodes to return
-        let mut new_nodes = Vec::with_capacity(iter.size_hint().1.unwrap_or_default());
+        let mut new_nodes = vec![];
         for instr in iter {
             let op_name = instr.op.name();
-            let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
+            // TODO: Use _vars
+            let (all_cbits, _vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
+                // Check if the clbits are already included
                 if self.may_have_additional_wires(py, &instr) {
                     let mut clbits: HashSet<Clbit> =
                         HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
@@ -6497,98 +6495,78 @@ impl DAGCircuit {
             let new_node = self.dag.add_node(NodeType::Operation(instr));
             new_nodes.push(new_node);
 
+            // For each qubit and cl_bit retrieve the last_nodes
+            let mut nodes_to_connect: HashSet<(NodeIndex, Wire)> = HashSet::default();
             // Check all the qubits in this instruction.
             for qubit in self.qargs_interner.get(qubits_id) {
                 // Retrieve each qubit's last node
-                let qubit_last_node = *qubit_last_nodes.entry(*qubit).or_insert_with(|| {
-                    // If the qubit is not in the last nodes collection, the edge between the output node and its predecessor.
-                    // Then, store the predecessor's NodeIndex in the last nodes collection.
+                let qubit_last_node = if let Some((node, wire)) = qubit_last_nodes.remove(qubit) {
+                    (node, wire)
+                } else {
                     let output_node = self.qubit_io_map[qubit.0 as usize][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
                         .next()
-                        .map(|edge| (edge.id(), edge.source()))
+                        .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
                         .unwrap();
                     self.dag.remove_edge(edge_id);
                     predecessor_node
-                });
+                };
                 qubit_last_nodes
                     .entry(*qubit)
-                    .and_modify(|val| *val = new_node);
-                self.dag
-                    .add_edge(qubit_last_node, new_node, Wire::Qubit(*qubit));
+                    .and_modify(|val| *val = (new_node, qubit_last_node.1.clone()));
+                nodes_to_connect.insert(qubit_last_node);
             }
 
             // Check all the clbits in this instruction.
             for clbit in all_cbits {
-                let clbit_last_node = *clbit_last_nodes.entry(clbit).or_insert_with(|| {
-                    // If the qubit is not in the last nodes collection, the edge between the output node and its predecessor.
-                    // Then, store the predecessor's NodeIndex in the last nodes collection.
+                let clbit_last_node = if let Some((node, wire)) = clbit_last_nodes.remove(&clbit) {
+                    (node, wire)
+                } else {
                     let output_node = self.clbit_io_map[clbit.0 as usize][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
                         .next()
-                        .map(|edge| (edge.id(), edge.source()))
-                        .unwrap();
-                    self.dag.remove_edge(edge_id);
-                    predecessor_node
-                });
-                clbit_last_nodes
-                    .entry(clbit)
-                    .and_modify(|val| *val = new_node);
-                self.dag
-                    .add_edge(clbit_last_node, new_node, Wire::Clbit(clbit));
-            }
-
-            // If available, check all the vars in this instruction
-            for var in vars.iter().flatten() {
-                let var_last_node = if let Some(result) = vars_last_nodes.get_item(var)? {
-                    let node: usize = result.extract()?;
-                    vars_last_nodes.del_item(var)?;
-                    NodeIndex::new(node)
-                } else {
-                    // If the var is not in the last nodes collection, the edge between the output node and its predecessor.
-                    // Then, store the predecessor's NodeIndex in the last nodes collection.
-                    let output_node = self.var_output_map.get(py, var).unwrap();
-                    let (edge_id, predecessor_node) = self
-                        .dag
-                        .edges_directed(output_node, Incoming)
-                        .next()
-                        .map(|edge| (edge.id(), edge.source()))
+                        .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
                         .unwrap();
                     self.dag.remove_edge(edge_id);
                     predecessor_node
                 };
+                clbit_last_nodes
+                    .entry(clbit)
+                    .and_modify(|val| *val = (new_node, clbit_last_node.1.clone()));
+                nodes_to_connect.insert(clbit_last_node);
+            }
 
-                vars_last_nodes.set_item(var, new_node.index())?;
-                self.dag
-                    .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
+            // TODO: Check all the vars in this instruction.
+
+            for (node, wire) in nodes_to_connect {
+                self.dag.add_edge(node, new_node, wire);
             }
         }
 
-        // Add the output_nodes back to qargs
-        for (qubit, node) in qubit_last_nodes {
+        // Add the output_nodes back
+        for (qubit, (node, wire)) in qubit_last_nodes {
             let output_node = self.qubit_io_map[qubit.0 as usize][1];
-            self.dag.add_edge(node, output_node, Wire::Qubit(qubit));
+            self.dag.add_edge(node, output_node, wire);
         }
 
-        // Add the output_nodes back to cargs
-        for (clbit, node) in clbit_last_nodes {
+        for (clbit, (node, wire)) in clbit_last_nodes {
             let output_node = self.clbit_io_map[clbit.0 as usize][1];
-            self.dag.add_edge(node, output_node, Wire::Clbit(clbit));
-        }
-
-        // Add the output_nodes back to vars
-        for item in vars_last_nodes.items() {
-            let (var, node): (PyObject, usize) = item.extract()?;
-            let output_node = self.var_output_map.get(py, &var).unwrap();
-            self.dag
-                .add_edge(NodeIndex::new(node), output_node, Wire::Var(var));
+            self.dag.add_edge(node, output_node, wire);
         }
 
         Ok(new_nodes)
+    }
+
+    /// Creates an instance of DAGCircuit from an iterator over `PackedInstruction`.
+    fn from_iter<I>(_py: Python, _iter: I) -> PyResult<Self>
+    where
+        I: IntoIterator<Item = PackedInstruction>,
+    {
+        todo!()
     }
 }
 
