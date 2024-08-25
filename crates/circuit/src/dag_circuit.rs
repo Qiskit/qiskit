@@ -6590,6 +6590,14 @@ impl DAGCircuit {
 
         Ok(new_nodes)
     }
+
+    /// Creates an instance of DAGCircuit from an iterator over `PackedInstruction`.
+    fn from_iter<I>(_py: Python, _iter: I) -> PyResult<Self>
+    where
+        I: IntoIterator<Item = PackedInstruction>,
+    {
+        todo!()
+    }
 }
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
