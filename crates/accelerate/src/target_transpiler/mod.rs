@@ -50,9 +50,9 @@ mod exceptions {
 }
 
 // Custom types
+pub type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
 type GateMap = IndexMap<String, PropsMap, RandomState>;
-type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
@@ -102,7 +102,7 @@ impl TargetOperation {
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
 #[derive(Debug, Clone)]
-pub(crate) struct NormalOperation {
+pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
     op_object: PyObject,
@@ -150,7 +150,7 @@ memory.
     module = "qiskit._accelerate.target"
 )]
 #[derive(Clone, Debug)]
-pub(crate) struct Target {
+pub struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
