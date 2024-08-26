@@ -25,6 +25,11 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 from qiskit._accelerate.synthesis.linear_phase import synth_cnot_phase_aam as synth_cnot_phase_aam_xlated
 
+def synth_cnot_pahse_aam_xlated(cnots: list[list[int]], angles: list[str], section_size:int 2) -> QuantumCircuit
+    _circuit_data = synth_cnot_phase_aam_xlated(cnots, angles, section_size)
+    qc_from_rust = QuantumCircuit._from_circuit_data(_circuit_data)
+    return qc_from_rust
+
 
 def synth_cnot_phase_aam(
     cnots: list[list[int]], angles: list[str], section_size: int = 2

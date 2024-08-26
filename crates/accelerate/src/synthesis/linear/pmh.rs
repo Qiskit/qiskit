@@ -193,5 +193,3 @@ pub fn synth_cnot_count_full_pmh(
 
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
-
-

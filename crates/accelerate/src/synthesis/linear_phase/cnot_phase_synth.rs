@@ -74,10 +74,14 @@ pub fn synth_cnot_phase_aam(
 
 
     let epsilion = num_qubits;
-    let mut q = vec![(s, 0..num_qubits, epsilion)];
+    let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilion)];
 
-    while !q.is_empty()
-       {
+    loop
+    {
+        if q.is_empty()
+           {
+               break;
+           }
 
         let (_s, _i, _ep) = q.pop().unwrap();
 
@@ -95,7 +99,7 @@ pub fn synth_cnot_phase_aam(
                     if (_j != _ep) && (u32::from(_s.row(_j).sum()) == _s.row(_j).len() as u32)
                     {
                         condition = true;
-                        instructions.push((StandardGate::CXGate, smallvec![], smallvec![Qubit(_ep as u32), Qubit(_ep as u32)]));
+                        instructions.push((StandardGate::CXGate, smallvec![], smallvec![Qubit(_j as u32), Qubit(_ep as u32)]));
 
                         for _k in 0..state.ncols()
                         {
@@ -104,9 +108,9 @@ pub fn synth_cnot_phase_aam(
 
                         let mut index = 0_usize;
 
-                        loop
+                        for _s_idx in 0..state.nrows()
                         {
-                            let icnot = s_cpy.column(index).to_vec();
+                            let icnot = s_cpy.column(_s_idx).to_vec();
 
                             if icnot == state.row(_ep).to_vec()
                             {
@@ -130,15 +134,110 @@ pub fn synth_cnot_phase_aam(
                             index +=1;
                         }
 
-                        loop
+                        let temp_var = (_s.clone(), _i.clone(), _ep);
+                        if !q.contains(&temp_var)
                         {
+                            q.push(temp_var);
+                        }
 
+                        for data in &q
+                        {
+                            let (ref mut _temp_s, _, _) = data;
+
+                            if _temp_s.is_empty() {continue;}
+
+                            for idx in 0.._temp_s.row(_j).len()
+                            {
+                                _temp_s[(_j, idx)] ^= _temp_s[(_ep, idx)];
+                            }
                         }
                     }
                 }
             }
         }
+
         if _i.is_empty() {continue;}
+
+         let mut maxes: Vec<usize> = vec![];
+        for row in _s.rows()
+        {
+            maxes.push(std::cmp::max(row.iter().filter(|&&x| x == 0).count(), row.iter().filter(|&&x| x == 1).count()));
+        }
+
+        let mut maxes2: Vec<usize> = vec![];
+        for _i_idx in _i.clone()
+        {
+            maxes2.push(maxes[_i_idx]);
+        }
+
+        let mut _temp_max = maxes2[0];
+        let mut _temp_argmax = 0_usize;
+
+        for (idx, &ele) in maxes2.iter().enumerate()
+        {
+            if ele > _temp_max
+            {
+                _temp_max = ele;
+                _temp_argmax = idx;
+            }
+        }
+
+        let _j = _i[_temp_argmax];
+
+        let mut cnots0_t = vec![];
+        let mut cnots1_t = vec![];
+
+        let mut cnots0_shape_data = (0_usize, 0_usize);
+        let mut cnots1_shape_data = (0_usize, 0_usize);
+        for cols in _s.columns()
+        {
+            if cols[_j] == 0
+            {
+                cnots0_shape_data.0 += 1;
+                cnots0_shape_data.1 = cols.to_vec().len() as usize;
+                for ele in cols.to_vec()
+                {
+                    cnots0_t.push(ele);
+                }
+            }
+            else if cols[_j] == 1
+            {
+                cnots1_shape_data.0 += 1;
+                cnots1_shape_data.1 = cols.to_vec().len() as usize;
+                for ele in cols.to_vec()
+                {
+                    cnots1_t.push(ele);
+                }
+            }
+        }
+
+
+        let cnots0 = Array2::from_shape_vec((cnots0_shape_data.0, cnots0_shape_data.1), cnots0_t).unwrap();
+        let cnots1 = Array2::from_shape_vec((cnots1_shape_data.0, cnots1_shape_data.1), cnots1_t).unwrap();
+
+        let cnots0 = cnots0.t().to_owned();
+        let cnots1 = cnots1.t().to_owned();
+
+        if _ep == num_qubits
+        {
+            let _temp_data = (cnots1, _i.clone().into_iter().filter(|&x| x != _j).collect(), _j);
+            if !q.contains(&_temp_data)
+            {
+                q.push(_temp_data);
+            }
+        }
+        else
+        {
+            let _temp_data = (cnots1, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep);
+            if !q.contains(&_temp_data)
+            {
+                q.push(_temp_data);
+            }
+        }
+
+        q.push((cnots0, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep));
+
+
     }
 
 
