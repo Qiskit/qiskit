@@ -6516,6 +6516,7 @@ impl DAGCircuit {
                 };
                 qubit_last_nodes
                     .entry(*qubit)
+                    .and_modify(|entry| *entry = (new_node, qubit_last_node.1.clone()))
                     .or_insert((new_node, qubit_last_node.1.clone()));
                 nodes_to_connect.insert(qubit_last_node);
             }
@@ -6537,6 +6538,7 @@ impl DAGCircuit {
                 };
                 clbit_last_nodes
                     .entry(clbit)
+                    .and_modify(|entry| *entry = (new_node, clbit_last_node.1.clone()))
                     .or_insert((new_node, clbit_last_node.1.clone()));
                 nodes_to_connect.insert(clbit_last_node);
             }
@@ -6561,7 +6563,7 @@ impl DAGCircuit {
                     };
 
                     if let Wire::Var(var) = &var_last_node.1 {
-                        vars_last_nodes.set_item(var, (new_node.index(), var))?
+                        vars_last_nodes.set_item(var, (new_node.index(), var))?;
                     }
                     nodes_to_connect.insert(var_last_node);
                 }
