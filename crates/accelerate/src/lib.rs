@@ -45,6 +45,7 @@ pub mod two_qubit_decompose;
 pub mod uc_gate;
 pub mod utils;
 pub mod vf2_layout;
+pub mod gate_direction;
 
 mod rayon_ext;
 #[cfg(test)]
