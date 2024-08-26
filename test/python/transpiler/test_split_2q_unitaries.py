@@ -234,6 +234,7 @@ class TestSplit2QUnitaries(QiskitTestCase):
 
         class MyGate(Gate):
             """Custom gate"""
+
             def __init__(self):
                 super().__init__("mygate", 2, [])
 
