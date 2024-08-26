@@ -14,7 +14,6 @@ use pyo3::prelude::*;
 use pyo3::types::PyList;
 
 use hashbrown::HashMap;
-use qiskit_circuit::Qubit;
 
 /// A newtype for the different categories of qubits used within layouts.  This is to enforce
 /// significantly more type safety when dealing with mixtures of physical and virtual qubits, as we
@@ -71,24 +70,6 @@ impl PhysicalQubit {
     /// given layout.
     pub fn to_virt(self, layout: &NLayout) -> VirtualQubit {
         layout.phys_to_virt[self.index()]
-    }
-}
-
-/// This is only safe in the context of a physical circuit during transpilation
-/// after the qubit indices of the circuit/dag circuit refer to the physical
-/// qubits (once we've run a layout pass and applied it).
-impl From<Qubit> for PhysicalQubit {
-    fn from(s: Qubit) -> PhysicalQubit {
-        PhysicalQubit::new(s.0)
-    }
-}
-
-/// This is only safe in the context of a physical circuit during transpilation
-/// after the qubit indices of the circuit/dag circuit refer to the physical
-/// qubits (once we've run a layout pass and applied it).
-impl From<&Qubit> for PhysicalQubit {
-    fn from(s: &Qubit) -> PhysicalQubit {
-        PhysicalQubit::new(s.0)
     }
 }
 
