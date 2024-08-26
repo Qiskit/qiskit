@@ -55,7 +55,6 @@ fn fill_tril(mut mat: ArrayViewMut2<bool>, rng: &mut Pcg64Mcg, symmetric: bool) 
 
 /// Invert a lower-triangular matrix with unit diagonal.
 fn inverse_tril(mat: ArrayView2<bool>) -> Array2<bool> {
-    // todo: implement & benchmark optimizations for low rank.
     calc_inverse_matrix_inner(mat, false).unwrap()
 }
 
