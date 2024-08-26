@@ -6460,8 +6460,8 @@ impl DAGCircuit {
         I: IntoIterator<Item = PackedInstruction>,
     {
         // Create HashSets to keep track of each bit/var's last node
-        let mut qubit_last_nodes: HashMap<Qubit, (NodeIndex, Wire)> = HashMap::default();
-        let mut clbit_last_nodes: HashMap<Clbit, (NodeIndex, Wire)> = HashMap::default();
+        let mut qubit_last_nodes: HashMap<Qubit, NodeIndex> = HashMap::default();
+        let mut clbit_last_nodes: HashMap<Clbit, NodeIndex> = HashMap::default();
         // TODO: Refactor once Vars are in rust
         // Dict [ Var: (int, VarWeight)]
         let vars_last_nodes: Bound<PyDict> = PyDict::new_bound(py);
@@ -6497,102 +6497,103 @@ impl DAGCircuit {
             new_nodes.push(new_node);
 
             // For each qubit and cl_bit retrieve the last_nodes
-            let mut nodes_to_connect: HashSet<(NodeIndex, Wire)> = HashSet::default();
+            let mut nodes_to_connect: HashSet<NodeIndex> = HashSet::default();
             // Check all the qubits in this instruction.
             for qubit in self.qargs_interner.get(qubits_id) {
                 // Retrieve each qubit's last node
-                let qubit_last_node = if let Some((node, wire)) = qubit_last_nodes.remove(qubit) {
-                    (node, wire)
+                let qubit_last_node = if let Some(node) = qubit_last_nodes.remove(qubit) {
+                    node
                 } else {
                     let output_node = self.qubit_io_map[qubit.0 as usize][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
                         .next()
-                        .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
+                        .map(|edge| (edge.id(), edge.source()))
                         .unwrap();
                     self.dag.remove_edge(edge_id);
                     predecessor_node
                 };
-                qubit_last_nodes
-                    .entry(*qubit)
-                    .and_modify(|entry| *entry = (new_node, qubit_last_node.1.clone()))
-                    .or_insert((new_node, qubit_last_node.1.clone()));
-                nodes_to_connect.insert(qubit_last_node);
+                qubit_last_nodes.entry(*qubit).or_insert(new_node);
+                if !nodes_to_connect.contains(&qubit_last_node) {
+                    self.dag
+                        .add_edge(qubit_last_node, new_node, Wire::Qubit(*qubit));
+                    nodes_to_connect.insert(qubit_last_node);
+                }
             }
 
             // Check all the clbits in this instruction.
             for clbit in all_cbits {
-                let clbit_last_node = if let Some((node, wire)) = clbit_last_nodes.remove(&clbit) {
-                    (node, wire)
+                let clbit_last_node = if let Some(node) = clbit_last_nodes.remove(&clbit) {
+                    node
                 } else {
                     let output_node = self.clbit_io_map[clbit.0 as usize][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
                         .next()
-                        .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
+                        .map(|edge| (edge.id(), edge.source()))
                         .unwrap();
                     self.dag.remove_edge(edge_id);
                     predecessor_node
                 };
-                clbit_last_nodes
-                    .entry(clbit)
-                    .and_modify(|entry| *entry = (new_node, clbit_last_node.1.clone()))
-                    .or_insert((new_node, clbit_last_node.1.clone()));
-                nodes_to_connect.insert(clbit_last_node);
-            }
-
-            // If available, check all the vars in this instruction
-            if let Some(vars_available) = vars {
-                for var in vars_available {
-                    let var_last_node = if vars_last_nodes.contains(&var)? {
-                        let (node, wire): (usize, PyObject) =
-                            vars_last_nodes.get_item(&var)?.unwrap().extract()?;
-                        (NodeIndex::new(node), Wire::Var(wire))
-                    } else {
-                        let output_node = self.var_output_map.get(py, &var).unwrap();
-                        let (edge_id, predecessor_node) = self
-                            .dag
-                            .edges_directed(output_node, Incoming)
-                            .next()
-                            .map(|edge| (edge.id(), (edge.source(), edge.weight().clone())))
-                            .unwrap();
-                        self.dag.remove_edge(edge_id);
-                        predecessor_node
-                    };
-
-                    if let Wire::Var(var) = &var_last_node.1 {
-                        vars_last_nodes.set_item(var, (new_node.index(), var))?;
-                    }
-                    nodes_to_connect.insert(var_last_node);
+                clbit_last_nodes.entry(clbit).or_insert(new_node);
+                if !nodes_to_connect.contains(&clbit_last_node) {
+                    self.dag
+                        .add_edge(clbit_last_node, new_node, Wire::Clbit(clbit));
+                    nodes_to_connect.insert(clbit_last_node);
                 }
             }
 
-            // Add all of the new edges
-            for (node, wire) in nodes_to_connect {
-                self.dag.add_edge(node, new_node, wire);
+            // If available, check all the vars in this instruction
+            for var in vars.iter().flatten() {
+                let var_last_node = if let Some(result) = vars_last_nodes.get_item(var)? {
+                    let node: usize = result.extract()?;
+                    vars_last_nodes.del_item(var)?;
+                    NodeIndex::new(node)
+                } else {
+                    let output_node = self.var_output_map.get(py, var).unwrap();
+                    let (edge_id, predecessor_node) = self
+                        .dag
+                        .edges_directed(output_node, Incoming)
+                        .next()
+                        .map(|edge| (edge.id(), edge.source()))
+                        .unwrap();
+                    self.dag.remove_edge(edge_id);
+                    predecessor_node
+                };
+
+                vars_last_nodes.set_item(var, new_node.index())?;
+                if !nodes_to_connect.contains(&var_last_node) {
+                    if var_last_node == new_node {
+                        // TODO: Fix instances of duplicate nodes for Vars
+                        continue;
+                    }
+                    self.dag
+                        .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
+                    nodes_to_connect.insert(var_last_node);
+                }
             }
         }
 
         // Add the output_nodes back to qargs
-        for (qubit, (node, wire)) in qubit_last_nodes {
+        for (qubit, node) in qubit_last_nodes {
             let output_node = self.qubit_io_map[qubit.0 as usize][1];
-            self.dag.add_edge(node, output_node, wire);
+            self.dag.add_edge(node, output_node, Wire::Qubit(qubit));
         }
 
         // Add the output_nodes back to cargs
-        for (clbit, (node, wire)) in clbit_last_nodes {
+        for (clbit, node) in clbit_last_nodes {
             let output_node = self.clbit_io_map[clbit.0 as usize][1];
-            self.dag.add_edge(node, output_node, wire);
+            self.dag.add_edge(node, output_node, Wire::Clbit(clbit));
         }
 
         // Add the output_nodes back to vars
         for item in vars_last_nodes.items() {
-            let (var, (node, wire)): (PyObject, (usize, PyObject)) = item.extract()?;
+            let (var, node): (PyObject, usize) = item.extract()?;
             let output_node = self.var_output_map.get(py, &var).unwrap();
             self.dag
-                .add_edge(NodeIndex::new(node), output_node, Wire::Var(wire));
+                .add_edge(NodeIndex::new(node), output_node, Wire::Var(var));
         }
 
         Ok(new_nodes)
