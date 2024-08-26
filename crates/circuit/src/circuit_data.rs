@@ -233,7 +233,7 @@ impl CircuitData {
         }
         Ok(res)
     }
-    
+
     /// Build an empty CircuitData object with an initially allocated instruction capacity
     pub fn with_capacity(
         py: Python,
@@ -267,7 +267,7 @@ impl CircuitData {
         }
         Ok(res)
     }
-    
+
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
     /// table.
     fn track_instruction_parameters(
