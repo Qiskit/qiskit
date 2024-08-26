@@ -20,9 +20,10 @@ use rand_pcg::Pcg64Mcg;
 /// Sample from the quantum Mallows distribution.
 fn sample_qmallows(n: usize, rng: &mut Pcg64Mcg) -> (Array1<bool>, Array1<usize>) {
     // Hadamard layer
-    let mut had = Array1::from_shape_fn(n, |_| false);
+    let mut had = Array1::from_elem(n, false);
+
     // Permutation layer
-    let mut perm = Array1::from_shape_fn(n, |_| 0);
+    let mut perm = Array1::from_elem(n, 0);
     let mut inds: Vec<usize> = (0..n).collect();
 
     for i in 0..n {

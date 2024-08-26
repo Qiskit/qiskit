@@ -44,8 +44,6 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
     CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
-#[pyfunction]
-#[pyo3(signature = (num_qubits, seed=None))]
 /// Generate a random Clifford tableau.
 ///
 /// The Clifford is sampled using the method of the paper "Hadamard-free circuits
@@ -57,6 +55,8 @@ fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResu
 ///     seed: an optional random seed.
 /// Returns:
 ///     result: a random clifford tableau.
+#[pyfunction]
+#[pyo3(signature = (num_qubits, seed=None))]
 fn random_clifford_tableau(
     py: Python,
     num_qubits: usize,
