@@ -61,6 +61,7 @@ import qiskit._numpy_compat
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
+sys.modules["qiskit._accelerate.circuit.converters"] = _accelerate.circuit.converters
 sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map

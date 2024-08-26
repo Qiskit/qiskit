@@ -18,6 +18,7 @@ use crate::bit_data::BitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
+use crate::converters::QuantumCircuitData;
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
@@ -6591,12 +6592,236 @@ impl DAGCircuit {
         Ok(new_nodes)
     }
 
-    /// Creates an instance of DAGCircuit from an iterator over `PackedInstruction`.
-    fn from_iter<I>(_py: Python, _iter: I) -> PyResult<Self>
-    where
-        I: IntoIterator<Item = PackedInstruction>,
-    {
-        todo!()
+    /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
+    pub(crate) fn from_quantum_circuit(
+        py: Python,
+        qc: QuantumCircuitData,
+        qubit_order: Option<Vec<PyObject>>,
+        clbit_order: Option<Vec<PyObject>>,
+    ) -> PyResult<DAGCircuit> {
+        // Extract necessary attributes
+        let qc_data = qc.data;
+        let num_qubits = qc_data.num_qubits();
+        let num_clbits = qc_data.num_clbits();
+        let num_ops = qc_data.__len__();
+        let mut num_vars = 0;
+        if let Some(vars) = &qc.input_vars {
+            num_vars += vars.len()?;
+        }
+        if let Some(vars) = &qc.captured_vars {
+            num_vars += vars.len()?;
+        }
+        if let Some(vars) = &qc.declared_vars {
+            num_vars += vars.len()?;
+        }
+        let mut num_edges = 0;
+
+        // Take ownership of the interners.
+        let mut qubit_interner = if qubit_order.is_some() {
+            Interner::new()
+        } else {
+            qc_data.qargs_interner().clone()
+        };
+
+        let mut clbit_interner = if clbit_order.is_some() {
+            Interner::new()
+        } else {
+            qc_data.cargs_interner().clone()
+        };
+
+        // Take ownership of the bit_data
+        let mut qubit_data = if qubit_order.is_some() {
+            BitData::with_capacity(py, "qubits".to_string(), num_qubits)
+        } else {
+            qc_data.qubits().clone()
+        };
+
+        let mut clbit_data = if clbit_order.is_some() {
+            BitData::with_capacity(py, "clbits".to_string(), num_clbits)
+        } else {
+            qc_data.clbits().clone()
+        };
+
+        // Pre-process the instructions
+        let qubit_set: Vec<Qubit> = if let Some(qubit_ordering) = &qubit_order {
+            if qubit_ordering.len() != num_qubits {
+                return Err(PyValueError::new_err(
+                    "'qubit_order' does not contain exactly the same qubits as the circuit",
+                ));
+            };
+            let mut qubits = vec![];
+            for qubit in qubit_ordering {
+                let bound = qubit.bind(py);
+                if qubit_data.find(bound).is_some() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "duplicate qubits {}",
+                        bound.repr()?
+                    )));
+                }
+                // Add bit to its respective BitData and add index to qubit_set
+                qubit_data.add(py, bound, false)?;
+                if let Some(qubit) = qc_data.qubits().find(bound) {
+                    qubits.push(qubit);
+                }
+            }
+            qubits
+        } else {
+            (0..num_qubits as u32).map(Qubit).collect()
+        };
+        let clbit_set: Vec<Clbit> = if let Some(clbit_ordering) = &clbit_order {
+            if clbit_ordering.len() != num_clbits {
+                return Err(PyValueError::new_err(
+                    "'clbit_order' does not contain exactly the same clbits as the circuit",
+                ));
+            };
+            let mut clbits = vec![];
+            for clbit in clbit_ordering {
+                let bound = clbit.bind(py);
+                if clbit_data.find(bound).is_some() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "duplicate clbits {}",
+                        bound.repr()?
+                    )));
+                }
+                // Add bit to its respective BitData and add index to clbit_set
+                clbit_data.add(py, bound, false)?;
+                if let Some(clbit) = qc_data.clbits().find(bound) {
+                    clbits.push(clbit);
+                }
+            }
+            clbits
+        } else {
+            (0..num_clbits as u32).map(Clbit).collect()
+        };
+
+        // Count all input nodes in each instruction
+        let instructions: Vec<PackedInstruction> = qc_data
+            .iter()
+            .cloned()
+            .map(|instr| -> PyResult<PackedInstruction> {
+                // Re-map the qubits
+                let qargs: Vec<Qubit> = qc_data.get_qargs(instr.qubits).to_vec();
+                if qubit_order.is_some() {
+                    let ordered_qargs = qargs
+                        .iter()
+                        .map(|index| qubit_set[index.0 as usize])
+                        .collect();
+                    qubit_interner.insert_owned(ordered_qargs);
+                }
+                // Remap the clbits
+                let cargs: Vec<Clbit> = qc_data.get_cargs(instr.clbits).to_vec();
+                if clbit_order.is_some() {
+                    let ordered_cargs = cargs
+                        .iter()
+                        .map(|index| clbit_set[index.0 as usize])
+                        .collect();
+                    clbit_interner.insert_owned(ordered_cargs);
+                }
+
+                num_edges += qargs.len() + cargs.len();
+
+                Ok(instr)
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+
+        // Build DAGCircuit with capacity
+        let mut new_dag = DAGCircuit::with_capacity(
+            py,
+            num_qubits,
+            num_clbits,
+            Some(num_ops),
+            Some(num_vars),
+            Some(num_edges),
+        )?;
+
+        // Assign other necessary data
+        new_dag.name = qc.name.map(|ob| ob.unbind());
+
+        // Avoid manually acquiring the GIL.
+        new_dag.global_phase = match qc_data.global_phase() {
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            Param::Float(float) => Param::Float(*float),
+            _ => unreachable!("Incorrect parameter assigned for global phase"),
+        };
+
+        new_dag.calibrations = qc.calibrations;
+        new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
+
+        // TODO: Use Qubit ordering to remap the interners and qubit
+
+        // Copy over all interners and registers
+        new_dag.qargs_interner = qubit_interner;
+        new_dag.cargs_interner = clbit_interner;
+
+        new_dag.qubits = qubit_data;
+        new_dag.clbits = clbit_data;
+
+        // Re-map and add all of the qubits
+        for qubit in (0..num_qubits as u32).map(Qubit) {
+            if let Some(bit) = new_dag.qubits.get(qubit) {
+                new_dag.qubit_locations.bind(py).set_item(
+                    bit,
+                    BitLocations {
+                        index: qubit.0 as usize,
+                        registers: PyList::empty_bound(py).unbind(),
+                    }
+                    .into_py(py),
+                )?;
+                new_dag.add_wire(py, Wire::Qubit(qubit))?;
+            }
+        }
+
+        // Re-map and add all of the qubits
+        for clbit in (0..num_clbits as u32).map(Clbit) {
+            if let Some(bit) = new_dag.clbits.get(clbit) {
+                new_dag.clbit_locations.bind(py).set_item(
+                    bit,
+                    BitLocations {
+                        index: clbit.0 as usize,
+                        registers: PyList::empty_bound(py).unbind(),
+                    }
+                    .into_py(py),
+                )?;
+                new_dag.add_wire(py, Wire::Clbit(clbit))?;
+            }
+        }
+
+        if let Some(vars) = qc.declared_vars {
+            for var in vars.iter()? {
+                new_dag.add_var(py, &var?, DAGVarType::Declare)?;
+            }
+        }
+
+        if let Some(vars) = qc.input_vars {
+            for var in vars.iter()? {
+                new_dag.add_var(py, &var?, DAGVarType::Input)?;
+            }
+        }
+
+        if let Some(vars) = qc.captured_vars {
+            for var in vars.iter()? {
+                new_dag.add_var(py, &var?, DAGVarType::Capture)?;
+            }
+        }
+
+        // Add all the registers
+
+        if let Some(qregs) = qc.qregs {
+            for qreg in qregs.iter() {
+                new_dag.add_qreg(py, &qreg)?;
+            }
+        }
+
+        if let Some(cregs) = qc.cregs {
+            for creg in cregs.iter() {
+                new_dag.add_creg(py, &creg)?;
+            }
+        }
+
+        // Finally add all the instructions back
+        new_dag.add_from_iter(py, instructions)?;
+
+        Ok(new_dag)
     }
 }
 
