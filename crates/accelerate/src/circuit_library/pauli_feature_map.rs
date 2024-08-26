@@ -26,8 +26,8 @@ use std::f64::consts::PI;
 use crate::circuit_library::entanglement;
 use crate::QiskitError;
 
+// custom math and types for a more readable code
 const PI2: f64 = PI / 2.;
-
 type Instruction = (
     PackedOperation,
     SmallVec<[Param; 3]>,
@@ -36,14 +36,31 @@ type Instruction = (
 );
 type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
+/// Return instructions (using only StandardGate operations) to implement a Pauli evolution
+/// of a given Pauli string over a given time (as Param).
+///
+/// The Pauli evolution is implemented as a basis transformation to the Pauli-Z basis,
+/// followed by a CX-chain and then a single Pauli-Z rotation on the last qubit. Then the CX-chain
+/// is uncomputed and the inverse basis transformation applied. E.g. for the evolution under the
+/// Pauli string XIYZ we have the circuit
+///                     ┌───┐┌───────┐┌───┐
+/// 0: ─────────────────┤ X ├┤ Rz(2) ├┤ X ├──────────────────
+///    ┌──────────┐┌───┐└─┬─┘└───────┘└─┬─┘┌───┐┌───────────┐
+/// 1: ┤ Rx(pi/2) ├┤ X ├──■─────────────■──┤ X ├┤ Rx(-pi/2) ├
+///    └──────────┘└─┬─┘                   └─┬─┘└───────────┘
+/// 2: ──────────────┼───────────────────────┼───────────────
+///     ┌───┐        │                       │  ┌───┐
+/// 3: ─┤ H ├────────■───────────────────────■──┤ H ├────────
+///     └───┘                                   └───┘
 fn pauli_evolution<'a>(
-    py: Python<'a>,
     pauli: &'a str,
     indices: Vec<u32>,
     time: Param,
-) -> Box<dyn Iterator<Item = StandardInstruction> + 'a> {
+) -> impl Iterator<Item = StandardInstruction> + 'a {
+    // Get pairs of (pauli, qubit) that are active, i.e. that are not the identity. Note that
+    // the rest of the code also works if there are only identities, in which case we will
+    // effectively return an empty iterator.
     let qubits = indices.iter().map(|i| Qubit(*i)).collect_vec();
-    // get pairs of (pauli, qubit) that are active, i.e. that are not the identity
     let binding = pauli.to_lowercase(); // lowercase for convenience
     let active_paulis = binding
         .as_str()
@@ -53,12 +70,6 @@ fn pauli_evolution<'a>(
         .filter(|(p, _)| *p != 'i')
         .collect_vec();
 
-    // if there are no paulis, return an empty iterator -- this case here is also why we use
-    // a Box<Iterator>, otherwise the compiler will complain that we return empty one time and
-    // a chain another time
-    if active_paulis.len() == 0 {
-        return Box::new(std::iter::empty::<StandardInstruction>());
-    }
     // get the basis change: x -> HGate, y -> RXGate(pi/2), z -> nothing
     let basis_change = active_paulis
         .clone()
@@ -71,21 +82,24 @@ fn pauli_evolution<'a>(
                 smallvec![Param::Float(PI2)],
                 smallvec![q],
             ),
-            _ => unreachable!(),
+            _ => unreachable!("Invalid Pauli string."), // "z" and "i" have been filtered out
         });
+
     // get the inverse basis change
     let inverse_basis_change = basis_change.clone().map(|(gate, _, qubit)| match gate {
         StandardGate::HGate => (gate, smallvec![], qubit),
         StandardGate::RXGate => (gate, smallvec![Param::Float(-PI2)], qubit),
         _ => unreachable!(),
     });
+
     // get the CX chain down to the target rotation qubit
     let chain_down = active_paulis
         .clone()
         .into_iter()
         .map(|(_, q)| q)
-        .tuple_windows()
+        .tuple_windows() // iterates over (q[i], q[i+1]) windows
         .map(|(ctrl, target)| (StandardGate::CXGate, smallvec![], smallvec![ctrl, target]));
+
     // get the CX chain up (cannot use chain_down.rev since tuple_windows is not double ended)
     let chain_up = active_paulis
         .clone()
@@ -94,21 +108,21 @@ fn pauli_evolution<'a>(
         .map(|(_, q)| q)
         .tuple_windows()
         .map(|(target, ctrl)| (StandardGate::CXGate, smallvec![], smallvec![ctrl, target]));
+
     // get the RZ gate on the last qubit
     let last_qubit = active_paulis.last().unwrap().1;
     let z_rotation = std::iter::once((
         StandardGate::PhaseGate,
-        smallvec![multiply_param(&time, 1.0, py)],
+        smallvec![time.clone()],
         smallvec![last_qubit],
     ));
+
     // and finally chain everything together
-    Box::new(
-        basis_change
-            .chain(chain_down)
-            .chain(z_rotation)
-            .chain(chain_up)
-            .chain(inverse_basis_change),
-    )
+    basis_change
+        .chain(chain_down)
+        .chain(z_rotation)
+        .chain(chain_up)
+        .chain(inverse_basis_change)
 }
 
 #[pyfunction]
@@ -139,13 +153,10 @@ pub fn pauli_feature_map(
         || Ok(default_pauli), // use Ok() since we might raise an error in the other arm
         |v| {
             let v = PySequenceMethods::to_list(v)?; // sequence to list
-            v.iter()
+            v.iter() // iterate over the list of Paulis
                 .map(|el| {
-                    // downcast and check whether it is valid
-                    let as_string = (*el
-                        .downcast::<PyString>()
-                        .expect("Error unpacking the ``paulis`` argument"))
-                    .to_string();
+                    // Get the string and check whether it fits the feature dimension
+                    let as_string = (*el.downcast::<PyString>()?).to_string();
                     if as_string.len() > feature_dimension as usize {
                         Err(QiskitError::new_err(format!(
                             "feature_dimension ({}) smaller than the Pauli ({})",
@@ -166,8 +177,8 @@ pub fn pauli_feature_map(
     // extract the parameters from the input variable ``parameters``
     let parameter_vector = parameters
         .iter()?
-        .map(|el| Param::extract_no_coerce(&el.expect("no idea man")).unwrap())
-        .collect_vec();
+        .map(|el| Param::extract_no_coerce(&el?))
+        .collect::<PyResult<Vec<Param>>>()?;
 
     let packed_evo = _pauli_feature_map(
         py,
@@ -250,15 +261,11 @@ fn _pauli_feature_map<'a>(
                 // to call CircuitData::from_packed_operations. This is needed since we might
                 // have to interject barriers, which are not a standard gate and prevents us
                 // from using CircuitData::from_standard_gates.
-                pauli_evolution(
-                    py,
-                    pauli,
-                    indices.unwrap(),
-                    multiply_param(&angle, alpha, py),
+                pauli_evolution(pauli, indices.unwrap(), multiply_param(&angle, alpha, py)).map(
+                    |(gate, params, qargs)| {
+                        (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
+                    },
                 )
-                .map(|(gate, params, qargs)| {
-                    (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
-                })
             })
         });
 
