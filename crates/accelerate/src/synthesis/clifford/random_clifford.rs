@@ -41,7 +41,6 @@ fn sample_qmallows(n: usize, rng: &mut Pcg64Mcg) -> (Array1<bool>, Array1<usize>
 
 /// Add symmetric random boolean value to off diagonal entries.
 fn fill_tril(mut mat: ArrayViewMut2<bool>, rng: &mut Pcg64Mcg, symmetric: bool) {
-    // todo: implement & benchmark optimizations for low-rank matrices
     let n = mat.shape()[0];
     for i in 0..n {
         for j in 0..i {
