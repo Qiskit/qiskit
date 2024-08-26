@@ -6388,8 +6388,6 @@ impl DAGCircuit {
             let new_node = self.dag.add_node(NodeType::Operation(instr));
             new_nodes.push(new_node);
 
-            // For each qubit and cl_bit retrieve the last_nodes
-            let mut nodes_to_connect: HashSet<NodeIndex> = HashSet::default();
             // Check all the qubits in this instruction.
             for qubit in self.qargs_interner.get(qubits_id) {
                 // Retrieve each qubit's last node
@@ -6407,11 +6405,8 @@ impl DAGCircuit {
                     predecessor_node
                 };
                 qubit_last_nodes.entry(*qubit).or_insert(new_node);
-                if !nodes_to_connect.contains(&qubit_last_node) {
-                    self.dag
-                        .add_edge(qubit_last_node, new_node, Wire::Qubit(*qubit));
-                    nodes_to_connect.insert(qubit_last_node);
-                }
+                self.dag
+                    .add_edge(qubit_last_node, new_node, Wire::Qubit(*qubit));
             }
 
             // Check all the clbits in this instruction.
@@ -6430,11 +6425,8 @@ impl DAGCircuit {
                     predecessor_node
                 };
                 clbit_last_nodes.entry(clbit).or_insert(new_node);
-                if !nodes_to_connect.contains(&clbit_last_node) {
-                    self.dag
-                        .add_edge(clbit_last_node, new_node, Wire::Clbit(clbit));
-                    nodes_to_connect.insert(clbit_last_node);
-                }
+                self.dag
+                    .add_edge(clbit_last_node, new_node, Wire::Clbit(clbit));
             }
 
             // If available, check all the vars in this instruction
@@ -6456,15 +6448,12 @@ impl DAGCircuit {
                 };
 
                 vars_last_nodes.set_item(var, new_node.index())?;
-                if !nodes_to_connect.contains(&var_last_node) {
-                    if var_last_node == new_node {
-                        // TODO: Fix instances of duplicate nodes for Vars
-                        continue;
-                    }
-                    self.dag
-                        .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
-                    nodes_to_connect.insert(var_last_node);
+                if var_last_node == new_node {
+                    // TODO: Fix instances of duplicate nodes for Vars
+                    continue;
                 }
+                self.dag
+                    .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
             }
         }
 
