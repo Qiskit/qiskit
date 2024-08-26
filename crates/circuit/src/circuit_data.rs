@@ -15,7 +15,7 @@ use std::cell::RefCell;
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT, QUBIT};
+use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{IndexedInterner, Interner, InternerKey};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
