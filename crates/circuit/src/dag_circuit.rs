@@ -6644,11 +6644,6 @@ impl DAGCircuit {
 
         // Pre-process the instructions
         let qubit_set: Vec<Qubit> = if let Some(qubit_ordering) = &qubit_order {
-            if qubit_ordering.len() != num_qubits {
-                return Err(PyValueError::new_err(
-                    "'qubit_order' does not contain exactly the same qubits as the circuit",
-                ));
-            };
             let mut qubits = vec![];
             for qubit in qubit_ordering {
                 let bound = qubit.bind(py);
@@ -6669,11 +6664,6 @@ impl DAGCircuit {
             (0..num_qubits as u32).map(Qubit).collect()
         };
         let clbit_set: Vec<Clbit> = if let Some(clbit_ordering) = &clbit_order {
-            if clbit_ordering.len() != num_clbits {
-                return Err(PyValueError::new_err(
-                    "'clbit_order' does not contain exactly the same clbits as the circuit",
-                ));
-            };
             let mut clbits = vec![];
             for clbit in clbit_ordering {
                 let bound = clbit.bind(py);
@@ -6731,7 +6721,7 @@ impl DAGCircuit {
             num_clbits,
             Some(num_ops),
             Some(num_vars),
-            Some(num_edges),
+            Some(num_edges + (num_ops / 2) * num_vars),
         )?;
 
         // Assign other necessary data
