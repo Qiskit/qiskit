@@ -22,7 +22,7 @@ use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports;
-use crate::interner::{IndexedInterner, Interner};
+use crate::interner::{Index, IndexedInterner, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::rustworkx_core_vnext::isomorphism;
@@ -3958,19 +3958,12 @@ def _format(operand):
     }
 
     /// Get list of 2 qubit operations. Ignore directives like snapshot and barrier.
-    fn two_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
+    #[pyo3(name = "two_qubit_ops")]
+    pub fn py_two_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
-        for (node, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
-                if packed.op.directive() {
-                    continue;
-                }
-
-                let qargs = self.qargs_cache.intern(packed.qubits);
-                if qargs.len() == 2 {
-                    nodes.push(self.unpack_into(py, node, weight)?);
-                }
-            }
+        for node in self.two_qubit_ops() {
+            let weight = self.dag.node_weight(node).expect("NodeIndex in graph");
+            nodes.push(self.unpack_into(py, node, weight)?);
         }
         Ok(nodes)
     }
@@ -5798,6 +5791,19 @@ impl DAGCircuit {
         }
     }
 
+    /// Return an iterator of 2 qubit operations. Ignore directives like snapshot and barrier.
+    pub fn two_qubit_ops<'a>(&'a self) -> Box<dyn Iterator<Item = NodeIndex> + 'a> {
+        Box::new(self.op_nodes(false).filter(|index| {
+            let weight = self.dag.node_weight(*index).expect("NodeIndex in graph");
+            if let NodeType::Operation(ref packed) = weight {
+                let qargs = self.qargs_cache.intern(packed.qubits);
+                return qargs.len() == 2;
+            } else {
+                false
+            }
+        }))
+    }
+
     pub fn op_nodes_by_py_type<'a>(
         &'a self,
         op: &'a Bound<PyType>,
@@ -6166,6 +6172,11 @@ impl DAGCircuit {
             }
         }
         Ok(())
+    }
+
+    /// Get the qubits interned in the given index
+    pub fn get_qubits(&self, index: Index) -> &Vec<Qubit> {
+        self.qargs_cache.intern(index)
     }
 }
 

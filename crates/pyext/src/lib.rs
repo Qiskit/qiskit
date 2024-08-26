@@ -20,7 +20,7 @@ use qiskit_accelerate::{
     sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
     star_prerouting::star_prerouting, stochastic_swap::stochastic_swap, synthesis::synthesis,
     target_transpiler::target, two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate,
-    utils::utils, vf2_layout::vf2_layout,
+    utils::utils, vf2_layout::vf2_layout, gate_direction::gate_direction
 };
 
 #[inline(always)]
@@ -60,5 +60,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, uc_gate, "uc_gate")?;
     add_submodule(m, utils, "utils")?;
     add_submodule(m, vf2_layout, "vf2_layout")?;
+    add_submodule(m, gate_direction, "gate_direction")?;
     Ok(())
 }
