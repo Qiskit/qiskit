@@ -16,7 +16,7 @@ use std::cell::OnceCell;
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
-use crate::interner::{IndexedInterner, Interner};
+use crate::interner::{Index, IndexedInterner, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
@@ -399,8 +399,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
-    #[getter]
-    pub fn qubits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter("qubits")]
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
         self.qubits.cached().clone_ref(py)
     }
 
@@ -424,8 +424,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
-    #[getter]
-    pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter("clbits")]
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
         self.clbits.cached().clone_ref(py)
     }
 
@@ -1135,6 +1135,41 @@ impl CircuitData {
     /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
+    }
+
+    /// Returns an immutable view of the Interner used for Qargs
+    pub fn qargs_interner(&self) -> &IndexedInterner<Vec<Qubit>> {
+        &self.qargs_interner
+    }
+
+    /// Returns an immutable view of the Interner used for Cargs
+    pub fn cargs_interner(&self) -> &IndexedInterner<Vec<Clbit>> {
+        &self.cargs_interner
+    }
+
+    /// Returns an immutable view of the Global Phase `Param` of the circuit
+    pub fn global_phase(&self) -> &Param {
+        &self.global_phase
+    }
+
+    /// Returns an immutable view of the Qubits registered in the circuit
+    pub fn qubits(&self) -> &BitData<Qubit> {
+        &self.qubits
+    }
+
+    /// Returns an immutable view of the Classical bits registered in the circuit
+    pub fn clbits(&self) -> &BitData<Clbit> {
+        &self.clbits
+    }
+
+    /// Unpacks from InternerIndex to `[Qubit]`
+    pub fn get_qargs(&self, index: Index) -> &[Qubit] {
+        self.qargs_interner().intern(index)
+    }
+
+    /// Unpacks from InternerIndex to `[Clbit]`
+    pub fn get_cargs(&self, index: Index) -> &[Clbit] {
+        self.cargs_interner().intern(index)
     }
 
     fn assign_parameters_inner<I>(&mut self, py: Python, iter: I) -> PyResult<()>
