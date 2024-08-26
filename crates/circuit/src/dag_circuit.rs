@@ -2168,14 +2168,15 @@ def _format(operand):
         }
 
         let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-        for node_index in
-            self.op_nodes_by_py_type(imports::CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
-        {
-            let NodeType::Operation(node) = &self.dag[node_index] else {
-                return Err(DAGCircuitError::new_err("unknown control-flow type"));
+        for node in self.dag.node_weights() {
+            let NodeType::Operation(node) = node else {
+                continue;
             };
+            if !node.op.control_flow() {
+                continue;
+            }
             let OperationRef::Instruction(inst) = node.op.view() else {
-                unreachable!("Control Flow operations must be a PyInstruction");
+                panic!("control flow op must be an instruction");
             };
             let inst_bound = inst.instruction.bind(py);
             if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
@@ -2239,34 +2240,33 @@ def _format(operand):
         Ok(if recurse {
             let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
             let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
-
-            for node_index in
-                self.op_nodes_by_py_type(imports::CONTROL_FLOW_OP.get_bound(py).downcast()?, true)
-            {
-                if let NodeType::Operation(node) = &self.dag[node_index] {
-                    if let OperationRef::Instruction(inst) = node.op.view() {
-                        let inst_bound = inst.instruction.bind(py);
-                        let weight =
-                            if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
-                                node.params_view().len()
-                            } else {
-                                1
-                            };
-                        if weight == 0 {
-                            node_lookup.insert(node_index, 0);
-                        } else {
-                            let raw_blocks = inst_bound.getattr("blocks")?;
-                            let blocks = raw_blocks.downcast::<PyTuple>()?;
-                            let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
-                            for block in blocks.iter() {
-                                let inner_dag: &DAGCircuit =
-                                    &circuit_to_dag.call1((block,))?.extract()?;
-                                block_weights.push(inner_dag.depth(py, true)?);
-                            }
-                            node_lookup
-                                .insert(node_index, weight * block_weights.iter().max().unwrap());
-                        }
+            for (node_index, node) in self.dag.node_references() {
+                let NodeType::Operation(node) = node else {
+                    continue;
+                };
+                if !node.op.control_flow() {
+                    continue;
+                }
+                let OperationRef::Instruction(inst) = node.op.view() else {
+                    panic!("control flow op must be an instruction")
+                };
+                let inst_bound = inst.instruction.bind(py);
+                let weight = if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
+                    node.params_view().len()
+                } else {
+                    1
+                };
+                if weight == 0 {
+                    node_lookup.insert(node_index, 0);
+                } else {
+                    let raw_blocks = inst_bound.getattr("blocks")?;
+                    let blocks = raw_blocks.downcast::<PyTuple>()?;
+                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
+                    for block in blocks.iter() {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block,))?.extract()?;
+                        block_weights.push(inner_dag.depth(py, true)?);
                     }
+                    node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
                 }
             }
 
