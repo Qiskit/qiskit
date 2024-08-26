@@ -109,6 +109,7 @@ pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
 pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
     ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
+pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

@@ -2033,7 +2033,7 @@ fn clone_param(param: &Param, py: Python) -> Param {
     }
 }
 
-fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
+pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
@@ -2046,7 +2046,31 @@ fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     }
 }
 
-fn add_param(param: &Param, summand: f64, py: Python) -> Param {
+pub fn rmultiply_param(param1: Param, param2: Param, py: Python) -> Param {
+    match [param1, param2] {
+        [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta * lambda),
+        [Param::ParameterExpression(theta), Param::Float(lambda)] => Param::ParameterExpression(
+            theta
+                .clone_ref(py)
+                .call_method1(py, intern!(py, "__rmul__"), (lambda,))
+                .expect("Parameter expression multiplication failed"),
+        ),
+        [Param::Float(theta), Param::ParameterExpression(lambda)] => {
+            rmultiply_param(Param::ParameterExpression(lambda), Param::Float(theta), py)
+        }
+        [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
+            Param::ParameterExpression(
+                theta
+                    .clone_ref(py)
+                    .call_method1(py, intern!(py, "__rmul__"), (lambda,))
+                    .expect("Parameter expression multiplication failed"),
+            )
+        }
+        _ => unreachable!("Unsupported multiplication."),
+    }
+}
+
+pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta + summand),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
@@ -2059,7 +2083,7 @@ fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     }
 }
 
-fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
+pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
     match [param1, param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
