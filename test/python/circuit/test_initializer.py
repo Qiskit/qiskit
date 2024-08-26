@@ -473,6 +473,16 @@ class TestInitialize(QiskitTestCase):
         vec = Statevector(qc)
         self.assertTrue(vec == Statevector(desired_vector))
 
+    def test_repeat(self):
+        """Test the repeat() method."""
+        desired_vector = np.array([0.5, 0.5, 0.5, 0.5])
+        initialize = Initialize(desired_vector)
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.append(initialize.repeat(2), qr)
+        statevector = Statevector(qc)
+        self.assertTrue(np.allclose(statevector, desired_vector))
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
