@@ -6630,17 +6630,8 @@ impl DAGCircuit {
         };
 
         // Take ownership of the bit_data
-        let mut qubit_data = if qubit_order.is_some() {
-            BitData::with_capacity(py, "qubits".to_string(), num_qubits)
-        } else {
-            qc_data.qubits().clone()
-        };
-
-        let mut clbit_data = if clbit_order.is_some() {
-            BitData::with_capacity(py, "clbits".to_string(), num_clbits)
-        } else {
-            qc_data.clbits().clone()
-        };
+        let mut qubit_data = BitData::with_capacity(py, "qubits".to_string(), num_qubits);
+        let mut clbit_data = BitData::with_capacity(py, "clbits".to_string(), num_clbits);
 
         // Pre-process the instructions
         let qubit_set: Vec<Qubit> = if let Some(qubit_ordering) = &qubit_order {
@@ -6661,7 +6652,13 @@ impl DAGCircuit {
             }
             qubits
         } else {
-            (0..num_qubits as u32).map(Qubit).collect()
+            let qubits: Vec<Qubit> = (0..num_qubits as u32).map(Qubit).collect();
+            for qubit in &qubits {
+                let qubit = qc_data.qubits().get(*qubit).unwrap();
+                let bound = qubit.bind(py);
+                qubit_data.add(py, bound, false)?;
+            }
+            qubits
         };
         let clbit_set: Vec<Clbit> = if let Some(clbit_ordering) = &clbit_order {
             let mut clbits = vec![];
@@ -6681,7 +6678,13 @@ impl DAGCircuit {
             }
             clbits
         } else {
-            (0..num_clbits as u32).map(Clbit).collect()
+            let clbits: Vec<Clbit> = (0..num_clbits as u32).map(Clbit).collect();
+            for clbit in &clbits {
+                let clbit = qc_data.clbits().get(*clbit).unwrap();
+                let bound = clbit.bind(py);
+                clbit_data.add(py, bound, false)?;
+            }
+            clbits
         };
 
         // Count all input nodes in each instruction
