@@ -244,9 +244,10 @@ pub fn synth_cnot_phase_aam(
     }
 
     let state_bool = state.mapv(|x| x != 0);
-    let data_back = _synth_cnot_count_full_pmh(state_bool, section_size);
-
-
-
+    let instrs = _synth_cnot_count_full_pmh(state_bool, section_size);
+    for inst in instrs
+    {
+        instructions.push(inst);
+    }
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
