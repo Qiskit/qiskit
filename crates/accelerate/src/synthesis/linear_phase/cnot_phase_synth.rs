@@ -16,6 +16,7 @@ use smallvec::smallvec;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
+use crate::synthesis::linear::pmh::_synth_cnot_count_full_pmh;
 use pyo3::prelude::*;
 use std::f64::consts::PI;
 
@@ -25,7 +26,7 @@ pub fn synth_cnot_phase_aam(
     py:Python,
     cnots: PyReadonlyArray2<u8>,
     angles: PyReadonlyArray1<PyObject>,
-    section_size: Option<u8>,
+    section_size: Option<i64>,
 ) -> PyResult<CircuitData> {
 
     let s = cnots.as_array().to_owned();
@@ -87,7 +88,7 @@ pub fn synth_cnot_phase_aam(
 
         if _s.is_empty() {continue;}
 
-        if 0 <= _ep &&  _ep < num_qubits
+        if 0 <= _ep as i32 &&  _ep < num_qubits
         {
             let mut condition = true;
             while condition
@@ -140,9 +141,9 @@ pub fn synth_cnot_phase_aam(
                             q.push(temp_var);
                         }
 
-                        for data in &q
+                        for data in &mut q
                         {
-                            let (ref mut _temp_s, _, _) = data;
+                            let (ref mut _temp_s, _temp_i, _temp_ep) = data;
 
                             if _temp_s.is_empty() {continue;}
 
@@ -194,7 +195,7 @@ pub fn synth_cnot_phase_aam(
             if cols[_j] == 0
             {
                 cnots0_shape_data.0 += 1;
-                cnots0_shape_data.1 = cols.to_vec().len() as usize;
+                cnots0_shape_data.1 = cols.to_vec().len();
                 for ele in cols.to_vec()
                 {
                     cnots0_t.push(ele);
@@ -203,7 +204,7 @@ pub fn synth_cnot_phase_aam(
             else if cols[_j] == 1
             {
                 cnots1_shape_data.0 += 1;
-                cnots1_shape_data.1 = cols.to_vec().len() as usize;
+                cnots1_shape_data.1 = cols.to_vec().len();
                 for ele in cols.to_vec()
                 {
                     cnots1_t.push(ele);
@@ -239,6 +240,9 @@ pub fn synth_cnot_phase_aam(
 
 
     }
+
+    let state_bool = state.mapv(|x| x != 0);
+    let data_back = _synth_cnot_count_full_pmh(state_bool, section_size);
 
 
 
