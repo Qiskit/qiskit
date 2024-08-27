@@ -26,7 +26,7 @@ import numpy as np
 
 
 def pack_bits(
-    array: ArrayLike[np.bool_],
+    array: ArrayLike,
     indices: Sequence[int] | slice | None = None,
     num_bits: int | None = None,
     bitorder: Literal["big", "little"] = "big",
@@ -164,7 +164,7 @@ def slice_packed_bits(
     array: NDArray[np.uint8],
     indices: Sequence[int] | slice | None = None,
     num_bits: int | None = None,
-) -> tuple[NDArray[np.uint8], int]:
+) -> NDArray[np.uint8]:
     """Return a packed-bit array containing only the specified bits.
 
     Args:
