@@ -25,9 +25,11 @@ use smallvec::SmallVec;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, DEEPCOPY};
+use crate::interner::Interned;
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
 };
+use crate::{Clbit, Qubit};
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -491,9 +493,9 @@ impl Drop for PackedOperation {
 pub struct PackedInstruction {
     pub op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
-    pub qubits: crate::interner::Index,
+    pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
-    pub clbits: crate::interner::Index,
+    pub clbits: Interned<[Clbit]>,
     pub params: Option<Box<SmallVec<[Param; 3]>>>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
 

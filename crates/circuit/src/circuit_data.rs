@@ -16,7 +16,7 @@ use std::cell::OnceCell;
 use crate::bit_data::BitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
-use crate::interner::{IndexedInterner, Interner};
+use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
@@ -91,9 +91,9 @@ pub struct CircuitData {
     /// The packed instruction listing.
     data: Vec<PackedInstruction>,
     /// The cache used to intern instruction bits.
-    qargs_interner: IndexedInterner<Vec<Qubit>>,
+    qargs_interner: Interner<[Qubit]>,
     /// The cache used to intern instruction bits.
-    cargs_interner: IndexedInterner<Vec<Clbit>>,
+    cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
     qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
@@ -148,8 +148,8 @@ impl CircuitData {
             global_phase,
         )?;
         for (operation, params, qargs, cargs) in instruction_iter {
-            let qubits = (&mut res.qargs_interner).intern(qargs)?;
-            let clbits = (&mut res.cargs_interner).intern(cargs)?;
+            let qubits = res.qargs_interner.insert_owned(qargs);
+            let clbits = res.cargs_interner.insert_owned(cargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
             res.data.push(PackedInstruction {
                 op: operation,
@@ -199,9 +199,9 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
-        let no_clbit_index = (&mut res.cargs_interner).intern(Vec::new())?;
+        let no_clbit_index = res.cargs_interner.insert(&[]);
         for (operation, params, qargs) in instruction_iter {
-            let qubits = (&mut res.qargs_interner).intern(qargs.to_vec())?;
+            let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
             res.data.push(PackedInstruction {
                 op: operation.into(),
@@ -227,8 +227,8 @@ impl CircuitData {
     ) -> PyResult<Self> {
         let mut res = CircuitData {
             data: Vec::with_capacity(instruction_capacity),
-            qargs_interner: IndexedInterner::new(),
-            cargs_interner: IndexedInterner::new(),
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
             qubits: BitData::new(py, "qubits".to_string()),
             clbits: BitData::new(py, "clbits".to_string()),
             param_table: ParameterTable::new(),
@@ -258,9 +258,9 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) -> PyResult<()> {
-        let no_clbit_index = (&mut self.cargs_interner).intern(Vec::new())?;
+        let no_clbit_index = self.cargs_interner.insert(&[]);
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
-        let qubits = (&mut self.qargs_interner).intern(qargs.to_vec())?;
+        let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction {
             op: operation.into(),
             qubits,
@@ -351,8 +351,8 @@ impl CircuitData {
     ) -> PyResult<Self> {
         let mut self_ = CircuitData {
             data: Vec::new(),
-            qargs_interner: IndexedInterner::new(),
-            cargs_interner: IndexedInterner::new(),
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
             qubits: BitData::new(py, "qubits".to_string()),
             clbits: BitData::new(py, "clbits".to_string()),
             param_table: ParameterTable::new(),
@@ -399,8 +399,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
-    #[getter]
-    pub fn qubits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter("qubits")]
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
         self.qubits.cached().clone_ref(py)
     }
 
@@ -424,8 +424,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
-    #[getter]
-    pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter("clbits")]
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
         self.clbits.cached().clone_ref(py)
     }
 
@@ -572,10 +572,10 @@ impl CircuitData {
         let qubits = PySet::empty_bound(py)?;
         let clbits = PySet::empty_bound(py)?;
         for inst in self.data.iter() {
-            for b in self.qargs_interner.intern(inst.qubits) {
+            for b in self.qargs_interner.get(inst.qubits) {
                 qubits.add(self.qubits.get(*b).unwrap().clone_ref(py))?;
             }
-            for b in self.cargs_interner.intern(inst.clbits) {
+            for b in self.cargs_interner.get(inst.clbits) {
                 clbits.add(self.clbits.get(*b).unwrap().clone_ref(py))?;
             }
         }
@@ -737,8 +737,8 @@ impl CircuitData {
         // Get a single item, assuming the index is validated as in bounds.
         let get_single = |index: usize| {
             let inst = &self.data[index];
-            let qubits = self.qargs_interner.intern(inst.qubits);
-            let clbits = self.cargs_interner.intern(inst.clbits);
+            let qubits = self.qargs_interner.get(inst.qubits);
+            let clbits = self.cargs_interner.get(inst.clbits);
             CircuitInstruction {
                 operation: inst.op.clone(),
                 qubits: PyTuple::new_bound(py, self.qubits.map_indices(qubits)).unbind(),
@@ -894,7 +894,7 @@ impl CircuitData {
             for inst in other.data.iter() {
                 let qubits = other
                     .qargs_interner
-                    .intern(inst.qubits)
+                    .get(inst.qubits)
                     .iter()
                     .map(|b| {
                         Ok(self
@@ -905,7 +905,7 @@ impl CircuitData {
                     .collect::<PyResult<Vec<Qubit>>>()?;
                 let clbits = other
                     .cargs_interner
-                    .intern(inst.clbits)
+                    .get(inst.clbits)
                     .iter()
                     .map(|b| {
                         Ok(self
@@ -915,8 +915,8 @@ impl CircuitData {
                     })
                     .collect::<PyResult<Vec<Clbit>>>()?;
                 let new_index = self.data.len();
-                let qubits_id = Interner::intern(&mut self.qargs_interner, qubits)?;
-                let clbits_id = Interner::intern(&mut self.cargs_interner, clbits)?;
+                let qubits_id = self.qargs_interner.insert_owned(qubits);
+                let clbits_id = self.cargs_interner.insert_owned(clbits);
                 self.data.push(PackedInstruction {
                     op: inst.op.clone(),
                     qubits: qubits_id,
@@ -1113,14 +1113,12 @@ impl CircuitData {
     }
 
     fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
-        let qubits = Interner::intern(
-            &mut self.qargs_interner,
-            self.qubits.map_bits(inst.qubits.bind(py))?.collect(),
-        )?;
-        let clbits = Interner::intern(
-            &mut self.cargs_interner,
-            self.clbits.map_bits(inst.clbits.bind(py))?.collect(),
-        )?;
+        let qubits = self
+            .qargs_interner
+            .insert_owned(self.qubits.map_bits(inst.qubits.bind(py))?.collect());
+        let clbits = self
+            .cargs_interner
+            .insert_owned(self.clbits.map_bits(inst.clbits.bind(py))?.collect());
         Ok(PackedInstruction {
             op: inst.operation.clone(),
             qubits,
@@ -1135,6 +1133,41 @@ impl CircuitData {
     /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
+    }
+
+    /// Returns an immutable view of the Interner used for Qargs
+    pub fn qargs_interner(&self) -> &Interner<[Qubit]> {
+        &self.qargs_interner
+    }
+
+    /// Returns an immutable view of the Interner used for Cargs
+    pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
+        &self.cargs_interner
+    }
+
+    /// Returns an immutable view of the Global Phase `Param` of the circuit
+    pub fn global_phase(&self) -> &Param {
+        &self.global_phase
+    }
+
+    /// Returns an immutable view of the Qubits registered in the circuit
+    pub fn qubits(&self) -> &BitData<Qubit> {
+        &self.qubits
+    }
+
+    /// Returns an immutable view of the Classical bits registered in the circuit
+    pub fn clbits(&self) -> &BitData<Clbit> {
+        &self.clbits
+    }
+
+    /// Unpacks from interned value to `[Qubit]`
+    pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
+        self.qargs_interner().get(index)
+    }
+
+    /// Unpacks from InternerIndex to `[Clbit]`
+    pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
+        self.cargs_interner().get(index)
     }
 
     fn assign_parameters_inner<I>(&mut self, py: Python, iter: I) -> PyResult<()>
