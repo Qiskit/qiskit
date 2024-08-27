@@ -47,7 +47,7 @@ pub fn synth_cnot_phase_aam(
     {
         let mut index = 0_usize;
 
-        loop
+        while index < s_cpy.ncols()
         {
             let icnot = s_cpy.column(index).to_vec();
 
@@ -67,11 +67,12 @@ pub fn synth_cnot_phase_aam(
                    rust_angles.remove(index);
                    s_cpy.remove_index(numpy::ndarray::Axis(1), index);
                    if index == s_cpy.shape()[1] {break;}
+                   if index == 0 {continue;}
                    index -=1;
             }
             index +=1;
         }
-    }
+    } 
 
 
     let epsilion = num_qubits;
@@ -109,9 +110,9 @@ pub fn synth_cnot_phase_aam(
 
                         let mut index = 0_usize;
 
-                        for _s_idx in 0..state.nrows()
+                        while index < s_cpy.ncols()
                         {
-                            let icnot = s_cpy.column(_s_idx).to_vec();
+                            let icnot = s_cpy.column(index).to_vec();
 
                             if icnot == state.row(_ep).to_vec()
                             {
@@ -130,6 +131,7 @@ pub fn synth_cnot_phase_aam(
                                 rust_angles.remove(index);
                                 s_cpy.remove_index(numpy::ndarray::Axis(1), index);
                                 if index == s_cpy.shape()[1] { break; }
+                                if index == 0 {continue;}
                                 index -=1;
                             }
                             index +=1;
