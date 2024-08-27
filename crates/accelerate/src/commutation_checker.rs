@@ -22,21 +22,20 @@ use pyo3::intern;
 use smallvec::SmallVec;
 
 use crate::unitary_compose::compose;
+use crate::QiskitError;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PySequence, PyString, PyTuple};
+use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use qiskit_circuit::bit_data::BitData;
-use qiskit_circuit::circuit_instruction::CircuitInstruction;
+use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{BitType, Clbit, Qubit};
 
-static SKIPPED_NAMES: Lazy<HashSet<&str>> =
-    Lazy::new(|| HashSet::from(["measure", "reset", "delay", "initialize"]));
-static NO_CACHE_NAMES: Lazy<HashSet<&str>> =
-    Lazy::new(|| HashSet::from(["annotated", "linear_function"]));
+static SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
+static NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
 static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
     HashSet::from([
         "h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx", "cy", "cz", "swap",
@@ -69,10 +68,7 @@ impl CommutationChecker {
         gates: Option<HashSet<String>>,
     ) -> Self {
         // Initialize sets before they are used in the commutation checker
-        Lazy::force(&SKIPPED_NAMES);
-        Lazy::force(&NO_CACHE_NAMES);
         Lazy::force(&SUPPORTED_OP);
-
         CommutationChecker {
             library: CommutationLibrary::new(standard_gate_commutations),
             cache: HashMap::with_capacity(cache_max_entries),
@@ -85,7 +81,6 @@ impl CommutationChecker {
     }
 
     #[pyo3(signature=(op1, op2, max_num_qubits=3))]
-    #[allow(clippy::too_many_arguments)]
     fn commute_nodes(
         &mut self,
         py: Python,
@@ -93,55 +88,31 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
     ) -> PyResult<bool> {
-        let mut bq: BitData<Qubit> = BitData::new(py, "qubits".to_string());
-        let op1_bound_qubits = op1.instruction.qubits.bind(py);
-        let op2_bound_qubits = op2.instruction.qubits.bind(py);
-        op1_bound_qubits.iter().for_each(|q| {
-            bq.add(py, &q, false).unwrap();
-        });
-        op2_bound_qubits.iter().for_each(|q| {
-            bq.add(py, &q, false).unwrap();
-        });
-        let qargs1 = op1_bound_qubits
-            .iter()
-            .map(|q| bq.find(&q).unwrap().0)
-            .collect::<Vec<_>>();
-        let qargs2 = op2_bound_qubits
-            .iter()
-            .map(|q| bq.find(&q).unwrap().0)
-            .collect::<Vec<_>>();
-
-        let mut bc: BitData<Clbit> = BitData::new(py, "clbits".to_string());
-        let op1_bound_clbit = op1.instruction.clbits.bind(py);
-        let op2_bound_clbit = op2.instruction.clbits.bind(py);
-
-        op1_bound_clbit.iter().for_each(|c| {
-            bc.add(py, &c, false).unwrap();
-        });
-
-        op2_bound_clbit.iter().for_each(|c| {
-            bc.add(py, &c, false).unwrap();
-        });
-
-        let cargs1 = op1_bound_clbit
-            .iter()
-            .map(|c| bc.find(&c).unwrap().0)
-            .collect::<Vec<_>>();
-        let cargs2 = op2_bound_clbit
-            .iter()
-            .map(|c| bc.find(&c).unwrap().0)
-            .collect::<Vec<_>>();
-
-        Ok(self.commute_inner(
+        let (qargs1, qargs2) = get_bits::<Qubit>(
             py,
-            &op1.instruction,
+            op1.instruction.qubits.bind(py),
+            op2.instruction.qubits.bind(py),
+        )?;
+        let (cargs1, cargs2) = get_bits::<Clbit>(
+            py,
+            op1.instruction.clbits.bind(py),
+            op2.instruction.clbits.bind(py),
+        )?;
+
+        self.commute_inner(
+            py,
+            &op1.instruction.operation.view(),
+            &op1.instruction.params,
+            op1.instruction.extra_attrs.as_deref(),
             &qargs1,
             &cargs1,
-            &op2.instruction,
+            &op2.instruction.operation.view(),
+            &op2.instruction.params,
+            op2.instruction.extra_attrs.as_deref(),
             &qargs2,
             &cargs2,
             max_num_qubits,
-        ))
+        )
     }
 
     #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3))]
@@ -149,10 +120,10 @@ impl CommutationChecker {
     fn commute(
         &mut self,
         py: Python,
-        op1: &Bound<PyAny>,
+        op1: OperationFromPython,
         qargs1: Option<&Bound<PySequence>>,
         cargs1: Option<&Bound<PySequence>>,
-        op2: &Bound<PyAny>,
+        op2: OperationFromPython,
         qargs2: Option<&Bound<PySequence>>,
         cargs2: Option<&Bound<PySequence>>,
         max_num_qubits: u32,
@@ -165,24 +136,22 @@ impl CommutationChecker {
             qargs2.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
         let cargs2 =
             cargs2.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
-        self.commute_nodes(
+
+        let (qargs1, qargs2) = get_bits::<Qubit>(py, &qargs1, &qargs2)?;
+        let (cargs1, cargs2) = get_bits::<Clbit>(py, &cargs1, &cargs2)?;
+
+        self.commute_inner(
             py,
-            &DAGOpNode {
-                instruction: CircuitInstruction::py_new(
-                    op1,
-                    Some(qargs1.into_any()),
-                    Some(cargs1.into_any()),
-                )?,
-                sort_key: PyString::new_bound(py, "do_not_use").into_any().into(),
-            },
-            &DAGOpNode {
-                instruction: CircuitInstruction::py_new(
-                    op2,
-                    Some(qargs2.into_any()),
-                    Some(cargs2.into_any()),
-                )?,
-                sort_key: PyString::new_bound(py, "do_not_use").into_any().into(),
-            },
+            &op1.operation.view(),
+            &op1.params,
+            op1.extra_attrs.as_deref(),
+            &qargs1,
+            &cargs1,
+            &op2.operation.view(),
+            &op2.params,
+            op2.extra_attrs.as_deref(),
+            &qargs2,
+            &cargs2,
             max_num_qubits,
         )
     }
@@ -234,47 +203,51 @@ impl CommutationChecker {
     fn commute_inner(
         &mut self,
         py: Python,
-        instr1: &CircuitInstruction,
-        qargs1: &[u32],
-        cargs1: &[u32],
-        instr2: &CircuitInstruction,
-        qargs2: &[u32],
-        cargs2: &[u32],
+        op1: &OperationRef,
+        params1: &[Param],
+        attrs1: Option<&ExtraInstructionAttributes>,
+        qargs1: &[Qubit],
+        cargs1: &[Clbit],
+        op2: &OperationRef,
+        params2: &[Param],
+        attrs2: Option<&ExtraInstructionAttributes>,
+        qargs2: &[Qubit],
+        cargs2: &[Clbit],
         max_num_qubits: u32,
-    ) -> bool {
+    ) -> PyResult<bool> {
         if let Some(gates) = &self.gates {
-            if !gates.is_empty()
-                && (!gates.contains(instr1.operation.name())
-                    || !gates.contains(instr2.operation.name()))
-            {
-                return false;
+            if !gates.is_empty() && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
+                return Ok(false);
             }
         }
 
         let commutation: Option<bool> = commutation_precheck(
-            instr1,
+            op1,
+            params1,
+            attrs1,
             qargs1,
             cargs1,
-            instr2,
+            op2,
+            params2,
+            attrs2,
             qargs2,
             cargs2,
             max_num_qubits,
         );
         if let Some(is_commuting) = commutation {
-            return is_commuting;
+            return Ok(is_commuting);
         }
-        let op1 = instr1.operation.view();
-        let op2 = instr2.operation.view();
+
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
             BigInt::from_signed_bytes_be(op1.name().as_bytes())
                 >= BigInt::from_signed_bytes_be(op2.name().as_bytes())
         };
-        let (first_instr, second_instr) = if reversed {
-            (instr2, instr1)
+        let (first_params, second_params) = if reversed {
+            (params2, params1)
         } else {
-            (instr1, instr2)
+            (params1, params2)
         };
         let (first_op, second_op) = if reversed { (op2, op1) } else { (op1, op2) };
         let (first_qargs, second_qargs) = if reversed {
@@ -282,53 +255,64 @@ impl CommutationChecker {
         } else {
             (qargs1, qargs2)
         };
-        let (_first_cargs, _second_cargs) = if reversed {
-            (cargs2, cargs1)
-        } else {
-            (cargs1, cargs2)
-        };
 
         let skip_cache: bool = NO_CACHE_NAMES.contains(&first_op.name()) ||
             NO_CACHE_NAMES.contains(&second_op.name()) ||
             // Skip params that do not evaluate to floats for caching and commutation library
-            first_instr.params.iter().any(|p| !matches!(p, Param::Float(_))) ||
-            second_instr.params.iter().any(|p| !matches!(p, Param::Float(_)));
+            first_params.iter().any(|p| !matches!(p, Param::Float(_))) ||
+            second_params.iter().any(|p| !matches!(p, Param::Float(_)));
 
         if skip_cache {
-            return self.commute_matmul(py, first_instr, first_qargs, second_instr, second_qargs);
+            return self.commute_matmul(
+                py,
+                first_op,
+                first_params,
+                first_qargs,
+                second_op,
+                second_params,
+                second_qargs,
+            );
         }
 
         // Query commutation library
         if let Some(is_commuting) =
             self.library
-                .check_commutation_entries(&first_op, first_qargs, &second_op, second_qargs)
+                .check_commutation_entries(first_op, first_qargs, second_op, second_qargs)
         {
-            return is_commuting;
+            return Ok(is_commuting);
         }
         // Query cache
-        if let Some(commutation_dict) = self
+        match self
             .cache
             .get(&(first_op.name().to_string(), second_op.name().to_string()))
         {
-            if let Some(commutation) = commutation_dict.get(&(
-                get_relative_placement(first_qargs, second_qargs),
-                (
-                    hashable_params(&first_instr.params),
-                    hashable_params(&second_instr.params),
-                ),
-            )) {
-                self._cache_hit += 1;
-                return *commutation;
-            } else {
-                self._cache_miss += 1;
+            Some(commutation_dict) => {
+                let placement = get_relative_placement(first_qargs, second_qargs);
+                let hashes = (
+                    hashable_params(&first_params),
+                    hashable_params(&second_params),
+                );
+                match commutation_dict.get(&(placement, hashes)) {
+                    Some(commutation) => {
+                        self._cache_hit += 1;
+                        return Ok(*commutation);
+                    }
+                    None => self._cache_miss += 1,
+                }
             }
-        } else {
-            self._cache_miss += 1;
+            None => self._cache_miss += 1,
         }
 
         // Perform matrix multiplication to determine commutation
-        let is_commuting =
-            self.commute_matmul(py, first_instr, first_qargs, second_instr, second_qargs);
+        let is_commuting = self.commute_matmul(
+            py,
+            first_op,
+            first_params,
+            first_qargs,
+            second_op,
+            second_params,
+            second_qargs,
+        )?;
 
         // TODO: implement a LRU cache for this
         if self.current_cache_entries >= self.cache_max_entries {
@@ -341,8 +325,8 @@ impl CommutationChecker {
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
                     (
-                        hashable_params(&first_instr.params),
-                        hashable_params(&second_instr.params),
+                        hashable_params(&first_params),
+                        hashable_params(&second_params),
                     ),
                 );
                 entries.insert(key, is_commuting);
@@ -353,35 +337,37 @@ impl CommutationChecker {
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
                     (
-                        hashable_params(&first_instr.params),
-                        hashable_params(&second_instr.params),
+                        hashable_params(&first_params),
+                        hashable_params(&second_params),
                     ),
                 );
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
                 CommutationCacheEntry { mapping: entries }
             });
-        is_commuting
+        Ok(is_commuting)
     }
 
     fn commute_matmul(
         &self,
         py: Python,
-        first_instr: &CircuitInstruction,
-        first_qargs: &[u32],
-        second_instr: &CircuitInstruction,
-        second_qargs: &[u32],
-    ) -> bool {
+        first_op: &OperationRef,
+        first_params: &[Param],
+        first_qargs: &[Qubit],
+        second_op: &OperationRef,
+        second_params: &[Param],
+        second_qargs: &[Qubit],
+    ) -> PyResult<bool> {
         // compute relative positioning of qargs of the second gate to the first gate
-        let mut qarg: HashMap<&u32, u32> =
+        let mut qarg: HashMap<&Qubit, Qubit> =
             HashMap::with_capacity(first_qargs.len() + second_qargs.len());
         for (i, q) in first_qargs.iter().enumerate() {
-            qarg.entry(q).or_insert(i as u32);
+            qarg.entry(q).or_insert(Qubit(i as u32));
         }
         let mut num_qubits = first_qargs.len() as u32;
         for q in second_qargs {
             if !qarg.contains_key(q) {
-                qarg.insert(q, num_qubits);
+                qarg.insert(q, Qubit(num_qubits));
                 num_qubits += 1;
             }
         }
@@ -389,50 +375,28 @@ impl CommutationChecker {
         let first_qarg: Vec<_> = first_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
         let second_qarg: Vec<_> = second_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
 
-        assert!(
-            first_qarg.len() <= second_qarg.len(),
-            "first instructions must have at most as many qubits as the second instruction"
-        );
-
-        let first_op = first_instr.operation.view();
-        let second_op = second_instr.operation.view();
-
-        let first_mat = match first_op.matrix(&first_instr.params) {
-            Some(mat) => mat,
-            None => match first_op {
-                PyGateType(gate) => match get_op(py, &gate.gate) {
-                    Some(x) => x,
-                    _ => return false,
-                },
-                PyOperationType(operation) => match get_op(py, &operation.operation) {
-                    Some(x) => x,
-                    _ => return false,
-                },
-                _ => return false,
-            },
+        if first_qarg.len() > second_qarg.len() {
+            return Err(QiskitError::new_err(
+                "first instructions must have at most as many qubits as the second instruction",
+            ));
         };
 
-        let second_mat = match second_op.matrix(&second_instr.params) {
-            Some(mat) => mat,
-            None => match second_op {
-                PyGateType(gate) => match get_op(py, &gate.gate) {
-                    Some(x) => x,
-                    _ => return false,
-                },
-                PyOperationType(operation) => match get_op(py, &operation.operation) {
-                    Some(x) => x,
-                    _ => return false,
-                },
-                _ => return false,
-            },
+        let first_mat = match get_matrix(py, first_op, first_params) {
+            Some(matrix) => matrix,
+            None => return Ok(false),
+        };
+
+        let second_mat = match get_matrix(py, second_op, second_params) {
+            Some(matrix) => matrix,
+            None => return Ok(false),
         };
 
         if first_qarg == second_qarg {
-            abs_diff_eq!(
+            Ok(abs_diff_eq!(
                 second_mat.dot(&first_mat),
                 first_mat.dot(&second_mat),
                 epsilon = 1e-8
-            )
+            ))
         } else {
             let extra_qarg2 = num_qubits - first_qarg.len() as u32;
             let first_mat = if extra_qarg2 > 0 {
@@ -443,7 +407,7 @@ impl CommutationChecker {
             };
             let op12 = compose(&first_mat.view(), &second_mat.view(), &second_qarg, false);
             let op21 = compose(&first_mat.view(), &second_mat.view(), &second_qarg, true);
-            abs_diff_eq!(op12, op21, epsilon = 1e-8)
+            Ok(abs_diff_eq!(op12, op21, epsilon = 1e-8))
         }
     }
 
@@ -455,20 +419,23 @@ impl CommutationChecker {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn commutation_precheck(
-    op1: &CircuitInstruction,
-    qargs1: &[u32],
-    cargs1: &[u32],
-    op2: &CircuitInstruction,
-    qargs2: &[u32],
-    cargs2: &[u32],
+    op1: &OperationRef,
+    params1: &[Param],
+    attrs1: Option<&ExtraInstructionAttributes>,
+    qargs1: &[Qubit],
+    cargs1: &[Clbit],
+    op2: &OperationRef,
+    params2: &[Param],
+    attrs2: Option<&ExtraInstructionAttributes>,
+    qargs2: &[Qubit],
+    cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.operation.control_flow()
-        || op2.operation.control_flow()
-        || op1.is_conditioned()
-        || op2.is_conditioned()
+    if op1.control_flow()
+        || op2.control_flow()
+        || attrs1.is_some_and(|attr| attr.condition.is_some())
+        || attrs2.is_some_and(|attr| attr.condition.is_some())
     {
         return Some(false);
     }
@@ -482,22 +449,32 @@ fn commutation_precheck(
         return Some(false);
     }
 
-    if SUPPORTED_OP.contains(op1.operation.name()) && SUPPORTED_OP.contains(op2.operation.name()) {
+    if SUPPORTED_OP.contains(op1.name()) && SUPPORTED_OP.contains(op2.name()) {
         return None;
     }
 
-    if is_commutation_skipped(op1) || is_commutation_skipped(op2) {
+    if is_commutation_skipped(op1, params1) || is_commutation_skipped(op2, params2) {
         return Some(false);
     }
 
     None
 }
 
-fn get_op(py: Python, gate: &PyObject) -> Option<Array2<Complex64>> {
+fn get_matrix(py: Python, operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+    match operation.matrix(params) {
+        Some(matrix) => Some(matrix),
+        None => match operation {
+            PyGateType(gate) => matrix_via_operator(py, &gate.gate),
+            PyOperationType(op) => matrix_via_operator(py, &op.operation),
+            _ => None,
+        },
+    }
+}
+fn matrix_via_operator(py: Python, py_obj: &PyObject) -> Option<Array2<Complex64>> {
     Some(
         QI_OPERATOR
             .get_bound(py)
-            .call1((gate,))
+            .call1((py_obj,))
             .ok()?
             .getattr(intern!(py, "data"))
             .ok()?
@@ -508,14 +485,20 @@ fn get_op(py: Python, gate: &PyObject) -> Option<Array2<Complex64>> {
     )
 }
 
-fn is_commutation_skipped(instr: &CircuitInstruction) -> bool {
-    let op = &instr.operation;
-    op.directive() || SKIPPED_NAMES.contains(&op.name()) || instr.is_parameterized()
+fn is_commutation_skipped<T>(op: &T, params: &[Param]) -> bool
+where
+    T: Operation,
+{
+    op.directive()
+        || SKIPPED_NAMES.contains(&op.name())
+        || params
+            .iter()
+            .any(|x| matches!(x, Param::ParameterExpression(_)))
 }
 
 fn get_relative_placement(
-    first_qargs: &[u32],
-    second_qargs: &[u32],
+    first_qargs: &[Qubit],
+    second_qargs: &[Qubit],
 ) -> SmallVec<[Option<Qubit>; 2]> {
     let qubits_g2: HashMap<_, _> = second_qargs
         .iter()
@@ -539,9 +522,9 @@ impl CommutationLibrary {
     fn check_commutation_entries(
         &self,
         first_op: &OperationRef,
-        first_qargs: &[u32],
+        first_qargs: &[Qubit],
         second_op: &OperationRef,
-        second_qargs: &[u32],
+        second_qargs: &[Qubit],
     ) -> Option<bool> {
         if let Some(library) = &self.library {
             match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
@@ -712,7 +695,7 @@ fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
             if let Param::Float(x) = x {
                 ParameterKey(*x)
             } else {
-                panic!()
+                panic!("Unable to hash a non-float instruction parameter.")
             }
         })
         .collect()
@@ -723,4 +706,25 @@ pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;
     Ok(())
+}
+
+fn get_bits<T>(
+    py: Python,
+    bits1: &Bound<PyTuple>,
+    bits2: &Bound<PyTuple>,
+) -> PyResult<(Vec<T>, Vec<T>)>
+where
+    T: From<BitType> + Copy,
+    BitType: From<T>,
+{
+    let mut bitdata: BitData<T> = BitData::new(py, "bits".to_string());
+
+    bits1.iter().chain(bits2.iter()).for_each(|bit| {
+        bitdata.add(py, &bit, false).unwrap();
+    });
+
+    Ok((
+        bitdata.map_bits(bits1)?.collect(),
+        bitdata.map_bits(bits2)?.collect(),
+    ))
 }

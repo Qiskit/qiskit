@@ -13,6 +13,7 @@
 use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum_beta::*;
 use num_complex::{Complex, Complex64};
+use qiskit_circuit::Qubit;
 
 static LOWERCASE: [u8; 26] = [
     b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
@@ -29,7 +30,7 @@ static _UPPERCASE: [u8; 26] = [
 pub fn compose(
     gate_unitary: &ArrayView2<Complex<f64>>,
     overall_unitary: &ArrayView2<Complex<f64>>,
-    qubits: &[u32],
+    qubits: &[Qubit],
     front: bool,
 ) -> Array2<Complex<f64>> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
@@ -55,7 +56,7 @@ pub fn compose(
     let mat = per_qubit_shaped(overall_unitary);
     let indices = qubits
         .iter()
-        .map(|q| num_indices - 1 - *q as usize)
+        .map(|q| num_indices - 1 - q.0 as usize)
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
@@ -106,11 +107,16 @@ fn _einsum_matmul(
     } else {
         [mat_free, mat_contract].concat()
     };
+
+    // SAFETY: This is safe because we know the data in these elements is being generated solely from
+    // LOWERCASE and that only contains valid utf8 characters. We don't need to spend time checking
+    // if each character valid utf8 in this case.
     let tensor_einsum: String = unsafe {
         String::from_utf8_unchecked(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
     };
     let mat_einsum: String =
         unsafe { String::from_utf8_unchecked(indices_mat.iter().map(|c| LOWERCASE[*c]).collect()) };
+
     einsum(
         format!("{},{}", tensor_einsum, mat_einsum).as_str(),
         &[tensor, mat],
@@ -128,6 +134,9 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
         mat_l.push(LOWERCASE[25 - pos]);
         tens_out[num_qubits - 1 - *idx as usize] = LOWERCASE[25 - pos];
     });
+    // SAFETY: This is safe because we know the data in these elements is being generated solely from
+    // LOWERCASE and that only contains valid utf8 characters. We don't need to spend time checking
+    // if each character valid utf8 in this case.
     unsafe {
         [
             String::from_utf8_unchecked(mat_l),
@@ -140,6 +149,10 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
 
 fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
+
+    // SAFETY: This is safe because we know the data in these elements is being generated solely from
+    // _UPPERCASE and that only contains valid utf8 characters. We don't need to spend time checking
+    // if each character valid utf8 in this case.
     let tens_r: String = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
     format!(
