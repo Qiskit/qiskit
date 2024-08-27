@@ -6363,7 +6363,6 @@ impl DAGCircuit {
         for instr in iter {
             let op_name = instr.op.name();
             let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
-                // Check if the clbits are already included
                 if self.may_have_additional_wires(py, &instr) {
                     let mut clbits: HashSet<Clbit> =
                         HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
