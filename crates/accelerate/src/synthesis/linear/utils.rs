@@ -18,6 +18,8 @@ use rayon::prelude::IntoParallelIterator;
 
 use crate::getenv_use_multiple_threads;
 
+/// Specifies the minimum number of qubits in order to parallelize computations
+/// (this number is chosen based on several local experiments).
 const PARALLEL_THRESHOLD: usize = 10;
 
 /// Binary matrix multiplication
