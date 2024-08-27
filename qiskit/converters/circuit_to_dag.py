@@ -12,8 +12,7 @@
 
 """Helper function for converting a circuit to a dag"""
 
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.circuit.library.blueprintcircuit import BlueprintCircuit
 from qiskit._accelerate.circuit.converters import circuit_to_dag as core_circuit_to_dag
 
 
@@ -57,21 +56,22 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             circ.rz(0.5, q[1]).c_if(c, 2)
             dag = circuit_to_dag(circ)
     """
-    if qubit_order is None:
-        qubits = circuit.qubits
-    elif len(qubit_order) != circuit.num_qubits or set(qubit_order) != set(circuit.qubits):
+    # If we have an instance of BluePrintCircuit, make sure it is built by calling ._build()
+    if isinstance(circuit, BlueprintCircuit):
+        if not circuit._is_built:
+            circuit._build()
+
+    if qubit_order is not None and (
+        len(qubit_order) != circuit.num_qubits or set(qubit_order) != set(circuit.qubits)
+    ):
         raise ValueError("'qubit_order' does not contain exactly the same qubits as the circuit")
-    else:
-        qubits = qubit_order
 
-    if clbit_order is None:
-        clbits = circuit.clbits
-    elif len(clbit_order) != circuit.num_clbits or set(clbit_order) != set(circuit.clbits):
+    if clbit_order is not None and (
+        len(clbit_order) != circuit.num_clbits or set(clbit_order) != set(circuit.clbits)
+    ):
         raise ValueError("'clbit_order' does not contain exactly the same clbits as the circuit")
-    else:
-        clbits = clbit_order
 
-    dagcircuit = core_circuit_to_dag(circuit, qubit_order, clbit_order)
+    dagcircuit = core_circuit_to_dag(circuit, copy_operations, qubit_order, clbit_order)
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit

@@ -24,7 +24,7 @@ use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 /// it contains callbacks to Python and should not be stored anywhere.
 #[derive(Debug)]
 pub(crate) struct QuantumCircuitData<'py> {
-    pub data: PyRef<'py, CircuitData>,
+    pub data: CircuitData,
     pub name: Option<Bound<'py, PyAny>>,
     pub calibrations: HashMap<String, Py<PyDict>>,
     pub metadata: Option<Bound<'py, PyAny>>,
@@ -38,7 +38,7 @@ pub(crate) struct QuantumCircuitData<'py> {
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let circuit_data = ob.getattr("_data")?;
-        let data_borrowed = circuit_data.downcast::<CircuitData>()?.borrow();
+        let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr("name").ok(),
@@ -53,14 +53,21 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
     }
 }
 
-#[pyfunction]
+#[pyfunction(signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
 fn circuit_to_dag(
     py: Python,
     quantum_circuit: QuantumCircuitData,
+    copy_operations: bool,
     qubit_order: Option<Vec<PyObject>>,
     clbit_order: Option<Vec<PyObject>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_quantum_circuit(py, quantum_circuit, qubit_order, clbit_order)
+    DAGCircuit::from_quantum_circuit(
+        py,
+        quantum_circuit,
+        copy_operations,
+        qubit_order,
+        clbit_order,
+    )
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {

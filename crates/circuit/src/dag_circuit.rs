@@ -6596,11 +6596,16 @@ impl DAGCircuit {
     pub(crate) fn from_quantum_circuit(
         py: Python,
         qc: QuantumCircuitData,
+        copy_op: bool,
         qubit_order: Option<Vec<PyObject>>,
         clbit_order: Option<Vec<PyObject>>,
     ) -> PyResult<DAGCircuit> {
         // Extract necessary attributes
-        let qc_data = qc.data;
+        let qc_data = if copy_op {
+            qc.data.copy(py, true, true)?
+        } else {
+            qc.data
+        };
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
@@ -6653,10 +6658,9 @@ impl DAGCircuit {
             qubits
         } else {
             let qubits: Vec<Qubit> = (0..num_qubits as u32).map(Qubit).collect();
-            for qubit in &qubits {
-                let qubit = qc_data.qubits().get(*qubit).unwrap();
-                let bound = qubit.bind(py);
-                qubit_data.add(py, bound, false)?;
+            for qubit in qc_data.qubits().bits() {
+                let bound = qubit.clone_ref(py).into_bound(py);
+                qubit_data.add(py, &bound, false)?;
             }
             qubits
         };
@@ -6678,11 +6682,10 @@ impl DAGCircuit {
             }
             clbits
         } else {
-            let clbits: Vec<Clbit> = (0..num_clbits as u32).map(Clbit).collect();
-            for clbit in &clbits {
-                let clbit = qc_data.clbits().get(*clbit).unwrap();
-                let bound = clbit.bind(py);
-                clbit_data.add(py, bound, false)?;
+            let clbits: Vec<Clbit> = (0..num_qubits as u32).map(Clbit).collect();
+            for clbit in qc_data.clbits().bits() {
+                let bound = clbit.clone_ref(py).into_bound(py);
+                clbit_data.add(py, &bound, false)?;
             }
             clbits
         };
@@ -6739,8 +6742,6 @@ impl DAGCircuit {
 
         new_dag.calibrations = qc.calibrations;
         new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
-
-        // TODO: Use Qubit ordering to remap the interners and qubit
 
         // Copy over all interners and registers
         new_dag.qargs_interner = qubit_interner;
