@@ -16,7 +16,7 @@ pub mod circuit_instruction;
 pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
-mod error;
+pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 mod interner;

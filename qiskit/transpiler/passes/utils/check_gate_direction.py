@@ -13,7 +13,10 @@
 """Check if the gates follow the right direction with respect to the coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit._accelerate.gate_direction import check_gate_direction_coupling, check_gate_direction_target
+from qiskit._accelerate.gate_direction import (
+    check_gate_direction_coupling,
+    check_gate_direction_target,
+)
 
 
 class CheckGateDirection(AnalysisPass):
@@ -42,8 +45,8 @@ class CheckGateDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-        if self.target:
-            self.property_set["is_direction_mapped"] = check_gate_direction_target(dag, self.target)
-        else:
-            coupling_edges = {x for x in self.coupling_map.get_edges()}
-            self.property_set["is_direction_mapped"] = check_gate_direction_coupling(dag, coupling_edges)
+        self.property_set["is_direction_mapped"] = (
+            check_gate_direction_target(dag, self.target)
+            if self.target
+            else check_gate_direction_coupling(dag, set(self.coupling_map.get_edges()))
+        )

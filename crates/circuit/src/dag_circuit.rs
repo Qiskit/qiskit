@@ -5797,7 +5797,7 @@ impl DAGCircuit {
             let weight = self.dag.node_weight(*index).expect("NodeIndex in graph");
             if let NodeType::Operation(ref packed) = weight {
                 let qargs = self.qargs_cache.intern(packed.qubits);
-                return qargs.len() == 2;
+                qargs.len() == 2
             } else {
                 false
             }
@@ -6174,8 +6174,8 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Get the qubits interned in the given index
-    pub fn get_qubits(&self, index: Index) -> &Vec<Qubit> {
+    /// Get the instruction qubits interned at the given index
+    pub fn get_inst_qubits(&self, index: Index) -> &[Qubit] {
         self.qargs_cache.intern(index)
     }
 }
