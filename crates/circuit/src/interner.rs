@@ -75,7 +75,7 @@ where
 /// itself (the `Interned` type), rather than raw references; the `Interned` type is narrower than a
 /// true reference.
 ///
-/// This can only be implemented for owned types that implement `Default`, so that the convenience
+/// This is only implemented for owned types that implement `Default`, so that the convenience
 /// method `Interner::get_default` can work reliably and correctly; the "default" index needs to be
 /// guaranteed to be reserved and present for safety.
 ///
