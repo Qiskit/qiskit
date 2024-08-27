@@ -99,10 +99,10 @@ where
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            entries: Vec::with_capacity(capacity),
-            index_lookup: HashMap::with_capacity(capacity),
-        }
+        Self(IndexSet::with_capacity_and_hasher(
+            capacity,
+            ::ahash::RandomState::new(),
+        ))
     }
 }
 
