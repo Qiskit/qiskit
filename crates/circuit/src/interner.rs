@@ -43,6 +43,31 @@ impl<T: ?Sized> Copy for Interned<T> {}
 unsafe impl<T: ?Sized> Send for Interned<T> {}
 unsafe impl<T: ?Sized> Sync for Interned<T> {}
 
+impl<T> Interned<T>
+where
+    T: ?Sized + ToOwned,
+    <T as ToOwned>::Owned: Default,
+{
+    /// Get the interned key of the default value for the interned type.  The interner of a type
+    /// with a default value always includes a statically known key that is valid for the default,
+    /// so this is safe to construct even in the absence of an actual interner.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use crate::interner::{Interner, Interned};
+    /// let interner = Interner<[usize]>;
+    /// assert_eq!(interner.get(Interned::of_default()), &[]);
+    /// ```
+    #[inline(always)]
+    pub fn of_default() -> Self {
+        Self {
+            index: 0,
+            _type: PhantomData,
+        }
+    }
+}
+
 /// An append-only data structure for interning generic Rust types.
 ///
 /// The interner can lookup keys using a reference type, and will create the corresponding owned
@@ -115,15 +140,14 @@ where
     /// slice `&[]`.  This is a common operation with the cargs interner, for things like pushing
     /// gates.
     ///
+    /// This can also be retrieved without a reference to an interner by `Interned::of_default`.
+    ///
     /// In an ideal world, we wouldn't have the `Default` trait bound on `new`, but would use
     /// specialisation to insert the default key only if the stored value implemented `Default`
     /// (we'd still trait-bound this method).
     #[inline(always)]
     pub fn get_default(&self) -> Interned<T> {
-        Interned {
-            index: 0,
-            _type: PhantomData,
-        }
+        Interned::of_default()
     }
 }
 
