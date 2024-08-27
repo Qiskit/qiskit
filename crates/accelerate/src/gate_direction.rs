@@ -20,6 +20,8 @@ use crate::target_transpiler::Target;
 use qiskit_circuit::imports;
 use qiskit_circuit::{
     dag_circuit::{DAGCircuit, NodeType},
+    error::DAGCircuitError,
+    operations::Operation,
     packed_instruction::PackedInstruction,
     Qubit, TupleLikeArg,
     operations::{OperationRef, StandardGate, Param, Operation},
