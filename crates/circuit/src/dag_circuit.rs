@@ -4568,16 +4568,19 @@ def _format(operand):
                         .or_insert(*value);
                 }
                 let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-                for node in dag.py_op_nodes(
-                    py,
-                    Some(imports::CONTROL_FLOW_OP.get_bound(py).downcast()?),
-                    true,
-                )? {
-                    let raw_blocks = node.getattr(py, "op")?.getattr(py, "blocks")?;
-                    let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py)?;
-                    for block in blocks.iter() {
-                        let inner_dag: &DAGCircuit =
-                            &circuit_to_dag.call1((block.clone(),))?.extract()?;
+                for node in dag.dag.node_weights() {
+                    let NodeType::Operation(node) = node else {
+                        continue;
+                    };
+                    if !node.op.control_flow() {
+                        continue;
+                    }
+                    let OperationRef::Instruction(inst) = node.op.view() else {
+                        panic!("control flow op must be an instruction")
+                    };
+                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
+                    for block in blocks.iter()? {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
                         inner(py, inner_dag, counts)?;
                     }
                 }
