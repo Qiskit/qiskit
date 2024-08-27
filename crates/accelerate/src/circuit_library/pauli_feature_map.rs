@@ -52,11 +52,11 @@ type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit;
 ///     ┌───┐        │                       │  ┌───┐
 /// 3: ─┤ H ├────────■───────────────────────■──┤ H ├────────
 ///     └───┘                                   └───┘
-fn pauli_evolution<'a>(
-    pauli: &'a str,
+fn pauli_evolution(
+    pauli: &str,
     indices: Vec<u32>,
     time: Param,
-) -> impl Iterator<Item = StandardInstruction> + 'a {
+) -> impl Iterator<Item = StandardInstruction> + '_ {
     // Get pairs of (pauli, qubit) that are active, i.e. that are not the identity. Note that
     // the rest of the code also works if there are only identities, in which case we will
     // effectively return an empty iterator.
@@ -113,7 +113,7 @@ fn pauli_evolution<'a>(
     let last_qubit = active_paulis.last().unwrap().1;
     let z_rotation = std::iter::once((
         StandardGate::PhaseGate,
-        smallvec![time.clone()],
+        smallvec![time],
         smallvec![last_qubit],
     ));
 
@@ -143,6 +143,7 @@ fn pauli_evolution<'a>(
 ///     The ``CircuitData`` to construct the Pauli feature map.
 #[pyfunction]
 #[pyo3(signature = (feature_dimension, parameters, *, reps=1, entanglement=None, paulis=None, alpha=2.0, insert_barriers=false, data_map_func=None))]
+#[allow(clippy::too_many_arguments)]
 pub fn pauli_feature_map(
     py: Python,
     feature_dimension: u32,
@@ -190,15 +191,17 @@ pub fn pauli_feature_map(
             let entanglement =
                 entanglement::get_entanglement(feature_dimension, block_size, entanglement, rep)
                     .unwrap();
+            // let data_map = &mut data_map;
             entanglement.flat_map(move |indices| {
                 // get the parameters the evolution is acting on and the corresponding angle,
                 // which is given by the data_map_func (we provide a default if not given)
-                let active_parameters = indices
-                    .as_ref()
-                    .unwrap()
-                    .into_iter()
+                let indices = indices.as_ref().unwrap();
+                // let indices = indices.as_ref().unwrap();
+                let active_parameters: Vec<Param> = indices
+                    .iter()
                     .map(|i| parameter_vector[*i as usize].clone())
                     .collect();
+
                 let angle = match data_map_func {
                     Some(fun) => fun
                         .call1((active_parameters,))
@@ -213,7 +216,7 @@ pub fn pauli_feature_map(
                 // to call CircuitData::from_packed_operations. This is needed since we might
                 // have to interject barriers, which are not a standard gate and prevents us
                 // from using CircuitData::from_standard_gates.
-                pauli_evolution(&pauli, indices.unwrap(), multiply_param(&angle, alpha, py)).map(
+                pauli_evolution(pauli, indices.clone(), multiply_param(&angle, alpha, py)).map(
                     |(gate, params, qargs)| {
                         (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
                     },
@@ -241,13 +244,18 @@ pub fn pauli_feature_map(
 /// implements
 ///   (pi - x1) (pi - x2) ... (pi - xN)
 /// unless there is only one parameter, in which case it returns just the value.
-fn _default_reduce<'a>(py: Python<'a>, parameters: Vec<Param>) -> Param {
+fn _default_reduce(py: Python, parameters: Vec<Param>) -> Param {
     if parameters.len() == 1 {
         parameters[0].clone()
     } else {
-        parameters.iter().fold(Param::Float(1.0), |acc, param| {
-            rmultiply_param(acc, add_param(&multiply_param(param, -1.0, py), PI, py), py)
-        })
+        let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
+            rmultiply_param(acc, add_param(param, -PI, py), py)
+        });
+        if parameters.len() % 2 == 0 {
+            acc
+        } else {
+            multiply_param(&acc, -1.0, py) // take care of parity
+        }
     }
 }
 
@@ -289,7 +297,7 @@ fn _get_paulis(
 }
 
 /// Get a barrier object from Python space.
-fn _get_barrier<'a>(py: Python<'a>, feature_dimension: u32) -> PyResult<Instruction> {
+fn _get_barrier(py: Python, feature_dimension: u32) -> PyResult<Instruction> {
     let barrier_cls = imports::BARRIER.get_bound(py);
     let barrier = barrier_cls.call1((feature_dimension,))?;
     let barrier_inst = PyInstruction {
@@ -303,7 +311,7 @@ fn _get_barrier<'a>(py: Python<'a>, feature_dimension: u32) -> PyResult<Instruct
     Ok((
         barrier_inst.into(),
         smallvec![],
-        (0..feature_dimension).map(|i| Qubit(i)).collect(),
+        (0..feature_dimension).map(Qubit).collect(),
         vec![] as Vec<Clbit>,
     ))
 }
