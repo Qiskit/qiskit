@@ -2180,27 +2180,21 @@ def _format(operand):
             };
             let inst_bound = inst.instruction.bind(py);
             if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
-                let raw_blocks = inst_bound.getattr("blocks")?;
-                let blocks: &Bound<PySequence> = raw_blocks.downcast()?;
-                let block_zero = blocks.get_item(0).unwrap();
-                let inner_dag: &DAGCircuit =
-                    &circuit_to_dag.call1((block_zero.clone(),))?.extract()?;
+                let blocks = inst_bound.getattr("blocks")?;
+                let block_zero = blocks.get_item(0)?;
+                let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
                 length += node.params_view().len() * inner_dag.size(py, true)?
             } else if inst_bound.is_instance(imports::WHILE_LOOP_OP.get_bound(py))? {
-                let raw_blocks = inst_bound.getattr("blocks")?;
-                let blocks: &Bound<PySequence> = raw_blocks.downcast()?;
-                let block_zero = blocks.get_item(0).unwrap();
-                let inner_dag: &DAGCircuit =
-                    &circuit_to_dag.call1((block_zero.clone(),))?.extract()?;
+                let blocks = inst_bound.getattr("blocks")?;
+                let block_zero = blocks.get_item(0)?;
+                let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
                 length += inner_dag.size(py, true)?
             } else if inst_bound.is_instance(imports::IF_ELSE_OP.get_bound(py))?
                 || inst_bound.is_instance(imports::SWITCH_CASE_OP.get_bound(py))?
             {
-                let raw_blocks = inst_bound.getattr("blocks")?;
-                let blocks: &Bound<PyTuple> = raw_blocks.downcast()?;
-                for block in blocks.iter() {
-                    let inner_dag: &DAGCircuit =
-                        &circuit_to_dag.call1((block.clone(),))?.extract()?;
+                let blocks = inst_bound.getattr("blocks")?;
+                for block in blocks.iter()? {
+                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
                     length += inner_dag.size(py, true)?;
                 }
             } else {
@@ -2259,11 +2253,10 @@ def _format(operand):
                 if weight == 0 {
                     node_lookup.insert(node_index, 0);
                 } else {
-                    let raw_blocks = inst_bound.getattr("blocks")?;
-                    let blocks = raw_blocks.downcast::<PyTuple>()?;
-                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
-                    for block in blocks.iter() {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block,))?.extract()?;
+                    let blocks = inst_bound.getattr("blocks")?;
+                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len()?);
+                    for block in blocks.iter()? {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
                         block_weights.push(inner_dag.depth(py, true)?);
                     }
                     node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
