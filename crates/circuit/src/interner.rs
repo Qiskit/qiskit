@@ -24,9 +24,12 @@ use indexmap::IndexSet;
 #[derive(Debug, Eq, PartialEq)]
 pub struct Interned<T: ?Sized> {
     index: u32,
-    // `Interned` is like a non-lifetime-bound reference to data stored in the interner.  Storing
-    // this adds a small amount more type safety to the interner keys when there's several interners
-    // in play close to each other.
+    // Storing the type of the interned value adds a small amount more type safety to the interner
+    // keys when there's several interners in play close to each other.  We use `*const T` because
+    // the `Interned value` is like a non-lifetime-bound reference to data stored in the interner;
+    // `Interned` doesn't own the data (which would be implied by `T`), and it's not using the
+    // static lifetime system (which would be implied by `&'_ T`, and require us to propagate the
+    // lifetime bound).
     _type: PhantomData<*const T>,
 }
 // The `PhantomData` marker prevents various useful things from being derived (for `Clone` and
@@ -111,6 +114,8 @@ where
             .borrow()
     }
 
+    /// Internal worker function that inserts an owned value assuming that the value didn't
+    /// previously exist in the map.
     fn insert_new(&mut self, value: <T as ToOwned>::Owned) -> u32 {
         let index = self.0.len();
         if index == u32::MAX as usize {
