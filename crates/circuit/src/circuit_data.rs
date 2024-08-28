@@ -31,8 +31,8 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use hashbrown::{HashMap, HashSet};
-use smallvec::SmallVec;
 use indexmap::IndexMap;
+use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
