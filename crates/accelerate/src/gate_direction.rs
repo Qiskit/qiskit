@@ -24,6 +24,66 @@ use qiskit_circuit::{
     Qubit,
 };
 
+/// Check if the two-qubit gates follow the right direction with respect to the coupling map.
+///
+/// Args:
+///     dag: the DAGCircuit to analyze
+///
+///     coupling_edges: set of edge pairs representing a directed coupling map, against which gate directionality is checked
+///
+/// Returns:
+///     true iff all two-qubit gates comply with the coupling constraints
+#[pyfunction]
+#[pyo3(name = "check_gate_direction_coupling")]
+fn py_check_with_coupling_map(
+    py: Python,
+    dag: &DAGCircuit,
+    coupling_edges: &Bound<PySet>,
+) -> PyResult<bool> {
+    let coupling_map_check =
+        |curr_dag: &DAGCircuit, _: &PackedInstruction, op_args: &[Qubit]| -> bool {
+            coupling_edges
+                .contains((
+                    map_qubit(py, dag, curr_dag, op_args[0]).0,
+                    map_qubit(py, dag, curr_dag, op_args[1]).0,
+                ))
+                .unwrap_or(false)
+        };
+
+    check_gate_direction(py, dag, &coupling_map_check)
+}
+
+/// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
+///
+/// Args:
+///     dag: the DAGCircuit to analyze
+///
+///     target: the Target against which gate directionality compliance is checked
+///
+/// Returns:
+///     true iff all two-qubit gates comply with the target's coupling constraints
+#[pyfunction]
+#[pyo3(name = "check_gate_direction_target")]
+fn py_check_with_target(py: Python, dag: &DAGCircuit, target: &Bound<Target>) -> PyResult<bool> {
+    let target = target.borrow();
+
+    let target_check =
+        |curr_dag: &DAGCircuit, inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
+            let mut qargs = Qargs::new();
+
+            qargs.push(PhysicalQubit::new(
+                map_qubit(py, dag, curr_dag, op_args[0]).0,
+            ));
+            qargs.push(PhysicalQubit::new(
+                map_qubit(py, dag, curr_dag, op_args[1]).0,
+            ));
+
+            target.instruction_supported(inst.op.name(), Some(&qargs))
+        };
+
+    check_gate_direction(py, dag, &target_check)
+}
+
 // Handle a control flow instruction, namely check recursively into its circuit blocks
 fn check_gate_direction_control_flow<T>(
     py: Python,
@@ -89,60 +149,6 @@ fn map_qubit(py: Python, orig_dag: &DAGCircuit, curr_dag: &DAGCircuit, qubit: Qu
         .expect("Qubit in curr_dag")
         .bind(py);
     orig_dag.qubits.find(qubit).expect("Qubit in orig_dag")
-}
-
-/// Check if the two-qubit gates follow the right direction with respect to the coupling map.
-///
-/// Args:
-///     dag: the DAGCircuit to analyze
-///
-///     coupling_edges: set of edge pairs representing a directed coupling map, against which gate directionality is checked
-#[pyfunction]
-#[pyo3(name = "check_gate_direction_coupling")]
-fn py_check_with_coupling_map(
-    py: Python,
-    dag: &DAGCircuit,
-    coupling_edges: &Bound<PySet>,
-) -> PyResult<bool> {
-    let coupling_map_check =
-        |curr_dag: &DAGCircuit, _: &PackedInstruction, op_args: &[Qubit]| -> bool {
-            coupling_edges
-                .contains((
-                    map_qubit(py, dag, curr_dag, op_args[0]).0,
-                    map_qubit(py, dag, curr_dag, op_args[1]).0,
-                ))
-                .unwrap_or(false)
-        };
-
-    check_gate_direction(py, dag, &coupling_map_check)
-}
-
-/// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
-///
-/// Args:
-///     dag: the DAGCircuit to analyze
-///
-///     target: the Target against which gate directionality compliance is checked
-#[pyfunction]
-#[pyo3(name = "check_gate_direction_target")]
-fn py_check_with_target(py: Python, dag: &DAGCircuit, target: &Bound<Target>) -> PyResult<bool> {
-    let target = target.borrow();
-
-    let target_check =
-        |curr_dag: &DAGCircuit, inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-            let mut qargs = Qargs::new();
-
-            qargs.push(PhysicalQubit::new(
-                map_qubit(py, dag, curr_dag, op_args[0]).0,
-            ));
-            qargs.push(PhysicalQubit::new(
-                map_qubit(py, dag, curr_dag, op_args[1]).0,
-            ));
-
-            target.instruction_supported(inst.op.name(), Some(&qargs))
-        };
-
-    check_gate_direction(py, dag, &target_check)
 }
 
 #[pymodule]

@@ -22,7 +22,7 @@ use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports;
-use crate::interner::{Index, IndexedInterner, Interner};
+use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::rustworkx_core_vnext::isomorphism;
@@ -231,9 +231,9 @@ pub struct DAGCircuit {
     cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
-    qargs_cache: IndexedInterner<Vec<Qubit>>,
+    qargs_interner: Interner<[Qubit]>,
     /// The cache used to intern instruction cargs.
-    cargs_cache: IndexedInterner<Vec<Clbit>>,
+    cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
     pub qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
@@ -415,8 +415,8 @@ impl DAGCircuit {
             dag: StableDiGraph::default(),
             qregs: PyDict::new_bound(py).unbind(),
             cregs: PyDict::new_bound(py).unbind(),
-            qargs_cache: IndexedInterner::new(),
-            cargs_cache: IndexedInterner::new(),
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
             qubits: BitData::new(py, "qubits".to_string()),
             clbits: BitData::new(py, "clbits".to_string()),
             global_phase: Param::Float(0.),
@@ -1210,13 +1210,11 @@ def _format(operand):
         for node_weight in self.dag.node_weights_mut() {
             match node_weight {
                 NodeType::Operation(op) => {
-                    let cargs = self.cargs_cache.intern(op.clbits);
-                    let carg_bits = old_clbits
-                        .map_indices(&cargs[..])
-                        .map(|b| b.bind(py).clone());
-                    let mapped_cargs = self.clbits.map_bits(carg_bits)?.collect();
-                    let clbits = Interner::intern(&mut self.cargs_cache, mapped_cargs)?;
-                    op.clbits = clbits;
+                    let cargs = self.cargs_interner.get(op.clbits);
+                    let carg_bits = old_clbits.map_indices(cargs).map(|b| b.bind(py).clone());
+                    op.clbits = self
+                        .cargs_interner
+                        .insert_owned(self.clbits.map_bits(carg_bits)?.collect());
                 }
                 NodeType::ClbitIn(c) | NodeType::ClbitOut(c) => {
                     *c = self
@@ -1420,13 +1418,11 @@ def _format(operand):
         for node_weight in self.dag.node_weights_mut() {
             match node_weight {
                 NodeType::Operation(op) => {
-                    let qargs = self.qargs_cache.intern(op.qubits);
-                    let qarg_bits = old_qubits
-                        .map_indices(&qargs[..])
-                        .map(|b| b.bind(py).clone());
-                    let mapped_qargs = self.qubits.map_bits(qarg_bits)?.collect();
-                    let qubits = Interner::intern(&mut self.qargs_cache, mapped_qargs)?;
-                    op.qubits = qubits;
+                    let qargs = self.qargs_interner.get(op.qubits);
+                    let qarg_bits = old_qubits.map_indices(qargs).map(|b| b.bind(py).clone());
+                    op.qubits = self
+                        .qargs_interner
+                        .insert_owned(self.qubits.map_bits(qarg_bits)?.collect());
                 }
                 NodeType::QubitIn(q) | NodeType::QubitOut(q) => {
                     *q = self
@@ -1566,8 +1562,8 @@ def _format(operand):
         target_dag.duration = self.duration.as_ref().map(|d| d.clone_ref(py));
         target_dag.unit.clone_from(&self.unit);
         target_dag.metadata = self.metadata.as_ref().map(|m| m.clone_ref(py));
-        target_dag.qargs_cache = self.qargs_cache.clone();
-        target_dag.cargs_cache = self.cargs_cache.clone();
+        target_dag.qargs_interner = self.qargs_interner.clone();
+        target_dag.cargs_interner = self.cargs_interner.clone();
 
         for bit in self.qubits.bits() {
             target_dag.add_qubit_unchecked(py, bit.bind(py))?;
@@ -1677,14 +1673,12 @@ def _format(operand):
         let qargs = qargs.map(|q| q.value);
         let cargs = cargs.map(|c| c.value);
         let node = {
-            let qubits_id = Interner::intern(
-                &mut self.qargs_cache,
-                self.qubits.map_bits(qargs.iter().flatten())?.collect(),
-            )?;
-            let clbits_id = Interner::intern(
-                &mut self.cargs_cache,
-                self.clbits.map_bits(cargs.iter().flatten())?.collect(),
-            )?;
+            let qubits_id = self
+                .qargs_interner
+                .insert_owned(self.qubits.map_bits(qargs.iter().flatten())?.collect());
+            let clbits_id = self
+                .cargs_interner
+                .insert_owned(self.clbits.map_bits(cargs.iter().flatten())?.collect());
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1733,14 +1727,12 @@ def _format(operand):
         let qargs = qargs.map(|q| q.value);
         let cargs = cargs.map(|c| c.value);
         let node = {
-            let qubits_id = Interner::intern(
-                &mut self.qargs_cache,
-                self.qubits.map_bits(qargs.iter().flatten())?.collect(),
-            )?;
-            let clbits_id = Interner::intern(
-                &mut self.cargs_cache,
-                self.clbits.map_bits(cargs.iter().flatten())?.collect(),
-            )?;
+            let qubits_id = self
+                .qargs_interner
+                .insert_owned(self.qubits.map_bits(qargs.iter().flatten())?.collect());
+            let clbits_id = self
+                .cargs_interner
+                .insert_owned(self.clbits.map_bits(cargs.iter().flatten())?.collect());
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1993,7 +1985,7 @@ def _format(operand):
                     let m_qargs = {
                         let qubits = other
                             .qubits
-                            .map_indices(other.qargs_cache.intern(op.qubits).as_slice());
+                            .map_indices(other.qargs_interner.get(op.qubits));
                         let mut mapped = Vec::with_capacity(qubits.len());
                         for bit in qubits {
                             mapped.push(
@@ -2007,7 +1999,7 @@ def _format(operand):
                     let m_cargs = {
                         let clbits = other
                             .clbits
-                            .map_indices(other.cargs_cache.intern(op.clbits).as_slice());
+                            .map_indices(other.cargs_interner.get(op.clbits));
                         let mut mapped = Vec::with_capacity(clbits.len());
                         for bit in clbits {
                             mapped.push(
@@ -2471,10 +2463,10 @@ def _format(operand):
                         return Ok(false);
                     }
                     let check_args = || -> bool {
-                        let node1_qargs = self.qargs_cache.intern(inst1.qubits);
-                        let node2_qargs = other.qargs_cache.intern(inst2.qubits);
-                        let node1_cargs = self.cargs_cache.intern(inst1.clbits);
-                        let node2_cargs = other.cargs_cache.intern(inst2.clbits);
+                        let node1_qargs = self.qargs_interner.get(inst1.qubits);
+                        let node2_qargs = other.qargs_interner.get(inst2.qubits);
+                        let node1_cargs = self.cargs_interner.get(inst1.clbits);
+                        let node2_cargs = other.cargs_interner.get(inst2.clbits);
                         if SEMANTIC_EQ_SYMMETRIC.contains(&inst1.op.name()) {
                             let node1_qargs =
                                 node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
@@ -2752,8 +2744,8 @@ def _format(operand):
             match weight {
                 Some(NodeType::Operation(packed)) => {
                     block_op_names.push(packed.op.name().to_string());
-                    block_qargs.extend(self.qargs_cache.intern(packed.qubits));
-                    block_cargs.extend(self.cargs_cache.intern(packed.clbits));
+                    block_qargs.extend(self.qargs_interner.get(packed.qubits));
+                    block_cargs.extend(self.cargs_interner.get(packed.clbits));
 
                     if let Some(condition) = packed.condition() {
                         block_cargs.extend(
@@ -2828,8 +2820,8 @@ def _format(operand):
         }
 
         let op_name = py_op.operation.name().to_string();
-        let qubits = Interner::intern(&mut self.qargs_cache, block_qargs)?;
-        let clbits = Interner::intern(&mut self.cargs_cache, block_cargs)?;
+        let qubits = self.qargs_interner.insert_owned(block_qargs);
+        let clbits = self.cargs_interner.insert_owned(block_cargs);
         let weight = NodeType::Operation(PackedInstruction {
             op: py_op.operation,
             qubits,
@@ -3182,7 +3174,7 @@ def _format(operand):
                                 "cannot propagate a condition to an element that already has one",
                             ));
                         }
-                        let cargs = input_dag.cargs_cache.intern(inst.clbits);
+                        let cargs = input_dag.cargs_interner.get(inst.clbits);
                         let cargs_bits: Vec<PyObject> = input_dag
                             .clbits
                             .map_indices(cargs)
@@ -3437,13 +3429,13 @@ def _format(operand):
             .map(|e| e.weight().clone())
             .collect();
         let mut new_wires: HashSet<Wire> = self
-            .qargs_cache
-            .intern(old_packed.qubits)
+            .qargs_interner
+            .get(old_packed.qubits)
             .iter()
             .map(|x| Wire::Qubit(*x))
             .chain(
-                self.cargs_cache
-                    .intern(old_packed.clbits)
+                self.cargs_interner
+                    .get(old_packed.clbits)
                     .iter()
                     .map(|x| Wire::Clbit(*x)),
             )
@@ -3977,7 +3969,7 @@ def _format(operand):
                     continue;
                 }
 
-                let qargs = self.qargs_cache.intern(packed.qubits);
+                let qargs = self.qargs_interner.get(packed.qubits);
                 if qargs.len() >= 3 {
                     nodes.push(self.unpack_into(py, node, weight)?);
                 }
@@ -4341,7 +4333,7 @@ def _format(operand):
                     py,
                     new_layer
                         .qubits
-                        .map_indices(new_layer.qargs_cache.intern(node.qubits)),
+                        .map_indices(new_layer.qargs_interner.get(node.qubits)),
                 )
             });
             let support_list = PyList::empty_bound(py);
@@ -4373,8 +4365,8 @@ def _format(operand):
             let support_list = PyList::empty_bound(py);
             let qubits = PyTuple::new_bound(
                 py,
-                self.qargs_cache
-                    .intern(retrieved_node.qubits)
+                self.qargs_interner
+                    .get(retrieved_node.qubits)
                     .iter()
                     .map(|qubit| self.qubits.get(*qubit)),
             )
@@ -4678,7 +4670,7 @@ def _format(operand):
                     if processed_non_directive_nodes.contains(&cur_index) {
                         continue;
                     }
-                    qubits_in_cone.extend(self.qargs_cache.intern(packed.qubits).iter());
+                    qubits_in_cone.extend(self.qargs_interner.get(packed.qubits));
                     processed_non_directive_nodes.insert(cur_index);
 
                     for pred_index in self.quantum_predecessors(cur_index) {
@@ -4697,8 +4689,8 @@ def _format(operand):
                             self.dag.node_weight(pred_index).unwrap()
                         {
                             if self
-                                .qargs_cache
-                                .intern(pred_packed.qubits)
+                                .qargs_interner
+                                .get(pred_packed.qubits)
                                 .iter()
                                 .any(|x| qubits_in_cone.contains(x))
                             {
@@ -5158,7 +5150,7 @@ impl DAGCircuit {
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
                 let mut clbits: HashSet<Clbit> =
-                    HashSet::from_iter(self.cargs_cache.intern(instr.clbits).iter().copied());
+                    HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     self.additional_wires(py, instr.op.view(), instr.condition())?;
                 for clbit in additional_clbits {
@@ -5166,7 +5158,7 @@ impl DAGCircuit {
                 }
                 (clbits.into_iter().collect(), Some(additional_vars))
             } else {
-                (self.cargs_cache.intern(instr.clbits).to_vec(), None)
+                (self.cargs_interner.get(instr.clbits).to_vec(), None)
             }
         };
 
@@ -5178,8 +5170,8 @@ impl DAGCircuit {
         // Put the new node in-between the previously "last" nodes on each wire
         // and the output map.
         let output_nodes: HashSet<NodeIndex> = self
-            .qargs_cache
-            .intern(qubits_id)
+            .qargs_interner
+            .get(qubits_id)
             .iter()
             .map(|q| self.qubit_io_map.get(q.0 as usize).map(|x| x[1]).unwrap())
             .chain(
@@ -5224,7 +5216,7 @@ impl DAGCircuit {
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &inst) {
                 let mut clbits: HashSet<Clbit> =
-                    HashSet::from_iter(self.cargs_cache.intern(inst.clbits).iter().cloned());
+                    HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     self.additional_wires(py, inst.op.view(), inst.condition())?;
                 for clbit in additional_clbits {
@@ -5232,7 +5224,7 @@ impl DAGCircuit {
                 }
                 (clbits.into_iter().collect(), Some(additional_vars))
             } else {
-                (self.cargs_cache.intern(inst.clbits).to_vec(), None)
+                (self.cargs_interner.get(inst.clbits).to_vec(), None)
             }
         };
 
@@ -5244,8 +5236,8 @@ impl DAGCircuit {
         // Put the new node in-between the input map and the previously
         // "first" nodes on each wire.
         let mut input_nodes: Vec<NodeIndex> = self
-            .qargs_cache
-            .intern(qubits_id)
+            .qargs_interner
+            .get(qubits_id)
             .iter()
             .map(|q| self.qubit_io_map[q.0 as usize][0])
             .chain(all_cbits.iter().map(|c| self.clbit_io_map[c.0 as usize][0]))
@@ -5275,8 +5267,8 @@ impl DAGCircuit {
     fn sort_key(&self, node: NodeIndex) -> SortKeyType {
         match &self.dag[node] {
             NodeType::Operation(packed) => (
-                self.qargs_cache.intern(packed.qubits).as_slice(),
-                self.cargs_cache.intern(packed.clbits).as_slice(),
+                self.qargs_interner.get(packed.qubits),
+                self.cargs_interner.get(packed.clbits),
             ),
             NodeType::QubitIn(q) => (std::slice::from_ref(q), &[Clbit(u32::MAX)]),
             NodeType::QubitOut(_q) => (&[Qubit(u32::MAX)], &[Clbit(u32::MAX)]),
@@ -5680,18 +5672,16 @@ impl DAGCircuit {
             }
         } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
             let op_node = op_node.borrow();
-            let qubits = Interner::intern(
-                &mut self.qargs_cache,
+            let qubits = self.qargs_interner.insert_owned(
                 self.qubits
                     .map_bits(op_node.instruction.qubits.bind(py))?
                     .collect(),
-            )?;
-            let clbits = Interner::intern(
-                &mut self.cargs_cache,
+            );
+            let clbits = self.cargs_interner.insert_owned(
                 self.clbits
                     .map_bits(op_node.instruction.clbits.bind(py))?
                     .collect(),
-            )?;
+            );
             let params = (!op_node.instruction.params.is_empty())
                 .then(|| Box::new(op_node.instruction.params.clone()));
             let inst = PackedInstruction {
@@ -5732,8 +5722,8 @@ impl DAGCircuit {
             )?
             .into_any(),
             NodeType::Operation(packed) => {
-                let qubits = self.qargs_cache.intern(packed.qubits);
-                let clbits = self.cargs_cache.intern(packed.clbits);
+                let qubits = self.qargs_interner.get(packed.qubits);
+                let clbits = self.cargs_interner.get(packed.clbits);
                 Py::new(
                     py,
                     (
@@ -5796,7 +5786,7 @@ impl DAGCircuit {
         Box::new(self.op_nodes(false).filter(|index| {
             let weight = self.dag.node_weight(*index).expect("NodeIndex in graph");
             if let NodeType::Operation(ref packed) = weight {
-                let qargs = self.qargs_cache.intern(packed.qubits);
+                let qargs = self.qargs_interner.get(packed.qubits);
                 qargs.len() == 2
             } else {
                 false
@@ -5960,19 +5950,19 @@ impl DAGCircuit {
             let mut new_node = other.dag[old_index].clone();
             if let NodeType::Operation(ref mut new_inst) = new_node {
                 let new_qubit_indices: Vec<Qubit> = other
-                    .qargs_cache
-                    .intern(new_inst.qubits)
+                    .qargs_interner
+                    .get(new_inst.qubits)
                     .iter()
                     .map(|old_qubit| qubit_map[old_qubit])
                     .collect();
                 let new_clbit_indices: Vec<Clbit> = other
-                    .cargs_cache
-                    .intern(new_inst.clbits)
+                    .cargs_interner
+                    .get(new_inst.clbits)
                     .iter()
                     .map(|old_clbit| clbit_map[old_clbit])
                     .collect();
-                new_inst.qubits = Interner::intern(&mut self.qargs_cache, new_qubit_indices)?;
-                new_inst.clbits = Interner::intern(&mut self.cargs_cache, new_clbit_indices)?;
+                new_inst.qubits = self.qargs_interner.insert_owned(new_qubit_indices);
+                new_inst.clbits = self.cargs_interner.insert_owned(new_clbit_indices);
                 self.increment_op(new_inst.op.name());
             }
             let new_index = self.dag.add_node(new_node);
@@ -6134,7 +6124,7 @@ impl DAGCircuit {
             self._check_condition(py, inst.op.name(), condition.bind(py))?;
         }
 
-        for b in self.qargs_cache.intern(inst.qubits) {
+        for b in self.qargs_interner.get(inst.qubits) {
             if self.qubit_io_map.len() - 1 < b.0 as usize {
                 return Err(DAGCircuitError::new_err(format!(
                     "qubit {} not found in output map",
@@ -6143,7 +6133,7 @@ impl DAGCircuit {
             }
         }
 
-        for b in self.cargs_cache.intern(inst.clbits) {
+        for b in self.cargs_interner.get(inst.clbits) {
             if !self.clbit_io_map.len() - 1 < b.0 as usize {
                 return Err(DAGCircuitError::new_err(format!(
                     "clbit {} not found in output map",
@@ -6175,8 +6165,8 @@ impl DAGCircuit {
     }
 
     /// Get the instruction qubits interned at the given index
-    pub fn get_inst_qubits(&self, index: Index) -> &[Qubit] {
-        self.qargs_cache.intern(index)
+    pub fn get_inst_qubits(&self, index: Interned<[Qubit]>) -> &[Qubit] {
+        self.qargs_interner.get(index)
     }
 }
 
