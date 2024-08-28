@@ -1006,6 +1006,7 @@ impl CircuitData {
         }
         ops_count
     }
+    
     // Marks this pyclass as NOT hashable.
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
