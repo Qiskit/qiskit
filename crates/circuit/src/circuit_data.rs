@@ -513,6 +513,22 @@ impl CircuitData {
     pub fn add_clbit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
         self.clbits.add(py, bit, strict)
     }
+    
+    /// Lists all operations along with the qubits involved in those operations.
+    ///
+    /// Returns:
+    ///     list.
+    #[pyo3(signature = ())]
+    pub fn operations_with_qubits(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let mut ret1 : Vec<(Option<String>, Option<String>)> = vec![];
+        for (index,inst) in self.data.iter().enumerate() {
+            let op_str = inst.op.view().name().to_string();
+            for b in self.qargs_interner.intern(inst.qubits).value.iter() {
+                ret1.push((Some(op_str.to_string()), Some(self.qubits.get(*b).unwrap().to_string())));
+            }
+        }
+        Ok(ret1.into_py(py))
+    }
 
     /// Lists all operations along with the qubits involved in those operations.
     ///
