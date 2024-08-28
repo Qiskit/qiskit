@@ -46,14 +46,14 @@ pub fn synth_cnot_phase_aam(
     for qubit_idx in 0..num_qubits
     {
         let mut index = 0_usize;
+        let mut swtch: bool = true;
 
         while index < s_cpy.ncols()
         {
             let icnot = s_cpy.column(index).to_vec();
-
             if icnot == state.row(qubit_idx).to_vec()
             {
-                   match rust_angles.get(index)
+                match rust_angles.get(index)
                 {
                     Some(gate) if gate == "t" => instructions.push((StandardGate::TGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
                     Some(gate) if gate == "tdg" => instructions.push((StandardGate::TdgGate, smallvec![], smallvec![Qubit(qubit_idx as u32)])),
@@ -63,33 +63,30 @@ pub fn synth_cnot_phase_aam(
                     Some(angles_in_pi) => instructions.push((StandardGate::PhaseGate, smallvec![Param::Float((angles_in_pi.parse::<f64>()?) % PI)], smallvec![Qubit(qubit_idx as u32)])),
                     None => (),
                 };
-
-                   rust_angles.remove(index);
-                   s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                   if index == s_cpy.shape()[1] {break;}
-                   if index == 0 {continue;}
-                   index -=1;
+                rust_angles.remove(index);
+                s_cpy.remove_index(numpy::ndarray::Axis(1), index);
+                if index == s_cpy.shape()[1] {break;}
+                if index == 0 {swtch = false;}
+                else {index -=1;}
             }
-            index +=1;
+            if swtch {index +=1;}
+            else {swtch = true;}
         }
     } 
 
 
-    let epsilion = num_qubits;
+    let epsilion: usize = num_qubits;
     let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilion)];
 
-    loop
-    {
-        if q.is_empty()
-           {
-               break;
-           }
+
+    while !q.is_empty()
+        {
 
         let (_s, _i, _ep) = q.pop().unwrap();
 
         if _s.is_empty() {continue;}
 
-        if 0 <= _ep as i32 &&  _ep < num_qubits
+        if 0 <= _ep as isize &&  _ep < num_qubits
         {
             let mut condition = true;
             while condition
@@ -98,7 +95,7 @@ pub fn synth_cnot_phase_aam(
 
                 for _j in 0..num_qubits
                 {
-                    if (_j != _ep) && (u32::from(_s.row(_j).sum()) == _s.row(_j).len() as u32)
+                    if (_j != _ep) && (usize::from(_s.row(_j).sum()) == _s.row(_j).len())
                     {
                         condition = true;
                         instructions.push((StandardGate::CXGate, smallvec![], smallvec![Qubit(_j as u32), Qubit(_ep as u32)]));
@@ -108,15 +105,14 @@ pub fn synth_cnot_phase_aam(
                             state[(_ep, _k)] ^= state[(_j, _k)];
                         }
 
-                        let mut index = 0_usize;
 
+                        let mut index = 0_usize;
+                        let mut swtch: bool = true;
                         while index < s_cpy.ncols()
                         {
                             let icnot = s_cpy.column(index).to_vec();
-
                             if icnot == state.row(_ep).to_vec()
                             {
-
                                 match rust_angles.get(index)
                                 {
                                     Some(gate) if gate == "t" => instructions.push((StandardGate::TGate, smallvec![], smallvec![Qubit(_ep as u32)])),
@@ -127,14 +123,14 @@ pub fn synth_cnot_phase_aam(
                                     Some(angles_in_pi) => instructions.push((StandardGate::PhaseGate, smallvec![Param::Float((angles_in_pi.parse::<f64>()?) % PI)], smallvec![Qubit(_ep as u32)])),
                                     None => (),
                                 };
-
                                 rust_angles.remove(index);
                                 s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                                if index == s_cpy.shape()[1] { break; }
-                                if index == 0 {continue;}
-                                index -=1;
+                                if index == s_cpy.shape()[1] {break;}
+                                if index == 0 {swtch = false;}
+                                else {index -=1;}
                             }
-                            index +=1;
+                            if swtch {index +=1;}
+                            else {swtch = true; }
                         }
 
                         let temp_var = (_s.clone(), _i.clone(), _ep);
@@ -238,13 +234,18 @@ pub fn synth_cnot_phase_aam(
             }
         }
 
-        q.push((cnots0, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep));
+        let _temp_data = (cnots0, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep);
+        if !q.contains(&_temp_data)
+        {
+            q.push(_temp_data);
+        }
 
 
     }
 
     let state_bool = state.mapv(|x| x != 0);
-    let instrs = _synth_cnot_count_full_pmh(state_bool, section_size);
+    let mut instrs = _synth_cnot_count_full_pmh(state_bool, section_size);
+    instrs.reverse();
     for inst in instrs
     {
         instructions.push(inst);
