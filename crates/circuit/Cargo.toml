@@ -37,9 +37,5 @@ features = ["rayon"]
 workspace = true
 features = ["union"]
 
-[dependencies.indexmap]
-workspace = true
-features = ["rayon"]
-
 [features]
 cache_pygates = []
