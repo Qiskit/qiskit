@@ -65,7 +65,7 @@ pub fn synth_cnot_phase_aam(
                 };
                 rust_angles.remove(index);
                 s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                if index == s_cpy.shape()[1] {break;}
+                if index == s_cpy.ncols() {break;}
                 if index == 0 {swtch = false;}
                 else {index -=1;}
             }
@@ -86,7 +86,7 @@ pub fn synth_cnot_phase_aam(
 
         if _s.is_empty() {continue;}
 
-        if 0 <= _ep as isize &&  _ep < num_qubits
+        if 0 <= (_ep as isize) &&  _ep < num_qubits
         {
             let mut condition = true;
             while condition
@@ -95,7 +95,7 @@ pub fn synth_cnot_phase_aam(
 
                 for _j in 0..num_qubits
                 {
-                    if (_j != _ep) && (usize::from(_s.row(_j).sum()) == _s.row(_j).len())
+                    if (_j != _ep) && (_s.row(_j).sum() as usize == _s.row(_j).len())
                     {
                         condition = true;
                         instructions.push((StandardGate::CXGate, smallvec![], smallvec![Qubit(_j as u32), Qubit(_ep as u32)]));
@@ -125,7 +125,7 @@ pub fn synth_cnot_phase_aam(
                                 };
                                 rust_angles.remove(index);
                                 s_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                                if index == s_cpy.shape()[1] {break;}
+                                if index == s_cpy.ncols() {break;}
                                 if index == 0 {swtch = false;}
                                 else {index -=1;}
                             }
