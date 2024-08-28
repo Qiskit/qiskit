@@ -81,7 +81,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
 
-        self._basis_gates = basis
+        if basis:
+            self._basis_gates = set(basis)
+        else:
+            self._basis_gates = None
         self._target = target
         self._global_decomposers = None
         self._local_decomposers_cache = {}
@@ -208,15 +211,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        if self._basis_gates is None:
-            basis_gates = None
-        else:
-            basis_gates = set(self._basis_gates)
         euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
             dag,
             target=self._target,
             global_decomposers=self._global_decomposers,
-            basis_gates=basis_gates,
+            basis_gates=self._basis_gates,
         )
         return dag
 
