@@ -6694,7 +6694,7 @@ impl DAGCircuit {
         let instructions: Vec<PackedInstruction> = qc_data
             .iter()
             .cloned()
-            .map(|instr| -> PyResult<PackedInstruction> {
+            .map(|mut instr| -> PyResult<PackedInstruction> {
                 // Re-map the qubits
                 let qargs: Vec<Qubit> = qc_data.get_qargs(instr.qubits).to_vec();
                 if qubit_order.is_some() {
@@ -6702,7 +6702,7 @@ impl DAGCircuit {
                         .iter()
                         .map(|index| qubit_set[index.0 as usize])
                         .collect();
-                    qubit_interner.insert_owned(ordered_qargs);
+                    instr.qubits = qubit_interner.insert_owned(ordered_qargs);
                 }
                 // Remap the clbits
                 let cargs: Vec<Clbit> = qc_data.get_cargs(instr.clbits).to_vec();
@@ -6711,7 +6711,7 @@ impl DAGCircuit {
                         .iter()
                         .map(|index| clbit_set[index.0 as usize])
                         .collect();
-                    clbit_interner.insert_owned(ordered_cargs);
+                    instr.clbits = clbit_interner.insert_owned(ordered_cargs);
                 }
 
                 num_edges += qargs.len() + cargs.len();
