@@ -1004,7 +1004,7 @@ impl CircuitData {
                 .entry(instruction.op.view().name().to_string())
                 .or_insert(0) += 1;
         }
-        return count_ops;
+        count_ops
     }
     // Marks this pyclass as NOT hashable.
     #[classattr]
