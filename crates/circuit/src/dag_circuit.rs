@@ -5604,7 +5604,7 @@ impl DAGCircuit {
     /// Remove an operation node n.
     ///
     /// Add edges from predecessors to successors.
-    fn remove_op_node(&mut self, index: NodeIndex) {
+    pub fn remove_op_node(&mut self, index: NodeIndex) {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::new();
         for (source, in_weight) in self
             .dag
@@ -5783,6 +5783,26 @@ impl DAGCircuit {
         } else {
             Box::new(node_ops_iter.map(|(index, _)| index))
         }
+    }
+
+    // Filter any nodes that don't match a given predicate function
+    pub fn filter_op_nodes<F, E>(&mut self, mut predicate: F) -> Result<(), E>
+    where
+        F: FnMut(&PackedInstruction) -> Result<bool, E>,
+    {
+        let mut remove_nodes: Vec<NodeIndex> = Vec::new();
+        for node in self.op_nodes(true) {
+            let NodeType::Operation(op) = &self.dag[node] else {
+                unreachable!()
+            };
+            if !predicate(op)? {
+                remove_nodes.push(node);
+            }
+        }
+        for node in remove_nodes {
+            self.remove_op_node(node);
+        }
+        Ok(())
     }
 
     pub fn op_nodes_by_py_type<'a>(

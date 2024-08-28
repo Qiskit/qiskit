@@ -20,6 +20,7 @@ pub mod dense_layout;
 pub mod edge_collections;
 pub mod error_map;
 pub mod euler_one_qubit_decomposer;
+pub mod filter_op_nodes;
 pub mod isometry;
 pub mod nlayout;
 pub mod optimize_1q_gates;

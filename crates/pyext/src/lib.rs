@@ -15,12 +15,13 @@ use pyo3::prelude::*;
 use qiskit_accelerate::{
     circuit_library::circuit_library, convert_2q_block_matrix::convert_2q_block_matrix,
     dense_layout::dense_layout, error_map::error_map,
-    euler_one_qubit_decomposer::euler_one_qubit_decomposer, isometry::isometry, nlayout::nlayout,
-    optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval, results::results,
-    sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
-    star_prerouting::star_prerouting, stochastic_swap::stochastic_swap, synthesis::synthesis,
-    target_transpiler::target, two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate,
-    utils::utils, vf2_layout::vf2_layout,
+    euler_one_qubit_decomposer::euler_one_qubit_decomposer, filter_op_nodes::filter_op_nodes_mod,
+    isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
+    pauli_exp_val::pauli_expval, results::results, sabre::sabre, sampled_exp_val::sampled_exp_val,
+    sparse_pauli_op::sparse_pauli_op, star_prerouting::star_prerouting,
+    stochastic_swap::stochastic_swap, synthesis::synthesis, target_transpiler::target,
+    two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate, utils::utils,
+    vf2_layout::vf2_layout,
 };
 
 #[inline(always)]
@@ -44,6 +45,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, dense_layout, "dense_layout")?;
     add_submodule(m, error_map, "error_map")?;
     add_submodule(m, euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
+    add_submodule(m, filter_op_nodes_mod, "filter_op_nodes")?;
     add_submodule(m, isometry, "isometry")?;
     add_submodule(m, nlayout, "nlayout")?;
     add_submodule(m, optimize_1q_gates, "optimize_1q_gates")?;
