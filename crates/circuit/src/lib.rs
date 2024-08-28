@@ -36,6 +36,8 @@ pub type BitType = u32;
 pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Clbit(pub BitType);
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Var(pub BitType);
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
@@ -77,6 +79,18 @@ impl From<BitType> for Clbit {
 impl From<Clbit> for BitType {
     fn from(value: Clbit) -> Self {
         value.0
+    }
+}
+
+impl From<Var> for BitType {
+    fn from(value: Var) -> Self {
+        value.0
+    }
+}
+
+impl From<BitType> for Var {
+    fn from(value: BitType) -> Self {
+        Var(value)
     }
 }
 

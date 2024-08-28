@@ -59,7 +59,8 @@ where
         let edge_weight = match edge.weight() {
             Wire::Qubit(qubit) => dag.qubits.get(*qubit).unwrap(),
             Wire::Clbit(clbit) => dag.clbits.get(*clbit).unwrap(),
-            Wire::Var(var) => var,
+            Wire::Var(var) => dag.vars.get(*var).unwrap(),
+//            Wire::Var(var) => var, GJL
         };
         writeln!(
             file,
