@@ -1,0 +1,21 @@
+---
+features_circuits:
+  - |
+    The entanglement argument in `PauliFeatureMap` and `ZZFeatureMap` will no longer support List[int] or List[List[int]]. Instead,
+    the entanglement structure in `PauliFeatureMap` and `ZZFeatureMap` can now be specified as a dictionary where the keys represent  
+    the number of qubits, and the values are lists of integer tuples that define which qubits are entangled with one another. This
+    allows for more flexibility in constructing feature maps tailored to specific quantum algorithms.
+    Example usage::
+	    from qiskit.circuit.library import PauliFeatureMap
+
+	    entanglement = {
+    		    1: [(0,), (2,)],
+    		    2: [(0, 1), (1, 2)],
+    		    3: [(0, 1, 2)],
+	    }
+	    params=[0, 1, 3.14]
+	    qc = PauliFeatureMap(3, reps=2, paulis=['Z', 'ZZ', 'ZZZ'], entanglement=entanglement, insert_barriers=True)
+	    qc.decompose().draw('mpl')
+
+
+
