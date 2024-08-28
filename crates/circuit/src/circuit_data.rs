@@ -998,11 +998,13 @@ impl CircuitData {
 
     pub fn get_ops(&mut self) -> IndexMap<String, i32> {
         let mut count_ops: IndexMap<String, i32> = IndexMap::new();
-        let circuit:&Vec<PackedInstruction> = &self.data;
+        let circuit: &Vec<PackedInstruction> = &self.data;
         for instruction in circuit {
-        *count_ops.entry(instruction.op.view().name().to_string()).or_insert(0) += 1;
+            *count_ops
+                .entry(instruction.op.view().name().to_string())
+                .or_insert(0) += 1;
         }
-    return count_ops;
+        return count_ops;
     }
     // Marks this pyclass as NOT hashable.
     #[classattr]
