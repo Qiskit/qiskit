@@ -3909,10 +3909,7 @@ def _format(operand):
     ///     list[DAGOpNode] | None: The list of dag nodes containing control flow ops. If there
     ///         are no control flow nodes None is returned
     fn control_flow_op_nodes(&self, py: Python) -> PyResult<Option<Vec<Py<PyAny>>>> {
-        if CONTROL_FLOW_OP_NAMES
-            .iter()
-            .any(|name| self.op_names.contains_key(*name))
-        {
+        if self.has_control_flow() {
             let result: PyResult<Vec<Py<PyAny>>> = self
                 .dag
                 .node_references()
