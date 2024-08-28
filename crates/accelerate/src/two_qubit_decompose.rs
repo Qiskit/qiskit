@@ -55,6 +55,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
 use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
 use qiskit_circuit::Qubit;
@@ -2063,26 +2064,51 @@ impl TwoQubitBasisDecomposer {
     ) -> PyResult<CircuitData> {
         let kak_gate = kak_gate.extract::<OperationFromPython>(py)?;
         let sequence = self.__call__(unitary, basis_fidelity, approximate, _num_basis_uses)?;
-        CircuitData::from_standard_gates(
-            py,
-            2,
-            sequence
-                .gates
-                .into_iter()
-                .map(|(gate, params, qubits)| match gate {
-                    Some(gate) => (
-                        gate,
-                        params.into_iter().map(Param::Float).collect(),
-                        qubits.into_iter().map(|x| Qubit(x.into())).collect(),
-                    ),
-                    None => (
-                        kak_gate.operation.standard_gate(),
-                        kak_gate.params.clone(),
-                        qubits.into_iter().map(|x| Qubit(x.into())).collect(),
-                    ),
-                }),
-            Param::Float(sequence.global_phase),
-        )
+        match kak_gate.operation.try_standard_gate() {
+            Some(std_kak_gate) => CircuitData::from_standard_gates(
+                py,
+                2,
+                sequence
+                    .gates
+                    .into_iter()
+                    .map(|(gate, params, qubits)| match gate {
+                        Some(gate) => (
+                            gate,
+                            params.into_iter().map(Param::Float).collect(),
+                            qubits.into_iter().map(|x| Qubit(x.into())).collect(),
+                        ),
+                        None => (
+                            std_kak_gate,
+                            kak_gate.params.clone(),
+                            qubits.into_iter().map(|x| Qubit(x.into())).collect(),
+                        ),
+                    }),
+                Param::Float(sequence.global_phase),
+            ),
+            None => CircuitData::from_packed_operations(
+                py,
+                2,
+                0,
+                sequence
+                    .gates
+                    .into_iter()
+                    .map(|(gate, params, qubits)| match gate {
+                        Some(gate) => (
+                            PackedOperation::from_standard(gate),
+                            params.into_iter().map(Param::Float).collect(),
+                            qubits.into_iter().map(|x| Qubit(x.into())).collect(),
+                            Vec::new(),
+                        ),
+                        None => (
+                            kak_gate.operation.clone(),
+                            kak_gate.params.clone(),
+                            qubits.into_iter().map(|x| Qubit(x.into())).collect(),
+                            Vec::new(),
+                        ),
+                    }),
+                Param::Float(sequence.global_phase),
+            ),
+        }
     }
 
     fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> usize {

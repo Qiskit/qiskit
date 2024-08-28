@@ -219,5 +219,7 @@ class CommutativeCancellation(TransformationPass):
             for block in node.op.blocks:
                 new_circ = pass_manager.run(block)
                 mapped_blocks.append(new_circ)
-            node.op = node.op.replace_blocks(mapped_blocks)
+            dag.substitute_node(
+                node, node.op.replace_blocks(mapped_blocks), propagate_condition=False
+            )
         return dag
