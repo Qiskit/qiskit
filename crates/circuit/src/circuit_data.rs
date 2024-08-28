@@ -32,6 +32,7 @@ use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use hashbrown::{HashMap, HashSet};
 use smallvec::SmallVec;
+use indexmap::IndexMap;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
@@ -1009,6 +1010,14 @@ impl CircuitData {
         self.param_table.clear();
     }
 
+    pub fn get_ops(&mut self) -> IndexMap<String, i32> {
+        let mut count_ops: IndexMap<String, i32> = IndexMap::new();
+        let circuit:&Vec<PackedInstruction> = &self.data;
+        for instruction in circuit {
+        *count_ops.entry(instruction.op.view().name().to_string()).or_insert(0) += 1;
+        }
+    return count_ops;
+    }
     // Marks this pyclass as NOT hashable.
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;

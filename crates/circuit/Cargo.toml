@@ -19,11 +19,15 @@ thiserror.workspace = true
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "macros", "multiple-pymethods"]
 
 [dependencies.smallvec]
 workspace = true
 features = ["union"]
+
+[dependencies.indexmap]
+workspace = true
+features = ["rayon"]
 
 [features]
 cache_pygates = []
