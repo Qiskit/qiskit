@@ -3509,10 +3509,8 @@ class QuantumCircuit:
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
-        count_ops: dict[Instruction, int] = {}
-        for instruction in self._data:
-            count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
-        return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
+        ops_dict = self._data.get_ops()
+        return OrderedDict(ops_dict)
 
     def num_nonlocal_gates(self) -> int:
         """Return number of non-local gates (i.e. involving 2+ qubits).
