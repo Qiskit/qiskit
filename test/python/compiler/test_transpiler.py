@@ -3320,19 +3320,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
@@ -3394,19 +3394,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
@@ -3477,26 +3477,26 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
-        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+        first_meas_node = tqc_dag._find_successors_by_edge(
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         self.assertIsInstance(first_meas_node.op, Measure)
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
             self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
         self.assertIn(qubit_map[op_node.qargs[0]], components[1])
-        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+        op_node = tqc_dag._find_successors_by_edge(
             op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
             self.assertIn(qubit_map[op_node.qargs[0]], components[2])
-            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node = tqc_dag._find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
         self.assertIn(qubit_map[op_node.qargs[0]], components[2])
