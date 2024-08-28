@@ -6,16 +6,16 @@ features_circuits:
     the number of qubits, and the values are lists of integer tuples that define which qubits are entangled with one another. This
     allows for more flexibility in constructing feature maps tailored to specific quantum algorithms.
     Example usage::
-	    from qiskit.circuit.library import PauliFeatureMap
+            from qiskit.circuit.library import PauliFeatureMap
 
-	    entanglement = {
-    		    1: [(0,), (2,)],
-    		    2: [(0, 1), (1, 2)],
-    		    3: [(0, 1, 2)],
-	    }
-	    params=[0, 1, 3.14]
-	    qc = PauliFeatureMap(3, reps=2, paulis=['Z', 'ZZ', 'ZZZ'], entanglement=entanglement, insert_barriers=True)
-	    qc.decompose().draw('mpl')
+            entanglement = {
+                    1: [(0,), (2,)],
+                    2: [(0, 1), (1, 2)],
+                    3: [(0, 1, 2)],
+            }
+            params=[0, 1, 3.14]
+            qc = PauliFeatureMap(3, reps=2, paulis=['Z', 'ZZ', 'ZZZ'], entanglement=entanglement, insert_barriers=True)
+            qc.decompose().draw('mpl')
 
 
 
