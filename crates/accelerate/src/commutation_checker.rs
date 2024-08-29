@@ -15,12 +15,13 @@ use hashbrown::hash_map::Iter;
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
+use num_bigint::BigInt;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::intern;
 use smallvec::SmallVec;
 
-use crate::unitary_compose::compose;
+use crate::unitary_compose;
 use crate::QiskitError;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
@@ -240,7 +241,10 @@ impl CommutationChecker {
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
-            op1.name() >= op2.name()
+            // we use a conversion to BigInt here instead of just op1.name() >= op2.name(), because
+            // strings are sorted differently in Rust and in Python,
+            BigInt::from_signed_bytes_be(op1.name().as_bytes())
+                >= BigInt::from_signed_bytes_be(op2.name().as_bytes())
         };
         let (first_params, second_params) = if reversed {
             (params2, params1)
@@ -396,12 +400,26 @@ impl CommutationChecker {
             None => return Ok(false),
         };
 
+        let tol = 1e-8;
         if first_qarg == second_qarg {
-            Ok(abs_diff_eq!(
-                second_mat.dot(&first_mat),
-                first_mat.dot(&second_mat),
-                epsilon = 1e-8
-            ))
+            match first_qarg.len() {
+                1 => Ok(unitary_compose::commute_1q(
+                    &first_mat.view(),
+                    &second_mat.view(),
+                    tol,
+                )),
+                2 => Ok(unitary_compose::commute_2q(
+                    &first_mat.view(),
+                    &second_mat.view(),
+                    &[Qubit(0), Qubit(1)],
+                    tol,
+                )),
+                _ => Ok(abs_diff_eq!(
+                    second_mat.dot(&first_mat),
+                    first_mat.dot(&second_mat),
+                    epsilon = 1e-8
+                )),
+            }
         } else {
             // TODO Optimize this bit to avoid unnecessary Kronecker products:
             //  1. We currently sort the operations for the cache by operation size, putting the
@@ -416,8 +434,27 @@ impl CommutationChecker {
             } else {
                 first_mat
             };
-            let op12 = compose(&first_mat.view(), &second_mat.view(), &second_qarg, false);
-            let op21 = compose(&first_mat.view(), &second_mat.view(), &second_qarg, true);
+
+            // the 1 qubit case cannot happen, since that would already have been captured
+            // by the previous if clause; first_qarg == second_qarg (if they overlap they must
+            // be the same)
+            if num_qubits == 2 {
+                return Ok(unitary_compose::commute_2q(
+                    &first_mat.view(),
+                    &second_mat.view(),
+                    &second_qarg,
+                    tol,
+                ));
+            };
+
+            let op12 = unitary_compose::compose(
+                &first_mat.view(),
+                &second_mat.view(),
+                &second_qarg,
+                false,
+            );
+            let op21 =
+                unitary_compose::compose(&first_mat.view(), &second_mat.view(), &second_qarg, true);
             Ok(abs_diff_eq!(op12, op21, epsilon = 1e-8))
         }
     }

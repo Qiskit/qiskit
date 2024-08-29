@@ -10,9 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
+use ndarray::{Array, Array2, ArrayBase, ArrayView, ArrayView2, Dim, IxDyn, ViewRepr};
 use ndarray_einsum_beta::*;
-use num_complex::{Complex, Complex64};
+use num_complex::{Complex, Complex64, ComplexFloat};
+use num_traits::Zero;
 use qiskit_circuit::Qubit;
 
 static LOWERCASE: [u8; 26] = [
@@ -27,9 +28,9 @@ static _UPPERCASE: [u8; 26] = [
 
 // Compose the operators given by `gate_unitary` and `overall_unitary`, i.e. apply one to the other
 // as specified by the involved qubits given in `qubits` and the `front` parameter
-pub fn compose(
-    gate_unitary: &ArrayView2<Complex<f64>>,
-    overall_unitary: &ArrayView2<Complex<f64>>,
+pub fn compose<'a>(
+    gate_unitary: &ArrayBase<ViewRepr<&'a Complex<f64>>, Dim<[usize; 2]>>,
+    overall_unitary: &ArrayBase<ViewRepr<&'a Complex<f64>>, Dim<[usize; 2]>>,
     qubits: &[Qubit],
     front: bool,
 ) -> Array2<Complex<f64>> {
@@ -60,13 +61,14 @@ pub fn compose(
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
-    _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)
+    let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)
         .as_standard_layout()
         .into_shape((num_rows, num_rows))
         .unwrap()
         .into_dimensionality::<ndarray::Ix2>()
         .unwrap()
-        .to_owned()
+        .to_owned();
+    res
 }
 
 // Reshape an input matrix to (2, 2, ..., 2) depending on its dimensionality
@@ -159,4 +161,48 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
         "{}{}, {}{}->{}{}",
         mat_l, mat_r, tens_lin, tens_r, tens_lout, tens_r
     )
+}
+
+pub fn commute_1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>, tol: f64) -> bool {
+    let values: [Complex64; 4] = [
+        left[[0, 1]] * right[[1, 0]] - right[[0, 1]] * left[[1, 0]], // top left
+        (left[[0, 0]] - left[[1, 1]]) * right[[0, 1]]
+            + left[[0, 1]] * (right[[1, 1]] - right[[0, 0]]), // top right
+        left[[1, 0]] * (right[[0, 0]] - right[[1, 1]])
+            + (left[[1, 1]] - left[[0, 0]]) * right[[1, 0]], // bottom left
+        left[[1, 0]] * right[[0, 1]] - right[[1, 0]] * left[[0, 1]], // bottom right
+    ];
+    !values.iter().any(|value| value.abs() > tol)
+}
+
+pub fn commute_2q(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    qargs: &[Qubit],
+    tol: f64,
+) -> bool {
+    let rev = qargs[0].0 == 1;
+    for i in 0..4usize {
+        for j in 0..4usize {
+            let mut sum = Complex64::zero();
+            for k in 0..4usize {
+                sum += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]]
+                    - right[[i, k]] * left[[_ind(k, rev), _ind(j, rev)]];
+            }
+            if sum.abs() > tol {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+#[inline]
+fn _ind(i: usize, reversed: bool) -> usize {
+    if reversed {
+        // reverse the first two bits
+        ((i & 1) << 1) + ((i & 2) >> 1)
+    } else {
+        i
+    }
 }
