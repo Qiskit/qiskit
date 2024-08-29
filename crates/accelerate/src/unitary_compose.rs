@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array, Array2, ArrayBase, ArrayView, ArrayView2, Dim, IxDyn, ViewRepr};
+use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum_beta::*;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
@@ -28,12 +28,12 @@ static _UPPERCASE: [u8; 26] = [
 
 // Compose the operators given by `gate_unitary` and `overall_unitary`, i.e. apply one to the other
 // as specified by the involved qubits given in `qubits` and the `front` parameter
-pub fn compose<'a>(
-    gate_unitary: &ArrayBase<ViewRepr<&'a Complex<f64>>, Dim<[usize; 2]>>,
-    overall_unitary: &ArrayBase<ViewRepr<&'a Complex<f64>>, Dim<[usize; 2]>>,
+pub fn compose(
+    gate_unitary: &ArrayView2<Complex64>,
+    overall_unitary: &ArrayView2<Complex64>,
     qubits: &[Qubit],
     front: bool,
-) -> Array2<Complex<f64>> {
+) -> Array2<Complex64> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
 
     // Full composition of operators
@@ -110,14 +110,10 @@ fn _einsum_matmul(
         [mat_free, mat_contract].concat()
     };
 
-    // SAFETY: This is safe because we know the data in these elements is being generated solely from
-    // LOWERCASE and that only contains valid utf8 characters. We don't need to spend time checking
-    // if each character valid utf8 in this case.
-    let tensor_einsum: String = unsafe {
-        String::from_utf8_unchecked(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
-    };
-    let mat_einsum: String =
-        unsafe { String::from_utf8_unchecked(indices_mat.iter().map(|c| LOWERCASE[*c]).collect()) };
+    let tensor_einsum = String::from_utf8(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
+        .expect("Failed building tensor string.");
+    let mat_einsum = String::from_utf8(indices_mat.iter().map(|c| LOWERCASE[*c]).collect())
+        .expect("Failed building matrix string.");
 
     einsum(
         format!("{},{}", tensor_einsum, mat_einsum).as_str(),
@@ -136,17 +132,12 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
         mat_l.push(LOWERCASE[25 - pos]);
         tens_out[num_qubits - 1 - *idx as usize] = LOWERCASE[25 - pos];
     });
-    // SAFETY: This is safe because we know the data in these elements is being generated solely from
-    // LOWERCASE and that only contains valid utf8 characters. We don't need to spend time checking
-    // if each character valid utf8 in this case.
-    unsafe {
-        [
-            String::from_utf8_unchecked(mat_l),
-            String::from_utf8_unchecked(mat_r),
-            String::from_utf8_unchecked(tens_in),
-            String::from_utf8_unchecked(tens_out),
-        ]
-    }
+    [
+        String::from_utf8(mat_l).expect("Failed building string."),
+        String::from_utf8(mat_r).expect("Failed building string."),
+        String::from_utf8(tens_in).expect("Failed building string."),
+        String::from_utf8(tens_out).expect("Failed building string."),
+    ]
 }
 
 fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
@@ -155,7 +146,8 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     // SAFETY: This is safe because we know the data in these elements is being generated solely from
     // _UPPERCASE and that only contains valid utf8 characters. We don't need to spend time checking
     // if each character valid utf8 in this case.
-    let tens_r: String = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
+    let tens_r =
+        String::from_utf8(_UPPERCASE[..num_qubits].to_vec()).expect("Failed building string.");
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
     format!(
         "{}{}, {}{}->{}{}",
