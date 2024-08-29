@@ -32,10 +32,9 @@ def synth_cnot_pahse_aam_xlated(
     cnots: list[list[int]], angles: list[str], section_size: int = 2
 ) -> QuantumCircuit:
     cnots_array = np.asarray(cnots).astype(np.uint8)
-    angles_array = np.asarray(angles, dtype=object)
-    _circuit_data = synth_cnot_phase_aam_xlated(cnots_array, angles_array, section_size)
-    qc_from_rust = QuantumCircuit._from_circuit_data(_circuit_data)
-    return qc_from_rust
+    angles = [angle if isinstance(angle, str) else f'{angle}' for angle in angles]
+    _circuit_data = synth_cnot_phase_aam_xlated(cnots_array, angles, section_size)
+    return QuantumCircuit._from_circuit_data(_circuit_data)
 
 
 def synth_cnot_phase_aam(

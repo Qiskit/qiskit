@@ -10,14 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array2};
-use numpy::{PyReadonlyArray2, PyReadonlyArray1};
+use ndarray::Array2;
+use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 use crate::synthesis::linear::pmh::_synth_cnot_count_full_pmh;
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyList};
 use std::f64::consts::PI;
 
 #[pyfunction]
@@ -25,22 +25,16 @@ use std::f64::consts::PI;
 pub fn synth_cnot_phase_aam(
     py:Python,
     cnots: PyReadonlyArray2<u8>,
-    angles: PyReadonlyArray1<PyObject>,
+    angles: &Bound<PyList>,
     section_size: Option<i64>,
 ) -> PyResult<CircuitData> {
 
     let s = cnots.as_array().to_owned();
-    let angles_arr = angles.as_array().to_owned();
     let num_qubits = s.nrows();
     let mut s_cpy = s.clone();
     let mut instructions = vec![];
 
-    let mut rust_angles = Vec::new();
-    for obj in angles_arr
-    {
-        rust_angles.push(obj.extract::<String>(py)?);
-    }
-
+    let mut rust_angles: Vec<String> = angles.iter().filter_map(|data| data.extract::<String>().ok()).collect();
     let mut state = Array2::<u8>::eye(num_qubits);
 
     for qubit_idx in 0..num_qubits
