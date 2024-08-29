@@ -949,11 +949,11 @@ impl CircuitData {
                 )));
             }
             let mut old_table = std::mem::take(&mut self.param_table);
-            let owned_iter: Vec<Param> = array.iter().map(|value| Param::Float(*value)).collect();
             self.assign_parameters_inner(
                 sequence.py(),
-                owned_iter
+                array
                     .iter()
+                    .map(|value| Param::Float(*value))
                     .zip(old_table.drain_ordered())
                     .map(|(value, (obj, uses))| (obj, value, uses)),
             )
@@ -970,21 +970,12 @@ impl CircuitData {
     fn assign_parameters_mapping(&mut self, mapping: Bound<PyAny>) -> PyResult<()> {
         let py = mapping.py();
         let mut items = Vec::new();
-        let mut objs = Vec::new();
         for item in mapping.call_method0("items")?.iter()? {
             let (param_ob, value) = item?.extract::<(Py<PyAny>, AssignParam)>()?;
-            items.push(value);
-            objs.push(param_ob); // We need to separate the objects to avoid cloning.
+            let uuid = ParameterUuid::from_parameter(param_ob.bind(py))?;
+            items.push((param_ob, value.0, self.param_table.pop(uuid)?));
         }
-        let borrowed_iterator: PyResult<Vec<_>> = items
-            .iter()
-            .zip(objs.into_iter())
-            .map(|(value, param_obj)| -> PyResult<_> {
-                let uuid = ParameterUuid::from_parameter(param_obj.bind(py))?;
-                Ok((param_obj, &value.0, self.param_table.pop(uuid)?))
-            })
-            .collect();
-        self.assign_parameters_inner(py, borrowed_iterator?)
+        self.assign_parameters_inner(py, items)
     }
 
     pub fn clear(&mut self) {
@@ -1137,7 +1128,7 @@ impl CircuitData {
         if slice.len() != self.param_table.num_parameters() {
             return Err(PyValueError::new_err(concat!(
                 "Mismatching number of values and parameters. For partial binding ",
-                "please pass a dictionary of {parameter: value} pairs."
+                "please pass a mapping of {parameter: value} pairs."
             )));
         }
         let mut old_table = std::mem::take(&mut self.param_table);
@@ -1146,26 +1137,32 @@ impl CircuitData {
             slice
                 .iter()
                 .zip(old_table.drain_ordered())
-                .map(|(value, (param_ob, uses))| (param_ob, value, uses)),
+                .map(|(value, (param_ob, uses))| (param_ob, value.clone_ref(py), uses)),
         )
     }
 
     /// Assigns parameters to circuit data based on a mapping of `ParameterUuid` : `Param`.
     /// This mapping assumes that the provided `ParameterUuid` keys are instances
     /// of `ParameterExpression`.
-    pub fn assign_parameters_from_mapping<'a, I>(&mut self, py: Python, iter: I) -> PyResult<()>
+    pub fn assign_parameters_from_mapping<I, T>(&mut self, py: Python, iter: I) -> PyResult<()>
     where
-        I: IntoIterator<Item = (ParameterUuid, &'a Param)>,
+        I: IntoIterator<Item = (ParameterUuid, T)>,
+        T: AsRef<Param>,
     {
         let mut items = Vec::new();
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
             let param_obj = self.get_parameter_by_uuid(param_uuid);
-            items.push((
-                param_obj.unwrap().clone_ref(py),
-                value,
-                self.param_table.pop(param_uuid)?,
-            ));
+            if let Some(param_obj) = param_obj {
+                // Copy or increase ref_count for Parameter, avoid acquiring the GIL.
+                items.push((
+                    param_obj.clone_ref(py),
+                    value.as_ref().clone_ref(py),
+                    self.param_table.pop(param_uuid)?,
+                ));
+            } else {
+                return Err(PyValueError::new_err("An invalid parameter was provided."));
+            }
         }
         self.assign_parameters_inner(py, items)
     }
@@ -1205,9 +1202,10 @@ impl CircuitData {
         self.cargs_interner().get(index)
     }
 
-    fn assign_parameters_inner<'a, I>(&mut self, py: Python, iter: I) -> PyResult<()>
+    fn assign_parameters_inner<I, T>(&mut self, py: Python, iter: I) -> PyResult<()>
     where
-        I: IntoIterator<Item = (Py<PyAny>, &'a Param, HashSet<ParameterUse>)>,
+        I: IntoIterator<Item = (Py<PyAny>, T, HashSet<ParameterUse>)>,
+        T: AsRef<Param> + Clone,
     {
         let inconsistent =
             || PyRuntimeError::new_err("internal error: circuit parameter table is inconsistent");
@@ -1244,7 +1242,7 @@ impl CircuitData {
         for (param_ob, value, uses) in iter {
             debug_assert!(!uses.is_empty());
             uuids.clear();
-            for inner_param_ob in value.iter_parameters(py)? {
+            for inner_param_ob in value.as_ref().iter_parameters(py)? {
                 uuids.push(self.param_table.track(&inner_param_ob?, None)?)
             }
             for usage in uses {
@@ -1255,7 +1253,7 @@ impl CircuitData {
                         };
                         self.set_global_phase(
                             py,
-                            bind_expr(expr.bind_borrowed(py), &param_ob, value, true)?,
+                            bind_expr(expr.bind_borrowed(py), &param_ob, value.as_ref(), true)?,
                         )?;
                     }
                     ParameterUse::Index {
@@ -1269,17 +1267,21 @@ impl CircuitData {
                             let Param::ParameterExpression(expr) = &params[parameter] else {
                                 return Err(inconsistent());
                             };
-                            params[parameter] =
-                                match bind_expr(expr.bind_borrowed(py), &param_ob, value, true)? {
-                                    Param::Obj(obj) => {
-                                        return Err(CircuitError::new_err(format!(
-                                            "bad type after binding for gate '{}': '{}'",
-                                            standard.name(),
-                                            obj.bind(py).repr()?,
-                                        )))
-                                    }
-                                    param => param,
-                                };
+                            params[parameter] = match bind_expr(
+                                expr.bind_borrowed(py),
+                                &param_ob,
+                                value.as_ref(),
+                                true,
+                            )? {
+                                Param::Obj(obj) => {
+                                    return Err(CircuitError::new_err(format!(
+                                        "bad type after binding for gate '{}': '{}'",
+                                        standard.name(),
+                                        obj.bind(py).repr()?,
+                                    )))
+                                }
+                                param => param,
+                            };
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
                             }
@@ -1299,7 +1301,7 @@ impl CircuitData {
                             user_operations
                                 .entry(instruction)
                                 .or_insert_with(Vec::new)
-                                .push((param_ob.clone_ref(py), value.clone()));
+                                .push((param_ob.clone_ref(py), value.as_ref().clone_ref(py)));
 
                             let op = previous.unpack_py_op(py)?.into_bound(py);
                             let previous_param = &previous.params_view()[parameter];
@@ -1308,8 +1310,12 @@ impl CircuitData {
                                 Param::ParameterExpression(expr) => {
                                     // For user gates, we don't coerce floats to integers in `Param`
                                     // so that users can use them if they choose.
-                                    let new_param =
-                                        bind_expr(expr.bind_borrowed(py), &param_ob, value, false)?;
+                                    let new_param = bind_expr(
+                                        expr.bind_borrowed(py),
+                                        &param_ob,
+                                        value.as_ref(),
+                                        false,
+                                    )?;
                                     // Historically, `assign_parameters` called `validate_parameter`
                                     // only when a `ParameterExpression` became fully bound.  Some
                                     // "generalised" (or user) gates fail without this, though
@@ -1336,7 +1342,7 @@ impl CircuitData {
                                     Param::extract_no_coerce(
                                         &obj.call_method(
                                             assign_parameters_attr,
-                                            ([(&param_ob, &value)].into_py_dict_bound(py),),
+                                            ([(&param_ob, value.as_ref())].into_py_dict_bound(py),),
                                             Some(
                                                 &[("inplace", false), ("flat_input", true)]
                                                     .into_py_dict_bound(py),
