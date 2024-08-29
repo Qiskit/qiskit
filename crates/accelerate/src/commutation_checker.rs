@@ -15,7 +15,6 @@ use hashbrown::hash_map::Iter;
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
-use num_bigint::BigInt;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::intern;
@@ -241,8 +240,7 @@ impl CommutationChecker {
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
-            BigInt::from_signed_bytes_be(op1.name().as_bytes())
-                >= BigInt::from_signed_bytes_be(op2.name().as_bytes())
+            op1.name() >= op2.name()
         };
         let (first_params, second_params) = if reversed {
             (params2, params1)
@@ -289,8 +287,8 @@ impl CommutationChecker {
             Some(commutation_dict) => {
                 let placement = get_relative_placement(first_qargs, second_qargs);
                 let hashes = (
-                    hashable_params(&first_params),
-                    hashable_params(&second_params),
+                    hashable_params(first_params),
+                    hashable_params(second_params),
                 );
                 match commutation_dict.get(&(placement, hashes)) {
                     Some(commutation) => {
@@ -325,8 +323,8 @@ impl CommutationChecker {
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
                     (
-                        hashable_params(&first_params),
-                        hashable_params(&second_params),
+                        hashable_params(first_params),
+                        hashable_params(second_params),
                     ),
                 );
                 entries.insert(key, is_commuting);
@@ -337,8 +335,8 @@ impl CommutationChecker {
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
                     (
-                        hashable_params(&first_params),
-                        hashable_params(&second_params),
+                        hashable_params(first_params),
+                        hashable_params(second_params),
                     ),
                 );
                 entries.insert(key, is_commuting);
@@ -348,6 +346,7 @@ impl CommutationChecker {
         Ok(is_commuting)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn commute_matmul(
         &self,
         py: Python,
@@ -358,12 +357,19 @@ impl CommutationChecker {
         second_params: &[Param],
         second_qargs: &[Qubit],
     ) -> PyResult<bool> {
-        // compute relative positioning of qargs of the second gate to the first gate
-        let mut qarg: HashMap<&Qubit, Qubit> =
-            HashMap::with_capacity(first_qargs.len() + second_qargs.len());
-        for (i, q) in first_qargs.iter().enumerate() {
-            qarg.entry(q).or_insert(Qubit(i as u32));
-        }
+        // Compute relative positioning of qargs of the second gate to the first gate.
+        // Since the qargs come out the same BitData, we already know there are no accidential
+        // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
+        // computes second_qargs relative to that. For example, it performs the mappings
+        //  (first_qargs, second_qargs) = ( [1, 2], [0, 2] ) --> ( [0, 1], [2, 1] )
+        //  (first_qargs, second_qargs) = ( [1, 2, 0], [0, 3, 4] ) --> ( [0, 1, 2], [2, 3, 4] )
+        // This re-shuffling is done to compute the correct kronecker product later.
+        let mut qarg: HashMap<&Qubit, Qubit> = HashMap::from_iter(
+            first_qargs
+                .iter()
+                .enumerate()
+                .map(|(i, q)| (q, Qubit(i as u32))),
+        );
         let mut num_qubits = first_qargs.len() as u32;
         for q in second_qargs {
             if !qarg.contains_key(q) {
@@ -372,15 +378,14 @@ impl CommutationChecker {
             }
         }
 
-        let first_qarg: Vec<_> = first_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
-        let second_qarg: Vec<_> = second_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
+        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
+        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
 
         if first_qarg.len() > second_qarg.len() {
             return Err(QiskitError::new_err(
                 "first instructions must have at most as many qubits as the second instruction",
             ));
         };
-
         let first_mat = match get_matrix(py, first_op, first_params) {
             Some(matrix) => matrix,
             None => return Ok(false),
@@ -398,6 +403,12 @@ impl CommutationChecker {
                 epsilon = 1e-8
             ))
         } else {
+            // TODO Optimize this bit to avoid unnecessary Kronecker products:
+            //  1. We currently sort the operations for the cache by operation size, putting the
+            //     *smaller* operation first: (smaller op, larger op)
+            //  2. This code here expands the first op to match the second -- hence we always
+            //     match the operator sizes.
+            // This whole extension logic could be avoided since we know the second one is larger.
             let extra_qarg2 = num_qubits - first_qarg.len() as u32;
             let first_mat = if extra_qarg2 > 0 {
                 let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
@@ -419,6 +430,7 @@ impl CommutationChecker {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn commutation_precheck(
     op1: &OperationRef,
     params1: &[Param],
