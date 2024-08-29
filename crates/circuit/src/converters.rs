@@ -58,8 +58,8 @@ fn circuit_to_dag(
     py: Python,
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
-    qubit_order: Option<Vec<PyObject>>,
-    clbit_order: Option<Vec<PyObject>>,
+    qubit_order: Option<Vec<Bound<PyAny>>>,
+    clbit_order: Option<Vec<Bound<PyAny>>>,
 ) -> PyResult<DAGCircuit> {
     DAGCircuit::from_quantum_circuit(
         py,
