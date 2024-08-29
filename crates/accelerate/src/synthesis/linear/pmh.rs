@@ -166,10 +166,8 @@ pub fn synth_cnot_count_full_pmh(
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
 
-
 type Instructions = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
-pub fn _synth_cnot_count_full_pmh(mat: Array2<bool>, sec_size: Option<i64>) -> Vec<Instructions>
-{
+pub fn _synth_cnot_count_full_pmh(mat: Array2<bool>, sec_size: Option<i64>) -> Vec<Instructions> {
     let mut mat = mat;
     let num_qubits = mat.nrows(); // is a quadratic matrix
 
@@ -202,5 +200,4 @@ pub fn _synth_cnot_count_full_pmh(mat: Array2<bool>, sec_size: Option<i64>) -> V
             )
         });
     instructions.collect()
-
 }
