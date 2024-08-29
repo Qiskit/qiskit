@@ -133,11 +133,18 @@ pub fn synth_cnot_phase_aam(
                             else {swtch = true; }
                         }
 
-                        let temp_var = (_s, _i, _ep);
-                        if !q.contains(&temp_var)
+                        q.push((_s, _i, _ep));
+                        let mut unique_q = vec![];
+                        for data in q.into_iter()
                         {
-                            q.push(temp_var);
+                            if !unique_q.contains(&data)
+                            {
+                                unique_q.push(data);
+                            }
+
                         }
+
+                        q = unique_q;
 
                         for data in &mut q
                         {
@@ -150,8 +157,8 @@ pub fn synth_cnot_phase_aam(
                                 _temp_s[(_j, idx)] ^= _temp_s[(_ep, idx)];
                             }
                         }
-                        let _temp_data = q[q.len()-1].clone();
-                        (_s, _i, _ep) = _temp_data;
+
+                        (_s, _i, _ep) = q.pop().unwrap();
                     }
                 }
             }
@@ -216,33 +223,19 @@ pub fn synth_cnot_phase_aam(
         let cnots0 = Array2::from_shape_vec((cnots0_shape_data.0, cnots0_shape_data.1), cnots0_t).unwrap();
         let cnots1 = Array2::from_shape_vec((cnots1_shape_data.0, cnots1_shape_data.1), cnots1_t).unwrap();
 
-        let cnots0 = cnots0.t().to_owned();
-        let cnots1 = cnots1.t().to_owned();
+        let cnots0 = cnots0.reversed_axes().to_owned();
+        let cnots1 = cnots1.reversed_axes().to_owned();
 
         if _ep == num_qubits
         {
-            let _temp_data = (cnots1, _i.clone().into_iter().filter(|&x| x != _j).collect(), _j);
-            if !q.contains(&_temp_data)
-            {
-                q.push(_temp_data);
-            }
+            q.push((cnots1, _i.clone().into_iter().filter(|&x| x != _j).collect(), _j));
         }
         else
         {
-            let _temp_data = (cnots1, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep);
-            if !q.contains(&_temp_data)
-            {
-                q.push(_temp_data);
-            }
+            q.push((cnots1, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep));
         }
 
-        let _temp_data = (cnots0, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep);
-        if !q.contains(&_temp_data)
-        {
-            q.push(_temp_data);
-        }
-
-
+        q.push((cnots0, _i.clone().into_iter().filter(|&x| x != _j).collect(), _ep));
     }
 
     let state_bool = state.mapv(|x| x != 0);
