@@ -82,11 +82,11 @@ pub fn synth_cnot_phase_aam(
     while !q.is_empty()
         {
 
-        let (_s, _i, _ep) = q.pop().unwrap();
+        let (mut _s, mut _i, mut _ep) = q.pop().unwrap();
 
         if _s.is_empty() {continue;}
 
-        if 0 <= (_ep as isize) &&  _ep < num_qubits
+        if _ep < num_qubits
         {
             let mut condition = true;
             while condition
@@ -133,7 +133,7 @@ pub fn synth_cnot_phase_aam(
                             else {swtch = true; }
                         }
 
-                        let temp_var = (_s.clone(), _i.clone(), _ep);
+                        let temp_var = (_s, _i, _ep);
                         if !q.contains(&temp_var)
                         {
                             q.push(temp_var);
@@ -150,6 +150,8 @@ pub fn synth_cnot_phase_aam(
                                 _temp_s[(_j, idx)] ^= _temp_s[(_ep, idx)];
                             }
                         }
+                        let _temp_data = q[q.len()-1].clone();
+                        (_s, _i, _ep) = _temp_data;
                     }
                 }
             }
