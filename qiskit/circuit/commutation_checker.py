@@ -12,49 +12,13 @@
 
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
-from functools import lru_cache
 from typing import List, Union, Set, Optional
 import numpy as np
 
-from qiskit import QiskitError
 from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.quantum_info.operators import Operator
 from qiskit.utils import deprecate_func
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
-
-_skipped_op_names = {"measure", "reset", "delay", "initialize"}
-_no_cache_op_names = {"annotated"}
-
-_supported_ops = {
-    "h",
-    "x",
-    "y",
-    "z",
-    "sx",
-    "sxdg",
-    "t",
-    "tdg",
-    "s",
-    "sdg",
-    "cx",
-    "cy",
-    "cz",
-    "swap",
-    "iswap",
-    "ecr",
-    "ccx",
-    "cswap",
-}
-
-
-@lru_cache(maxsize=None)
-def _identity_op(num_qubits):
-    """Cached identity matrix"""
-    return Operator(
-        np.eye(2**num_qubits), input_dims=(2,) * num_qubits, output_dims=(2,) * num_qubits
-    )
 
 
 class CommutationChecker:

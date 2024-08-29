@@ -19,10 +19,51 @@
 import itertools
 from functools import lru_cache
 from typing import List
-from qiskit.circuit.commutation_checker import _get_relative_placement, _order_operations
+from qiskit.circuit.commutation_checker import _get_relative_placement
 from qiskit.circuit import Gate, CommutationChecker
 import qiskit.circuit.library.standard_gates as stdg
 from qiskit.dagcircuit import DAGOpNode
+
+
+@lru_cache(maxsize=10**3)
+def _persistent_id(op_name: str) -> int:
+    """Returns an integer id of a string that is persistent over different python executions (note that
+        hash() can not be used, i.e. its value can change over two python executions)
+    Args:
+        op_name (str): The string whose integer id should be determined.
+    Return:
+        The integer id of the input string.
+    """
+    return int.from_bytes(bytes(op_name, encoding="utf-8"), byteorder="big", signed=True)
+
+
+def _order_operations(op1, qargs1, cargs1, op2, qargs2, cargs2):
+    """Orders two operations in a canonical way that is persistent over
+    @different python versions and executions
+    Args:
+        op1: first operation.
+        qargs1: first operation's qubits.
+        cargs1: first operation's clbits.
+        op2: second operation.
+        qargs2: second operation's qubits.
+        cargs2: second operation's clbits.
+    Return:
+        The input operations in a persistent, canonical order.
+    """
+    op1_tuple = (op1, qargs1, cargs1)
+    op2_tuple = (op2, qargs2, cargs2)
+    least_qubits_op, most_qubits_op = (
+        (op1_tuple, op2_tuple) if op1.num_qubits < op2.num_qubits else (op2_tuple, op1_tuple)
+    )
+    # prefer operation with the least number of qubits as first key as this results in shorter keys
+    if op1.num_qubits != op2.num_qubits:
+        return least_qubits_op, most_qubits_op
+    else:
+        return (
+            (op1_tuple, op2_tuple)
+            if _persistent_id(op1.name) < _persistent_id(op2.name)
+            else (op2_tuple, op1_tuple)
+        )
 
 
 @lru_cache(None)
