@@ -996,14 +996,14 @@ impl CircuitData {
         self.param_table.clear();
     }
 
-    pub fn count_ops(&mut self) -> IndexMap<String, i32> {
-        let mut ops_count: IndexMap<String, i32> = IndexMap::new();
-        let circuit: &Vec<PackedInstruction> = &self.data;
-        for instruction in circuit {
+    pub fn count_ops(&mut self) -> IndexMap<&str, usize> {
+        let mut ops_count: IndexMap<String, i32, ::ahash::RandomState> = IndexMap::default();
+        for instruction in &self.data {
             *ops_count
                 .entry(instruction.op.view().name().to_string())
                 .or_insert(0) += 1;
         }
+        ops_count.par_sort_by(|_k1, v1, _k2, v2| v2.cmp(v1));
         ops_count
     }
     
