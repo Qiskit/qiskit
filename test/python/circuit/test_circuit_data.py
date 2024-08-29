@@ -395,6 +395,25 @@ class TestQuantumCircuitData(QiskitTestCase):
             qr_foreign = QuantumRegister(1)
             data[0] = CircuitInstruction(XGate(), [qr_foreign[0]], [])
 
+    def test_count_ops_with_qubits(self):
+        """test count_ops_with_qubits() in quantumcircuit.py
+        which in turn uses fn operations_with_qubits in circuit_data.rs
+        """
+        a = QuantumCircuit(3, 3)
+        a.h(0)
+        a.x(1)
+        a.h(1)
+        # a.h(3)
+        a.cx(1, 0)
+        b = a.count_ops_with_qubits()
+        assert b == [
+            ("h", "Qubit(QuantumRegister(3, 'q'), 0)"),
+            ("x", "Qubit(QuantumRegister(3, 'q'), 1)"),
+            ("h", "Qubit(QuantumRegister(3, 'q'), 1)"),
+            ("cx", "Qubit(QuantumRegister(3, 'q'), 1)"),
+            ("cx", "Qubit(QuantumRegister(3, 'q'), 0)"),
+        ]
+
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
     """QuantumCircuit.data operation tests."""

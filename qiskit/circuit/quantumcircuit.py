@@ -3521,6 +3521,17 @@ class QuantumCircuit:
             count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
+    # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
+    # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
+    # support is dropped.
+    def count_ops_with_qubits(self) -> list:
+        """Count each operation kind in the circuit, along with the qubits used in those operations.
+
+        Returns:
+            list: a breakdown of how many operations of each kind, along with the qubits involved.
+        """
+        return self._data.operations_with_qubits()
+
     def num_nonlocal_gates(self) -> int:
         """Return number of non-local gates (i.e. involving 2+ qubits).
 

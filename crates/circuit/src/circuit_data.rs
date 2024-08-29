@@ -504,6 +504,25 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Lists all operations along with the qubits involved in those operations.
+    ///
+    /// Returns:
+    ///     list.
+    #[pyo3(signature = ())]
+    pub fn operations_with_qubits(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let mut ret: Vec<(Option<String>, Option<String>)> = vec![];
+        for (_index, inst) in self.data.iter().enumerate() {
+            let op_str = inst.op.view().name().to_string();
+            for b in self.qargs_interner.get(inst.qubits) {
+                ret.push((
+                    Some(op_str.to_string()),
+                    Some(self.qubits.get(*b).unwrap().to_string()),
+                ));
+            }
+        }
+        Ok(ret.into_py(py))
+    }
+
     /// Performs a shallow copy.
     ///
     /// Returns:
