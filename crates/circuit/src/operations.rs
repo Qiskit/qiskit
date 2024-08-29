@@ -12,6 +12,7 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::vec;
 
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
@@ -2085,6 +2086,27 @@ pub struct PyInstruction {
     pub op_name: String,
     pub control_flow: bool,
     pub instruction: PyObject,
+}
+
+impl PyInstruction {
+    pub fn blocks(&self) -> Option<impl Iterator<Item = CircuitData>> {
+        Python::with_gil(|py| -> Option<vec::IntoIter<CircuitData>> {
+            let raw_blocks = self.instruction.getattr(py, "blocks").ok()?;
+            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).ok()?;
+            Some(
+                blocks
+                    .iter()
+                    .map(|b| {
+                        b.getattr(intern!(py, "_data"))
+                            .unwrap()
+                            .extract::<CircuitData>()
+                            .unwrap()
+                    })
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+            )
+        })
+    }
 }
 
 impl Operation for PyInstruction {
