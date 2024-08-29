@@ -996,8 +996,15 @@ impl CircuitData {
         self.param_table.clear();
     }
 
-    pub fn count_ops(&mut self) -> IndexMap<&str, usize> {
-        let mut ops_count: IndexMap<String, i32, ::ahash::RandomState> = IndexMap::default();
+    /// Counts the number of times each operation is used in the circuit.
+    ///
+    /// # Parameters
+    /// - `self` - A mutable reference to the CircuitData struct.
+    ///
+    /// # Returns
+    /// An IndexMap containing the operation names as keys and their respective counts as values.
+    pub fn count_ops(&mut self) -> IndexMap<String, usize, ::ahash::RandomState> {
+        let mut ops_count: IndexMap<String, usize, ::ahash::RandomState> = IndexMap::default();
         for instruction in &self.data {
             *ops_count
                 .entry(instruction.op.view().name().to_string())
@@ -1006,7 +1013,7 @@ impl CircuitData {
         ops_count.par_sort_by(|_k1, v1, _k2, v2| v2.cmp(v1));
         ops_count
     }
-    
+
     // Marks this pyclass as NOT hashable.
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
