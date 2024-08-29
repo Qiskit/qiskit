@@ -686,6 +686,13 @@ Within :class:`QuantumCircuit`, classical control flow is represented by specifi
 
     ControlFlowOp
 
+For convenience, there is a :class:`frozenset` instance containing the :attr:`.Instruction.name`
+attributes of each of the control-flow operations.
+
+.. data:: CONTROL_FLOW_OP_NAMES
+
+    Set of the instruction names of Qiskit's known control-flow operations.
+
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
 conditions and strategies, but contain all the different subcircuit blocks that might be entered in
@@ -1257,6 +1264,7 @@ from .controlflow import (
     CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
+    CONTROL_FLOW_OP_NAMES,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
