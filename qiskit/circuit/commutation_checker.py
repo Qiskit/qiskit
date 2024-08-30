@@ -15,7 +15,6 @@
 from typing import List, Union, Set, Optional
 
 from qiskit.circuit.operation import Operation
-from qiskit.utils import deprecate_func
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
 
 
@@ -27,14 +26,6 @@ class CommutationChecker:
     evicting from the cache less useful entries, etc.
     """
 
-    @deprecate_func(
-        additional_msg=(
-            "This Python implementation will stop to be maintained in the future. Instead, use the Rust"
-            " implementation at qiskit.circuit.commutation_library.SessionCommutationChecker."
-        ),
-        since="1.3.0",
-        pending=True,
-    )
     def __init__(
         self,
         standard_gate_commutations: dict = None,
