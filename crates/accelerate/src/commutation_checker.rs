@@ -15,7 +15,6 @@ use hashbrown::hash_map::Iter;
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
-use num_bigint::BigInt;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::intern;
