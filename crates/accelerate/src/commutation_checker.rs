@@ -53,10 +53,6 @@ struct CommutationChecker {
     #[pyo3(get)]
     current_cache_entries: usize,
     #[pyo3(get)]
-    _cache_miss: usize,
-    #[pyo3(get)]
-    _cache_hit: usize,
-    #[pyo3(get)]
     gates: Option<HashSet<String>>,
 }
 
@@ -76,8 +72,6 @@ impl CommutationChecker {
             cache: HashMap::new(),
             cache_max_entries,
             current_cache_entries: 0,
-            _cache_miss: 0,
-            _cache_hit: 0,
             gates,
         }
     }
@@ -171,8 +165,6 @@ impl CommutationChecker {
         let out_dict = PyDict::new_bound(py);
         out_dict.set_item("cache_max_entries", self.cache_max_entries)?;
         out_dict.set_item("current_cache_entries", self.current_cache_entries)?;
-        out_dict.set_item("_cache_miss", self._cache_miss)?;
-        out_dict.set_item("_cache_hit", self._cache_hit)?;
         out_dict.set_item("cache", self.cache.clone())?;
         out_dict.set_item("library", self.library.library.to_object(py))?;
         out_dict.set_item("gates", self.gates.clone())?;
@@ -189,8 +181,6 @@ impl CommutationChecker {
             .get_item("current_cache_entries")?
             .unwrap()
             .extract()?;
-        self._cache_miss = dict_state.get_item("_cache_miss")?.unwrap().extract()?;
-        self._cache_hit = dict_state.get_item("_cache_hit")?.unwrap().extract()?;
         self.library = CommutationLibrary {
             library: dict_state.get_item("library")?.unwrap().extract()?,
         };
@@ -283,25 +273,18 @@ impl CommutationChecker {
             return Ok(is_commuting);
         }
         // Query cache
-        match self
+        if let Some(commutation_dict) = self
             .cache
             .get(&(first_op.name().to_string(), second_op.name().to_string()))
         {
-            Some(commutation_dict) => {
-                let placement = get_relative_placement(first_qargs, second_qargs);
-                let hashes = (
-                    hashable_params(first_params)?,
-                    hashable_params(second_params)?,
-                );
-                match commutation_dict.get(&(placement, hashes)) {
-                    Some(commutation) => {
-                        self._cache_hit += 1;
-                        return Ok(*commutation);
-                    }
-                    None => self._cache_miss += 1,
-                }
+            let placement = get_relative_placement(first_qargs, second_qargs);
+            let hashes = (
+                hashable_params(first_params)?,
+                hashable_params(second_params)?,
+            );
+            if let Some(commutation) = commutation_dict.get(&(placement, hashes)) {
+                return Ok(*commutation);
             }
-            None => self._cache_miss += 1,
         }
 
         // Perform matrix multiplication to determine commutation
@@ -457,8 +440,6 @@ impl CommutationChecker {
     fn clear_cache(&mut self) {
         self.cache.clear();
         self.current_cache_entries = 0;
-        self._cache_miss = 0;
-        self._cache_hit = 0;
     }
 }
 
