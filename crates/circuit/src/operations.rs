@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use approx::relative_eq;
 use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
@@ -25,7 +26,7 @@ use smallvec::smallvec;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyTuple};
+use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyTuple};
 use pyo3::{intern, IntoPy, Python};
 
 #[derive(Clone, Debug)]
@@ -35,19 +36,38 @@ pub enum Param {
     Obj(PyObject),
 }
 
+impl Param {
+    pub fn eq(&self, py: Python, other: &Param) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(a == b),
+            [Self::Float(a), Self::ParameterExpression(b)] => b.bind(py).eq(a),
+            [Self::ParameterExpression(a), Self::Float(b)] => a.bind(py).eq(b),
+            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(_), Self::Float(_)] => Ok(false),
+            [Self::Float(_), Self::Obj(_)] => Ok(false),
+            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
+            [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
+        }
+    }
+
+    pub fn is_close(&self, py: Python, other: &Param, max_relative: f64) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
+            _ => self.eq(py, other),
+        }
+    }
+}
+
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(
-            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
-                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
-            {
-                Param::ParameterExpression(b.clone().unbind())
-            } else if let Ok(val) = b.extract::<f64>() {
-                Param::Float(val)
-            } else {
-                Param::Obj(b.clone().unbind())
-            },
-        )
+        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
+            Param::ParameterExpression(b.clone().unbind())
+        } else if let Ok(val) = b.extract::<f64>() {
+            Param::Float(val)
+        } else {
+            Param::Obj(b.clone().unbind())
+        })
     }
 }
 
@@ -71,6 +91,52 @@ impl ToPyObject for Param {
     }
 }
 
+impl Param {
+    /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
+    pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
+        let parameters_attr = intern!(py, "parameters");
+        match self {
+            Param::Float(_) => Ok(ParamParameterIter(None)),
+            Param::ParameterExpression(expr) => Ok(ParamParameterIter(Some(
+                expr.bind(py).getattr(parameters_attr)?.iter()?,
+            ))),
+            Param::Obj(obj) => {
+                let obj = obj.bind(py);
+                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                    Ok(ParamParameterIter(Some(
+                        obj.getattr(parameters_attr)?.iter()?,
+                    )))
+                } else {
+                    Ok(ParamParameterIter(None))
+                }
+            }
+        }
+    }
+
+    /// Extract from a Python object without numeric coercion to float.  The default conversion will
+    /// coerce integers into floats, but in things like `assign_parameters`, this is not always
+    /// desirable.
+    pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
+        Ok(if ob.is_instance_of::<PyFloat>() {
+            Param::Float(ob.extract()?)
+        } else if ob.is_instance(PARAMETER_EXPRESSION.get_bound(ob.py()))? {
+            Param::ParameterExpression(ob.clone().unbind())
+        } else {
+            Param::Obj(ob.clone().unbind())
+        })
+    }
+}
+
+/// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
+pub struct ParamParameterIter<'py>(Option<Bound<'py, PyIterator>>);
+impl<'py> Iterator for ParamParameterIter<'py> {
+    type Item = PyResult<Bound<'py, PyAny>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.as_mut().and_then(|iter| iter.next())
+    }
+}
+
 /// Trait for generic circuit operations these define the common attributes
 /// needed for something to be addable to the circuit struct
 pub trait Operation {
@@ -89,6 +155,7 @@ pub trait Operation {
 /// `PackedInstruction::op`, and in turn is a view object onto a `PackedOperation`.
 ///
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
+#[derive(Debug)]
 pub enum OperationRef<'a> {
     Standard(StandardGate),
     Gate(&'a PyGate),
