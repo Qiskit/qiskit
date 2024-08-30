@@ -34,7 +34,7 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::{BitType, Clbit, Qubit};
 
 static SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
-// static NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
+static NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
 static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
     HashSet::from([
         "h", "x", "y", "z", "sx", "sxdg", "t", "tdg", "s", "sdg", "cx", "cy", "cz", "swap",
@@ -256,14 +256,55 @@ impl CommutationChecker {
             (qargs1, qargs2)
         };
 
-        // let skip_cache: bool = NO_CACHE_NAMES.contains(&first_op.name()) ||
-        //     NO_CACHE_NAMES.contains(&second_op.name()) ||
-        //     // Skip params that do not evaluate to floats for caching and commutation library
-        //     first_params.iter().any(|p| !matches!(p, Param::Float(_))) ||
-        //     second_params.iter().any(|p| !matches!(p, Param::Float(_)));
+        let skip_cache: bool = NO_CACHE_NAMES.contains(&first_op.name()) ||
+            NO_CACHE_NAMES.contains(&second_op.name()) ||
+            // Skip params that do not evaluate to floats for caching and commutation library
+            first_params.iter().any(|p| !matches!(p, Param::Float(_))) ||
+            second_params.iter().any(|p| !matches!(p, Param::Float(_)));
 
-        // if skip_cache {
-        return self.commute_matmul(
+        if skip_cache {
+            return self.commute_matmul(
+                py,
+                first_op,
+                first_params,
+                first_qargs,
+                second_op,
+                second_params,
+                second_qargs,
+            );
+        }
+
+        // Query commutation library
+        if let Some(is_commuting) =
+            self.library
+                .check_commutation_entries(first_op, first_qargs, second_op, second_qargs)
+        {
+            return Ok(is_commuting);
+        }
+        // Query cache
+        match self
+            .cache
+            .get(&(first_op.name().to_string(), second_op.name().to_string()))
+        {
+            Some(commutation_dict) => {
+                let placement = get_relative_placement(first_qargs, second_qargs);
+                let hashes = (
+                    hashable_params(first_params),
+                    hashable_params(second_params),
+                );
+                match commutation_dict.get(&(placement, hashes)) {
+                    Some(commutation) => {
+                        self._cache_hit += 1;
+                        return Ok(*commutation);
+                    }
+                    None => self._cache_miss += 1,
+                }
+            }
+            None => self._cache_miss += 1,
+        }
+
+        // Perform matrix multiplication to determine commutation
+        let is_commuting = self.commute_matmul(
             py,
             first_op,
             first_params,
@@ -271,81 +312,40 @@ impl CommutationChecker {
             second_op,
             second_params,
             second_qargs,
-        );
-        // }
+        )?;
 
-        // // Query commutation library
-        // if let Some(is_commuting) =
-        //     self.library
-        //         .check_commutation_entries(first_op, first_qargs, second_op, second_qargs)
-        // {
-        //     return Ok(is_commuting);
-        // }
-        // // Query cache
-        // match self
-        //     .cache
-        //     .get(&(first_op.name().to_string(), second_op.name().to_string()))
-        // {
-        //     Some(commutation_dict) => {
-        //         let placement = get_relative_placement(first_qargs, second_qargs);
-        //         let hashes = (
-        //             hashable_params(first_params),
-        //             hashable_params(second_params),
-        //         );
-        //         match commutation_dict.get(&(placement, hashes)) {
-        //             Some(commutation) => {
-        //                 self._cache_hit += 1;
-        //                 return Ok(*commutation);
-        //             }
-        //             None => self._cache_miss += 1,
-        //         }
-        //     }
-        //     None => self._cache_miss += 1,
-        // }
-
-        // // Perform matrix multiplication to determine commutation
-        // let is_commuting = self.commute_matmul(
-        //     py,
-        //     first_op,
-        //     first_params,
-        //     first_qargs,
-        //     second_op,
-        //     second_params,
-        //     second_qargs,
-        // )?;
-
-        // // TODO: implement a LRU cache for this
-        // if self.current_cache_entries >= self.cache_max_entries {
-        //     self.clear_cache();
-        // }
-        // // Cache results from is_commuting
-        // self.cache
-        //     .entry((first_op.name().to_string(), second_op.name().to_string()))
-        //     .and_modify(|entries| {
-        //         let key = (
-        //             get_relative_placement(first_qargs, second_qargs),
-        //             (
-        //                 hashable_params(first_params),
-        //                 hashable_params(second_params),
-        //             ),
-        //         );
-        //         entries.insert(key, is_commuting);
-        //         self.current_cache_entries += 1;
-        //     })
-        //     .or_insert_with(|| {
-        //         let mut entries = HashMap::with_capacity(1);
-        //         let key = (
-        //             get_relative_placement(first_qargs, second_qargs),
-        //             (
-        //                 hashable_params(first_params),
-        //                 hashable_params(second_params),
-        //             ),
-        //         );
-        //         entries.insert(key, is_commuting);
-        //         self.current_cache_entries += 1;
-        //         CommutationCacheEntry { mapping: entries }
-        //     });
-        // Ok(is_commuting)
+        // TODO: implement a LRU cache for this
+        if self.current_cache_entries >= self.cache_max_entries {
+            self.clear_cache();
+        }
+        // Cache results from is_commuting
+        self.cache
+            .entry((first_op.name().to_string(), second_op.name().to_string()))
+            .and_modify(|entries| {
+                let key = (
+                    get_relative_placement(first_qargs, second_qargs),
+                    (
+                        hashable_params(first_params),
+                        hashable_params(second_params),
+                    ),
+                );
+                entries.insert(key, is_commuting);
+                self.current_cache_entries += 1;
+            })
+            .or_insert_with(|| {
+                let mut entries = HashMap::with_capacity(1);
+                let key = (
+                    get_relative_placement(first_qargs, second_qargs),
+                    (
+                        hashable_params(first_params),
+                        hashable_params(second_params),
+                    ),
+                );
+                entries.insert(key, is_commuting);
+                self.current_cache_entries += 1;
+                CommutationCacheEntry { mapping: entries }
+            });
+        Ok(is_commuting)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -543,21 +543,21 @@ where
             .any(|x| matches!(x, Param::ParameterExpression(_)))
 }
 
-// fn get_relative_placement(
-//     first_qargs: &[Qubit],
-//     second_qargs: &[Qubit],
-// ) -> SmallVec<[Option<Qubit>; 2]> {
-//     let qubits_g2: HashMap<_, _> = second_qargs
-//         .iter()
-//         .enumerate()
-//         .map(|(i_g1, q_g1)| (q_g1, Qubit(i_g1 as u32)))
-//         .collect();
+fn get_relative_placement(
+    first_qargs: &[Qubit],
+    second_qargs: &[Qubit],
+) -> SmallVec<[Option<Qubit>; 2]> {
+    let qubits_g2: HashMap<_, _> = second_qargs
+        .iter()
+        .enumerate()
+        .map(|(i_g1, q_g1)| (q_g1, Qubit(i_g1 as u32)))
+        .collect();
 
-//     first_qargs
-//         .iter()
-//         .map(|q_g0| qubits_g2.get(q_g0).copied())
-//         .collect()
-// }
+    first_qargs
+        .iter()
+        .map(|q_g0| qubits_g2.get(q_g0).copied())
+        .collect()
+}
 
 #[derive(Clone, Debug)]
 #[pyclass]
@@ -565,27 +565,27 @@ pub struct CommutationLibrary {
     pub library: Option<HashMap<(String, String), CommutationLibraryEntry>>,
 }
 
-// impl CommutationLibrary {
-//     fn check_commutation_entries(
-//         &self,
-//         first_op: &OperationRef,
-//         first_qargs: &[Qubit],
-//         second_op: &OperationRef,
-//         second_qargs: &[Qubit],
-//     ) -> Option<bool> {
-//         if let Some(library) = &self.library {
-//             match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
-//                 Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
-//                 Some(CommutationLibraryEntry::QubitMapping(qm)) => qm
-//                     .get(&get_relative_placement(first_qargs, second_qargs))
-//                     .copied(),
-//                 _ => None,
-//             }
-//         } else {
-//             None
-//         }
-//     }
-// }
+impl CommutationLibrary {
+    fn check_commutation_entries(
+        &self,
+        first_op: &OperationRef,
+        first_qargs: &[Qubit],
+        second_op: &OperationRef,
+        second_qargs: &[Qubit],
+    ) -> Option<bool> {
+        if let Some(library) = &self.library {
+            match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
+                Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
+                Some(CommutationLibraryEntry::QubitMapping(qm)) => qm
+                    .get(&get_relative_placement(first_qargs, second_qargs))
+                    .copied(),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+}
 
 #[pymethods]
 impl CommutationLibrary {
@@ -659,16 +659,16 @@ struct CommutationCacheEntry {
     mapping: HashMap<CacheKey, bool>,
 }
 impl CommutationCacheEntry {
-    // fn get(&self, key: &CacheKey) -> Option<&bool> {
-    //     self.mapping.get(key)
-    // }
+    fn get(&self, key: &CacheKey) -> Option<&bool> {
+        self.mapping.get(key)
+    }
     fn iter(&self) -> Iter<'_, CacheKey, bool> {
         self.mapping.iter()
     }
 
-    // fn insert(&mut self, k: CacheKey, v: bool) -> Option<bool> {
-    //     self.mapping.insert(k, v)
-    // }
+    fn insert(&mut self, k: CacheKey, v: bool) -> Option<bool> {
+        self.mapping.insert(k, v)
+    }
 }
 
 impl ToPyObject for CommutationCacheEntry {
@@ -735,18 +735,18 @@ impl PartialEq for ParameterKey {
 
 impl Eq for ParameterKey {}
 
-// fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
-//     params
-//         .iter()
-//         .map(|x| {
-//             if let Param::Float(x) = x {
-//                 ParameterKey(*x)
-//             } else {
-//                 panic!("Unable to hash a non-float instruction parameter.")
-//             }
-//         })
-//         .collect()
-// }
+fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
+    params
+        .iter()
+        .map(|x| {
+            if let Param::Float(x) = x {
+                ParameterKey(*x)
+            } else {
+                panic!("Unable to hash a non-float instruction parameter.")
+            }
+        })
+        .collect()
+}
 
 #[pymodule]
 pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
