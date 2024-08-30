@@ -51,7 +51,7 @@ class Split2QUnitaries(TransformationPass):
             ):
                 continue
 
-            decomp = TwoQubitWeylDecomposition(node.matrix, fidelity=self.requested_fidelity)
+            decomp = TwoQubitWeylDecomposition(node.op, fidelity=self.requested_fidelity)
             if (
                 decomp._inner_decomposition.specialization
                 == TwoQubitWeylDecomposition._specializations.IdEquiv
