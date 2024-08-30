@@ -114,11 +114,6 @@ pub struct CircuitInstruction {
 }
 
 impl CircuitInstruction {
-    /// View the operation in this `CircuitInstruction`.
-    pub fn op(&self) -> OperationRef {
-        self.operation.view()
-    }
-
     /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
     /// gates might not necessarily satisfy this otherwise).
     ///
@@ -134,6 +129,12 @@ impl CircuitInstruction {
         } else {
             out.call_method0(intern!(py, "to_mutable"))
         }
+    }
+
+    pub fn condition(&self) -> Option<&PyObject> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|args| args.condition.as_ref())
     }
 }
 
@@ -230,7 +231,7 @@ impl CircuitInstruction {
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
     fn get_name(&self, py: Python) -> PyObject {
-        self.op().name().to_object(py)
+        self.operation.name().to_object(py)
     }
 
     #[getter]
@@ -252,7 +253,7 @@ impl CircuitInstruction {
     }
 
     #[getter]
-    fn condition(&self, py: Python) -> Option<PyObject> {
+    fn get_condition(&self, py: Python) -> Option<PyObject> {
         self.extra_attrs
             .as_ref()
             .and_then(|attrs| attrs.condition.as_ref().map(|x| x.clone_ref(py)))
@@ -292,13 +293,13 @@ impl CircuitInstruction {
 
     /// Is the :class:`.Operation` contained in this node a directive?
     pub fn is_directive(&self) -> bool {
-        self.op().directive()
+        self.operation.directive()
     }
 
     /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
     /// instance of :class:`.ControlFlowOp`)?
     pub fn is_control_flow(&self) -> bool {
-        self.op().control_flow()
+        self.operation.control_flow()
     }
 
     /// Does this instruction contain any :class:`.ParameterExpression` parameters?
