@@ -13,6 +13,7 @@
 use itertools::Itertools;
 
 use pyo3::exceptions::PyTypeError;
+use qiskit_circuit::parameter_table::ParameterUuid;
 use rustworkx_core::petgraph::csr::IndexType;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::IntoEdgeReferences;
@@ -26,8 +27,8 @@ use exceptions::CircuitError;
 
 use ahash::RandomState;
 use indexmap::{IndexMap, IndexSet};
+use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySet, PyString};
-use pyo3::{prelude::*, types::IntoPyDict};
 
 use rustworkx_core::petgraph::{
     graph::{EdgeIndex, NodeIndex},
@@ -36,7 +37,7 @@ use rustworkx_core::petgraph::{
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::ImportOnceCell;
+use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -46,8 +47,6 @@ mod exceptions {
     import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
 }
 pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
-pub static QUANTUMCIRCUIT: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 
 // Custom Structs
 
@@ -288,39 +287,15 @@ impl<'py> FromPyObject<'py> for GateOper {
 /// Representation of QuantumCircuit which the original circuit object + an
 /// instance of `CircuitData`.
 #[derive(Debug, Clone)]
-pub struct CircuitRep {
-    object: PyObject,
-    pub num_qubits: usize,
-    pub num_clbits: usize,
-    pub data: CircuitData,
-}
-
-impl CircuitRep {
-    /// Performs a shallow cloning of the structure by using `clone_ref()`.
-    pub fn py_clone(&self, py: Python) -> Self {
-        Self {
-            object: self.object.clone_ref(py),
-            num_qubits: self.num_qubits,
-            num_clbits: self.num_clbits,
-            data: self.data.clone(),
-        }
-    }
-}
+pub struct CircuitRep(CircuitData);
 
 impl FromPyObject<'_> for CircuitRep {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if ob.is_instance(QUANTUMCIRCUIT.get_bound(ob.py()))? {
+        if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
             let data_downcast: Bound<CircuitData> = data.downcast_into()?;
             let data_extract: CircuitData = data_downcast.extract()?;
-            let num_qubits: usize = data_extract.num_qubits();
-            let num_clbits: usize = data_extract.num_clbits();
-            Ok(Self {
-                object: ob.into_py(ob.py()),
-                num_qubits,
-                num_clbits,
-                data: data_extract,
-            })
+            Ok(Self(data_extract))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",
@@ -330,14 +305,18 @@ impl FromPyObject<'_> for CircuitRep {
 }
 
 impl IntoPy<PyObject> for CircuitRep {
-    fn into_py(self, _py: Python<'_>) -> PyObject {
-        self.object
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1("_from_circuit_data", (self.0,))
+            .unwrap()
+            .unbind()
     }
 }
 
 impl ToPyObject for CircuitRep {
     fn to_object(&self, py: Python<'_>) -> PyObject {
-        self.object.clone_ref(py)
+        self.clone().into_py(py)
     }
 }
 
@@ -434,7 +413,7 @@ impl EquivalenceLibrary {
     fn set_entry(&mut self, py: Python, gate: GateOper, entry: Vec<CircuitRep>) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(&gate, equiv)?;
-            raise_if_param_mismatch(py, &gate.params, equiv.data.unsorted_parameters(py)?)?;
+            raise_if_param_mismatch(py, &gate.params, equiv.0.unsorted_parameters(py)?)?;
         }
         let op_ref: OperationRef = gate.operation.view();
         let key = Key {
@@ -605,7 +584,7 @@ impl EquivalenceLibrary {
         raise_if_param_mismatch(
             py,
             &gate.params,
-            equivalent_circuit.data.unsorted_parameters(py)?,
+            equivalent_circuit.0.unsorted_parameters(py)?,
         )?;
         let op_ref = gate.operation.view();
         let key: Key = Key {
@@ -614,7 +593,7 @@ impl EquivalenceLibrary {
         };
         let equiv = Equivalence {
             params: gate.params.clone(),
-            circuit: equivalent_circuit.py_clone(py),
+            circuit: equivalent_circuit.clone(),
         };
 
         let target = self.set_default_node(key);
@@ -622,7 +601,7 @@ impl EquivalenceLibrary {
             node.equivs.push(equiv.clone());
         }
         let sources: IndexSet<Key, RandomState> =
-            IndexSet::from_iter(equivalent_circuit.data.iter().map(|inst| Key {
+            IndexSet::from_iter(equivalent_circuit.0.iter().map(|inst| Key {
                 name: inst.op.view().name().to_string(),
                 num_qubits: inst.op.view().num_qubits(),
             }));
@@ -718,8 +697,8 @@ fn raise_if_param_mismatch(
 
 fn raise_if_shape_mismatch(gate: &GateOper, circuit: &CircuitRep) -> PyResult<()> {
     let op_ref = gate.operation.view();
-    if op_ref.num_qubits() != circuit.num_qubits as u32
-        || op_ref.num_clbits() != circuit.num_clbits as u32
+    if op_ref.num_qubits() != circuit.0.num_qubits() as u32
+        || op_ref.num_clbits() != circuit.0.num_clbits() as u32
     {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
@@ -727,34 +706,30 @@ fn raise_if_shape_mismatch(gate: &GateOper, circuit: &CircuitRep) -> PyResult<()
             Circuit: {} qubits and {} clbits.",
             op_ref.num_qubits(),
             op_ref.num_clbits(),
-            circuit.num_qubits,
-            circuit.num_clbits
+            circuit.0.num_qubits(),
+            circuit.0.num_clbits()
         )));
     }
     Ok(())
 }
 
-fn rebind_equiv(py: Python, equiv: Equivalence, query_params: &[Param]) -> PyResult<PyObject> {
-    let (equiv_params, equiv_circuit) = (equiv.params, equiv.circuit);
-    let param_iter = equiv_params
-        .into_iter()
-        .zip(query_params.iter().cloned())
+fn rebind_equiv(py: Python, equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitRep> {
+    let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
+    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param>> = equiv_params
+        .iter()
+        .zip(query_params.iter())
         .filter_map(|(param_x, param_y)| match param_x {
-            Param::ParameterExpression(_) => Some((param_x, param_y)),
+            Param::ParameterExpression(param) => {
+                let param_uuid = ParameterUuid::from_parameter(param.bind(py));
+                Some(param_uuid.map(|uuid| (uuid, param_y)))
+            }
             _ => None,
-        });
-    let param_map = PyDict::new_bound(py);
-    for (param_key, param_val) in param_iter {
-        param_map.set_item(param_key, param_val)?;
-    }
-    let kwargs = [("inplace", false), ("flat_input", true)].into_py_dict_bound(py);
-    let new_equiv = equiv_circuit.into_py(py).call_method_bound(
-        py,
-        "assign_parameters",
-        (param_map,),
-        Some(&kwargs),
-    )?;
-    Ok(new_equiv)
+        })
+        .collect();
+    equiv_circuit
+        .0
+        .assign_parameters_from_mapping(py, param_mapping?)?;
+    Ok(equiv_circuit)
 }
 
 // Errors
