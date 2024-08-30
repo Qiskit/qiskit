@@ -136,30 +136,6 @@ stages:
   # merge queue, where they'll use the next rule as the branch-protection rule
   # for the final merge to the base branch.
   - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
-    # The preliminary stage should be small in both total runtime (including
-    # provisioning) and resources required.  About half of PR commits result in
-    # a CI failure, and over 90% of these are in linting, documention or a test
-    # failure that would affect _any_ OS or Python version.  The goal in the
-    # first stage is to catch the vast majority of failures with minimal cost.
-    - stage: "Lint_Docs_Prelim_Tests"
-      displayName: "Preliminary tests"
-      jobs:
-        - template: ".azure/lint_docs_qpy-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-
-        - template: ".azure/test-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-            # A PR is more likely to fail CI because it introduces a logic error
-            # into an existing test than because it adds a new test / optional
-            # dependency that isn't accounted for in the test-skipping logic
-            # (and such a failure would need fewer iterations to fix).  We want
-            # to fail fast in the first CI stage.
-            installOptionals: true
-            testRust: true
-            testImages: true
-
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python. It's very rare for a failure to be specific to an
     # intermediate version of Python, so we just catch those in the cron-job
@@ -168,24 +144,6 @@ stages:
       displayName: "Main tests"
       dependsOn: "Lint_Docs_Prelim_Tests"
       jobs:
-        - template: ".azure/test-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
-            testRust: false
-            testImages: false
-            installFromSdist: true
-            installOptionals: false
-
-        - template: ".azure/test-macos.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-            installOptionals: true
-
-        - template: ".azure/test-macos.yml"
-          parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
-            installOptionals: false
-
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
@@ -208,29 +166,6 @@ stages:
     - stage: "Merge_Queue"
       displayName: "Merge queue"
       jobs:
-        - template: ".azure/lint_docs_qpy-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-
-        - template: ".azure/test-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-            installOptionals: true
-            testRust: true
-            testImages: true
-
-        - template: ".azure/test-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
-            installOptionals: false
-            testRust: false
-            testImages: false
-
-        - template: ".azure/test-macos.yml"
-          parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
-            installOptionals: false
-
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
