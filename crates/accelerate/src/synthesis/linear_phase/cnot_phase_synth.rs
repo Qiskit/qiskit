@@ -22,7 +22,7 @@ use std::f64::consts::PI;
 
 /// This function implements a Gray-code inspired algorithm of synthesizing a circuit
 /// over CNOT and phase-gates with minimal-CNOT for a given phase-polynomial.
-/// The algorithm is described as "Gray-Synth" algorithm in Algorithm-1, page 12 
+/// The algorithm is described as "Gray-Synth" algorithm in Algorithm-1, page 12
 /// of paper "https://arxiv.org/abs/1712.01859".
 #[pyfunction]
 #[pyo3(signature = (cnots, angles, section_size=2))]
