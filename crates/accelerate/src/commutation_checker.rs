@@ -243,8 +243,7 @@ impl CommutationChecker {
         } else {
             // we use a conversion to BigInt here instead of just op1.name() >= op2.name(), because
             // strings are sorted differently in Rust and in Python,
-            BigInt::from_signed_bytes_be(op1.name().as_bytes())
-                >= BigInt::from_signed_bytes_be(op2.name().as_bytes())
+            (op1.name().len(), op1.name()) >= (op2.name().len(), op2.name())
         };
         let (first_params, second_params) = if reversed {
             (params2, params1)
