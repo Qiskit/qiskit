@@ -199,7 +199,7 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
-        let no_clbit_index = res.cargs_interner.insert(&[]);
+        let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
@@ -258,7 +258,7 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) -> PyResult<()> {
-        let no_clbit_index = self.cargs_interner.insert(&[]);
+        let no_clbit_index = self.cargs_interner.get_default();
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction {
