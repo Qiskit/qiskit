@@ -19,7 +19,6 @@
 import itertools
 from functools import lru_cache
 from typing import List
-from qiskit.circuit.commutation_checker import _get_relative_placement
 from qiskit.circuit import Gate, CommutationChecker
 import qiskit.circuit.library.standard_gates as stdg
 from qiskit.dagcircuit import DAGOpNode
@@ -64,6 +63,24 @@ def _order_operations(op1, qargs1, cargs1, op2, qargs2, cargs2):
             if _persistent_id(op1.name) < _persistent_id(op2.name)
             else (op2_tuple, op1_tuple)
         )
+
+
+def _get_relative_placement(first_qargs, second_qargs) -> tuple:
+    """Determines the relative qubit placement of two gates. Note: this is NOT symmetric.
+
+    Args:
+        first_qargs (DAGOpNode): first gate
+        second_qargs (DAGOpNode): second gate
+
+    Return:
+        A tuple that describes the relative qubit placement: E.g.
+        _get_relative_placement(CX(0, 1), CX(1, 2)) would return (None, 0) as there is no overlap on
+        the first qubit of the first gate but there is an overlap on the second qubit of the first gate,
+        i.e. qubit 0 of the second gate. Likewise,
+        _get_relative_placement(CX(1, 2), CX(0, 1)) would return (1, None)
+    """
+    qubits_g2 = {q_g1: i_g1 for i_g1, q_g1 in enumerate(second_qargs)}
+    return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
 
 
 @lru_cache(None)

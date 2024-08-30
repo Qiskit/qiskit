@@ -13,9 +13,7 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from typing import List, Union, Set, Optional
-import numpy as np
 
-from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.utils import deprecate_func
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
@@ -112,123 +110,6 @@ class CommutationChecker:
         Return:
             bool: True if the gates commute and false if it is not the case.
         """
-        # Note to the interested reader: This function has a Rust equivalent in the
-        # Python-exposed class ``qiskit._accelerate.commutation_checker.CommutationLibrary``,
-        # but is no longer part of the Rust version of ``CommutationChecker``.
-
-        # We don't precompute commutations for parameterized gates, yet
-        commutation = _query_commutation(
-            first_op,
-            first_qargs,
-            second_op,
-            second_qargs,
-            self._standard_commutations,
+        return self.cc.library.check_commutation_entries(
+            first_op, first_qargs, second_op, second_qargs
         )
-
-        if commutation is not None:
-            return commutation
-
-        commutation = _query_commutation(
-            first_op,
-            first_qargs,
-            second_op,
-            second_qargs,
-            self._cached_commutations,
-        )
-        if commutation is None:
-            self._cache_miss += 1
-        else:
-            self._cache_hit += 1
-        return commutation
-
-
-def _hashable_parameters(params):
-    """Convert the parameters of a gate into a hashable format for lookup in a dictionary.
-
-    This aims to be fast in common cases, and is not intended to work outside of the lifetime of a
-    single commutation pass; it does not handle mutable state correctly if the state is actually
-    changed."""
-    try:
-        hash(params)
-        return params
-    except TypeError:
-        pass
-    if isinstance(params, (list, tuple)):
-        return tuple(_hashable_parameters(x) for x in params)
-    if isinstance(params, np.ndarray):
-        # Using the bytes of the matrix as key is runtime efficient but requires more space: 128 bits
-        # times the number of parameters instead of a single 64 bit id. However, by using the bytes as
-        # an id, we can reuse the cached commutations between different passes.
-        return (np.ndarray, params.tobytes())
-    # Catch anything else with a slow conversion.
-    return ("fallback", str(params))
-
-
-def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit]) -> tuple:
-    """Determines the relative qubit placement of two gates. Note: this is NOT symmetric.
-
-    Args:
-        first_qargs (DAGOpNode): first gate
-        second_qargs (DAGOpNode): second gate
-
-    Return:
-        A tuple that describes the relative qubit placement: E.g.
-        _get_relative_placement(CX(0, 1), CX(1, 2)) would return (None, 0) as there is no overlap on
-        the first qubit of the first gate but there is an overlap on the second qubit of the first gate,
-        i.e. qubit 0 of the second gate. Likewise,
-        _get_relative_placement(CX(1, 2), CX(0, 1)) would return (1, None)
-    """
-    qubits_g2 = {q_g1: i_g1 for i_g1, q_g1 in enumerate(second_qargs)}
-    return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
-
-
-def _query_commutation(
-    first_op: Operation,
-    first_qargs: List,
-    second_op: Operation,
-    second_qargs: List,
-    _commutation_lib: dict,
-) -> Union[bool, None]:
-    """Queries and returns the commutation of a pair of operations from a provided commutation library
-    Args:
-        first_op: first operation.
-        first_qargs: first operation's qubits.
-        first_cargs: first operation's clbits.
-        second_op: second operation.
-        second_qargs: second operation's qubits.
-        second_cargs: second operation's clbits.
-        _commutation_lib (dict): dictionary of commutation relations
-    Return:
-        True if first_op and second_op commute, False if they do not commute and
-        None if the commutation is not in the library
-    """
-
-    commutation = _commutation_lib.get((first_op.name, second_op.name), None)
-
-    # Return here if the commutation is constant over all relative placements of the operations
-    if commutation is None or isinstance(commutation, bool):
-        return commutation
-
-    # If we arrive here, there is an entry in the commutation library but it depends on the
-    # placement of the operations and also possibly on operation parameters
-    if isinstance(commutation, dict):
-        commutation_after_placement = commutation.get(
-            _get_relative_placement(first_qargs, second_qargs), None
-        )
-        # if we have another dict in commutation_after_placement, commutation depends on params
-        if isinstance(commutation_after_placement, dict):
-            # Param commutation entry exists and must be a dict
-            first_params = getattr(first_op, "params", [])
-            second_params = getattr(second_op, "params", [])
-            return commutation_after_placement.get(
-                (
-                    _hashable_parameters(first_params),
-                    _hashable_parameters(second_params),
-                ),
-                None,
-            )
-        else:
-            # queried commutation is True, False or None
-            return commutation_after_placement
-    else:
-        raise ValueError("Expected commutation to be None, bool or a dict")
