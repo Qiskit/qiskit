@@ -50,17 +50,23 @@ unsafe impl<T: ?Sized> Sync for Interned<T> {}
 /// itself (the `Interned` type), rather than raw references; the `Interned` type is narrower than a
 /// true reference.
 ///
+/// This is only implemented for owned types that implement `Default`, so that the convenience
+/// method `Interner::get_default` can work reliably and correctly; the "default" index needs to be
+/// guaranteed to be reserved and present for safety.
+///
 /// # Examples
 ///
 /// ```rust
 /// let mut interner = Interner::<[usize]>::new();
 ///
 /// // These are of type `Interned<[usize]>`.
+/// let default_empty = interner.get_default();
 /// let empty = interner.insert(&[]);
 /// let other_empty = interner.insert(&[]);
 /// let key = interner.insert(&[0, 1, 2, 3, 4]);
 ///
 /// assert_eq!(empty, other_empty);
+/// assert_eq!(empty, default_empty);
 /// assert_ne!(empty, key);
 ///
 /// assert_eq!(interner.get(empty), &[]);
@@ -93,9 +99,31 @@ where
 impl<T> Interner<T>
 where
     T: ?Sized + ToOwned,
+    <T as ToOwned>::Owned: Hash + Eq + Default,
 {
+    /// Construct a new interner.  The stored type must have a default value, in order for
+    /// `Interner::get_default` to reliably work correctly without a hash lookup (though ideally
+    /// we'd just use specialisation to do that).
     pub fn new() -> Self {
-        Self(Default::default())
+        let mut set = IndexSet::with_capacity_and_hasher(1, Default::default());
+        set.insert(Default::default());
+        Self(set)
+    }
+
+    /// Retrieve the key corresponding to the default store, without any hash or equality lookup.
+    /// For example, if the interned type is `[Clbit]`, the default key corresponds to the empty
+    /// slice `&[]`.  This is a common operation with the cargs interner, for things like pushing
+    /// gates.
+    ///
+    /// In an ideal world, we wouldn't have the `Default` trait bound on `new`, but would use
+    /// specialisation to insert the default key only if the stored value implemented `Default`
+    /// (we'd still trait-bound this method).
+    #[inline(always)]
+    pub fn get_default(&self) -> Interned<T> {
+        Interned {
+            index: 0,
+            _type: PhantomData,
+        }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
