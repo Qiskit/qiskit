@@ -216,28 +216,24 @@ pub fn synth_cnot_phase_aam(
             continue;
         }
 
-        let mut maxes: Vec<usize> = vec![];
-        for row in _s.rows() {
-            maxes.push(std::cmp::max(
-                row.iter().filter(|&&x| x == 0).count(),
-                row.iter().filter(|&&x| x == 1).count(),
-            ));
-        }
+        let maxes: Vec<usize> = _s
+            .axis_iter(numpy::ndarray::Axis(0))
+            .map(|row| {
+                std::cmp::max(
+                    row.iter().filter(|&&x| x == 0).count(),
+                    row.iter().filter(|&&x| x == 1).count(),
+                )
+            })
+            .collect();
 
-        let mut maxes2: Vec<usize> = vec![];
-        for _i_idx in _i.clone() {
-            maxes2.push(maxes[_i_idx]);
-        }
+        let maxes2: Vec<usize> = _i.iter().map(|&_i_idx| maxes[_i_idx]).collect();
 
-        let mut _temp_max = maxes2[0];
-        let mut _temp_argmax = 0_usize;
-
-        for (idx, &ele) in maxes2.iter().enumerate() {
-            if ele > _temp_max {
-                _temp_max = ele;
-                _temp_argmax = idx;
-            }
-        }
+        let _temp_argmax = maxes2
+            .iter()
+            .enumerate()
+            .max_by(|(_, x), (_, y)| x.cmp(y))
+            .map(|(idx, _)| idx)
+            .unwrap();
 
         let _j = _i[_temp_argmax];
 
