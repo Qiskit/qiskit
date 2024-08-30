@@ -12,8 +12,6 @@
 
 """Analysis pass to find commutation relations between DAG nodes."""
 
-from collections import defaultdict
-
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit._accelerate.commutation_analysis import analyze_commutations
 from qiskit.transpiler.basepasses import AnalysisPass

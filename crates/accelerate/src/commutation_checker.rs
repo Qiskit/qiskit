@@ -44,7 +44,7 @@ static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
 });
 
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
-struct CommutationChecker {
+pub struct CommutationChecker {
     library: CommutationLibrary,
     cache_max_entries: usize,
     cache: HashMap<(String, String), CommutationCacheEntry>,
@@ -81,7 +81,7 @@ impl CommutationChecker {
     }
 
     #[pyo3(signature=(op1, op2, max_num_qubits=3))]
-    fn commute_nodes(
+    pub fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
@@ -117,7 +117,7 @@ impl CommutationChecker {
 
     #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3))]
     #[allow(clippy::too_many_arguments)]
-    fn commute(
+    pub fn commute(
         &mut self,
         py: Python,
         op1: OperationFromPython,
@@ -200,7 +200,7 @@ impl CommutationChecker {
 
 impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
-    fn commute_inner(
+    pub fn commute_inner(
         &mut self,
         py: Python,
         op1: &OperationRef,
