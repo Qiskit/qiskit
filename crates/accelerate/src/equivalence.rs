@@ -287,7 +287,7 @@ impl<'py> FromPyObject<'py> for GateOper {
 /// Representation of QuantumCircuit which the original circuit object + an
 /// instance of `CircuitData`.
 #[derive(Debug, Clone)]
-pub struct CircuitRep(CircuitData);
+pub struct CircuitRep(pub CircuitData);
 
 impl FromPyObject<'_> for CircuitRep {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
