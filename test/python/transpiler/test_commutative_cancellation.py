@@ -58,7 +58,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.y(qr[0])
         circuit.rz(0.5, qr[0])
         circuit.rz(0.5, qr[0])
-        circuit.append(lib.U1Gate(0.5), [qr[0]])  # TODO this should work with Phase gates too
+        circuit.append(lib.PhaseGate(0.5), [qr[0]])
         circuit.append(lib.U1Gate(0.5), [qr[0]])
         circuit.rx(0.5, qr[0])
         circuit.rx(0.5, qr[0])
@@ -789,30 +789,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
         new_circuit = passmanager.run(circ)
         self.assertEqual(new_circuit, circ)
-
-    def test_zz(self):
-        """Test ZZ is cancelled, even if no Z-rotation is in the circuit or basis."""
-        circuit = QuantumCircuit(1)
-        circuit.z(0)
-        circuit.z(0)
-
-        expected = QuantumCircuit(1)
-
-        passmanager = PassManager(CommutativeCancellation())
-        new_circuit = passmanager.run(circuit)
-
-        self.assertEqual(expected, new_circuit)
-
-    def test_basis_respected(self):
-        """Test the basis is respected."""
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
-        circuit.sx(0)
-
-        passmanager = PassManager(CommutativeCancellation(basis_gates=["x", "sx"]))
-        new_circuit = passmanager.run(circuit)
-
-        self.assertEqual(circuit, new_circuit)
 
 
 if __name__ == "__main__":

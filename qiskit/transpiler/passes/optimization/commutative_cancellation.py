@@ -61,7 +61,7 @@ class CommutativeCancellation(TransformationPass):
         elif basis_gates is not None:
             self.basis = set(basis_gates)
         else:
-            self.basis = None
+            self.basis = set()
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
 
@@ -86,12 +86,6 @@ class CommutativeCancellation(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        # Get the X and Z basis gate to collapse onto -- per default we choose RX and RZ, unless
-        # a basis is specified, then we try to use the gates available there.
-        basis = {"rx", "rz"} if self.basis is None else self.basis
-
-        var_x_gate = RXGate  # if "rx" in basis else None  # RX if available, else None
-
         # For RZ we do extra gymnastics: we prioritize the Z-rotation that is already in the
         # circuit, if there is one.
         var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
@@ -100,7 +94,7 @@ class CommutativeCancellation(TransformationPass):
             # prioritize z gates in circuit
             var_z_gate = var_z_map[z_var_gates[0]]
         else:
-            z_var_gates = [gate for gate in basis if gate in var_z_map]
+            z_var_gates = [gate for gate in self.basis if gate in var_z_map]
             if len(z_var_gates) > 0:
                 var_z_gate = var_z_map[z_var_gates[0]]
             else:
@@ -149,9 +143,6 @@ class CommutativeCancellation(TransformationPass):
             if cancel_set_key[0] == "z_rotation" and var_z_gate is None:
                 continue  # we would like to cancel, but our hands are bound
 
-            if cancel_set_key[0] == "x_rotation" and var_x_gate is None:
-                continue  # we would like to cancel, but our hands are bound
-
             set_len = len(cancellation_sets[cancel_set_key])
             if set_len > 1 and cancel_set_key[0] in self._gates:
                 gates_to_cancel = cancellation_sets[cancel_set_key]
@@ -197,7 +188,7 @@ class CommutativeCancellation(TransformationPass):
                 if cancel_set_key[0] == "z_rotation":
                     new_op = var_z_gate(total_angle)
                 elif cancel_set_key[0] == "x_rotation":
-                    new_op = var_x_gate(total_angle)
+                    new_op = RXGate(total_angle)
                 else:
                     raise RuntimeError("impossible case")
 
