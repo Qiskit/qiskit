@@ -70,7 +70,7 @@ impl CommutationChecker {
         Lazy::force(&SUPPORTED_OP);
         CommutationChecker {
             library: CommutationLibrary::new(standard_gate_commutations),
-            cache: HashMap::with_capacity(cache_max_entries),
+            cache: HashMap::new(),
             cache_max_entries,
             current_cache_entries: 0,
             _cache_miss: 0,
