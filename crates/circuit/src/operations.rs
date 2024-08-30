@@ -136,6 +136,9 @@ impl Param {
     }
 }
 
+// This impl allows for shared usage between [Param] and &[Param].
+// Such blanked impl doesn't exist inherently due to Rust's type system limitations.
+// See https://doc.rust-lang.org/std/convert/trait.AsRef.html#reflexivity for more information.
 impl AsRef<Param> for Param {
     fn as_ref(&self) -> &Param {
         self
