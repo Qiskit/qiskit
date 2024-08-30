@@ -16,15 +16,15 @@ use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
 use num_complex::Complex64;
-use numpy::PyReadonlyArray2;
-use pyo3::intern;
+use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 
-use crate::unitary_compose;
-use crate::QiskitError;
-use once_cell::sync::Lazy;
+use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
+
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
 use qiskit_circuit::dag_node::DAGOpNode;
@@ -32,6 +32,9 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::{BitType, Clbit, Qubit};
+
+use crate::unitary_compose;
+use crate::QiskitError;
 
 static SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
 static NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
@@ -240,8 +243,6 @@ impl CommutationChecker {
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
-            // we use a conversion to BigInt here instead of just op1.name() >= op2.name(), because
-            // strings are sorted differently in Rust and in Python,
             (op1.name().len(), op1.name()) >= (op2.name().len(), op2.name())
         };
         let (first_params, second_params) = if reversed {
@@ -289,8 +290,8 @@ impl CommutationChecker {
             Some(commutation_dict) => {
                 let placement = get_relative_placement(first_qargs, second_qargs);
                 let hashes = (
-                    hashable_params(first_params),
-                    hashable_params(second_params),
+                    hashable_params(first_params)?,
+                    hashable_params(second_params)?,
                 );
                 match commutation_dict.get(&(placement, hashes)) {
                     Some(commutation) => {
@@ -319,15 +320,14 @@ impl CommutationChecker {
             self.clear_cache();
         }
         // Cache results from is_commuting
+        let key1 = hashable_params(first_params)?;
+        let key2 = hashable_params(second_params)?;
         self.cache
             .entry((first_op.name().to_string(), second_op.name().to_string()))
             .and_modify(|entries| {
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
-                    (
-                        hashable_params(first_params),
-                        hashable_params(second_params),
-                    ),
+                    (key1.clone(), key2.clone()),
                 );
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
@@ -336,10 +336,7 @@ impl CommutationChecker {
                 let mut entries = HashMap::with_capacity(1);
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
-                    (
-                        hashable_params(first_params),
-                        hashable_params(second_params),
-                    ),
+                    (key1, key2),
                 );
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
@@ -653,6 +650,7 @@ type CacheKey = (
     SmallVec<[Option<Qubit>; 2]>,
     (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
 );
+
 // Need a struct instead of a type definition because we cannot implement serialization traits otherwise
 #[derive(Clone, Debug)]
 struct CommutationCacheEntry {
@@ -709,12 +707,26 @@ impl<'py> FromPyObject<'py> for CommutationCacheEntry {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+/// This newtype wraps a f64 to make it hashable so we can cache parameterized gates
+/// based on the parameter value (assuming it's a float angle). However, Rust doesn't do
+/// this by default and there are edge cases to track around it's usage. The biggest one
+/// is this does not work with f64::NAN, f64::INFINITY, or f64::NEG_INFINITY
+/// If you try to use these values with this type they will not work as expected.
+/// This should only be used with the cache hashmap's keys and not used beyond that.
+#[derive(Debug, Copy, Clone, PartialEq)]
 struct ParameterKey(f64);
 
 impl ParameterKey {
     fn key(&self) -> u64 {
-        self.0.to_bits()
+        // If we get a -0 the to_bits() return is not equivalent to 0
+        // because -0 has the sign bit set we'd be hashing 9223372036854775808
+        // and be storing it separately from 0. So this normalizes all 0s to
+        // be represented by 0
+        if self.0 == 0. {
+            0
+        } else {
+            self.0.to_bits()
+        }
     }
 }
 
@@ -727,20 +739,24 @@ impl std::hash::Hash for ParameterKey {
     }
 }
 
-impl PartialEq for ParameterKey {
-    fn eq(&self, other: &ParameterKey) -> bool {
-        self.key() == other.key()
-    }
-}
-
 impl Eq for ParameterKey {}
 
-fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
+fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
     params
         .iter()
         .map(|x| {
             if let Param::Float(x) = x {
-                ParameterKey(*x)
+                // NaN and Infinity (negative or positive) are not valid
+                // parameter values and our hacks to store parameters in
+                // the cache HashMap don't take these into account. So return
+                // an error to Python if we encounter these values.
+                if x.is_nan() || x.is_infinite() {
+                    Err(PyRuntimeError::new_err(
+                        "Can't hash parameters that are infinite or NaN",
+                    ))
+                } else {
+                    Ok(ParameterKey(*x))
+                }
             } else {
                 panic!("Unable to hash a non-float instruction parameter.")
             }
