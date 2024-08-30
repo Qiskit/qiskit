@@ -47,7 +47,6 @@ jobs:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
-          SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
 
       - name: Generate unittest coverage report
         run: |
