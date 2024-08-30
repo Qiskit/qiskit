@@ -143,9 +143,6 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
 fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
 
-    // SAFETY: This is safe because we know the data in these elements is being generated solely from
-    // _UPPERCASE and that only contains valid utf8 characters. We don't need to spend time checking
-    // if each character valid utf8 in this case.
     let tens_r =
         String::from_utf8(_UPPERCASE[..num_qubits].to_vec()).expect("Failed building string.");
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
