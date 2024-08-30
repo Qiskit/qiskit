@@ -240,7 +240,6 @@ class TestSplit2QUnitaries(QiskitTestCase):
 
             def to_matrix(self):
                 return np.eye(4, dtype=complex)
-                # return np.eye(4, dtype=float)
 
         def mygate(self, qubit1, qubit2):
             return self.append(MyGate(), [qubit1, qubit2], [])
