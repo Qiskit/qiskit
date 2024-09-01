@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::pmh::_synth_cnot_count_full_pmh;
+use crate::synthesis::linear::pmh::synth_pmh;
 use ndarray::Array2;
 use numpy::PyReadonlyArray2;
 use pyo3::{prelude::*, types::PyList};
@@ -100,8 +100,8 @@ pub fn synth_cnot_phase_aam(
         }
     }
 
-    let epsilion: usize = num_qubits;
-    let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilion)];
+    let epsilon: usize = num_qubits;
+    let mut q = vec![(s, (0..num_qubits).collect::<Vec<usize>>(), epsilon)];
 
     while !q.is_empty() {
         let (mut _s, mut _i, mut _ep) = q.pop().unwrap();
@@ -283,10 +283,7 @@ pub fn synth_cnot_phase_aam(
     }
 
     let state_bool = state.mapv(|x| x != 0);
-    let mut instrs = _synth_cnot_count_full_pmh(state_bool, section_size)
-        .into_iter()
-        .rev()
-        .collect();
+    let mut instrs = synth_pmh(state_bool, section_size).rev().collect();
     instructions.append(&mut instrs);
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }

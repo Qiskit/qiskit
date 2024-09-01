@@ -162,12 +162,15 @@ pub fn synth_cnot_count_full_pmh(
     let mat: Array2<bool> = arrayview.to_owned();
     let num_qubits = mat.nrows();
 
-    let instructions = _synth_cnot_count_full_pmh(mat, section_size);
+    let instructions = synth_pmh(mat, section_size);
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
 
 type Instructions = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
-pub fn _synth_cnot_count_full_pmh(mat: Array2<bool>, sec_size: Option<i64>) -> Vec<Instructions> {
+pub fn synth_pmh(
+    mat: Array2<bool>,
+    sec_size: Option<i64>,
+) -> impl DoubleEndedIterator<Item = Instructions> {
     let mut mat = mat;
     let num_qubits = mat.nrows(); // is a quadratic matrix
 
@@ -188,9 +191,9 @@ pub fn _synth_cnot_count_full_pmh(mat: Array2<bool>, sec_size: Option<i64>) -> V
     let upper_cnots = lower_cnot_synth(mat.view_mut(), blocksize, true);
 
     // iterator over the gates
-    let instructions = upper_cnots
-        .iter()
-        .map(|(i, j)| (*j, *i))
+    upper_cnots
+        .into_iter()
+        .map(|(i, j)| (j, i))
         .chain(lower_cnots.into_iter().rev())
         .map(|(ctrl, target)| {
             (
@@ -198,6 +201,5 @@ pub fn _synth_cnot_count_full_pmh(mat: Array2<bool>, sec_size: Option<i64>) -> V
                 smallvec![],
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
-        });
-    instructions.collect()
+        })
 }
