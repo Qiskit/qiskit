@@ -27,6 +27,7 @@ use qiskit_circuit::operations::StandardGate;
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 fn run_remove_diagonal_before_measure(_py: Python, dag: &mut DAGCircuit) -> PyResult<()> {
     let diagonal_1q_gates = HashSet::from([
+        StandardGate::RZGate,
         StandardGate::ZGate,
         StandardGate::TGate,
         StandardGate::SGate,
@@ -61,14 +62,13 @@ fn run_remove_diagonal_before_measure(_py: Python, dag: &mut DAGCircuit) -> PyRe
                             nodes_to_remove.insert(predecessor);
                         } else if diagonal_2q_gates.contains(&gate) {
                             let successors = dag.quantum_successors(predecessor);
-                            let mut remove_s = false;
-                            for s in successors {
-                                let node_s = &dag.dag[s];
-                                let NodeType::Operation(inst_s) = node_s else {panic!()};
-                                if inst_s.op.name() == "measure" {
-                                    remove_s = true;
-                                }
-                            }
+                            let remove_s = successors
+                                .map(|s| {
+                                    let node_s = &dag.dag[s];
+                                    let NodeType::Operation(inst_s) = node_s else {panic!()};
+                                    inst_s.op.name()
+                                })
+                                .all(|name| name == "measure");
                             if remove_s {
                                 nodes_to_remove.insert(predecessor);
                             }
