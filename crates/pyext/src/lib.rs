@@ -13,10 +13,10 @@
 use pyo3::prelude::*;
 
 use qiskit_accelerate::{
-    convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
-    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
-    isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
-    pauli_exp_val::pauli_expval,
+    circuit_library::circuit_library, convert_2q_block_matrix::convert_2q_block_matrix,
+    dense_layout::dense_layout, error_map::error_map,
+    euler_one_qubit_decomposer::euler_one_qubit_decomposer, isometry::isometry, nlayout::nlayout,
+    optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
     sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
     star_prerouting::star_prerouting, stochastic_swap::stochastic_swap, synthesis::synthesis,
@@ -40,6 +40,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, qiskit_circuit::circuit, "circuit")?;
     add_submodule(m, qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, qiskit_qasm3::qasm3, "qasm3")?;
+    add_submodule(m, circuit_library, "circuit_library")?;
     add_submodule(m, convert_2q_block_matrix, "convert_2q_block_matrix")?;
     add_submodule(m, dense_layout, "dense_layout")?;
     add_submodule(m, error_map, "error_map")?;
