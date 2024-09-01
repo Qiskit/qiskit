@@ -75,7 +75,12 @@ class ZZFeatureMap(PauliFeatureMap):
         self,
         feature_dimension: int,
         reps: int = 2,
-        entanglement: Union[str, Dict[int, List[Tuple[int]]], Dict[int, List[List[int]]]] = "full",
+        entanglement: Union[
+            str,
+            Dict[int, List[Tuple[int]]],
+            Dict[int, List[List[int]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]], Dict[int, List[List[int]]]]],
+        ] = "full",
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,

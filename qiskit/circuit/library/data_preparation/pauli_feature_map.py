@@ -115,7 +115,12 @@ class PauliFeatureMap(NLocal):
         self,
         feature_dimension: Optional[int] = None,
         reps: int = 2,
-        entanglement: Union[str, Dict[int, List[Tuple[int]]], Dict[int, List[List[int]]]] = "full",
+        entanglement: Union[
+            str,
+            Dict[int, List[Tuple[int]]],
+            Dict[int, List[List[int]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]], Dict[int, List[List[int]]]]],
+        ] = "full",
         alpha: float = 2.0,
         paulis: Optional[List[str]] = None,
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
@@ -132,7 +137,9 @@ class PauliFeatureMap(NLocal):
                 ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
                 dictionary where the keys represent the number of qubits and the values are list
                 of integer-pairs specifying the indices of qubits that are entangled with one
-                another. For example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}``
+                another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
+                ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
+                a repetition
             alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
@@ -158,7 +165,6 @@ class PauliFeatureMap(NLocal):
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ["Z", "ZZ"]
         self._alpha = alpha
-        self.entanglement = entanglement
 
     def _parameter_generator(
         self, rep: int, block: int, indices: List[int]
@@ -288,29 +294,34 @@ class PauliFeatureMap(NLocal):
         self, rep_num: int, block_num: int, num_block_qubits: int
     ) -> Sequence[Sequence[int]]:
 
+        # if entanglement is a Callable[[int], Union[str | Dict[...]]]
+        if callable(self._entanglement):
+            entanglement = self._entanglement(rep_num)
+        else:
+            entanglement = self._entanglement
+
         # entanglement is Dict[int, List[List[int]]]
-        if isinstance(self.entanglement, dict):
+        if isinstance(entanglement, dict):
             if all(
                 isinstance(e2, (int, np.int32, np.int64))
-                for key in self.entanglement.keys()
-                for en in self.entanglement[key]
+                for key in entanglement.keys()
+                for en in entanglement[key]
                 for e2 in en
             ):
-                for qb, ent in self.entanglement.items():
-                    for ind, en in enumerate(ent):
+                for qb, ent in entanglement.items():
+                    for en in ent:
                         if len(en) != qb:
                             raise ValueError(
                                 f"For num_qubits = {qb}, entanglement must be a "
                                 f"tuple of length {qb}. You specified {en}."
                             )
-                        self.entanglement[qb][ind] = tuple(map(int, en))
 
             # Check if the entanglement is specified for all the pauli blocks being used
             for pauli in self.paulis:
-                if len(pauli) not in self.entanglement.keys():
+                if len(pauli) not in entanglement.keys():
                     raise ValueError(f"No entanglement specified for {pauli} pauli.")
 
-            return self.entanglement[num_block_qubits]
+            return entanglement[num_block_qubits]
 
         else:
             # if the entanglement is not Dict[int, List[List[int]]] or
