@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use approx::abs_diff_eq;
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
@@ -404,34 +403,38 @@ impl CommutationChecker {
                 "first instructions must have at most as many qubits as the second instruction",
             ));
         };
-        let first_mat = match get_matrix(py, first_op, first_params) {
+        let first_mat = match get_matrix(py, first_op, first_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(py, second_op, second_params) {
+        let second_mat = match get_matrix(py, second_op, second_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let tol = 1e-8;
+        let rtol = 1e-5;
+        let atol = 1e-8;
         if first_qarg == second_qarg {
             match first_qarg.len() {
                 1 => Ok(unitary_compose::commute_1q(
                     &first_mat.view(),
                     &second_mat.view(),
-                    tol,
+                    rtol,
+                    atol,
                 )),
                 2 => Ok(unitary_compose::commute_2q(
                     &first_mat.view(),
                     &second_mat.view(),
                     &[Qubit(0), Qubit(1)],
-                    tol,
+                    rtol,
+                    atol,
                 )),
-                _ => Ok(abs_diff_eq!(
-                    second_mat.dot(&first_mat),
-                    first_mat.dot(&second_mat),
-                    epsilon = 1e-8
+                _ => Ok(unitary_compose::allclose(
+                    &second_mat.dot(&first_mat).view(),
+                    &first_mat.dot(&second_mat).view(),
+                    rtol,
+                    atol,
                 )),
             }
         } else {
@@ -457,7 +460,8 @@ impl CommutationChecker {
                     &first_mat.view(),
                     &second_mat.view(),
                     &second_qarg,
-                    tol,
+                    rtol,
+                    atol,
                 ));
             };
 
@@ -479,7 +483,12 @@ impl CommutationChecker {
                 Ok(matrix) => matrix,
                 Err(e) => return Err(PyRuntimeError::new_err(e)),
             };
-            Ok(abs_diff_eq!(op12, op21, epsilon = 1e-8))
+            Ok(unitary_compose::allclose(
+                &op12.view(),
+                &op21.view(),
+                rtol,
+                atol,
+            ))
         }
     }
 
@@ -531,30 +540,29 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(py: Python, operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+fn get_matrix(
+    py: Python,
+    operation: &OperationRef,
+    params: &[Param],
+) -> PyResult<Option<Array2<Complex64>>> {
     match operation.matrix(params) {
-        Some(matrix) => Some(matrix),
+        Some(matrix) => Ok(Some(matrix)),
         None => match operation {
-            PyGateType(gate) => matrix_via_operator(py, &gate.gate),
-            PyOperationType(op) => matrix_via_operator(py, &op.operation),
-            _ => None,
+            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
+            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
+            _ => Ok(None),
         },
     }
 }
 
-fn matrix_via_operator(py: Python, py_obj: &PyObject) -> Option<Array2<Complex64>> {
-    Some(
-        QI_OPERATOR
-            .get_bound(py)
-            .call1((py_obj,))
-            .ok()?
-            .getattr(intern!(py, "data"))
-            .ok()?
-            .extract::<PyReadonlyArray2<Complex64>>()
-            .ok()?
-            .as_array()
-            .to_owned(),
-    )
+fn matrix_via_operator(py: Python, py_obj: &PyObject) -> PyResult<Array2<Complex64>> {
+    Ok(QI_OPERATOR
+        .get_bound(py)
+        .call1((py_obj,))?
+        .getattr(intern!(py, "data"))?
+        .extract::<PyReadonlyArray2<Complex64>>()?
+        .as_array()
+        .to_owned())
 }
 
 fn is_commutation_skipped<T>(op: &T, params: &[Param]) -> bool
