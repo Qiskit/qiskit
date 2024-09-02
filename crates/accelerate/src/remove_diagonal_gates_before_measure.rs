@@ -25,7 +25,7 @@ use qiskit_circuit::operations::StandardGate;
 ///     DAGCircuit: the optimized DAG.
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
-fn run_remove_diagonal_before_measure(_py: Python, dag: &mut DAGCircuit) -> PyResult<()> {
+fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     let diagonal_1q_gates = HashSet::from([
         StandardGate::RZGate,
         StandardGate::ZGate,
@@ -34,12 +34,16 @@ fn run_remove_diagonal_before_measure(_py: Python, dag: &mut DAGCircuit) -> PyRe
         StandardGate::TdgGate,
         StandardGate::SdgGate,
         StandardGate::U1Gate,
+        StandardGate::PhaseGate,
     ]);
     let diagonal_2q_gates = HashSet::from([
         StandardGate::CZGate,
         StandardGate::CRZGate,
         StandardGate::CU1Gate,
         StandardGate::RZZGate,
+        StandardGate::CPhaseGate,
+        StandardGate::CSGate,
+        StandardGate::CSdgGate,
     ]);
 
     let mut nodes_to_remove = HashSet::new();
@@ -54,9 +58,6 @@ fn run_remove_diagonal_before_measure(_py: Python, dag: &mut DAGCircuit) -> PyRe
 
             match &dag.dag[predecessor] {
                 NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
-                    None => {
-                        continue;
-                    }
                     Some(gate) => {
                         if diagonal_1q_gates.contains(&gate) {
                             nodes_to_remove.insert(predecessor);
@@ -65,14 +66,20 @@ fn run_remove_diagonal_before_measure(_py: Python, dag: &mut DAGCircuit) -> PyRe
                             let remove_s = successors
                                 .map(|s| {
                                     let node_s = &dag.dag[s];
-                                    let NodeType::Operation(inst_s) = node_s else {panic!()};
-                                    inst_s.op.name()
+                                    if let NodeType::Operation(inst_s) = node_s {
+                                        inst_s.op.name() == "measure"
+                                    } else {
+                                        false
+                                    }
                                 })
-                                .all(|name| name == "measure");
+                                .all(|ok_to_remove| ok_to_remove);
                             if remove_s {
                                 nodes_to_remove.insert(predecessor);
                             }
                         }
+                    }
+                    None => {
+                        continue;
                     }
                 },
                 _ => {
