@@ -22,7 +22,7 @@ use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
+use pyo3::types::{IntoPyDict, PyBool, PyDict, PySequence, PyTuple};
 
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
@@ -55,9 +55,9 @@ where
 {
     let mut bitdata: BitData<T> = BitData::new(py, "bits".to_string());
 
-    bits1.iter().chain(bits2.iter()).for_each(|bit| {
-        bitdata.add(py, &bit, false).unwrap();
-    });
+    for bit in bits1.iter().chain(bits2.iter()) {
+        bitdata.add(py, &bit, false)?;
+    }
 
     Ok((
         bitdata.map_bits(bits1)?.collect(),
@@ -191,7 +191,7 @@ impl CommutationChecker {
         out_dict.set_item("current_cache_entries", self.current_cache_entries)?;
         let cache_dict = PyDict::new_bound(py);
         for (key, value) in &self.cache {
-            cache_dict.set_item(key, commutation_entry_to_pydict(py, value))?;
+            cache_dict.set_item(key, commutation_entry_to_pydict(py, value)?)?;
         }
         out_dict.set_item("cache", cache_dict)?;
         out_dict.set_item("library", self.library.library.to_object(py))?;
@@ -397,7 +397,7 @@ impl CommutationChecker {
         }
 
         let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
-        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
+        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
 
         if first_qarg.len() > second_qarg.len() {
             return Err(QiskitError::new_err(
@@ -461,14 +461,24 @@ impl CommutationChecker {
                 ));
             };
 
-            let op12 = unitary_compose::compose(
+            let op12 = match unitary_compose::compose(
                 &first_mat.view(),
                 &second_mat.view(),
                 &second_qarg,
                 false,
-            );
-            let op21 =
-                unitary_compose::compose(&first_mat.view(), &second_mat.view(), &second_qarg, true);
+            ) {
+                Ok(matrix) => matrix,
+                Err(e) => return Err(PyRuntimeError::new_err(e)),
+            };
+            let op21 = match unitary_compose::compose(
+                &first_mat.view(),
+                &second_mat.view(),
+                &second_qarg,
+                true,
+            ) {
+                Ok(matrix) => matrix,
+                Err(e) => return Err(PyRuntimeError::new_err(e)),
+            };
             Ok(abs_diff_eq!(op12, op21, epsilon = 1e-8))
         }
     }
@@ -609,8 +619,8 @@ impl CommutationLibrary {
         match py_any {
             Some(pyob) => CommutationLibrary {
                 library: pyob
-                    .extract::<Option<HashMap<(String, String), CommutationLibraryEntry>>>()
-                    .unwrap(),
+                    .extract::<HashMap<(String, String), CommutationLibraryEntry>>()
+                    .ok(),
             },
             None => CommutationLibrary {
                 library: Some(HashMap::new()),
@@ -646,20 +656,17 @@ impl ToPyObject for CommutationLibraryEntry {
     fn to_object(&self, py: Python) -> PyObject {
         match self {
             CommutationLibraryEntry::Commutes(b) => b.into_py(py),
-            CommutationLibraryEntry::QubitMapping(qm) => {
-                let out_dict = PyDict::new_bound(py);
-
-                qm.iter().for_each(|(k, v)| {
-                    out_dict
-                        .set_item(
-                            PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
-                            PyBool::new_bound(py, *v),
-                        )
-                        .ok()
-                        .unwrap()
-                });
-                out_dict.unbind().into_any()
-            }
+            CommutationLibraryEntry::QubitMapping(qm) => qm
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
+                        PyBool::new_bound(py, *v),
+                    )
+                })
+                .into_py_dict_bound(py)
+                .unbind()
+                .into(),
         }
     }
 }
@@ -671,20 +678,18 @@ type CacheKey = (
 
 type CommutationCacheEntry = HashMap<CacheKey, bool>;
 
-fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> Py<PyDict> {
+fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyResult<Py<PyDict>> {
     let out_dict = PyDict::new_bound(py);
     for (k, v) in entry.iter() {
         let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0)));
         let params0 = PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
         let params1 = PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
-        out_dict
-            .set_item(
-                PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1])]),
-                PyBool::new_bound(py, *v),
-            )
-            .expect("Failed to construct commutation cache for serialization");
+        out_dict.set_item(
+            PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1])]),
+            PyBool::new_bound(py, *v),
+        )?;
     }
-    out_dict.unbind()
+    Ok(out_dict.unbind())
 }
 
 fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<CommutationCacheEntry> {
@@ -756,7 +761,9 @@ fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
                     Ok(ParameterKey(*x))
                 }
             } else {
-                panic!("Unable to hash a non-float instruction parameter.")
+                Err(QiskitError::new_err(
+                    "Unable to hash a non-float instruction parameter.",
+                ))
             }
         })
         .collect()

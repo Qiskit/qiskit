@@ -33,15 +33,15 @@ pub fn compose(
     overall_unitary: &ArrayView2<Complex64>,
     qubits: &[Qubit],
     front: bool,
-) -> Array2<Complex64> {
+) -> Result<Array2<Complex64>, &'static str> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
 
     // Full composition of operators
     if qubits.is_empty() {
         if front {
-            return gate_unitary.dot(overall_unitary);
+            return Ok(gate_unitary.dot(overall_unitary));
         } else {
-            return overall_unitary.dot(gate_unitary);
+            return Ok(overall_unitary.dot(gate_unitary));
         }
     }
     // Compose with other on subsystem
@@ -61,14 +61,14 @@ pub fn compose(
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
-    let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)
+    let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)?
         .as_standard_layout()
         .into_shape((num_rows, num_rows))
         .unwrap()
         .into_dimensionality::<ndarray::Ix2>()
         .unwrap()
         .to_owned();
-    res
+    Ok(res)
 }
 
 // Reshape an input matrix to (2, 2, ..., 2) depending on its dimensionality
@@ -86,11 +86,11 @@ fn _einsum_matmul(
     indices: &[usize],
     shift: usize,
     right_mul: bool,
-) -> Array<Complex64, IxDyn> {
+) -> Result<Array<Complex64, IxDyn>, &'static str> {
     let rank = tensor.ndim();
     let rank_mat = mat.ndim();
     if rank_mat % 2 != 0 {
-        panic!("Contracted matrix must have an even number of indices.");
+        return Err("Contracted matrix must have an even number of indices.");
     }
     // Get einsum indices for tensor
     let mut indices_tensor = (0..rank).collect::<Vec<usize>>();
@@ -110,16 +110,16 @@ fn _einsum_matmul(
         [mat_free, mat_contract].concat()
     };
 
-    let tensor_einsum = String::from_utf8(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
-        .expect("Failed building tensor string.");
-    let mat_einsum = String::from_utf8(indices_mat.iter().map(|c| LOWERCASE[*c]).collect())
-        .expect("Failed building matrix string.");
+    let tensor_einsum = unsafe {
+        String::from_utf8_unchecked(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
+    };
+    let mat_einsum =
+        unsafe { String::from_utf8_unchecked(indices_mat.iter().map(|c| LOWERCASE[*c]).collect()) };
 
     einsum(
         format!("{},{}", tensor_einsum, mat_einsum).as_str(),
         &[tensor, mat],
     )
-    .unwrap()
 }
 
 fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
@@ -132,19 +132,20 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
         mat_l.push(LOWERCASE[25 - pos]);
         tens_out[num_qubits - 1 - *idx as usize] = LOWERCASE[25 - pos];
     });
-    [
-        String::from_utf8(mat_l).expect("Failed building string."),
-        String::from_utf8(mat_r).expect("Failed building string."),
-        String::from_utf8(tens_in).expect("Failed building string."),
-        String::from_utf8(tens_out).expect("Failed building string."),
-    ]
+    unsafe {
+        [
+            String::from_utf8_unchecked(mat_l),
+            String::from_utf8_unchecked(mat_r),
+            String::from_utf8_unchecked(tens_in),
+            String::from_utf8_unchecked(tens_out),
+        ]
+    }
 }
 
 fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
 
-    let tens_r =
-        String::from_utf8(_UPPERCASE[..num_qubits].to_vec()).expect("Failed building string.");
+    let tens_r = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
     format!(
         "{}{}, {}{}->{}{}",
