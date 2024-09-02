@@ -283,7 +283,10 @@ pub fn synth_cnot_phase_aam(
     }
 
     let state_bool = state.mapv(|x| x != 0);
-    let mut instrs = synth_pmh(state_bool, section_size).rev().collect();
+    let mut instrs = synth_pmh(state_bool, section_size)
+        .into_iter()
+        .rev()
+        .collect();
     instructions.append(&mut instrs);
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }

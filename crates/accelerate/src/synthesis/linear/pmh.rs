@@ -167,10 +167,7 @@ pub fn synth_cnot_count_full_pmh(
 }
 
 type Instructions = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
-pub fn synth_pmh(
-    mat: Array2<bool>,
-    sec_size: Option<i64>,
-) -> impl DoubleEndedIterator<Item = Instructions> {
+pub fn synth_pmh(mat: Array2<bool>, section_size: Option<i64>) -> Vec<Instructions> {
     let mut mat = mat;
     let num_qubits = mat.nrows(); // is a quadratic matrix
 
@@ -180,7 +177,7 @@ pub fn synth_pmh(
     // In addition, we at least set a block size of 2, which, in practice, minimizes the bound
     // until ~100 qubits.
     let alpha = 0.56;
-    let blocksize = match sec_size {
+    let blocksize = match section_size {
         Some(section_size) => section_size as usize,
         None => std::cmp::max(2, (alpha * (num_qubits as f64).log2()).floor() as usize),
     };
@@ -191,9 +188,9 @@ pub fn synth_pmh(
     let upper_cnots = lower_cnot_synth(mat.view_mut(), blocksize, true);
 
     // iterator over the gates
-    upper_cnots
-        .into_iter()
-        .map(|(i, j)| (j, i))
+    let instructions = upper_cnots
+        .iter()
+        .map(|(i, j)| (*j, *i))
         .chain(lower_cnots.into_iter().rev())
         .map(|(ctrl, target)| {
             (
@@ -201,5 +198,6 @@ pub fn synth_pmh(
                 smallvec![],
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
-        })
+        });
+    instructions.collect()
 }
