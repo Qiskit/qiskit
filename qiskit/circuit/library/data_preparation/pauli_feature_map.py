@@ -118,8 +118,7 @@ class PauliFeatureMap(NLocal):
         entanglement: Union[
             str,
             Dict[int, List[Tuple[int]]],
-            Dict[int, List[List[int]]],
-            Callable[[int], Union[str, Dict[int, List[Tuple[int]]], Dict[int, List[List[int]]]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
         ] = "full",
         alpha: float = 2.0,
         paulis: Optional[List[str]] = None,
