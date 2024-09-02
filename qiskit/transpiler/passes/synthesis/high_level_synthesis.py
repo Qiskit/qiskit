@@ -280,6 +280,21 @@ class HighLevelSynthesis(TransformationPass):
         return self._run(dag, tracker)
 
     def _run(self, dag: DAGCircuit, tracker: QubitTracker) -> DAGCircuit:
+        # Check if HighLevelSynthesis can be skipped.
+        all_skipped = True
+        for node in dag.topological_op_nodes():
+            qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+            if not (
+                dag.has_calibration_for(node)
+                or len(node.qargs) < self._min_qubits
+                or node.is_directive()
+                or self._definitely_skip_node(node, qubits)
+            ):
+                all_skipped = False
+                break
+        if all_skipped:
+            return dag
+
         # Start by analyzing the nodes in the DAG. This for-loop is a first version of a potentially
         # more elaborate approach to find good operation/ancilla allocations. It greedily iterates
         # over the nodes, checking whether we can synthesize them, while keeping track of the
@@ -312,7 +327,7 @@ class HighLevelSynthesis(TransformationPass):
             # now we are free to synthesize
             else:
                 # this returns the synthesized operation and the qubits it acts on -- note that this
-                # may be different than the original qubits, since we may use auxiliary qubits
+                # may be different from the original qubits, since we may use auxiliary qubits
                 synthesized, used_qubits = self._synthesize_operation(node.op, qubits, tracker)
 
             # if the synthesis changed the operation (i.e. it is not None), store the result
@@ -335,7 +350,7 @@ class HighLevelSynthesis(TransformationPass):
         if len(synthesized_nodes) == 0:
             return dag
 
-        # Otherwise we will rebuild with the new operations. Note that we could also
+        # Otherwise, we will rebuild with the new operations. Note that we could also
         # check if no operation changed in size and substitute in-place, but rebuilding is
         # generally as fast or faster, unless very few operations are changed.
         out = dag.copy_empty_like()
@@ -642,8 +657,9 @@ class HighLevelSynthesis(TransformationPass):
             # The fast path is just for Rust-space standard gates (which excludes
             # `AnnotatedOperation`).
             node.is_standard_gate()
-            # If it's a controlled gate, we might choose to do funny things to it.
-            and not node.is_controlled_gate()
+            # At the moment we don't consider fast-path handling for controlled gates over 3 or
+            # more controlled qubits. However, we should not abort early for CX/CZ/etc.
+            and not (node.is_controlled_gate() and node.num_qubits >= 3)
             # If there are plugins to try, they need to be tried.
             and not self._methods_to_try(node.name)
             # If all the above constraints hold, and it's already supported or the basis translator
