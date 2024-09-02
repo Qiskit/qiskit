@@ -1239,35 +1239,6 @@ pub(crate) fn optimize_1q_gates_decomposition(
     Ok(())
 }
 
-static EULER_BASIS_MAP: [&[&str]; 12] = [
-    &["u3"],
-    &["u3", "u2", "u1"],
-    &["u"],
-    &["p", "sx"],
-    &["u1", "rx"],
-    &["r"],
-    &["rz", "ry"],
-    &["rz", "rx"],
-    &["rz", "rx"],
-    &["rx", "ry"],
-    &["rz", "sx", "x"],
-    &["rz", "sx"],
-];
-static EULER_BASIS_NAMES: [EulerBasis; 12] = [
-    EulerBasis::U3,
-    EulerBasis::U321,
-    EulerBasis::U,
-    EulerBasis::PSX,
-    EulerBasis::U1X,
-    EulerBasis::RR,
-    EulerBasis::ZYZ,
-    EulerBasis::ZXZ,
-    EulerBasis::XZX,
-    EulerBasis::XYX,
-    EulerBasis::ZSXX,
-    EulerBasis::ZSX,
-];
-
 fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Complex64>) {
     *operator = [
         [

@@ -136,12 +136,6 @@ impl CircuitInstruction {
             .as_ref()
             .and_then(|args| args.condition.as_ref())
     }
-
-    pub fn condition(&self) -> Option<&PyObject> {
-        self.extra_attrs
-            .as_ref()
-            .and_then(|args| args.condition.as_ref())
-    }
 }
 
 #[pymethods]

@@ -14,7 +14,6 @@ use pyo3::prelude::*;
 use pyo3::types::PyList;
 
 use hashbrown::HashMap;
-use qiskit_circuit::Qubit;
 
 /// A newtype for the different categories of qubits used within layouts.  This is to enforce
 /// significantly more type safety when dealing with mixtures of physical and virtual qubits, as we
