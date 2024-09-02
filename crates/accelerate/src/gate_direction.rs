@@ -56,6 +56,7 @@ fn py_check_with_coupling_map(
     check_gate_direction(py, dag, &coupling_map_check, None)
 }
 
+
 /// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
 ///
 /// Args:
@@ -304,7 +305,7 @@ fn cx_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
 }
 
 
-
+#[pymodule]
 pub fn gate_direction(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_check_with_coupling_map))?;
     m.add_wrapped(wrap_pyfunction!(py_check_with_target))?;
