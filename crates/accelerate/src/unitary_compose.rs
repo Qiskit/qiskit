@@ -33,15 +33,15 @@ pub fn compose(
     overall_unitary: &ArrayView2<Complex64>,
     qubits: &[Qubit],
     front: bool,
-) -> Array2<Complex64> {
+) -> Result<Array2<Complex64>, &'static str> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
 
     // Full composition of operators
     if qubits.is_empty() {
         if front {
-            return gate_unitary.dot(overall_unitary);
+            return Ok(gate_unitary.dot(overall_unitary));
         } else {
-            return overall_unitary.dot(gate_unitary);
+            return Ok(overall_unitary.dot(gate_unitary));
         }
     }
     // Compose with other on subsystem
@@ -61,14 +61,14 @@ pub fn compose(
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
-    let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)
+    let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)?
         .as_standard_layout()
         .into_shape((num_rows, num_rows))
         .unwrap()
         .into_dimensionality::<ndarray::Ix2>()
         .unwrap()
         .to_owned();
-    res
+    Ok(res)
 }
 
 // Reshape an input matrix to (2, 2, ..., 2) depending on its dimensionality
@@ -86,11 +86,11 @@ fn _einsum_matmul(
     indices: &[usize],
     shift: usize,
     right_mul: bool,
-) -> Array<Complex64, IxDyn> {
+) -> Result<Array<Complex64, IxDyn>, &'static str> {
     let rank = tensor.ndim();
     let rank_mat = mat.ndim();
     if rank_mat % 2 != 0 {
-        panic!("Contracted matrix must have an even number of indices.");
+        return Err("Contracted matrix must have an even number of indices.");
     }
     // Get einsum indices for tensor
     let mut indices_tensor = (0..rank).collect::<Vec<usize>>();
@@ -110,16 +110,16 @@ fn _einsum_matmul(
         [mat_free, mat_contract].concat()
     };
 
-    let tensor_einsum = String::from_utf8(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
-        .expect("Failed building tensor string.");
-    let mat_einsum = String::from_utf8(indices_mat.iter().map(|c| LOWERCASE[*c]).collect())
-        .expect("Failed building matrix string.");
+    let tensor_einsum = unsafe {
+        String::from_utf8_unchecked(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
+    };
+    let mat_einsum =
+        unsafe { String::from_utf8_unchecked(indices_mat.iter().map(|c| LOWERCASE[*c]).collect()) };
 
     einsum(
         format!("{},{}", tensor_einsum, mat_einsum).as_str(),
         &[tensor, mat],
     )
-    .unwrap()
 }
 
 fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
@@ -132,22 +132,20 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
         mat_l.push(LOWERCASE[25 - pos]);
         tens_out[num_qubits - 1 - *idx as usize] = LOWERCASE[25 - pos];
     });
-    [
-        String::from_utf8(mat_l).expect("Failed building string."),
-        String::from_utf8(mat_r).expect("Failed building string."),
-        String::from_utf8(tens_in).expect("Failed building string."),
-        String::from_utf8(tens_out).expect("Failed building string."),
-    ]
+    unsafe {
+        [
+            String::from_utf8_unchecked(mat_l),
+            String::from_utf8_unchecked(mat_r),
+            String::from_utf8_unchecked(tens_in),
+            String::from_utf8_unchecked(tens_out),
+        ]
+    }
 }
 
 fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
 
-    // SAFETY: This is safe because we know the data in these elements is being generated solely from
-    // _UPPERCASE and that only contains valid utf8 characters. We don't need to spend time checking
-    // if each character valid utf8 in this case.
-    let tens_r =
-        String::from_utf8(_UPPERCASE[..num_qubits].to_vec()).expect("Failed building string.");
+    let tens_r = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
     format!(
         "{}{}, {}{}->{}{}",
@@ -155,33 +153,53 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     )
 }
 
-pub fn commute_1q(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>, tol: f64) -> bool {
-    let values: [Complex64; 4] = [
-        left[[0, 1]] * right[[1, 0]] - right[[0, 1]] * left[[1, 0]], // top left
-        (left[[0, 0]] - left[[1, 1]]) * right[[0, 1]]
-            + left[[0, 1]] * (right[[1, 1]] - right[[0, 0]]), // top right
-        left[[1, 0]] * (right[[0, 0]] - right[[1, 1]])
-            + (left[[1, 1]] - left[[0, 0]]) * right[[1, 0]], // bottom left
-        left[[1, 0]] * right[[0, 1]] - right[[1, 0]] * left[[0, 1]], // bottom right
-    ];
-    !values.iter().any(|value| value.abs() > tol)
+pub fn commute_1q(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    rtol: f64,
+    atol: f64,
+) -> bool {
+    // This could allow for explicit hardcoded formulas, using less FLOPS, if we only
+    // consider an absolute tolerance. But for backward compatibility we now implement the full
+    // formula including relative tolerance handling.
+    for i in 0..2usize {
+        for j in 0..2usize {
+            let mut ab = Complex64::zero();
+            let mut ba = Complex64::zero();
+            for k in 0..2usize {
+                ab += left[[i, k]] * right[[k, j]];
+                ba += right[[i, k]] * left[[k, j]];
+            }
+            let sum = ab - ba;
+            if sum.abs() > atol + ba.abs() * rtol {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 pub fn commute_2q(
     left: &ArrayView2<Complex64>,
     right: &ArrayView2<Complex64>,
     qargs: &[Qubit],
-    tol: f64,
+    rtol: f64,
+    atol: f64,
 ) -> bool {
     let rev = qargs[0].0 == 1;
     for i in 0..4usize {
         for j in 0..4usize {
-            let mut sum = Complex64::zero();
+            // We compute AB and BA separately, to enable checking the relative difference
+            // (AB - BA)_ij > atol + rtol * BA_ij. This is due to backward compatibility and could
+            // maybe be changed in the future to save one complex number allocation.
+            let mut ab = Complex64::zero();
+            let mut ba = Complex64::zero();
             for k in 0..4usize {
-                sum += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]]
-                    - right[[i, k]] * left[[_ind(k, rev), _ind(j, rev)]];
+                ab += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]];
+                ba += right[[i, k]] * left[[_ind(k, rev), _ind(j, rev)]];
             }
-            if sum.abs() > tol {
+            let sum = ab - ba;
+            if sum.abs() > atol + ba.abs() * rtol {
                 return false;
             }
         }
@@ -197,4 +215,26 @@ fn _ind(i: usize, reversed: bool) -> usize {
     } else {
         i
     }
+}
+
+/// For equally sized matrices, ``left`` and ``right``, check whether all entries are close
+/// by the criterion
+///     
+///     |left_ij - right_ij| <= atol + rtol * right_ij
+///
+/// This is analogous to NumPy's ``allclose`` function.
+pub fn allclose(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    rtol: f64,
+    atol: f64,
+) -> bool {
+    for i in 0..left.nrows() {
+        for j in 0..left.ncols() {
+            if (left[(i, j)] - right[(i, j)]).abs() > atol + rtol * right[(i, j)].abs() {
+                return false;
+            }
+        }
+    }
+    true
 }

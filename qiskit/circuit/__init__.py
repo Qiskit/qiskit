@@ -1226,7 +1226,6 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
-from qiskit._accelerate.commutation_checker import CommutationChecker
 from .exceptions import CircuitError
 from . import _utils
 from .quantumcircuit import QuantumCircuit
@@ -1254,6 +1253,7 @@ from .bit import Bit
 from .register import Register
 from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
+from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,

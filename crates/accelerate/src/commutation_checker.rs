@@ -10,22 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use approx::abs_diff_eq;
-use hashbrown::hash_map::Iter;
 use hashbrown::{HashMap, HashSet};
 use ndarray::linalg::kron;
 use ndarray::Array2;
-use num_bigint::BigInt;
 use num_complex::Complex64;
-use numpy::PyReadonlyArray2;
-use pyo3::intern;
+use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 
-use crate::unitary_compose;
-use crate::QiskitError;
-use once_cell::sync::Lazy;
+use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
+use pyo3::types::{IntoPyDict, PyBool, PyDict, PySequence, PyTuple};
+
 use qiskit_circuit::bit_data::BitData;
 use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
 use qiskit_circuit::dag_node::DAGOpNode;
@@ -33,6 +30,9 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::{BitType, Clbit, Qubit};
+
+use crate::unitary_compose;
+use crate::QiskitError;
 
 static SKIPPED_NAMES: [&str; 4] = ["measure", "reset", "delay", "initialize"];
 static NO_CACHE_NAMES: [&str; 2] = ["annotated", "linear_function"];
@@ -43,17 +43,37 @@ static SUPPORTED_OP: Lazy<HashSet<&str>> = Lazy::new(|| {
     ])
 });
 
+fn get_bits<T>(
+    py: Python,
+    bits1: &Bound<PyTuple>,
+    bits2: &Bound<PyTuple>,
+) -> PyResult<(Vec<T>, Vec<T>)>
+where
+    T: From<BitType> + Copy,
+    BitType: From<T>,
+{
+    let mut bitdata: BitData<T> = BitData::new(py, "bits".to_string());
+
+    for bit in bits1.iter().chain(bits2.iter()) {
+        bitdata.add(py, &bit, false)?;
+    }
+
+    Ok((
+        bitdata.map_bits(bits1)?.collect(),
+        bitdata.map_bits(bits2)?.collect(),
+    ))
+}
+
+/// This is the internal structure for the Python CommutationChecker class
+/// It handles the actual commutation checking, cache management, and library
+/// lookups. It's not meant to be a public facing Python object though and only used
+/// internally by the Python class.
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 pub struct CommutationChecker {
     library: CommutationLibrary,
     cache_max_entries: usize,
     cache: HashMap<(String, String), CommutationCacheEntry>,
-    #[pyo3(get)]
     current_cache_entries: usize,
-    #[pyo3(get)]
-    _cache_miss: usize,
-    #[pyo3(get)]
-    _cache_hit: usize,
     #[pyo3(get)]
     gates: Option<HashSet<String>>,
 }
@@ -63,7 +83,7 @@ impl CommutationChecker {
     #[pyo3(signature = (standard_gate_commutations=None, cache_max_entries=1_000_000, gates=None))]
     #[new]
     fn py_new(
-        standard_gate_commutations: Option<Bound<PyAny>>, // Send a bound here
+        standard_gate_commutations: Option<Bound<PyAny>>,
         cache_max_entries: usize,
         gates: Option<HashSet<String>>,
     ) -> Self {
@@ -71,11 +91,9 @@ impl CommutationChecker {
         Lazy::force(&SUPPORTED_OP);
         CommutationChecker {
             library: CommutationLibrary::new(standard_gate_commutations),
-            cache: HashMap::with_capacity(cache_max_entries),
+            cache: HashMap::new(),
             cache_max_entries,
             current_cache_entries: 0,
-            _cache_miss: 0,
-            _cache_hit: 0,
             gates,
         }
     }
@@ -156,11 +174,12 @@ impl CommutationChecker {
         )
     }
 
-    #[pyo3(signature=())]
+    /// Return the current number of cache entries
     fn num_cached_entries(&self) -> usize {
         self.current_cache_entries
     }
-    #[pyo3(signature=())]
+
+    /// Clear the cache
     fn clear_cached_commutations(&mut self) {
         self.clear_cache()
     }
@@ -169,9 +188,11 @@ impl CommutationChecker {
         let out_dict = PyDict::new_bound(py);
         out_dict.set_item("cache_max_entries", self.cache_max_entries)?;
         out_dict.set_item("current_cache_entries", self.current_cache_entries)?;
-        out_dict.set_item("_cache_miss", self._cache_miss)?;
-        out_dict.set_item("_cache_hit", self._cache_hit)?;
-        out_dict.set_item("cache", self.cache.clone())?;
+        let cache_dict = PyDict::new_bound(py);
+        for (key, value) in &self.cache {
+            cache_dict.set_item(key, commutation_entry_to_pydict(py, value)?)?;
+        }
+        out_dict.set_item("cache", cache_dict)?;
         out_dict.set_item("library", self.library.library.to_object(py))?;
         out_dict.set_item("gates", self.gates.clone())?;
         Ok(out_dict.unbind())
@@ -187,12 +208,18 @@ impl CommutationChecker {
             .get_item("current_cache_entries")?
             .unwrap()
             .extract()?;
-        self._cache_miss = dict_state.get_item("_cache_miss")?.unwrap().extract()?;
-        self._cache_hit = dict_state.get_item("_cache_hit")?.unwrap().extract()?;
         self.library = CommutationLibrary {
             library: dict_state.get_item("library")?.unwrap().extract()?,
         };
-        self.cache = dict_state.get_item("cache")?.unwrap().extract()?;
+        let raw_cache: Bound<PyDict> = dict_state.get_item("cache")?.unwrap().extract()?;
+        self.cache = HashMap::with_capacity(raw_cache.len());
+        for (key, value) in raw_cache.iter() {
+            let value_dict: &Bound<PyDict> = value.downcast()?;
+            self.cache.insert(
+                key.extract()?,
+                commutation_cache_entry_from_pydict(value_dict)?,
+            );
+        }
         self.gates = dict_state.get_item("gates")?.unwrap().extract()?;
         Ok(())
     }
@@ -241,10 +268,7 @@ impl CommutationChecker {
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
-            // we use a conversion to BigInt here instead of just op1.name() >= op2.name(), because
-            // strings are sorted differently in Rust and in Python,
-            BigInt::from_signed_bytes_be(op1.name().as_bytes())
-                >= BigInt::from_signed_bytes_be(op2.name().as_bytes())
+            (op1.name().len(), op1.name()) >= (op2.name().len(), op2.name())
         };
         let (first_params, second_params) = if reversed {
             (params2, params1)
@@ -284,25 +308,18 @@ impl CommutationChecker {
             return Ok(is_commuting);
         }
         // Query cache
-        match self
+        if let Some(commutation_dict) = self
             .cache
             .get(&(first_op.name().to_string(), second_op.name().to_string()))
         {
-            Some(commutation_dict) => {
-                let placement = get_relative_placement(first_qargs, second_qargs);
-                let hashes = (
-                    hashable_params(first_params),
-                    hashable_params(second_params),
-                );
-                match commutation_dict.get(&(placement, hashes)) {
-                    Some(commutation) => {
-                        self._cache_hit += 1;
-                        return Ok(*commutation);
-                    }
-                    None => self._cache_miss += 1,
-                }
+            let placement = get_relative_placement(first_qargs, second_qargs);
+            let hashes = (
+                hashable_params(first_params)?,
+                hashable_params(second_params)?,
+            );
+            if let Some(commutation) = commutation_dict.get(&(placement, hashes)) {
+                return Ok(*commutation);
             }
-            None => self._cache_miss += 1,
         }
 
         // Perform matrix multiplication to determine commutation
@@ -321,15 +338,14 @@ impl CommutationChecker {
             self.clear_cache();
         }
         // Cache results from is_commuting
+        let key1 = hashable_params(first_params)?;
+        let key2 = hashable_params(second_params)?;
         self.cache
             .entry((first_op.name().to_string(), second_op.name().to_string()))
             .and_modify(|entries| {
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
-                    (
-                        hashable_params(first_params),
-                        hashable_params(second_params),
-                    ),
+                    (key1.clone(), key2.clone()),
                 );
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
@@ -338,14 +354,11 @@ impl CommutationChecker {
                 let mut entries = HashMap::with_capacity(1);
                 let key = (
                     get_relative_placement(first_qargs, second_qargs),
-                    (
-                        hashable_params(first_params),
-                        hashable_params(second_params),
-                    ),
+                    (key1, key2),
                 );
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
-                CommutationCacheEntry { mapping: entries }
+                entries
             });
         Ok(is_commuting)
     }
@@ -383,41 +396,45 @@ impl CommutationChecker {
         }
 
         let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
-        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| *qarg.get(q).unwrap()).collect();
+        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
 
         if first_qarg.len() > second_qarg.len() {
             return Err(QiskitError::new_err(
                 "first instructions must have at most as many qubits as the second instruction",
             ));
         };
-        let first_mat = match get_matrix(py, first_op, first_params) {
+        let first_mat = match get_matrix(py, first_op, first_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(py, second_op, second_params) {
+        let second_mat = match get_matrix(py, second_op, second_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let tol = 1e-8;
+        let rtol = 1e-5;
+        let atol = 1e-8;
         if first_qarg == second_qarg {
             match first_qarg.len() {
                 1 => Ok(unitary_compose::commute_1q(
                     &first_mat.view(),
                     &second_mat.view(),
-                    tol,
+                    rtol,
+                    atol,
                 )),
                 2 => Ok(unitary_compose::commute_2q(
                     &first_mat.view(),
                     &second_mat.view(),
                     &[Qubit(0), Qubit(1)],
-                    tol,
+                    rtol,
+                    atol,
                 )),
-                _ => Ok(abs_diff_eq!(
-                    second_mat.dot(&first_mat),
-                    first_mat.dot(&second_mat),
-                    epsilon = 1e-8
+                _ => Ok(unitary_compose::allclose(
+                    &second_mat.dot(&first_mat).view(),
+                    &first_mat.dot(&second_mat).view(),
+                    rtol,
+                    atol,
                 )),
             }
         } else {
@@ -443,27 +460,41 @@ impl CommutationChecker {
                     &first_mat.view(),
                     &second_mat.view(),
                     &second_qarg,
-                    tol,
+                    rtol,
+                    atol,
                 ));
             };
 
-            let op12 = unitary_compose::compose(
+            let op12 = match unitary_compose::compose(
                 &first_mat.view(),
                 &second_mat.view(),
                 &second_qarg,
                 false,
-            );
-            let op21 =
-                unitary_compose::compose(&first_mat.view(), &second_mat.view(), &second_qarg, true);
-            Ok(abs_diff_eq!(op12, op21, epsilon = 1e-8))
+            ) {
+                Ok(matrix) => matrix,
+                Err(e) => return Err(PyRuntimeError::new_err(e)),
+            };
+            let op21 = match unitary_compose::compose(
+                &first_mat.view(),
+                &second_mat.view(),
+                &second_qarg,
+                true,
+            ) {
+                Ok(matrix) => matrix,
+                Err(e) => return Err(PyRuntimeError::new_err(e)),
+            };
+            Ok(unitary_compose::allclose(
+                &op12.view(),
+                &op21.view(),
+                rtol,
+                atol,
+            ))
         }
     }
 
     fn clear_cache(&mut self) {
         self.cache.clear();
         self.current_cache_entries = 0;
-        self._cache_miss = 0;
-        self._cache_hit = 0;
     }
 }
 
@@ -509,29 +540,29 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(py: Python, operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+fn get_matrix(
+    py: Python,
+    operation: &OperationRef,
+    params: &[Param],
+) -> PyResult<Option<Array2<Complex64>>> {
     match operation.matrix(params) {
-        Some(matrix) => Some(matrix),
+        Some(matrix) => Ok(Some(matrix)),
         None => match operation {
-            PyGateType(gate) => matrix_via_operator(py, &gate.gate),
-            PyOperationType(op) => matrix_via_operator(py, &op.operation),
-            _ => None,
+            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
+            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
+            _ => Ok(None),
         },
     }
 }
-fn matrix_via_operator(py: Python, py_obj: &PyObject) -> Option<Array2<Complex64>> {
-    Some(
-        QI_OPERATOR
-            .get_bound(py)
-            .call1((py_obj,))
-            .ok()?
-            .getattr(intern!(py, "data"))
-            .ok()?
-            .extract::<PyReadonlyArray2<Complex64>>()
-            .ok()?
-            .as_array()
-            .to_owned(),
-    )
+
+fn matrix_via_operator(py: Python, py_obj: &PyObject) -> PyResult<Array2<Complex64>> {
+    Ok(QI_OPERATOR
+        .get_bound(py)
+        .call1((py_obj,))?
+        .getattr(intern!(py, "data"))?
+        .extract::<PyReadonlyArray2<Complex64>>()?
+        .as_array()
+        .to_owned())
 }
 
 fn is_commutation_skipped<T>(op: &T, params: &[Param]) -> bool
@@ -596,8 +627,8 @@ impl CommutationLibrary {
         match py_any {
             Some(pyob) => CommutationLibrary {
                 library: pyob
-                    .extract::<Option<HashMap<(String, String), CommutationLibraryEntry>>>()
-                    .unwrap(),
+                    .extract::<HashMap<(String, String), CommutationLibraryEntry>>()
+                    .ok(),
             },
             None => CommutationLibrary {
                 library: Some(HashMap::new()),
@@ -633,20 +664,17 @@ impl ToPyObject for CommutationLibraryEntry {
     fn to_object(&self, py: Python) -> PyObject {
         match self {
             CommutationLibraryEntry::Commutes(b) => b.into_py(py),
-            CommutationLibraryEntry::QubitMapping(qm) => {
-                let out_dict = PyDict::new_bound(py);
-
-                qm.iter().for_each(|(k, v)| {
-                    out_dict
-                        .set_item(
-                            PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
-                            PyBool::new_bound(py, *v),
-                        )
-                        .ok()
-                        .unwrap()
-                });
-                out_dict.unbind().into_any()
-            }
+            CommutationLibraryEntry::QubitMapping(qm) => qm
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        PyTuple::new_bound(py, k.iter().map(|q| q.map(|t| t.0))),
+                        PyBool::new_bound(py, *v),
+                    )
+                })
+                .into_py_dict_bound(py)
+                .unbind()
+                .into(),
         }
     }
 }
@@ -655,68 +683,61 @@ type CacheKey = (
     SmallVec<[Option<Qubit>; 2]>,
     (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
 );
-// Need a struct instead of a type definition because we cannot implement serialization traits otherwise
-#[derive(Clone, Debug)]
-struct CommutationCacheEntry {
-    mapping: HashMap<CacheKey, bool>,
-}
-impl CommutationCacheEntry {
-    fn get(&self, key: &CacheKey) -> Option<&bool> {
-        self.mapping.get(key)
-    }
-    fn iter(&self) -> Iter<'_, CacheKey, bool> {
-        self.mapping.iter()
-    }
 
-    fn insert(&mut self, k: CacheKey, v: bool) -> Option<bool> {
-        self.mapping.insert(k, v)
+type CommutationCacheEntry = HashMap<CacheKey, bool>;
+
+fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyResult<Py<PyDict>> {
+    let out_dict = PyDict::new_bound(py);
+    for (k, v) in entry.iter() {
+        let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0)));
+        let params0 = PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
+        let params1 = PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
+        out_dict.set_item(
+            PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1])]),
+            PyBool::new_bound(py, *v),
+        )?;
     }
+    Ok(out_dict.unbind())
 }
 
-impl ToPyObject for CommutationCacheEntry {
-    fn to_object(&self, py: Python) -> PyObject {
-        let out_dict = PyDict::new_bound(py);
-        for (k, v) in self.iter() {
-            let qubits = PyTuple::new_bound(py, k.0.iter().map(|q| q.map(|t| t.0)));
-            let params0 = PyTuple::new_bound(py, k.1 .0.iter().map(|pk| pk.0));
-            let params1 = PyTuple::new_bound(py, k.1 .1.iter().map(|pk| pk.0));
-            out_dict
-                .set_item(
-                    PyTuple::new_bound(py, [qubits, PyTuple::new_bound(py, [params0, params1])]),
-                    PyBool::new_bound(py, *v),
-                )
-                .expect("Failed to construct commutation cache for serialization");
-        }
-        out_dict.into_any().unbind()
+fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<CommutationCacheEntry> {
+    let mut ret = hashbrown::HashMap::with_capacity(dict.len());
+    for (k, v) in dict {
+        let raw_key: CacheKeyRaw = k.extract()?;
+        let qubits = raw_key.0.iter().map(|q| q.map(Qubit)).collect();
+        let params0: SmallVec<_> = raw_key.1 .0;
+        let params1: SmallVec<_> = raw_key.1 .1;
+        let v: bool = v.extract()?;
+        ret.insert((qubits, (params0, params1)), v);
     }
+    Ok(ret)
 }
 
 type CacheKeyRaw = (
     SmallVec<[Option<u32>; 2]>,
-    (SmallVec<[f64; 3]>, SmallVec<[f64; 3]>),
+    (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
 );
-impl<'py> FromPyObject<'py> for CommutationCacheEntry {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        let dict = b.downcast::<PyDict>()?;
-        let mut ret = hashbrown::HashMap::with_capacity(dict.len());
-        for (k, v) in dict {
-            let raw_key: CacheKeyRaw = k.extract()?;
-            let qubits = raw_key.0.iter().map(|q| q.map(Qubit)).collect();
-            let params0: SmallVec<_> = raw_key.1 .0.iter().map(|p| ParameterKey(*p)).collect();
-            let params1: SmallVec<_> = raw_key.1 .1.iter().map(|p| ParameterKey(*p)).collect();
-            let v: bool = v.extract()?;
-            ret.insert((qubits, (params0, params1)), v);
-        }
-        Ok(CommutationCacheEntry { mapping: ret })
-    }
-}
 
-#[derive(Debug, Copy, Clone)]
+/// This newtype wraps a f64 to make it hashable so we can cache parameterized gates
+/// based on the parameter value (assuming it's a float angle). However, Rust doesn't do
+/// this by default and there are edge cases to track around it's usage. The biggest one
+/// is this does not work with f64::NAN, f64::INFINITY, or f64::NEG_INFINITY
+/// If you try to use these values with this type they will not work as expected.
+/// This should only be used with the cache hashmap's keys and not used beyond that.
+#[derive(Debug, Copy, Clone, PartialEq, FromPyObject)]
 struct ParameterKey(f64);
 
 impl ParameterKey {
     fn key(&self) -> u64 {
-        self.0.to_bits()
+        // If we get a -0 the to_bits() return is not equivalent to 0
+        // because -0 has the sign bit set we'd be hashing 9223372036854775808
+        // and be storing it separately from 0. So this normalizes all 0s to
+        // be represented by 0
+        if self.0 == 0. {
+            0
+        } else {
+            self.0.to_bits()
+        }
     }
 }
 
@@ -729,22 +750,28 @@ impl std::hash::Hash for ParameterKey {
     }
 }
 
-impl PartialEq for ParameterKey {
-    fn eq(&self, other: &ParameterKey) -> bool {
-        self.key() == other.key()
-    }
-}
-
 impl Eq for ParameterKey {}
 
-fn hashable_params(params: &[Param]) -> SmallVec<[ParameterKey; 3]> {
+fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
     params
         .iter()
         .map(|x| {
             if let Param::Float(x) = x {
-                ParameterKey(*x)
+                // NaN and Infinity (negative or positive) are not valid
+                // parameter values and our hacks to store parameters in
+                // the cache HashMap don't take these into account. So return
+                // an error to Python if we encounter these values.
+                if x.is_nan() || x.is_infinite() {
+                    Err(PyRuntimeError::new_err(
+                        "Can't hash parameters that are infinite or NaN",
+                    ))
+                } else {
+                    Ok(ParameterKey(*x))
+                }
             } else {
-                panic!("Unable to hash a non-float instruction parameter.")
+                Err(QiskitError::new_err(
+                    "Unable to hash a non-float instruction parameter.",
+                ))
             }
         })
         .collect()
@@ -755,25 +782,4 @@ pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;
     Ok(())
-}
-
-fn get_bits<T>(
-    py: Python,
-    bits1: &Bound<PyTuple>,
-    bits2: &Bound<PyTuple>,
-) -> PyResult<(Vec<T>, Vec<T>)>
-where
-    T: From<BitType> + Copy,
-    BitType: From<T>,
-{
-    let mut bitdata: BitData<T> = BitData::new(py, "bits".to_string());
-
-    bits1.iter().chain(bits2.iter()).for_each(|bit| {
-        bitdata.add(py, &bit, false).unwrap();
-    });
-
-    Ok((
-        bitdata.map_bits(bits1)?.collect(),
-        bitdata.map_bits(bits2)?.collect(),
-    ))
 }
