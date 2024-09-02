@@ -12,7 +12,7 @@
 
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
-use std::collections::HashSet;
+use hashbrown::HashSet;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::Operation;
@@ -26,7 +26,7 @@ use qiskit_circuit::operations::StandardGate;
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
-    let diagonal_1q_gates = HashSet::from([
+    static DIAGONAL_1Q_GATES: [StandardGate; 8] = [
         StandardGate::RZGate,
         StandardGate::ZGate,
         StandardGate::TGate,
@@ -35,8 +35,8 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         StandardGate::SdgGate,
         StandardGate::U1Gate,
         StandardGate::PhaseGate,
-    ]);
-    let diagonal_2q_gates = HashSet::from([
+    ];
+    static DIAGONAL_2Q_GATES: [StandardGate; 7] = [
         StandardGate::CZGate,
         StandardGate::CRZGate,
         StandardGate::CU1Gate,
@@ -44,7 +44,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         StandardGate::CPhaseGate,
         StandardGate::CSGate,
         StandardGate::CSdgGate,
-    ]);
+    ];
 
     let mut nodes_to_remove = HashSet::new();
     for index in dag.op_nodes(true) {
@@ -59,9 +59,9 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
             match &dag.dag[predecessor] {
                 NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
                     Some(gate) => {
-                        if diagonal_1q_gates.contains(&gate) {
+                        if DIAGONAL_1Q_GATES.contains(&gate) {
                             nodes_to_remove.insert(predecessor);
-                        } else if diagonal_2q_gates.contains(&gate) {
+                        } else if DIAGONAL_2Q_GATES.contains(&gate) {
                             let successors = dag.quantum_successors(predecessor);
                             let remove_s = successors
                                 .map(|s| {
