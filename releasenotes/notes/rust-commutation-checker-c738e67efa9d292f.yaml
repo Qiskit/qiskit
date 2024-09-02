@@ -1,9 +1,6 @@
 ---
 features_transpiler:
   - |
-    Added a Rust implementation of the :class:`.CommutationChecker` supporting:
-    *  A library of commutations as an input that is queried before performing runtime-intensive matrix multiplications
-    *  A commutation cache that stores commutation relations determined by the :class:`.CommutationChecker` (if that relation is not in the commutation library)
-    *  Serialization
-  - |
-    Added a Rust implementation for composing unitary matrices by using the einsum notation
+    The the :class:`.CommutationChecker` class has been reimplemented in
+    Rust. This retains the same functionality as before but is now
+    significantly in most cases.

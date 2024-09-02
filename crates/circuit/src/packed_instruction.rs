@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #[cfg(feature = "cache_pygates")]
-use std::cell::RefCell;
+use std::cell::OnceCell;
 use std::ptr::NonNull;
 
 use pyo3::intern;
@@ -25,9 +25,11 @@ use smallvec::SmallVec;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
 use crate::imports::{get_std_gate_class, DEEPCOPY};
+use crate::interner::Interned;
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
 };
+use crate::{Clbit, Qubit};
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -491,18 +493,24 @@ impl Drop for PackedOperation {
 pub struct PackedInstruction {
     pub op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
-    pub qubits: crate::interner::Index,
+    pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
-    pub clbits: crate::interner::Index,
+    pub clbits: Interned<[Clbit]>,
     pub params: Option<Box<SmallVec<[Param; 3]>>>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
 
     #[cfg(feature = "cache_pygates")]
-    /// This is hidden in a `RefCell` because, while that has additional memory-usage implications
-    /// while we're still building with the feature enabled, we intend to remove the feature in the
-    /// future, and hiding the cache within a `RefCell` lets us keep the cache transparently in our
-    /// interfaces, without needing various functions to unnecessarily take `&mut` references.
-    pub py_op: RefCell<Option<Py<PyAny>>>,
+    /// This is hidden in a `OnceCell` because it's just an on-demand cache; we don't create this
+    /// unless asked for it.  A `OnceCell` of a non-null pointer type (like `Py<T>`) is the same
+    /// size as a pointer and there are no runtime checks on access beyond the initialisation check,
+    /// which is a simple null-pointer check.
+    ///
+    /// WARNING: remember that `OnceCell`'s `get_or_init` method is no-reentrant, so the initialiser
+    /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
+    /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
+    /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
+    /// feature.
+    pub py_op: OnceCell<Py<PyAny>>,
 }
 
 impl PackedInstruction {
@@ -553,33 +561,37 @@ impl PackedInstruction {
     /// containing circuit; updates to its parameters, label, duration, unit and condition will not
     /// be propagated back.
     pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Ok(Some(cached_op)) = self.py_op.try_borrow().as_deref() {
-                return Ok(cached_op.clone_ref(py));
-            }
-        }
-
-        let out = match self.op.view() {
-            OperationRef::Standard(standard) => standard
-                .create_py_op(
+        let unpack = || -> PyResult<Py<PyAny>> {
+            match self.op.view() {
+                OperationRef::Standard(standard) => standard.create_py_op(
                     py,
                     self.params.as_deref().map(SmallVec::as_slice),
                     self.extra_attrs.as_deref(),
-                )?
-                .into_any(),
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+                ),
+                OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+                OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
+                OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+            }
         };
 
+        // `OnceCell::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
         #[cfg(feature = "cache_pygates")]
         {
-            if let Ok(mut cell) = self.py_op.try_borrow_mut() {
-                cell.get_or_insert_with(|| out.clone_ref(py));
+            if let Some(ob) = self.py_op.get() {
+                return Ok(ob.clone_ref(py));
             }
         }
-
+        let out = unpack()?;
+        #[cfg(feature = "cache_pygates")]
+        {
+            // The unpacking operation can cause a thread pause and concurrency, since it can call
+            // interpreted Python code for a standard gate, so we need to take care that some other
+            // Python thread might have populated the cache before we do.
+            let _ = self.py_op.set(out.clone_ref(py));
+        }
         Ok(out)
     }
 

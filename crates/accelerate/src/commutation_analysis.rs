@@ -1,5 +1,8 @@
 use pyo3::prelude::PyModule;
 use pyo3::{pyfunction, pymodule, wrap_pyfunction, Bound, PyResult, Python};
+use qiskit_circuit::operations::Param;
+use qiskit_circuit::Qubit;
+use smallvec::{smallvec, SmallVec};
 use std::hash::BuildHasherDefault;
 
 use crate::commutation_checker::CommutationChecker;
@@ -8,29 +11,9 @@ use hashbrown::HashMap;
 use indexmap::IndexSet;
 use pyo3::prelude::*;
 
-use pyo3::types::{PyDict, PyList, PyTuple};
+use pyo3::types::{PyDict, PyList};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::dag_node::DAGOpNode;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-
-use qiskit_circuit::circuit_instruction::CircuitInstruction;
-use qiskit_circuit::packed_instruction::PackedInstruction;
-
-fn op_node_from_packed(py: Python, dag: &DAGCircuit, packed: &PackedInstruction) -> DAGOpNode {
-    let qubits = dag.get_qubits(packed.qubits);
-    let clbits = dag.get_clbits(packed.clbits);
-    DAGOpNode {
-        instruction: CircuitInstruction {
-            operation: packed.op.clone(),
-            qubits: PyTuple::new_bound(py, dag.qubits.map_indices(qubits)).unbind(),
-            clbits: PyTuple::new_bound(py, dag.clbits.map_indices(clbits)).unbind(),
-            params: packed.params_view().iter().cloned().collect(),
-            extra_attrs: packed.extra_attrs.clone(),
-            py_op: packed.py_op.clone(),
-        },
-        sort_key: format!("{:?}", -1).into_py(py),
-    }
-}
 
 type AIndexSet<T> = IndexSet<T, BuildHasherDefault<AHasher>>;
 #[derive(Clone, Debug)]
@@ -46,10 +29,11 @@ fn analyze_commutations_inner(
 ) -> HashMap<(Option<NodeIndex>, Wire), CommutationSetEntry> {
     let mut commutation_set: HashMap<(Option<NodeIndex>, Wire), CommutationSetEntry> =
         HashMap::new();
+    let max_num_qubits = 3;
 
-    dag.qubit_input_map.keys().for_each(|qubit| {
-        let wire = Wire::Qubit(*qubit);
-        dag.nodes_on_wire(&wire, false)
+    (0..dag.num_qubits()).for_each(|qubit| {
+        let wire = Wire::Qubit(Qubit(qubit as u32));
+        dag.nodes_on_wire(py, &wire, false)
             .iter()
             .for_each(|current_gate_idx| {
                 if let CommutationSetEntry::SetExists(ref mut commutation_entry) = commutation_set
@@ -64,17 +48,42 @@ fn analyze_commutations_inner(
 
                     if !last.contains(current_gate_idx) {
                         if last.iter().all(|prev_gate_idx| {
-                            //check if both are op nodes, then run commute
-                            if let (NodeType::Operation(packed0), NodeType::Operation(packed1)) =
-                                (&dag.dag[*current_gate_idx], &dag.dag[*prev_gate_idx])
+                            if let (
+                                NodeType::Operation(packed_inst0),
+                                NodeType::Operation(packed_inst1),
+                            ) = (&dag.dag[*current_gate_idx], &dag.dag[*prev_gate_idx])
                             {
-                                //TODO preliminary interface, change this when dagcircuit merges
+                                let empty_params: Box<SmallVec<[Param; 3]>> = Box::new(smallvec![]);
+                                let op1 = packed_inst0.op.view();
+                                let op2 = packed_inst1.op.view();
+                                let params1 = match packed_inst0.params.as_ref() {
+                                    Some(params) => params,
+                                    None => &empty_params,
+                                };
+                                let params2 = match packed_inst1.params.as_ref() {
+                                    Some(params) => params,
+                                    None => &empty_params,
+                                };
+                                let qargs1 = dag.qargs_interner.get(packed_inst0.qubits);
+                                let qargs2 = dag.qargs_interner.get(packed_inst1.qubits);
+                                let cargs1 = dag.cargs_interner.get(packed_inst0.clbits);
+                                let cargs2 = dag.cargs_interner.get(packed_inst1.clbits);
+
+                                // TODO preliminary interface, change this when dagcircuit merges
                                 commutation_checker
-                                    .commute_nodes(
+                                    .commute_inner(
                                         py,
-                                        &op_node_from_packed(py, dag, packed0),
-                                        &op_node_from_packed(py, dag, packed1),
-                                        3,
+                                        &op1,
+                                        params1,
+                                        packed_inst0.extra_attrs.as_deref(),
+                                        qargs1,
+                                        cargs1,
+                                        &op2,
+                                        params2,
+                                        packed_inst1.extra_attrs.as_deref(),
+                                        qargs2,
+                                        cargs2,
+                                        max_num_qubits,
                                     )
                                     .unwrap()
                             } else {
@@ -103,6 +112,7 @@ fn analyze_commutations_inner(
     });
     commutation_set
 }
+
 #[pyfunction]
 #[pyo3(signature = (dag, commutation_checker))]
 pub(crate) fn analyze_commutations(

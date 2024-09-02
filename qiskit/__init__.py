@@ -60,6 +60,7 @@ import qiskit._numpy_compat
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
+sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
 sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
@@ -87,6 +88,7 @@ sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linea
 sys.modules["qiskit._accelerate.synthesis.clifford"] = _accelerate.synthesis.clifford
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
+sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

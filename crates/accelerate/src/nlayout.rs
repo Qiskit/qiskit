@@ -74,24 +74,6 @@ impl PhysicalQubit {
     }
 }
 
-/// This is only safe in the context of a physical circuit during transpilation
-/// after the qubit indices of the circuit/dag circuit refer to the physical
-/// qubits (once we've run a layout pass and applied it).
-impl From<Qubit> for PhysicalQubit {
-    fn from(s: Qubit) -> PhysicalQubit {
-        PhysicalQubit::new(s.0)
-    }
-}
-
-/// This is only safe in the context of a physical circuit during transpilation
-/// after the qubit indices of the circuit/dag circuit refer to the physical
-/// qubits (once we've run a layout pass and applied it).
-impl From<&Qubit> for PhysicalQubit {
-    fn from(s: &Qubit) -> PhysicalQubit {
-        PhysicalQubit::new(s.0)
-    }
-}
-
 qubit_newtype!(VirtualQubit);
 impl VirtualQubit {
     /// Get the physical qubit that currently corresponds to this index of virtual qubit in the

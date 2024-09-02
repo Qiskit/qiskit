@@ -12,7 +12,9 @@
 
 use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum_beta::*;
-use num_complex::{Complex, Complex64};
+use num_complex::{Complex, Complex64, ComplexFloat};
+use num_traits::Zero;
+use qiskit_circuit::Qubit;
 
 static LOWERCASE: [u8; 26] = [
     b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
@@ -27,19 +29,19 @@ static _UPPERCASE: [u8; 26] = [
 // Compose the operators given by `gate_unitary` and `overall_unitary`, i.e. apply one to the other
 // as specified by the involved qubits given in `qubits` and the `front` parameter
 pub fn compose(
-    gate_unitary: &ArrayView2<Complex<f64>>,
-    overall_unitary: &ArrayView2<Complex<f64>>,
-    qubits: &[u32],
+    gate_unitary: &ArrayView2<Complex64>,
+    overall_unitary: &ArrayView2<Complex64>,
+    qubits: &[Qubit],
     front: bool,
-) -> Array2<Complex<f64>> {
+) -> Result<Array2<Complex64>, &'static str> {
     let gate_qubits = gate_unitary.shape()[0].ilog2() as usize;
 
     // Full composition of operators
     if qubits.is_empty() {
         if front {
-            return gate_unitary.dot(overall_unitary);
+            return Ok(gate_unitary.dot(overall_unitary));
         } else {
-            return overall_unitary.dot(gate_unitary);
+            return Ok(overall_unitary.dot(gate_unitary));
         }
     }
     // Compose with other on subsystem
@@ -55,17 +57,18 @@ pub fn compose(
     let mat = per_qubit_shaped(overall_unitary);
     let indices = qubits
         .iter()
-        .map(|q| num_indices - 1 - *q as usize)
+        .map(|q| num_indices - 1 - q.0 as usize)
         .collect::<Vec<usize>>();
     let num_rows = usize::pow(2, num_indices as u32);
 
-    _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)
+    let res = _einsum_matmul(&tensor, &mat, &indices, shift, right_mul)?
         .as_standard_layout()
         .into_shape((num_rows, num_rows))
         .unwrap()
         .into_dimensionality::<ndarray::Ix2>()
         .unwrap()
-        .to_owned()
+        .to_owned();
+    Ok(res)
 }
 
 // Reshape an input matrix to (2, 2, ..., 2) depending on its dimensionality
@@ -83,11 +86,11 @@ fn _einsum_matmul(
     indices: &[usize],
     shift: usize,
     right_mul: bool,
-) -> Array<Complex64, IxDyn> {
+) -> Result<Array<Complex64, IxDyn>, &'static str> {
     let rank = tensor.ndim();
     let rank_mat = mat.ndim();
     if rank_mat % 2 != 0 {
-        panic!("Contracted matrix must have an even number of indices.");
+        return Err("Contracted matrix must have an even number of indices.");
     }
     // Get einsum indices for tensor
     let mut indices_tensor = (0..rank).collect::<Vec<usize>>();
@@ -106,16 +109,17 @@ fn _einsum_matmul(
     } else {
         [mat_free, mat_contract].concat()
     };
-    let tensor_einsum: String = unsafe {
+
+    let tensor_einsum = unsafe {
         String::from_utf8_unchecked(indices_tensor.iter().map(|c| LOWERCASE[*c]).collect())
     };
-    let mat_einsum: String =
+    let mat_einsum =
         unsafe { String::from_utf8_unchecked(indices_mat.iter().map(|c| LOWERCASE[*c]).collect()) };
+
     einsum(
         format!("{},{}", tensor_einsum, mat_einsum).as_str(),
         &[tensor, mat],
     )
-    .unwrap()
 }
 
 fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
@@ -140,10 +144,97 @@ fn _einsum_matmul_helper(qubits: &[u32], num_qubits: usize) -> [String; 4] {
 
 fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
     assert!(num_qubits > 26, "Can't compute unitary of > 26 qubits");
-    let tens_r: String = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
+
+    let tens_r = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
     format!(
         "{}{}, {}{}->{}{}",
         mat_l, mat_r, tens_lin, tens_r, tens_lout, tens_r
     )
+}
+
+pub fn commute_1q(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    rtol: f64,
+    atol: f64,
+) -> bool {
+    // This could allow for explicit hardcoded formulas, using less FLOPS, if we only
+    // consider an absolute tolerance. But for backward compatibility we now implement the full
+    // formula including relative tolerance handling.
+    for i in 0..2usize {
+        for j in 0..2usize {
+            let mut ab = Complex64::zero();
+            let mut ba = Complex64::zero();
+            for k in 0..2usize {
+                ab += left[[i, k]] * right[[k, j]];
+                ba += right[[i, k]] * left[[k, j]];
+            }
+            let sum = ab - ba;
+            if sum.abs() > atol + ba.abs() * rtol {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+pub fn commute_2q(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    qargs: &[Qubit],
+    rtol: f64,
+    atol: f64,
+) -> bool {
+    let rev = qargs[0].0 == 1;
+    for i in 0..4usize {
+        for j in 0..4usize {
+            // We compute AB and BA separately, to enable checking the relative difference
+            // (AB - BA)_ij > atol + rtol * BA_ij. This is due to backward compatibility and could
+            // maybe be changed in the future to save one complex number allocation.
+            let mut ab = Complex64::zero();
+            let mut ba = Complex64::zero();
+            for k in 0..4usize {
+                ab += left[[_ind(i, rev), _ind(k, rev)]] * right[[k, j]];
+                ba += right[[i, k]] * left[[_ind(k, rev), _ind(j, rev)]];
+            }
+            let sum = ab - ba;
+            if sum.abs() > atol + ba.abs() * rtol {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+#[inline]
+fn _ind(i: usize, reversed: bool) -> usize {
+    if reversed {
+        // reverse the first two bits
+        ((i & 1) << 1) + ((i & 2) >> 1)
+    } else {
+        i
+    }
+}
+
+/// For equally sized matrices, ``left`` and ``right``, check whether all entries are close
+/// by the criterion
+///     
+///     |left_ij - right_ij| <= atol + rtol * right_ij
+///
+/// This is analogous to NumPy's ``allclose`` function.
+pub fn allclose(
+    left: &ArrayView2<Complex64>,
+    right: &ArrayView2<Complex64>,
+    rtol: f64,
+    atol: f64,
+) -> bool {
+    for i in 0..left.nrows() {
+        for j in 0..left.ncols() {
+            if (left[(i, j)] - right[(i, j)]).abs() > atol + rtol * right[(i, j)].abs() {
+                return false;
+            }
+        }
+    }
+    true
 }
