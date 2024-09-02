@@ -41,7 +41,7 @@ use pyo3::types::PyList;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
-    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis,
+    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
 use crate::utils;
@@ -1060,7 +1060,8 @@ impl TwoQubitWeylDecomposition {
             Some(basis) => EulerBasis::__new__(basis.deref())?,
             None => self.default_euler_basis,
         };
-        let target_1q_basis_list: Vec<EulerBasis> = vec![euler_basis];
+        let mut target_1q_basis_list = EulerBasisSet::new();
+        target_1q_basis_list.add_basis(euler_basis);
 
         let mut gate_sequence = CircuitData::with_capacity(py, 2, 0, 21, Param::Float(0.))?;
         let mut global_phase: f64 = self.global_phase;
@@ -1507,7 +1508,8 @@ impl TwoQubitBasisDecomposer {
         unitary: ArrayView2<Complex64>,
         qubit: u8,
     ) {
-        let target_1q_basis_list = vec![self.euler_basis];
+        let mut target_1q_basis_list = EulerBasisSet::new();
+        target_1q_basis_list.add_basis(self.euler_basis);
         let sequence = unitary_to_gate_sequence_inner(
             unitary,
             &target_1q_basis_list,
@@ -1751,7 +1753,8 @@ impl TwoQubitBasisDecomposer {
         if let Some(seq) = sequence {
             return Ok(seq);
         }
-        let target_1q_basis_list = vec![self.euler_basis];
+        let mut target_1q_basis_list = EulerBasisSet::new();
+        target_1q_basis_list.add_basis(self.euler_basis);
         let euler_decompositions: SmallVec<[Option<OneQubitGateSequence>; 8]> = decomposition
             .iter()
             .map(|decomp| {
@@ -1993,7 +1996,8 @@ impl TwoQubitBasisDecomposer {
         if let Some(seq) = sequence {
             return Ok(seq);
         }
-        let target_1q_basis_list = vec![self.euler_basis];
+        let mut target_1q_basis_list = EulerBasisSet::new();
+        target_1q_basis_list.add_basis(self.euler_basis);
         let euler_decompositions: SmallVec<[Option<OneQubitGateSequence>; 8]> = decomposition
             .iter()
             .map(|decomp| {
