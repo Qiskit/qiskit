@@ -210,7 +210,7 @@ fn _check_entanglement_list<'a>(
 
         Ok(connections)
     });
-    return Ok(Box::new(entanglement_iter));
+    Ok(Box::new(entanglement_iter))
 }
 
 /// Get the entanglement for given number of qubits and block size.
