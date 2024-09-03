@@ -204,24 +204,31 @@ def reorder_paulis(
     :class:`~qiskit.quantum_info.SparsePauliOp` is created where terms of the
     same color are grouped together.
 
-    If the input is in fact a list of
-    :class:`~qiskit.quantum_info.SparsePauliOp`, then the terms of all operators
-    will be coalesced and reordered into a single
-    :class:`~qiskit.quantum_info.SparsePauliOp`.
+    In trivial cases, i.e. when either
+    - the input is a :class:`~qiskit.quantum_info.SparsePauliOp` with
+      less than two Pauli terms, or
+    - the input is a list containing a single
+      :class:`~qiskit.quantum_info.SparsePauliOp` which has less than two
+      Pauli terms,
+    this method does nothing. In non-trivial cases, this method always returns a
+    :class:`~qiskit.quantum_info.SparsePauliOp` (rather than a list of such),
+    even if ``operators`` is a list.
 
     Args:
         operators: The operator or list of operators whose terms to reorder.
     """
-    if not isinstance(operators, list):
-        operators = [operators]
     # Do nothing in trivial cases
-    if not (
+    if isinstance(operators, SparsePauliOp) and len(operators) <= 1:
+        return operators
+    if isinstance(operators, list) and not (
         # operators is a list of > 1 SparsePauliOp
         len(operators) > 1
         # operators has a single SparsePauliOp, which has > 1 terms
         or (len(operators) == 1 and len(operators[0]) > 1)
     ):
         return operators
+    if not isinstance(operators, list):
+        operators = [operators]
     graph = rx.PyGraph()
     graph.add_nodes_from(sum((o.to_list() for o in operators), []))
     indexed_nodes = list(enumerate(graph.nodes()))
