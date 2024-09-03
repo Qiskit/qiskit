@@ -6177,8 +6177,8 @@ impl DAGCircuit {
         py: Python,
         num_qubits: usize,
         num_clbits: usize,
-        num_ops: Option<usize>,
         num_vars: Option<usize>,
+        num_ops: Option<usize>,
         num_edges: Option<usize>,
     ) -> PyResult<Self> {
         let num_ops: usize = num_ops.unwrap_or_default();
