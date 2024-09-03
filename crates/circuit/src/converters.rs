@@ -23,16 +23,16 @@ use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 /// This structure does not implement `Clone`, this is the intended behavior as
 /// it contains callbacks to Python and should not be stored anywhere.
 #[derive(Debug)]
-pub(crate) struct QuantumCircuitData<'py> {
-    pub data: CircuitData,
-    pub name: Option<Bound<'py, PyAny>>,
-    pub calibrations: HashMap<String, Py<PyDict>>,
-    pub metadata: Option<Bound<'py, PyAny>>,
-    pub qregs: Option<Bound<'py, PyList>>,
-    pub cregs: Option<Bound<'py, PyList>>,
-    pub input_vars: Option<Bound<'py, PyAny>>,
-    pub captured_vars: Option<Bound<'py, PyAny>>,
-    pub declared_vars: Option<Bound<'py, PyAny>>,
+struct QuantumCircuitData<'py> {
+    data: CircuitData,
+    name: Option<Bound<'py, PyAny>>,
+    calibrations: Option<HashMap<String, Py<PyDict>>>,
+    metadata: Option<Bound<'py, PyAny>>,
+    qregs: Option<Bound<'py, PyList>>,
+    cregs: Option<Bound<'py, PyList>>,
+    input_vars: Vec<Bound<'py, PyAny>>,
+    captured_vars: Vec<Bound<'py, PyAny>>,
+    declared_vars: Vec<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -42,13 +42,22 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr("name").ok(),
-            calibrations: ob.getattr("calibrations")?.extract()?,
+            calibrations: ob.getattr("calibrations")?.extract().ok(),
             metadata: ob.getattr("metadata").ok(),
             qregs: ob.getattr("qregs").map(|ob| ob.downcast_into())?.ok(),
             cregs: ob.getattr("cregs").map(|ob| ob.downcast_into())?.ok(),
-            input_vars: ob.call_method0("iter_input_vars").ok(),
-            captured_vars: ob.call_method0("iter_captured_vars").ok(),
-            declared_vars: ob.call_method0("iter_declared_vars").ok(),
+            input_vars: ob
+                .call_method0("iter_input_vars")?
+                .iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            captured_vars: ob
+                .call_method0("iter_captured_vars")?
+                .iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            declared_vars: ob
+                .call_method0("iter_declared_vars")?
+                .iter()?
+                .collect::<PyResult<Vec<_>>>()?,
         })
     }
 }
@@ -61,10 +70,20 @@ fn circuit_to_dag(
     qubit_order: Option<Vec<Bound<PyAny>>>,
     clbit_order: Option<Vec<Bound<PyAny>>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_quantum_circuit(
+    DAGCircuit::from_circuit(
         py,
-        quantum_circuit,
+        &quantum_circuit.data,
         copy_operations,
+        Some([
+            quantum_circuit.declared_vars,
+            quantum_circuit.input_vars,
+            quantum_circuit.captured_vars,
+        ]),
+        quantum_circuit.qregs,
+        quantum_circuit.cregs,
+        quantum_circuit.metadata,
+        quantum_circuit.name,
+        quantum_circuit.calibrations,
         qubit_order,
         clbit_order,
     )
