@@ -547,12 +547,18 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // mapping to avoid an `isinstance` check on `ControlledGate` - a standard gate has
             // nonzero `num_ctrl_qubits` iff it is a `ControlledGate`.
             //
-            // `ControlledGate` also has a `base_gate` attribute, and we don't track enough in Rust
-            // space to handle the case that that was mutated away from a standard gate.
+            // `ControlledGate` also has a `base_gate` attribute related to its historical
+            // implementation, which technically allows mutations from Python space.  The only
+            // mutation of a standard gate's `base_gate` that wouldn't have already broken the
+            // Python-space data model is setting a label, so we just catch that case and default
+            // back to non-standard-gate handling in that case.
             if standard.num_ctrl_qubits() != 0
                 && ((ob.getattr(intern!(py, "ctrl_state"))?.extract::<usize>()?
                     != (1 << standard.num_ctrl_qubits()) - 1)
-                    || ob.getattr(intern!(py, "mutable"))?.extract()?)
+                    || !ob
+                        .getattr(intern!(py, "base_gate"))?
+                        .getattr(intern!(py, "label"))?
+                        .is_none())
             {
                 break 'standard;
             }
