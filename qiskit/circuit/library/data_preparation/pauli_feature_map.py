@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 from typing import Optional, Callable, List, Union, Dict, Tuple
 from functools import reduce
 import numpy as np
@@ -28,18 +28,25 @@ from qiskit._accelerate.circuit_library import pauli_feature_map as _fast_map
 from ..n_local.n_local import NLocal
 
 
-def _normalize_entanglement(entanglement: str | Sequence[Sequence[int]]) -> str | list[tuple[int]]:
+def _normalize_entanglement(
+    entanglement: str | Mapping[int, Sequence[Sequence[int]]]
+) -> str | dict[int, list[tuple[int]]]:
     if isinstance(entanglement, str):
         return entanglement
 
-    return [tuple(connections) for connections in entanglement]
+    return {
+        num_paulis: [tuple(connections) for connections in ent]
+        for num_paulis, ent in entanglement.items()
+    }
 
 
 def pauli_feature_map(
     feature_dimension: int,
     reps: int = 2,
     entanglement: (
-        str | Sequence[Sequence[int]] | Callable[[int], str | Sequence[Sequence[int]]]
+        str
+        | Mapping[int, Sequence[Sequence[int]]]
+        | Callable[[int], str | Mapping[int, Sequence[Sequence[int]]]]
     ) = "full",
     alpha: float = 2.0,
     paulis: list[str] | None = None,

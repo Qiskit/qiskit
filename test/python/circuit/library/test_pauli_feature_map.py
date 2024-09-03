@@ -461,6 +461,38 @@ class TestPauliFeatureMap(QiskitTestCase):
         with self.assertRaises(QiskitError):
             _ = zz_feature_map(1)
 
+    def test_dict_entanglement(self):
+        """Test passing the entanglement as dictionary."""
+        entanglement = {1: [(0,), (2,)], 2: [(1, 2)], 3: [(0, 1, 2)]}
+        circuit = QuantumCircuit(3)
+        circuit.compose(
+            pauli_feature_map(3, reps=1, paulis=["z", "xx", "yyy"], entanglement=entanglement),
+            inplace=True,
+        )
+        x = circuit.parameters
+
+        ref = QuantumCircuit(3)
+        ref.h(ref.qubits)
+
+        ref.p(2 * x[0], 0)
+        ref.p(2 * x[2], 2)
+
+        ref.h([1, 2])
+        ref.cx(1, 2)
+        ref.p(2 * np.prod([np.pi - xi for xi in [x[1], x[2]]]), 2)
+        ref.cx(1, 2)
+        ref.h([1, 2])
+
+        ref.rx(np.pi / 2, range(3))
+        ref.cx(0, 1)
+        ref.cx(1, 2)
+        ref.p(2 * np.prod([np.pi - xi for xi in x]), 2)
+        ref.cx(1, 2)
+        ref.cx(0, 1)
+        ref.rx(-np.pi / 2, range(3))
+
+        self.assertEqual(ref, circuit)
+
     def test_parameter_prefix(self):
         """Test the Parameter prefix"""
         encoding_pauli = pauli_feature_map(
