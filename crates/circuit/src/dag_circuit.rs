@@ -5445,7 +5445,7 @@ impl DAGCircuit {
             .any(|x| self.op_names.contains_key(&x.to_string()))
     }
 
-    fn is_wire_idle(&self, py: Python, wire: &Wire) -> PyResult<bool> {
+    fn is_wire_idle(&self, _py: Python, wire: &Wire) -> PyResult<bool> {
         let (input_node, output_node) = match wire {
             Wire::Qubit(qubit) => (
                 self.qubit_io_map[qubit.0 as usize][0],
@@ -5603,7 +5603,7 @@ impl DAGCircuit {
     ///
     /// Raises:
     ///     DAGCircuitError: if trying to add duplicate wire
-    fn add_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
+    fn add_wire(&mut self, _py: Python, wire: Wire) -> PyResult<()> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => {
                 if (qubit.0 as usize) >= self.qubit_io_map.len() {
@@ -5656,7 +5656,7 @@ impl DAGCircuit {
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    fn nodes_on_wire(&self, _py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.0 as usize).map(|x| x[0]),
@@ -5687,7 +5687,7 @@ impl DAGCircuit {
         nodes
     }
 
-    fn remove_idle_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
+    fn remove_idle_wire(&mut self, _py: Python, wire: Wire) -> PyResult<()> {
         let [in_node, out_node] = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map[qubit.0 as usize],
             Wire::Clbit(clbit) => self.clbit_io_map[clbit.0 as usize],
@@ -5986,7 +5986,7 @@ impl DAGCircuit {
 
     fn substitute_node_with_subgraph(
         &mut self,
-        py: Python,
+        _py: Python,
         node: NodeIndex,
         other: &DAGCircuit,
         qubit_map: &HashMap<Qubit, Qubit>,
