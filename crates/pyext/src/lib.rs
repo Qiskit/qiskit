@@ -13,10 +13,11 @@
 use pyo3::prelude::*;
 
 use qiskit_accelerate::{
-    circuit_library::circuit_library, convert_2q_block_matrix::convert_2q_block_matrix,
-    dense_layout::dense_layout, error_map::error_map,
-    euler_one_qubit_decomposer::euler_one_qubit_decomposer, isometry::isometry, nlayout::nlayout,
-    optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval,
+    circuit_library::circuit_library, commutation_checker::commutation_checker,
+    convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
+    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
+    isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
+    pauli_exp_val::pauli_expval,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
     sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
     star_prerouting::star_prerouting, stochastic_swap::stochastic_swap, synthesis::synthesis,
@@ -66,5 +67,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, uc_gate, "uc_gate")?;
     add_submodule(m, utils, "utils")?;
     add_submodule(m, vf2_layout, "vf2_layout")?;
+    add_submodule(m, commutation_checker, "commutation_checker")?;
     Ok(())
 }
