@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix a bug in which node wasn't removed during Hoare optimization.
