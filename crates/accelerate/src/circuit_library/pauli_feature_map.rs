@@ -17,7 +17,7 @@ use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::PyInstruction;
-use qiskit_circuit::operations::{add_param, multiply_param, rmultiply_param, Param, StandardGate};
+use qiskit_circuit::operations::{add_param, multiply_param, multiply_params, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -249,7 +249,7 @@ fn _default_reduce(py: Python, parameters: Vec<Param>) -> Param {
         parameters[0].clone()
     } else {
         let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
-            rmultiply_param(acc, add_param(param, -PI, py), py)
+            multiply_params(acc, add_param(param, -PI, py), py)
         });
         if parameters.len() % 2 == 0 {
             acc
