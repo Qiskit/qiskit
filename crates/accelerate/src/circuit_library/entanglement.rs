@@ -176,10 +176,10 @@ pub fn get_entanglement<'a>(
         ));
     } else if let Ok(dict) = entanglement.downcast::<PyDict>() {
         if let Some(value) = dict.get_item(block_size)? {
-            let list = value.downcast::<PyList>().expect("");
+            let list = value.downcast::<PyList>()?;
             return _check_entanglement_list(list.to_owned(), block_size);
         } else {
-            panic!();
+            return Ok(Box::new(std::iter::empty()));
         }
     } else if let Ok(list) = entanglement.downcast::<PyList>() {
         return _check_entanglement_list(list.to_owned(), block_size);
