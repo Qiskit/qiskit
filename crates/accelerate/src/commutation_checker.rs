@@ -301,23 +301,23 @@ impl CommutationChecker {
         }
 
         // Query commutation library
+        let relative_placement = get_relative_placement(first_qargs, second_qargs);
         if let Some(is_commuting) =
             self.library
-                .check_commutation_entries(first_op, first_qargs, second_op, second_qargs)
+                .check_commutation_entries(first_op, second_op, &relative_placement)
         {
             return Ok(is_commuting);
         }
+
         // Query cache
+        let key1 = hashable_params(first_params)?;
+        let key2 = hashable_params(second_params)?;
         if let Some(commutation_dict) = self
             .cache
             .get(&(first_op.name().to_string(), second_op.name().to_string()))
         {
-            let placement = get_relative_placement(first_qargs, second_qargs);
-            let hashes = (
-                hashable_params(first_params)?,
-                hashable_params(second_params)?,
-            );
-            if let Some(commutation) = commutation_dict.get(&(placement, hashes)) {
+            let hashes = (key1.clone(), key2.clone());
+            if let Some(commutation) = commutation_dict.get(&(relative_placement.clone(), hashes)) {
                 return Ok(*commutation);
             }
         }
@@ -338,24 +338,16 @@ impl CommutationChecker {
             self.clear_cache();
         }
         // Cache results from is_commuting
-        let key1 = hashable_params(first_params)?;
-        let key2 = hashable_params(second_params)?;
         self.cache
             .entry((first_op.name().to_string(), second_op.name().to_string()))
             .and_modify(|entries| {
-                let key = (
-                    get_relative_placement(first_qargs, second_qargs),
-                    (key1.clone(), key2.clone()),
-                );
+                let key = (relative_placement.clone(), (key1.clone(), key2.clone()));
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
             })
             .or_insert_with(|| {
                 let mut entries = HashMap::with_capacity(1);
-                let key = (
-                    get_relative_placement(first_qargs, second_qargs),
-                    (key1, key2),
-                );
+                let key = (relative_placement, (key1, key2));
                 entries.insert(key, is_commuting);
                 self.current_cache_entries += 1;
                 entries
@@ -580,11 +572,10 @@ fn get_relative_placement(
     first_qargs: &[Qubit],
     second_qargs: &[Qubit],
 ) -> SmallVec<[Option<Qubit>; 2]> {
-    let qubits_g2: HashMap<_, _> = second_qargs
-        .iter()
-        .enumerate()
-        .map(|(i_g1, q_g1)| (q_g1, Qubit(i_g1 as u32)))
-        .collect();
+    let mut qubits_g2: HashMap<&Qubit, Qubit> = HashMap::with_capacity(second_qargs.len());
+    second_qargs.iter().enumerate().for_each(|(i_g1, q_g1)| {
+        qubits_g2.insert_unique_unchecked(q_g1, Qubit(i_g1 as u32));
+    });
 
     first_qargs
         .iter()
@@ -602,16 +593,15 @@ impl CommutationLibrary {
     fn check_commutation_entries(
         &self,
         first_op: &OperationRef,
-        first_qargs: &[Qubit],
         second_op: &OperationRef,
-        second_qargs: &[Qubit],
+        relative_placement: &SmallVec<[Option<Qubit>; 2]>,
     ) -> Option<bool> {
         if let Some(library) = &self.library {
             match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
                 Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
-                Some(CommutationLibraryEntry::QubitMapping(qm)) => qm
-                    .get(&get_relative_placement(first_qargs, second_qargs))
-                    .copied(),
+                Some(CommutationLibraryEntry::QubitMapping(qm)) => {
+                    qm.get(relative_placement).copied()
+                }
                 _ => None,
             }
         } else {
