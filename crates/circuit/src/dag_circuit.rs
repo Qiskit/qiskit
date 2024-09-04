@@ -6750,7 +6750,7 @@ impl DAGCircuit {
             .collect::<PyResult<Vec<_>>>()?;
 
         // Finally add all the instructions back
-        new_dag.add_from_iter(py, instructions)?;
+        new_dag.extend(py, instructions)?;
 
         Ok(new_dag)
     }

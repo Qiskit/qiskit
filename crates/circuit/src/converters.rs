@@ -18,12 +18,8 @@ use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
-///
-/// ## Notes:
-/// This structure does not implement `Clone`, this is the intended behavior as
-/// it contains callbacks to Python and should not be stored anywhere.
-#[derive(Debug)]
-struct QuantumCircuitData<'py> {
+#[derive(Debug, Clone)]
+pub struct QuantumCircuitData<'py> {
     data: CircuitData,
     name: Option<Bound<'py, PyAny>>,
     calibrations: Option<HashMap<String, Py<PyDict>>>,
@@ -63,7 +59,7 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
 }
 
 #[pyfunction(signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
-fn circuit_to_dag(
+pub fn circuit_to_dag(
     py: Python,
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
