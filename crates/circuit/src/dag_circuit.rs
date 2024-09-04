@@ -5781,7 +5781,7 @@ impl DAGCircuit {
     }
 
     /// Return an iterator of 2 qubit operations. Ignore directives like snapshot and barrier.
-    pub fn two_qubit_ops<'a>(&'a self) -> Box<dyn Iterator<Item = NodeIndex> + 'a> {
+    pub fn two_qubit_ops(&self) -> impl Iterator<Item = NodeIndex> + '_ {
         Box::new(self.op_nodes(false).filter(|index| {
             let weight = self.dag.node_weight(*index).expect("NodeIndex in graph");
             if let NodeType::Operation(ref packed) = weight {

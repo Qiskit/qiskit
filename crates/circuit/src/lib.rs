@@ -37,6 +37,12 @@ pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Clbit(pub BitType);
 
+impl FromPyObject<'_> for Qubit {
+    fn extract_bound(ob: &Bound<PyAny>) -> PyResult<Self> {
+        Ok(Self(ob.extract::<BitType>()?))
+    }
+}
+
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
