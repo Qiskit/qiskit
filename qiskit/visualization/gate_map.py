@@ -945,7 +945,7 @@ def plot_gate_map(
         font_color,
         ax,
         filename,
-        planar=rx.is_planar(backend.coupling_map.graph.to_undirected(multigraph=False)),
+        planar=rx.is_planar(coupling_map.graph.to_undirected(multigraph=False)),
     )
 
 
