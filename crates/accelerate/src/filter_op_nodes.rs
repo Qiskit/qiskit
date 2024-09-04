@@ -46,7 +46,7 @@ pub fn py_filter_op_nodes(
 ///     dag (DAGCircuit): The dag circuit to filter the ops from
 ///     label (str): The label to filter nodes on
 #[pyfunction]
-pub fn filter_labelled_op(dag: &mut DAGCircuit, label: String) {
+pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
     let predicate = |node: &PackedInstruction| -> bool {
         match node.label() {
             Some(inst_label) => inst_label != label,
@@ -58,6 +58,6 @@ pub fn filter_labelled_op(dag: &mut DAGCircuit, label: String) {
 
 pub fn filter_op_nodes_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_filter_op_nodes))?;
-    m.add_wrapped(wrap_pyfunction!(filter_labelled_op))?;
+    m.add_wrapped(wrap_pyfunction!(filter_labeled_op))?;
     Ok(())
 }
