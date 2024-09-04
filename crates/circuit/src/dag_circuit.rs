@@ -6447,10 +6447,6 @@ impl DAGCircuit {
                 };
 
                 vars_last_nodes.set_item(var, new_node.index())?;
-                if var_last_node == new_node {
-                    // TODO: Fix instances of duplicate nodes for Vars
-                    continue;
-                }
                 self.dag
                     .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
             }
