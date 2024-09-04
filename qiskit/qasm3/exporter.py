@@ -626,7 +626,13 @@ class QASM3Builder:
             if builtin in _BUILTIN_GATES:
                 # It's built into the langauge; we don't need to re-add it.
                 continue
-            self.symbols.register_gate_without_definition(builtin, None)
+            try:
+                self.symbols.register_gate_without_definition(builtin, None)
+            except QASM3ExporterError as exc:
+                raise QASM3ExporterError(
+                    f"Cannot use '{builtin}' as a basis gate for the reason in the prior exception."
+                    " Consider renaming the gate if needed, or omitting this basis gate if not."
+                ) from exc
 
         header = ast.Header(ast.Version("3.0"), list(self.build_includes()))
 
@@ -1196,7 +1202,9 @@ def _infer_variable_declaration(
         # _should_ be an intrinsic part of the parameter, or somewhere publicly accessible, but
         # Terra doesn't have those concepts yet.  We can only try and guess at the type by looking
         # at all the places it's used in the circuit.
-        for instr_index, index in circuit._data._get_param(parameter.uuid.int):
+        for instr_index, index in circuit._data._raw_parameter_table_entry(parameter):
+            if instr_index is None:
+                continue
             instruction = circuit.data[instr_index].operation
             if isinstance(instruction, ForLoopOp):
                 # The parameters of ForLoopOp are (indexset, loop_parameter, body).

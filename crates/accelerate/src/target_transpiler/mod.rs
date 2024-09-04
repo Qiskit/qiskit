@@ -20,7 +20,7 @@ use std::ops::Index;
 
 use ahash::RandomState;
 
-use ahash::HashSet;
+use hashbrown::HashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nullable_index_map::NullableIndexMap;
@@ -305,7 +305,7 @@ impl Target {
         match instruction {
             TargetOperation::Variadic(_) => {
                 qargs_val = PropsMap::with_capacity(1);
-                qargs_val.extend([(None, None)].into_iter());
+                qargs_val.extend([(None, None)]);
                 self.variable_class_operations.insert(name.to_string());
             }
             TargetOperation::Normal(_) => {
@@ -872,7 +872,7 @@ impl Target {
                 .unwrap()
                 .extract::<GateMapState>()?
                 .into_iter()
-                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map.into_iter()))),
+                .map(|(name, prop_map)| (name, PropsMap::from_iter(prop_map))),
         );
         self._gate_name_map = state
             .get_item("gate_name_map")?
@@ -938,6 +938,17 @@ impl Target {
             TargetOperation::Normal(oper) => Some(oper),
             _ => None,
         });
+    }
+
+    /// Get the error rate of a given instruction in the target
+    pub fn get_error(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
+        self.gate_map.get(name).and_then(|gate_props| {
+            let qargs_key: Qargs = qargs.iter().cloned().collect();
+            match gate_props.get(Some(&qargs_key)) {
+                Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
+                None => None,
+            }
+        })
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
@@ -1254,8 +1265,7 @@ where
     obj_bound.is_instance(other_obj.bind(py))
 }
 
-#[pymodule]
-pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
     Ok(())

@@ -14,6 +14,7 @@
 
 import os
 
+from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BasicSwap
@@ -70,6 +71,16 @@ from qiskit import user_config
 
 CONFIG = user_config.get_config()
 
+_discrete_skipped_ops = {
+    "delay",
+    "reset",
+    "measure",
+    "switch_case",
+    "if_else",
+    "for_loop",
+    "while_loop",
+}
+
 
 class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
@@ -92,6 +103,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -110,6 +122,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
                 )
             init.append(
                 InverseCancellation(
@@ -138,6 +151,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_method,
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
+                pass_manager_config.qubits_initially_zero,
             )
             init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
@@ -160,6 +174,16 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
+            init.append(Collect2qBlocks())
+            init.append(ConsolidateBlocks())
+            # If approximation degree is None that indicates a request to approximate up to the
+            # error rates in the target. However, in the init stage we don't yet know the target
+            # qubits being used to figure out the fidelity so just use the default fidelity parameter
+            # in this case.
+            if pass_manager_config.approximation_degree is not None:
+                init.append(Split2QUnitaries(pass_manager_config.approximation_degree))
+            else:
+                init.append(Split2QUnitaries())
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
@@ -179,6 +203,7 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
+            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )
 
 
@@ -196,6 +221,7 @@ class UnitarySynthesisPassManager(PassManagerStagePlugin):
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
             unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
             hls_config=pass_manager_config.hls_config,
+            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )
 
 
