@@ -16,6 +16,7 @@ use pyo3::import_exception;
 
 pub mod check_map;
 pub mod circuit_library;
+pub mod commutation_checker;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;
 pub mod edge_collections;
@@ -41,6 +42,7 @@ pub mod vf2_layout;
 mod rayon_ext;
 #[cfg(test)]
 mod test;
+mod unitary_compose;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
