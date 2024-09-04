@@ -17,6 +17,7 @@ use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 /// Args:
@@ -46,7 +47,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         StandardGate::CSdgGate,
     ];
 
-    let mut nodes_to_remove = HashSet::new();
+    let mut nodes_to_remove = Vec::new();
     for index in dag.op_nodes(true) {
         let node = &dag.dag[index];
         let NodeType::Operation(inst) = node else {panic!()};
@@ -60,7 +61,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                 NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
                     Some(gate) => {
                         if DIAGONAL_1Q_GATES.contains(&gate) {
-                            nodes_to_remove.insert(predecessor);
+                            nodes_to_remove.push(predecessor);
                         } else if DIAGONAL_2Q_GATES.contains(&gate) {
                             let successors = dag.quantum_successors(predecessor);
                             let remove_s = successors
@@ -74,7 +75,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                                 })
                                 .all(|ok_to_remove| ok_to_remove);
                             if remove_s {
-                                nodes_to_remove.insert(predecessor);
+                                nodes_to_remove.push(predecessor);
                             }
                         }
                     }
@@ -89,7 +90,8 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         }
     }
 
-    for node_to_remove in nodes_to_remove {
+    let set_nodes_to_remove: HashSet<NodeIndex> = nodes_to_remove.into_iter().collect();
+    for node_to_remove in set_nodes_to_remove {
         dag.remove_op_node(node_to_remove)
     }
 
