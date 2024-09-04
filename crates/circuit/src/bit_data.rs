@@ -29,7 +29,7 @@ use std::hash::{Hash, Hasher};
 /// it call `repr()` on both sides, which has a significant
 /// performance advantage.
 #[derive(Clone, Debug)]
-struct BitAsKey {
+pub struct BitAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
@@ -47,6 +47,7 @@ impl BitAsKey {
     }
 }
 
+// Rust- and Python-side hash values are equal
 impl Hash for BitAsKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_isize(self.hash);
@@ -71,7 +72,7 @@ impl Eq for BitAsKey {}
 
 #[derive(Clone, Debug)]
 pub struct BitData<T> {
-    /// The public field name (i.e. `qubits` or `clbits`).
+    /// The public field name (i.e. `qubits`, `clbits`, or `vars`).
     description: String,
     /// Registered Python bits.
     bits: Vec<PyObject>,
@@ -170,7 +171,9 @@ where
         self.bits.get(<BitType as From<T>>::from(index) as usize)
     }
 
-    /// Adds a new Python bit.
+    /// Adds a new Python bit. `strict` controls the behavior when `bit` is already present.
+    /// If `strict` is `true` the returned `PyResult` contains a `PyValueError` is returned. Otherwise,
+    /// it contains the existing index.
     pub fn add(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<T> {
         if self.bits.len() != self.cached.bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(
@@ -220,6 +223,10 @@ where
                 .insert(BitAsKey::new(bit.bind(py)), (i as BitType).into());
         }
         Ok(())
+    }
+
+    pub fn indices_keys(&self) -> hashbrown::hash_map::Keys<'_, BitAsKey, T> {
+        self.indices.keys()
     }
 
     /// Called during Python garbage collection, only!.
