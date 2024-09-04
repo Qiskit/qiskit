@@ -12,7 +12,10 @@
 
 use ::pyo3::prelude::*;
 use hashbrown::HashMap;
-use pyo3::types::{PyDict, PyList};
+use pyo3::{
+    intern,
+    types::{PyDict, PyList},
+};
 
 use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 
@@ -33,25 +36,32 @@ pub struct QuantumCircuitData<'py> {
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let py = ob.py();
         let circuit_data = ob.getattr("_data")?;
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {
             data: data_borrowed,
-            name: ob.getattr("name").ok(),
-            calibrations: ob.getattr("calibrations")?.extract().ok(),
-            metadata: ob.getattr("metadata").ok(),
-            qregs: ob.getattr("qregs").map(|ob| ob.downcast_into())?.ok(),
-            cregs: ob.getattr("cregs").map(|ob| ob.downcast_into())?.ok(),
+            name: ob.getattr(intern!(py, "name")).ok(),
+            calibrations: ob.getattr(intern!(py, "calibrations"))?.extract().ok(),
+            metadata: ob.getattr(intern!(py, "metadata")).ok(),
+            qregs: ob
+                .getattr(intern!(py, "qregs"))
+                .map(|ob| ob.downcast_into())?
+                .ok(),
+            cregs: ob
+                .getattr(intern!(py, "cregs"))
+                .map(|ob| ob.downcast_into())?
+                .ok(),
             input_vars: ob
-                .call_method0("iter_input_vars")?
+                .call_method0(intern!(py, "iter_input_vars"))?
                 .iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             captured_vars: ob
-                .call_method0("iter_captured_vars")?
+                .call_method0(intern!(py, "iter_captured_vars"))?
                 .iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
-                .call_method0("iter_declared_vars")?
+                .call_method0(intern!(py, "iter_declared_vars"))?
                 .iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
