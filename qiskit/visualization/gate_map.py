@@ -945,6 +945,7 @@ def plot_gate_map(
         font_color,
         ax,
         filename,
+        planar=rx.is_planar(backend.coupling_map.graph.to_undirected(multigraph=False)),
     )
 
 
@@ -966,6 +967,8 @@ def plot_coupling_map(
     font_color="white",
     ax=None,
     filename=None,
+    *,
+    planar=True,
 ):
     """Plots an arbitrary coupling map of qubits (embedded in a plane).
 
@@ -987,6 +990,7 @@ def plot_coupling_map(
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
         filename (str): file path to save image to.
+        planar (bool): If the coupling map is planar or not. Default: ``True`` (i.e. it is planar)
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -1057,7 +1061,7 @@ def plot_coupling_map(
 
     if font_size is None:
         max_characters = max(1, max(len(str(x)) for x in qubit_labels))
-        font_size = max(int(40 / max_characters), 1)
+        font_size = max(int((qubit_size - 5) / max_characters), 1)
 
     def color_node(node):
         if qubit_coordinates:
@@ -1079,7 +1083,7 @@ def plot_coupling_map(
                 "shape": "circle",
             }
         out_dict["fontcolor"] = f'"{font_color}"'
-        out_dict["fontsize"] = str(font_size)
+        out_dict["fontsize"] = f'"{str(font_size)}!"'
         out_dict["height"] = str(qubit_size * px)
         out_dict["fixedsize"] = "True"
         out_dict["fontname"] = '"DejaVu Sans"'
@@ -1095,11 +1099,16 @@ def plot_coupling_map(
 
     graph_attributes = None
     if not qubit_coordinates:
-        graph_attributes = {
-            "overlap_scaling": "-7",
-            "overlap": "prism",
-            "model": "subset",
-        }
+        if planar:
+            graph_attributes = {
+                "overlap_scaling": "-7",
+                "overlap": "prism",
+                "model": "subset",
+            }
+        else:
+            graph_attributes = {
+                "overlap": "true",
+            }
     plot = graphviz_draw(
         graph,
         method="neato",
