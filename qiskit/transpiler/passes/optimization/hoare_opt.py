@@ -203,7 +203,10 @@ class HoareOptimizer(TransformationPass):
         """
         import z3
 
-        for node in dag.topological_op_nodes():
+        # It does not look safe to iterate over DAG while removing and replacing
+        # some of its nodes.
+        nodes = list(dag.topological_op_nodes())
+        for node in nodes:
             gate = node.op
             ctrlqb, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
@@ -212,11 +215,12 @@ class HoareOptimizer(TransformationPass):
             remove_ctrl, new_dag, qb_idx = self._remove_control(gate, ctrlvar, trgtvar)
 
             if remove_ctrl:
-                dag.substitute_node_with_dag(node, new_dag)
-                gate = gate.base_gate
-                node.op = gate.to_mutable()
-                node.name = gate.name
-                node.qargs = tuple((ctrlqb + trgtqb)[qi] for qi in qb_idx)
+                # We are replacing a node by a new node over a smaller number of qubits.
+                # This can be done using substitute_node_with_dag, which furthermore returns
+                # a mapping from old node ids to new nodes.
+                mapped_nodes = dag.substitute_node_with_dag(node, new_dag)
+                node = list(mapped_nodes.values())[0]
+                gate = node.op
                 _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
                 ctrl_ones = z3.And(*ctrlvar)
