@@ -5530,7 +5530,7 @@ impl DAGCircuit {
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    pub fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.0 as usize).map(|x| x[0]),
