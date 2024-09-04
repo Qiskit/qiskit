@@ -435,7 +435,7 @@ impl StandardGate {
         if let Some(extra) = extra_attrs {
             let kwargs = [
                 ("label", extra.label.to_object(py)),
-                ("unit", extra.unit.to_object(py)),
+                ("unit", extra.py_unit(py).into_any()),
                 ("duration", extra.duration.to_object(py)),
             ]
             .into_py_dict_bound(py);
