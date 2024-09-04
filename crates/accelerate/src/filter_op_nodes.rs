@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::convert::Infallible;
-
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
@@ -49,13 +47,13 @@ pub fn py_filter_op_nodes(
 ///     label (str): The label to filter nodes on
 #[pyfunction]
 pub fn filter_labelled_op(dag: &mut DAGCircuit, label: String) {
-    let predicate = |node: &PackedInstruction| -> Result<bool, Infallible> {
+    let predicate = |node: &PackedInstruction| -> bool {
         match node.label() {
-            Some(inst_label) => Ok(inst_label != label),
-            None => Ok(false),
+            Some(inst_label) => inst_label != label,
+            None => false,
         }
     };
-    let _ = dag.filter_op_nodes(predicate);
+    dag.filter_op_nodes(predicate);
 }
 
 pub fn filter_op_nodes_mod(m: &Bound<PyModule>) -> PyResult<()> {
