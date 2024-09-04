@@ -1,3 +1,9 @@
+<br>
+
+https://github.com/user-attachments/assets/ecf1553e-3f14-45c0-96b6-68bf3800bbb4
+
+<br>
+
 # Qiskit
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
 [![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg)](https://github.com/Qiskit/qiskit-terra/releases)
