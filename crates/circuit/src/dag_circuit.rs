@@ -6346,7 +6346,7 @@ impl DAGCircuit {
         }
     }
 
-    /// Adds valid instances of [PackedInstruction] to the back of the Circuit.
+    /// Extends the DAG with valid instances of [PackedInstruction]
     pub fn extend<I>(&mut self, py: Python, iter: I) -> PyResult<Vec<NodeIndex>>
     where
         I: IntoIterator<Item = PackedInstruction>,
