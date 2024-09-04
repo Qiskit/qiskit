@@ -1061,7 +1061,14 @@ def plot_coupling_map(
 
     if font_size is None:
         max_characters = max(1, max(len(str(x)) for x in qubit_labels))
-        font_size = max(int((qubit_size - 5) / max_characters), 1)
+        if max_characters == 1:
+            font_size = 20
+        elif max_characters == 2:
+            font_size = 14
+        elif max_characters == 3:
+            font_size = 12
+        else:
+            font_size = 1
 
     def color_node(node):
         if qubit_coordinates:
@@ -1069,8 +1076,6 @@ def plot_coupling_map(
                 "label": str(qubit_labels[node]),
                 "color": f'"{qubit_color[node]}"',
                 "fillcolor": f'"{qubit_color[node]}"',
-                "style": "filled",
-                "shape": "circle",
                 "pos": f'"{qubit_coordinates[node][0]},{qubit_coordinates[node][1]}"',
                 "pin": "True",
             }
@@ -1079,9 +1084,9 @@ def plot_coupling_map(
                 "label": str(qubit_labels[node]),
                 "color": f'"{qubit_color[node]}"',
                 "fillcolor": f'"{qubit_color[node]}"',
-                "style": "filled",
-                "shape": "circle",
             }
+        out_dict["style"] = "filled"
+        out_dict["shape"] = "circle"
         out_dict["fontcolor"] = f'"{font_color}"'
         out_dict["fontsize"] = f'"{str(font_size)}!"'
         out_dict["height"] = str(qubit_size * px)
