@@ -492,8 +492,8 @@ class TestCliffordGates(QiskitTestCase):
 
         # Additionally, make sure that it produces the correct clifford.
         expected_clifford_dict = {
-            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
-            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            "stabilizer": ["-IZX", "+XXZ", "-YYZ"],
+            "destabilizer": ["-YYI", "-XZI", "-ZXY"],
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)

@@ -22,8 +22,8 @@ use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::imports;
-use crate::interner::Interner;
-use crate::operations::{Operation, OperationRef, Param, PyInstruction};
+use crate::interner::{Interned, Interner};
+use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::PackedInstruction;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
@@ -1556,7 +1556,14 @@ def _format(operand):
     ///     DAGCircuit: An empty copy of self.
     #[pyo3(signature = (*, vars_mode="alike"))]
     fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
-        let mut target_dag = DAGCircuit::new(py)?;
+        let mut target_dag = DAGCircuit::with_capacity(
+            py,
+            self.num_qubits(),
+            self.num_clbits(),
+            Some(self.num_vars()),
+            None,
+            None,
+        )?;
         target_dag.name = self.name.as_ref().map(|n| n.clone_ref(py));
         target_dag.global_phase = self.global_phase.clone();
         target_dag.duration = self.duration.as_ref().map(|d| d.clone_ref(py));
@@ -3867,7 +3874,7 @@ def _format(operand):
     ///     include_directives (bool): include `barrier`, `snapshot` etc.
     ///
     /// Returns:
-    ///     list[DAGOpNode]: the list of node ids containing the given op.
+    ///     list[DAGOpNode]: the list of dag nodes containing the given op.
     #[pyo3(name= "op_nodes", signature=(op=None, include_directives=true))]
     fn py_op_nodes(
         &self,
@@ -3901,6 +3908,33 @@ def _format(operand):
             }
         }
         Ok(nodes)
+    }
+
+    /// Get a list of "op" nodes in the dag that contain control flow instructions.
+    ///
+    /// Returns:
+    ///     list[DAGOpNode] | None: The list of dag nodes containing control flow ops. If there
+    ///         are no control flow nodes None is returned
+    fn control_flow_op_nodes(&self, py: Python) -> PyResult<Option<Vec<Py<PyAny>>>> {
+        if self.has_control_flow() {
+            let result: PyResult<Vec<Py<PyAny>>> = self
+                .dag
+                .node_references()
+                .filter_map(|(node_index, node_type)| match node_type {
+                    NodeType::Operation(ref node) => {
+                        if node.op.control_flow() {
+                            Some(self.unpack_into(py, node_index, node_type))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .collect();
+            Ok(Some(result?))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Get the list of gate nodes in the dag.
@@ -4978,31 +5012,6 @@ def _format(operand):
         Ok(result)
     }
 
-    fn _insert_1q_on_incoming_qubit(
-        &mut self,
-        py: Python,
-        node: &Bound<PyAny>,
-        old_index: usize,
-    ) -> PyResult<()> {
-        if let NodeType::Operation(inst) = self.pack_into(py, node)? {
-            self.increment_op(inst.op.name());
-            let new_index = self.dag.add_node(NodeType::Operation(inst));
-            let old_index: NodeIndex = NodeIndex::new(old_index);
-            let (parent_index, edge_index, weight) = self
-                .dag
-                .edges_directed(old_index, Incoming)
-                .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
-                .next()
-                .unwrap();
-            self.dag.add_edge(parent_index, new_index, weight.clone());
-            self.dag.add_edge(new_index, old_index, weight);
-            self.dag.remove_edge(edge_index);
-            Ok(())
-        } else {
-            Err(PyTypeError::new_err("Invalid node type input"))
-        }
-    }
-
     fn _edges(&self, py: Python) -> Vec<PyObject> {
         self.dag
             .edge_indices()
@@ -5521,7 +5530,7 @@ impl DAGCircuit {
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    pub fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.0 as usize).map(|x| x[0]),
@@ -6173,6 +6182,190 @@ impl DAGCircuit {
             }
         }
         Ok(())
+    }
+
+    /// Alternative constructor, builds a DAGCircuit with a fixed capacity.
+    ///
+    /// # Arguments:
+    /// - `py`: Python GIL token
+    /// - `num_qubits`: Number of qubits in the circuit
+    /// - `num_clbits`: Number of classical bits in the circuit.
+    /// - `num_vars`: (Optional) number of variables in the circuit.
+    /// - `num_ops`: (Optional) number of operations in the circuit.
+    /// - `num_edges`: (Optional) If known, number of edges in the circuit.
+    pub fn with_capacity(
+        py: Python,
+        num_qubits: usize,
+        num_clbits: usize,
+        num_vars: Option<usize>,
+        num_ops: Option<usize>,
+        num_edges: Option<usize>,
+    ) -> PyResult<Self> {
+        let num_ops: usize = num_ops.unwrap_or_default();
+        let num_vars = num_vars.unwrap_or_default();
+        let num_edges = num_edges.unwrap_or(
+            num_qubits +    // 1 edge between the input node and the output node or 1st op node.
+            num_clbits +    // 1 edge between the input node and the output node or 1st op node.
+            num_vars +      // 1 edge between the input node and the output node or 1st op node.
+            num_ops, // In Average there will be 3 edges (2 qubits and 1 clbit, or 3 qubits) per op_node.
+        );
+
+        let num_nodes = num_qubits * 2 + // One input + One output node per qubit
+            num_clbits * 2 +    // One input + One output node per clbit
+            num_vars * 2 +  // One input + output node per variable
+            num_ops;
+
+        Ok(Self {
+            name: None,
+            metadata: Some(PyDict::new_bound(py).unbind().into()),
+            calibrations: HashMap::default(),
+            dag: StableDiGraph::with_capacity(num_nodes, num_edges),
+            qregs: PyDict::new_bound(py).unbind(),
+            cregs: PyDict::new_bound(py).unbind(),
+            qargs_interner: Interner::with_capacity(num_qubits),
+            cargs_interner: Interner::with_capacity(num_clbits),
+            qubits: BitData::with_capacity(py, "qubits".to_string(), num_qubits),
+            clbits: BitData::with_capacity(py, "clbits".to_string(), num_clbits),
+            global_phase: Param::Float(0.),
+            duration: None,
+            unit: "dt".to_string(),
+            qubit_locations: PyDict::new_bound(py).unbind(),
+            clbit_locations: PyDict::new_bound(py).unbind(),
+            qubit_io_map: Vec::with_capacity(num_qubits),
+            clbit_io_map: Vec::with_capacity(num_clbits),
+            var_input_map: _VarIndexMap::new(py),
+            var_output_map: _VarIndexMap::new(py),
+            op_names: IndexMap::default(),
+            control_flow_module: PyControlFlowModule::new(py)?,
+            vars_info: HashMap::with_capacity(num_vars),
+            vars_by_type: [
+                PySet::empty_bound(py)?.unbind(),
+                PySet::empty_bound(py)?.unbind(),
+                PySet::empty_bound(py)?.unbind(),
+            ],
+        })
+    }
+
+    /// Get qargs from an intern index
+    pub fn get_qargs(&self, index: Interned<[Qubit]>) -> &[Qubit] {
+        self.qargs_interner.get(index)
+    }
+
+    /// Get cargs from an intern index
+    pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
+        self.cargs_interner.get(index)
+    }
+
+    /// Insert a new 1q standard gate on incoming qubit
+    pub fn insert_1q_on_incoming_qubit(
+        &mut self,
+        new_gate: (StandardGate, &[f64]),
+        old_index: NodeIndex,
+    ) {
+        self.increment_op(new_gate.0.name());
+        let old_node = &self.dag[old_index];
+        let inst = if let NodeType::Operation(old_node) = old_node {
+            PackedInstruction {
+                op: new_gate.0.into(),
+                qubits: old_node.qubits,
+                clbits: old_node.clbits,
+                params: (!new_gate.1.is_empty())
+                    .then(|| Box::new(new_gate.1.iter().map(|x| Param::Float(*x)).collect())),
+                extra_attrs: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceCell::new(),
+            }
+        } else {
+            panic!("This method only works if provided index is an op node");
+        };
+        let new_index = self.dag.add_node(NodeType::Operation(inst));
+        let (parent_index, edge_index, weight) = self
+            .dag
+            .edges_directed(old_index, Incoming)
+            .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
+            .next()
+            .unwrap();
+        self.dag.add_edge(parent_index, new_index, weight.clone());
+        self.dag.add_edge(new_index, old_index, weight);
+        self.dag.remove_edge(edge_index);
+    }
+
+    /// Remove a sequence of 1 qubit nodes from the dag
+    /// This must only be called if all the nodes operate
+    /// on a single qubit with no other wires in or out of any nodes
+    pub fn remove_1q_sequence(&mut self, sequence: &[NodeIndex]) {
+        let (parent_index, weight) = self
+            .dag
+            .edges_directed(*sequence.first().unwrap(), Incoming)
+            .map(|edge| (edge.source(), edge.weight().clone()))
+            .next()
+            .unwrap();
+        let child_index = self
+            .dag
+            .edges_directed(*sequence.last().unwrap(), Outgoing)
+            .map(|edge| edge.target())
+            .next()
+            .unwrap();
+        self.dag.add_edge(parent_index, child_index, weight);
+        for node in sequence {
+            match self.dag.remove_node(*node) {
+                Some(NodeType::Operation(packed)) => {
+                    let op_name = packed.op.name();
+                    self.decrement_op(op_name);
+                }
+                _ => panic!("Must be called with valid operation node!"),
+            }
+        }
+    }
+
+    pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
+        match value {
+            Param::Obj(_) => {
+                return Err(PyTypeError::new_err(
+                    "Invalid parameter type, only float and parameter expression are supported",
+                ))
+            }
+            _ => self.set_global_phase(add_global_phase(py, &self.global_phase, value)?)?,
+        }
+        Ok(())
+    }
+
+    pub fn calibrations_empty(&self) -> bool {
+        self.calibrations.is_empty()
+    }
+
+    pub fn has_calibration_for_index(&self, py: Python, node_index: NodeIndex) -> PyResult<bool> {
+        let node = &self.dag[node_index];
+        if let NodeType::Operation(instruction) = node {
+            if !self.calibrations.contains_key(instruction.op.name()) {
+                return Ok(false);
+            }
+            let params = match &instruction.params {
+                Some(params) => {
+                    let mut out_params = Vec::new();
+                    for p in params.iter() {
+                        if let Param::ParameterExpression(exp) = p {
+                            let exp = exp.bind(py);
+                            if !exp.getattr(intern!(py, "parameters"))?.is_truthy()? {
+                                let as_py_float = exp.call_method0(intern!(py, "__float__"))?;
+                                out_params.push(as_py_float.unbind());
+                                continue;
+                            }
+                        }
+                        out_params.push(p.to_object(py));
+                    }
+                    PyTuple::new_bound(py, out_params)
+                }
+                None => PyTuple::empty_bound(py),
+            };
+            let qargs = self.qargs_interner.get(instruction.qubits);
+            let qubits = PyTuple::new_bound(py, qargs.iter().map(|x| x.0));
+            self.calibrations[instruction.op.name()]
+                .bind(py)
+                .contains((qubits, params).to_object(py))
+        } else {
+            Err(DAGCircuitError::new_err("Specified node is not an op node"))
+        }
     }
 }
 
