@@ -938,6 +938,17 @@ impl Target {
         });
     }
 
+    /// Get the error rate of a given instruction in the target
+    pub fn get_error(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
+        self.gate_map.get(name).and_then(|gate_props| {
+            let qargs_key: Qargs = qargs.iter().cloned().collect();
+            match gate_props.get(Some(&qargs_key)) {
+                Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
+                None => None,
+            }
+        })
+    }
+
     /// Get an iterator over the indices of all physical qubits of the target
     pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
         0..self.num_qubits.unwrap_or_default()

@@ -3212,10 +3212,17 @@ class QuantumCircuit:
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         dag = circuit_to_dag(self, copy_operations=True)
-        dag = HighLevelSynthesis().run(dag)
+
+        if gates_to_decompose is None:
+            # We should not rewrite the circuit using HLS when we have gates_to_decompose,
+            # or else HLS will rewrite all objects with available plugins (e.g., Cliffords,
+            # PermutationGates, and now also MCXGates)
+            dag = HighLevelSynthesis().run(dag)
+
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
+
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
@@ -3509,10 +3516,8 @@ class QuantumCircuit:
         Returns:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
-        count_ops: dict[Instruction, int] = {}
-        for instruction in self._data:
-            count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
-        return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
+        ops_dict = self._data.count_ops()
+        return OrderedDict(ops_dict)
 
     def num_nonlocal_gates(self) -> int:
         """Return number of non-local gates (i.e. involving 2+ qubits).

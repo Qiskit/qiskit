@@ -13,6 +13,7 @@
 use pyo3::prelude::*;
 
 use qiskit_accelerate::{
+    circuit_library::circuit_library, commutation_checker::commutation_checker,
     convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
     error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
     isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
@@ -39,6 +40,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, qiskit_circuit::circuit, "circuit")?;
     add_submodule(m, qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, qiskit_qasm3::qasm3, "qasm3")?;
+    add_submodule(m, circuit_library, "circuit_library")?;
     add_submodule(m, convert_2q_block_matrix, "convert_2q_block_matrix")?;
     add_submodule(m, dense_layout, "dense_layout")?;
     add_submodule(m, error_map, "error_map")?;
@@ -59,5 +61,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, uc_gate, "uc_gate")?;
     add_submodule(m, utils, "utils")?;
     add_submodule(m, vf2_layout, "vf2_layout")?;
+    add_submodule(m, commutation_checker, "commutation_checker")?;
     Ok(())
 }
