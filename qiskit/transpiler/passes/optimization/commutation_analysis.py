@@ -13,7 +13,6 @@
 """Analysis pass to find commutation relations between DAG nodes."""
 
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-from qiskit.circuit.commutation_checker import CommutationChecker as PyCommutationChecker
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit._accelerate.commutation_analysis import analyze_commutations
 
@@ -33,12 +32,6 @@ class CommutationAnalysis(AnalysisPass):
         if _commutation_checker is None:
             _commutation_checker = scc
 
-        if isinstance(_commutation_checker, PyCommutationChecker):
-            # If an instance of the to-be deprecated Python implementation of the CommutationChecker
-            # is passed, defer to the internally held Rust implementation instead. This is needed
-            # as the ``analyze_commutations`` function expects the Rust implementation.
-            _commutation_checker = _commutation_checker.cc
-
         self.comm_checker = _commutation_checker
 
     def run(self, dag):
@@ -48,4 +41,4 @@ class CommutationAnalysis(AnalysisPass):
         into the ``property_set``.
         """
         # Initiate the commutation set
-        self.property_set["commutation_set"] = analyze_commutations(dag, self.comm_checker)
+        self.property_set["commutation_set"] = analyze_commutations(dag, self.comm_checker.cc)
