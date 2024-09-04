@@ -50,7 +50,8 @@ fn recurse<'py>(
                         let block_obj = raw_block?;
                         let block = block_obj
                             .getattr(intern!(py, "_data"))?
-                            .extract::<CircuitData>()?;
+                            .downcast::<CircuitData>()?
+                            .borrow();
                         let new_dag: DAGCircuit =
                             circuit_to_dag.call1((block_obj.clone(),))?.extract()?;
                         let wire_map = (0..block.num_qubits())
