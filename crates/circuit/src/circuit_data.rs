@@ -31,6 +31,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use hashbrown::{HashMap, HashSet};
+use indexmap::IndexMap;
 use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
@@ -199,7 +200,7 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
-        let no_clbit_index = res.cargs_interner.insert(&[]);
+        let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
@@ -258,7 +259,7 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) -> PyResult<()> {
-        let no_clbit_index = self.cargs_interner.insert(&[]);
+        let no_clbit_index = self.cargs_interner.get_default();
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction {
@@ -981,6 +982,22 @@ impl CircuitData {
     pub fn clear(&mut self) {
         std::mem::take(&mut self.data);
         self.param_table.clear();
+    }
+
+    /// Counts the number of times each operation is used in the circuit.
+    ///
+    /// # Parameters
+    /// - `self` - A mutable reference to the CircuitData struct.
+    ///
+    /// # Returns
+    /// An IndexMap containing the operation names as keys and their respective counts as values.
+    pub fn count_ops(&self) -> IndexMap<&str, usize, ::ahash::RandomState> {
+        let mut ops_count: IndexMap<&str, usize, ::ahash::RandomState> = IndexMap::default();
+        for instruction in &self.data {
+            *ops_count.entry(instruction.op.name()).or_insert(0) += 1;
+        }
+        ops_count.par_sort_by(|_k1, v1, _k2, v2| v2.cmp(v1));
+        ops_count
     }
 
     // Marks this pyclass as NOT hashable.
