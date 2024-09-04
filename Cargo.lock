@@ -1161,7 +1161,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "ahash 0.8.11",
  "approx",
@@ -1189,7 +1189,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "bytemuck",
  "hashbrown 0.14.5",
@@ -1203,7 +1203,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "hashbrown 0.14.5",
  "num-bigint",
@@ -1224,7 +1224,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "hashbrown 0.14.5",
  "indexmap",

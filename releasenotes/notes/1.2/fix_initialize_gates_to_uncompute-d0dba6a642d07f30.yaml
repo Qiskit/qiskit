@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug that caused the method :meth:`.Initialize.gates_to_uncompute` fail.
+    Fixed `#12969 <https://github.com/Qiskit/qiskit/issues/12969>`__.

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.TwoQubitBasisDecomposer` where the Rust-based code
+    would panic if the given KAK gate was not a default version of the standard gates.
+    (for example, using ``CXGate(ctrl_state=0)``).
+    Fixed `#12998 <https://github.com/Qiskit/qiskit/issues/12998>`__.

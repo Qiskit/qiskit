@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :func:`.generate_preset_pass_manager` now correctly raises an exception,
+    if ``seed_transpiler`` is set to an invalid value (i.e., it is not a non-negative integer).
+    Fixed `#12938 <https://github.com/Qiskit/qiskit/issues/12938>`__.
