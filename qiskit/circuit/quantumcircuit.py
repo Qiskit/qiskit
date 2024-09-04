@@ -1157,9 +1157,13 @@ class QuantumCircuit:
         transpiler and reattach it to the output, so you can track your own metadata."""
 
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
+    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
         """A private constructor from rust space circuit data."""
-        out = QuantumCircuit()
+        if add_regs:
+            out = QuantumCircuit(data.num_qubits(), data.num_clbits())
+        else:
+            out = QuantumCircuit()
+
         out._data = data
         out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
         out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
