@@ -7,19 +7,6 @@ on:
       # Only match non-prerelease tags.
       - '[0-9]+.[0-9]+.[0-9]'
   workflow_dispatch:
-    inputs:
-      deploy_prefix:
-        description: "Deployment prefix (leave blank for the root): https://qiskit.org/documentation/<prefix>."
-        required: false
-        type: string
-      do_deployment:
-        description: "Push to qiskit.org?"
-        required: false
-        type: boolean
-      do_translatables:
-        description: "Push translatable strings?"
-        required: false
-        type: boolean
 
 jobs:
   build:
@@ -27,24 +14,13 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
-    outputs:
-      latest_tag: ${{ steps.latest_tag.outputs.latest_tag }}
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
 
-      - name: Determine latest full release tag
-        id: latest_tag
-        run: |
-          set -e
-          latest_tag=$(git tag --list --sort=-version:refname | sed -n '/^[0-9]\+\.[0-9]\+\.[0-9]\+$/p' | head -n 1)
-          echo "Latest release tag: '$latest_tag'"
-          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           # Sync with 'documentationPythonVersion' in 'azure-pipelines.yml'.
@@ -53,41 +29,23 @@ jobs:
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
 
-      # Sync with '.azure/tutorials-linux.yml'.
-      - name: Download current tutorials
-        run: tools/prepare_tutorials.bash circuits circuits_advanced operators
-        shell: bash
-
-      # This is just to have tox create the environment, so we can use it to execute the tutorials.
-      # We want to re-use it later for the build, hence 'tox run --notest' instead of 'tox devenv'.
-      - name: Prepare Python environment
-        run: tox run -e docs --notest
-
-      # The reason to use the custom script rather than letting 'nbsphinx' do its thing normally
-      # within the Sphinx build is so that the execution process is the same as in the test CI.
-      - name: Execute tutorials in place
-        run: .tox/docs/bin/python tools/execute_tutorials.py docs/tutorials
-        env:
-          QISKIT_CELL_TIMEOUT: "300"
+      - name: Determine GitHub branch name
+        run: |
+          # Tags like 1.0.0 and 1.0.0rc1 should point to their stable branch. We do this
+          # to reduce the diff in the qiskit/documentation repository between generating
+          # the API docs from a tag release versus a workflow_dispatch.
+          if [[ $GITHUB_REF_NAME =~ ^([0-9]+\.[0-9]+) ]]; then
+            BRANCH_NAME="stable/${BASH_REMATCH[1]}"
+          else
+              BRANCH_NAME="$GITHUB_REF_NAME"
+          fi
+          echo "Using branch '${BRANCH_NAME}' for GitHub source code links"
+          echo "QISKIT_DOCS_GITHUB_BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Build documentation
-        # We can skip re-installing the package, since we just did it a couple of steps ago.
-        run: tox run -e docs --skip-pkg-install
-        env:
-          QISKIT_ENABLE_ANALYTICS: "true"
-          # We've already built them.
-          QISKIT_DOCS_BUILD_TUTORIALS: "never"
-          DOCS_PROD_BUILD: "true"
-
-      - name: Build translatable strings
-        run: tox run -e gettext
-        env:
-          # We've already built them.
-          QISKIT_DOCS_BUILD_TUTORIALS: "never"
-          DOCS_PROD_BUILD: "true"
-
+        run: tox run -e docs
       - name: Store built documentation artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qiskit-docs
           path: |
@@ -95,174 +53,3 @@ jobs:
             !**/.doctrees
             !**/.buildinfo
           if-no-files-found: error
-
-      - name: Store translatable strings artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: qiskit-translatables
-          path: ./docs/locale/en/*
-          if-no-files-found: error
-
-  deploy:
-    if: github.event_name != 'workflow_dispatch' || inputs.do_deployment
-    name: Deploy to qiskit.org
-    needs: [build]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          path: qiskit
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: qiskit-docs
-          path: deploy
-
-      - id: choose
-        name: Choose deployment location(s)
-        run: |
-          set -e
-          declare -a prefixes
-          case ${{ github.event_name }} in
-            push)
-              case ${{ github.ref_type }} in
-                branch)
-                  if [[ "$GITHUB_REF_NAME" != "main" ]]; then
-                    echo "Push to unhandled branch '$GITHUB_REF_NAME'" >&2
-                    exit 1
-                  fi
-
-                  prefixes+=( "dev" )
-                  ;;
-                tag)
-                  tag=$GITHUB_REF_NAME
-                  echo "Full tag: ${tag}"
-                  IFS=. read -ra version <<< "$tag"
-                  minor_version="${version[0]}.${version[1]}"
-                  echo "Minor version: ${minor_version}"
-                  prefixes+=( "stable/${minor_version}" )
-                  if [[ "$tag" == "$LATEST_TAG" ]]; then
-                    # Deploy to the root as well.
-                    prefixes+=( "" )
-                  fi
-                  ;;
-                *)
-                  echo "Unhandled reference type '${{ github.ref_type }}'" >&2
-                  exit 1
-                  ;;
-              esac
-              ;;
-            workflow_dispatch)
-              prefixes+=( "$WORKFLOW_DISPATCH_PREFIX" )
-              ;;
-            *)
-              echo "Unhandled GitHub event ${{ github.event_name }}" >&2
-              exit 1
-              ;;
-          esac
-          # Join the array of prefixes into a colon-delimited list for
-          # serialisation.  This includes a trailing colon, so we can detect
-          # the presence of the empty string, even if it's the only prefix.
-          if [[ "${#prefixes[@]}" -gt 0 ]]; then
-            joined_prefixes=$(printf "%s:" "${prefixes[@]}")
-            echo "Chosen deployment prefixes: '$joined_prefixes'"
-            echo "joined_prefixes=$joined_prefixes" >> "$GITHUB_OUTPUT"
-          else
-            echo "Nothing to deploy to."
-          fi
-        env:
-          LATEST_TAG: ${{ needs.build.outputs.latest_tag }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          WORKFLOW_DISPATCH_PREFIX: ${{ inputs.deploy_prefix }}
-
-      - name: Install rclone
-        run: |
-          set -e
-          curl https://downloads.rclone.org/rclone-current-linux-amd64.deb -o rclone.deb
-          sudo apt-get install -y ./rclone.deb
-
-      - name: Deploy to qiskit.org
-        if: ${{ steps.choose.outputs.joined_prefixes != '' }}
-        run: |
-          set -e
-          RCLONE_CONFIG=$(rclone config file | tail -1)
-          openssl aes-256-cbc -K "$RCLONE_KEY" -iv "$RCLONE_IV" -in qiskit/tools/rclone.conf.enc -out "$RCLONE_CONFIG" -d
-          IFS=: read -ra prefixes <<< "$JOINED_PREFIXES"
-          for prefix in "${prefixes[@]}"; do
-            # The 'documentation' bit of the prefix is hard-coded in this step
-            # rather than being chosen during the prefix-choosing portion
-            # because we don't want to allow the 'workflow_dispatch' event
-            # trigger to accidentally allow a deployment to a dodgy prefix that
-            # wipes out _everything_ on qiskit.org.
-            location=documentation/$prefix
-            echo "Deploying to 'qiskit.org/$location'"
-            rclone sync --progress --exclude-from qiskit/tools/docs_exclude.txt deploy "IBMCOS:qiskit-org-web-resources/$location"
-          done
-        env:
-          JOINED_PREFIXES: ${{ steps.choose.outputs.joined_prefixes }}
-          RCLONE_KEY: ${{ secrets.ENCRYPTED_RCLONE_KEY}}
-          RCLONE_IV: ${{ secrets.ENCRYPTED_RCLONE_IV }}
-
-  deploy_translatables:
-    if: (github.event_name == 'workflow_dispatch' && inputs.do_translatables) || (github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name == needs.build.outputs.latest_tag)
-    name: Push translatable strings
-    needs: [build]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          path: 'qiskit'
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: qiskit-translatables
-          path: 'deploy'
-
-      - name: Decrypt SSH secret key
-        id: ssh_key
-        run: |
-          set -e
-          ssh_key=$(openssl enc -aes-256-cbc -d -in qiskit/tools/github_poBranch_update_key.enc -K $SSH_UPDATE_KEY -iv $SSH_UPDATE_IV)
-          echo "::add-mask::${ssh_key}"
-          echo "ssh_key=${ssh_key}" >> "$GITHUB_OUTPUT"
-        env:
-          SSH_UPDATE_KEY: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_KEY }}
-          SSH_UPDATE_IV: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_IV }}
-
-      - uses: actions/checkout@v3
-        with:
-          repository: 'qiskit-community/qiskit-translations'
-          path: 'qiskit-translations'
-          ssh-key: '${{ steps.ssh_key.outputs.ssh_key }}'
-
-      - name: Remove ignored documents
-        run: rm -r LC_MESSAGES/{apidocs,stubs}
-        working-directory: 'deploy'
-
-      - name: Push changes to translations repository
-        run: |
-          set -e
-          shopt -s failglob
-          # Bring the new `.po` target files into the repository.
-          git rm -r --ignore-unmatch docs/locale/en
-          mv "${{ github.workspace }}/deploy" docs/locale/en
-          # Update the ways to recreate the build.
-          cp "${{ github.workspace }}/qiskit/"{setup.py,requirements-*.txt,constraints.txt} .
-          git add .
-
-          cat > COMMIT_MSG << EOF
-          Automated documentation update to add .po files from ${{ github.repository }}
-
-          skip ci
-
-          Commit: ${{ github.sha }}
-          GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          EOF
-
-          git config user.name "Qiskit Autodeploy"
-          git config user.email "qiskit@qiskit.org"
-          git commit -F COMMIT_MSG
-          git push origin
-        working-directory: 'qiskit-translations'

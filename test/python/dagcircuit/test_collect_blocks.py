@@ -23,9 +23,9 @@ from qiskit.converters import (
     dag_to_circuit,
     dagdependency_to_circuit,
 )
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Measure, Clbit
 from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCollectBlocks(QiskitTestCase):
@@ -163,7 +163,7 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(split_blocks), 3)
 
     def test_collect_and_split_gates_from_dagdependency(self):
-        """Test collecting and splitting blocks from DAGDependecy."""
+        """Test collecting and splitting blocks from DAGDependency."""
         qc = QuantumCircuit(6)
         qc.cx(0, 1)
         qc.cx(3, 5)
@@ -913,6 +913,23 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(blocks[1]), 2)
         self.assertEqual(len(blocks[2]), 1)
         self.assertEqual(len(blocks[3]), 1)
+
+    def test_block_collapser_register_condition(self):
+        """Test that BlockCollapser can handle a register being used more than once."""
+        qc = QuantumCircuit(1, 2)
+        qc.x(0).c_if(qc.cregs[0], 0)
+        qc.y(0).c_if(qc.cregs[0], 1)
+
+        dag = circuit_to_dag(qc)
+        blocks = BlockCollector(dag).collect_all_matching_blocks(
+            lambda _: True, split_blocks=False, min_block_size=1
+        )
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, lambda circ: circ.to_instruction())
+        collapsed_qc = dag_to_circuit(dag)
+
+        self.assertEqual(len(collapsed_qc.data), 1)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 1)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 2)
 
 
 if __name__ == "__main__":

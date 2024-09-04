@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,7 @@ import math
 import numpy as np
 
 from qiskit.circuit import Gate, QuantumCircuit, Qubit
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
 
 class GateSequence:
@@ -114,18 +114,18 @@ class GateSequence:
         """
         from qiskit.dagcircuit import DAGCircuit
 
-        qreg = [Qubit()]
+        qreg = (Qubit(),)
         dag = DAGCircuit()
         dag.add_qubits(qreg)
 
         if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
             su2 = _convert_so3_to_su2(self.product)
-            dag.apply_operation_back(UnitaryGate(su2), qreg)
+            dag.apply_operation_back(UnitaryGate(su2), qreg, check=False)
             return dag
 
         dag.global_phase = self.global_phase
         for gate in self.gates:
-            dag.apply_operation_back(gate, qreg)
+            dag.apply_operation_back(gate, qreg, check=False)
 
         return dag
 

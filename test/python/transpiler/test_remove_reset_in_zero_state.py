@@ -15,14 +15,15 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveResetInZeroState, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRemoveResetInZeroState(QiskitTestCase):
-    """Test swap-followed-by-measure optimizations."""
+    """Test remove-reset-in-zero-state optimizations."""
 
     def test_optimize_single_reset(self):
         """Remove a single reset
@@ -94,8 +95,10 @@ class TestRemoveResetInZeroStateFixedPoint(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(
-            [RemoveResetInZeroState(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
+            DoWhileController(
+                [RemoveResetInZeroState(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         )
         after = pass_manager.run(circuit)
 

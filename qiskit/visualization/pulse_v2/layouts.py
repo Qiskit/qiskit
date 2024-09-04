@@ -67,7 +67,7 @@ Layout functions in this module are called with the `program` and `device` kwarg
 This data provides input program and backend system configurations.
 
     ```python
-    def my_figure_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+    def my_figure_title(program: Union[pulse.Waveform, pulse.Schedule],
                         device: DrawerBackendInfo) -> str:
 
         return 'title'
@@ -361,9 +361,7 @@ def time_map_in_ns(
     )
 
 
-def detail_title(
-    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: DrawerBackendInfo
-) -> str:
+def detail_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo) -> str:
     """Layout function for generating figure title.
 
     This layout writes program name, program duration, and backend name in the title.
@@ -375,11 +373,7 @@ def detail_title(
 
     # add program duration
     dt = device.dt * 1e9 if device.dt else 1.0
-    title_str.append(
-        "Duration: {dur:.1f} {unit}".format(
-            dur=program.duration * dt, unit="ns" if device.dt else "dt"
-        )
-    )
+    title_str.append(f"Duration: {program.duration * dt:.1f} {'ns' if device.dt else 'dt'}")
 
     # add device name
     if device.backend_name != "no-backend":
@@ -388,8 +382,6 @@ def detail_title(
     return ", ".join(title_str)
 
 
-def empty_title(
-    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: DrawerBackendInfo
-) -> str:
+def empty_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo) -> str:
     """Layout function for generating an empty figure title."""
     return ""

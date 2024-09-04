@@ -12,6 +12,7 @@
 
 
 """Model and schema for pulse defaults."""
+import warnings
 from typing import Any, Dict, List
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, PulseQobjDef
@@ -271,7 +272,7 @@ class PulseDefaults:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
         schema = {
-            "pulse_library": PulseLibraryItem,
+            "pulse_library": PulseLibraryItem,  # The class PulseLibraryItem is deprecated
             "cmd_def": Command,
             "meas_kernel": MeasurementKernel,
             "discriminator": Discriminator,
@@ -282,10 +283,13 @@ class PulseDefaults:
         in_data = {}
         for key, value in data.items():
             if key in schema:
-                if isinstance(value, list):
-                    in_data[key] = list(map(schema[key].from_dict, value))
-                else:
-                    in_data[key] = schema[key].from_dict(value)
+                with warnings.catch_warnings():
+                    # The class PulseLibraryItem is deprecated
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    if isinstance(value, list):
+                        in_data[key] = list(map(schema[key].from_dict, value))
+                    else:
+                        in_data[key] = schema[key].from_dict(value)
             else:
                 in_data[key] = value
 
@@ -296,9 +300,4 @@ class PulseDefaults:
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
         qfreq = f"Qubit Frequencies [GHz]\n{qubit_freqs}"
         mfreq = f"Measurement Frequencies [GHz]\n{meas_freqs} "
-        return "<{name}({insts}{qfreq}\n{mfreq})>".format(
-            name=self.__class__.__name__,
-            insts=str(self.instruction_schedule_map),
-            qfreq=qfreq,
-            mfreq=mfreq,
-        )
+        return f"<{self.__class__.__name__}({str(self.instruction_schedule_map)}{qfreq}\n{mfreq})>"

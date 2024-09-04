@@ -22,23 +22,26 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 class UnrollCustomDefinitions(TransformationPass):
     """Unrolls instructions with custom definitions."""
 
-    def __init__(self, equivalence_library, basis_gates=None, target=None):
+    def __init__(self, equivalence_library, basis_gates=None, target=None, min_qubits=0):
         """Unrolls instructions with custom definitions.
 
         Args:
             equivalence_library (EquivalenceLibrary): The equivalence library
                 which will be used by the BasisTranslator pass. (Instructions in
                 this library will not be unrolled by this pass.)
-            basis_gates (Optional[list[str]]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
+            basis_gates (Optional[list[str]]): Target basis names to unroll to, e.g. ``['u3', 'cx']``.
                 Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
+             min_qubits (int): The minimum number of qubits for operations in the input
+                 dag to translate.
         """
 
         super().__init__()
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
         self._target = target
+        self._min_qubits = min_qubits
 
     def run(self, dag):
         """Run the UnrollCustomDefinitions pass on `dag`.
@@ -57,31 +60,33 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._basis_gates is None and self._target is None:
             return dag
 
+        device_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
         if self._target is None:
-            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
-            device_insts = basic_insts | set(self._basis_gates)
+            device_insts |= set(self._basis_gates)
 
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(
+                    node, control_flow.map_blocks(self.run, node.op), propagate_condition=False
+                )
                 continue
 
             if getattr(node.op, "_directive", False):
                 continue
 
-            if dag.has_calibration_for(node):
+            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 continue
 
             controlled_gate_open_ctrl = isinstance(node.op, ControlledGate) and node.op._open_ctrl
             if not controlled_gate_open_ctrl:
-                inst_supported = (
-                    self._target.instruction_supported(
+                if self._target is not None:
+                    inst_supported = self._target.instruction_supported(
                         operation_name=node.op.name,
                         qargs=tuple(dag.find_bit(x).index for x in node.qargs),
                     )
-                    if self._target is not None
-                    else node.name in device_insts
-                )
+                else:
+                    inst_supported = node.name in device_insts
+
                 if inst_supported or self._equiv_lib.has_entry(node.op):
                     continue
             try:
@@ -92,15 +97,13 @@ class UnrollCustomDefinitions(TransformationPass):
             if unrolled is None:
                 # opaque node
                 raise QiskitError(
-                    "Cannot unroll the circuit to the given basis, %s. "
-                    "Instruction %s not found in equivalence library "
-                    "and no rule found to expand." % (str(self._basis_gates), node.op.name)
+                    f"Cannot unroll the circuit to the given basis, {str(self._basis_gates)}. "
+                    f"Instruction {node.op.name} not found in equivalence library "
+                    "and no rule found to expand."
                 )
 
-            decomposition = circuit_to_dag(unrolled)
-            unrolled_dag = UnrollCustomDefinitions(
-                self._equiv_lib, self._basis_gates, target=self._target
-            ).run(decomposition)
+            decomposition = circuit_to_dag(unrolled, copy_operations=False)
+            unrolled_dag = self.run(decomposition)
             dag.substitute_node_with_dag(node, unrolled_dag)
 
         return dag

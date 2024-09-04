@@ -18,24 +18,23 @@ from __future__ import annotations
 
 import datetime
 import doctest
+import importlib
+import inspect
 import os
-import subprocess
+import re
 from pathlib import Path
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.45"
+version = "1.3"
 # The full version, including alpha/beta/rc tags
-release = "0.45.0"
+release = "1.3.0"
 
 language = "en"
-
-# This tells 'qiskit_sphinx_theme' that we're based at 'https://qiskit.org/<docs_url_prefix>'.
-# Should not include the subdirectory for the stable version.
-docs_url_prefix = "documentation"
 
 rst_prolog = f".. |version| replace:: {version}"
 
@@ -43,17 +42,13 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
-    "nbsphinx",
+    # This is used by qiskit/documentation to generate links to github.com.
+    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
-    "qiskit_sphinx_theme",
     "reno.sphinxext",
-    "sphinx_design",
-    "sphinx_remove_toctrees",
-    "sphinx_reredirects",
+    "sphinxcontrib.katex",
 ]
 
 templates_path = ["_templates"]
@@ -63,30 +58,8 @@ numfig = True
 # Available keys are 'figure', 'table', 'code-block' and 'section'.  '%s' is the number.
 numfig_format = {"table": "Table %s"}
 
-# Translations configuration.
-translations_list = [
-    ("en", "English"),
-    ("bn_BN", "Bengali"),
-    ("fr_FR", "French"),
-    ("de_DE", "German"),
-    ("ja_JP", "Japanese"),
-    ("ko_KR", "Korean"),
-    ("pt_UN", "Portuguese"),
-    ("es_UN", "Spanish"),
-    ("ta_IN", "Tamil"),
-]
-locale_dirs = ["locale/"]
-gettext_compact = False
-
 # Relative to source directory, affects general discovery, and html_static_path and html_extra_path.
 exclude_patterns = ["_build", "**.ipynb_checkpoints"]
-
-pygments_style = "colorful"
-
-panels_css_variables = {
-    "tabs-color-label-active": "rgb(138, 63, 252)",
-    "tabs-color-label-inactive": "rgb(221, 225, 230)",
-}
 
 
 # This adds the module name to e.g. function API docs. We use the default of True because our
@@ -102,22 +75,13 @@ add_module_names = True
 modindex_common_prefix = ["qiskit."]
 
 # ----------------------------------------------------------------------------------
-# Extlinks
+# Intersphinx
 # ----------------------------------------------------------------------------------
-# Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
-extlinks = {
-    "pull_terra": ("https://github.com/Qiskit/qiskit-terra/pull/%s", "qiskit-terra #%s"),
-    "pull_aer": ("https://github.com/Qiskit/qiskit-aer/pull/%s", "qiskit-aer #%s"),
-    "pull_ibmq-provider": (
-        "https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s",
-        "qiskit-ibmq-provider #%s",
-    ),
-}
 
 intersphinx_mapping = {
-    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
-    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "rustworkx": ("https://www.rustworkx.org/", None),
+    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
+    "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -127,22 +91,8 @@ intersphinx_mapping = {
 # HTML theme
 # ----------------------------------------------------------------------------------
 
-html_theme = "qiskit"
-html_favicon = "images/favicon.ico"
+html_theme = "alabaster"
 html_last_updated_fmt = "%Y/%m/%d"
-html_context = {
-    # Enable segment analytics for qiskit.org/documentation
-    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
-    "theme_announcement": "🎉 Qiskit is getting a new documentation experience on IBM Quantum!",
-    "announcement_url": "https://docs.quantum-computing.ibm.com/",
-    "announcement_url_text": "Check it out",
-}
-html_static_path = ["_static"]
-
-# This speeds up the docs build because it works around the Furo theme's slowdown from the left
-# sidebar when the site has lots of HTML pages. But, it results in a much worse user experience,
-# so we only use it in dev/CI builds.
-remove_from_toctrees = ["stubs/*"]
 
 # ----------------------------------------------------------------------------------
 # Autodoc
@@ -164,9 +114,9 @@ autoclass_content = "both"
 autosummary_generate = True
 autosummary_generate_overwrite = False
 
-# The pulse library contains some names that differ only in capitalisation, during the changeover
+# The pulse library contains some names that differ only in capitalization, during the changeover
 # surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
-# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# capitalization, this causes problems when the documentation is built on an OS/filesystem that is
 # enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
 # from happening.
 autosummary_filename_map = {
@@ -214,95 +164,51 @@ plot_html_show_formats = False
 
 
 # ----------------------------------------------------------------------------------
-# Nbsphinx
+# Source code links
 # ----------------------------------------------------------------------------------
 
-nbsphinx_timeout = int(os.getenv("QISKIT_CELL_TIMEOUT", "300"))
-nbsphinx_execute = os.getenv("QISKIT_DOCS_BUILD_TUTORIALS", "never")
-nbsphinx_widgets_path = ""
-nbsphinx_thumbnails = {"**": "_static/images/logo.png"}
-
-nbsphinx_prolog = """
-{% set docname = env.doc2path(env.docname, base=None) %}
-
-.. only:: html
-
-    .. role:: raw-html(raw)
-        :format: html
-
-    .. note::
-        This page was generated from `{{ docname }}`__.
-
-    __ https://github.com/Qiskit/qiskit-terra/blob/main/{{ docname }}
-
-"""
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-# ----------------------------------------------------------------------------------
-# Redirects
-# ----------------------------------------------------------------------------------
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
 
-def determine_api_redirects() -> dict[str, str]:
-    """Set up API redirects for functions that we moved to module pages.
+    module_name = info["module"]
+    if "qiskit" not in module_name:
+        return None
 
-    Note that we have redirects in Cloudflare for methods moving to their class page. We
-    could not do this for functions because some functions still have dedicated
-    HTML pages, so we cannot use a generic rule.
-    """
-    lines = Path("api_redirects.txt").read_text().splitlines()
-    result = {}
-    for line in lines:
-        if not line:
-            continue
-        obj_name, new_module_page_name = line.split(" ")
-        # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
-        new_url = (
-            "https://qiskit.org/documentation/apidoc/" +
-            f"{new_module_page_name}.html#{obj_name}"
-        )
-        result[f"stubs/{obj_name}"] = new_url
-    return result
+    try:
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        return None
 
+    obj = module
+    for part in info["fullname"].split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
 
-redirects = determine_api_redirects()
+    try:
+        full_file_name = inspect.getsourcefile(obj)
+    except TypeError:
+        return None
+    if full_file_name is None:
+        return None
+    try:
+        relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
+    except ValueError:
+        return None
 
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except (OSError, TypeError):
+        linespec = ""
+    else:
+        ending_lineno = lineno + len(source) - 1
+        linespec = f"#L{lineno}-L{ending_lineno}"
 
-# ---------------------------------------------------------------------------------------
-# Prod changes
-# ---------------------------------------------------------------------------------------
-
-if os.getenv("DOCS_PROD_BUILD"):
-    # `viewcode` slows down docs build by about 14 minutes.
-    extensions.append("sphinx.ext.viewcode")
-    # Include all pages in the left sidebar in prod.
-    remove_from_toctrees = []
-
-
-# ---------------------------------------------------------------------------------------
-# Custom extensions
-# ---------------------------------------------------------------------------------------
-
-
-def add_versions_to_config(_app, config):
-    """Add a list of old documentation versions that should have links generated to them into the
-    context, so the theme can use them to generate a sidebar."""
-    # First 0.x version where Qiskit/Terra and the metapackage aligned on number.
-    first_unified_zero_minor = 45
-
-    # Start with the hardcoded versions of the documentation that were managed while the metapackage
-    # still existed, so are based on tags that don't exist in the Qiskit package repo.
-    versions = ["0.19"] + [f"0.{x}" for x in range(24, first_unified_zero_minor)]
-
-    proc = subprocess.run(["git", "describe", "--abbrev=0"], capture_output=True, check=True)
-    current_version = proc.stdout.decode("utf8")
-    current_version_info = current_version.split(".")
-    if current_version_info[0] != "0":
-        raise Exception("TODO: handle major versions")
-    versions.extend(
-        f"0.{x}" % x for x in range(first_unified_zero_minor, int(current_version_info[1]) + 1)
-    )
-    config.html_context["version_list"] = versions
-
-
-def setup(app):
-    app.connect("config-inited", add_versions_to_config)
+    github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/{file_name}{linespec}"

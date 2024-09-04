@@ -20,14 +20,16 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
-from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
-from qiskit.extensions import UnitaryGate
+from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
-from qiskit.transpiler.passes.utils import _block_to_matrix
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit._accelerate.convert_2q_block_matrix import blocks_to_matrix
+from qiskit.exceptions import QiskitError
+
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
 
@@ -55,15 +57,15 @@ class ConsolidateBlocks(TransformationPass):
     ):
         """ConsolidateBlocks initializer.
 
-        If `kak_basis_gate` is not `None` it will be used as the basis gate for KAK decomposition.
-        Otherwise, if `basis_gates` is not `None` a basis gate will be chosen from this list.
-        Otherwise the basis gate will be `CXGate`.
+        If ``kak_basis_gate`` is not ``None`` it will be used as the basis gate for KAK decomposition.
+        Otherwise, if ``basis_gates`` is not ``None`` a basis gate will be chosen from this list.
+        Otherwise, the basis gate will be :class:`.CXGate`.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation.
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
-            approximation_degree (float): a float between [0.0, 1.0]. Lower approximates more.
+            approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
             target (Target): The target object for the compilation target backend.
         """
         super().__init__()
@@ -105,14 +107,14 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
-                        block_cargs |= set(getattr(nd.op, "condition", None)[0])
+                    if isinstance(nd, DAGOpNode) and getattr(nd, "condition", None):
+                        block_cargs |= set(getattr(nd, "condition", None)[0])
                     all_block_gates.add(nd)
                 block_index_map = self._block_qargs_to_indices(dag, block_qargs)
                 for nd in block:
-                    if nd.op.name == basis_gate_name:
+                    if nd.name == basis_gate_name:
                         basis_count += 1
-                    if self._check_not_in_basis(dag, nd.op.name, nd.qargs):
+                    if self._check_not_in_basis(dag, nd.name, nd.qargs):
                         outside_basis = True
                 if len(block_qargs) > 2:
                     q = QuantumRegister(len(block_qargs))
@@ -122,16 +124,21 @@ class ConsolidateBlocks(TransformationPass):
                         qc.add_register(c)
                     for nd in block:
                         qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
-                    unitary = UnitaryGate(Operator(qc))
+                    unitary = UnitaryGate(Operator(qc), check_input=False)
                 else:
-                    matrix = _block_to_matrix(block, block_index_map)
-                    unitary = UnitaryGate(matrix)
+                    try:
+                        matrix = blocks_to_matrix(block, block_index_map)
+                    except QiskitError:
+                        # If building a matrix for the block fails we should not consolidate it
+                        # because there is nothing we can do with it.
+                        continue
+                    unitary = UnitaryGate(matrix, check_input=False)
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
                 if (  # pylint: disable=too-many-boolean-expressions
                     self.force_consolidate
                     or unitary.num_qubits > 2
-                    or self.decomposer.num_basis_gates(unitary) < basis_count
+                    or self.decomposer.num_basis_gates(matrix) < basis_count
                     or len(block) > max_2q_depth
                     or ((self.basis_gates is not None) and outside_basis)
                     or ((self.target is not None) and outside_basis)
@@ -151,7 +158,7 @@ class ConsolidateBlocks(TransformationPass):
             if any(gate in all_block_gates for gate in run):
                 continue
             if len(run) == 1 and not self._check_not_in_basis(dag, run[0].name, run[0].qargs):
-                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
+                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix(), check_input=False))
             else:
                 qubit = run[0].qargs[0]
                 operator = run[0].op.to_matrix()
@@ -162,7 +169,7 @@ class ConsolidateBlocks(TransformationPass):
                     operator = gate.op.to_matrix().dot(operator)
                 if already_in_block:
                     continue
-                unitary = UnitaryGate(operator)
+                unitary = UnitaryGate(operator, check_input=False)
                 if np.allclose(identity_1q, unitary.to_matrix()):
                     for node in run:
                         dag.remove_op_node(node)
@@ -192,8 +199,14 @@ class ConsolidateBlocks(TransformationPass):
             pass_manager.append(Collect2qBlocks())
 
         pass_manager.append(self)
-        for node in dag.op_nodes(ControlFlowOp):
-            node.op = node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks)
+        for node in dag.op_nodes():
+            if node.name not in CONTROL_FLOW_OP_NAMES:
+                continue
+            dag.substitute_node(
+                node,
+                node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
+                propagate_condition=False,
+            )
         return dag
 
     def _check_not_in_basis(self, dag, gate_name, qargs):

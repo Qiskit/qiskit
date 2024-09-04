@@ -16,7 +16,7 @@
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import ContainsInstruction
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestContainsInstructionPass(QiskitTestCase):

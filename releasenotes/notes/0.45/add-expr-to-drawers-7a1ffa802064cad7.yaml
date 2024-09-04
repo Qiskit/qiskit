@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the ability to display conditions as expressions from
+    :class:`.Expr` in the :meth:`.QuantumCircuit.draw` method and the
+    :func:`~.circuit_drawer` function when visualizing circuits that
+    have :class:`.ControlFlowOp` instructions.

@@ -12,14 +12,18 @@
 
 """Tests for the lazy loaders."""
 
-import sys
-from unittest import mock
+from __future__ import annotations
 
+import importlib.abc
+import importlib.util
+import sys
+import warnings
+from unittest import mock
 import ddt
 
-from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.test import QiskitTestCase
+from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
 from qiskit.utils import LazyImportTester, LazySubprocessTester
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def available_importer(**kwargs):
@@ -49,6 +53,29 @@ def mock_availability_test(feature):
     return mock.patch.object(type(feature), "_is_available", wraps=feature._is_available)
 
 
+def patch_imports(mapping: dict[str, importlib.abc.Loader]):
+    """Patch the import system so that the given named modules will skip the regular search system
+    and instead be loaded by the given loaders.
+
+    Already imported modules will not be affected; this should use uniquely named modules."""
+
+    class OverrideLoaders(importlib.abc.MetaPathFinder):
+        """A metapath finder that will simply return an explicit loader for specific modules."""
+
+        def __init__(self, mapping: dict[str, importlib.abc.Loader]):
+            self.mapping = mapping
+
+        def find_spec(self, fullname, path, target=None):
+            """Implementation of the abstract (but undefined) method."""
+            del path, target  # ABC parameters we don't need.
+            if (loader := self.mapping.get(fullname)) is not None:
+                return importlib.util.spec_from_loader(fullname, loader)
+            return None
+
+    new_path = [OverrideLoaders(mapping)] + sys.meta_path
+    return mock.patch.object(sys, "meta_path", new_path)
+
+
 @ddt.ddt
 class TestLazyDependencyTester(QiskitTestCase):
     """Tests for the lazy loaders.  Within this class, we parameterise the test cases with
@@ -70,6 +97,23 @@ class TestLazyDependencyTester(QiskitTestCase):
         self.assertFalse(bool(test_generator()))
         if test_generator():
             self.fail("did not evaluate false")
+
+    def test_submodule_import_detects_false_correctly(self):
+        """Test that a lazy import of a submodule where the parent is not available still generates
+        a silent failure."""
+
+        # The idea here is that the base package is what will fail the import, and the corresponding
+        # `ImportError.name` won't be the same as the full path we were trying to import.  We want
+        # to make sure that the "was it found and failed to import?" handling is correct in this
+        # case.
+        def checker():
+            return LazyImportTester("_qiskit_module_does_not_exist_.submodule")
+
+        # Just in case something else is allowing the warnings, but they should be forbidden by
+        # default.
+        with warnings.catch_warnings(record=True) as log:
+            self.assertFalse(checker())
+        self.assertEqual(log, [])
 
     @ddt.data(available_importer, available_process, unavailable_importer, unavailable_process)
     def test_check_occurs_once(self, test_generator):
@@ -324,9 +368,62 @@ class TestLazyDependencyTester(QiskitTestCase):
                 vars(type(mock_module))[attribute].assert_called()
             vars(type(mock_module))["unaccessed_attribute"].assert_not_called()
 
+    def test_warns_on_import_error(self):
+        """Check that the module raising an `ImportError` other than being not found is warned
+        against."""
+
+        # pylint: disable=missing-class-docstring,missing-function-docstring,abstract-method
+
+        class RaisesImportErrorOnLoad(importlib.abc.Loader):
+            def __init__(self, name):
+                self.name = name
+
+            def create_module(self, spec):
+                raise ImportError("sentinel import failure", name=self.name)
+
+            def exec_module(self, module):
+                pass
+
+        dummy = f"{__name__}_{type(self).__name__}_test_warns_on_import_error".replace(".", "_")
+        tester = LazyImportTester(dummy)
+        with patch_imports({dummy: RaisesImportErrorOnLoad(dummy)}):
+            with self.assertWarnsRegex(
+                OptionalDependencyImportWarning,
+                rf"module '{dummy}' failed to import with: .*sentinel import failure.*",
+            ):
+                self.assertFalse(tester)
+
+    def test_warns_on_internal_not_found_error(self):
+        """Check that the module raising an `ModuleNotFoundError` for some module other than itself
+        (such as a module trying to import parts of Terra that don't exist any more) is caught and
+        warned against, rather than silently caught as an expected `ModuleNotFoundError`."""
+
+        # pylint: disable=missing-class-docstring,missing-function-docstring,abstract-method
+
+        class ImportsBadModule(importlib.abc.Loader):
+            def create_module(self, spec):
+                # Doesn't matter what, we just want to return any module object; we're going to
+                # raise an error during "execution" of the module.
+                return sys
+
+            def exec_module(self, module):
+                del module  # ABC parameter we don't care about.
+                import __qiskit__some_module_that_does_not_exist
+
+        dummy = f"{__name__}_{type(self).__name__}_test_warns_on_internal_not_found_error".replace(
+            ".", "_"
+        )
+        tester = LazyImportTester(dummy)
+        with patch_imports({dummy: ImportsBadModule()}):
+            with self.assertWarnsRegex(
+                OptionalDependencyImportWarning,
+                rf"module '{dummy}' failed to import with: ModuleNotFoundError.*__qiskit__",
+            ):
+                self.assertFalse(tester)
+
     def test_import_allows_attributes_failure(self):
         """Check that the import tester can accept a dictionary mapping module names to attributes,
-        and that these are recognised when they are missing."""
+        and that these are recognized when they are missing."""
         # We can just use existing modules for this.
         name_map = {
             "sys": ("executable", "path"),
@@ -334,7 +431,8 @@ class TestLazyDependencyTester(QiskitTestCase):
         }
 
         feature = LazyImportTester(name_map)
-        self.assertFalse(feature)
+        with self.assertWarnsRegex(UserWarning, r"'builtins' imported, but attribute"):
+            self.assertFalse(feature)
 
     def test_import_fails_with_no_modules(self):
         """Catch programmer errors with no modules to test."""

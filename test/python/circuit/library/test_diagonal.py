@@ -10,16 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the digonal circuit."""
+"""Test the diagonal circuit."""
 
 import unittest
 from ddt import ddt, data
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.library import Diagonal
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

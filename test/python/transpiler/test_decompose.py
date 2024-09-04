@@ -19,7 +19,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import HGate, CCXGate, U2Gate
 from qiskit.quantum_info.operators import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDecompose(QiskitTestCase):
@@ -55,7 +55,7 @@ class TestDecompose(QiskitTestCase):
         qc = QuantumCircuit(q_bits)
         qc.append(my_gate, q_bits[:3])
         qc.append(my_gate2, q_bits[2:])
-        qc.mct(q_bits[:4], q_bits[4])
+        qc.mcx(q_bits[:4], q_bits[4])
         qc.h(0)
         qc.append(circ3, [0, 1])
         self.complex_circuit = qc
@@ -145,7 +145,7 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(qc1, output)
 
     def test_decomposition_preserves_qregs_order(self):
-        """Test decomposing a gate preserves it's definition registers order"""
+        """Test decomposing a gate preserves the order of registers in its definition"""
         qr = QuantumRegister(2, "qr1")
         qc1 = QuantumCircuit(qr)
         qc1.cx(1, 0)
@@ -216,7 +216,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
-        decom_circ = self.complex_circuit.decompose(["mcx"])
+        decom_circ = self.complex_circuit.decompose(["mcx"], reps=2)
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 13)
@@ -236,7 +236,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_mixture_of_names_and_labels(self):
         """Test decomposition parameters so that mixture of names and labels is decomposed"""
-        decom_circ = self.complex_circuit.decompose(["mcx", "gate2"])
+        decom_circ = self.complex_circuit.decompose(["mcx", "gate2"], reps=2)
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 15)

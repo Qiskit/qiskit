@@ -17,7 +17,7 @@ import subprocess
 import sys
 import unittest
 
-from qiskit.test import QiskitTestCase, online_test, slow_test
+from test import QiskitTestCase
 
 examples_dir = os.path.abspath(
     os.path.join(
@@ -43,39 +43,6 @@ class TestPythonExamples(QiskitTestCase):
         for example in examples:
             with self.subTest(example=example):
                 example_path = os.path.join(examples_dir, example)
-                cmd = [sys.executable, example_path]
-                with subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    env={**os.environ, "PYTHONIOENCODING": "utf8"},
-                ) as run_example:
-                    stdout, stderr = run_example.communicate()
-                    error_string = (
-                        f"Running example {example} failed with return code"
-                        f"{run_example.returncode}\n"
-                        f"stdout:{stdout}\nstderr: {stderr}"
-                    )
-                    self.assertEqual(run_example.returncode, 0, error_string)
-
-    @unittest.skipIf(
-        sys.platform == "darwin",
-        "Multiprocess spawn fails on macOS python >=3.8 without __name__ == '__main__' guard",
-    )
-    @online_test
-    @slow_test
-    def test_all_ibmq_examples(self, qe_token, qe_url):
-        """Execute the ibmq example python files and pass if it returns 0."""
-        from qiskit import IBMQ
-
-        IBMQ.enable_account(qe_token, qe_url)
-        self.addCleanup(IBMQ.disable_account, token=qe_token, url=qe_url)
-        ibmq_examples = []
-        if os.path.isdir(ibmq_examples_dir):
-            ibmq_examples = [x for x in os.listdir(ibmq_examples_dir) if x.endswith(".py")]
-        for example in ibmq_examples:
-            with self.subTest(example=example):
-                example_path = os.path.join(ibmq_examples_dir, example)
                 cmd = [sys.executable, example_path]
                 with subprocess.Popen(
                     cmd,

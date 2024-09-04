@@ -11,12 +11,16 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
+
+from __future__ import annotations
+
 from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZGate(Gate):
@@ -59,9 +63,13 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    _standard_gate = StandardGate.RZGate
+
+    def __init__(
+        self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RZ gate."""
-        super().__init__("rz", 1, [phi], label=label)
+        super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -83,44 +91,76 @@ class RZGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-RZ gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        # deliberately capture annotated in [None, False] here
+        if not annotated and num_ctrl_qubits == 1:
             gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            # If the gate parameters contain free parameters, we cannot eagerly synthesize
+            # the controlled gate decomposition. In this case, we annotate the gate per default.
+            if annotated is None:
+                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
 
-    def inverse(self):
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
+
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RZ gate
 
         :math:`RZ(\lambda)^{\dagger} = RZ(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZGate` with an inverted parameter value.
+
+        Returns:
+            RZGate: inverse gate.
         """
         return RZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class CRZGate(ControlledGate):
@@ -187,11 +227,17 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
+    _standard_gate = StandardGate.CRZGate
+
     def __init__(
         self,
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CRZ gate."""
         super().__init__(
@@ -201,7 +247,9 @@ class CRZGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RZGate(theta),
+            base_gate=RZGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -232,14 +280,26 @@ class CRZGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse CRZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRZGate` with an inverted parameter value.
+
+         Returns:
+            CRZGate: inverse gate.
+        """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(
@@ -251,3 +311,8 @@ class CRZGate(ControlledGate):
                 [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRZGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

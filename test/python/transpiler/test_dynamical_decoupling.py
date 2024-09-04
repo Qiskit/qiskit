@@ -17,7 +17,8 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Delay, Measure, Reset, Parameter
+from qiskit import pulse
+from qiskit.circuit import Gate, QuantumCircuit, Delay, Measure, Reset, Parameter
 from qiskit.circuit.library import XGate, YGate, RXGate, UGate, CXGate, HGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -29,9 +30,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-from qiskit import pulse
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -339,6 +338,156 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         self.assertEqual(ghz4_dd, expected)
 
+    def test_insert_dd_with_pulse_gate_calibrations(self):
+        """Test DD gates are inserted without error when circuit calibrations are used
+
+                      ┌───┐            ┌───────────────┐      ┌───┐       »
+           q_0: ──────┤ H ├─────────■──┤ Delay(75[dt]) ├──────┤ X ├───────»
+                ┌─────┴───┴─────┐ ┌─┴─┐└───────────────┘┌─────┴───┴──────┐»
+           q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■────────┤ Delay(300[dt]) ├»
+                ├───────────────┴┐└───┘      ┌─┴─┐      └────────────────┘»
+           q_2: ┤ Delay(750[dt]) ├───────────┤ X ├──────────────■─────────»
+                ├────────────────┤           └───┘            ┌─┴─┐       »
+           q_3: ┤ Delay(950[dt]) ├────────────────────────────┤ X ├───────»
+                └────────────────┘                            └───┘       »
+        meas: 4/══════════════════════════════════════════════════════════»
+                                                                           »
+        «        ┌────────────────┐┌───┐┌───────────────┐ ░ ┌─┐
+        «   q_0: ┤ Delay(150[dt]) ├┤ X ├┤ Delay(75[dt]) ├─░─┤M├─────────
+        «        └────────────────┘└───┘└───────────────┘ ░ └╥┘┌─┐
+        «   q_1: ─────────────────────────────────────────░──╫─┤M├──────
+        «                                                 ░  ║ └╥┘┌─┐
+        «   q_2: ─────────────────────────────────────────░──╫──╫─┤M├───
+        «                                                 ░  ║  ║ └╥┘┌─┐
+        «   q_3: ─────────────────────────────────────────░──╫──╫──╫─┤M├
+        «                                                 ░  ║  ║  ║ └╥┘
+        «meas: 4/════════════════════════════════════════════╩══╩══╩══╩═
+        «                                                     0  1  2  3
+        """
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
+            ]
+        )
+
+        # Change duration to 100 from the 50 in self.durations to make sure
+        # gate duration is used correctly.
+        with pulse.builder.build() as x_sched:
+            pulse.builder.delay(100, pulse.DriveChannel(0))
+
+        circ_in = self.ghz4.measure_all(inplace=False)
+        circ_in.add_calibration(XGate(), (0,), x_sched)
+
+        ghz4_dd = pm.run(circ_in)
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        # Delays different from those of the default case using self.durations
+        expected = expected.compose(Delay(75), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(150), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(75), [0])
+
+        expected = expected.compose(Delay(300), [1])
+
+        expected.measure_all()
+        expected.add_calibration(XGate(), (0,), x_sched)
+
+        self.assertEqual(ghz4_dd, expected)
+
+    def test_insert_dd_with_pulse_gate_calibrations_with_parmas(self):
+        """Test DD gates are inserted without error when parameterized circuit calibrations are used
+
+                      ┌───┐            ┌───────────────┐      ┌───┐       »
+           q_0: ──────┤ H ├─────────■──┤ Delay(75[dt]) ├──────┤ X ├───────»
+                ┌─────┴───┴─────┐ ┌─┴─┐└───────────────┘┌─────┴───┴──────┐»
+           q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■────────┤ Delay(300[dt]) ├»
+                ├───────────────┴┐└───┘      ┌─┴─┐      └────────────────┘»
+           q_2: ┤ Delay(750[dt]) ├───────────┤ X ├──────────────■─────────»
+                ├────────────────┤           └───┘            ┌─┴─┐       »
+           q_3: ┤ Delay(950[dt]) ├────────────────────────────┤ X ├───────»
+                └────────────────┘                            └───┘       »
+        meas: 4/══════════════════════════════════════════════════════════»
+                                                                           »
+        «        ┌────────────────┐┌───┐┌───────────────┐ ░ ┌─┐
+        «   q_0: ┤ Delay(150[dt]) ├┤ X ├┤ Delay(75[dt]) ├─░─┤M├─────────
+        «        └────────────────┘└───┘└───────────────┘ ░ └╥┘┌─┐
+        «   q_1: ─────────────────────────────────────────░──╫─┤M├──────
+        «                                                 ░  ║ └╥┘┌─┐
+        «   q_2: ─────────────────────────────────────────░──╫──╫─┤M├───
+        «                                                 ░  ║  ║ └╥┘┌─┐
+        «   q_3: ─────────────────────────────────────────░──╫──╫──╫─┤M├
+        «                                                 ░  ║  ║  ║ └╥┘
+        «meas: 4/════════════════════════════════════════════╩══╩══╩══╩═
+        «                                                     0  1  2  3
+        """
+        # Change duration to 100 from the 50 in self.durations to make sure
+        # gate duration is used correctly.
+        amp = Parameter("amp")
+        with pulse.builder.build() as sched:
+            pulse.builder.play(
+                pulse.Gaussian(100, amp=amp, sigma=10.0),
+                pulse.DriveChannel(0),
+            )
+
+        class Echo(Gate):
+            """Dummy Gate subclass for testing
+
+            In this test, we use a non-standard gate so we can add parameters
+            to it, in order to test the handling of parameters by
+            PadDynamicalDecoupling. PadDynamicalDecoupling checks that the DD
+            sequence is equivalent to the identity, so we can not use Gate
+            directly. Here we subclass Gate and add the identity as its matrix
+            representation to satisfy PadDynamicalDecoupling's check.
+            """
+
+            def __array__(self, dtype=None, copy=None):
+                if copy is False:
+                    raise ValueError("cannot produce matrix without calculation")
+                return np.eye(2, dtype=dtype)
+
+        # A gate with one unbound and one bound parameter to leave in the final
+        # circuit.
+        echo = Echo("echo", 1, [amp, 10.0])
+
+        circ_in = self.ghz4.measure_all(inplace=False)
+        circ_in.add_calibration(echo, (0,), sched)
+
+        dd_sequence = [echo, echo]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, qubits=[0]),
+            ]
+        )
+
+        ghz4_dd = pm.run(circ_in)
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        # Delays different from those of the default case using self.durations
+        expected = expected.compose(Delay(75), [0])
+        expected = expected.compose(echo, [0])
+        expected = expected.compose(Delay(150), [0])
+        expected = expected.compose(echo, [0])
+        expected = expected.compose(Delay(75), [0])
+
+        expected = expected.compose(Delay(300), [1])
+
+        expected.measure_all()
+        expected.add_calibration(echo, (0,), sched)
+
+        self.assertEqual(ghz4_dd, expected)
+
     def test_insert_dd_ghz_xy4(self):
         """Test XY4 sequence of DD gates.
 
@@ -438,7 +587,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         midmeas_dd = pm.run(self.midmeas)
 
-        combined_u = UGate(0, -pi / 2, pi / 2)
+        combined_u = UGate(0, 0, 0)
 
         expected = QuantumCircuit(3, 1)
         expected.cx(0, 1)
@@ -453,7 +602,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
-        expected.global_phase = pi / 2
+        expected.global_phase = pi
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
@@ -882,6 +1031,42 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.x([0])
         expected.delay(200, [0])
         self.assertEqual(expected, scheduled)
+
+    def test_paramaterized_global_phase(self):
+        """Test paramaterized global phase in DD circuit.
+        See:https://github.com/Qiskit/qiskit-terra/issues/10569
+        """
+        dd_sequence = [XGate(), YGate()] * 2
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.delay(1700, 0)
+        qc.y(0)
+        qc.global_phase = Parameter("a")
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
+
+    def test_misalignment_at_boundaries(self):
+        """Test the correct error message is raised for misalignments at In/Out nodes."""
+        # a circuit where the previous node is DAGInNode, and the next DAGOutNode
+        circuit = QuantumCircuit(1)
+        circuit.delay(101)
+
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, pulse_alignment=2),
+            ]
+        )
+
+        with self.assertRaises(TranspilerError):
+            _ = pm.run(circuit)
 
 
 if __name__ == "__main__":

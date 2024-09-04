@@ -16,9 +16,11 @@ Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 """
 
 from __future__ import annotations
-import copy
+import copy as _copy
+import math
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -40,7 +42,7 @@ class PTM(QuantumChannel):
 
     .. math::
 
-        R_{i,j} = \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
+        R_{i,j} = \frac{1}{2^n} \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order.
@@ -53,7 +55,7 @@ class PTM(QuantumChannel):
         |\mathcal{E}(\rho)\rangle\!\rangle_P = S_P |\rho\rangle\!\rangle_P
 
     where :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
-    :math:`\langle i | A\rangle\!\rangle_P = \mbox{Tr}[P_i A]`.
+    :math:`\langle i | A\rangle\!\rangle_P = \sqrt{\frac{1}{2^n}} \mbox{Tr}[P_i A]`.
 
     See reference [1] for further details.
 
@@ -100,11 +102,11 @@ class PTM(QuantumChannel):
             if input_dims:
                 input_dim = np.prod(input_dims)
             else:
-                input_dim = int(np.sqrt(din))
+                input_dim = int(math.sqrt(din))
             if output_dims:
                 output_dim = np.prod(input_dims)
             else:
-                output_dim = int(np.sqrt(dout))
+                output_dim = int(math.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
                 raise QiskitError("Invalid shape for PTM matrix.")
         else:
@@ -127,15 +129,14 @@ class PTM(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        num_qubits = int(np.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, num_qubits=num_qubits)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     @property
     def _bipartite_shape(self):
@@ -193,7 +194,7 @@ class PTM(QuantumChannel):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a._data, b.data)
         return ret

@@ -198,11 +198,11 @@ class BasePadding(TransformationPass):
         t_start: int,
         oper: Instruction,
         qubits: Qubit | Iterable[Qubit],
-        clbits: Clbit | Iterable[Clbit] | None = None,
+        clbits: Clbit | Iterable[Clbit] = (),
     ):
         """Add new operation to DAG with scheduled information.
 
-        This is identical to apply_operation_back + updating the node_start_time propety.
+        This is identical to apply_operation_back + updating the node_start_time property.
 
         Args:
             dag: DAG circuit on which the sequence is applied.
@@ -216,7 +216,7 @@ class BasePadding(TransformationPass):
         if isinstance(clbits, Clbit):
             clbits = [clbits]
 
-        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits)
+        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits, check=False)
         self.property_set["node_start_time"][new_node] = t_start
 
     def _pad(

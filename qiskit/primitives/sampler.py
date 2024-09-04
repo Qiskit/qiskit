@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Sampler class
+Sampler V1 reference implementation
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
+from qiskit.utils.deprecation import deprecate_func
 
 from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
@@ -37,9 +38,9 @@ from .utils import (
 
 class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """
-    Sampler class.
+    Sampler V1 class.
 
-    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler`.
+    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler` (V1).
 
     :Run Options:
 
@@ -52,6 +53,12 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
           option is ignored.
     """
 
+    @deprecate_func(
+        since="1.2",
+        additional_msg="All implementations of the `BaseSamplerV1` interface "
+        "have been deprecated in favor of their V2 counterparts. "
+        "The V2 alternative for the `Sampler` class is `StatevectorSampler`.",
+    )
     def __init__(self, *, options: dict | None = None):
         """
         Args:
@@ -61,6 +68,8 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
             QiskitError: if some classical bits are not used for measurements.
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
         self._qargs_list = []
         self._circuit_ids = {}
 
@@ -93,7 +102,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
             bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
-                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+                else self._circuits[i].assign_parameters(dict(zip(self._parameters[i], value)))
             )
             qargs_list.append(self._qargs_list[i])
         probabilities = [
@@ -134,7 +143,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._qargs_list.append(qargs)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        job._submit()
         return job
 
     @staticmethod

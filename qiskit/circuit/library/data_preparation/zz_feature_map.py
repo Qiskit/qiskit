@@ -12,13 +12,13 @@
 
 """Second-order Pauli-Z expansion circuit."""
 
-from typing import Callable, List, Union, Optional
+from typing import Callable, List, Union, Optional, Dict, Tuple
 import numpy as np
 from .pauli_feature_map import PauliFeatureMap
 
 
 class ZZFeatureMap(PauliFeatureMap):
-    """Second-order Pauli-Z evolution circuit.
+    r"""Second-order Pauli-Z evolution circuit.
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
 
@@ -32,8 +32,8 @@ class ZZFeatureMap(PauliFeatureMap):
         ┤ H ├┤ U1(2.0*φ(x[2])) ├──────────────────────────────────┤ X ├┤ U1(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└─────────────────┘                                  └───┘└──────────────────────┘└───┘
 
-    where ``φ`` is a classical non-linear function, which defaults to ``φ(x) = x`` if and
-    ``φ(x,y) = (pi - x)(pi - y)``.
+    where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
+    if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
 
     Examples:
 
@@ -75,7 +75,11 @@ class ZZFeatureMap(PauliFeatureMap):
         self,
         feature_dimension: int,
         reps: int = 2,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: Union[
+            str,
+            Dict[int, List[Tuple[int]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
+        ] = "full",
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,
@@ -87,7 +91,7 @@ class ZZFeatureMap(PauliFeatureMap):
             feature_dimension: Number of features.
             reps: The number of repeated circuits, has a min. value of 1.
             entanglement: Specifies the entanglement structure. Refer to
-                :class:`~qiskit.circuit.library.NLocal` for detail.
+                :class:`~qiskit.circuit.library.PauliFeatureMap` for detail.
             data_map_func: A mapping function for data x.
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions

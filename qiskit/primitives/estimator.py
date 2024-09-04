@@ -10,51 +10,61 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Estimator class
+Estimator V1 reference implementation
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Any
-import typing
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
     _observable_key,
-    bound_circuit_to_instruction,
+    _statevector_from_circuit,
     init_observable,
 )
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
 
 
 class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """
-    Reference implementation of :class:`BaseEstimator`.
+    Reference implementation of :class:`BaseEstimator` (V1).
 
     :Run Options:
 
         - **shots** (None or int) --
-          The number of shots. If None, it calculates the exact expectation
-          values. Otherwise, it samples from normal distributions with standard errors as standard
+          The number of shots. If None, it calculates the expectation values
+          with full state vector simulation.
+          Otherwise, it samples from normal distributions with standard errors as standard
           deviations using normal distribution approximation.
 
         - **seed** (np.random.Generator or int) --
           Set a fixed seed or generator for the normal distribution. If shots is None,
           this option is ignored.
+
+    .. note::
+        The result of this class is exact if the circuit contains only unitary operations.
+        On the other hand, the result could be stochastic if the circuit contains a non-unitary
+        operation such as a reset for a some subsystems.
+        The stochastic result can be made reproducible by setting ``seed``, e.g.,
+        ``Estimator(options={"seed":123})``.
     """
 
+    @deprecate_func(
+        since="1.2",
+        additional_msg="All implementations of the `BaseEstimatorV1` interface "
+        "have been deprecated in favor of their V2 counterparts. "
+        "The V2 alternative for the `Estimator` class is `StatevectorEstimator`.",
+    )
     def __init__(self, *, options: dict | None = None):
         """
         Args:
@@ -64,6 +74,9 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             QiskitError: if some classical bits are not used for measurements.
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
+        self._observables = []
         self._circuit_ids = {}
         self._observable_ids = {}
 
@@ -96,7 +109,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
-                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+                else self._circuits[i].assign_parameters(dict(zip(self._parameters[i], value)))
             )
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
@@ -106,7 +119,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            final_state = Statevector(bound_circuit_to_instruction(circ))
+            final_state = _statevector_from_circuit(circ, rng)
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)
@@ -116,8 +129,8 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
                 variance = sq_exp_val - expectation_value**2
                 variance = max(variance, 0)
-                standard_deviation = np.sqrt(variance / shots)
-                expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
+                standard_error = np.sqrt(variance / shots)
+                expectation_value_with_error = rng.normal(expectation_value, standard_error)
                 expectation_values.append(expectation_value_with_error)
                 metadatum["variance"] = variance
                 metadatum["shots"] = shots
@@ -127,7 +140,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[BaseOperator, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ):
@@ -155,5 +168,5 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
-        job.submit()
+        job._submit()
         return job

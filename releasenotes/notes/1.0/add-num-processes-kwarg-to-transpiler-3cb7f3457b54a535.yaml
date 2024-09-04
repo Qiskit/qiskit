@@ -1,0 +1,20 @@
+---
+features_transpiler:
+  - |
+    Added a new keyword argument, ``num_processes``, to :func:`.transpile` and
+    the :meth:`.PassManager.run` method. This allows for overriding both
+    ``QISKIT_NUM_PROCS`` and the ``num_processes`` field in user configuration files
+    on a per-transpile basis. For example::
+
+        from qiskit import transpile, QuantumCircuit
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        transpile([qc]*10, basis_gates=['u', 'cz'], num_processes=2)
+
+    will run the transpile over the 10 input circuits using only 2 processes
+    and will override the system default, environment variable, or user
+    configuration file for that :func:`.transpile` call.

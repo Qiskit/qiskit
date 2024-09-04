@@ -14,11 +14,15 @@
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
+from __future__ import annotations
+
 import os
 import inspect
 import tempfile
 
 from qiskit.utils import optionals as _optionals
+from qiskit.passmanager.base_tasks import BaseController, GenericPass
+from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 from .exceptions import VisualizationError
 
@@ -31,7 +35,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
 
-    This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
+    This function needs `pydot <https://github.com/pydot/pydot>`__, which in turn needs
     `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
     Args:
@@ -74,8 +78,6 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     import pydot
 
-    passes = pass_manager.passes()
-
     if not style:
         style = DEFAULT_STYLE
 
@@ -89,7 +91,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
     prev_node = None
 
-    for index, controller_group in enumerate(passes):
+    for index, controller_group in enumerate(pass_manager.to_flow_controller().tasks):
         subgraph, component_id, prev_node = draw_subgraph(
             controller_group, component_id, style, prev_node, index
         )
@@ -143,10 +145,10 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         .. code-block::
 
             %matplotlib inline
-            from qiskit.providers.fake_provider import FakeLagosV2
+            from qiskit.providers.fake_provider import GenericBackendV2
             from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
-            pass_manager = generate_preset_pass_manager(3, FakeLagosV2())
+            pass_manager = generate_preset_pass_manager(3, GenericBackendV2(num_qubits=5))
             pass_manager.draw()
     """
     import pydot
@@ -174,9 +176,8 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         stage = getattr(pass_manager, st)
 
         if stage is not None:
-            passes = stage.passes()
-            stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
-            for controller_group in passes:
+            stagegraph = pydot.Cluster(str(st), fontname="helvetica", label=str(st), labeljust="l")
+            for controller_group in stage.to_flow_controller().tasks:
                 subgraph, component_id, prev_node = draw_subgraph(
                     controller_group, component_id, style, prev_node, idx
                 )
@@ -193,28 +194,65 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
     import pydot
 
     # label is the name of the flow controller parameter
-    label = "[{}] {}".format(idx, ", ".join(controller_group["flow_controllers"]))
+    label = f"[{idx}] "
+    if isinstance(controller_group, BaseController) and not isinstance(
+        controller_group, FlowControllerLinear
+    ):
+        label += f"{controller_group.__class__.__name__}"
 
     # create the subgraph for this controller
-    subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
+    subgraph = pydot.Cluster(str(component_id), fontname="helvetica", label=label, labeljust="l")
     component_id += 1
 
-    for pass_ in controller_group["passes"]:
+    if isinstance(controller_group, BaseController):
+        # Assume linear pipeline
+        # TODO: support pipeline branching when such controller is introduced
+        tasks = getattr(controller_group, "tasks", [])
+    elif isinstance(controller_group, GenericPass):
+        tasks = [controller_group]
+    elif isinstance(controller_group, (list, tuple)):
+        tasks = controller_group
+    else:
+        # Invalid data
+        return subgraph, component_id, prev_node
 
-        # label is the name of the pass
-        node = pydot.Node(
-            str(component_id),
-            label=str(type(pass_).__name__),
-            color=_get_node_color(pass_, style),
-            shape="rectangle",
-            fontname="helvetica",
-        )
+    flatten_tasks = []
+    for task in tasks:
+        # Flatten nested linear flow controller.
+        # This situation often occurs in the builtin pass managers because it constructs
+        # some stages by appending other pass manager instance converted into a linear controller.
+        # Flattening inner linear controller tasks doesn't change the execution.
+        if isinstance(task, FlowControllerLinear):
+            flatten_tasks.extend(task.tasks)
+        else:
+            flatten_tasks.append(task)
+
+    for task in flatten_tasks:
+        if isinstance(task, BaseController):
+            # Partly nested flow controller
+            # TODO recursively inject subgraph into subgraph
+            node = pydot.Node(
+                str(component_id),
+                color="k",
+                fontname="helvetica",
+                label="Nested flow controller",
+                shape="rectangle",
+            )
+        else:
+            # label is the name of the pass
+            node = pydot.Node(
+                str(component_id),
+                color=_get_node_color(task, style),
+                fontname="helvetica",
+                label=str(type(task).__name__),
+                shape="rectangle",
+            )
 
         subgraph.add_node(node)
         component_id += 1
 
         # the arguments that were provided to the pass when it was created
-        arg_spec = inspect.getfullargspec(pass_.__init__)
+        arg_spec = inspect.getfullargspec(task.__init__)
         # 0 is the args, 1: to remove the self arg
         args = arg_spec[0][1:]
 
@@ -230,12 +268,12 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
 
             input_node = pydot.Node(
                 component_id,
-                label=arg,
                 color="black",
-                shape="ellipse",
-                fontsize=10,
-                style=nd_style,
                 fontname="helvetica",
+                fontsize=10,
+                label=arg,
+                shape="ellipse",
+                style=nd_style,
             )
             subgraph.add_node(input_node)
             component_id += 1

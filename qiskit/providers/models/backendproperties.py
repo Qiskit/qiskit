@@ -14,11 +14,14 @@
 
 import copy
 import datetime
-from typing import Any, Iterable, Tuple, Union
+from typing import Any, Iterable, Tuple, Union, Dict
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils import deprecate_func
 from qiskit.utils.units import apply_prefix
+
+PropertyT = Tuple[Any, datetime.datetime]
 
 
 class Nduv:
@@ -170,6 +173,15 @@ class BackendProperties:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` and related objects are part "
+        "of the deprecated `BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self, backend_name, backend_version, last_update_date, qubits, gates, general, **kwargs
     ):
@@ -246,6 +258,7 @@ class BackendProperties:
             qubits.append(nduvs)
         gates = [GateProperties.from_dict(x) for x in in_data.pop("gates")]
         general = [Nduv.from_dict(x) for x in in_data.pop("general")]
+
         return cls(
             backend_name, backend_version, last_update_date, qubits, gates, general, **in_data
         )
@@ -279,8 +292,15 @@ class BackendProperties:
         return False
 
     def gate_property(
-        self, gate: str, qubits: Union[int, Iterable[int]] = None, name: str = None
-    ) -> Tuple[Any, datetime.datetime]:
+        self,
+        gate: str,
+        qubits: Union[int, Iterable[int]] = None,
+        name: str = None,
+    ) -> Union[
+        Dict[Tuple[int, ...], Dict[str, PropertyT]],
+        Dict[str, PropertyT],
+        PropertyT,
+    ]:
         """
         Return the property of the given gate.
 
@@ -369,7 +389,14 @@ class BackendProperties:
         """
         return self.gate_property(gate, qubits, "gate_length")[0]  # Throw away datetime at index 1
 
-    def qubit_property(self, qubit: int, name: str = None) -> Tuple[Any, datetime.datetime]:
+    def qubit_property(
+        self,
+        qubit: int,
+        name: str = None,
+    ) -> Union[
+        Dict[str, PropertyT],
+        PropertyT,
+    ]:
         """
         Return the property of the given qubit.
 
@@ -388,9 +415,9 @@ class BackendProperties:
             if name is not None:
                 result = result[name]
         except KeyError as ex:
+            formatted_name = "y '" + name + "'" if name else "ies"
             raise BackendPropertyError(
-                "Couldn't find the propert{name} for qubit "
-                "{qubit}.".format(name="y '" + name + "'" if name else "ies", qubit=qubit)
+                f"Couldn't find the propert{formatted_name} for qubit {qubit}."
             ) from ex
         return result
 

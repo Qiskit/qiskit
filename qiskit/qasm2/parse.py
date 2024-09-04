@@ -16,6 +16,8 @@ import dataclasses
 import math
 from typing import Iterable, Callable
 
+import numpy as np
+
 from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
@@ -30,10 +32,8 @@ from qiskit.circuit import (
     Reset,
     library as lib,
 )
-
-# This is the same C-extension problems as described in the `__init__.py` disable near the
-# `_qasm2` import.
-from qiskit._qasm2 import (  # pylint: disable=no-name-in-module
+from qiskit.quantum_info import Operator
+from qiskit._accelerate.qasm2 import (
     OpCode,
     UnaryOpCode,
     BinaryOpCode,
@@ -227,23 +227,20 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
             )
         elif opcode == OpCode.ConditionedGate:
             gate_id, parameters, op_qubits, creg, value = op.operands
-            gate = gates[gate_id](*parameters)
-            gate.condition = (qc.cregs[creg], value)
+            gate = gates[gate_id](*parameters).c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(gate, [qubits[q] for q in op_qubits]))
         elif opcode == OpCode.Measure:
             qubit, clbit = op.operands
             qc._append(CircuitInstruction(Measure(), (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.ConditionedMeasure:
             qubit, clbit, creg, value = op.operands
-            measure = Measure()
-            measure.condition = (qc.cregs[creg], value)
+            measure = Measure().c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(measure, (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.Reset:
             qc._append(CircuitInstruction(Reset(), (qubits[op.operands[0]],)))
         elif opcode == OpCode.ConditionedReset:
             qubit, creg, value = op.operands
-            reset = Reset()
-            reset.condition = (qc.cregs[creg], value)
+            reset = Reset().c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(reset, (qubits[qubit],)))
         elif opcode == OpCode.Barrier:
             op_qubits = op.operands[0]
@@ -290,7 +287,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
 
 class _DefinedGate(Gate):
     """A gate object defined by a `gate` statement in an OpenQASM 2 program.  This object lazily
-    binds its parameters to its definition, so it is only synthesised when required."""
+    binds its parameters to its definition, so it is only synthesized when required."""
 
     def __init__(self, name, num_qubits, params, gates, bytecode):
         self._gates = gates
@@ -321,18 +318,24 @@ class _DefinedGate(Gate):
                 raise ValueError(f"received invalid bytecode to build gate: {op}")
         self._definition = qc
 
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        return np.asarray(Operator(self.definition), dtype=dtype)
+
     # It's fiddly to implement pickling for PyO3 types (the bytecode stream), so instead if we need
     # to pickle ourselves, we just eagerly create the definition and pickle that.
 
     def __getstate__(self):
-        return (self.name, self.num_qubits, self.params, self.definition)
+        return (self.name, self.num_qubits, self.params, self.definition, self.condition)
 
     def __setstate__(self, state):
-        name, num_qubits, params, definition = state
+        name, num_qubits, params, definition, condition = state
         super().__init__(name, num_qubits, params)
         self._gates = ()
         self._bytecode = ()
         self._definition = definition
+        self._condition = condition
 
 
 def _gate_builder(name, num_qubits, known_gates, bytecode):

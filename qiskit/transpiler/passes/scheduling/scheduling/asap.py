@@ -18,7 +18,7 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 
 
 class ASAPScheduleAnalysis(BaseScheduler):
-    """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
+    """ASAP Scheduling pass, which schedules the start time of instructions as early as possible.
 
     See the :ref:`scheduling_stage` section in the :mod:`qiskit.transpiler`
     module documentation for the detailed behavior of the control flow

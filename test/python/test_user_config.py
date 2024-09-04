@@ -15,17 +15,17 @@
 import os
 import configparser as cp
 from uuid import uuid4
-
 from unittest import mock
+
 from qiskit import exceptions
-from qiskit.test import QiskitTestCase
 from qiskit import user_config
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUserConfig(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.file_path = "test_%s.conf" % uuid4()
+        self.file_path = f"test_{uuid4()}.conf"
 
     def test_empty_file_read(self):
         config = user_config.UserConfig(self.file_path)
@@ -94,6 +94,31 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual({"circuit_reverse_bits": False}, config.settings)
 
+    def test_invalid_circuit_idle_wires(self):
+        test_config = """
+        [default]
+        circuit_idle_wires = Neither
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
+
+    def test_circuit_idle_wires_valid(self):
+        test_config = """
+        [default]
+        circuit_idle_wires = true
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({"circuit_idle_wires": True}, config.settings)
+
     def test_optimization_level_valid(self):
         test_config = """
         [default]
@@ -152,6 +177,7 @@ class TestUserConfig(QiskitTestCase):
         circuit_mpl_style = default
         circuit_mpl_style_path = ~:~/.qiskit
         circuit_reverse_bits = false
+        circuit_idle_wires = true
         transpile_optimization_level = 3
         suppress_packaging_warnings = true
         parallel = false
@@ -170,6 +196,7 @@ class TestUserConfig(QiskitTestCase):
                 "circuit_mpl_style": "default",
                 "circuit_mpl_style_path": ["~", "~/.qiskit"],
                 "circuit_reverse_bits": False,
+                "circuit_idle_wires": True,
                 "transpile_optimization_level": 3,
                 "num_processes": 15,
                 "parallel_enabled": False,
@@ -184,6 +211,7 @@ class TestUserConfig(QiskitTestCase):
         user_config.set_config("circuit_mpl_style", "default", file_path=self.file_path)
         user_config.set_config("circuit_mpl_style_path", "~:~/.qiskit", file_path=self.file_path)
         user_config.set_config("circuit_reverse_bits", "false", file_path=self.file_path)
+        user_config.set_config("circuit_idle_wires", "true", file_path=self.file_path)
         user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
         user_config.set_config("parallel", "false", file_path=self.file_path)
         user_config.set_config("num_processes", "15", file_path=self.file_path)
@@ -198,6 +226,7 @@ class TestUserConfig(QiskitTestCase):
                 "circuit_mpl_style": "default",
                 "circuit_mpl_style_path": ["~", "~/.qiskit"],
                 "circuit_reverse_bits": False,
+                "circuit_idle_wires": True,
                 "transpile_optimization_level": 3,
                 "num_processes": 15,
                 "parallel_enabled": False,

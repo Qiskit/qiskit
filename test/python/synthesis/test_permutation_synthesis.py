@@ -19,10 +19,17 @@ from ddt import ddt, data
 
 from qiskit.quantum_info.operators import Operator
 from qiskit.circuit.library import LinearFunction, PermutationGate
-from qiskit.synthesis import synth_permutation_acg
-from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms, synth_permutation_basic
-from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
-from qiskit.test import QiskitTestCase
+from qiskit.synthesis.permutation import (
+    synth_permutation_acg,
+    synth_permutation_depth_lnn_kms,
+    synth_permutation_basic,
+    synth_permutation_reverse_lnn_kms,
+)
+from qiskit.synthesis.permutation.permutation_utils import (
+    _inverse_pattern,
+    _validate_permutation,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -30,17 +37,40 @@ class TestPermutationSynthesis(QiskitTestCase):
     """Test the permutation synthesis functions."""
 
     @data(4, 5, 10, 15, 20)
-    def test_get_ordered_swap(self, width):
-        """Test get_ordered_swap function produces correct swap list."""
+    def test_inverse_pattern(self, width):
+        """Test _inverse_pattern function produces correct index map."""
         np.random.seed(1)
         for _ in range(5):
             pattern = np.random.permutation(width)
-            swap_list = _get_ordered_swap(pattern)
-            output = list(range(width))
-            for i, j in swap_list:
-                output[i], output[j] = output[j], output[i]
-            self.assertTrue(np.array_equal(pattern, output))
-            self.assertLess(len(swap_list), width)
+            inverse = _inverse_pattern(pattern)
+            for ii, jj in enumerate(pattern):
+                self.assertTrue(inverse[jj] == ii)
+
+    @data(10, 20)
+    def test_invalid_permutations(self, width):
+        """Check that _validate_permutation raises exceptions when the
+        input is not a permutation."""
+        np.random.seed(1)
+        for _ in range(5):
+            pattern = np.random.permutation(width)
+
+            pattern_out_of_range = np.copy(pattern)
+            pattern_out_of_range[0] = -1
+            with self.assertRaises(ValueError) as exc:
+                _validate_permutation(pattern_out_of_range)
+                self.assertIn("input contains a negative number", str(exc.exception))
+
+            pattern_out_of_range = np.copy(pattern)
+            pattern_out_of_range[0] = width
+            with self.assertRaises(ValueError) as exc:
+                _validate_permutation(pattern_out_of_range)
+                self.assertIn(f"input has length {width} and contains {width}", str(exc.exception))
+
+            pattern_duplicate = np.copy(pattern)
+            pattern_duplicate[-1] = pattern[0]
+            with self.assertRaises(ValueError) as exc:
+                _validate_permutation(pattern_duplicate)
+                self.assertIn(f"input contains {pattern[0]} more than once", str(exc.exception))
 
     @data(4, 5, 10, 15, 20)
     def test_synth_permutation_basic(self, width):
@@ -107,6 +137,26 @@ class TestPermutationSynthesis(QiskitTestCase):
             # check that its permutation pattern matches the original pattern.
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
+
+    @data(1, 2, 3, 4, 5, 10, 15, 20)
+    def test_synth_permutation_reverse_lnn_kms(self, num_qubits):
+        """Test synth_permutation_reverse_lnn_kms function produces the correct
+        circuit."""
+        pattern = list(reversed(range(num_qubits)))
+        qc = synth_permutation_reverse_lnn_kms(num_qubits)
+        self.assertListEqual((LinearFunction(qc).permutation_pattern()).tolist(), pattern)
+
+        # Check that the CX depth of the circuit is at 2*n+2
+        self.assertTrue(qc.depth() <= 2 * num_qubits + 2)
+
+        # Check that the synthesized circuit consists of CX gates only,
+        # and that these CXs adhere to the LNN connectivity.
+        for instruction in qc.data:
+            self.assertEqual(instruction.operation.name, "cx")
+            q0 = qc.find_bit(instruction.qubits[0]).index
+            q1 = qc.find_bit(instruction.qubits[1]).index
+            dist = abs(q0 - q1)
+            self.assertEqual(dist, 1)
 
     @data(4, 5, 6, 7)
     def test_permutation_matrix(self, width):

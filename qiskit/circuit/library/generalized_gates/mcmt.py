@@ -17,8 +17,10 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from qiskit import circuit
-from qiskit.circuit import ControlledGate, Gate, Qubit, QuantumRegister, QuantumCircuit
+from qiskit.circuit import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
+
+# pylint: disable=cyclic-import
 from ..standard_gates import XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 
 
@@ -49,7 +51,7 @@ class MCMT(QuantumCircuit):
 
     def __init__(
         self,
-        gate: Gate | Callable[[QuantumCircuit, Qubit, Qubit], circuit.Instruction],
+        gate: Gate | Callable[[QuantumCircuit, circuit.Qubit, circuit.Qubit], circuit.Instruction],
         num_ctrl_qubits: int,
         num_target_qubits: int,
     ) -> None:
@@ -140,13 +142,15 @@ class MCMT(QuantumCircuit):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None, annotated=False):
         """Return the controlled version of the MCMT circuit."""
-        if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
-            return MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
-        return super().control(num_ctrl_qubits, label, ctrl_state)
+        if not annotated and ctrl_state is None:
+            gate = MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
+        else:
+            gate = super().control(num_ctrl_qubits, label, ctrl_state, annotated=annotated)
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the inverse MCMT circuit, which is itself."""
         return MCMT(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
 
@@ -162,7 +166,7 @@ class MCMTVChain(MCMT):
     .. plot::
 
        from qiskit.circuit.library import MCMTVChain, ZGate
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = MCMTVChain(ZGate(), 2, 2)
        _generate_circuit_library_visualization(circuit.decompose())
 
@@ -212,8 +216,8 @@ class MCMTVChain(MCMT):
 
     def _ccx_v_chain_rule(
         self,
-        control_qubits: QuantumRegister | list[Qubit],
-        ancilla_qubits: QuantumRegister | list[Qubit],
+        control_qubits: QuantumRegister | list[circuit.Qubit],
+        ancilla_qubits: QuantumRegister | list[circuit.Qubit],
         reverse: bool = False,
     ) -> None:
         """Get the rule for the CCX V-chain.
@@ -248,5 +252,5 @@ class MCMTVChain(MCMT):
                 self.ccx(control_qubits[j], ancilla_qubits[i], ancilla_qubits[i + 1])
             self.ccx(control_qubits[0], control_qubits[1], ancilla_qubits[0])
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)

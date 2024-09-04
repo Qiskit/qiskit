@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
 from qiskit.transpiler import PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCommutationAnalysis(QiskitTestCase):

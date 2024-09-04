@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added a new argument, ``check_input``, to the constructor for the
+    :class:`~.UnitaryGate` class. This flag is used to disable the default
+    initialization checks that input object represents a unitary matrix.
+    This can be used to speed up the creation of :class:`~.UnitaryGate`
+    objects if you know the input is already a unitary matrix. This new option
+    should only be used in these cases because if it's set to ``False`` and
+    the input is not unitary this will result in an invalid ``UnitaryGate``
+    object.

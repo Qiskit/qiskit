@@ -27,8 +27,10 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
+from qiskit.version import VERSION as current_version_str
 
 try:
     from qiskit.qpy import dump, load
@@ -425,15 +427,19 @@ def generate_control_flow_switch_circuits():
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
-    from qiskit.utils import optionals
 
+    current_version = current_version_str.split(".")
+    for i in range(len(current_version[2])):
+        if current_version[2][i].isalpha():
+            current_version[2] = current_version[2][:i]
+            break
+    current_version = tuple(int(x) for x in current_version)
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
     # As workaround, we need test with bounded parameters, however, schedule.parameters
     # are returned as Set and thus its order is random.
     # Since schedule parameters are validated, we cannot assign random numbers.
     # We need to upgrade testing framework.
-
     schedule_blocks = []
 
     # Instructions without parameters
@@ -444,17 +450,26 @@ def generate_schedule_blocks():
             builder.set_phase(1.57, channels.DriveChannel(0))
             builder.shift_phase(0.1, channels.DriveChannel(1))
             builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
-            builder.play(library.Gaussian(160, 0.1j, 40), channels.DriveChannel(0))
+            gaussian_amp = 0.1
+            gaussian_angle = 0.7
+            if current_version < (1, 0, 0):
+                builder.play(
+                    library.Gaussian(160, gaussian_amp * np.exp(1j * gaussian_angle), 40),
+                    channels.DriveChannel(0),
+                )
+            else:
+                builder.play(
+                    library.Gaussian(160, gaussian_amp, 40, gaussian_angle),
+                    channels.DriveChannel(0),
+                )
             builder.play(library.GaussianSquare(800, 0.1, 64, 544), channels.ControlChannel(0))
             builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
             builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))
             builder.acquire(1000, channels.AcquireChannel(0), channels.MemorySlot(0))
     schedule_blocks.append(block)
     # Raw symbolic pulse
-    if optionals.HAS_SYMENGINE:
-        import symengine as sym
-    else:
-        import sympy as sym
+    import symengine as sym
+
     duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
@@ -536,14 +551,12 @@ def generate_controlled_gates():
     custom_gate = Gate("black_box", 1, [])
     custom_definition = QuantumCircuit(1)
     custom_definition.h(0)
-    custom_definition.rz(1.5, 0)
     custom_definition.sdg(0)
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
-    nested_qc.measure_all()
     circuits.append(nested_qc)
     qc_open = QuantumCircuit(2, name="open_cx")
     qc_open.cx(0, 1, ctrl_state=0)
@@ -562,14 +575,12 @@ def generate_open_controlled_gates():
     custom_gate = Gate("black_box", 1, [])
     custom_definition = QuantumCircuit(1)
     custom_definition.h(0)
-    custom_definition.rz(1.5, 0)
     custom_definition.sdg(0)
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="open_controls_nested")
     nested_qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2, ctrl_state=1)
     nested_qc.append(controlled_gate, [0, 1, 2])
-    nested_qc.measure_all()
     circuits.append(nested_qc)
 
     return circuits
@@ -626,6 +637,38 @@ def generate_layout_circuits():
     return [qc]
 
 
+def generate_clifford_circuits():
+    """Test qpy circuits with Clifford operations."""
+    from qiskit.quantum_info import Clifford
+
+    cliff = Clifford.from_dict(
+        {
+            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+        }
+    )
+    qc = QuantumCircuit(3, name="Clifford Circuits")
+    qc.append(cliff, [0, 1, 2])
+    return [qc]
+
+
+def generate_annotated_circuits():
+    """Test qpy circuits with annotated operations."""
+    from qiskit.circuit import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier
+    from qiskit.circuit.library import XGate, CXGate
+
+    op1 = AnnotatedOperation(
+        CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
+    )
+    op2 = AnnotatedOperation(XGate(), InverseModifier())
+    qc = QuantumCircuit(6, 1, name="Annotated circuits")
+    qc.cx(0, 1)
+    qc.append(op1, [0, 1, 2])
+    qc.h(4)
+    qc.append(op2, [1])
+    return [qc]
+
+
 def generate_control_flow_expr():
     """`IfElseOp`, `WhileLoopOp` and `SwitchCaseOp` with `Expr` nodes in their discriminators."""
     from qiskit.circuit.classical import expr, types
@@ -634,7 +677,7 @@ def generate_control_flow_expr():
     body1.x(0)
     qr1 = QuantumRegister(2, "q1")
     cr1 = ClassicalRegister(2, "c1")
-    qc1 = QuantumCircuit(qr1, cr1)
+    qc1 = QuantumCircuit(qr1, cr1, name="cf-expr1")
     qc1.if_test(expr.equal(cr1, 3), body1.copy(), [0], [])
     qc1.while_loop(expr.logic_not(cr1[1]), body1.copy(), [0], [])
 
@@ -645,7 +688,7 @@ def generate_control_flow_expr():
     qr2 = QuantumRegister(2, "q2")
     cr1_2 = ClassicalRegister(3, "c1")
     cr2_2 = ClassicalRegister(3, "c2")
-    qc2 = QuantumCircuit(qr2, cr1_2, cr2_2)
+    qc2 = QuantumCircuit(qr2, cr1_2, cr2_2, name="cf-expr2")
     qc2.if_test(expr.logic_or(expr.less(cr1_2, cr2_2), cr1_2[1]), outer2, [1], [1])
 
     inner3 = QuantumCircuit(1)
@@ -655,7 +698,7 @@ def generate_control_flow_expr():
     qr3 = QuantumRegister(2, "q2")
     cr1_3 = ClassicalRegister(3, "c1")
     cr2_3 = ClassicalRegister(3, "c2")
-    qc3 = QuantumCircuit(qr3, cr1_3, cr2_3)
+    qc3 = QuantumCircuit(qr3, cr1_3, cr2_3, name="cf-expr3")
     qc3.switch(expr.bit_xor(cr1_3, cr2_3), [(0, outer2)], [1], [1])
 
     cr1_4 = ClassicalRegister(256, "c1")
@@ -681,7 +724,9 @@ def generate_control_flow_expr():
         [],
     )
     qc4_loose = Clbit()
-    qc4 = QuantumCircuit(QuantumRegister(2, "qr4"), cr1_4, cr2_4, cr3_4, [qc4_loose])
+    qc4 = QuantumCircuit(
+        QuantumRegister(2, "qr4"), cr1_4, cr2_4, cr3_4, [qc4_loose], name="cf-expr4"
+    )
     qc4.rz(np.pi, 0)
     qc4.switch(
         expr.logic_and(
@@ -707,6 +752,72 @@ def generate_control_flow_expr():
     qc4.rz(np.pi, 0)
 
     return [qc1, qc2, qc3, qc4]
+
+
+def generate_standalone_var():
+    """Circuits that use standalone variables."""
+    import uuid
+    from qiskit.circuit.classical import expr, types
+
+    # This is the low-level, non-preferred way to construct variables, but we need the UUIDs to be
+    # deterministic between separate invocations of the script.
+    uuids = [
+        uuid.UUID(bytes=b"hello, qpy world", version=4),
+        uuid.UUID(bytes=b"not a good uuid4", version=4),
+        uuid.UUID(bytes=b"but it's ok here", version=4),
+        uuid.UUID(bytes=b"any old 16 bytes", version=4),
+        uuid.UUID(bytes=b"and another load", version=4),
+    ]
+    a = expr.Var(uuids[0], types.Bool(), name="a")
+    b = expr.Var(uuids[1], types.Bool(), name="θψφ")
+    b_other = expr.Var(uuids[2], types.Bool(), name=b.name)
+    c = expr.Var(uuids[3], types.Uint(8), name="🐍🐍🐍")
+    d = expr.Var(uuids[4], types.Uint(8), name="d")
+
+    qc = QuantumCircuit(1, 1, inputs=[a], name="standalone_var")
+    qc.add_var(b, expr.logic_not(a))
+
+    qc.add_var(c, expr.lift(0, c.type))
+    with qc.if_test(b) as else_:
+        qc.store(c, expr.lift(3, c.type))
+        with qc.while_loop(b):
+            qc.add_var(c, expr.lift(7, c.type))
+    with else_:
+        qc.add_var(d, expr.lift(7, d.type))
+
+    qc.measure(0, 0)
+    with qc.switch(c) as case:
+        with case(0):
+            qc.store(b, True)
+        with case(1):
+            qc.store(qc.clbits[0], False)
+        with case(2):
+            # Explicit shadowing.
+            qc.add_var(b_other, True)
+        with case(3):
+            qc.store(a, False)
+        with case(case.DEFAULT):
+            pass
+
+    return [qc]
+
+
+def generate_v12_expr():
+    """Circuits that contain the `Index` and bitshift operators new in QPY v12."""
+    import uuid
+    from qiskit.circuit.classical import expr, types
+
+    a = expr.Var(uuid.UUID(bytes=b"hello, qpy world", version=4), types.Uint(8), name="a")
+    cr = ClassicalRegister(4, "cr")
+
+    index = QuantumCircuit(cr, inputs=[a], name="index_expr")
+    index.store(expr.index(cr, 0), expr.index(a, a))
+
+    shift = QuantumCircuit(cr, inputs=[a], name="shift_expr")
+    with shift.if_test(expr.equal(expr.shift_right(expr.shift_left(a, 1), 1), a)):
+        pass
+
+    return [index, shift]
 
 
 def generate_circuits(version_parts):
@@ -749,14 +860,21 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
     if version_parts >= (0, 25, 0):
-        output_circuits[
-            "acquire_inst_with_kernel_and_disc.qpy"
-        ] = generate_acquire_instruction_with_kernel_and_discriminator()
+        output_circuits["acquire_inst_with_kernel_and_disc.qpy"] = (
+            generate_acquire_instruction_with_kernel_and_discriminator()
+        )
         output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
+    if version_parts >= (0, 45, 2):
+        output_circuits["clifford.qpy"] = generate_clifford_circuits()
+    if version_parts >= (1, 0, 0):
+        output_circuits["annotated.qpy"] = generate_annotated_circuits()
+    if version_parts >= (1, 1, 0):
+        output_circuits["standalone_vars.qpy"] = generate_standalone_var()
+        output_circuits["v12_expr.qpy"] = generate_v12_expr()
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, version_parts, bind=None):
+def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -768,15 +886,25 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
             )
             sys.stderr.write(msg)
             sys.exit(4)
-        reference = reference.bind_parameters(bind)
-        qpy = qpy.bind_parameters(bind)
-    if reference != qpy:
-        msg = (
-            f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-            f"qpy loaded circuit {count}:\n{qpy}\n"
-        )
-        sys.stderr.write(msg)
-        sys.exit(1)
+        reference = reference.assign_parameters(bind)
+        qpy = qpy.assign_parameters(bind)
+
+    if equivalent:
+        if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
+            msg = (
+                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                f"qpy loaded circuit {count}:\n{qpy}\n"
+            )
+            sys.stderr.write(msg)
+            sys.exit(1)
+    else:
+        if reference != qpy:
+            msg = (
+                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                f"qpy loaded circuit {count}:\n{qpy}\n"
+            )
+            sys.stderr.write(msg)
+            sys.exit(1)
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
@@ -826,6 +954,7 @@ def load_qpy(qpy_files, version_parts):
         print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
+        equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
@@ -840,11 +969,13 @@ def load_qpy(qpy_files, version_parts):
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
 
-            assert_equal(circuit, qpy_circuits[i], i, version_parts, bind=bind)
+            assert_equal(
+                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
+            )
 
 
 def _main():
-    parser = argparse.ArgumentParser(description="Test QPY backwards compatibilty")
+    parser = argparse.ArgumentParser(description="Test QPY backwards compatibility")
     parser.add_argument("command", choices=["generate", "load"])
     parser.add_argument(
         "--version",

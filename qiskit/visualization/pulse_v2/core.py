@@ -205,11 +205,7 @@ class DrawerCanvas:
 
     def load_program(
         self,
-        program: pulse.Waveform
-        | pulse.ParametricPulse
-        | pulse.SymbolicPulse
-        | pulse.Schedule
-        | pulse.ScheduleBlock,
+        program: pulse.Waveform | pulse.SymbolicPulse | pulse.Schedule | pulse.ScheduleBlock,
     ):
         """Load a program to draw.
 
@@ -221,10 +217,10 @@ class DrawerCanvas:
         """
         if isinstance(program, (pulse.Schedule, pulse.ScheduleBlock)):
             self._schedule_loader(program)
-        elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse, pulse.SymbolicPulse)):
+        elif isinstance(program, (pulse.Waveform, pulse.SymbolicPulse)):
             self._waveform_loader(program)
         else:
-            raise VisualizationError("Data type %s is not supported." % type(program))
+            raise VisualizationError(f"Data type {type(program)} is not supported.")
 
         # update time range
         self.set_time_range(0, program.duration, seconds=False)
@@ -234,7 +230,7 @@ class DrawerCanvas:
 
     def _waveform_loader(
         self,
-        program: pulse.Waveform | pulse.ParametricPulse | pulse.SymbolicPulse,
+        program: pulse.Waveform | pulse.SymbolicPulse,
     ):
         """Load Waveform instance.
 

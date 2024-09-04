@@ -11,12 +11,389 @@
 # that they have been altered from the originals.
 
 """Test operations on circuit.data."""
+import ddt
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction, Operation
-from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
-
-from qiskit.test import QiskitTestCase
+from qiskit._accelerate.circuit import CircuitData
+from qiskit.circuit import (
+    ClassicalRegister,
+    QuantumCircuit,
+    QuantumRegister,
+    Parameter,
+    CircuitInstruction,
+    Operation,
+    Qubit,
+    Clbit,
+)
+from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+@ddt.ddt
+class TestQuantumCircuitData(QiskitTestCase):
+    """CircuitData (Rust) operation tests."""
+
+    def test_add_qubit(self):
+        """Test adding new and duplicate qubits."""
+        qr = QuantumRegister(2)
+        data = CircuitData(qubits=[qr[0]])
+        data.add_qubit(qr[1])
+        self.assertEqual(data.qubits, list(qr))
+
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_qubit(qr[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_qubit(qr[0], strict=False)
+        self.assertEqual(data.qubits, list(qr))
+
+    def test_add_qubit_new_style(self):
+        """Test adding new and duplicate new-style qubits."""
+        qubits = [Qubit(), Qubit()]
+        data = CircuitData(qubits=[qubits[0]])
+        data.add_qubit(qubits[1])
+        self.assertEqual(data.qubits, qubits)
+
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_qubit(qubits[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_qubit(qubits[0], strict=False)
+        self.assertEqual(data.qubits, qubits)
+
+    def test_add_clbit(self):
+        """Test adding new and duplicate clbits."""
+        cr = ClassicalRegister(2)
+        data = CircuitData(clbits=[cr[0]])
+        data.add_clbit(cr[1])
+        self.assertEqual(data.clbits, list(cr))
+
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_clbit(cr[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_clbit(cr[0], strict=False)
+        self.assertEqual(data.clbits, list(cr))
+
+    def test_add_clbit_new_style(self):
+        """Test adding new and duplicate new-style clbits."""
+        clbits = [Clbit(), Clbit()]
+        data = CircuitData(clbits=[clbits[0]])
+        data.add_clbit(clbits[1])
+        self.assertEqual(data.clbits, clbits)
+
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_clbit(clbits[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_clbit(clbits[0], strict=False)
+        self.assertEqual(data.clbits, clbits)
+
+    def test_copy(self):
+        """Test shallow copy behavior."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        data = CircuitData(
+            qubits=qr,
+            clbits=cr,
+            data=[
+                CircuitInstruction(XGate(), [qr[0]], []),
+                CircuitInstruction(XGate(), [qr[1]], []),
+                CircuitInstruction(Measure(), [qr[0]], [cr[1]]),
+                CircuitInstruction(Measure(), [qr[1]], [cr[0]]),
+            ],
+        )
+        qubits = data.qubits
+        clbits = data.clbits
+        data_copy = data.copy()
+
+        with self.subTest("list contents are equal"):
+            self.assertEqual(list(data_copy), list(data))
+
+        with self.subTest("qubits are equal but held in a new list"):
+            self.assertIsNot(data_copy.qubits, qubits)
+            self.assertEqual(data_copy.qubits, qubits)
+
+        with self.subTest("clbits are equal but held in a new list"):
+            self.assertIsNot(data_copy.clbits, clbits)
+            self.assertEqual(data_copy.clbits, clbits)
+
+    @ddt.data(
+        (QuantumRegister(5), ClassicalRegister(5)),
+        ([Qubit() for _ in range(5)], [Clbit() for _ in range(5)]),
+    )
+    @ddt.unpack
+    def test_active_bits(self, qr, cr):
+        """Test only active bits are returned."""
+        data = CircuitData(
+            qubits=qr,
+            clbits=cr,
+            data=[
+                CircuitInstruction(XGate(), [qr[0]], []),
+                CircuitInstruction(XGate(), [qr[3]], []),
+                CircuitInstruction(Measure(), [qr[0]], [cr[1]]),
+                CircuitInstruction(Measure(), [qr[3]], [cr[4]]),
+            ],
+        )
+
+        expected_qubits = {qr[0], qr[3]}
+        expected_clbits = {cr[1], cr[4]}
+        actual_qubits, actual_clbits = data.active_bits()
+        self.assertEqual(actual_qubits, expected_qubits)
+        self.assertEqual(actual_clbits, expected_clbits)
+
+    def test_foreach_op(self):
+        """Test all operations are visited."""
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+
+        visited_ops = []
+        data.foreach_op(visited_ops.append)
+        self.assertEqual(len(visited_ops), len(data_list))
+        self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
+
+    def test_foreach_op_indexed(self):
+        """Test all operations are visited."""
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+
+        visited_ops = []
+        data.foreach_op_indexed(visited_ops.insert)
+        self.assertEqual(len(visited_ops), len(data_list))
+        self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
+
+    def test_map_nonstandard_ops(self):
+        """Test all operations are replaced."""
+        qr = QuantumRegister(5)
+
+        # Use a custom gate to ensure we get a gate class returned and not
+        # a standard gate.
+        class CustomXGate(XGate):
+            """A custom X gate that doesn't have rust native representation."""
+
+            _standard_gate = None
+
+        data_list = [
+            CircuitInstruction(CustomXGate(), [qr[0]], []),
+            CircuitInstruction(CustomXGate(), [qr[1]], []),
+            CircuitInstruction(CustomXGate(), [qr[2]], []),
+            CircuitInstruction(CustomXGate(), [qr[3]], []),
+            CircuitInstruction(CustomXGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+        data.map_nonstandard_ops(lambda op: op.to_mutable())
+        self.assertTrue(all(inst.operation.mutable for inst in data))
+
+    def test_replace_bits(self):
+        """Test replacing qubits and clbits with sequence reversed."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        data = CircuitData(
+            qubits=qr,
+            clbits=cr,
+            data=[
+                CircuitInstruction(XGate(), [qr[0]], []),
+                CircuitInstruction(XGate(), [qr[1]], []),
+                CircuitInstruction(XGate(), [qr[2]], []),
+                CircuitInstruction(Measure(), [qr[0]], [cr[0]]),
+                CircuitInstruction(Measure(), [qr[1]], [cr[1]]),
+                CircuitInstruction(Measure(), [qr[2]], [cr[2]]),
+            ],
+        )
+
+        data.replace_bits(qubits=reversed(qr), clbits=reversed(cr))
+        self.assertEqual(
+            data,
+            [
+                CircuitInstruction(XGate(), [qr[2]], []),
+                CircuitInstruction(XGate(), [qr[1]], []),
+                CircuitInstruction(XGate(), [qr[0]], []),
+                CircuitInstruction(Measure(), [qr[2]], [cr[2]]),
+                CircuitInstruction(Measure(), [qr[1]], [cr[1]]),
+                CircuitInstruction(Measure(), [qr[0]], [cr[0]]),
+            ],
+        )
+
+    def test_replace_bits_negative(self):
+        """Test replacing with smaller bit sequence is rejected."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        data = CircuitData(qr, cr)
+        with self.assertRaisesRegex(ValueError, "must contain at least"):
+            data.replace_bits(qubits=qr[1:])
+        with self.assertRaisesRegex(ValueError, "must contain at least"):
+            data.replace_bits(clbits=cr[1:])
+
+    @ddt.data(
+        slice(0, 5, 1),  # Get everything.
+        slice(-1, -6, -1),  # Get everything, reversed.
+        slice(0, 4, 1),  # Get subslice.
+        slice(0, 5, 2),  # Get every other.
+        slice(-1, -6, -2),  # Get every other, reversed.
+        slice(2, 2, 1),  # Get nothing.
+        slice(2, 3, 1),  # Get at index 2.
+        slice(4, 10, 1),  # Get index 4 to end, using excessive upper bound.
+        slice(5, 0, -2),  # Get every other, reversed, excluding index 0.
+        slice(-10, -5, 1),  # Get nothing.
+        slice(0, 10, 1),  # Get everything.
+    )
+    def test_getitem_slice(self, sli):
+        """Test that __getitem__ with slice is equivalent to that of list."""
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+        self.assertEqual(data[sli], data_list[sli])
+
+    @ddt.data(
+        slice(0, 5, 1),  # Delete everything.
+        slice(-1, -6, -1),  # Delete everything, reversed.
+        slice(0, 4, 1),  # Delete subslice.
+        slice(0, 5, 2),  # Delete every other.
+        slice(-1, -6, -2),  # Delete every other, reversed.
+        slice(2, 2, 1),  # Delete nothing.
+        slice(2, 3, 1),  # Delete at index 2.
+        slice(4, 10, 1),  # Delete index 4 to end, excessive upper bound.
+        slice(5, 0, -2),  # Delete every other, reversed, excluding index 0.
+        slice(-10, -5, 1),  # Delete nothing.
+        slice(0, 10, 1),  # Delete everything, excessive upper bound.
+    )
+    def test_delitem_slice(self, sli):
+        """Test that __delitem__ with slice is equivalent to that of list."""
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+
+        del data_list[sli]
+        del data[sli]
+        if data_list[sli] != data[sli]:
+            print(f"data_list: {data_list}")
+            print(f"data: {list(data)}")
+
+        self.assertEqual(data[sli], data_list[sli])
+
+    @ddt.data(
+        (slice(0, 5, 1), 5),  # Replace entire slice.
+        (slice(-1, -6, -1), 5),  # Replace entire slice, reversed.
+        (slice(0, 4, 1), 4),  # Replace subslice.
+        (slice(0, 4, 1), 10),  # Replace subslice with bigger sequence.
+        (slice(0, 5, 2), 3),  # Replace every other.
+        (slice(-1, -6, -2), 3),  # Replace every other, reversed.
+        (slice(2, 2, 1), 1),  # Insert at index 2.
+        (slice(2, 3, 1), 1),  # Replace at index 2.
+        (slice(2, 3, 1), 10),  # Replace at index 2 with bigger sequence.
+        (slice(4, 10, 1), 2),  # Replace index 4 with bigger sequence, excessive upper bound.
+        (slice(5, 10, 1), 10),  # Append sequence.
+        (slice(4, 0, -1), 4),  # Replace subslice at end, reversed.
+    )
+    @ddt.unpack
+    def test_setitem_slice(self, sli, value_length):
+        """Test that __setitem__ with slice is equivalent to that of list."""
+        reg_size = 20
+        assert value_length <= reg_size
+        qr = QuantumRegister(reg_size)
+        default_bit = Qubit()
+        data_list = [
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+        ]
+        data = CircuitData(qubits=list(qr) + [default_bit], data=data_list)
+
+        value = [CircuitInstruction(XGate(), [qr[i]]) for i in range(value_length)]
+        data_list[sli] = value
+        data[sli] = value
+        self.assertEqual(data, data_list)
+
+    @ddt.data(
+        (slice(0, 5, 2), 2),  # Replace smaller, with gaps.
+        (slice(0, 5, 2), 4),  # Replace larger, with gaps.
+        (slice(4, 0, -1), 10),  # Replace larger, reversed.
+        (slice(-1, -6, -1), 6),  # Replace larger, reversed, negative notation.
+        (slice(4, 3, -1), 10),  # Replace at index 4 with bigger sequence, reversed.
+    )
+    @ddt.unpack
+    def test_setitem_slice_negative(self, sli, value_length):
+        """Test that __setitem__ with slice is equivalent to that of list."""
+        reg_size = 20
+        assert value_length <= reg_size
+        qr = QuantumRegister(reg_size)
+        default_bit = Qubit()
+        data_list = [
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+        ]
+        data = CircuitData(qubits=list(qr) + [default_bit], data=data_list)
+
+        value = [CircuitInstruction(XGate(), [qr[i]]) for i in range(value_length)]
+        with self.assertRaises(ValueError):
+            data_list[sli] = value
+        with self.assertRaises(ValueError):
+            data[sli] = value
+        self.assertEqual(data, data_list)
+
+    def test_unregistered_bit_error_new(self):
+        """Test using foreign bits is not allowed."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+            CircuitData(qr, cr, [CircuitInstruction(XGate(), [Qubit()], [])])
+
+    def test_unregistered_bit_error_append(self):
+        """Test using foreign bits is not allowed."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        data = CircuitData(qr, cr)
+        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+            qr_foreign = QuantumRegister(1)
+            data.append(CircuitInstruction(XGate(), [qr_foreign[0]], []))
+
+    def test_unregistered_bit_error_set(self):
+        """Test using foreign bits is not allowed."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        data = CircuitData(qr, cr, [CircuitInstruction(XGate(), [qr[0]], [])])
+        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+            qr_foreign = QuantumRegister(1)
+            data[0] = CircuitInstruction(XGate(), [qr_foreign[0]], [])
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
@@ -25,6 +402,26 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
     # N.B. Most of the cases here are not expected use cases of circuit.data
     # but are included as tests to maintain compatability with the previous
     # list interface of circuit.data.
+
+    def test_iteration_of_data_entry(self):
+        """Verify that the base types of the legacy tuple iteration are correct, since they're
+        different to attribute access."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.measure([0, 1, 2], [0, 1, 2])
+
+        def to_legacy(instruction):
+            return (instruction.operation, list(instruction.qubits), list(instruction.clbits))
+
+        expected = [to_legacy(instruction) for instruction in qc.data]
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Treating CircuitInstruction as an iterable is deprecated"
+        ):
+            actual = [tuple(instruction) for instruction in qc.data]
+        self.assertEqual(actual, expected)
 
     def test_getitem_by_insertion_order(self):
         """Verify one can get circuit.data items in insertion order."""
@@ -459,6 +856,9 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc0.append(rx, [0])
         qc1.append(rx, [0])
         qc0.assign_parameters({a: b}, inplace=True)
-        qc0_instance = next(iter(qc0._parameter_table[b]))[0]
-        qc1_instance = next(iter(qc1._parameter_table[a]))[0]
+        # A fancy way of doing qc0_instance = qc0.data[0] and qc1_instance = qc1.data[0]
+        # but this at least verifies the parameter table is point from the parameter to
+        # the correct instruction (which is the only one)
+        qc0_instance = qc0._data[next(iter(qc0._data._raw_parameter_table_entry(b)))[0]]
+        qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)

@@ -17,7 +17,7 @@ import numpy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, AncillaQubit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRegisterlessCircuit(QiskitTestCase):

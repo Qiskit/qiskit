@@ -20,8 +20,8 @@ import unittest
 from filecmp import cmp as cmpfile
 from shutil import copyfile
 
-from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals as _optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if _optionals.HAS_MATPLOTLIB:
     import matplotlib

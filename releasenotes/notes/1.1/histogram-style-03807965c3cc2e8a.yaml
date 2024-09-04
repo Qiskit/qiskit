@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Removes the hard-coding of style options for :func:`~.plot_histogram`.  This allows
+    Matplotlib style files to be faithfully applied to the figures.  Users looking to go
+    beyond the defaults set by Matplotlib can make their own style files, or pass a
+    Matplotlib ``Axes`` object to ``plot_histogram`` and post-apply any customizations.

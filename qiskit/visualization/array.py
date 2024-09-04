@@ -33,7 +33,7 @@ def _num_to_latex(raw_value, decimals=15, first_term=True, coefficient=False):
     """
     import sympy  # runtime import
 
-    raw_value = np.around(raw_value, decimals=decimals)
+    raw_value = np.around(raw_value, decimals=decimals).item()
     value = sympy.nsimplify(raw_value, rational=False)
 
     if isinstance(value, sympy.core.numbers.Rational) and value.denominator > 50:

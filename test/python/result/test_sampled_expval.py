@@ -13,11 +13,10 @@
 """Tests for qiskit.quantum_info.analysis"""
 
 import unittest
+
 from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.opflow import PauliOp, PauliSumOp
-from qiskit.test import QiskitTestCase
-
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 PROBS = {
     "1000": 0.0022,
@@ -82,17 +81,9 @@ class TestSampledExpval(QiskitTestCase):
         exp2 = sampled_expectation_value(counts, Pauli(oper))
         self.assertAlmostEqual(exp2, ans)
 
-        with self.assertWarns(DeprecationWarning):
-            exp3 = sampled_expectation_value(counts, PauliOp(Pauli(oper)))
-        self.assertAlmostEqual(exp3, ans)
-
         spo = SparsePauliOp([oper], coeffs=[1])
-        with self.assertWarns(DeprecationWarning):
-            exp4 = sampled_expectation_value(counts, PauliSumOp(spo, coeff=2))
-        self.assertAlmostEqual(exp4, 2 * ans)
-
-        exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
-        self.assertAlmostEqual(exp5, ans)
+        exp3 = sampled_expectation_value(counts, spo)
+        self.assertAlmostEqual(exp3, ans)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""

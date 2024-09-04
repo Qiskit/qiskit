@@ -16,6 +16,7 @@
 //! operator-precedence parser.
 
 use hashbrown::{HashMap, HashSet};
+use num_bigint::BigUint;
 use pyo3::prelude::{PyObject, PyResult, Python};
 
 use crate::bytecode::InternalBytecode;
@@ -188,9 +189,10 @@ enum GateParameters {
 
 /// An equality condition from an `if` statement.  These can condition gate applications, measures
 /// and resets, although in practice they're basically only ever used on gates.
+#[derive(Clone)]
 struct Condition {
     creg: CregId,
-    value: usize,
+    value: BigUint,
 }
 
 /// Find the first match for the partial [filename] in the directories along [path].  Returns
@@ -1105,7 +1107,7 @@ impl State {
         } {
             return match parameters {
                 GateParameters::Constant(parameters) => {
-                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, &condition)
+                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, condition)
                 }
                 GateParameters::Expression(parameters) => {
                     self.emit_single_gate_gate(bc, gate_id, parameters, qubits)
@@ -1174,7 +1176,7 @@ impl State {
             }
             return match parameters {
                 GateParameters::Constant(parameters) => {
-                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, &condition)
+                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, condition)
                 }
                 GateParameters::Expression(parameters) => {
                     self.emit_single_gate_gate(bc, gate_id, parameters, qubits)
@@ -1196,7 +1198,7 @@ impl State {
                         gate_id,
                         parameters.clone(),
                         qubits,
-                        &condition,
+                        condition.clone(),
                     )?;
                 }
                 // Gates used in gate-body definitions can't ever broadcast, because their only
@@ -1215,7 +1217,7 @@ impl State {
         gate_id: GateId,
         arguments: Vec<f64>,
         qubits: Vec<QubitId>,
-        condition: &Option<Condition>,
+        condition: Option<Condition>,
     ) -> PyResult<usize> {
         if let Some(condition) = condition {
             bc.push(Some(InternalBytecode::ConditionedGate {
@@ -1262,7 +1264,7 @@ impl State {
         self.expect(TokenType::Equals, "'=='", &if_token)?;
         let value = self
             .expect(TokenType::Integer, "an integer", &if_token)?
-            .int(&self.context);
+            .bigint(&self.context);
         self.expect(TokenType::RParen, "')'", &lparen_token)?;
         let name = name_token.id(&self.context);
         let creg = match self.symbols.get(&name) {
@@ -1408,7 +1410,7 @@ impl State {
                             qubit: q_start + i,
                             clbit: c_start + i,
                             creg,
-                            value,
+                            value: value.clone(),
                         })
                     }));
                     Ok(q_size)
@@ -1477,7 +1479,7 @@ impl State {
                         Some(InternalBytecode::ConditionedReset {
                             qubit: start + offset,
                             creg,
-                            value,
+                            value: value.clone(),
                         })
                     }));
                     Ok(size)
@@ -1630,7 +1632,7 @@ impl State {
 
     /// Update the parser state with the definition of a particular gate.  This does not emit any
     /// bytecode because not all gate definitions need something passing to Python.  For example,
-    /// the Python parser initialises its state including the built-in gates `U` and `CX`, and
+    /// the Python parser initializes its state including the built-in gates `U` and `CX`, and
     /// handles the `qelib1.inc` include specially as well.
     fn define_gate(
         &mut self,

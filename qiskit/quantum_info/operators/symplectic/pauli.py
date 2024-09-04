@@ -16,7 +16,6 @@ N-qubit Pauli Operator Class
 from __future__ import annotations
 
 import re
-import warnings
 from typing import Literal, TYPE_CHECKING
 
 import numpy as np
@@ -34,6 +33,7 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _coun
 if TYPE_CHECKING:
     from qiskit.quantum_info.operators.symplectic.clifford import Clifford
     from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+    from qiskit.transpiler.layout import TranspileLayout
 
 
 class Pauli(BasePauli):
@@ -77,14 +77,14 @@ class Pauli(BasePauli):
 
     An :math:`n`-qubit Pauli may be represented by a string consisting of
     :math:`n` characters from ``['I', 'X', 'Y', 'Z']``, and optionally phase
-    coefficient in :math:`['', '-i', '-', 'i']`. For example: ``XYZ`` or
+    coefficient in ``['', '-i', '-', 'i']``. For example: ``'XYZ'`` or
     ``'-iZIZ'``.
 
     In the string representation qubit-0 corresponds to the right-most
     Pauli character, and qubit-:math:`(n-1)` to the left-most Pauli
     character. For example ``'XYZ'`` represents
     :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
-    ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
+    ``'Y'`` on qubit-1, and ``'X'`` on qubit-2.
 
     The string representation can be converted to a ``Pauli`` using the
     class initialization (``Pauli('-iXYZ')``). A ``Pauli`` object can be
@@ -97,7 +97,7 @@ class Pauli(BasePauli):
         returned string for large numbers of qubits while :meth:`to_label`
         will return the full string with no truncation. The default
         truncation length is 50 characters. The default value can be
-        changed by setting the class `__truncate__` attribute to an integer
+        changed by setting the class ``__truncate__`` attribute to an integer
         value. If set to ``0`` no truncation will be performed.
 
     **Array Representation**
@@ -111,13 +111,15 @@ class Pauli(BasePauli):
 
         P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
-    The :math:`k`th qubit corresponds to the :math:`k`th entry in the
+    The :math:`k`-th qubit corresponds to the :math:`k`-th entry in the
     :math:`z` and :math:`x` arrays
 
     .. math::
 
+        \begin{aligned}
         P &= P_{n-1} \otimes ... \otimes P_{0} \\
         P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
+        \end{aligned}
 
     where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
 
@@ -142,43 +144,39 @@ class Pauli(BasePauli):
 
     .. code-block:: python
 
-        p = Pauli('-iXYZ')
+        P = Pauli('-iXYZ')
 
         print('P[0] =', repr(P[0]))
         print('P[1] =', repr(P[1]))
         print('P[2] =', repr(P[2]))
         print('P[:] =', repr(P[:]))
-        print('P[::-1] =, repr(P[::-1]))
+        print('P[::-1] =', repr(P[::-1]))
     """
+
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
     _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
-    def __init__(
-        self,
-        data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None,
-        x=None,
-        *,
-        z=None,
-        label=None,
-    ):
-        """Initialize the Pauli.
+    def __init__(self, data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None):
+        r"""Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
         be provided, however the first (z) argument can be used alone for string
-        label, Pauli operator, or ScalarOp input data.
+        label, Pauli operator, or :class:`.ScalarOp` input data.
 
         Args:
             data (str or tuple or Pauli or ScalarOp): input data for Pauli. If input is
-                a tuple it must be of the form ``(z, x)`` or (z, x, phase)`` where
-                ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from Z_4.
+                a tuple it must be of the form ``(z, x)`` or ``(z, x, phase)`` where
+                ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from
+                :math:`\mathbb{Z}_4`.
                 If input is a string, it must be a concatenation of a phase and a Pauli string
-                (e.g. 'XYZ', '-iZIZ') where a phase string is a combination of at most three
-                characters from ['+', '-', ''], ['1', ''], and ['i', 'j', ''] in this order,
-                e.g. '', '-1j' while a Pauli string is 1 or more characters of 'I', 'X', 'Y' or 'Z',
-                e.g. 'Z', 'XIYY'.
+                (e.g. ``'XYZ', '-iZIZ'``) where a phase string is a combination of at most three
+                characters from ``['+', '-', '']``, ``['1', '']``, and ``['i', 'j', '']`` in this order,
+                e.g. ``''``, ``'-1j'`` while a Pauli string is 1 or more
+                characters of ``'I'``, ``'X'``, ``'Y'``, or ``'Z'``,
+                e.g. ``'Z'``, ``'XIYY'``.
 
         Raises:
             QiskitError: if input array is invalid shape.
@@ -197,27 +195,6 @@ class Pauli(BasePauli):
             base_z, base_x, base_phase = self._from_scalar_op(data)
         elif isinstance(data, (QuantumCircuit, Instruction)):
             base_z, base_x, base_phase = self._from_circuit(data)
-        elif x is not None:
-            if z is None:
-                # Using old Pauli initialization with positional args instead of kwargs
-                z = data
-            warnings.warn(
-                "Passing 'z' and 'x' arrays separately to 'Pauli' is deprecated as of"
-                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
-                " Use a tuple instead, such as 'Pauli((z, x[, phase]))'.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            base_z, base_x, base_phase = self._from_array(z, x)
-        elif label is not None:
-            warnings.warn(
-                "The 'label' keyword argument of 'Pauli' is deprecated as of"
-                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
-                " Pass the label positionally instead, such as 'Pauli(\"XYZ\")'.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            base_z, base_x, base_phase = self._from_label(label)
         else:
             raise QiskitError("Invalid input data for Pauli.")
 
@@ -247,10 +224,11 @@ class Pauli(BasePauli):
             return front + "..."
         return self.to_label()
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     @classmethod
     def set_truncation(cls, val: int):
@@ -363,10 +341,12 @@ class Pauli(BasePauli):
         """
         if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
+        if len(qubits) == 0:
+            return Pauli((self._z, self._x, self.phase))
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
                 "Qubit index is larger than the number of qubits "
-                "({}>{}).".format(max(qubits), self.num_qubits - 1)
+                f"({max(qubits)}>{self.num_qubits - 1})."
             )
         if len(qubits) == self.num_qubits:
             raise QiskitError("Cannot delete all qubits of Pauli")
@@ -401,12 +381,12 @@ class Pauli(BasePauli):
         if len(qubits) != value.num_qubits:
             raise QiskitError(
                 "Number of indices does not match number of qubits for "
-                "the inserted Pauli ({}!={})".format(len(qubits), value.num_qubits)
+                f"the inserted Pauli ({len(qubits)}!={value.num_qubits})"
             )
         if max(qubits) > ret.num_qubits - 1:
             raise QiskitError(
                 "Index is too larger for combined Pauli number of qubits "
-                "({}>{}).".format(max(qubits), ret.num_qubits - 1)
+                f"({max(qubits)}>{ret.num_qubits - 1})."
             )
         # Qubit positions for original op
         self_qubits = [i for i in range(ret.num_qubits) if i not in qubits]
@@ -720,6 +700,51 @@ class Pauli(BasePauli):
                     qargs = [instr.find_bit(tup).index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
+
+    def apply_layout(
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
+    ) -> Pauli:
+        """Apply a transpiler layout to this :class:`~.Pauli`
+
+        Args:
+            layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
+                    If both layout and num_qubits are none, a copy of the operator is
+                    returned.
+            num_qubits: The number of qubits to expand the operator to. If not
+                provided then if ``layout`` is a :class:`~.TranspileLayout` the
+                number of the transpiler output circuit qubits will be used by
+                default. If ``layout`` is a list of integers the permutation
+                specified will be applied without any expansion. If layout is
+                None, the operator will be expanded to the given number of qubits.
+
+        Returns:
+            A new :class:`.Pauli` with the provided layout applied
+        """
+        from qiskit.transpiler.layout import TranspileLayout
+
+        if layout is None and num_qubits is None:
+            return self.copy()
+
+        n_qubits = self.num_qubits
+        if isinstance(layout, TranspileLayout):
+            n_qubits = len(layout._output_qubit_list)
+            layout = layout.final_index_layout()
+        if num_qubits is not None:
+            if num_qubits < n_qubits:
+                raise QiskitError(
+                    f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
+                    f"applied to a {n_qubits} qubit operator"
+                )
+            n_qubits = num_qubits
+        if layout is None:
+            layout = list(range(self.num_qubits))
+        else:
+            if any(x < 0 or x >= n_qubits for x in layout):
+                raise QiskitError("Provided layout contains indices outside the number of qubits.")
+            if len(set(layout)) != len(layout):
+                raise QiskitError("Provided layout contains duplicate indices.")
+        new_op = type(self)("I" * n_qubits)
+        return new_op.compose(self, qargs=layout)
 
 
 # Update docstrings for API docs
