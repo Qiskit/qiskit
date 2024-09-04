@@ -231,9 +231,9 @@ pub struct DAGCircuit {
     cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
-    pub qargs_interner: Interner<[Qubit]>,
+    qargs_interner: Interner<[Qubit]>,
     /// The cache used to intern instruction cargs.
-    pub cargs_interner: Interner<[Clbit]>,
+    cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
     pub qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
