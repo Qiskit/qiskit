@@ -4343,7 +4343,7 @@ def _format(operand):
 
             let mut new_layer = self.copy_empty_like(py, vars_mode)?;
 
-            new_layer.add_from_iter(py, op_nodes.iter().map(|(inst, _)| (*inst).clone()))?;
+            new_layer.extend(py, op_nodes.iter().map(|(inst, _)| (*inst).clone()))?;
 
             let new_layer_op_nodes = new_layer.op_nodes(false).filter_map(|node_index| {
                 match new_layer.dag.node_weight(node_index) {
