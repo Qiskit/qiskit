@@ -29,7 +29,7 @@ use std::hash::{Hash, Hasher};
 /// it call `repr()` on both sides, which has a significant
 /// performance advantage.
 #[derive(Clone, Debug)]
-struct BitAsKey {
+pub struct BitAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
