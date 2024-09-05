@@ -32,7 +32,7 @@ use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::{IntoPyArray, ToPyArray};
-use numpy::{PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{PyArrayLike2, PyReadonlyArray1, PyReadonlyArray2};
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -182,7 +182,23 @@ fn decompose_two_qubit_product_gate(
     }
     l.mapv_inplace(|x| x / det_l.sqrt());
     let phase = det_l.arg() / 2.;
+
     Ok((l, r, phase))
+}
+
+#[pyfunction]
+#[pyo3(signature = (special_unitary))]
+fn py_decompose_two_qubit_product_gate(
+    py: Python,
+    special_unitary: PyArrayLike2<Complex64>,
+) -> PyResult<(PyObject, PyObject, f64)> {
+    let view = special_unitary.as_array();
+    let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
+    Ok((
+        PyObject::from(l.into_pyarray_bound(py).unbind()),
+        PyObject::from(r.into_pyarray_bound(py).unbind()),
+        phase,
+    ))
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
@@ -2278,6 +2294,7 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
 
 pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
+    m.add_wrapped(wrap_pyfunction!(py_decompose_two_qubit_product_gate))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_decompose_up_to_diagonal))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_local_invariants))?;
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
