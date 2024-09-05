@@ -105,12 +105,6 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
     return (L, R, phase)
 
 
-_ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
-_ipy = np.array([[0, 1], [-1, 0]], dtype=complex)
-_ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
-_id = np.array([[1, 0], [0, 1]], dtype=complex)
-
-
 class TwoQubitWeylDecomposition:
     r"""Two-qubit Weyl decomposition.
 
@@ -465,16 +459,6 @@ def trace_to_fid(trace):
 
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + abs(trace) ** 2) / 20
-
-
-def rz_array(theta):
-    """Return numpy array for Rz(theta).
-
-    Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
-    """
-    return np.array(
-        [[cmath.exp(-1j * theta / 2.0), 0], [0, cmath.exp(1j * theta / 2.0)]], dtype=complex
-    )
 
 
 class TwoQubitBasisDecomposer:
