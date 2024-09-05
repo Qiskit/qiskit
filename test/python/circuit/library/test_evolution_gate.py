@@ -141,12 +141,14 @@ class TestEvolutionGate(QiskitTestCase):
                 decomposed = evo_gate.definition.decompose()
                 self.assertEqual(decomposed.count_ops()["cx"], expected_cx)
 
-    def test_suzuki_trotter_manual(self):
+    def test_suzuki_trotter_manual_no_reorder(self):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
         op = X + Y
         time = 0.1
         reps = 1
-        evo_gate = PauliEvolutionGate(op, time, synthesis=SuzukiTrotter(order=4, reps=reps))
+        evo_gate = PauliEvolutionGate(
+            op, time, synthesis=SuzukiTrotter(order=4, reps=reps, reorder=False)
+        )
 
         # manually construct expected evolution
         expected = QuantumCircuit(1)
@@ -168,7 +170,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(evo_gate.definition, expected)
 
-    def test_suzuki_trotter_reordered_manual(self):
+    def test_suzuki_trotter_manual(self):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
         op = (X ^ X ^ I ^ I) + (I ^ Y ^ Y ^ I) + (I ^ I ^ Z ^ Z)
         time, reps = 0.1, 1
@@ -178,11 +180,11 @@ class TestEvolutionGate(QiskitTestCase):
             synthesis=SuzukiTrotter(order=2, reps=reps, reorder=True),
         )
         expected = QuantumCircuit(4)
-        expected.ryy(time, 1, 2)
+        expected.rzz(time, 0, 1)
         expected.rxx(time, 2, 3)
-        expected.rzz(2 * time, 0, 1)
+        expected.ryy(2 * time, 1, 2)
         expected.rxx(time, 2, 3)
-        expected.ryy(time, 1, 2)
+        expected.rzz(time, 0, 1)
         self.assertEqual(evo_gate.definition, expected)
 
     @data(
