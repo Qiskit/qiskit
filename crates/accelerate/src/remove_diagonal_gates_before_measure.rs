@@ -44,6 +44,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         StandardGate::CSGate,
         StandardGate::CSdgGate,
     ];
+    static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZGate];
 
     let mut nodes_to_remove = Vec::new();
     for index in dag.op_nodes(true) {
@@ -60,7 +61,9 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                     Some(gate) => {
                         if DIAGONAL_1Q_GATES.contains(&gate) {
                             nodes_to_remove.push(predecessor);
-                        } else if DIAGONAL_2Q_GATES.contains(&gate) {
+                        } else if DIAGONAL_2Q_GATES.contains(&gate)
+                            || DIAGONAL_3Q_GATES.contains(&gate)
+                        {
                             let successors = dag.quantum_successors(predecessor);
                             let remove_s = successors
                                 .map(|s| {
