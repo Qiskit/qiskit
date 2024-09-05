@@ -6195,7 +6195,7 @@ impl DAGCircuit {
             num_vars * 2 +  // One input + output node per variable
             num_ops;
 
-        Ok(Self {
+        let mut new_dag = Self {
             name: None,
             metadata: Some(PyDict::new_bound(py).unbind().into()),
             calibrations: HashMap::default(),
@@ -6223,7 +6223,24 @@ impl DAGCircuit {
                 PySet::empty_bound(py)?.unbind(),
                 PySet::empty_bound(py)?.unbind(),
             ],
-        })
+        };
+
+        if num_qubits > 0 {
+            let qubit_cls = imports::QUBIT.get_bound(py);
+            for _i in 0..num_qubits {
+                let bit = qubit_cls.call0()?;
+                new_dag.add_qubit_unchecked(py, &bit)?;
+            }
+        }
+
+        if num_clbits > 0 {
+            let clbit_cls = imports::CLBIT.get_bound(py);
+            for _i in 0..num_clbits {
+                let bit = clbit_cls.call0()?;
+                new_dag.add_clbit_unchecked(py, &bit)?;
+            }
+        }
+        Ok(new_dag)
     }
 
     /// Get qargs from an intern index
