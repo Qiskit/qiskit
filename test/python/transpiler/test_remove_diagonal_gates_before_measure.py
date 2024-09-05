@@ -472,8 +472,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1ccz_3measure(self):
-        """Remove a single CCZGate
-        """
+        """Remove a single CCZGate"""
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -522,8 +521,7 @@ class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
         self.assertEqual(expected, after)
 
     def test_optimize_1ccz_1measure(self):
-        """Do not remove a CCZGate because measure happens on only one of the wires
-        """
+        """Do not remove a CCZGate because measure happens on only one of the wires"""
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
