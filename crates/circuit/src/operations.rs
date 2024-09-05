@@ -2225,10 +2225,7 @@ impl Operation for PyGate {
     fn standard_gate(&self) -> Option<StandardGate> {
         Python::with_gil(|py| -> Option<StandardGate> {
             match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => match stdgate.extract(py) {
-                    Ok(out_gate) => out_gate,
-                    Err(_) => None,
-                },
+                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
                 Err(_) => None,
             }
         })
