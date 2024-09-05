@@ -31,6 +31,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
+_had = 1 / np.sqrt(2) * np.matrix([[1, 1], [1, -1]])
 
 
 @ddt
@@ -65,7 +66,19 @@ class TestUCGate(QiskitTestCase):
         unitary = Operator(qc).data
         if up_to_diagonal:
             ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
-            unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
+            diag = np.diagflat(ucg._get_diagonal())
+
+            if ucg.simp_contr[1]:
+                q_controls = [ucg.num_qubits - i for i in ucg.simp_contr[1]]
+                q_controls.reverse()
+                circ = QuantumCircuit(len(q))
+                from qiskit.circuit.library import UnitaryGate
+
+                gate = UnitaryGate(diag)
+                circ.append(gate, [0] + q_controls)
+                diag = Operator(circ).to_matrix()
+            unitary = np.dot(diag, unitary)
+
         unitary_desired = _get_ucg_matrix(squs)
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
@@ -99,6 +112,21 @@ class TestUCGate(QiskitTestCase):
         unitary_desired = np.identity(2**qc.num_qubits)
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
+
+    def test_ucge(self):
+        """test ucg simplification"""
+        gate_list = [_had, _had, _had, _had, _had, _had, _had, _had]
+
+        qc1 = QuantumCircuit(4)
+        uc1 = UCGate(gate_list, up_to_diagonal=False, mux_simp=False)
+        qc1.append(uc1, range(4))
+        op1 = Operator(qc1).data
+
+        qc2 = QuantumCircuit(4)
+        uc2 = UCGate(gate_list, up_to_diagonal=False, mux_simp=True)
+        qc2.append(uc2, range(4))
+        op2 = Operator(qc2).data
+        self.assertTrue(np.allclose(op1, op2))
 
     def test_repeat(self):
         """test repeat operation"""

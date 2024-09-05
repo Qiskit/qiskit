@@ -39,6 +39,36 @@ class TestInitialize(QiskitTestCase):
 
     _desired_fidelity = 0.99
 
+    def test_disentangled(self):
+        """test disentangled circuit"""
+        state1 = np.random.rand(8) + np.random.rand(8) * 1j
+        state1 = state1 / np.linalg.norm(state1)
+        state2 = np.random.rand(8) + np.random.rand(8) * 1j
+        state2 = state2 / np.linalg.norm(state2)
+        state3 = np.random.rand(8) + np.random.rand(8) * 1j
+        state3 = state3 / np.linalg.norm(state3)
+
+        qc1 = QuantumCircuit(9)
+        qc1.initialize(state1, [0, 2, 3])
+        qc1.initialize(state2, [1, 8, 5])
+        qc1.initialize(state2, [7, 6, 4])
+
+        statevector = Statevector(qc1)
+
+        qc2 = QuantumCircuit(9)
+        qc2.initialize(statevector)
+
+        qc1 = transpile(qc1, basis_gates=["u", "cx"])
+        qc2 = transpile(qc2, basis_gates=["u", "cx"])
+
+        statevector1 = Statevector(qc1)
+        statevector2 = Statevector(qc2)
+
+        print(qc1.count_ops())
+        print(qc2.count_ops())
+
+        self.assertTrue(np.allclose(statevector1, statevector2))
+
     def test_uniform_superposition(self):
         """Initialize a uniform superposition on 2 qubits."""
         desired_vector = [0.5, 0.5, 0.5, 0.5]
@@ -59,6 +89,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
+        qc = transpile(qc, basis_gates=["u", "cx"])
         statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
