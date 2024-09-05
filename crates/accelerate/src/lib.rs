@@ -15,6 +15,7 @@ use std::env;
 use pyo3::import_exception;
 
 pub mod circuit_library;
+pub mod commutation_analysis;
 pub mod commutation_checker;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;

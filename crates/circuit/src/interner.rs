@@ -125,6 +125,13 @@ where
             _type: PhantomData,
         }
     }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(IndexSet::with_capacity_and_hasher(
+            capacity,
+            ::ahash::RandomState::new(),
+        ))
+    }
 }
 
 impl<T> Interner<T>
