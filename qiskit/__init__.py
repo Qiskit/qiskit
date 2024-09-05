@@ -74,6 +74,9 @@ sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_ga
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
 sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
 sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
+sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
+    _accelerate.remove_diagonal_gates_before_measure
+)
 sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
