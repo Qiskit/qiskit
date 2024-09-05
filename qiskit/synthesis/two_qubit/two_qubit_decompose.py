@@ -91,35 +91,18 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
         QiskitError: if decomposition isn't possible.
     """
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
-    # extract the right component
-    R = special_unitary_matrix[:2, :2].copy()
-    detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
-    if abs(detR) < 0.1:
-        R = special_unitary_matrix[2:, :2].copy()
-        detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
-    if abs(detR) < 0.1:
-        raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detR < 0.1")
-    R /= np.sqrt(detR)
-
-    # extract the left component
-    temp = np.kron(np.eye(2), R.T.conj())
-    temp = special_unitary_matrix.dot(temp)
-    L = temp[::2, ::2]
-    detL = L[0, 0] * L[1, 1] - L[0, 1] * L[1, 0]
-    if abs(detL) < 0.9:
-        raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detL < 0.9")
-    L /= np.sqrt(detL)
-    phase = cmath.phase(detL) / 2
+    (L, R, phase) = two_qubit_decompose.py_decompose_two_qubit_product_gate(special_unitary_matrix)
 
     temp = np.kron(L, R)
     deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)
+
     if deviation > 1.0e-13:
         raise QiskitError(
             "decompose_two_qubit_product_gate: decomposition failed: "
             f"deviation too large: {deviation}"
         )
 
-    return L, R, phase
+    return (L, R, phase)
 
 
 _ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
