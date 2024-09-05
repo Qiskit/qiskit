@@ -21,7 +21,9 @@ use qiskit_circuit::Qubit;
 /// Args:
 ///     dag (DAGCircuit): the DAG to be optimized.
 /// Returns:
-///     DAGCircuit: the optimized DAG.
+///     An `Option`: the value of `None` indicates that no optimization was
+///     performed and the original `dag` should be used, otherwise it's a
+///     tuple consisting of the optimized DAG and the induced qubit permutation.
 #[pyfunction]
 fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
     let permutation_gate_names = ["swap".to_string(), "permutation".to_string()];
@@ -90,7 +92,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                 }
             }
         } else {
-            unreachable!("Not an op node")
+            unreachable!();
         }
     }
     Ok(Some((new_dag, mapping)))
