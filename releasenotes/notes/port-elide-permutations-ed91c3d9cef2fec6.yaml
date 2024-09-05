@@ -1,0 +1,9 @@
+---
+features_transpiler:
+  - |
+    Port most of the logic of the transpiler pass :class:`~.ElidePermutations`
+    to Rust.
+fixes:
+  - |
+    Fixed a bug in the transpiler pass :class:`~.ElidePermutations` where the
+    qubit mapping was not updated correctly in the presence of :class:`.PermutationGate`\s.

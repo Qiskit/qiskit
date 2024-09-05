@@ -207,6 +207,23 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
+    def test_permutation_in_middle_another(self):
+        """Another example with permutation in the middle of the circuit."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.append(PermutationGate([1, 2, 0]), [0, 2, 4])
+        qc.cx(2, 3)
+
+        # The permutation maps 2 -> 0, 4 -> 2, 0 -> 4, and 1 -> 1, 3 -> 3,
+        # corresponding to the qubit mapping [2, 1, 4, 3, 0].
+        # so cx(2, 3) should become cx(4, 3)
+        expected = QuantumCircuit(5)
+        expected.cx(0, 1)
+        expected.cx(4, 3)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
     def test_permutation_at_beginning(self):
         """Test permutation in beginning of bell is elided."""
         qc = QuantumCircuit(3, 3)

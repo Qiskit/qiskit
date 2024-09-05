@@ -1555,7 +1555,7 @@ def _format(operand):
     /// Returns:
     ///     DAGCircuit: An empty copy of self.
     #[pyo3(signature = (*, vars_mode="alike"))]
-    fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
+    pub fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
         let mut target_dag = DAGCircuit::with_capacity(
             py,
             self.num_qubits(),
@@ -4577,45 +4577,9 @@ def _format(operand):
     ///
     /// Returns:
     ///     Mapping[str, int]: a mapping of operation names to the number of times it appears.
-    #[pyo3(signature = (*, recurse=true))]
-    fn count_ops(&self, py: Python, recurse: bool) -> PyResult<PyObject> {
-        if !recurse || !self.has_control_flow() {
-            Ok(self.op_names.to_object(py))
-        } else {
-            fn inner(
-                py: Python,
-                dag: &DAGCircuit,
-                counts: &mut HashMap<String, usize>,
-            ) -> PyResult<()> {
-                for (key, value) in dag.op_names.iter() {
-                    counts
-                        .entry(key.clone())
-                        .and_modify(|count| *count += value)
-                        .or_insert(*value);
-                }
-                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-                for node in dag.dag.node_weights() {
-                    let NodeType::Operation(node) = node else {
-                        continue;
-                    };
-                    if !node.op.control_flow() {
-                        continue;
-                    }
-                    let OperationRef::Instruction(inst) = node.op.view() else {
-                        panic!("control flow op must be an instruction")
-                    };
-                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.iter()? {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                        inner(py, inner_dag, counts)?;
-                    }
-                }
-                Ok(())
-            }
-            let mut counts = HashMap::with_capacity(self.op_names.len());
-            inner(py, self, &mut counts)?;
-            Ok(counts.to_object(py))
-        }
+    #[pyo3(name = "count_ops", signature = (*, recurse=true))]
+    fn py_count_ops(&self, py: Python, recurse: bool) -> PyResult<PyObject> {
+        self.count_ops(py, recurse).map(|x| x.into_py(py))
     }
 
     /// Count the occurrences of operation names on the longest path.
@@ -4747,7 +4711,7 @@ def _format(operand):
             ("qubits", self.num_qubits().into_py(py)),
             ("bits", self.num_clbits().into_py(py)),
             ("factors", self.num_tensor_factors().into_py(py)),
-            ("operations", self.count_ops(py, true)?),
+            ("operations", self.py_count_ops(py, true)?),
         ]))
     }
 
@@ -5151,7 +5115,7 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
-    fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
+    pub fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = instr.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
@@ -5299,7 +5263,7 @@ impl DAGCircuit {
         Ok(nodes.into_iter())
     }
 
-    fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
+    pub fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
         Ok(self.topological_nodes()?.filter(|node: &NodeIndex| {
             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
         }))
@@ -6236,6 +6200,16 @@ impl DAGCircuit {
         self.cargs_interner.get(index)
     }
 
+    /// Insert qargs, return the intern index
+    pub fn set_qargs(&mut self, qargs: &[Qubit]) -> Interned<[Qubit]> {
+        self.qargs_interner.insert(qargs)
+    }
+
+    /// Insert cargs, return the intern index
+    pub fn set_cargs(&mut self, cargs: &[Clbit]) -> Interned<[Clbit]> {
+        self.cargs_interner.insert(cargs)
+    }
+
     /// Insert a new 1q standard gate on incoming qubit
     pub fn insert_1q_on_incoming_qubit(
         &mut self,
@@ -6347,6 +6321,76 @@ impl DAGCircuit {
             Err(DAGCircuitError::new_err("Specified node is not an op node"))
         }
     }
+
+    pub fn count_ops(
+        &self,
+        py: Python,
+        recurse: bool,
+    ) -> PyResult<IndexMap<String, usize, RandomState>> {
+        if !recurse || !self.has_control_flow() {
+            Ok(self.op_names.clone())
+        } else {
+            fn inner(
+                py: Python,
+                dag: &DAGCircuit,
+                counts: &mut IndexMap<String, usize, RandomState>,
+            ) -> PyResult<()> {
+                for (key, value) in dag.op_names.iter() {
+                    counts
+                        .entry(key.clone())
+                        .and_modify(|count| *count += value)
+                        .or_insert(*value);
+                }
+                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
+                for node in dag.dag.node_weights() {
+                    let NodeType::Operation(node) = node else {
+                        continue;
+                    };
+                    if !node.op.control_flow() {
+                        continue;
+                    }
+                    let OperationRef::Instruction(inst) = node.op.view() else {
+                        panic!("control flow op must be an instruction")
+                    };
+                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
+                    for block in blocks.iter()? {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
+                        inner(py, inner_dag, counts)?;
+                    }
+                }
+                Ok(())
+            }
+            let mut counts =
+                IndexMap::with_capacity_and_hasher(self.op_names.len(), RandomState::default());
+            inner(py, self, &mut counts)?;
+            Ok(counts)
+        }
+    }
+
+    // /// Returns an immutable view of the underlying DAG.
+    // pub fn dag(&self) -> &StableDiGraph<NodeType, Wire> {
+    //     &self.dag
+    // }
+    //
+    // /// Returns an immutable view of the Qubits registered in the circuit
+    // pub fn qubits(&self) -> &BitData<Qubit> {
+    //     &self.qubits
+    // }
+    //
+    // /// Returns an immutable view of the Classical bits registered in the circuit
+    // pub fn clbits(&self) -> &BitData<Clbit> {
+    //     &self.clbits
+    // }
+    //
+    // /// Returns an immutable view of the Interner used for Qargs
+    // pub fn qargs_interner(&self) -> &IndexedInterner<Vec<Qubit>> {
+    //     &self.qargs_cache
+    // }
+    //
+    // /// Returns an immutable view of the Interner used for Cargs
+    // pub fn cargs_interner(&self) -> &IndexedInterner<Vec<Clbit>> {
+    //     &self.cargs_cache
+    // }
 }
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this

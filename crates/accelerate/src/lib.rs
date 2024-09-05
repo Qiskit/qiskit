@@ -20,6 +20,7 @@ pub mod commutation_checker;
 pub mod convert_2q_block_matrix;
 pub mod dense_layout;
 pub mod edge_collections;
+pub mod elide_permutations;
 pub mod error_map;
 pub mod euler_one_qubit_decomposer;
 pub mod isometry;
