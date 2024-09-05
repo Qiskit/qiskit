@@ -1167,7 +1167,7 @@ class QuantumCircuit:
         # To add consistent registers, we compose the circuit onto a new one with registers,
         # as each instruction must be mapped to qubits that belong to a register (in the circuit
         # data coming from Rust, the qubits are not attached to any register).
-        if add_regs: 
+        if add_regs:
             out_with_regs = QuantumCircuit(out.num_qubits, out.num_clbits)
             out_with_regs.compose(out, inplace=True, copy=False)
             return out_with_regs
