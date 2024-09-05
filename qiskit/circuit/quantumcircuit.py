@@ -1152,21 +1152,26 @@ class QuantumCircuit:
         """The unit that :attr:`duration` is specified in."""
         self.metadata = {} if metadata is None else metadata
         """Arbitrary user-defined metadata for the circuit.
-
+ 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
 
     @classmethod
     def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
         """A private constructor from rust space circuit data."""
-        if add_regs:
-            out = QuantumCircuit(data.num_qubits(), data.num_clbits())
-        else:
-            out = QuantumCircuit()
-
-        out._data = data
+        out = QuantumCircuit()
         out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
         out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
+        out._data = data
+
+        # To add consistent registers, we compose the circuit onto a new one with registers,
+        # as each instruction must be mapped to qubits that belong to a register (in the circuit
+        # data coming from Rust, the qubits are not attached to any register).
+        if add_regs: 
+            out_with_regs = QuantumCircuit(out.num_qubits, out.num_clbits)
+            out_with_regs.compose(out, inplace=True, copy=False)
+            return out_with_regs
+
         return out
 
     @staticmethod
