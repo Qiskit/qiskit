@@ -15,6 +15,7 @@ use pyo3::prelude::*;
 mod compose_transforms;
 
 #[pymodule]
-pub fn basis_translator(_m: &Bound<PyModule>) -> PyResult<()> {
+pub fn basis_translator(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(compose_transforms::py_compose_transforms))?;
     Ok(())
 }
