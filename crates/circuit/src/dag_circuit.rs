@@ -5794,6 +5794,25 @@ impl DAGCircuit {
         }
     }
 
+    // Filter any nodes that don't match a given predicate function
+    pub fn filter_op_nodes<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&PackedInstruction) -> bool,
+    {
+        let mut remove_nodes: Vec<NodeIndex> = Vec::new();
+        for node in self.op_nodes(true) {
+            let NodeType::Operation(op) = &self.dag[node] else {
+                unreachable!()
+            };
+            if !predicate(op) {
+                remove_nodes.push(node);
+            }
+        }
+        for node in remove_nodes {
+            self.remove_op_node(node);
+        }
+    }
+
     pub fn op_nodes_by_py_type<'a>(
         &'a self,
         op: &'a Bound<PyType>,
