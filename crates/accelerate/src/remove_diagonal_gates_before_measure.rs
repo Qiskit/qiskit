@@ -11,13 +11,11 @@
 // that they have been altered from the originals.
 
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
-use hashbrown::HashSet;
 use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 /// Args:
@@ -90,9 +88,10 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
         }
     }
 
-    let set_nodes_to_remove: HashSet<NodeIndex> = nodes_to_remove.into_iter().collect();
-    for node_to_remove in set_nodes_to_remove {
-        dag.remove_op_node(node_to_remove)
+    for node_to_remove in nodes_to_remove {
+        if dag.dag.node_weight(node_to_remove).is_some() {
+            dag.remove_op_node(node_to_remove);
+        }
     }
 
     Ok(())
