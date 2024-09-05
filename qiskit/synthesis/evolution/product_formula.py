@@ -214,9 +214,15 @@ def reorder_paulis(
     :class:`~qiskit.quantum_info.SparsePauliOp` (rather than a list of such),
     even if ``operators`` is a list.
 
+    This method is deterministic and invariant under permutation of the Pauli term in ``operators``.
+
     Args:
         operators: The operator or list of operators whose terms to reorder.
     """
+
+    def _term_sort_key(term: tuple[str, complex]) -> Any:
+        return (term[0], term[1].real, term[1].imag)
+
     # Do nothing in trivial cases
     if isinstance(operators, SparsePauliOp) and len(operators) <= 1:
         return operators
@@ -229,8 +235,11 @@ def reorder_paulis(
         return operators
     if not isinstance(operators, list):
         operators = [operators]
+
+    terms = sum((o.to_list() for o in operators), [])
+    terms = sorted(terms, key=_term_sort_key)
     graph = rx.PyGraph()
-    graph.add_nodes_from(sum((o.to_list() for o in operators), []))
+    graph.add_nodes_from(terms)
     indexed_nodes = list(enumerate(graph.nodes()))
     for (idx1, term1), (idx2, term2) in combinations(indexed_nodes, 2):
         # Add an edge between term1 and term2 if they touch the same qubit
@@ -238,16 +247,15 @@ def reorder_paulis(
             if not (a == "I" or b == "I"):
                 graph.add_edge(idx1, idx2, None)
                 break
-    # TODO: The graph is likely not very big, so an exact coloring could be
-    # computed in a reasonable time.
+
+    # rx.graph_greedy_color is supposed to be deterministic
     coloring = rx.graph_greedy_color(graph)
-    indices_by_color = defaultdict(list)
-    for term, color in coloring.items():
-        indices_by_color[color].append(term)
-    terms: list[tuple[str, complex]] = []
-    for color, indices in indices_by_color.items():
-        for i in indices:
-            terms.append(graph.nodes()[i])
+    terms_by_color = defaultdict(list)
+    for term_idx, color in sorted(coloring.items()):
+        term = graph.nodes()[term_idx]
+        terms_by_color[color].append(term)
+
+    terms = sum(terms_by_color.values(), [])
     return SparsePauliOp.from_list(terms)
 
 

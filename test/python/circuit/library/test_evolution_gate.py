@@ -12,6 +12,8 @@
 
 """Test the evolution gate."""
 
+from itertools import permutations
+
 import unittest
 import numpy as np
 import scipy
@@ -28,6 +30,7 @@ from qiskit.synthesis import (
 from qiskit.synthesis.evolution.product_formula import (
     cnot_chain,
     diagonalizing_clifford,
+    reorder_paulis,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
@@ -59,6 +62,30 @@ class TestEvolutionGate(QiskitTestCase):
         evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
 
         self.assertTrue(Operator(evo_gate).equiv(evolved))
+
+    def test_reorder_paulis_invariant(self):
+        """
+        Tests that reorder_paulis is deterministic and does not depend on the
+        order of the terms of the input operator.
+        """
+        terms = [
+            (I ^ I ^ X ^ X),
+            (I ^ I ^ Z ^ Z),
+            (I ^ Y ^ Y ^ I),
+            (X ^ I ^ I ^ I),
+            (X ^ X ^ I ^ I),
+            (Y ^ I ^ I ^ Y),
+        ]
+        results = []
+        for seed, tms in enumerate(permutations(terms)):
+            np.random.seed(seed)
+            op = reorder_paulis(SparsePauliOp(sum(tms)))
+            results.append([t[0] for t in op.to_list()])
+            np.random.seed(seed + 42)
+            op = reorder_paulis(SparsePauliOp(sum(tms)))
+            results.append([t[0] for t in op.to_list()])
+        for lst in results[1:]:
+            self.assertListEqual(lst, results[0])
 
     def test_lie_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
