@@ -553,6 +553,13 @@ impl PackedInstruction {
             .and_then(|extra| extra.condition.as_ref())
     }
 
+    #[inline]
+    pub fn label(&self) -> Option<&str> {
+        self.extra_attrs
+            .as_ref()
+            .and_then(|extra| extra.label.as_deref())
+    }
+
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
     /// instruction.  This may construct the reference if the `PackedInstruction` is a standard
     /// gate with no already stored operation.

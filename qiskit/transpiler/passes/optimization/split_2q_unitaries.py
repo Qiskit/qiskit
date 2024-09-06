@@ -9,8 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
-from typing import Optional
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -18,25 +18,23 @@ from qiskit._accelerate.split_2q_unitaries import split_2q_unitaries
 
 
 class Split2QUnitaries(TransformationPass):
-    """Attempt to splits two-qubit gates in a :class:`.DAGCircuit` into two single-qubit gates
+    """Attempt to splits two-qubit unitaries in a :class:`.DAGCircuit` into two single-qubit gates.
 
-    This pass will analyze all the two qubit gates in the circuit and analyze the gate's unitary
-    matrix to determine if the gate is actually a product of 2 single qubit gates. In these
-    cases the 2q gate can be simplified into two single qubit gates and this pass will
-    perform this optimization and will replace the two qubit gate with two single qubit
-    :class:`.UnitaryGate`.
+    This pass will analyze all :class:`.UnitaryGate` instances and determine whether the
+    matrix is actually a product of 2 single qubit gates. In these cases the 2q gate can be
+    simplified into two single qubit gates and this pass will perform this optimization and will
+    replace the two qubit gate with two single qubit :class:`.UnitaryGate`.
     """
 
-    def __init__(self, fidelity: Optional[float] = 1.0 - 1e-16):
-        """Split2QUnitaries initializer.
-
+    def __init__(self, fidelity: float = 1.0 - 1e-16):
+        """
         Args:
-            fidelity (float): Allowed tolerance for splitting two-qubit unitaries and gate decompositions
+            fidelity: Allowed tolerance for splitting two-qubit unitaries and gate decompositions.
         """
         super().__init__()
         self.requested_fidelity = fidelity
 
-    def run(self, dag: DAGCircuit):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Split2QUnitaries pass on `dag`."""
         split_2q_unitaries(dag, self.requested_fidelity)
         return dag
