@@ -118,13 +118,13 @@ fn run_on_inverse_pairs(
     {
         return Ok(());
     }
-    for pair in inverse_gates {
-        let gate_0_name = pair[0].operation.name();
-        let gate_1_name = pair[1].operation.name();
+    for [gate_0, gate_1] in inverse_gates {
+        let gate_0_name = gate_0.operation.name();
+        let gate_1_name = gate_1.operation.name();
         if !op_counts.contains_key(gate_0_name) || !op_counts.contains_key(gate_1_name) {
             continue;
         }
-        let names: HashSet<String> = pair
+        let names: HashSet<String> = [&gate_0, &gate_1]
             .iter()
             .map(|x| x.operation.name().to_string())
             .collect();
@@ -135,9 +135,9 @@ fn run_on_inverse_pairs(
                 if let NodeType::Operation(inst) = &dag.dag[nodes[i]] {
                     if let NodeType::Operation(next_inst) = &dag.dag[nodes[i + 1]] {
                         if inst.qubits == next_inst.qubits
-                            && ((gate_eq(py, inst, &pair[0])? && gate_eq(py, next_inst, &pair[1])?)
-                                || (gate_eq(py, inst, &pair[1])?
-                                    && gate_eq(py, next_inst, &pair[0])?))
+                            && ((gate_eq(py, inst, &gate_0)? && gate_eq(py, next_inst, &gate_1)?)
+                                || (gate_eq(py, inst, &gate_1)?
+                                    && gate_eq(py, next_inst, &gate_0)?))
                         {
                             dag.remove_op_node(nodes[i]);
                             dag.remove_op_node(nodes[i + 1]);
