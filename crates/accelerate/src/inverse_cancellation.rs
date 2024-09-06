@@ -166,11 +166,10 @@ pub fn inverse_cancellation(
     inverse_gate_names: HashSet<String>,
     self_inverse_gate_names: HashSet<String>,
 ) -> PyResult<()> {
-    let op_counts = if !self_inverse_gate_names.is_empty() || !inverse_gate_names.is_empty() {
-        dag.count_ops(py, true)?
-    } else {
-        IndexMap::default()
-    };
+    if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
+        return Ok(());
+    }
+    let op_counts = dag.count_ops(py, true)?;
     if !self_inverse_gate_names.is_empty() {
         run_on_self_inverse(
             py,
