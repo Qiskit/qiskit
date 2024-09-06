@@ -50,7 +50,7 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///     commutation_set = {0: [[0], [2, 3], [4], [1]]}
 ///     node_indices = {(0, 0): 0, (1, 0): 3, (2, 0): 1, (3, 0): 1, (4, 0): 2}
 ///
-fn analyze_commutations_inner(
+pub fn analyze_commutations_inner(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,

@@ -269,7 +269,7 @@ pub struct DAGCircuit {
     var_output_map: _VarIndexMap,
 
     /// Operation kind to count
-    op_names: IndexMap<String, usize, RandomState>,
+    pub op_names: IndexMap<String, usize, RandomState>,
 
     // Python modules we need to frequently access (for now).
     control_flow_module: PyControlFlowModule,
@@ -6260,7 +6260,7 @@ impl DAGCircuit {
         &mut self,
         new_gate: (StandardGate, &[f64]),
         old_index: NodeIndex,
-    ) {
+    ) -> NodeIndex {
         self.increment_op(new_gate.0.name());
         let old_node = &self.dag[old_index];
         let inst = if let NodeType::Operation(old_node) = old_node {
@@ -6287,6 +6287,7 @@ impl DAGCircuit {
         self.dag.add_edge(parent_index, new_index, weight.clone());
         self.dag.add_edge(new_index, old_index, weight);
         self.dag.remove_edge(edge_index);
+        new_index
     }
 
     /// Remove a sequence of 1 qubit nodes from the dag

@@ -17,6 +17,7 @@ use qiskit_accelerate::{
     commutation_checker::commutation_checker, convert_2q_block_matrix::convert_2q_block_matrix,
     dense_layout::dense_layout, error_map::error_map,
     euler_one_qubit_decomposer::euler_one_qubit_decomposer, filter_op_nodes::filter_op_nodes_mod,
+commutation_cancellation::commutation_cancellation
     isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
     pauli_exp_val::pauli_expval,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
@@ -71,5 +72,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, vf2_layout, "vf2_layout")?;
     add_submodule(m, commutation_checker, "commutation_checker")?;
     add_submodule(m, commutation_analysis, "commutation_analysis")?;
+    add_submodule(m, commutation_cancellation, "commutation_cancellation")?;
     Ok(())
 }
