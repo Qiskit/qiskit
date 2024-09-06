@@ -9,48 +9,45 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
-from typing import Optional
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
 
 
 class Split2QUnitaries(TransformationPass):
-    """Attempt to splits two-qubit gates in a :class:`.DAGCircuit` into two single-qubit gates
+    """Attempt to splits two-qubit unitaries in a :class:`.DAGCircuit` into two single-qubit gates.
 
-    This pass will analyze all the two qubit gates in the circuit and analyze the gate's unitary
-    matrix to determine if the gate is actually a product of 2 single qubit gates. In these
-    cases the 2q gate can be simplified into two single qubit gates and this pass will
-    perform this optimization and will replace the two qubit gate with two single qubit
-    :class:`.UnitaryGate`.
+    This pass will analyze all :class:`.UnitaryGate` instances and determine whether the
+    matrix is actually a product of 2 single qubit gates. In these cases the 2q gate can be
+    simplified into two single qubit gates and this pass will perform this optimization and will
+    replace the two qubit gate with two single qubit :class:`.UnitaryGate`.
     """
 
-    def __init__(self, fidelity: Optional[float] = 1.0 - 1e-16):
-        """Split2QUnitaries initializer.
-
+    def __init__(self, fidelity: float = 1.0 - 1e-16):
+        """
         Args:
-            fidelity (float): Allowed tolerance for splitting two-qubit unitaries and gate decompositions
+            fidelity: Allowed tolerance for splitting two-qubit unitaries and gate decompositions.
         """
         super().__init__()
         self.requested_fidelity = fidelity
 
-    def run(self, dag: DAGCircuit):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Split2QUnitaries pass on `dag`."""
+
         for node in dag.topological_op_nodes():
-            # skip operations without two-qubits and for which we can not determine a potential 1q split
-            if (
-                len(node.cargs) > 0
-                or len(node.qargs) != 2
-                or node.matrix is None
-                or node.is_parameterized()
-            ):
+            # We only attempt to split UnitaryGate objects, but this could be extended in future
+            # -- however we need to ensure that we can compile the resulting single-qubit unitaries
+            # to the supported basis gate set.
+            if not (len(node.qargs) == 2 and node.op.name == "unitary"):
                 continue
 
-            decomp = TwoQubitWeylDecomposition(node.op, fidelity=self.requested_fidelity)
+            decomp = TwoQubitWeylDecomposition(node.matrix, fidelity=self.requested_fidelity)
             if (
                 decomp._inner_decomposition.specialization
                 == TwoQubitWeylDecomposition._specializations.IdEquiv
@@ -60,12 +57,12 @@ class Split2QUnitaries(TransformationPass):
 
                 ur = decomp.K1r
                 ur_node = DAGOpNode.from_instruction(
-                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],)), dag=new_dag
+                    CircuitInstruction(UnitaryGate(ur), qubits=(node.qargs[0],))
                 )
 
                 ul = decomp.K1l
                 ul_node = DAGOpNode.from_instruction(
-                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],)), dag=new_dag
+                    CircuitInstruction(UnitaryGate(ul), qubits=(node.qargs[1],))
                 )
                 new_dag._apply_op_node_back(ur_node)
                 new_dag._apply_op_node_back(ul_node)

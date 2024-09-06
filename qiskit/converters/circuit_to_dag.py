@@ -12,7 +12,8 @@
 
 """Helper function for converting a circuit to a dag"""
 
-from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
 
 
 def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
@@ -93,7 +94,7 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
 
     for instruction in circuit.data:
         dagcircuit._apply_op_node_back(
-            DAGOpNode.from_instruction(instruction, dag=dagcircuit, deepcopy=copy_operations)
+            DAGOpNode.from_instruction(instruction, deepcopy=copy_operations)
         )
 
     dagcircuit.duration = circuit.duration
