@@ -227,3 +227,20 @@ class TestRustGateEquivalence(QiskitTestCase):
                 circuit.append(gate, [0, 1, 2])
                 self.assertIsNotNone(getattr(gate, "_standard_gate", None))
                 np.testing.assert_almost_equal(Operator(circuit.data[0].operation).to_matrix(), op)
+
+    def test_extracted_as_standard_gate(self):
+        """Test that every gate in the standard library gets correctly extracted as a Rust-space
+        `StandardGate` in its default configuration when passed through `append`."""
+        standards = set()
+        qc = QuantumCircuit(4)
+        for name, gate in get_standard_gate_name_mapping().items():
+            if gate._standard_gate is None:
+                # Not a standard gate.
+                continue
+            standards.add(name)
+            qc.append(gate, qc.qubits[: gate.num_qubits], [])
+        # Sanity check: the test should have found at least one standard gate in the mapping.
+        self.assertNotEqual(standards, set())
+
+        extracted = {inst.name for inst in qc.data if inst.is_standard_gate()}
+        self.assertEqual(standards, extracted)
