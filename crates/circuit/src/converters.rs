@@ -23,15 +23,15 @@ use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 /// conversion purposes.
 #[derive(Debug, Clone)]
 pub struct QuantumCircuitData<'py> {
-    data: CircuitData,
-    name: Option<Bound<'py, PyAny>>,
-    calibrations: Option<HashMap<String, Py<PyDict>>>,
-    metadata: Option<Bound<'py, PyAny>>,
-    qregs: Option<Bound<'py, PyList>>,
-    cregs: Option<Bound<'py, PyList>>,
-    input_vars: Vec<Bound<'py, PyAny>>,
-    captured_vars: Vec<Bound<'py, PyAny>>,
-    declared_vars: Vec<Bound<'py, PyAny>>,
+    pub data: CircuitData,
+    pub name: Option<Bound<'py, PyAny>>,
+    pub calibrations: Option<HashMap<String, Py<PyDict>>>,
+    pub metadata: Option<Bound<'py, PyAny>>,
+    pub qregs: Option<Bound<'py, PyList>>,
+    pub cregs: Option<Bound<'py, PyList>>,
+    pub input_vars: Vec<Bound<'py, PyAny>>,
+    pub captured_vars: Vec<Bound<'py, PyAny>>,
+    pub declared_vars: Vec<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -78,18 +78,8 @@ pub fn circuit_to_dag(
 ) -> PyResult<DAGCircuit> {
     DAGCircuit::from_circuit(
         py,
-        &quantum_circuit.data,
+        quantum_circuit,
         copy_operations,
-        Some([
-            quantum_circuit.declared_vars,
-            quantum_circuit.input_vars,
-            quantum_circuit.captured_vars,
-        ]),
-        quantum_circuit.qregs,
-        quantum_circuit.cregs,
-        quantum_circuit.metadata,
-        quantum_circuit.name,
-        quantum_circuit.calibrations,
         qubit_order,
         clbit_order,
     )

@@ -19,6 +19,7 @@ use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
+use crate::converters::QuantumCircuitData;
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
@@ -6538,7 +6539,8 @@ impl DAGCircuit {
                 });
                 clbit_last_nodes
                     .entry(clbit)
-                    .and_modify(|val| *val = new_node);
+                    .and_modify(|val| *val = new_node)
+                    .or_insert(new_node);
                 self.dag
                     .add_edge(clbit_last_node, new_node, Wire::Clbit(clbit));
             }
@@ -6563,7 +6565,12 @@ impl DAGCircuit {
                     predecessor_node
                 };
 
+                // Because `DAGCircuit::additional_wires` can return repeated instances of vars,
+                // we need to make sure to skip those to avoid cycles.
                 vars_last_nodes.set_item(var, new_node.index())?;
+                if var_last_node == new_node {
+                    continue;
+                }
                 self.dag
                     .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
             }
@@ -6592,49 +6599,33 @@ impl DAGCircuit {
         Ok(new_nodes)
     }
 
-    #[allow(clippy::too_many_arguments)]
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub(crate) fn from_circuit(
         py: Python,
-        qc: &CircuitData,
+        qc: QuantumCircuitData,
         copy_op: bool,
-        vars: Option<[Vec<Bound<PyAny>>; 3]>,
-        qregs: Option<Bound<PyList>>,
-        cregs: Option<Bound<PyList>>,
-        metadata: Option<Bound<PyAny>>,
-        name: Option<Bound<PyAny>>,
-        calibrations: Option<HashMap<String, Py<PyDict>>>,
         qubit_order: Option<Vec<Bound<PyAny>>>,
         clbit_order: Option<Vec<Bound<PyAny>>>,
     ) -> PyResult<DAGCircuit> {
-        let copied: CircuitData;
         // Extract necessary attributes
-        let qc_data = if copy_op {
-            copied = qc.copy(py, true, true)?;
-            &copied
-        } else {
-            qc
-        };
+        let qc_data = qc.data;
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
-        let mut num_vars = 0;
-        if let Some(vars) = &vars {
-            num_vars += vars[0].len() + vars[1].len() + vars[2].len();
-        }
+        let num_vars = qc.declared_vars.len() + qc.input_vars.len() + qc.captured_vars.len();
 
         // Build DAGCircuit with capacity
         let mut new_dag = DAGCircuit::with_capacity(
             py,
             num_qubits,
             num_clbits,
-            Some(num_ops),
             Some(num_vars),
+            Some(num_ops),
             None,
         )?;
 
         // Assign other necessary data
-        new_dag.name = name.map(|ob| ob.unbind());
+        new_dag.name = qc.name.map(|ob| ob.unbind());
 
         // Avoid manually acquiring the GIL.
         new_dag.global_phase = match qc_data.global_phase() {
@@ -6643,11 +6634,11 @@ impl DAGCircuit {
             _ => unreachable!("Incorrect parameter assigned for global phase"),
         };
 
-        if let Some(calibrations) = calibrations {
+        if let Some(calibrations) = qc.calibrations {
             new_dag.calibrations = calibrations;
         }
 
-        new_dag.metadata = metadata.map(|meta| meta.unbind());
+        new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
 
         // Add the qubits depending on order.
         let mut qubit_map: HashMap<Qubit, Bound<PyAny>> = HashMap::new();
@@ -6688,28 +6679,26 @@ impl DAGCircuit {
         }
 
         // Add all of the new vars.
-        if let Some(vars) = vars {
-            for var in &vars[0] {
-                new_dag.add_var(py, var, DAGVarType::Declare)?;
-            }
+        for var in &qc.declared_vars {
+            new_dag.add_var(py, var, DAGVarType::Declare)?;
+        }
 
-            for var in &vars[1] {
-                new_dag.add_var(py, var, DAGVarType::Input)?;
-            }
+        for var in &qc.input_vars {
+            new_dag.add_var(py, var, DAGVarType::Input)?;
+        }
 
-            for var in &vars[2] {
-                new_dag.add_var(py, var, DAGVarType::Capture)?;
-            }
+        for var in &qc.captured_vars {
+            new_dag.add_var(py, var, DAGVarType::Capture)?;
         }
 
         // Add all the registers
-        if let Some(qregs) = qregs {
+        if let Some(qregs) = qc.qregs {
             for qreg in qregs.iter() {
                 new_dag.add_qreg(py, &qreg)?;
             }
         }
 
-        if let Some(cregs) = cregs {
+        if let Some(cregs) = qc.cregs {
             for creg in cregs.iter() {
                 new_dag.add_creg(py, &creg)?;
             }
@@ -6729,23 +6718,36 @@ impl DAGCircuit {
         // Pre-process and re-intern all indices again.
         let instructions: Vec<PackedInstruction> = qc_data
             .iter()
-            .cloned()
-            .map(|mut instr| -> PyResult<PackedInstruction> {
+            .map(|instr| -> PyResult<PackedInstruction> {
                 // Re-map the qubits
                 let qargs: Vec<Qubit> = qc_data
                     .get_qargs(instr.qubits)
                     .iter()
                     .map(|bit| remapped_qubits[bit])
                     .collect();
-                instr.qubits = new_dag.qargs_interner.insert_owned(qargs);
+                let new_qubits = new_dag.qargs_interner.insert_owned(qargs);
                 // Remap the clbits
                 let cargs: Vec<Clbit> = qc_data
                     .get_cargs(instr.clbits)
                     .iter()
                     .map(|bit| remapped_clbits[bit])
                     .collect();
-                instr.clbits = new_dag.cargs_interner.insert_owned(cargs);
-                Ok(instr)
+                let new_clbits = new_dag.cargs_interner.insert_owned(cargs);
+                // Copy the operations
+
+                Ok(PackedInstruction {
+                    op: if copy_op {
+                        instr.op.py_deepcopy(py, None)?
+                    } else {
+                        instr.op.clone()
+                    },
+                    qubits: new_qubits,
+                    clbits: new_clbits,
+                    params: instr.params.clone(),
+                    extra_attrs: instr.extra_attrs.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceCell::new(),
+                })
             })
             .collect::<PyResult<Vec<_>>>()?;
 
@@ -6758,22 +6760,21 @@ impl DAGCircuit {
     /// Builds a [DAGCircuit] based on an instance of [CircuitData].
     pub fn from_circuit_data(
         py: Python,
-        circuit_data: &CircuitData,
+        circuit_data: CircuitData,
         copy_op: bool,
     ) -> PyResult<Self> {
-        Self::from_circuit(
-            py,
-            circuit_data,
-            copy_op,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
+        let circ = QuantumCircuitData {
+            data: circuit_data,
+            name: None,
+            calibrations: None,
+            metadata: None,
+            qregs: None,
+            cregs: None,
+            input_vars: Vec::with_capacity(0),
+            captured_vars: Vec::with_capacity(0),
+            declared_vars: Vec::with_capacity(0),
+        };
+        Self::from_circuit(py, circ, copy_op, None, None)
     }
 }
 
