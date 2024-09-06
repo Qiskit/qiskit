@@ -345,9 +345,9 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "faer"
-version = "0.19.2"
+version = "0.19.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe8894ad9275f1fd708e2f114f4059e80057ad3cc150b77a3f8a7991dd47ab37"
+checksum = "0821d176d7fd17ea91d8a5ce84c56413e11410f404e418bfd205acf40184d819"
 dependencies = [
  "bytemuck",
  "coe-rs",
