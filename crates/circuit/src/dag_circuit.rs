@@ -6392,7 +6392,7 @@ impl DAGCircuit {
             // Check all the qubits in this instruction.
             for qubit in self.qargs_interner.get(qubits_id) {
                 // Retrieve each qubit's last node
-                let qubit_last_node = *qubit_last_nodes.entry(*qubit).or_insert({
+                let qubit_last_node = *qubit_last_nodes.entry(*qubit).or_insert_with(|| {
                     // If the qubit is not in the last nodes collection, the edge between the output node and its predecessor.
                     // Then, store the predecessor's NodeIndex in the last nodes collection.
                     let output_node = self.qubit_io_map[qubit.0 as usize][1];
@@ -6414,7 +6414,7 @@ impl DAGCircuit {
 
             // Check all the clbits in this instruction.
             for clbit in all_cbits {
-                let clbit_last_node = *clbit_last_nodes.entry(clbit).or_insert({
+                let clbit_last_node = *clbit_last_nodes.entry(clbit).or_insert_with(|| {
                     // If the qubit is not in the last nodes collection, the edge between the output node and its predecessor.
                     // Then, store the predecessor's NodeIndex in the last nodes collection.
                     let output_node = self.clbit_io_map[clbit.0 as usize][1];
