@@ -69,7 +69,7 @@ where
 /// lookups. It's not meant to be a public facing Python object though and only used
 /// internally by the Python class.
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
-struct CommutationChecker {
+pub struct CommutationChecker {
     library: CommutationLibrary,
     cache_max_entries: usize,
     cache: HashMap<(String, String), CommutationCacheEntry>,
@@ -227,7 +227,7 @@ impl CommutationChecker {
 
 impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
-    fn commute_inner(
+    pub fn commute_inner(
         &mut self,
         py: Python,
         op1: &OperationRef,
