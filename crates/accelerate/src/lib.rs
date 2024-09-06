@@ -14,6 +14,7 @@ use std::env;
 
 use pyo3::import_exception;
 
+pub mod check_map;
 pub mod circuit_library;
 pub mod commutation_analysis;
 pub mod commutation_checker;
