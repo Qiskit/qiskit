@@ -5115,7 +5115,7 @@ impl DAGCircuit {
         }
     }
 
-    fn quantum_predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
+    pub fn quantum_predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
         self.dag
             .edges_directed(node, Incoming)
             .filter_map(|e| match e.weight() {
@@ -5125,7 +5125,7 @@ impl DAGCircuit {
             .unique()
     }
 
-    fn quantum_successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
+    pub fn quantum_successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
         self.dag
             .edges_directed(node, Outgoing)
             .filter_map(|e| match e.weight() {
@@ -5523,7 +5523,7 @@ impl DAGCircuit {
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    pub fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.0 as usize).map(|x| x[0]),
@@ -5798,6 +5798,25 @@ impl DAGCircuit {
                 false
             }
         }))
+    }
+
+    // Filter any nodes that don't match a given predicate function
+    pub fn filter_op_nodes<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&PackedInstruction) -> bool,
+    {
+        let mut remove_nodes: Vec<NodeIndex> = Vec::new();
+        for node in self.op_nodes(true) {
+            let NodeType::Operation(op) = &self.dag[node] else {
+                unreachable!()
+            };
+            if !predicate(op) {
+                remove_nodes.push(node);
+            }
+        }
+        for node in remove_nodes {
+            self.remove_op_node(node);
+        }
     }
 
     pub fn op_nodes_by_py_type<'a>(
