@@ -70,8 +70,7 @@ fn run_on_self_inverse(
                     if gate_eq(py, inst, &gate)? {
                         chunk.push(*cancel_gate);
                     } else {
-                        let is_empty: bool = chunk.is_empty();
-                        if !is_empty {
+                        if !chunk.is_empty() {
                             partitions.push(std::mem::take(&mut chunk));
                         }
                         continue;
