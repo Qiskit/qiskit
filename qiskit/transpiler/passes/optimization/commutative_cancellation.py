@@ -64,7 +64,7 @@ class CommutativeCancellation(TransformationPass):
 
         # build a commutation checker restricted to the gates we cancel -- the others we
         # do not have to investigate, which allows to save time
-        self.commutation_checker = CommutationChecker(
+        self._commutation_checker = CommutationChecker(
             StandardGateCommutations, gates=self._gates | self._z_rotations | self._x_rotations
         )
 
@@ -78,7 +78,5 @@ class CommutativeCancellation(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        commutation_cancellation.cancel_commutations(
-            dag, self.commutation_checker, self.basis, self.target
-        )
+        commutation_cancellation.cancel_commutations(dag, self._commutation_checker, self.basis)
         return dag
