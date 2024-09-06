@@ -31,12 +31,10 @@ pub fn split_2q_unitaries(
         if let NodeType::Operation(inst) = &dag.dag[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
             let matrix = inst.op.matrix(inst.params_view());
-            if !dag.get_cargs(inst.clbits).is_empty()
-                || qubits.len() != 2
-                || matrix.is_none()
-                || inst.is_parameterized()
-                || inst.condition().is_some()
-            {
+            // We only attempt to split UnitaryGate objects, but this could be extended in future
+            // -- however we need to ensure that we can compile the resulting single-qubit unitaries
+            // to the supported basis gate set.
+            if qubits.len() != 2 || inst.op.name() != "unitary" {
                 continue;
             }
             let decomp = TwoQubitWeylDecomposition::new_inner(
@@ -63,6 +61,9 @@ pub fn split_2q_unitaries(
                 dag.replace_on_incoming_qubits(py, node, insert_fn)?;
                 dag.add_global_phase(py, &Param::Float(decomp.global_phase))?;
             }
+            // TODO: also look into splitting on Specialization::Swap and just
+            // swap the virtual qubits. Doing this we will need to update the
+            // permutation like in ElidePermutations
         }
     }
     Ok(())
