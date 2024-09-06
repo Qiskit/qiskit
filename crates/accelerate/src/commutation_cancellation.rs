@@ -227,7 +227,7 @@ pub(crate) fn cancel_commutations(
 
             let gate_angle = mod_2pi(total_angle, 0.);
 
-            let new_op_phase = if gate_angle.abs() > _CUTOFF_PRECISION {
+            let new_op_phase: f64 = if gate_angle.abs() > _CUTOFF_PRECISION {
                 let new_index = dag.insert_1q_on_incoming_qubit(
                     (*new_op, &[total_angle]),
                     *cancel_set.first().unwrap(),
@@ -239,12 +239,12 @@ pub(crate) fn cancel_commutations(
 
                 if let Some(definition) = new_node.op.definition(new_node.params_view()) {
                     //TODO check for PyNone global phase?
-                    match definition.global_phase() {Param::Float(f) => f, _ => panic!("PackedInstruction with definition has no global phase set as floating point number")}
+                    match definition.global_phase() {Param::Float(f) => *f, _ => panic!("PackedInstruction with definition has no global phase set as floating point number")}
                 } else {
-                    &0.0f64
+                    0.0
                 }
             } else {
-                &0.0f64
+                0.0
             };
 
             dag.add_global_phase(py, &Param::Float(total_phase - new_op_phase))?;

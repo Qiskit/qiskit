@@ -27,12 +27,11 @@ from qiskit.passmanager.flow_controllers import (
     DoWhileController,
 )
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass
-from qiskit.transpiler.passes import CommutativeCancellation, RXCalibrationBuilder
+from qiskit.transpiler.passes import RXCalibrationBuilder
 from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
