@@ -103,33 +103,36 @@ where
                 for block in py_inst.getattr("blocks")?.iter()? {
                     let inner_dag: DAGCircuit = circuit_to_dag.call1((block?,))?.extract()?;
 
-                    // Create the qubit mapping for the inner DAG.
-                    let inner_mapping = match qubit_mapping {
-                        None => inst_qargs, // using the identity mapping
-                        Some(mapping) => &inst_qargs
+                    let block_ok = if let Some(mapping) = qubit_mapping {
+                        let mapping = inst_qargs // Create a temp mapping for the recursive call
                             .iter()
                             .map(|q| mapping[q.0 as usize])
-                            .collect::<Vec<Qubit>>(),
+                            .collect::<Vec<Qubit>>();
+
+                        check_gate_direction(py, &inner_dag, gate_complies, Some(&mapping))?
+                    } else {
+                        check_gate_direction(py, &inner_dag, gate_complies, Some(inst_qargs))?
                     };
 
-                    if !check_gate_direction(py, &inner_dag, gate_complies, Some(inner_mapping))? {
+                    if !block_ok {
                         return Ok(false);
                     }
                 }
             }
-        } else if inst_qargs.len() == 2 {
-            let mapped_qubits = if let Some(mapping) = qubit_mapping {
-                &[
-                    mapping[inst_qargs[0].0 as usize],
-                    mapping[inst_qargs[1].0 as usize],
-                ]
-            } else {
-                inst_qargs
-            };
-
-            if !gate_complies(packed_inst, mapped_qubits) {
-                return Ok(false);
+        } else if inst_qargs.len() == 2
+            && !match qubit_mapping {
+                // Check gate direction based either on a given custom mapping or the identity mapping
+                Some(mapping) => gate_complies(
+                    packed_inst,
+                    &[
+                        mapping[inst_qargs[0].0 as usize],
+                        mapping[inst_qargs[1].0 as usize],
+                    ],
+                ),
+                None => gate_complies(packed_inst, inst_qargs),
             }
+        {
+            return Ok(false);
         }
     }
 
