@@ -16,7 +16,7 @@ pub mod circuit_instruction;
 pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
-pub mod error;
+mod error;
 pub mod gate_matrix;
 pub mod imports;
 mod interner;
@@ -32,16 +32,10 @@ use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
 pub type BitType = u32;
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
 pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Clbit(pub BitType);
-
-impl FromPyObject<'_> for Qubit {
-    fn extract_bound(ob: &Bound<PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract::<BitType>()?))
-    }
-}
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,

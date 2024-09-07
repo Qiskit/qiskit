@@ -20,7 +20,7 @@ use qiskit_circuit::{
     dag_circuit::{DAGCircuit, NodeType},
     operations::Operation,
     packed_instruction::PackedInstruction,
-    BitType, Qubit,
+    Qubit,
 };
 use smallvec::smallvec;
 
@@ -38,20 +38,12 @@ use smallvec::smallvec;
 fn py_check_with_coupling_map(
     py: Python,
     dag: &DAGCircuit,
-    coupling_edges: HashSet<(Qubit, Qubit)>,
+    coupling_edges: HashSet<[Qubit; 2]>,
 ) -> PyResult<bool> {
-    let coupling_map_check = |_: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        coupling_edges.contains(&(op_args[0], op_args[1]))
-    };
+    let coupling_map_check =
+        |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
-    check_gate_direction(
-        py,
-        dag,
-        &coupling_map_check,
-        &(0..dag.num_qubits())
-            .map(|i| Qubit(i as BitType))
-            .collect::<Vec<Qubit>>(),
-    )
+    check_gate_direction(py, dag, &coupling_map_check, None)
 }
 
 /// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
@@ -75,27 +67,23 @@ fn py_check_with_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResu
         target.instruction_supported(inst.op.name(), Some(&qargs))
     };
 
-    check_gate_direction(
-        py,
-        dag,
-        &target_check,
-        &(0..dag.num_qubits())
-            .map(|i| Qubit(i as BitType))
-            .collect::<Vec<Qubit>>(),
-    )
+    check_gate_direction(py, dag, &target_check, None)
 }
 
 // The main routine for checking gate directionality.
 //
-// qubit_mapping is used for mapping the index of a given qubit within an instruction qargs vector to the corresponding qubit index of the
-// original DAGCircuit the pass was called with. This mapping is required since control flow blocks are represented by nested DAGCircuit
-// objects whose instruction qubit indices are relative to the parent DAGCircuit they reside in. Initially this function is called with
-// the trivial mapping over all indices.
+// gate_complies: a function returning true iff the the two-qubit gate direction complies with directionality constraints
+//
+// qubit_mapping: used for mapping the index of a given qubit within an instruction qargs vector to the corresponding qubit index of the
+//  original DAGCircuit the pass was called with. This mapping is required since control flow blocks are represented by nested DAGCircuit
+//  objects whose instruction qubit indices are relative to the parent DAGCircuit they reside in, thus when we recurse into nested DAGs, we need
+//  to carry the mapping context relative to the original DAG.
+//  When qubit_mapping is None, the identity mapping is assumed
 fn check_gate_direction<T>(
     py: Python,
     dag: &DAGCircuit,
     gate_complies: &T,
-    qubit_mapping: &[Qubit],
+    qubit_mapping: Option<&[Qubit]>,
 ) -> PyResult<bool>
 where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
@@ -106,34 +94,42 @@ where
         };
 
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
-        let map_qubits = |qargs: &[Qubit]| {
-            qargs
-                .iter()
-                .map(|i| qubit_mapping[i.0 as usize])
-                .collect::<Vec<Qubit>>()
-        };
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
             if py_inst.control_flow() {
                 let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py); // TODO: Take out of the recursion
                 let py_inst = py_inst.instruction.bind(py);
-                let blocks = py_inst.getattr("blocks")?;
 
-                for block in blocks.iter()? {
+                for block in py_inst.getattr("blocks")?.iter()? {
                     let inner_dag: DAGCircuit = circuit_to_dag.call1((block?,))?.extract()?;
 
-                    if !check_gate_direction(
-                        py,
-                        &inner_dag,
-                        gate_complies,
-                        &map_qubits(inst_qargs),
-                    )? {
+                    // Create the qubit mapping for the inner DAG.
+                    let inner_mapping = match qubit_mapping {
+                        None => inst_qargs, // using the identity mapping
+                        Some(mapping) => &inst_qargs
+                            .iter()
+                            .map(|q| mapping[q.0 as usize])
+                            .collect::<Vec<Qubit>>(),
+                    };
+
+                    if !check_gate_direction(py, &inner_dag, gate_complies, Some(inner_mapping))? {
                         return Ok(false);
                     }
                 }
             }
-        } else if inst_qargs.len() == 2 && !gate_complies(packed_inst, &map_qubits(inst_qargs)) {
-            return Ok(false);
+        } else if inst_qargs.len() == 2 {
+            let mapped_qubits = if let Some(mapping) = qubit_mapping {
+                &[
+                    mapping[inst_qargs[0].0 as usize],
+                    mapping[inst_qargs[1].0 as usize],
+                ]
+            } else {
+                inst_qargs
+            };
+
+            if !gate_complies(packed_inst, mapped_qubits) {
+                return Ok(false);
+            }
         }
     }
 
