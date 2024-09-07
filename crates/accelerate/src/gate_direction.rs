@@ -72,7 +72,7 @@ fn py_check_with_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResu
 
 // The main routine for checking gate directionality.
 //
-// gate_complies: a function returning true iff the the two-qubit gate direction complies with directionality constraints
+// gate_complies: a function returning true iff the two-qubit gate direction complies with directionality constraints
 //
 // qubit_mapping: used for mapping the index of a given qubit within an instruction qargs vector to the corresponding qubit index of the
 //  original DAGCircuit the pass was called with. This mapping is required since control flow blocks are represented by nested DAGCircuit
