@@ -6339,6 +6339,11 @@ impl DAGCircuit {
         }
     }
 
+    /// Return the op name counts in the circuit
+    ///
+    /// Args:
+    ///     py: The python token necessary for control flow recursion
+    ///     recurse: Whether to recurse into control flow ops or not
     pub fn count_ops(
         &self,
         py: Python,
