@@ -26,6 +26,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 )
 from qiskit._accelerate.two_qubit_decompose import Ud
 
+
 class TestSynthesis(CheckDecompositions):
     """Test synthesis"""
 
