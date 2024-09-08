@@ -67,16 +67,11 @@ External Python Libraries
     problems.  It is required for calculating diamond norms with
     :func:`.quantum_info.diamond_norm`.
 
-.. py:data:: HAS_IPYTHON
-
-    If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
-    visualisations and line magics are made available.
-
 .. py:data:: HAS_DOCPLEX
 
     `IBM Decision Optimization CPLEX Modelling
     <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-    analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
+    analysis.  Like CPLEX, this is no longer by Qiskit, but it was historically and the
     optional remains for backwards compatibility.
 
 .. py:data:: HAS_FIXTURES
@@ -84,6 +79,11 @@ External Python Libraries
     The test suite has additional features that are available if the optional `fixtures
     <https://launchpad.net/python-fixtures>`__ module is installed.  This generally also needs
     :data:`HAS_TESTTOOLS` as well.  This is generally only needed for Qiskit developers.
+
+.. py:data:: HAS_IPYTHON
+
+    If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
+    visualisations and line magics are made available.
 
 .. py:data:: HAS_IPYWIDGETS
 
