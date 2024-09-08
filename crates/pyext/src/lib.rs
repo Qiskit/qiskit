@@ -16,8 +16,9 @@ use qiskit_accelerate::{
     check_map::check_map_mod, circuit_library::circuit_library,
     commutation_analysis::commutation_analysis, commutation_checker::commutation_checker,
     convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
-    elide_permutations::elide_permutations, error_map::error_map,
-    euler_one_qubit_decomposer::euler_one_qubit_decomposer, filter_op_nodes::filter_op_nodes_mod,
+    elide_permutations::elide_permutations,
+    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
+    filter_op_nodes::filter_op_nodes_mod, gate_direction::gate_direction,
     inverse_cancellation::inverse_cancellation_mod, isometry::isometry, nlayout::nlayout,
     optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
@@ -73,6 +74,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, uc_gate, "uc_gate")?;
     add_submodule(m, utils, "utils")?;
     add_submodule(m, vf2_layout, "vf2_layout")?;
+    add_submodule(m, gate_direction, "gate_direction")?;
     add_submodule(m, commutation_checker, "commutation_checker")?;
     add_submodule(m, commutation_analysis, "commutation_analysis")?;
     Ok(())

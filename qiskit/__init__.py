@@ -93,6 +93,7 @@ sys.modules["qiskit._accelerate.synthesis.clifford"] = _accelerate.synthesis.cli
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
+sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes

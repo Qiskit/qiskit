@@ -25,6 +25,7 @@ pub mod elide_permutations;
 pub mod error_map;
 pub mod euler_one_qubit_decomposer;
 pub mod filter_op_nodes;
+pub mod gate_direction;
 pub mod inverse_cancellation;
 pub mod isometry;
 pub mod nlayout;
