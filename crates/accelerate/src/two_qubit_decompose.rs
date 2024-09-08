@@ -154,6 +154,15 @@ impl TraceToFidelity for c64 {
     }
 }
 
+#[pyfunction]
+#[pyo3(name = "trace_to_fid")]
+/// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
+/// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
+fn py_trace_to_fid(trace: Complex64) -> PyResult<f64> {
+    let fid = trace.trace_to_fid();
+    Ok(fid)
+}
+
 fn decompose_two_qubit_product_gate(
     special_unitary: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
@@ -188,6 +197,12 @@ fn decompose_two_qubit_product_gate(
 
 #[pyfunction]
 #[pyo3(name = "decompose_two_qubit_product_gate")]
+/// Decompose :math:`U = U_l \otimes U_r` where :math:`U \in SU(4)`,
+/// and :math:`U_l,~U_r \in SU(2)`.
+/// Args:
+///     special_unitary_matrix: special unitary matrix to decompose
+/// Raises:
+///     QiskitError: if decomposition isn't possible.
 fn py_decompose_two_qubit_product_gate(
     py: Python,
     special_unitary: PyArrayLike2<Complex64>,
@@ -2298,6 +2313,7 @@ pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(two_qubit_decompose_up_to_diagonal))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_local_invariants))?;
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
+    m.add_wrapped(wrap_pyfunction!(py_trace_to_fid))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
     m.add_class::<Specialization>()?;

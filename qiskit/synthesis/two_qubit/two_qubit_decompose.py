@@ -216,7 +216,7 @@ class TwoQubitWeylDecomposition:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
-        return trace_to_fid(trace)
+        return two_qubit_decompose.trace_to_fid(trace)
 
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases"""
@@ -448,17 +448,6 @@ def Ud(a, b, c):
         ],
         dtype=complex,
     )
-
-
-def trace_to_fid(trace):
-    r"""Average gate fidelity is
-
-    .. math::
-
-        \bar{F} = \frac{d + |\mathrm{Tr} (U_\text{target} \cdot U^{\dag})|^2}{d(d+1)}
-
-    M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
-    return (4 + abs(trace) ** 2) / 20
 
 
 class TwoQubitBasisDecomposer:
