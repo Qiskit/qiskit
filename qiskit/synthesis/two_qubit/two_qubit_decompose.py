@@ -91,7 +91,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
         QiskitError: if decomposition isn't possible.
     """
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
-    (L, R, phase) = two_qubit_decompose.py_decompose_two_qubit_product_gate(special_unitary_matrix)
+    (L, R, phase) = two_qubit_decompose.decompose_two_qubit_product_gate(special_unitary_matrix)
 
     temp = np.kron(L, R)
     deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)

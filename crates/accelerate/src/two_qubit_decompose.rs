@@ -187,7 +187,7 @@ fn decompose_two_qubit_product_gate(
 }
 
 #[pyfunction]
-#[pyo3(signature = (special_unitary))]
+#[pyo3(name = "decompose_two_qubit_product_gate")]
 fn py_decompose_two_qubit_product_gate(
     py: Python,
     special_unitary: PyArrayLike2<Complex64>,
@@ -195,8 +195,8 @@ fn py_decompose_two_qubit_product_gate(
     let view = special_unitary.as_array();
     let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
     Ok((
-        PyObject::from(l.into_pyarray_bound(py).unbind()),
-        PyObject::from(r.into_pyarray_bound(py).unbind()),
+        l.into_pyarray_bound(py).unbind().into(),
+        r.into_pyarray_bound(py).unbind().into(),
         phase,
     ))
 }
