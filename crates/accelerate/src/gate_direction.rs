@@ -118,8 +118,11 @@ where
                         return Ok(false);
                     }
                 }
+                continue;
             }
-        } else if inst_qargs.len() == 2
+        }
+
+        if inst_qargs.len() == 2
             && !match qubit_mapping {
                 // Check gate direction based either on a given custom mapping or the identity mapping
                 Some(mapping) => gate_complies(
