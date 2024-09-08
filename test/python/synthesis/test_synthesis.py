@@ -59,11 +59,11 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
     TwoQubitControlledUDecomposer,
-    Ud,
     decompose_two_qubit_product_gate,
 )
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate.two_qubit_decompose import Specialization
+from qiskit._accelerate.two_qubit_decompose import Ud
 from qiskit.synthesis.unitary import qsd
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order

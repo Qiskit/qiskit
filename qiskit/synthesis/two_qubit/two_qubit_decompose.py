@@ -437,19 +437,6 @@ class TwoQubitControlledUDecomposer:
         return circ
 
 
-def Ud(a, b, c):
-    r"""Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`"""
-    return np.array(
-        [
-            [cmath.exp(1j * c) * math.cos(a - b), 0, 0, 1j * cmath.exp(1j * c) * math.sin(a - b)],
-            [0, cmath.exp(-1j * c) * math.cos(a + b), 1j * cmath.exp(-1j * c) * math.sin(a + b), 0],
-            [0, 1j * cmath.exp(-1j * c) * math.sin(a + b), cmath.exp(-1j * c) * math.cos(a + b), 0],
-            [1j * cmath.exp(1j * c) * math.sin(a - b), 0, 0, cmath.exp(1j * c) * math.cos(a - b)],
-        ],
-        dtype=complex,
-    )
-
-
 class TwoQubitBasisDecomposer:
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.

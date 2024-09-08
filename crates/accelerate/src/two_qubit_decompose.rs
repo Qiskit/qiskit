@@ -32,7 +32,7 @@ use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::{IntoPyArray, ToPyArray};
-use numpy::{PyArrayLike2, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{PyArray2, PyArrayLike2, PyReadonlyArray1, PyReadonlyArray2};
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -330,6 +330,43 @@ fn ry_matrix(theta: f64) -> Array2<Complex64> {
 fn rz_matrix(theta: f64) -> Array2<Complex64> {
     let ilam2 = c64(0., 0.5 * theta);
     array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+}
+
+/// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`
+fn ud(a: f64, b: f64, c: f64) -> Array2<Complex64> {
+    array![
+        [
+            (IM * c).exp() * (a - b).cos(),
+            C_ZERO,
+            C_ZERO,
+            IM * (IM * c).exp() * (a - b).sin()
+        ],
+        [
+            C_ZERO,
+            (M_IM * c).exp() * (a + b).cos(),
+            IM * (M_IM * c).exp() * (a + b).sin(),
+            C_ZERO
+        ],
+        [
+            C_ZERO,
+            IM * (M_IM * c).exp() * (a + b).sin(),
+            (M_IM * c).exp() * (a + b).cos(),
+            C_ZERO
+        ],
+        [
+            IM * (IM * c).exp() * (a - b).sin(),
+            C_ZERO,
+            C_ZERO,
+            (IM * c).exp() * (a - b).cos()
+        ]
+    ]
+}
+
+#[pyfunction]
+#[pyo3(name = "Ud")]
+fn py_ud(py: Python, a: f64, b: f64, c: f64) -> PyResult<Py<PyArray2<Complex64>>> {
+    let ud_mat = ud(a, b, c);
+    Ok(ud_mat.into_pyarray_bound(py).unbind())
 }
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
@@ -2314,6 +2351,7 @@ pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(two_qubit_local_invariants))?;
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
     m.add_wrapped(wrap_pyfunction!(py_trace_to_fid))?;
+    m.add_wrapped(wrap_pyfunction!(py_ud))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
     m.add_class::<Specialization>()?;
