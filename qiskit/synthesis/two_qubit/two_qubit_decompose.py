@@ -24,8 +24,6 @@ Gambetta, J. M. Validating quantum computers using randomized model circuits.
 arXiv:1811.12926 [quant-ph] (2018).
 """
 from __future__ import annotations
-import cmath
-import math
 import io
 import base64
 import warnings
