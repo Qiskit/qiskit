@@ -125,6 +125,24 @@ impl Param {
             Param::Obj(ob.clone().unbind())
         })
     }
+
+    /// Clones the [Param] object safely by reference count or copying.
+    pub fn clone_ref(&self, py: Python) -> Self {
+        match self {
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            Param::Float(float) => Param::Float(*float),
+            Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
+        }
+    }
+}
+
+// This impl allows for shared usage between [Param] and &[Param].
+// Such blanked impl doesn't exist inherently due to Rust's type system limitations.
+// See https://doc.rust-lang.org/std/convert/trait.AsRef.html#reflexivity for more information.
+impl AsRef<Param> for Param {
+    fn as_ref(&self) -> &Param {
+        self
+    }
 }
 
 /// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
@@ -417,7 +435,7 @@ impl StandardGate {
         if let Some(extra) = extra_attrs {
             let kwargs = [
                 ("label", extra.label.to_object(py)),
-                ("unit", extra.unit.to_object(py)),
+                ("unit", extra.py_unit(py).into_any()),
                 ("duration", extra.duration.to_object(py)),
             ]
             .into_py_dict_bound(py);
@@ -2207,10 +2225,7 @@ impl Operation for PyGate {
     fn standard_gate(&self) -> Option<StandardGate> {
         Python::with_gil(|py| -> Option<StandardGate> {
             match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => match stdgate.extract(py) {
-                    Ok(out_gate) => out_gate,
-                    Err(_) => None,
-                },
+                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
                 Err(_) => None,
             }
         })
