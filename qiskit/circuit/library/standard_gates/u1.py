@@ -183,16 +183,16 @@ class CU1Gate(ControlledGate):
 
        .. math::
 
-           MCU1(\lambda, 2) = MCP(\lambda, 2)
+           CU1(\lambda, 2) = CP(\lambda, 2)
 
        .. code-block:: python
 
           circuit = QuantumCircuit(3)
           circuit.mcp(lambda, [0, 1], 2)
 
-          
 
-    
+
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -347,23 +347,23 @@ class MCU1Gate(ControlledGate):
 
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the state of the control qubits.
-    
+
     .. warning::
 
        This gate is deprecated. Instead, the following replacements should be used
 
        .. math::
 
-           MCU1(\lambda) = CP(\lambda)= CU(0,0,\lambda,0)
+           MCU1(\lambda) = MCP(\lambda)= MCU(0,0,\lambda,0)
 
        .. code-block:: python
 
           circuit = QuantumCircuit(2)
           circuit.cp(lambda, 0, 1) # or circuit.cu(0, 0, lambda, 0, 0, 1)
 
-          
 
-    
+
+
     **Circuit symbol:**
 
     .. parsed-literal::
