@@ -188,7 +188,7 @@ class CU1Gate(ControlledGate):
        .. code-block:: python
 
           circuit = QuantumCircuit(3)
-          circuit.mcp(lambda, [0, 1], 2)
+          circuit.cp(lambda, [0, 1], 2)
 
 
 
@@ -359,7 +359,7 @@ class MCU1Gate(ControlledGate):
        .. code-block:: python
 
           circuit = QuantumCircuit(2)
-          circuit.cp(lambda, 0, 1) # or circuit.cu(0, 0, lambda, 0, 0, 1)
+          circuit.mcp(lambda, 0, 1) # or circuit.mcu(0, 0, lambda, 0, 0, 1)
 
 
 
