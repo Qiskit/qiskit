@@ -27,32 +27,18 @@ Qiskit Components
 
 .. py:data:: HAS_AER
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_AER
-      - `Qiskit Aer <https://qiskit.org/ecosystem/aer/>`__ provides high-performance simulators for
-        the quantum circuits constructed within Qiskit.
-
-    * - .. py:data:: HAS_IBMQ
-      - The Qiskit IBMQ Provider was historically used for accessing IBM Quantum hardware in the IBM
-        cloud, but is now deprecated.
-
-    * - .. py:data:: HAS_IGNIS
-      - Qiskit Ignis provided tools for quantum hardware verification, noise characterization, and
-        error correction, but is now deprecated.
-=======
-    `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>` provides high-performance simulators for
+    `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>`__ provides high-performance simulators for
     the quantum circuits constructed within Qiskit.
 
 .. py:data:: HAS_IBMQ
 
-    The :mod:`Qiskit IBMQ Provider <qiskit.providers.ibmq>` is used for accessing IBM Quantum
-    hardware in the IBM cloud.
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
+    The Qiskit IBMQ Provider was historically used for accessing IBM Quantum hardware in the IBM
+    cloud, but is now archived.
 
 .. py:data:: HAS_IGNIS
 
-    :mod:`Qiskit Ignis <qiskit.ignis>` provides tools for quantum hardware verification, noise
-    characterization, and error correction.
+    Qiskit Ignis was historically used to provide tools for quantum hardware verification,
+    noise characterization, and error correction, but is now archived.
 
 .. py:data:: HAS_TOQM
 
@@ -65,20 +51,14 @@ External Python Libraries
 
 .. py:data:: HAS_CONSTRAINT
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_CONSTRAINT
-      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
-        constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
-=======
     `python-constraint <https://github.com/python-constraint/python-constraint>`__ is a
     constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
 
 .. py:data:: HAS_CPLEX
 
     The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
     high-performance mathematical programming solver for linear, mixed-integer and quadratic
-    programming. This is no longer by Qiskit, but it weas historically and the optional
+    programming. This is no longer by Qiskit, but it was historically and the optional
     remains for backwards compatibility.
 
 .. py:data:: HAS_CVXPY
@@ -87,17 +67,11 @@ External Python Libraries
     problems.  It is required for calculating diamond norms with
     :func:`.quantum_info.diamond_norm`.
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_IPYTHON
-      - If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
-        visualisations and line magics are made available.
-=======
 .. py:data:: HAS_DOCPLEX
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
 
     `IBM Decision Optimization CPLEX Modelling
     <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-    analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
+    analysis.  Like CPLEX, this is no longer by Qiskit, but it was historically and the
     optional remains for backwards compatibility.
 
 .. py:data:: HAS_FIXTURES
@@ -106,37 +80,17 @@ External Python Libraries
     <https://launchpad.net/python-fixtures>`__ module is installed.  This generally also needs
     :data:`HAS_TESTTOOLS` as well.  This is generally only needed for Qiskit developers.
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_MATPLOTLIB
-      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.
-        Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
-        be installed in order to use them.
-
-    * - .. py:data:: HAS_NETWORKX
-      - No longer used by Qiskit.  Internally, Qiskit now uses the high-performance `rustworkx
-        <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
-        change-over period, it was sometimes convenient to convert things into the Python-only
-        `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
-        `Qiskit Nature <https://qiskit.org/ecosystem/nature/>`__ still use NetworkX.
-=======
 .. py:data:: HAS_IPYTHON
 
     If `the IPython kernel <https://ipython.org/>`__ is available, certain additional
-    visualizations and line magics are made available.
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
+    visualisations and line magics are made available.
 
 .. py:data:: HAS_IPYWIDGETS
 
     Monitoring widgets for jobs running on external backends can be provided if `ipywidgets
     <https://ipywidgets.readthedocs.io/en/latest/>`__ is available.
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_PYDOT
-      - For some graph visualisations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
-        interface to GraphViz (see :data:`HAS_GRAPHVIZ`).
-=======
 .. py:data:: HAS_JAX
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
 
     Some methods of gradient calculation within :mod:`.opflow.gradients` require `JAX
     <https://github.com/google/jax>`__ for autodifferentiation.
@@ -146,14 +100,7 @@ External Python Libraries
     Some of the tests require a complete `Jupyter <https://jupyter.org/>`__ installation to test
     interactivity features.
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_SEABORN
-      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.  Some
-        of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
-        in order to use them.
-=======
 .. py:data:: HAS_MATPLOTLIB
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
 
     Qiskit provides several visualization tools in the :mod:`.visualization` module.
     Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
@@ -253,21 +200,6 @@ External Command-Line Tools
 
 .. py:data:: HAS_GRAPHVIZ
 
-<<<<<<< HEAD
-    * - .. py:data:: HAS_GRAPHVIZ
-      - For some graph visualisations, Qiskit uses the `GraphViz <https://graphviz.org/>`__
-        visualisation tool via its ``pydot`` interface (see :data:`HAS_PYDOT`).
-
-    * - .. py:data:: HAS_PDFLATEX
-      - Visualisation tools that use LaTeX in their output, such as the circuit drawers, require
-        ``pdflatex`` to be available.  You will generally need to ensure that you have a working
-        LaTeX installation available, and the ``qcircuit.tex`` package.
-
-    * - .. py:data:: HAS_PDFTOCAIRO
-      - Visualisation tools that convert LaTeX-generated files into rasterised images use the
-        ``pdftocairo`` tool.  This is part of the `Poppler suite of PDF tools
-        <https://poppler.freedesktop.org/>`__.
-=======
     For some graph visualizations, Qiskit uses the `GraphViz <https://graphviz.org/>`__
     visualization tool via its ``pydot`` interface (see :data:`HAS_PYDOT`).
 
@@ -282,7 +214,6 @@ External Command-Line Tools
     Visualization tools that convert LaTeX-generated files into rasterized images use the
     ``pdftocairo`` tool.  This is part of the `Poppler suite of PDF tools
     <https://poppler.freedesktop.org/>`__.
->>>>>>> 254ba83dc (Fix documentation for utils.optionals data values (#13098))
 
 
 Lazy Checker Classes
