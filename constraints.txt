@@ -41,6 +41,8 @@ asttokens==2.4.1
     # via stack-data
 backcall==0.2.0
     # via ipython
+colorama==0.4.6
+    # via ipython
 comm==0.2.2
     # via ipywidgets
 contourpy==1.1.1
