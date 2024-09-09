@@ -6285,9 +6285,10 @@ impl DAGCircuit {
         }
     }
 
-    /// Insert an op given by callback on each individual qubit into a node
+    /// Replace a node with individual operations from a provided callback
+    /// function on each qubit of that node.
     #[allow(unused_variables)]
-    pub fn replace_on_incoming_qubits<F>(
+    pub fn replace_node_with_1q_ops<F>(
         &mut self,
         py: Python, // Unused if cache_pygates isn't enabled
         node: NodeIndex,

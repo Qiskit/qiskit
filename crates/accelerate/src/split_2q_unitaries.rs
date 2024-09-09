@@ -58,7 +58,7 @@ pub fn split_2q_unitaries(
                         unreachable!("This will only be called on ops with no classical wires.");
                     }
                 };
-                dag.replace_on_incoming_qubits(py, node, insert_fn)?;
+                dag.replace_node_with_1q_ops(py, node, insert_fn)?;
                 dag.add_global_phase(py, &Param::Float(decomp.global_phase))?;
             }
             // TODO: also look into splitting on Specialization::Swap and just
