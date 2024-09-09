@@ -6286,7 +6286,6 @@ impl DAGCircuit {
     }
 
     /// Insert an op given by callback on each individual qubit into a node
-
     #[allow(unused_variables)]
     pub fn replace_on_incoming_qubits<F>(
         &mut self,
@@ -6297,18 +6296,29 @@ impl DAGCircuit {
     where
         F: Fn(&Wire) -> PyResult<OperationFromPython>,
     {
-        let edges: Vec<(NodeIndex, EdgeIndex, Wire)> = self
+        let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::with_capacity(2);
+        for (source, in_weight) in self
             .dag
             .edges_directed(node, Incoming)
-            .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
-            .collect();
-        for (edge_source, edge_index, edge_weight) in edges {
-            let new_op = insert(&edge_weight)?;
+            .map(|x| (x.source(), x.weight()))
+        {
+            for (target, out_weight) in self
+                .dag
+                .edges_directed(node, Outgoing)
+                .map(|x| (x.target(), x.weight()))
+            {
+                if in_weight == out_weight {
+                    edge_list.push((source, target, in_weight.clone()));
+                }
+            }
+        }
+        for (source, target, weight) in edge_list {
+            let new_op = insert(&weight)?;
             self.increment_op(new_op.operation.name());
-            let qubits = if let Wire::Qubit(qubit) = edge_weight {
+            let qubits = if let Wire::Qubit(qubit) = weight {
                 vec![qubit]
             } else {
-                panic!("This method only works if the gate being replaced")
+                panic!("This method only works if the gate being replaced has no classical incident wires")
             };
             #[cfg(feature = "cache_pygates")]
             let py_op = match new_op.operation.view() {
@@ -6329,13 +6339,17 @@ impl DAGCircuit {
                 py_op: py_op,
             };
             let new_index = self.dag.add_node(NodeType::Operation(inst));
-            let parent_index = edge_source;
-            self.dag
-                .add_edge(parent_index, new_index, edge_weight.clone());
-            self.dag.add_edge(new_index, node, edge_weight);
-            self.dag.remove_edge(edge_index);
+            self.dag.add_edge(source, new_index, weight.clone());
+            self.dag.add_edge(new_index, target, weight);
         }
-        self.remove_op_node(node);
+
+        match self.dag.remove_node(node) {
+            Some(NodeType::Operation(packed)) => {
+                let op_name = packed.op.name();
+                self.decrement_op(op_name);
+            }
+            _ => panic!("Must be called with valid operation node"),
+        }
         Ok(())
     }
 
