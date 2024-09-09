@@ -3975,19 +3975,12 @@ def _format(operand):
     }
 
     /// Get list of 2 qubit operations. Ignore directives like snapshot and barrier.
-    fn two_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
+    #[pyo3(name = "two_qubit_ops")]
+    pub fn py_two_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
-        for (node, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
-                if packed.op.directive() {
-                    continue;
-                }
-
-                let qargs = self.qargs_interner.get(packed.qubits);
-                if qargs.len() == 2 {
-                    nodes.push(self.unpack_into(py, node, weight)?);
-                }
-            }
+        for node in self.two_qubit_ops() {
+            let weight = self.dag.node_weight(node).expect("NodeIndex in graph");
+            nodes.push(self.unpack_into(py, node, weight)?);
         }
         Ok(nodes)
     }
@@ -4575,45 +4568,9 @@ def _format(operand):
     ///
     /// Returns:
     ///     Mapping[str, int]: a mapping of operation names to the number of times it appears.
-    #[pyo3(signature = (*, recurse=true))]
-    fn count_ops(&self, py: Python, recurse: bool) -> PyResult<PyObject> {
-        if !recurse || !self.has_control_flow() {
-            Ok(self.op_names.to_object(py))
-        } else {
-            fn inner(
-                py: Python,
-                dag: &DAGCircuit,
-                counts: &mut HashMap<String, usize>,
-            ) -> PyResult<()> {
-                for (key, value) in dag.op_names.iter() {
-                    counts
-                        .entry(key.clone())
-                        .and_modify(|count| *count += value)
-                        .or_insert(*value);
-                }
-                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-                for node in dag.dag.node_weights() {
-                    let NodeType::Operation(node) = node else {
-                        continue;
-                    };
-                    if !node.op.control_flow() {
-                        continue;
-                    }
-                    let OperationRef::Instruction(inst) = node.op.view() else {
-                        panic!("control flow op must be an instruction")
-                    };
-                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.iter()? {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                        inner(py, inner_dag, counts)?;
-                    }
-                }
-                Ok(())
-            }
-            let mut counts = HashMap::with_capacity(self.op_names.len());
-            inner(py, self, &mut counts)?;
-            Ok(counts.to_object(py))
-        }
+    #[pyo3(name = "count_ops", signature = (*, recurse=true))]
+    fn py_count_ops(&self, py: Python, recurse: bool) -> PyResult<PyObject> {
+        self.count_ops(py, recurse).map(|x| x.into_py(py))
     }
 
     /// Count the occurrences of operation names on the longest path.
@@ -4745,7 +4702,7 @@ def _format(operand):
             ("qubits", self.num_qubits().into_py(py)),
             ("bits", self.num_clbits().into_py(py)),
             ("factors", self.num_tensor_factors().into_py(py)),
-            ("operations", self.count_ops(py, true)?),
+            ("operations", self.py_count_ops(py, true)?),
         ]))
     }
 
@@ -5792,6 +5749,19 @@ impl DAGCircuit {
         }
     }
 
+    /// Return an iterator of 2 qubit operations. Ignore directives like snapshot and barrier.
+    pub fn two_qubit_ops(&self) -> impl Iterator<Item = NodeIndex> + '_ {
+        Box::new(self.op_nodes(false).filter(|index| {
+            let weight = self.dag.node_weight(*index).expect("NodeIndex in graph");
+            if let NodeType::Operation(ref packed) = weight {
+                let qargs = self.qargs_interner.get(packed.qubits);
+                qargs.len() == 2
+            } else {
+                false
+            }
+        }))
+    }
+
     // Filter any nodes that don't match a given predicate function
     pub fn filter_op_nodes<F>(&mut self, mut predicate: F)
     where
@@ -6416,6 +6386,56 @@ impl DAGCircuit {
                 .contains((qubits, params).to_object(py))
         } else {
             Err(DAGCircuitError::new_err("Specified node is not an op node"))
+        }
+    }
+
+    /// Return the op name counts in the circuit
+    ///
+    /// Args:
+    ///     py: The python token necessary for control flow recursion
+    ///     recurse: Whether to recurse into control flow ops or not
+    pub fn count_ops(
+        &self,
+        py: Python,
+        recurse: bool,
+    ) -> PyResult<IndexMap<String, usize, RandomState>> {
+        if !recurse || !self.has_control_flow() {
+            Ok(self.op_names.clone())
+        } else {
+            fn inner(
+                py: Python,
+                dag: &DAGCircuit,
+                counts: &mut IndexMap<String, usize, RandomState>,
+            ) -> PyResult<()> {
+                for (key, value) in dag.op_names.iter() {
+                    counts
+                        .entry(key.clone())
+                        .and_modify(|count| *count += value)
+                        .or_insert(*value);
+                }
+                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
+                for node in dag.dag.node_weights() {
+                    let NodeType::Operation(node) = node else {
+                        continue;
+                    };
+                    if !node.op.control_flow() {
+                        continue;
+                    }
+                    let OperationRef::Instruction(inst) = node.op.view() else {
+                        panic!("control flow op must be an instruction")
+                    };
+                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
+                    for block in blocks.iter()? {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
+                        inner(py, inner_dag, counts)?;
+                    }
+                }
+                Ok(())
+            }
+            let mut counts =
+                IndexMap::with_capacity_and_hasher(self.op_names.len(), RandomState::default());
+            inner(py, self, &mut counts)?;
+            Ok(counts)
         }
     }
 

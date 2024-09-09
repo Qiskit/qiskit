@@ -13,12 +13,13 @@
 use pyo3::prelude::*;
 
 use qiskit_accelerate::{
-    circuit_library::circuit_library, commutation_analysis::commutation_analysis,
-    commutation_checker::commutation_checker, convert_2q_block_matrix::convert_2q_block_matrix,
-    dense_layout::dense_layout, error_map::error_map,
-    euler_one_qubit_decomposer::euler_one_qubit_decomposer, filter_op_nodes::filter_op_nodes_mod,
-    isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
-    pauli_exp_val::pauli_expval,
+    check_map::check_map_mod, circuit_library::circuit_library,
+    commutation_analysis::commutation_analysis, commutation_checker::commutation_checker,
+    convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
+    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
+    filter_op_nodes::filter_op_nodes_mod, gate_direction::gate_direction,
+    inverse_cancellation::inverse_cancellation_mod, isometry::isometry, nlayout::nlayout,
+    optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
     sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
     split_2q_unitaries::split_2q_unitaries_mod, star_prerouting::star_prerouting,
@@ -44,10 +45,12 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, qiskit_qasm3::qasm3, "qasm3")?;
     add_submodule(m, circuit_library, "circuit_library")?;
+    add_submodule(m, check_map_mod, "check_map")?;
     add_submodule(m, convert_2q_block_matrix, "convert_2q_block_matrix")?;
     add_submodule(m, dense_layout, "dense_layout")?;
     add_submodule(m, error_map, "error_map")?;
     add_submodule(m, euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
+    add_submodule(m, inverse_cancellation_mod, "inverse_cancellation")?;
     add_submodule(m, filter_op_nodes_mod, "filter_op_nodes")?;
     add_submodule(m, isometry, "isometry")?;
     add_submodule(m, nlayout, "nlayout")?;
@@ -71,6 +74,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, uc_gate, "uc_gate")?;
     add_submodule(m, utils, "utils")?;
     add_submodule(m, vf2_layout, "vf2_layout")?;
+    add_submodule(m, gate_direction, "gate_direction")?;
     add_submodule(m, commutation_checker, "commutation_checker")?;
     add_submodule(m, commutation_analysis, "commutation_analysis")?;
     Ok(())
