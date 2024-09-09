@@ -12,7 +12,6 @@
 
 use std::cmp::Ordering;
 
-use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::Python;
 
