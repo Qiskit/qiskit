@@ -89,7 +89,7 @@ where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
     for node in dag.op_nodes(false) {
-        let NodeType::Operation(packed_inst) = &dag.dag[node] else {
+        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {
             panic!("PackedInstruction is expected");
         };
 
