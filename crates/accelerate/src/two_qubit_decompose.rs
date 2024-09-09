@@ -341,7 +341,7 @@ const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
 #[derive(Clone, Debug, Copy)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
-enum Specialization {
+pub enum Specialization {
     General,
     IdEquiv,
     SWAPEquiv,
@@ -410,13 +410,13 @@ pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
     c: f64,
     #[pyo3(get)]
-    global_phase: f64,
+    pub global_phase: f64,
     K1l: Array2<Complex64>,
     K2l: Array2<Complex64>,
     K1r: Array2<Complex64>,
     K2r: Array2<Complex64>,
     #[pyo3(get)]
-    specialization: Specialization,
+    pub specialization: Specialization,
     default_euler_basis: EulerBasis,
     #[pyo3(get)]
     requested_fidelity: Option<f64>,
@@ -476,7 +476,7 @@ impl TwoQubitWeylDecomposition {
 
     /// Instantiate a new TwoQubitWeylDecomposition with rust native
     /// data structures
-    fn new_inner(
+    pub fn new_inner(
         unitary_matrix: ArrayView2<Complex64>,
 
         fidelity: Option<f64>,
@@ -1021,13 +1021,13 @@ impl TwoQubitWeylDecomposition {
 
     #[allow(non_snake_case)]
     #[getter]
-    fn K1l(&self, py: Python) -> PyObject {
+    pub fn K1l(&self, py: Python) -> PyObject {
         self.K1l.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
-    fn K1r(&self, py: Python) -> PyObject {
+    pub fn K1r(&self, py: Python) -> PyObject {
         self.K1r.to_pyarray_bound(py).into()
     }
 

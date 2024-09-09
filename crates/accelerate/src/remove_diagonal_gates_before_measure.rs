@@ -49,7 +49,9 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     let mut nodes_to_remove = Vec::new();
     for index in dag.op_nodes(true) {
         let node = &dag.dag[index];
-        let NodeType::Operation(inst) = node else {panic!()};
+        let NodeType::Operation(inst) = node else {
+            panic!()
+        };
 
         if inst.op.name() == "measure" {
             let predecessor = (dag.quantum_predecessors(index))
