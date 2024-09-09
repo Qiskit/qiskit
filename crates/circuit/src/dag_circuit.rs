@@ -6292,10 +6292,10 @@ impl DAGCircuit {
         &mut self,
         py: Python, // Unused if cache_pygates isn't enabled
         node: NodeIndex,
-        mut insert: F,
+        insert: F,
     ) -> PyResult<()>
     where
-        F: FnMut(&Wire) -> PyResult<OperationFromPython>,
+        F: Fn(&Wire) -> PyResult<OperationFromPython>,
     {
         let edges: Vec<(NodeIndex, EdgeIndex, Wire)> = self
             .dag
