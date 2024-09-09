@@ -74,6 +74,9 @@ sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_ga
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
 sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
 sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
+sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
+    _accelerate.remove_diagonal_gates_before_measure
+)
 sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
@@ -89,6 +92,11 @@ sys.modules["qiskit._accelerate.synthesis.clifford"] = _accelerate.synthesis.cli
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
+sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
+sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
+sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
+sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
+sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
