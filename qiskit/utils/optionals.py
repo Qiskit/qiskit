@@ -32,13 +32,13 @@ Qiskit Components
 
 .. py:data:: HAS_IBMQ
 
-      - The Qiskit IBMQ Provider was historically used for accessing IBM Quantum hardware in the IBM
-        cloud, but is now deprecated.
+    The Qiskit IBMQ Provider was historically used for accessing IBM Quantum hardware in the IBM
+    cloud, but is now deprecated.
 
 .. py:data:: HAS_IGNIS
 
-      - Qiskit Ignis was historically used to provide tools for quantum hardware verification, noise characterization, and
-        error correction, but is now deprecated.
+    Qiskit Ignis was historically used to provide tools for quantum hardware verification,
+    noise characterization, and error correction, but is now deprecated.
 
 .. py:data:: HAS_TOQM
 
