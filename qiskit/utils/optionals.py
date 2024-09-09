@@ -38,7 +38,7 @@ Qiskit Components
 .. py:data:: HAS_IGNIS
 
     Qiskit Ignis was historically used to provide tools for quantum hardware verification,
-    noise characterization, and error correction, but is now deprecated.
+    noise characterization, and error correction, but is now archived.
 
 .. py:data:: HAS_TOQM
 
