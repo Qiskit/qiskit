@@ -33,7 +33,7 @@ Qiskit Components
 .. py:data:: HAS_IBMQ
 
     The Qiskit IBMQ Provider was historically used for accessing IBM Quantum hardware in the IBM
-    cloud, but is now deprecated.
+    cloud, but is now archived.
 
 .. py:data:: HAS_IGNIS
 
