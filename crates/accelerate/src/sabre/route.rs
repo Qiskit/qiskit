@@ -333,7 +333,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
 
         // If we apply a single swap it could be that we route 2 nodes; that is a setup like
         //  A - B - A - B
-        // and we swap the middle two qubits. This cannot happen if we apply more than 2 swaps.
+        // and we swap the middle two qubits. This cannot happen if we apply 2 or more swaps.
         if current_swaps.len() > 1 {
             smallvec![closest_node]
         } else {
