@@ -26,7 +26,7 @@ pub fn split_2q_unitaries(
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
 ) -> PyResult<()> {
-    let nodes: Vec<NodeIndex> = dag.topological_op_nodes()?.collect();
+    let nodes: Vec<NodeIndex> = dag.op_nodes(false).collect();
     for node in nodes {
         if let NodeType::Operation(inst) = &dag.dag[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
