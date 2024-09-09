@@ -332,7 +332,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
 
         // If we apply a single swap it could be that we route 2 nodes; that is a setup like
         //  A - B - A - B
-        // and we swap the middle two qubits. This cannot happen if we apply more than 2 swaps.
+        // and we swap the middle two qubits. This cannot happen if we apply 2 or more swaps.
         if current_swaps.len() > 1 {
             smallvec![closest_node]
         } else {
@@ -606,9 +606,7 @@ pub fn swap_map_trial(
                 .rev()
                 .for_each(|swap| state.apply_swap(swap));
             let force_routed = state.force_enable_closest_node(&mut current_swaps);
-            force_routed
-                .iter()
-                .for_each(|routable_node| routable_nodes.push(*routable_node));
+            routable_nodes.extend(force_routed);
         }
         state.update_route(&routable_nodes, current_swaps);
         if state.heuristic.decay.is_some() {
