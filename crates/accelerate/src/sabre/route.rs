@@ -607,9 +607,7 @@ pub fn swap_map_trial(
                 .rev()
                 .for_each(|swap| state.apply_swap(swap));
             let force_routed = state.force_enable_closest_node(&mut current_swaps);
-            force_routed
-                .iter()
-                .for_each(|routable_node| routable_nodes.push(*routable_node));
+            routable_nodes.extend(force_routed);
         }
         state.update_route(&routable_nodes, current_swaps);
         if state.heuristic.decay.is_some() {
