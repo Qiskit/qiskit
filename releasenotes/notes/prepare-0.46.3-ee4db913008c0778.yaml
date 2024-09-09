@@ -1,0 +1,4 @@
+---
+prelude: >
+    Qiskit 0.46.3 is a minor bugfix and backport release for the 0.46 series.
+    It is also the last release of the 0.46 minor version, marking its end-of-life.
