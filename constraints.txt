@@ -37,6 +37,8 @@ qiskit-qasm3-import==0.3.0
 #
 antlr4-python3-runtime==4.13.2
     # via openqasm3
+appnope==0.1.4
+    # via ipython
 asttokens==2.4.1
     # via stack-data
 backcall==0.2.0
@@ -205,8 +207,6 @@ wheel==0.44.0
     # via qiskit-terra (pyproject.toml::build-system.requires)
 widgetsnbextension==4.0.13
     # via ipywidgets
-z3-solver==4.13.0.0
-    # via qiskit-terra (pyproject.toml)
 zipp==3.20.1
     # via
     #   importlib-metadata
