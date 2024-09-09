@@ -22,9 +22,10 @@ use qiskit_accelerate::{
     optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
     sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
-    star_prerouting::star_prerouting, stochastic_swap::stochastic_swap, synthesis::synthesis,
-    target_transpiler::target, two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate,
-    utils::utils, vf2_layout::vf2_layout,
+    split_2q_unitaries::split_2q_unitaries_mod, star_prerouting::star_prerouting,
+    stochastic_swap::stochastic_swap, synthesis::synthesis, target_transpiler::target,
+    two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate, utils::utils,
+    vf2_layout::vf2_layout,
 };
 
 #[inline(always)]
@@ -65,6 +66,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, sabre, "sabre")?;
     add_submodule(m, sampled_exp_val, "sampled_exp_val")?;
     add_submodule(m, sparse_pauli_op, "sparse_pauli_op")?;
+    add_submodule(m, split_2q_unitaries_mod, "split_2q_unitaries")?;
     add_submodule(m, star_prerouting, "star_prerouting")?;
     add_submodule(m, stochastic_swap, "stochastic_swap")?;
     add_submodule(m, target, "target")?;
