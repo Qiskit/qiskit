@@ -68,7 +68,7 @@ class UCGate(Gate):
     """
 
     def __init__(
-        self, gate_list: list[np.ndarray], up_to_diagonal: bool = False, mux_simp: bool = False
+        self, gate_list: list[np.ndarray], up_to_diagonal: bool = False, mux_simp: bool = True
     ):
         r"""
         Args:
@@ -192,6 +192,19 @@ class UCGate(Gate):
         # q[k-1],...,q[0],q_target, decreasingly ordered with respect to the
         # significance of the qubit in the computational basis
         _, diag = self._dec_ucg()
+        if self.simp_contr[1]:
+            q_controls = [self.num_qubits - i for i in self.simp_contr[1]]
+            q_controls.reverse()
+            for i in range(self.num_qubits):
+                if i not in [0] + q_controls:
+                    d = 2**i
+                    new_diag = []
+                    n = len(diag)
+                    for j in range(n):
+                        new_diag.append(diag[j])
+                        if (j + 1) % d == 0:
+                            new_diag.extend(diag[j + 1 - d : j + 1])
+                    diag = np.array(new_diag)
         return diag
 
     def _define(self):

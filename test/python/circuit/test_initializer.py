@@ -40,18 +40,18 @@ class TestInitialize(QiskitTestCase):
     _desired_fidelity = 0.99
 
     def test_disentangled(self):
-        """test disentangled circuit"""
-        state1 = np.random.rand(8) + np.random.rand(8) * 1j
+        """test real-valued disentangled state initialization"""
+        state1 = np.random.rand(8)
         state1 = state1 / np.linalg.norm(state1)
-        state2 = np.random.rand(8) + np.random.rand(8) * 1j
+        state2 = np.random.rand(8)
         state2 = state2 / np.linalg.norm(state2)
-        state3 = np.random.rand(8) + np.random.rand(8) * 1j
+        state3 = np.random.rand(8)
         state3 = state3 / np.linalg.norm(state3)
 
         qc1 = QuantumCircuit(9)
         qc1.initialize(state1, [0, 2, 3])
         qc1.initialize(state2, [1, 8, 5])
-        qc1.initialize(state2, [7, 6, 4])
+        qc1.initialize(state3, [7, 6, 4])
 
         statevector = Statevector(qc1)
 
@@ -64,9 +64,10 @@ class TestInitialize(QiskitTestCase):
         statevector1 = Statevector(qc1)
         statevector2 = Statevector(qc2)
 
-        print(qc1.count_ops())
-        print(qc2.count_ops())
+        counts1 = qc1.count_ops()["cx"]
+        counts2 = qc2.count_ops()["cx"]
 
+        self.assertTrue(counts2 <= counts1)
         self.assertTrue(np.allclose(statevector1, statevector2))
 
     def test_uniform_superposition(self):

@@ -32,6 +32,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
 _had = 1 / np.sqrt(2) * np.matrix([[1, 1], [1, -1]])
+_rand = random_unitary(2, seed=541234).data
 
 
 @ddt
@@ -45,6 +46,7 @@ class TestUCGate(QiskitTestCase):
             [_id, _id],
             [_id, 1j * _id],
             [_id, _not, _id, _not],
+            [_rand, _had, _rand, _had, _rand, _had, _rand, _had],
             [random_unitary(2, seed=541234).data for _ in range(2**2)],
             [random_unitary(2, seed=975163).data for _ in range(2**3)],
             [random_unitary(2, seed=629462).data for _ in range(2**4)],
@@ -62,24 +64,16 @@ class TestUCGate(QiskitTestCase):
 
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
+
         # Simulate the decomposed gate
         unitary = Operator(qc).data
         if up_to_diagonal:
             ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
             diag = np.diagflat(ucg._get_diagonal())
-
-            if ucg.simp_contr[1]:
-                q_controls = [ucg.num_qubits - i for i in ucg.simp_contr[1]]
-                q_controls.reverse()
-                circ = QuantumCircuit(len(q))
-                from qiskit.circuit.library import UnitaryGate
-
-                gate = UnitaryGate(diag)
-                circ.append(gate, [0] + q_controls)
-                diag = Operator(circ).to_matrix()
             unitary = np.dot(diag, unitary)
 
         unitary_desired = _get_ucg_matrix(squs)
+
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
     def test_global_phase_ucg(self):
