@@ -247,10 +247,7 @@ pub(crate) fn cancel_commutations(
                 let gate_angle = euler_one_qubit_decomposer::mod_2pi(total_angle, 0.);
 
                 let new_op_phase: f64 = if gate_angle.abs() > _CUTOFF_PRECISION {
-                    dag.insert_1q_on_incoming_qubit(
-                        (*new_op, &[total_angle]),
-                        *cancel_set.first().unwrap(),
-                    );
+                    dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
                     let Param::Float(new_phase) = new_op
                         .definition(&[Param::Float(total_angle)])
                         .unwrap()
