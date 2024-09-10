@@ -226,7 +226,15 @@ pub(crate) fn cancel_commutations(
                     };
                     total_angle += node_angle?;
 
-                    let Param::Float(new_phase) = node_op.op.definition(node_op.params_view()).unwrap().global_phase().clone() else { unreachable!() };
+                    let Param::Float(new_phase) = node_op
+                        .op
+                        .definition(node_op.params_view())
+                        .unwrap()
+                        .global_phase()
+                        .clone()
+                    else {
+                        unreachable!()
+                    };
                     total_phase += new_phase
                 }
 
@@ -243,7 +251,14 @@ pub(crate) fn cancel_commutations(
                         (*new_op, &[total_angle]),
                         *cancel_set.first().unwrap(),
                     );
-                    let Param::Float(new_phase) = new_op.definition(&[Param::Float(total_angle)]).unwrap().global_phase().clone() else { unreachable!();};
+                    let Param::Float(new_phase) = new_op
+                        .definition(&[Param::Float(total_angle)])
+                        .unwrap()
+                        .global_phase()
+                        .clone()
+                    else {
+                        unreachable!();
+                    };
                     new_phase
                 } else {
                     0.0
