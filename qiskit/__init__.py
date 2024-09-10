@@ -43,14 +43,6 @@ else:
             " Qiskit unfortunately cannot enforce this requirement during environment resolution."
             " See https://qisk.it/packaging-1-0 for more detail."
         )
-if sys.version_info < (3, 9):
-    warnings.warn(
-        "Using Qiskit with Python 3.8 is deprecated as of the 1.1.0 release. "
-        "Support for running Qiskit with Python 3.8 will be removed in the "
-        "1.3.0 release, which coincides with when Python 3.8 goes end of life.",
-        DeprecationWarning,
-    )
-
 
 from . import _accelerate
 import qiskit._numpy_compat
