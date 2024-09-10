@@ -233,9 +233,9 @@ pub struct DAGCircuit {
     cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
-    qargs_interner: Interner<[Qubit]>,
+    pub(crate) qargs_interner: Interner<[Qubit]>,
     /// The cache used to intern instruction cargs.
-    cargs_interner: Interner<[Clbit]>,
+    pub(crate) cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
     pub qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
@@ -782,7 +782,7 @@ impl DAGCircuit {
 
     /// Return the global phase of the circuit.
     #[getter]
-    fn get_global_phase(&self) -> Param {
+    pub fn get_global_phase(&self) -> Param {
         self.global_phase.clone()
     }
 
@@ -6339,7 +6339,7 @@ impl DAGCircuit {
                 params: (!new_op.params.is_empty()).then(|| Box::new(new_op.params)),
                 extra_attrs: new_op.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: py_op,
+                py_op,
             };
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             self.dag.add_edge(source, new_index, weight.clone());

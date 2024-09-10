@@ -166,6 +166,36 @@ impl CircuitData {
         Ok(res)
     }
 
+    pub fn from_packed_instructions<I>(
+        py: Python,
+        qubits: BitData<Qubit>,
+        clbits: BitData<Clbit>,
+        qargs_interner: Interner<[Qubit]>,
+        cargs_interner: Interner<[Clbit]>,
+        instructions: I,
+        global_phase: Param,
+    ) -> PyResult<Self>
+    where
+        I: IntoIterator<Item = PyResult<PackedInstruction>>,
+    {
+        let instruction_iter = instructions.into_iter();
+        let mut res = CircuitData {
+            data: Vec::with_capacity(instruction_iter.size_hint().0),
+            qargs_interner,
+            cargs_interner,
+            qubits,
+            clbits,
+            param_table: ParameterTable::new(),
+            global_phase,
+        };
+
+        for inst in instruction_iter {
+            res.data.push(inst?);
+            res.track_instruction_parameters(py, res.data.len() - 1)?;
+        }
+        Ok(res)
+    }
+
     /// An alternate constructor to build a new `CircuitData` from an iterator
     /// of standard gates. This can be used to build a circuit from a sequence
     /// of standard gates, such as for a `StandardGate` definition or circuit
