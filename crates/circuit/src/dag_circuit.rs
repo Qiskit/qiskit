@@ -6792,9 +6792,9 @@ impl DAGCircuit {
             metadata: None,
             qregs: None,
             cregs: None,
-            input_vars: Vec::with_capacity(0),
-            captured_vars: Vec::with_capacity(0),
-            declared_vars: Vec::with_capacity(0),
+            input_vars: Vec::new(),
+            captured_vars: Vec::new(),
+            declared_vars: Vec::new(),
         };
         Self::from_circuit(py, circ, copy_op, None, None)
     }
