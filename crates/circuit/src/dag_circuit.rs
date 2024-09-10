@@ -269,7 +269,7 @@ pub struct DAGCircuit {
     var_output_map: _VarIndexMap,
 
     /// Operation kind to count
-    pub op_names: IndexMap<String, usize, RandomState>,
+    op_names: IndexMap<String, usize, RandomState>,
 
     // Python modules we need to frequently access (for now).
     control_flow_module: PyControlFlowModule,
@@ -6228,7 +6228,7 @@ impl DAGCircuit {
         &mut self,
         new_gate: (StandardGate, &[f64]),
         old_index: NodeIndex,
-    ) -> NodeIndex {
+    ) {
         self.increment_op(new_gate.0.name());
         let old_node = &self.dag[old_index];
         let inst = if let NodeType::Operation(old_node) = old_node {
@@ -6255,7 +6255,6 @@ impl DAGCircuit {
         self.dag.add_edge(parent_index, new_index, weight.clone());
         self.dag.add_edge(new_index, old_index, weight);
         self.dag.remove_edge(edge_index);
-        new_index
     }
 
     /// Remove a sequence of 1 qubit nodes from the dag
@@ -6453,6 +6452,16 @@ impl DAGCircuit {
             inner(py, self, &mut counts)?;
             Ok(counts)
         }
+    }
+
+    /// Get an immutable reference to the op counts for this DAGCircuit
+    ///
+    /// This differs from count_ops() in that it doesn't handle control flow recursion at all
+    /// and it returns a reference instead of an owned copy. If you don't need to work with
+    /// control flow or ownership of the counts this is a more efficient alternative to
+    /// `DAGCircuit::count_ops(py, false)`
+    pub fn get_op_counts(&self) -> &IndexMap<String, usize, RandomState> {
+        &self.op_names
     }
 
     /// Extends the DAG with valid instances of [PackedInstruction]

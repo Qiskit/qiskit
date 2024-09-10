@@ -70,7 +70,7 @@ pub(crate) fn cancel_commutations(
         HashSet::new()
     };
     let z_var_gate = dag
-        .op_names
+        .get_op_counts()
         .keys()
         .find_map(|g| {
             VAR_Z_MAP
