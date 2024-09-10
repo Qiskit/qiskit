@@ -169,75 +169,101 @@ pub fn pauli_feature_map(
         .collect::<PyResult<Vec<Param>>>()?;
 
     // construct a Barrier object Python side to (possibly) add to the circuit
-    let packed_barrier = _get_barrier(py, feature_dimension)?;
+    let packed_barrier = if insert_barriers {
+        Some(_get_barrier(py, feature_dimension)?)
+    } else {
+        None
+    };
 
     // Main work: construct the circuit instructions as iterator. Each repetition is constituted
     // by a layer of Hadamards and the Pauli evolutions of the specified Paulis.
     // Note that we eagerly trigger errors, since the final CircuitData::from_packed_operations
     // does not allow Result objects in the iterator.
     let packed_insts = (0..reps).flat_map(|rep| {
-        let h_layer = (0..feature_dimension).map(|i| {
-            (
-                StandardGate::HGate.into(),
-                smallvec![],
-                vec![Qubit(i)],
-                vec![] as Vec<Clbit>,
-            )
-        });
-        let parameter_vector = &parameter_vector;
-        let pauli_strings = &pauli_strings;
-        let evo = pauli_strings.iter().flat_map(move |pauli| {
-            let block_size = pauli.len() as u32;
-            let entanglement =
-                entanglement::get_entanglement(feature_dimension, block_size, entanglement, rep)
-                    .unwrap();
-            // let data_map = &mut data_map;
-            entanglement.flat_map(move |indices| {
-                // get the parameters the evolution is acting on and the corresponding angle,
-                // which is given by the data_map_func (we provide a default if not given)
-                let indices = indices.as_ref().unwrap();
-                // let indices = indices.as_ref().unwrap();
-                let active_parameters: Vec<Param> = indices
-                    .iter()
-                    .map(|i| parameter_vector[*i as usize].clone())
-                    .collect();
-
-                let angle = match data_map_func {
-                    Some(fun) => fun
-                        .call1((active_parameters,))
-                        .expect("Failed running ``data_map_func`` Python-side.")
-                        .extract()
-                        .expect("Failed retrieving the Param"),
-                    None => _default_reduce(py, active_parameters),
-                };
-
-                // Get the pauli evolution and map it into
-                //   (PackedOperation, SmallVec<[Params; 3]>, Vec<Qubit>, Vec<Clbit>)
-                // to call CircuitData::from_packed_operations. This is needed since we might
-                // have to interject barriers, which are not a standard gate and prevents us
-                // from using CircuitData::from_standard_gates.
-                pauli_evolution(pauli, indices.clone(), multiply_param(&angle, alpha, py)).map(
-                    |(gate, params, qargs)| {
-                        (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
-                    },
-                )
-            })
-        });
+        let h_layer = _get_h_layer(feature_dimension);
+        let evo_layer = _get_evolution_layer(
+            py,
+            feature_dimension,
+            rep,
+            alpha,
+            &parameter_vector,
+            &pauli_strings,
+            entanglement,
+            data_map_func,
+        );
 
         // Chain the H layer and evolution together, adding barriers around the evolutions,
         // if necessary. Note that in the last repetition, there's no barrier after the evolution.
         let mut out: Box<dyn Iterator<Item = Instruction>> = Box::new(h_layer);
         if insert_barriers {
-            out = Box::new(out.chain(std::iter::once(packed_barrier.clone())));
+            out = Box::new(out.chain(std::iter::once(packed_barrier.clone().unwrap())));
         }
-        out = Box::new(out.chain(evo));
+        out = Box::new(out.chain(evo_layer));
         if insert_barriers && rep < reps - 1 {
-            out = Box::new(out.chain(std::iter::once(packed_barrier.clone())));
+            out = Box::new(out.chain(std::iter::once(packed_barrier.clone().unwrap())));
         }
         out
     });
 
     CircuitData::from_packed_operations(py, feature_dimension, 0, packed_insts, Param::Float(0.0))
+}
+
+fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
+    (0..feature_dimension).map(|i| {
+        (
+            StandardGate::HGate.into(),
+            smallvec![],
+            vec![Qubit(i)],
+            vec![] as Vec<Clbit>,
+        )
+    })
+}
+
+fn _get_evolution_layer<'a>(
+    py: Python<'a>,
+    feature_dimension: u32,
+    rep: usize,
+    alpha: f64,
+    parameter_vector: &'a Vec<Param>,
+    pauli_strings: &'a Vec<String>,
+    entanglement: &'a Bound<PyAny>,
+    data_map_func: Option<&'a Bound<PyAny>>,
+) -> impl Iterator<Item = Instruction> + 'a {
+    let evo = pauli_strings.iter().flat_map(move |pauli| {
+        let block_size = pauli.len() as u32;
+        let entanglement =
+            entanglement::get_entanglement(feature_dimension, block_size, entanglement, rep)
+                .unwrap();
+
+        entanglement.flat_map(move |indices| {
+            // get the parameters the evolution is acting on and the corresponding angle,
+            // which is given by the data_map_func (we provide a default if not given)
+            let indices = indices.as_ref().unwrap();
+            let active_parameters: Vec<Param> = indices
+                .iter()
+                .map(|i| parameter_vector[*i as usize].clone())
+                .collect();
+
+            let angle = match data_map_func {
+                Some(fun) => fun
+                    .call1((active_parameters,))
+                    .expect("Failed running ``data_map_func`` Python-side.")
+                    .extract()
+                    .expect("Failed retrieving the Param"),
+                None => _default_reduce(py, active_parameters),
+            };
+
+            // Get the pauli evolution and map it into
+            //   (PackedOperation, SmallVec<[Params; 3]>, Vec<Qubit>, Vec<Clbit>)
+            // to call CircuitData::from_packed_operations. This is needed since we might
+            // have to interject barriers, which are not a standard gate and prevents us
+            // from using CircuitData::from_standard_gates.
+            pauli_evolution(pauli, indices.clone(), multiply_param(&angle, alpha, py)).map(
+                |(gate, params, qargs)| (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>),
+            )
+        })
+    });
+    evo
 }
 
 /// The default data_map_func for Pauli feature maps. For a parameter vector (x1, ..., xN), this
