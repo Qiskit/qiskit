@@ -145,6 +145,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
     # s_gates[i] = 0, 1, 2 or 3 for a gate id, sdg, z or s on qubit i respectively
     s_gates = np.zeros(num_qubits)
 
+<<<<<<< HEAD
     qc = QuantumCircuit(num_qubits)
     for i in range(num_qubits):
         for j in range(i + 1, num_qubits):
@@ -192,3 +193,9 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
         qc = _append_cx_stage1(qc, num_qubits)
 
     return qc
+=======
+    # Call Rust implementaton
+    return QuantumCircuit._from_circuit_data(
+        synth_cz_depth_line_mr_inner(mat.astype(bool)), add_regs=True
+    )
+>>>>>>> 1962704cf (Fix creation of registers in synthesis methods (#13086))

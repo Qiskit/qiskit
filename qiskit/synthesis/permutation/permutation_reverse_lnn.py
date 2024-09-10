@@ -84,7 +84,14 @@ def synth_permutation_reverse_lnn_kms(num_qubits: int) -> QuantumCircuit:
            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
     """
 
+<<<<<<< HEAD
     qc = QuantumCircuit(num_qubits)
     _append_reverse_permutation_lnn_kms(qc, num_qubits)
 
     return qc
+=======
+    # Call Rust implementation
+    return QuantumCircuit._from_circuit_data(
+        synth_permutation_reverse_lnn_kms_inner(num_qubits), add_regs=True
+    )
+>>>>>>> 1962704cf (Fix creation of registers in synthesis methods (#13086))
