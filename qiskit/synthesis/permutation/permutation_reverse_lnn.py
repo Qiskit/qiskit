@@ -88,4 +88,6 @@ def synth_permutation_reverse_lnn_kms(num_qubits: int) -> QuantumCircuit:
     """
 
     # Call Rust implementation
-    return QuantumCircuit._from_circuit_data(synth_permutation_reverse_lnn_kms_inner(num_qubits))
+    return QuantumCircuit._from_circuit_data(
+        synth_permutation_reverse_lnn_kms_inner(num_qubits), add_regs=True
+    )
