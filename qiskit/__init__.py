@@ -61,6 +61,7 @@ import qiskit._numpy_compat
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
+sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
 sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = _accelerate.convert_2q_block_matrix
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
@@ -91,7 +92,12 @@ sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linea
 sys.modules["qiskit._accelerate.synthesis.clifford"] = _accelerate.synthesis.clifford
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
+sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
+sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
+sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
+sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
+sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
