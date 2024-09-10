@@ -10,12 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::commutation_analysis::analyze_commutations_inner;
-use crate::commutation_checker::CommutationChecker;
-use crate::{euler_one_qubit_decomposer, QiskitError};
+use std::f64::consts::PI;
+
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use pyo3::{pyfunction, pymodule, wrap_pyfunction, Bound, PyResult, Python};
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::{smallvec, SmallVec};
+
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::StandardGate::{
     CXGate, CYGate, CZGate, HGate, PhaseGate, RXGate, RZGate, SGate, TGate, U1Gate, XGate, YGate,
@@ -23,9 +25,10 @@ use qiskit_circuit::operations::StandardGate::{
 };
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::{smallvec, SmallVec};
-use std::f64::consts::PI;
+
+use crate::commutation_analysis::analyze_commutations_inner;
+use crate::commutation_checker::CommutationChecker;
+use crate::{euler_one_qubit_decomposer, QiskitError};
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -153,7 +156,7 @@ pub(crate) fn cancel_commutations(
                             // Don't deal with Y rotation, because Y rotation doesn't commute with
                             // CNOT, so it should be dealt with by optimized1qgate pass
                             if num_qargs == 2
-                                && dag.get_qargs(instr.qubits).first().unwrap() == &wire
+                                && dag.get_qargs(instr.qubits)[0] == &wire
                             {
                                 let second_qarg = dag.get_qargs(instr.qubits)[1];
                                 cancellation_sets
@@ -183,14 +186,14 @@ pub(crate) fn cancel_commutations(
                         dag.remove_op_node(c_node);
                     }
                 }
+                continue;
             }
             if matches!(cancel_key.gate, GateOrRotation::ZRotation) && z_var_gate.is_none() {
                 continue;
             }
-            if matches!(cancel_key.gate, GateOrRotation::ZRotation)
-                || matches!(cancel_key.gate, GateOrRotation::XRotation)
+            if matches!(cancel_key.gate, GateOrRotation::ZRotation | GateOrRotation::XRotation)
             {
-                let run_qarg = match &dag.dag[*cancel_set.first().unwrap()] {
+                let run_qarg = match &dag.dag[*cancel_set[0]] {
                     NodeType::Operation(instr) => dag.get_qargs(instr.qubits)[0],
                     _ => panic!("Unexpected type in commutation set run."),
                 };
@@ -204,10 +207,7 @@ pub(crate) fn cancel_commutations(
                     let node_op_name = node_op.op.name();
 
                     let node_qargs = dag.get_qargs(node_op.qubits);
-                    if node_op
-                        .extra_attrs
-                        .as_deref()
-                        .is_some_and(|attr| attr.condition.is_some())
+                    if node_op.condition().is_some()
                         || node_qargs.len() > 1
                         || node_qargs[0] != run_qarg
                     {
@@ -240,12 +240,10 @@ pub(crate) fn cancel_commutations(
                     total_phase += new_phase
                 }
 
-                let new_op = if matches!(cancel_key.gate, GateOrRotation::ZRotation) {
-                    z_var_gate.unwrap()
-                } else if matches!(cancel_key.gate, GateOrRotation::XRotation) {
-                    &RXGate
-                } else {
-                    return Err(QiskitError::new_err("impossible case!"));
+                let new_op = match cancel_key.gate
+                    GateOrRotation::ZRotation => z_var_gate.unwrap(),
+                    GateOrRotation::XRotation) => &RXGate,
+                    _ => unreachable!()
                 };
 
                 let gate_angle = euler_one_qubit_decomposer::mod_2pi(total_angle, 0.);
