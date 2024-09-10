@@ -113,9 +113,9 @@ class UCGate(Gate):
         self.up_to_diagonal = up_to_diagonal
 
     def _simplify(self, gate_list, num_contr):
-    """https://arxiv.org/abs/2409.05618"""
+        """https://arxiv.org/abs/2409.05618"""
 
-        c = set()```
+        c = set()
         nc = set()
         mux_copy = gate_list.copy()
 
