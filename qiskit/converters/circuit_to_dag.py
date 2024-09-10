@@ -13,7 +13,7 @@
 """Helper function for converting a circuit to a dag"""
 
 from qiskit.circuit.library.blueprintcircuit import BlueprintCircuit
-from qiskit._accelerate.circuit.converters import circuit_to_dag as core_circuit_to_dag
+from qiskit._accelerate.converters import circuit_to_dag as core_circuit_to_dag
 
 
 def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):

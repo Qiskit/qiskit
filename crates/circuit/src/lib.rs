@@ -81,17 +81,6 @@ impl From<Clbit> for BitType {
     }
 }
 
-#[inline(always)]
-#[doc(hidden)]
-fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult<()>
-where
-    F: FnOnce(&Bound<PyModule>) -> PyResult<()>,
-{
-    let new_mod = PyModule::new_bound(m.py(), name)?;
-    constructor(&new_mod)?;
-    m.add_submodule(&new_mod)
-}
-
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
@@ -101,6 +90,5 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<operations::StandardGate>()?;
-    add_submodule(m, converters::converters, "converters")?;
     Ok(())
 }
