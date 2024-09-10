@@ -315,24 +315,24 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         layout = pass_.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [2, 3, 4, 1, 5])
 
-    # @slow_test
-    # def test_release_valve_routes_multiple(self):
-    #     """Test Sabre works if the release valve routes more than 1 operation.
+    @slow_test
+    def test_release_valve_routes_multiple(self):
+        """Test Sabre works if the release valve routes more than 1 operation.
 
-    #     Regression test of #13081.
-    #     """
-    #     qv = QuantumVolume(500, seed=42)
-    #     qv.measure_all()
-    #     qc = Unroll3qOrMore()(qv)
+        Regression test of #13081.
+        """
+        qv = QuantumVolume(500, seed=42)
+        qv.measure_all()
+        qc = Unroll3qOrMore()(qv)
 
-    #     cmap = CouplingMap.from_heavy_hex(21)
-    #     pm = PassManager(
-    #         [
-    #             SabreLayout(cmap, swap_trials=20, layout_trials=20, max_iterations=4, seed=100),
-    #         ]
-    #     )
-    #     _ = pm.run(qc)
-    #     self.assertIsNotNone(pm.property_set.get("layout"))
+        cmap = CouplingMap.from_heavy_hex(21)
+        pm = PassManager(
+            [
+                SabreLayout(cmap, swap_trials=20, layout_trials=20, max_iterations=4, seed=100),
+            ]
+        )
+        _ = pm.run(qc)
+        self.assertIsNotNone(pm.property_set.get("layout"))
 
 
 class DensePartialSabreTrial(AnalysisPass):
