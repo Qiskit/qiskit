@@ -6454,6 +6454,16 @@ impl DAGCircuit {
         }
     }
 
+    /// Get an immutable reference to the op counts for this DAGCircuit
+    ///
+    /// This differs from count_ops() in that it doesn't handle control flow recursion at all
+    /// and it returns a reference instead of an owned copy. If you don't need to work with
+    /// control flow or ownership of the counts this is a more efficient alternative to
+    /// `DAGCircuit::count_ops(py, false)`
+    pub fn get_op_counts(&self) -> &IndexMap<String, usize, RandomState> {
+        &self.op_names
+    }
+
     /// Extends the DAG with valid instances of [PackedInstruction]
     pub fn extend<I>(&mut self, py: Python, iter: I) -> PyResult<Vec<NodeIndex>>
     where
