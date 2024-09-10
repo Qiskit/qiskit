@@ -425,29 +425,25 @@ impl StandardGate {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        extra_attrs: Option<&ExtraInstructionAttributes>,
+        extra_attrs: &ExtraInstructionAttributes,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty_bound(py),
             params => PyTuple::new_bound(py, params),
         };
-        if let Some(extra) = extra_attrs {
-            let kwargs = [
-                ("label", extra.label.to_object(py)),
-                ("unit", extra.py_unit(py).into_any()),
-                ("duration", extra.duration.to_object(py)),
-            ]
-            .into_py_dict_bound(py);
-            let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
-            if let Some(ref condition) = extra.condition {
-                out = out.call_method0(py, "to_mutable")?;
-                out.setattr(py, "condition", condition)?;
-            }
-            Ok(out)
-        } else {
-            gate_class.call_bound(py, args, None)
+        let kwargs = [
+            ("label", extra_attrs.label().to_object(py)),
+            ("unit", extra_attrs.py_unit(py).into_any()),
+            ("duration", extra_attrs.duration().to_object(py)),
+        ]
+        .into_py_dict_bound(py);
+        let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
+        if let Some(condition) = extra_attrs.condition() {
+            out = out.call_method0(py, "to_mutable")?;
+            out.setattr(py, "condition", condition)?;
         }
+        Ok(out)
     }
 
     pub fn num_ctrl_qubits(&self) -> u32 {
