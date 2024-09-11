@@ -48,7 +48,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
 
     let mut nodes_to_remove = Vec::new();
     for index in dag.op_nodes(true) {
-        let node = &dag.dag[index];
+        let node = &dag.dag()[index];
         let NodeType::Operation(inst) = node else {
             panic!()
         };
@@ -58,7 +58,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                 .next()
                 .expect("index is an operation node, so it must have a predecessor.");
 
-            match &dag.dag[predecessor] {
+            match &dag.dag()[predecessor] {
                 NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
                     Some(gate) => {
                         if DIAGONAL_1Q_GATES.contains(&gate) {
@@ -69,7 +69,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
                             let successors = dag.quantum_successors(predecessor);
                             let remove_s = successors
                                 .map(|s| {
-                                    let node_s = &dag.dag[s];
+                                    let node_s = &dag.dag()[s];
                                     if let NodeType::Operation(inst_s) = node_s {
                                         inst_s.op.name() == "measure"
                                     } else {
@@ -94,7 +94,7 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     }
 
     for node_to_remove in nodes_to_remove {
-        if dag.dag.node_weight(node_to_remove).is_some() {
+        if dag.dag().node_weight(node_to_remove).is_some() {
             dag.remove_op_node(node_to_remove);
         }
     }
