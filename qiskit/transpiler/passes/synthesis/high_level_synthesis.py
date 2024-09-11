@@ -657,9 +657,9 @@ class HighLevelSynthesis(TransformationPass):
             # `AnnotatedOperation`).
             node.is_standard_gate()
             # We don't have the fast-path for controlled gates over 3 or more qubits.
-            # However, we most probably want the fast-path for CX and CZ gates,
-            # and "_definitely_skip_node" should not immediately return False
-            # when encountering a controlled gate over 2 qubits.
+            # However, we most probably want the fast-path for controlled 2-qubit gates
+            # (such as CX, CZ, CY, CH, CRX, and so on), so "_definitely_skip_node" should
+            # not immediately return False when encountering a controlled gate over 2 qubits.
             and not (node.is_controlled_gate() and node.num_qubits >= 3)
             # If there are plugins to try, they need to be tried.
             and not self._methods_to_try(node.name)
