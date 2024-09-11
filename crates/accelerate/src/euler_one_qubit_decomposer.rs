@@ -924,7 +924,7 @@ pub fn det_one_qubit(mat: ArrayView2<Complex64>) -> Complex64 {
 
 /// Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π
 #[inline]
-fn mod_2pi(angle: f64, atol: f64) -> f64 {
+pub(crate) fn mod_2pi(angle: f64, atol: f64) -> f64 {
     // f64::rem_euclid() isn't exactly the same as Python's % operator, but because
     // the RHS here is a constant and positive it is effectively equivalent for
     // this case
