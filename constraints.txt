@@ -31,8 +31,9 @@ pydot>=3.0.0
 qiskit-qasm3-import==0.3.0
 
 # pkgutil.ImpImporter is removed in Python 3.12 and numpy versions prior to 1.26
-# use this attribute, which causes a CI failure
-numpy==1.26; python_version>='3.12'
+# use this attribute, which causes a CI failure on Linux with Python 3.12. We also 
+# need numpy 2.0.0 as 1.24 causes CI failure on MacOS
+numpy==2.0.0; python_version>='3.12'
 
 # The part below was generated using pip-compile with Python 3.8, using the constraints
 # above in the input constraints.txt, by the following command:
