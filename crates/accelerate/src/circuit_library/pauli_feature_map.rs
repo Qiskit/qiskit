@@ -179,8 +179,16 @@ pub fn pauli_feature_map(
     // by a layer of Hadamards and the Pauli evolutions of the specified Paulis.
     // Note that we eagerly trigger errors, since the final CircuitData::from_packed_operations
     // does not allow Result objects in the iterator.
-    let packed_insts = (0..reps).flat_map(|rep| {
-        let h_layer = _get_h_layer(feature_dimension);
+    let mut packed_insts: Vec<Instruction> = Vec::new();
+    for rep in 0..reps {
+        // add H layer
+        packed_insts.extend(_get_h_layer(feature_dimension));
+
+        if insert_barriers {
+            packed_insts.push(packed_barrier.clone().unwrap());
+        }
+
+        // add evolutions
         let evo_layer = _get_evolution_layer(
             py,
             feature_dimension,
@@ -190,20 +198,14 @@ pub fn pauli_feature_map(
             &pauli_strings,
             entanglement,
             data_map_func,
-        );
+        )?;
+        packed_insts.extend(evo_layer);
 
-        // Chain the H layer and evolution together, adding barriers around the evolutions,
-        // if necessary. Note that in the last repetition, there's no barrier after the evolution.
-        let mut out: Box<dyn Iterator<Item = Instruction>> = Box::new(h_layer);
-        if insert_barriers {
-            out = Box::new(out.chain(std::iter::once(packed_barrier.clone().unwrap())));
-        }
-        out = Box::new(out.chain(evo_layer));
+        // add barriers, if necessary
         if insert_barriers && rep < reps - 1 {
-            out = Box::new(out.chain(std::iter::once(packed_barrier.clone().unwrap())));
+            packed_insts.push(packed_barrier.clone().unwrap());
         }
-        out
-    });
+    }
 
     CircuitData::from_packed_operations(py, feature_dimension, 0, packed_insts, Param::Float(0.0))
 }
@@ -219,37 +221,34 @@ fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn _get_evolution_layer<'a>(
     py: Python<'a>,
     feature_dimension: u32,
     rep: usize,
     alpha: f64,
-    parameter_vector: &'a Vec<Param>,
-    pauli_strings: &'a Vec<String>,
+    parameter_vector: &'a [Param],
+    pauli_strings: &'a [String],
     entanglement: &'a Bound<PyAny>,
     data_map_func: Option<&'a Bound<PyAny>>,
-) -> impl Iterator<Item = Instruction> + 'a {
-    let evo = pauli_strings.iter().flat_map(move |pauli| {
+) -> PyResult<Vec<Instruction>> {
+    let mut insts: Vec<Instruction> = Vec::new();
+
+    for pauli in pauli_strings {
         let block_size = pauli.len() as u32;
         let entanglement =
-            entanglement::get_entanglement(feature_dimension, block_size, entanglement, rep)
-                .unwrap();
+            entanglement::get_entanglement(feature_dimension, block_size, entanglement, rep)?;
 
-        entanglement.flat_map(move |indices| {
-            // get the parameters the evolution is acting on and the corresponding angle,
-            // which is given by the data_map_func (we provide a default if not given)
-            let indices = indices.as_ref().unwrap();
+        for indices in entanglement {
+            let indices = indices?;
             let active_parameters: Vec<Param> = indices
+                .clone()
                 .iter()
                 .map(|i| parameter_vector[*i as usize].clone())
                 .collect();
 
             let angle = match data_map_func {
-                Some(fun) => fun
-                    .call1((active_parameters,))
-                    .expect("Failed running ``data_map_func`` Python-side.")
-                    .extract()
-                    .expect("Failed retrieving the Param"),
+                Some(fun) => fun.call1((active_parameters,))?.extract()?,
                 None => _default_reduce(py, active_parameters),
             };
 
@@ -258,12 +257,16 @@ fn _get_evolution_layer<'a>(
             // to call CircuitData::from_packed_operations. This is needed since we might
             // have to interject barriers, which are not a standard gate and prevents us
             // from using CircuitData::from_standard_gates.
-            pauli_evolution(pauli, indices.clone(), multiply_param(&angle, alpha, py)).map(
-                |(gate, params, qargs)| (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>),
-            )
-        })
-    });
-    evo
+            let evo = pauli_evolution(pauli, indices.clone(), multiply_param(&angle, alpha, py))
+                .map(|(gate, params, qargs)| {
+                    (gate.into(), params, qargs.to_vec(), vec![] as Vec<Clbit>)
+                })
+                .collect::<Vec<Instruction>>();
+            insts.extend(evo);
+        }
+    }
+
+    Ok(insts)
 }
 
 /// The default data_map_func for Pauli feature maps. For a parameter vector (x1, ..., xN), this

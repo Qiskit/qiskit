@@ -493,6 +493,33 @@ class TestPauliFeatureMap(QiskitTestCase):
 
         self.assertEqual(ref, circuit)
 
+    def test_invalid_entanglement(self):
+        """Test if a ValueError is raised when an invalid entanglement is passed"""
+        n_qubits = 3
+        entanglement = {
+            1: [(0, 1), (2,)],
+            2: [(0, 1), (1, 2)],
+            3: [(0, 1, 2)],
+        }
+
+        with self.assertRaises(QiskitError):
+            _ = pauli_feature_map(
+                n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
+            )
+
+    def test_entanglement_not_specified(self):
+        """Test if an error is raised when entanglement is not explicitly specified for
+        all n-qubit pauli blocks"""
+        n_qubits = 3
+        entanglement = {
+            1: [(0, 1), (2,)],
+            3: [(0, 1, 2)],
+        }
+        with self.assertRaises(QiskitError):
+            _ = pauli_feature_map(
+                n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
+            )
+
     def test_parameter_prefix(self):
         """Test the Parameter prefix"""
         encoding_pauli = pauli_feature_map(
