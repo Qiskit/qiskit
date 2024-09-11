@@ -364,9 +364,9 @@ fn ud(a: f64, b: f64, c: f64) -> Array2<Complex64> {
 
 #[pyfunction]
 #[pyo3(name = "Ud")]
-fn py_ud(py: Python, a: f64, b: f64, c: f64) -> PyResult<Py<PyArray2<Complex64>>> {
+fn py_ud(py: Python, a: f64, b: f64, c: f64) -> Py<PyArray2<Complex64>> {
     let ud_mat = ud(a, b, c);
-    Ok(ud_mat.into_pyarray_bound(py).unbind())
+    ud_mat.into_pyarray_bound(py).unbind()
 }
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
