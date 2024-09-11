@@ -11,10 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{
-    exceptions::PyTypeError,
-    prelude::*,
-};
+use pyo3::{exceptions::PyTypeError, prelude::*};
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_CIRCUIT, QUANTUM_REGISTER};
 use qiskit_circuit::operations::OperationRef;
