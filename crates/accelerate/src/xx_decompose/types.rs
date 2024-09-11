@@ -55,20 +55,20 @@ pub(crate) struct Coordinate {
 
 impl Coordinate {
 
-    pub(crate) fn reflect(&self, scalars: &[i32; 3]) -> Coordinate {
+    pub(crate) fn reflect(&self, scalars: &[f64; 3]) -> Coordinate {
         Coordinate {
-            data: [self.data[0] * (scalars[0]) as f64,
-                   self.data[1] * (scalars[1]) as f64,
-                   self.data[2] * (scalars[2]) as f64,]
+            data: [self.data[0] * (scalars[0]),
+                   self.data[1] * (scalars[1]),
+                   self.data[2] * (scalars[2]),]
         }
     }
 
-    pub(crate) fn shift(&self, scalars: &[i32; 3]) -> Coordinate {
+    pub(crate) fn shift(&self, scalars: &[f64; 3]) -> Coordinate {
         let pi2 = PI / 2.0;
         Coordinate {
-            data: [pi2 * self.data[0] + (scalars[0]) as f64,
-                   pi2 * self.data[1] + (scalars[1]) as f64,
-                   pi2 * self.data[2] + (scalars[2]) as f64,]
+            data: [pi2 * self.data[0] + (scalars[0]),
+                   pi2 * self.data[1] + (scalars[1]),
+                   pi2 * self.data[2] + (scalars[2]),]
         }
     }
 
@@ -77,6 +77,10 @@ impl Coordinate {
         let d = self.data[i as usize] - other.data[j as usize];
         (d.abs() % PI).abs()
     }
+
+    pub(crate) fn iter(&self) -> std::slice::Iter<'_, f64> {
+        self.data.iter()
+    }    
 }
 
 // Forward indexing into `Coordinate` to the field `data`.

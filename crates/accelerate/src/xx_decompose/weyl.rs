@@ -25,11 +25,11 @@ pub(crate) static REFLECTION_NAMES: [ReflectionName; 4] = [ReflectionName::NoRef
 // where reflection scalars (a, b, c) model the map (x, y, z) |-> (ax, by, cz),
 // global phase is a complex unit, and gate constructors are applied in sequence
 // and by conjugation to the first qubit and are passed pi as a parameter.
-static reflection_options: [(&[i32; 3], Complex64, &[StandardGate]); 4]  =
-    [(&[1, 1, 1], C_ONE, &[]), // 0
-     (&[-1, -1, 1], C_ONE, &[StandardGate::RZGate]), // 1
-     (&[-1, 1, -1], C_ONE, &[StandardGate::RYGate]), // 2
-     (&[1, -1, -1], C_ONE, &[StandardGate::RXGate]), // 3
+static reflection_options: [(&[f64; 3], Complex64, &[StandardGate]); 4]  =
+    [(&[1., 1., 1.], C_ONE, &[]), // 0
+     (&[-1., -1., 1.], C_ONE, &[StandardGate::RZGate]), // 1
+     (&[-1., 1., -1.], C_ONE, &[StandardGate::RYGate]), // 2
+     (&[1., -1., -1.], C_ONE, &[StandardGate::RXGate]), // 3
     ];
 
 
@@ -56,15 +56,15 @@ pub(crate) static SHIFT_NAMES: [ShiftName; 8] = [
     ShiftName::XYZShift,
     ];
 
-static shift_options: [(&[i32; 3], Complex64, &[StandardGate]); 8] =
-[(&[0, 0, 0], C_ONE, &[]),
- (&[0, 0, 1], IM, &[StandardGate::RZGate]),
- (&[0, 1, 0], M_IM, &[StandardGate::RYGate]),
- (&[0, 1, 1], C_ONE, &[StandardGate::RYGate, StandardGate::RZGate]),
- (&[1, 0, 0], M_IM, &[StandardGate::RXGate]),
- (&[1, 0, 1], C_ONE, &[StandardGate::RXGate, StandardGate::RZGate]),
- (&[1, 1, 0], C_M_ONE, &[StandardGate::RXGate, StandardGate::RYGate]),
- (&[1, 1, 1], M_IM, &[StandardGate::RXGate, StandardGate::RYGate, StandardGate::RZGate]),
+static shift_options: [(&[f64; 3], Complex64, &[StandardGate]); 8] =
+[(&[0., 0., 0.], C_ONE, &[]),
+ (&[0., 0., 1.], IM, &[StandardGate::RZGate]),
+ (&[0., 1., 0.], M_IM, &[StandardGate::RYGate]),
+ (&[0., 1., 1.], C_ONE, &[StandardGate::RYGate, StandardGate::RZGate]),
+ (&[1., 0., 0.], M_IM, &[StandardGate::RXGate]),
+ (&[1., 0., 1.], C_ONE, &[StandardGate::RXGate, StandardGate::RZGate]),
+ (&[1., 1., 0.], C_M_ONE, &[StandardGate::RXGate, StandardGate::RYGate]),
+ (&[1., 1., 1.], M_IM, &[StandardGate::RXGate, StandardGate::RYGate, StandardGate::RZGate]),
  ];
 
 

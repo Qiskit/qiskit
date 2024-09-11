@@ -1,3 +1,6 @@
+use crate::xx_decompose::types::Coordinate;
+use crate::xx_decompose::utilities::EPSILON;
+
 /// The raw data underlying a ConvexPolytope.  Describes a single /// polytope, specified by families of `inequalities` and `equalities`, each
 /// entry of which respectively corresponds to
 ///
@@ -6,12 +9,28 @@
 /// and
 ///
 ///     equalities[j][0] + sum_i equalities[j][i] * xi == 0.
-struct ConvexPolytopeData {
+struct ConvexPolytopeData<const MI:usize, const NI: usize, const ME:usize, const NE: usize> {
+    inequalities: [[f64; MI]; NI],
+    equalities: [[f64; ME]; NE],
+    name: String,
 }
 
 /// The raw data of a union of convex polytopes.
-struct PolytopeData {
-    data: Vec<ConvexPolytopeData>,
+struct PolytopeData<const MI:usize, const NI: usize, const ME:usize, const NE: usize> {
+    convex_subpolytopes: Vec<ConvexPolytopeData<MI, NI, ME, NE>>,
+}
+
+// TODO: In the original, this is not a class-instance method. Could be I think.
+/// Tests whether `polytope` contains `point.
+fn polytope_has_element<const MI:usize, const NI: usize, const ME:usize, const NE: usize>
+    (polytope: ConvexPolytopeData<MI, NI, ME, NE>, point: &[f64; MI - 1]) -> bool {
+    polytope.inequalities
+            .iter()
+            .all(|ie| (-EPSILON <= ie[0] + point.iter().zip(&ie[1..]).map(|(p, i)| p * i).sum::<f64>()))
+    //         &&
+    // polytope.equalities
+    //         .iter()
+    //         .all(|e| (e[0] + point.iter().zip(&e[1..]).map(|(p, i)| p * i).sum::<f64>() <= EPSILON))
 }
 
 /// Describes those two-qubit programs accessible to a given sequence of XX-type interactions.
@@ -27,7 +46,7 @@ struct XXPolytope {
 impl XXPolytope {
 
     // Method add_strength appears in the original Python
-    // But it is only called in the test suite.   
+    // But it is only called in the test suite.
     //    fn add_strength() {}
 }
 

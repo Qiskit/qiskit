@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+/// Conventions in journal article and Python code
+/// A "program" means a unitary opeator.
+
 pub mod circuits;
 pub mod decomposer;
 pub mod utilities;

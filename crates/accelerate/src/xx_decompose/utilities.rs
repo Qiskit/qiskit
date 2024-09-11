@@ -3,8 +3,9 @@ pub(crate) const EPSILON: f64 = 1e-6;
 use std::f64::consts::PI;
 
 // The logic in `safe_acos` is copied from the Python original.
-// The following comment is copied as well.
+// The following one-line comment is copied from the Python as well.
 // TODO: THIS IS A STOPGAP!!!
+//
 /// Has the same behavior as `f64::acos` except that an
 /// argument a bit greater than `1` or less than `-1` is
 /// valid and returns the value at `1` or `-1`.
