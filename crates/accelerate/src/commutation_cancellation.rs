@@ -15,7 +15,7 @@ use std::f64::consts::PI;
 use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, pymodule, wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
@@ -273,7 +273,6 @@ pub(crate) fn cancel_commutations(
     Ok(())
 }
 
-#[pymodule]
 pub fn commutation_cancellation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(cancel_commutations))?;
     Ok(())

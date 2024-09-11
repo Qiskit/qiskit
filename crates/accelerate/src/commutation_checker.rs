@@ -767,7 +767,6 @@ fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
         .collect()
 }
 
-#[pymodule]
 pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;
