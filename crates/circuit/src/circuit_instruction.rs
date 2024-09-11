@@ -17,7 +17,7 @@ use numpy::IntoPyArray;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyTuple, PyType};
+use pyo3::types::{PyList, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPy, PyObject, PyResult};
 
 use smallvec::SmallVec;
@@ -62,6 +62,20 @@ impl ExtraInstructionAttributes {
         } else {
             None
         }
+    }
+
+    /// Get the Python-space version of the stored `unit`.  This evalutes the Python-space default
+    /// (`"dt"`) value if we're storing a `None`.
+    pub fn py_unit(&self, py: Python) -> Py<PyString> {
+        self.unit
+            .as_deref()
+            .map(|unit| <&str as IntoPy<Py<PyString>>>::into_py(unit, py))
+            .unwrap_or_else(|| Self::default_unit(py).clone().unbind())
+    }
+
+    /// Get the Python-space default value for the `unit` field.
+    pub fn default_unit(py: Python) -> &Bound<PyString> {
+        intern!(py, "dt")
     }
 }
 
@@ -267,10 +281,17 @@ impl CircuitInstruction {
     }
 
     #[getter]
-    fn unit(&self) -> Option<&str> {
+    fn unit(&self, py: Python) -> Py<PyString> {
+        // Python space uses `"dt"` as the default, whereas we simply don't store the extra
+        // attributes at all if they're none.
         self.extra_attrs
             .as_ref()
-            .and_then(|attrs| attrs.unit.as_deref())
+            .map(|attrs| attrs.py_unit(py))
+            .unwrap_or_else(|| {
+                ExtraInstructionAttributes::default_unit(py)
+                    .clone()
+                    .unbind()
+            })
     }
 
     /// Is the :class:`.Operation` contained in this instruction a Qiskit standard gate?
@@ -524,10 +545,18 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .map(|params| params.unwrap_or_default())
         };
         let extract_extra = || -> PyResult<_> {
+            let unit = {
+                // We accept Python-space `None` or `"dt"` as both meaning the default `"dt"`.
+                let raw_unit = ob.getattr(intern!(py, "unit"))?;
+                (!(raw_unit.is_none()
+                    || raw_unit.eq(ExtraInstructionAttributes::default_unit(py))?))
+                .then(|| raw_unit.extract::<String>())
+                .transpose()?
+            };
             Ok(ExtraInstructionAttributes::new(
                 ob.getattr(intern!(py, "label"))?.extract()?,
                 ob.getattr(intern!(py, "duration"))?.extract()?,
-                ob.getattr(intern!(py, "unit"))?.extract()?,
+                unit,
                 ob.getattr(intern!(py, "condition"))?.extract()?,
             )
             .map(Box::from))
@@ -547,12 +576,18 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // mapping to avoid an `isinstance` check on `ControlledGate` - a standard gate has
             // nonzero `num_ctrl_qubits` iff it is a `ControlledGate`.
             //
-            // `ControlledGate` also has a `base_gate` attribute, and we don't track enough in Rust
-            // space to handle the case that that was mutated away from a standard gate.
+            // `ControlledGate` also has a `base_gate` attribute related to its historical
+            // implementation, which technically allows mutations from Python space.  The only
+            // mutation of a standard gate's `base_gate` that wouldn't have already broken the
+            // Python-space data model is setting a label, so we just catch that case and default
+            // back to non-standard-gate handling in that case.
             if standard.num_ctrl_qubits() != 0
                 && ((ob.getattr(intern!(py, "ctrl_state"))?.extract::<usize>()?
                     != (1 << standard.num_ctrl_qubits()) - 1)
-                    || ob.getattr(intern!(py, "mutable"))?.extract()?)
+                    || !ob
+                        .getattr(intern!(py, "base_gate"))?
+                        .getattr(intern!(py, "label"))?
+                        .is_none())
             {
                 break 'standard;
             }
