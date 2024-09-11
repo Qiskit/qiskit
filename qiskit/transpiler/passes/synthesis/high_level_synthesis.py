@@ -281,18 +281,12 @@ class HighLevelSynthesis(TransformationPass):
 
     def _run(self, dag: DAGCircuit, tracker: QubitTracker) -> DAGCircuit:
         # Check if HighLevelSynthesis can be skipped.
-        all_skipped = True
-        for node in dag.topological_op_nodes():
+        for node in dag.op_nodes():
             qubits = tuple(dag.find_bit(q).index for q in node.qargs)
-            if not (
-                dag.has_calibration_for(node)
-                or len(node.qargs) < self._min_qubits
-                or node.is_directive()
-                or self._definitely_skip_node(node, qubits)
-            ):
-                all_skipped = False
+            if not self._definitely_skip_node(node, qubits, dag):
                 break
-        if all_skipped:
+        else:
+            # The for-loop terminates without reaching the break statement
             return dag
 
         # Start by analyzing the nodes in the DAG. This for-loop is a first version of a potentially
@@ -308,12 +302,7 @@ class HighLevelSynthesis(TransformationPass):
             used_qubits = None
 
             # check if synthesis for the operation can be skipped
-            if (
-                dag.has_calibration_for(node)
-                or len(node.qargs) < self._min_qubits
-                or node.is_directive()
-                or self._definitely_skip_node(node, qubits)
-            ):
+            if self._definitely_skip_node(node, qubits, dag):
                 pass
 
             # next check control flow
@@ -646,19 +635,31 @@ class HighLevelSynthesis(TransformationPass):
 
         return synthesized
 
-    def _definitely_skip_node(self, node: DAGOpNode, qubits: tuple[int] | None) -> bool:
+    def _definitely_skip_node(
+        self, node: DAGOpNode, qubits: tuple[int] | None, dag: DAGCircuit
+    ) -> bool:
         """Fast-path determination of whether a node can certainly be skipped (i.e. nothing will
         attempt to synthesise it) without accessing its Python-space `Operation`.
 
         This is tightly coupled to `_recursively_handle_op`; it exists as a temporary measure to
         avoid Python-space `Operation` creation from a `DAGOpNode` if we wouldn't do anything to the
         node (which is _most_ nodes)."""
+
+        if (
+            dag.has_calibration_for(node)
+            or len(node.qargs) < self._min_qubits
+            or node.is_directive()
+        ):
+            return True
+
         return (
             # The fast path is just for Rust-space standard gates (which excludes
             # `AnnotatedOperation`).
             node.is_standard_gate()
-            # At the moment we don't consider fast-path handling for controlled gates over 3 or
-            # more controlled qubits. However, we should not abort early for CX/CZ/etc.
+            # We don't have the fast-path for controlled gates over 3 or more qubits.
+            # However, we most probably want the fast-path for CX and CZ gates,
+            # and "_definitely_skip_node" should not immediately return False
+            # when encountering a controlled gate over 2 qubits.
             and not (node.is_controlled_gate() and node.num_qubits >= 3)
             # If there are plugins to try, they need to be tried.
             and not self._methods_to_try(node.name)
