@@ -95,6 +95,15 @@ where
         }
     }
 
+    pub fn with_capacity(py: Python<'_>, description: String, capacity: usize) -> Self {
+        BitData {
+            description,
+            bits: Vec::with_capacity(capacity),
+            indices: HashMap::with_capacity(capacity),
+            cached: PyList::empty_bound(py).unbind(),
+        }
+    }
+
     /// Gets the number of bits.
     pub fn len(&self) -> usize {
         self.bits.len()
