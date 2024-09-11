@@ -11,10 +11,12 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{exceptions::PyTypeError, prelude::*};
-use qiskit_circuit::imports::{
-    CIRCUIT_TO_DAG, GATE, PARAMETER_VECTOR, QUANTUM_CIRCUIT, QUANTUM_REGISTER,
+use pyo3::{
+    exceptions::PyTypeError,
+    prelude::*,
 };
+use qiskit_circuit::converters::circuit_to_dag;
+use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_CIRCUIT, QUANTUM_REGISTER};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter_table::ParameterUuid;
@@ -73,10 +75,7 @@ pub(super) fn py_compose_transforms(
     source_basis: HashSet<(String, u32)>,
     source_dag: &DAGCircuit,
 ) -> PyResult<HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)>> {
-    compose_transforms(py, &basis_transforms, &source_basis, source_dag).map(|ret| {
-        ret.into_iter()
-            .collect()
-    })
+    compose_transforms(py, &basis_transforms, &source_basis, source_dag)
 }
 
 pub(super) fn compose_transforms<'a>(
@@ -93,11 +92,7 @@ pub(super) fn compose_transforms<'a>(
         // Need to grab a gate instance to find num_qubits and num_params.
         // Can be removed following https://github.com/Qiskit/qiskit-terra/pull/3947 .
         let example_gate = &example_gates[&(gate_name.clone(), gate_num_qubits)];
-        let num_params = example_gate
-            .params
-            .as_ref()
-            .map(|x| x.len())
-            .unwrap_or_default();
+        let num_params = example_gate.params_view().len();
 
         let placeholder_params: SmallVec<[Param; 3]> = PARAMETER_VECTOR
             .get_bound(py)
@@ -161,11 +156,8 @@ pub(super) fn compose_transforms<'a>(
                     replacement
                         .0
                         .assign_parameters_from_mapping(py, param_mapping)?;
-                    let replace_dag: PyRef<DAGCircuit> = CIRCUIT_TO_DAG
-                        .get_bound(py)
-                        .call1((replacement,))?
-                        .downcast_into::<DAGCircuit>()?
-                        .borrow();
+                    let replace_dag: DAGCircuit =
+                        DAGCircuit::from_circuit_data(py, replacement.0, true)?;
                     let op_node = dag.get_node(py, node)?;
                     dag.substitute_node_with_dag(py, op_node.bind(py), &replace_dag, None, true)?;
                 }
@@ -191,8 +183,7 @@ fn get_example_gates(
                 let inst_bound = inst.instruction.bind(py);
                 let blocks = inst_bound.getattr("blocks")?;
                 for block in blocks.iter()? {
-                    let block_as_dag = CIRCUIT_TO_DAG.get_bound(py).call1((block?,))?;
-                    let block_as_dag = block_as_dag.downcast_into::<DAGCircuit>()?.borrow();
+                    let block_as_dag = circuit_to_dag(py, block?.extract()?, true, None, None)?;
                     example_gates = get_example_gates(py, &block_as_dag, Some(example_gates))?;
                 }
             }
