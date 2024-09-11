@@ -17,6 +17,7 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import MCMT, MCMTVChain, CHGate, XGate, ZGate, CXGate, CZGate
 from qiskit.quantum_info import Statevector
@@ -38,7 +39,10 @@ class TestMCMT(QiskitTestCase):
         ref = QuantumCircuit(2)
         ref.ch(0, 1)
 
-        self.assertEqual(qc, ref)
+        self.assertEqual(len(qc.data), 1)
+
+        basis = ["u", "cx"]
+        self.assertEqual(transpile(qc, basis_gates=basis), transpile(ref, basis_gates=basis))
 
     def test_missing_qubits(self):
         """Test that an error is raised if qubits are missing."""

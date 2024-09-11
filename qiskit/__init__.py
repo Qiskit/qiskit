@@ -86,6 +86,9 @@ sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
+sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
+    _accelerate.synthesis.multi_controlled
+)
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation

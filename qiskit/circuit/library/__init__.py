@@ -500,6 +500,7 @@ from .generalized_gates import (
     Permutation,
     PermutationGate,
     GMS,
+    MCMTGate,
     MSGate,
     GR,
     GRX,
