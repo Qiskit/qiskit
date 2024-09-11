@@ -102,7 +102,6 @@ fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
     Ok(())
 }
 
-#[pymodule]
 pub fn remove_diagonal_gates_before_measure(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(run_remove_diagonal_before_measure))?;
     Ok(())
