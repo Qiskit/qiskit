@@ -112,8 +112,13 @@ pub fn dag_to_circuit(
                     op,
                     qubits: instr.qubits,
                     clbits: instr.clbits,
-                    params: instr.params.clone(),
-                    params: instr.params.iter().map(|param| param.clone_ref(py)).collect(),
+                    params: Some(Box::new(
+                        instr
+                            .params_view()
+                            .iter()
+                            .map(|param| param.clone_ref(py))
+                            .collect(),
+                    )),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceCell::new(),
                 })
