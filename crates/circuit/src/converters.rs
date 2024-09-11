@@ -104,7 +104,7 @@ pub fn dag_to_circuit(
         dag.cargs_interner.clone(),
         dag.topological_op_nodes()?.map(|node_index| {
             let NodeType::Operation(ref instr) = dag.dag[node_index] else {
-                unreachable!()
+                unreachable!("The received node from topological_op_nodes() is not an Operation node.")
             };
             if copy_operations {
                 let op = instr.op.py_deepcopy(py, None)?;
@@ -113,7 +113,7 @@ pub fn dag_to_circuit(
                     qubits: instr.qubits,
                     clbits: instr.clbits,
                     params: instr.params.clone(),
-                    extra_attrs: instr.extra_attrs.clone(),
+                    params: instr.params.iter().map(|param| param.clone_ref(py)).collect(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceCell::new(),
                 })
