@@ -12,7 +12,7 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::PyModule;
-use pyo3::{pyfunction, pymodule, wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
 use qiskit_circuit::Qubit;
 
 use crate::commutation_checker::CommutationChecker;
@@ -185,7 +185,6 @@ pub(crate) fn analyze_commutations(
     Ok(out_dict.unbind())
 }
 
-#[pymodule]
 pub fn commutation_analysis(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(analyze_commutations))?;
     Ok(())

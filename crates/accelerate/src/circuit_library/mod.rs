@@ -14,7 +14,6 @@ use pyo3::prelude::*;
 
 mod entanglement;
 
-#[pymodule]
 pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(entanglement::get_entangler_map))?;
     Ok(())
