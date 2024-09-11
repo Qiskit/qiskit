@@ -75,7 +75,6 @@ pub(super) fn py_compose_transforms(
 ) -> PyResult<HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)>> {
     compose_transforms(py, &basis_transforms, &source_basis, source_dag).map(|ret| {
         ret.into_iter()
-            .map(|((name, num_qubits), (param, equiv))| ((name, num_qubits), (param, equiv)))
             .collect()
     })
 }
