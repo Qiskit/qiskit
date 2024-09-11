@@ -133,7 +133,6 @@ class PassManagerConfig:
         Raises:
             AttributeError: If the backend does not support a `configuration()` method.
         """
-        res = cls(**pass_manager_options)
         backend_version = getattr(backend, "version", 0)
         if backend_version == 1:
             warnings.warn(
@@ -148,6 +147,7 @@ class PassManagerConfig:
             backend_version = 0
         if backend_version < 2:
             config = backend.configuration()
+        res = cls(**pass_manager_options)
         if res.basis_gates is None:
             if backend_version < 2:
                 res.basis_gates = getattr(config, "basis_gates", None)
