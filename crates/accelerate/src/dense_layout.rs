@@ -207,7 +207,9 @@ pub fn best_subset_inner(
 
     let reduce_fn = |best: SubsetResult, curr: SubsetResult| -> SubsetResult {
         if use_error {
-            if curr.count >= best.count && curr.error < best.error {
+            if (curr.count >= best.count && curr.error < best.error)
+                || (curr.count == best.count && curr.error == best.error && curr.index < best.index)
+            {
                 curr
             } else {
                 best
