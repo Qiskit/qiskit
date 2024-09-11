@@ -30,6 +30,7 @@ struct SubsetResult {
     pub error: f64,
     pub map: Vec<usize>,
     pub subgraph: Vec<[usize; 2]>,
+    pub index: usize,
 }
 
 fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize, num_qubits: usize) -> Vec<usize> {
@@ -190,6 +191,7 @@ pub fn best_subset_inner(
             error,
             map: bfs,
             subgraph,
+            index: k,
         }
     };
 
@@ -199,6 +201,7 @@ pub fn best_subset_inner(
             map: Vec::new(),
             error: f64::INFINITY,
             subgraph: Vec::new(),
+            index: usize::MAX,
         }
     };
 
@@ -209,7 +212,7 @@ pub fn best_subset_inner(
             } else {
                 best
             }
-        } else if curr.count > best.count {
+        } else if curr.count > best.count || (curr.count == best.count && curr.index < best.index) {
             curr
         } else {
             best
