@@ -196,11 +196,11 @@ def reorder_paulis(
 
     This method works in three steps. First, a graph is constructed, where the
     nodes are the terms of the operator and where two nodes are connected if
-    their term acts on the same qubit (for example, the terms $IXX$ and $IYI$
-    would be connected, but not $IXX$ and $YII$). Then, the graph is colored.
-    Two terms with the same color thus do not act on the same qubit, and in
-    particular, their evolution subcircuits can be run in parallel in the
-    greater evolution circuit of ``operator``. Finally, a new
+    their term acts on the same qubit (for example, the terms :math:`IXX` and
+    :math:`IYI` would be connected, but not :math:`IXX` and :math:`YII`). Then,
+    the graph is colored.  Two terms with the same color thus do not act on the
+    same qubit, and in particular, their evolution subcircuits can be run in
+    parallel in the greater evolution circuit of ``operator``. Finally, a new
     :class:`~qiskit.quantum_info.SparsePauliOp` is created where terms of the
     same color are grouped together.
 
@@ -214,7 +214,8 @@ def reorder_paulis(
     :class:`~qiskit.quantum_info.SparsePauliOp` (rather than a list of such),
     even if ``operators`` is a list.
 
-    This method is deterministic and invariant under permutation of the Pauli term in ``operators``.
+    This method is deterministic and invariant under permutation of the Pauli
+    term in ``operators``.
 
     Args:
         operators: The operator or list of operators whose terms to reorder.
