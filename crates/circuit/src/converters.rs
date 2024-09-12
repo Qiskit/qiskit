@@ -98,13 +98,15 @@ pub fn dag_to_circuit(
 ) -> PyResult<CircuitData> {
     CircuitData::from_packed_instructions(
         py,
-        dag.qubits.clone(),
-        dag.clbits.clone(),
-        dag.qargs_interner.clone(),
-        dag.cargs_interner.clone(),
+        dag.qubits().clone(),
+        dag.clbits().clone(),
+        dag.qargs_interner().clone(),
+        dag.cargs_interner().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag.dag[node_index] else {
-                unreachable!("The received node from topological_op_nodes() is not an Operation node.")
+            let NodeType::Operation(ref instr) = dag.dag()[node_index] else {
+                unreachable!(
+                    "The received node from topological_op_nodes() is not an Operation node."
+                )
             };
             if copy_operations {
                 let op = instr.op.py_deepcopy(py, None)?;
