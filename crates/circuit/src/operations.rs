@@ -432,18 +432,28 @@ impl StandardGate {
             &[] => PyTuple::empty_bound(py),
             params => PyTuple::new_bound(py, params),
         };
-        let kwargs = [
-            ("label", extra_attrs.label().to_object(py)),
-            ("unit", extra_attrs.py_unit(py).into_any()),
-            ("duration", extra_attrs.duration().to_object(py)),
-        ]
-        .into_py_dict_bound(py);
-        let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
-        if let Some(condition) = extra_attrs.condition() {
-            out = out.call_method0(py, "to_mutable")?;
-            out.setattr(py, "condition", condition)?;
+        let (label, unit, duration, condition) = (
+            extra_attrs.label(),
+            extra_attrs.unit(),
+            extra_attrs.duration(),
+            extra_attrs.condition(),
+        );
+        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
+            let kwargs = [
+                ("label", label.to_object(py)),
+                ("unit", extra_attrs.py_unit(py).into_any()),
+                ("duration", duration.to_object(py)),
+            ]
+            .into_py_dict_bound(py);
+            let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
+            if let Some(condition) = condition {
+                out = out.call_method0(py, "to_mutable")?;
+                out.setattr(py, "condition", condition)?;
+            }
+            Ok(out)
+        } else {
+            gate_class.call_bound(py, args, None)
         }
-        Ok(out)
     }
 
     pub fn num_ctrl_qubits(&self) -> u32 {
