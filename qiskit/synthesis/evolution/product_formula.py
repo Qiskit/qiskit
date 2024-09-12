@@ -210,9 +210,11 @@ def reorder_paulis(
     - the input is a list containing a single
       :class:`~qiskit.quantum_info.SparsePauliOp` which has less than two
       Pauli terms,
-    this method does nothing. In non-trivial cases, this method always returns a
-    :class:`~qiskit.quantum_info.SparsePauliOp` (rather than a list of such),
-    even if ``operators`` is a list.
+    this method does nothing.
+
+    If ``operators`` is a list of :class:`~qiskit.quantum_info.SparsePauliOp`,
+    then reordering is applied to every operator independently, and the list of
+    reordered operators is returned.
 
     This method is deterministic and invariant under permutation of the Pauli
     term in ``operators``.
@@ -234,11 +236,11 @@ def reorder_paulis(
         or (len(operators) == 1 and len(operators[0]) > 1)
     ):
         return operators
-    if not isinstance(operators, list):
-        operators = [operators]
 
-    terms = sum((o.to_list() for o in operators), [])
-    terms = sorted(terms, key=_term_sort_key)
+    if isinstance(operators, (list, tuple)):
+        return [reorder_paulis(op) for op in operators]
+
+    terms = sorted(operators.to_list(), key=_term_sort_key)
     graph = rx.PyGraph()
     graph.add_nodes_from(terms)
     indexed_nodes = list(enumerate(graph.nodes()))
