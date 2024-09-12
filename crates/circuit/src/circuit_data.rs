@@ -14,7 +14,9 @@
 use std::cell::OnceCell;
 
 use crate::bit_data::BitData;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{
+    CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
+};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
@@ -157,7 +159,7 @@ impl CircuitData {
                 qubits,
                 clbits,
                 params,
-                extra_attrs: None,
+                extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceCell::new(),
             });
@@ -266,7 +268,7 @@ impl CircuitData {
                 qubits,
                 clbits: no_clbit_index,
                 params,
-                extra_attrs: None,
+                extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceCell::new(),
             });
@@ -324,7 +326,7 @@ impl CircuitData {
             qubits,
             clbits: no_clbit_index,
             params,
-            extra_attrs: None,
+            extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceCell::new(),
         });
@@ -683,12 +685,7 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            if inst.op.try_standard_gate().is_some()
-                && !inst
-                    .extra_attrs
-                    .as_ref()
-                    .is_some_and(|attrs| attrs.condition.is_some())
-            {
+            if inst.op.try_standard_gate().is_some() && inst.extra_attrs.condition().is_none() {
                 continue;
             }
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
