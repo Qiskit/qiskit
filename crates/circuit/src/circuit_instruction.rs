@@ -30,8 +30,10 @@ use crate::operations::{
 };
 use crate::packed_instruction::PackedOperation;
 
+/// This is a private struct used to hold the actual attributes, which we store
+/// on the heap using the [Box] within [ExtraInstructionAttributes].
 #[derive(Debug, Clone)]
-struct ExtraAttrs {
+struct ExtraAttributes {
     label: Option<String>,
     duration: Option<PyObject>,
     unit: Option<String>,
@@ -43,9 +45,7 @@ struct ExtraAttrs {
 /// space either. To save memory, the attributes are stored inside a `Box` internally, so this
 /// struct is no larger than that.
 #[derive(Default, Debug, Clone)]
-pub struct ExtraInstructionAttributes {
-    attributes: Option<Box<ExtraAttrs>>,
-}
+pub struct ExtraInstructionAttributes(Option<Box<ExtraAttributes>>);
 
 impl ExtraInstructionAttributes {
     /// Construct a new set of the extra attributes if any of the elements are not `None`, or return
@@ -57,13 +57,9 @@ impl ExtraInstructionAttributes {
         unit: Option<String>,
         condition: Option<Py<PyAny>>,
     ) -> Self {
-        ExtraInstructionAttributes {
-            attributes: if label.is_some()
-                || duration.is_some()
-                || unit.is_some()
-                || condition.is_some()
-            {
-                Some(Box::new(ExtraAttrs {
+        ExtraInstructionAttributes(
+            if label.is_some() || duration.is_some() || unit.is_some() || condition.is_some() {
+                Some(Box::new(ExtraAttributes {
                     label,
                     duration,
                     unit,
@@ -72,13 +68,13 @@ impl ExtraInstructionAttributes {
             } else {
                 None
             },
-        }
+        )
     }
 
-    /// Get the Python-space version of the stored `unit`.  This evalutes the Python-space default
-    /// (`"dt"`) value if we're storing a `None`.
+    /// Get the Python-space version of the stored `unit`.
+    /// This evaluates the Python-space default (`"dt"`) value if we're storing a `None`.
     pub fn py_unit(&self, py: Python) -> Py<PyString> {
-        self.attributes
+        self.0
             .as_deref()
             .and_then(|attrs| {
                 attrs
@@ -94,20 +90,20 @@ impl ExtraInstructionAttributes {
         intern!(py, "dt")
     }
 
+    /// Get the stored label attribute.
     pub fn label(&self) -> Option<&str> {
-        self.attributes
-            .as_deref()
-            .and_then(|attrs| attrs.label.as_deref())
+        self.0.as_deref().and_then(|attrs| attrs.label.as_deref())
     }
 
+    /// Set the stored label attribute, or clear it if `label` is `None`.
     pub fn set_label(&mut self, label: Option<String>) {
-        if let Some(attrs) = &mut self.attributes {
+        if let Some(attrs) = &mut self.0 {
             attrs.label = label;
             self.shrink_if_empty();
             return;
         }
         if label.is_some() {
-            self.attributes = Some(Box::new(ExtraAttrs {
+            self.0 = Some(Box::new(ExtraAttributes {
                 label,
                 duration: None,
                 unit: None,
@@ -116,32 +112,64 @@ impl ExtraInstructionAttributes {
         }
     }
 
+    /// Get the stored duration attribute.
     pub fn duration(&self) -> Option<&PyObject> {
-        self.attributes
-            .as_deref()
-            .and_then(|attrs| attrs.duration.as_ref())
+        self.0.as_deref().and_then(|attrs| attrs.duration.as_ref())
     }
 
+    /// Set the stored duration attribute, or clear it if `duration` is `None`.
+    pub fn set_duration(&mut self, duration: Option<PyObject>) {
+        if let Some(attrs) = &mut self.0 {
+            attrs.duration = duration;
+            self.shrink_if_empty();
+            return;
+        }
+        if duration.is_some() {
+            self.0 = Some(Box::new(ExtraAttributes {
+                label: None,
+                duration,
+                unit: None,
+                condition: None,
+            }))
+        }
+    }
+
+    /// Get the unit attribute.
     pub fn unit(&self) -> Option<&str> {
-        self.attributes
-            .as_deref()
-            .and_then(|attrs| attrs.unit.as_deref())
+        self.0.as_deref().and_then(|attrs| attrs.unit.as_deref())
     }
 
+    /// Set the stored unit attribute, or clear it if `unit` is `None`.
+    pub fn set_unit(&mut self, unit: Option<String>) {
+        if let Some(attrs) = &mut self.0 {
+            attrs.unit = unit;
+            self.shrink_if_empty();
+            return;
+        }
+        if unit.is_some() {
+            self.0 = Some(Box::new(ExtraAttributes {
+                label: None,
+                duration: None,
+                unit,
+                condition: None,
+            }))
+        }
+    }
+
+    /// Get the condition attribute.
     pub fn condition(&self) -> Option<&PyObject> {
-        self.attributes
-            .as_deref()
-            .and_then(|attrs| attrs.condition.as_ref())
+        self.0.as_deref().and_then(|attrs| attrs.condition.as_ref())
     }
 
+    /// Set the stored condition attribute, or clear it if `condition` is `None`.
     pub fn set_condition(&mut self, condition: Option<PyObject>) {
-        if let Some(attrs) = &mut self.attributes {
+        if let Some(attrs) = &mut self.0 {
             attrs.condition = condition;
             self.shrink_if_empty();
             return;
         }
         if condition.is_some() {
-            self.attributes = Some(Box::new(ExtraAttrs {
+            self.0 = Some(Box::new(ExtraAttributes {
                 label: None,
                 duration: None,
                 unit: None,
@@ -151,13 +179,13 @@ impl ExtraInstructionAttributes {
     }
 
     fn shrink_if_empty(&mut self) {
-        if let Some(attrs) = &self.attributes {
+        if let Some(attrs) = &self.0 {
             if attrs.label.is_none()
                 && attrs.duration.is_none()
                 && attrs.unit.is_none()
                 && attrs.condition.is_none()
             {
-                self.attributes = None;
+                self.0 = None;
             }
         }
     }
