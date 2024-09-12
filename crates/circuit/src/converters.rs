@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "cache_pygates")]
+use std::cell::OnceCell;
+
 use ::pyo3::prelude::*;
 use hashbrown::HashMap;
 use pyo3::{
@@ -17,7 +20,9 @@ use pyo3::{
     types::{PyDict, PyList},
 };
 
-use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
+use crate::circuit_data::CircuitData;
+use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -85,7 +90,51 @@ pub fn circuit_to_dag(
     )
 }
 
+#[pyfunction(signature = (dag, copy_operations = true))]
+pub fn dag_to_circuit(
+    py: Python,
+    dag: &DAGCircuit,
+    copy_operations: bool,
+) -> PyResult<CircuitData> {
+    CircuitData::from_packed_instructions(
+        py,
+        dag.qubits().clone(),
+        dag.clbits().clone(),
+        dag.qargs_interner().clone(),
+        dag.cargs_interner().clone(),
+        dag.topological_op_nodes()?.map(|node_index| {
+            let NodeType::Operation(ref instr) = dag.dag()[node_index] else {
+                unreachable!(
+                    "The received node from topological_op_nodes() is not an Operation node."
+                )
+            };
+            if copy_operations {
+                let op = instr.op.py_deepcopy(py, None)?;
+                Ok(PackedInstruction {
+                    op,
+                    qubits: instr.qubits,
+                    clbits: instr.clbits,
+                    params: Some(Box::new(
+                        instr
+                            .params_view()
+                            .iter()
+                            .map(|param| param.clone_ref(py))
+                            .collect(),
+                    )),
+                    extra_attrs: instr.extra_attrs.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceCell::new(),
+                })
+            } else {
+                Ok(instr.clone())
+            }
+        }),
+        dag.get_global_phase(),
+    )
+}
+
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
+    m.add_function(wrap_pyfunction!(dag_to_circuit, m)?)?;
     Ok(())
 }
