@@ -121,7 +121,7 @@ pub(super) fn compose_transforms<'a>(
                 let doomed_nodes = dag
                     .op_nodes(true)
                     .filter_map(|node| {
-                        if let Some(NodeType::Operation(op)) = dag.dag.node_weight(node) {
+                        if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
                             if (gate_name.as_str(), *gate_num_qubits)
                                 == (op.op.name(), op.op.num_qubits())
                             {
@@ -171,7 +171,7 @@ fn get_example_gates(
 ) -> PyResult<Box<HashMap<(String, u32), PackedInstruction>>> {
     let mut example_gates = example_gates.unwrap_or_default();
     for node in dag.op_nodes(true) {
-        if let Some(NodeType::Operation(op)) = dag.dag.node_weight(node) {
+        if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
             example_gates.insert((op.op.name().to_string(), op.op.num_qubits()), op.clone());
             if op.op.control_flow() {
                 let OperationRef::Instruction(inst) = op.op.view() else {
