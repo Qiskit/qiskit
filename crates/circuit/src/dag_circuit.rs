@@ -5257,7 +5257,6 @@ impl DAGCircuit {
         Ok(new_node)
     }
 
-
     /// Apply a [PackedOperation] to the back of the circuit.
     #[allow(clippy::too_many_arguments)]
     pub fn apply_operation_back(
