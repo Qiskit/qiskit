@@ -315,20 +315,21 @@ class TwoQubitControlledUDecomposer:
                 rxx_equivalent_gate(test_angle, label="foo")
             except TypeError as _:
                 raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.") from _
-            decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
+            mat = rxx_equivalent_gate(test_angle).to_matrix()
+            decomp = two_qubit_decompose.TwoQubitWeylDecomposition(mat)
 
-            circ = QuantumCircuit(2)
-            circ.rxx(test_angle, 0, 1)
-            decomposer_rxx = TwoQubitWeylDecomposition(
-                Operator(circ).data,
+            from qiskit.circuit.library import RXXGate
+
+            mat = RXXGate(test_angle).to_matrix()
+            decomposer_rxx = two_qubit_decompose.TwoQubitWeylDecomposition(
+                mat,
                 fidelity=None,
                 _specialization=two_qubit_decompose.Specialization.ControlledEquiv,
             )
 
-            circ = QuantumCircuit(2)
-            circ.append(rxx_equivalent_gate(test_angle), qargs=[0, 1])
-            decomposer_equiv = TwoQubitWeylDecomposition(
-                Operator(circ).data,
+            mat = rxx_equivalent_gate(test_angle).to_matrix()
+            decomposer_equiv = two_qubit_decompose.TwoQubitWeylDecomposition(
+                mat,
                 fidelity=None,
                 _specialization=two_qubit_decompose.Specialization.ControlledEquiv,
             )
@@ -360,7 +361,7 @@ class TwoQubitControlledUDecomposer:
         """
 
         # pylint: disable=attribute-defined-outside-init
-        self.decomposer = TwoQubitWeylDecomposition(unitary)
+        self.decomposer = two_qubit_decompose.TwoQubitWeylDecomposition(unitary.data)
 
         oneq_decompose = OneQubitEulerDecomposer("ZYZ")
         c1l, c1r, c2l, c2r = (
@@ -403,7 +404,8 @@ class TwoQubitControlledUDecomposer:
 
         circ = QuantumCircuit(2)
         circ.append(self.rxx_equivalent_gate(self.scale * angle), qargs=[0, 1])
-        decomposer_inv = TwoQubitWeylDecomposition(Operator(circ).data)
+        mat = self.rxx_equivalent_gate(self.scale * angle).to_matrix()
+        decomposer_inv = two_qubit_decompose.TwoQubitWeylDecomposition(mat)
 
         oneq_decompose = OneQubitEulerDecomposer("ZYZ")
 
