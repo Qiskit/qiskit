@@ -40,7 +40,7 @@ fn recurse<'py>(
         }
     };
     for node in dag.op_nodes(false) {
-        if let NodeType::Operation(inst) = &dag.dag[node] {
+        if let NodeType::Operation(inst) = &dag.dag()[node] {
             let qubits = dag.get_qargs(inst.qubits);
             if inst.op.control_flow() {
                 if let OperationRef::Instruction(py_inst) = inst.op.view() {

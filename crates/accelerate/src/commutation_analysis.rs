@@ -80,7 +80,7 @@ pub(crate) fn analyze_commutations_inner(
                     // if the node is an input/output node, they do not commute, so we only
                     // continue if the nodes are operation nodes
                     if let (NodeType::Operation(packed_inst0), NodeType::Operation(packed_inst1)) =
-                        (&dag.dag[current_gate_idx], &dag.dag[*prev_gate_idx])
+                        (&dag.dag()[current_gate_idx], &dag.dag()[*prev_gate_idx])
                     {
                         let op1 = packed_inst0.op.view();
                         let op2 = packed_inst1.op.view();
@@ -153,7 +153,7 @@ pub(crate) fn analyze_commutations(
         // we know all wires are of type Wire::Qubit, since in analyze_commutations_inner
         // we only iterater over the qubits
         let py_wire = match wire {
-            Wire::Qubit(q) => dag.qubits.get(q).unwrap().to_object(py),
+            Wire::Qubit(q) => dag.qubits().get(q).unwrap().to_object(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),
         };
 
@@ -176,7 +176,7 @@ pub(crate) fn analyze_commutations(
     // Then we add the {(node, wire): index} dictionary
     for ((node_index, wire), index) in node_indices {
         let py_wire = match wire {
-            Wire::Qubit(q) => dag.qubits.get(q).unwrap().to_object(py),
+            Wire::Qubit(q) => dag.qubits().get(q).unwrap().to_object(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),
         };
         out_dict.set_item((dag.get_node(py, node_index)?, py_wire), index)?;
