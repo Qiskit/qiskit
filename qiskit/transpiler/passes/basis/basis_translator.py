@@ -17,15 +17,11 @@ import time
 import logging
 
 from functools import singledispatchmethod
-from itertools import zip_longest
 from collections import defaultdict
 
 import rustworkx
 
 from qiskit.circuit import (
-    Gate,
-    ParameterVector,
-    QuantumRegister,
     ControlFlowOp,
     QuantumCircuit,
     ParameterExpression,
