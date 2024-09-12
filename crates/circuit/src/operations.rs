@@ -2051,7 +2051,8 @@ fn clone_param(param: &Param, py: Python) -> Param {
     }
 }
 
-fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
+/// Multiply a ``Param`` with a float.
+pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
@@ -2064,7 +2065,24 @@ fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     }
 }
 
-fn add_param(param: &Param, summand: f64, py: Python) -> Param {
+/// Multiply two ``Param``s.
+pub fn multiply_params(param1: Param, param2: Param, py: Python) -> Param {
+    match (&param1, &param2) {
+        (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
+        (param, Param::Float(theta)) => multiply_param(param, *theta, py),
+        (Param::Float(theta), param) => multiply_param(param, *theta, py),
+        (Param::ParameterExpression(p1), Param::ParameterExpression(p2)) => {
+            Param::ParameterExpression(
+                p1.clone_ref(py)
+                    .call_method1(py, intern!(py, "__rmul__"), (p2,))
+                    .expect("Parameter expression multiplication failed"),
+            )
+        }
+        _ => unreachable!("Unsupported multiplication."),
+    }
+}
+
+pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta + summand),
         Param::ParameterExpression(theta) => Param::ParameterExpression(

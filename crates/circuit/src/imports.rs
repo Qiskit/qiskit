@@ -111,6 +111,7 @@ pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
 pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
     ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
+pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
