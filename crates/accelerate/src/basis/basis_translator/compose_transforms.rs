@@ -26,7 +26,8 @@ use smallvec::SmallVec;
 
 // Custom types
 // TODO: Remove these and use the version from `basis_search`
-type BasisTransforms = Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)>;
+pub type BasisTransforms = Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)>;
+pub type MappedTransforms = HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)>;
 // TODO: Remove these and use the version from `EquivalenceLibrary`
 
 /// Representation of QuantumCircuit which the original circuit object + an
@@ -71,7 +72,7 @@ pub(super) fn py_compose_transforms(
     basis_transforms: BasisTransforms,
     source_basis: HashSet<(String, u32)>,
     source_dag: &DAGCircuit,
-) -> PyResult<HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)>> {
+) -> PyResult<MappedTransforms> {
     compose_transforms(py, &basis_transforms, &source_basis, source_dag)
 }
 
@@ -80,10 +81,9 @@ pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a BasisTransforms,
     source_basis: &'a HashSet<(String, u32)>,
     source_dag: &'a DAGCircuit,
-) -> PyResult<HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)>> {
+) -> PyResult<MappedTransforms> {
     let example_gates = *get_example_gates(py, source_dag, None)?;
-    let mut mapped_instructions: HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)> =
-        HashMap::new();
+    let mut mapped_instructions: MappedTransforms = HashMap::new();
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         // Need to grab a gate instance to find num_qubits and num_params.
