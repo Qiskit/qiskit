@@ -225,7 +225,7 @@ pub struct DAGCircuit {
 
     calibrations: HashMap<String, Py<PyDict>>,
 
-    pub dag: StableDiGraph<NodeType, Wire>,
+    dag: StableDiGraph<NodeType, Wire>,
 
     #[pyo3(get)]
     qregs: Py<PyDict>,
@@ -237,9 +237,9 @@ pub struct DAGCircuit {
     /// The cache used to intern instruction cargs.
     pub(crate) cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    pub qubits: BitData<Qubit>,
+    qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    pub clbits: BitData<Clbit>,
+    clbits: BitData<Clbit>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -736,8 +736,8 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
-    #[getter]
-    pub fn qubits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter(qubits)]
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
         self.qubits.cached().clone_ref(py)
     }
 
@@ -751,8 +751,8 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
-    #[getter]
-    pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter(clbits)]
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
         self.clbits.cached().clone_ref(py)
     }
 
@@ -4985,6 +4985,42 @@ def _format(operand):
 }
 
 impl DAGCircuit {
+    /// Returns an immutable view of the inner StableGraph managed by the circuit.
+    #[inline(always)]
+    pub fn dag(&self) -> &StableDiGraph<NodeType, Wire> {
+        &self.dag
+    }
+
+    /// Returns an immutable view of the Interner used for Qargs
+    #[inline(always)]
+    pub fn qargs_interner(&self) -> &Interner<[Qubit]> {
+        &self.qargs_interner
+    }
+
+    /// Returns an immutable view of the Interner used for Cargs
+    #[inline(always)]
+    pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
+        &self.cargs_interner
+    }
+
+    /// Returns an immutable view of the Global Phase `Param` of the circuit
+    #[inline(always)]
+    pub fn global_phase(&self) -> &Param {
+        &self.global_phase
+    }
+
+    /// Returns an immutable view of the Qubits registered in the circuit
+    #[inline(always)]
+    pub fn qubits(&self) -> &BitData<Qubit> {
+        &self.qubits
+    }
+
+    /// Returns an immutable view of the Classical bits registered in the circuit
+    #[inline(always)]
+    pub fn clbits(&self) -> &BitData<Clbit> {
+        &self.clbits
+    }
+
     /// Return an iterator of gate runs with non-conditional op nodes of given names
     pub fn collect_runs(
         &self,
