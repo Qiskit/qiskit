@@ -82,7 +82,7 @@ class SuzukiTrotter(ProductFormula):
             | None
         ) = None,
         wrap: bool = False,
-        reorder: bool = True,
+        reorder: bool = False,
     ) -> None:
         """
         Args:
@@ -104,7 +104,7 @@ class SuzukiTrotter(ProductFormula):
                 effect when ``atomic_evolution is None``.
             reorder: Whether to allow reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
-                when synthesizing operator with a single term. Defaults to ``True``.
+                when synthesizing operator with a single term. Defaults to ``False``.
         Raises:
             ValueError: If order is not even
         """
