@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// #[cfg(feature = "cache_pygates")]
+#[cfg(feature = "cache_pygates")]
 use std::cell::OnceCell;
 
 use std::f64::consts::PI;
@@ -186,7 +186,7 @@ fn dag_from_2q_gate_sequence(
             clbits: target_dag.cargs_interner.get_default(),
             params: new_params,
             extra_attrs: None,
-            // #[cfg(feature = "cache_pygates")]
+            #[cfg(feature = "cache_pygates")]
             py_op: OnceCell::new(),
         };
         instructions.push(pi);
