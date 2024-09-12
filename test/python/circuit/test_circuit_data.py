@@ -184,7 +184,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(len(visited_ops), len(data_list))
         self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
 
-    def test_map_ops(self):
+    def test_map_nonstandard_ops(self):
         """Test all operations are replaced."""
         qr = QuantumRegister(5)
 
@@ -203,7 +203,7 @@ class TestQuantumCircuitData(QiskitTestCase):
             CircuitInstruction(CustomXGate(), [qr[4]], []),
         ]
         data = CircuitData(qubits=list(qr), data=data_list)
-        data.map_ops(lambda op: op.to_mutable())
+        data.map_nonstandard_ops(lambda op: op.to_mutable())
         self.assertTrue(all(inst.operation.mutable for inst in data))
 
     def test_replace_bits(self):
@@ -859,6 +859,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         # A fancy way of doing qc0_instance = qc0.data[0] and qc1_instance = qc1.data[0]
         # but this at least verifies the parameter table is point from the parameter to
         # the correct instruction (which is the only one)
-        qc0_instance = qc0._data[next(iter(qc0._data._get_param(b.uuid.int)))[0]]
-        qc1_instance = qc1._data[next(iter(qc1._data._get_param(a.uuid.int)))[0]]
+        qc0_instance = qc0._data[next(iter(qc0._data._raw_parameter_table_entry(b)))[0]]
+        qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)

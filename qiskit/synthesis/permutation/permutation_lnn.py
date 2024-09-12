@@ -15,7 +15,7 @@
 from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from .permutation_utils import _inverse_pattern
+from qiskit._accelerate.synthesis.permutation import _synth_permutation_depth_lnn_kms
 
 
 def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
@@ -49,26 +49,6 @@ def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> Qua
     # In the permutation synthesis code below the notation is opposite:
     # [2, 4, 3, 0, 1] means that 0 maps to 2, 1 to 3, 2 to 3, 3 to 0, and 4 to 1.
     # This is why we invert the pattern.
-    cur_pattern = _inverse_pattern(pattern)
-
-    num_qubits = len(cur_pattern)
-    qc = QuantumCircuit(num_qubits)
-
-    # add conditional odd-even swap layers
-    for i in range(num_qubits):
-        _create_swap_layer(qc, cur_pattern, i % 2)
-
-    return qc
-
-
-def _create_swap_layer(qc, pattern, starting_point):
-    """Implements a single swap layer, consisting of conditional swaps between each
-    neighboring couple. The starting_point is the first qubit to use (either 0 or 1
-    for even or odd layers respectively). Mutates both the quantum circuit ``qc``
-    and the permutation pattern ``pattern``.
-    """
-    num_qubits = len(pattern)
-    for j in range(starting_point, num_qubits - 1, 2):
-        if pattern[j] > pattern[j + 1]:
-            qc.swap(j, j + 1)
-            pattern[j], pattern[j + 1] = pattern[j + 1], pattern[j]
+    return QuantumCircuit._from_circuit_data(
+        _synth_permutation_depth_lnn_kms(pattern), add_regs=True
+    )

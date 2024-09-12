@@ -41,7 +41,7 @@ from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 class TestBackendV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.backend = GenericBackendV2(num_qubits=2, seed=42, basis_gates=["rx", "u"])
+        self.backend = GenericBackendV2(num_qubits=2, basis_gates=["rx", "u"], seed=42)
         cx_props = {
             (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
         }
@@ -127,9 +127,9 @@ class TestBackendV2(QiskitTestCase):
     )
     def test_5q_ghz(self, opt_level, gate, bidirectional):
         if bidirectional:
-            backend = GenericBackendV2(num_qubits=5)
+            backend = GenericBackendV2(num_qubits=5, seed=42)
         else:
-            backend = GenericBackendV2(num_qubits=5, coupling_map=TENERIFE_CMAP)
+            backend = GenericBackendV2(num_qubits=5, coupling_map=TENERIFE_CMAP, seed=42)
         qc = QuantumCircuit(5)
         qc.h(0)
         getattr(qc, gate)(0, 1)
@@ -147,7 +147,7 @@ class TestBackendV2(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(1, 0)
-        tqc = transpile(qc, self.backend)
+        tqc = transpile(qc, self.backend, optimization_level=1)
         self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         # Below is done to check we're decomposing cx(1, 0) with extra
         # rotations to correct for direction. However because of fp
@@ -163,7 +163,7 @@ class TestBackendV2(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.ecr(0, 1)
-        tqc = transpile(qc, self.backend)
+        tqc = transpile(qc, self.backend, optimization_level=1)
         self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
@@ -173,7 +173,7 @@ class TestBackendV2(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.ecr(0, 1)
-        tqc = transpile(qc, self.backend)
+        tqc = transpile(qc, self.backend, optimization_level=1)
         expected = QuantumCircuit(2)
         expected.u(0, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, 0, 1)
@@ -191,7 +191,7 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.cx(1, 0)
         qc.measure_all()
-        tqc = transpile(qc, backend)
+        tqc = transpile(qc, backend, optimization_level=1)
         qr = QuantumRegister(27, "q")
         cr = ClassicalRegister(2, "meas")
         expected = QuantumCircuit(qr, cr, global_phase=math.pi / 4)
@@ -207,7 +207,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_drive_channel(self, qubit):
         """Test getting drive channel with qubit index."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         chan = backend.drive_channel(qubit)
         ref = channels.DriveChannel(qubit)
         self.assertEqual(chan, ref)
@@ -215,7 +215,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_measure_channel(self, qubit):
         """Test getting measure channel with qubit index."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         chan = backend.measure_channel(qubit)
         ref = channels.MeasureChannel(qubit)
         self.assertEqual(chan, ref)
@@ -223,7 +223,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_acquire_channel(self, qubit):
         """Test getting acquire channel with qubit index."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         chan = backend.acquire_channel(qubit)
         ref = channels.AcquireChannel(qubit)
         self.assertEqual(chan, ref)
@@ -241,7 +241,7 @@ class TestBackendV2(QiskitTestCase):
             (1, 0): 1,
             (0, 1): 0,
         }
-        backend = GenericBackendV2(num_qubits=5, coupling_map=BOGOTA_CMAP)
+        backend = GenericBackendV2(num_qubits=5, coupling_map=BOGOTA_CMAP, seed=42)
         chan = backend.control_channel(qubits)[0]
         ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
         self.assertEqual(chan, ref)

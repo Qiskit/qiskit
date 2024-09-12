@@ -14,7 +14,7 @@ Test the BackendStatus.
 """
 
 from qiskit.providers.fake_provider import Fake5QV1
-from qiskit.providers.models import BackendStatus
+from qiskit.providers.models.backendstatus import BackendStatus
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -35,7 +35,8 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_fake_backend_status(self):
         """Test backend status for one of the fake backends"""
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         backend_status = fake_backend.status()
         self.assertIsInstance(backend_status, BackendStatus)
 

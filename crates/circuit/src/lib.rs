@@ -10,26 +10,52 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
+pub mod converters;
+pub mod dag_circuit;
 pub mod dag_node;
+mod dot_utils;
+mod error;
 pub mod gate_matrix;
 pub mod imports;
+mod interner;
 pub mod operations;
+pub mod packed_instruction;
 pub mod parameter_table;
 pub mod slice;
 pub mod util;
 
-mod bit_data;
-mod interner;
+mod rustworkx_core_vnext;
 
 use pyo3::prelude::*;
+use pyo3::types::{PySequence, PyTuple};
 
 pub type BitType = u32;
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
 pub struct Qubit(pub BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Clbit(pub BitType);
+
+pub struct TupleLikeArg<'py> {
+    value: Bound<'py, PyTuple>,
+}
+
+impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let value = match ob.downcast::<PySequence>() {
+            Ok(seq) => seq.to_tuple()?,
+            Err(_) => PyTuple::new_bound(
+                ob.py(),
+                ob.iter()?
+                    .map(|o| Ok(o?.unbind()))
+                    .collect::<PyResult<Vec<PyObject>>>()?,
+            ),
+        };
+        Ok(TupleLikeArg { value })
+    }
+}
 
 impl From<BitType> for Qubit {
     fn from(value: BitType) -> Self {
@@ -55,17 +81,14 @@ impl From<Clbit> for BitType {
     }
 }
 
-#[pymodule]
-pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
+pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<circuit_instruction::CircuitInstruction>()?;
+    m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
-    m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<operations::StandardGate>()?;
-    m.add_class::<operations::PyInstruction>()?;
-    m.add_class::<operations::PyGate>()?;
-    m.add_class::<operations::PyOperation>()?;
     Ok(())
 }

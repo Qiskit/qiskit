@@ -62,6 +62,12 @@ class TestHamiltonianGate(QiskitTestCase):
             ham.adjoint().to_matrix(), np.transpose(np.conj(ham.to_matrix()))
         )
 
+    def test_repeat(self):
+        """test repeat operation"""
+        ham = HamiltonianGate(np.array([[1, 0.5 + 4j], [0.5 - 4j, -0.2]]), np.pi * 0.143)
+        operator = Operator(ham)
+        self.assertTrue(np.allclose(Operator(ham.repeat(2)), operator @ operator))
+
 
 class TestHamiltonianCircuit(QiskitTestCase):
     """Hamiltonian gate circuit tests."""
@@ -131,7 +137,8 @@ class TestHamiltonianCircuit(QiskitTestCase):
         np.testing.assert_almost_equal(dnode.op.to_matrix(), 1j * matrix.data)
 
     def test_qobj_with_hamiltonian(self):
-        """test qobj output with hamiltonian"""
+        """test qobj output with hamiltonian
+        REMOVE once Qobj gets removed"""
         qr = QuantumRegister(4)
         qc = QuantumCircuit(qr)
         qc.rx(np.pi / 4, qr[0])
@@ -141,7 +148,8 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
         qc = qc.assign_parameters({theta: np.pi / 2})
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, "hamiltonian")
         # Also test label

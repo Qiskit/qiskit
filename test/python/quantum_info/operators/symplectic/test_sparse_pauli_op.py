@@ -1097,6 +1097,25 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
             op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
 
+    def test_paulis_setter_absorbs_phase(self):
+        """Test that the setter for `paulis` absorbs `paulis.phase` to `self.coeffs`."""
+        coeffs_init = np.array([1, 1j])
+        op = SparsePauliOp(["XY", "ZX"], coeffs=coeffs_init)
+        paulis_new = PauliList(["-1jXY", "1jZX"])
+        op.paulis = paulis_new
+        # Paulis attribute should have no phase:
+        self.assertEqual(op.paulis, PauliList(["XY", "ZX"]))
+        # Coeffs attribute should now include that phase:
+        self.assertTrue(np.allclose(op.coeffs, coeffs_init * np.array([-1j, 1j])))
+        # The phase of the input array is now zero:
+        self.assertTrue(np.allclose(paulis_new.phase, np.array([0, 0])))
+
+    def test_paulis_setter_absorbs_phase_2(self):
+        """Test that `paulis` setter followed by `simplify()` handle phase OK."""
+        spo = SparsePauliOp(["X", "X"])
+        spo.paulis = ["X", "-X"]
+        self.assertEqual(spo.simplify(), SparsePauliOp(["I"], coeffs=[0.0 + 0.0j]))
+
     def test_apply_layout_with_transpile(self):
         """Test the apply_layout method with a transpiler layout."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
@@ -1118,12 +1137,14 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
-        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        job = estimator.run(transpiled_psi, permuted_op, thetas)
-        res = job.result().values
+        with self.assertWarns(DeprecationWarning):
+            job = estimator.run(transpiled_psi, permuted_op, thetas)
+            res = job.result().values
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:

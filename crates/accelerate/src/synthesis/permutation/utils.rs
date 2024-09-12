@@ -10,12 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ndarray::ArrayViewMut1;
 use ndarray::{Array1, ArrayView1};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::vec::Vec;
 
-use qiskit_circuit::slice::{PySequenceIndex, PySequenceIndexError, SequenceIndex};
+use qiskit_circuit::slice::PySequenceIndex;
 
 pub fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     let n = pattern.len();
@@ -120,11 +121,8 @@ pub fn pattern_to_cycles(pattern: &ArrayView1<usize>) -> Vec<Vec<usize>> {
 /// Periodic (or Python-like) access to a vector.
 /// Util used below in ``decompose_cycles``.
 #[inline]
-fn pget(vec: &[usize], index: isize) -> Result<usize, PySequenceIndexError> {
-    let SequenceIndex::Int(wrapped) = PySequenceIndex::Int(index).with_len(vec.len())? else {
-        unreachable!()
-    };
-    Ok(vec[wrapped])
+fn pget(vec: &[usize], index: isize) -> usize {
+    vec[PySequenceIndex::convert_idx(index, vec.len()).unwrap()]
 }
 
 /// Given a disjoint cycle decomposition of a permutation pattern (see the function
@@ -138,18 +136,31 @@ pub fn decompose_cycles(cycles: &Vec<Vec<usize>>) -> Vec<(usize, usize)> {
         let length = cycle.len() as isize;
 
         for idx in 0..(length - 1) / 2 {
-            swaps.push((
-                pget(cycle, idx - 1).unwrap(),
-                pget(cycle, length - 3 - idx).unwrap(),
-            ));
+            swaps.push((pget(cycle, idx - 1), pget(cycle, length - 3 - idx)));
         }
         for idx in 0..length / 2 {
-            swaps.push((
-                pget(cycle, idx - 1).unwrap(),
-                pget(cycle, length - 2 - idx).unwrap(),
-            ));
+            swaps.push((pget(cycle, idx - 1), pget(cycle, length - 2 - idx)));
         }
     }
 
     swaps
+}
+
+/// Implements a single swap layer, consisting of conditional swaps between each
+/// neighboring couple. The starting_point is the first qubit to use (either 0 or 1
+/// for even or odd layers respectively). Mutates the permutation pattern ``pattern``.
+pub fn create_swap_layer(
+    pattern: &mut ArrayViewMut1<usize>,
+    starting_point: usize,
+) -> Vec<(usize, usize)> {
+    let num_qubits = pattern.len();
+    let mut gates = Vec::new();
+
+    for j in (starting_point..num_qubits - 1).step_by(2) {
+        if pattern[j] > pattern[j + 1] {
+            gates.push((j, j + 1));
+            pattern.swap(j, j + 1);
+        }
+    }
+    gates
 }

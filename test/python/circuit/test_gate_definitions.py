@@ -54,6 +54,8 @@ from qiskit.circuit.library import (
     CZGate,
     RYYGate,
     PhaseGate,
+    PauliGate,
+    UCPauliRotGate,
     CPhaseGate,
     UGate,
     CUGate,
@@ -184,6 +186,18 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(len(decomposed_circuit) > len(circuit))
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
+    def test_pauligate_repeat(self):
+        """Test `repeat` method for `PauliGate`."""
+        gate = PauliGate("XYZ")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
+    def test_ucpaulirotgate_repeat(self):
+        """Test `repeat` method for `UCPauliRotGate`."""
+        gate = UCPauliRotGate([0.3, 0.5], "X")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -294,6 +308,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_DefinedGate",
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
+        "QFTGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get

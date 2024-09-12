@@ -67,6 +67,11 @@ class TestUnitaryGate(QiskitTestCase):
         uni = UnitaryGate([[0, 1j], [-1j, 0]])
         self.assertTrue(numpy.array_equal(uni.adjoint().to_matrix(), uni.to_matrix()))
 
+    def test_repeat(self):
+        """test repeat operation"""
+        uni = UnitaryGate([[1, 0], [0, 1j]])
+        self.assertTrue(numpy.array_equal(Operator(uni.repeat(2)), Operator(uni) @ Operator(uni)))
+
 
 class TestUnitaryCircuit(QiskitTestCase):
     """Matrix gate circuit tests."""
@@ -168,7 +173,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni = UnitaryGate(matrix)
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, "unitary")
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
@@ -197,7 +203,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         matrix = numpy.kron(sigmax, sigmay)
         uni = UnitaryGate(matrix, label="xy")
         qc.append(uni, [qr[0], qr[1]])
-        qobj = qiskit.compiler.assemble(qc)
+        with self.assertWarns(DeprecationWarning):
+            qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[0]
         self.assertEqual(instr.name, "unitary")
         self.assertEqual(instr.label, "xy")

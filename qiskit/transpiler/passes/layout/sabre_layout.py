@@ -35,11 +35,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.nlayout import NLayout
-from qiskit._accelerate.sabre import (
-    sabre_layout_and_routing,
-    Heuristic,
-    NeighborTable,
-)
+from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -314,7 +310,7 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-        mapped_dag._global_phase = dag._global_phase
+        mapped_dag.global_phase = dag.global_phase
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
@@ -393,12 +389,18 @@ class SabreLayout(TransformationPass):
             coupling_map.size(),
             original_qubit_indices,
         )
+        heuristic = (
+            Heuristic(attempt_limit=10 * coupling_map.size())
+            .with_basic(1.0, SetScaling.Size)
+            .with_lookahead(0.5, 20, SetScaling.Size)
+            .with_decay(0.001, 5)
+        )
         sabre_start = time.perf_counter()
         (initial_layout, final_permutation, sabre_result) = sabre_layout_and_routing(
             sabre_dag,
             neighbor_table,
             dist_matrix,
-            Heuristic.Decay,
+            heuristic,
             self.max_iterations,
             self.swap_trials,
             self.layout_trials,

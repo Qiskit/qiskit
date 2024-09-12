@@ -112,7 +112,7 @@ class ZGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -285,6 +285,8 @@ class CCZGate(SingletonControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
+
+    _standard_gate = StandardGate.CCZGate
 
     def __init__(
         self,

@@ -14,7 +14,7 @@
 
 """Base TestCases for the unit tests.
 
-Implementors of unit tests for Terra are encouraged to subclass
+Implementors of unit tests for Qiskit should subclass
 ``QiskitTestCase`` in order to take advantage of utility functions (for example,
 the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
@@ -65,11 +65,110 @@ else:
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
-class BaseQiskitTestCase(BaseTestCase):
-    """Additions for test cases for all Qiskit-family packages.
+class QiskitTestCase(BaseTestCase):
+    """Additions for Qiskit test cases."""
 
-    The additions here are intended for all packages, not just Terra.  Terra-specific logic should
-    be in the Terra-specific classes."""
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Set logging to file and stdout if the LOG_LEVEL envar is set.
+        cls.log = logging.getLogger(cls.__name__)
+
+        if log_level := os.getenv("LOG_LEVEL"):
+            log_fmt = f"{cls.log.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
+            formatter = logging.Formatter(log_fmt)
+            file_handler = logging.FileHandler(f"{os.path.splitext(inspect.getfile(cls))[0]}.log")
+            file_handler.setFormatter(formatter)
+            cls.log.addHandler(file_handler)
+
+            if os.getenv("STREAM_LOG"):
+                # Set up the stream handler.
+                stream_handler = logging.StreamHandler()
+                stream_handler.setFormatter(formatter)
+                cls.log.addHandler(stream_handler)
+
+            # Set the logging level from the environment variable, defaulting
+            # to INFO if it is not a valid level.
+            level = logging._nameToLevel.get(log_level, logging.INFO)
+            cls.log.setLevel(level)
+
+        warnings.filterwarnings("error", category=DeprecationWarning)
+        warnings.filterwarnings("error", category=QiskitWarning)
+
+        # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
+        # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
+        # adds a field called `__warningregistry__` to any module that triggers a warning, and
+        # `unittest.TestCase.assertWarns` then queries said fields on all existing modules.  On
+        # macOS ARM, we see some (we think harmless) warnings come out of `numpy.linalg._linalg` (a
+        # now-private module) during transpilation, which means that subsequent `assertWarns` calls
+        # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
+        # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*numpy\.(\w+\.)*__warningregistry__",
+        )
+
+        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
+        # their use of pandas would be a problem.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
+            # includes hard-break newlines all over the place.
+            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
+            module=r"seaborn(\..*)?",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message="Treating CircuitInstruction as an iterable is deprecated",
+            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2197 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*qiskit\.providers\.models.*",
+            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*The `Qobj` class and related functionality.*",
+            module=r"qiskit_aer",
+        )
+
+        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
+        # of Aer.
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
+            module="qiskit_aer",
+        )
+
+        # Safe to remove once `FakeBackend` is removed (2.0)
+        warnings.filterwarnings(
+            "ignore",  # If "default", it floods the CI output
+            category=DeprecationWarning,
+            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
+            module="qiskit.providers.fake_provider.fake_backend",
+        )
+
+        allow_DeprecationWarning_message = [
+            r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
+        ]
+        for msg in allow_DeprecationWarning_message:
+            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -98,6 +197,13 @@ class BaseQiskitTestCase(BaseTestCase):
                 "call the base tearDown."
             )
         self.__teardown_called = True
+
+        # Reset the default providers, as in practice they acts as a singleton
+        # due to importing the instances from the top-level qiskit namespace.
+        from qiskit.providers.basic_provider import BasicProvider
+
+        with self.assertWarns(DeprecationWarning):
+            BasicProvider()._backends = BasicProvider()._verify_backends()
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
@@ -165,112 +271,10 @@ Right circuit:
         os.environ["QISKIT_PARALLEL"] = parallel_default
 
 
-class QiskitTestCase(BaseQiskitTestCase):
-    """Terra-specific extra functionality for test cases."""
-
-    def tearDown(self):
-        super().tearDown()
-        # Reset the default providers, as in practice they acts as a singleton
-        # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basic_provider import BasicProvider
-
-        with self.assertWarns(DeprecationWarning):
-            BasicProvider()._backends = BasicProvider()._verify_backends()
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # Set logging to file and stdout if the LOG_LEVEL envar is set.
-        cls.log = logging.getLogger(cls.__name__)
-
-        if log_level := os.getenv("LOG_LEVEL"):
-            log_fmt = f"{cls.log.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
-            formatter = logging.Formatter(log_fmt)
-            file_handler = logging.FileHandler(f"{os.path.splitext(inspect.getfile(cls))[0]}.log")
-            file_handler.setFormatter(formatter)
-            cls.log.addHandler(file_handler)
-
-            if os.getenv("STREAM_LOG"):
-                # Set up the stream handler.
-                stream_handler = logging.StreamHandler()
-                stream_handler.setFormatter(formatter)
-                cls.log.addHandler(stream_handler)
-
-            # Set the logging level from the environment variable, defaulting
-            # to INFO if it is not a valid level.
-            level = logging._nameToLevel.get(log_level, logging.INFO)
-            cls.log.setLevel(level)
-
-        warnings.filterwarnings("error", category=DeprecationWarning)
-        warnings.filterwarnings("error", category=QiskitWarning)
-
-        # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
-        # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
-        # adds a field called `__warningregistry__` to any module that triggers a warning, and
-        # `unittest.TestCase.assertWarns` then queries said fields on all existing modules.  On
-        # macOS ARM, we see some (we think harmless) warnings come out of `numpy.linalg._linalg` (a
-        # now-private module) during transpilation, which means that subsequent `assertWarns` calls
-        # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
-        # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*numpy\.(\w+\.)*__warningregistry__",
-        )
-
-        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
-        # their use of pandas would be a problem.
-        warnings.filterwarnings(
-            "default",
-            category=DeprecationWarning,
-            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
-            # includes hard-break newlines all over the place.
-            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
-            module=r"seaborn(\..*)?",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "default",
-            category=DeprecationWarning,
-            message="Treating CircuitInstruction as an iterable is deprecated",
-            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
-        )
-
-        allow_DeprecationWarning_modules = [
-            "test.python.pulse.test_builder",
-            "test.python.pulse.test_block",
-            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
-            "qiskit.quantum_info.operators.pauli",
-            "pybobyqa",
-            "numba",
-            "qiskit.utils.measurement_error_mitigation",
-            "qiskit.circuit.library.standard_gates.x",
-            "qiskit.pulse.schedule",
-            "qiskit.pulse.instructions.instruction",
-            "qiskit.pulse.instructions.play",
-            "qiskit.pulse.library.parametric_pulses",
-            "qiskit.quantum_info.operators.symplectic.pauli",
-        ]
-        for mod in allow_DeprecationWarning_modules:
-            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
-        allow_DeprecationWarning_message = [
-            r"elementwise comparison failed.*",
-            r"The jsonschema validation included in qiskit-terra.*",
-            r"The DerivativeBase.parameter_expression_grad method.*",
-            r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
-            # Caused by internal scikit-learn scipy usage
-            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
-        ]
-        for msg in allow_DeprecationWarning_message:
-            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
-
 class FullQiskitTestCase(QiskitTestCase):
-    """Terra-specific further additions for test cases, if ``testtools`` is available.
+    """further additions for Qiskit test cases, if ``testtools`` is available.
 
-    It is not normally safe to derive from this class by name; on import, Terra checks if the
+    It is not normally safe to derive from this class by name; on import, Qiskit checks if the
     necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
