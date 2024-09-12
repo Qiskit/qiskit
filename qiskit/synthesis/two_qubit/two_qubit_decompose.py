@@ -361,7 +361,8 @@ class TwoQubitControlledUDecomposer:
         """
 
         # pylint: disable=attribute-defined-outside-init
-        self.decomposer = two_qubit_decompose.TwoQubitWeylDecomposition(unitary.data)
+        unitary = np.asarray(unitary, dtype=complex)
+        self.decomposer = two_qubit_decompose.TwoQubitWeylDecomposition(unitary)
 
         oneq_decompose = OneQubitEulerDecomposer("ZYZ")
         c1l, c1r, c2l, c2r = (
