@@ -42,7 +42,7 @@ where
     K: Eq + Hash + Clone,
     V: Clone,
 {
-    map: BaseMap<K, V>,
+    pub map: BaseMap<K, V>,
     null_val: Option<V>,
 }
 

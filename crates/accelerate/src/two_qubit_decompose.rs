@@ -404,11 +404,11 @@ impl Specialization {
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
-    a: f64,
+    pub a: f64,
     #[pyo3(get)]
-    b: f64,
+    pub b: f64,
     #[pyo3(get)]
-    c: f64,
+    pub c: f64,
     #[pyo3(get)]
     pub global_phase: f64,
     K1l: Array2<Complex64>,
@@ -1146,17 +1146,18 @@ impl TwoQubitWeylDecomposition {
 
 type TwoQubitSequenceVec = Vec<(Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>)>;
 
+#[derive(Clone, Debug)]
 #[pyclass(sequence)]
 pub struct TwoQubitGateSequence {
-    gates: TwoQubitSequenceVec,
+    pub gates: TwoQubitSequenceVec,
     #[pyo3(get)]
-    global_phase: f64,
+    pub global_phase: f64,
 }
 
 #[pymethods]
 impl TwoQubitGateSequence {
     #[new]
-    fn new() -> Self {
+    pub fn new() -> Self {
         TwoQubitGateSequence {
             gates: Vec::new(),
             global_phase: 0.,
@@ -1188,10 +1189,12 @@ impl TwoQubitGateSequence {
         }
     }
 }
+
+#[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitBasisDecomposer {
-    gate: String,
+    pub gate: String,
     basis_fidelity: f64,
     euler_basis: EulerBasis,
     pulse_optimize: Option<bool>,
@@ -1575,7 +1578,7 @@ impl TwoQubitBasisDecomposer {
         Ok(res)
     }
 
-    fn new_inner(
+    pub fn new_inner(
         gate: String,
         gate_matrix: ArrayView2<Complex64>,
         basis_fidelity: f64,
@@ -1713,7 +1716,7 @@ impl TwoQubitBasisDecomposer {
         })
     }
 
-    fn call_inner(
+    pub fn call_inner(
         &self,
         unitary: ArrayView2<Complex64>,
         basis_fidelity: Option<f64>,
