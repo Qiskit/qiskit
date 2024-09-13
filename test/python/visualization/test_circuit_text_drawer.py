@@ -4092,6 +4092,26 @@ class TestTextIdleWires(QiskitTestCase):
         circuit.draw(idle_wires=False)
         self.assertEqual(circuit.num_qubits, before_qubits)
 
+    def test_wires_only_initially_idle(self):
+        """Test a circuit where wires are only idle in the first layer.
+        
+        Regression test of 
+        """
+        expected = "\n".join(["     ┌───┐ ░ ┌───┐",
+                              "q_0: ┤ X ├─░─┤ H ├",
+                              "     └───┘ ░ ├───┤",
+                              "q_1: ──────░─┤ H ├",
+                              "           ░ └───┘"])
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.barrier([0, 1])
+        qc.h(range(2))
+
+        self.assertEqual(
+            str(circuit_drawer(qc, output="text", idle_wires=False)),
+            expected,
+        )
+
 
 class TestTextNonRational(QiskitTestCase):
     """non-rational numbers are correctly represented"""

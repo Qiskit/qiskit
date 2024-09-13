@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in the circuit text drawer, which could fail if the circuit
+    had an initial layer with idle wires.
+    Fixed `#13128 <https://github.com/Qiskit/qiskit/issues/13128>`__.
