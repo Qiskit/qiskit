@@ -20,10 +20,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import MCMT, MCMTVChain, CHGate, XGate, ZGate, CXGate, CZGate, MCMTGate
+from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.states import state_fidelity
+from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
+from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
+from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -215,6 +219,32 @@ class TestMCMT(QiskitTestCase):
             num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
 
             self.assertEqual(num_idle, 0)
+
+    def test_vchain_open_control(self):
+        """Test the V-chain with open controls."""
+        num_ctrl_qubits = 2
+        ctrl_state = None
+        gate = XGate()
+
+        synthesized = synth_mcmt_vchain(
+            gate, num_ctrl_qubits, num_target_qubits=1, ctrl_state=ctrl_state
+        )
+        result = Operator(synthesized)
+
+        # Build the expected matrix by adding padding with the identity operator.
+        # This could be potentially moved into the _equal_with_ancillas util.
+        action = _compute_control_matrix(gate.to_matrix(), num_ctrl_qubits, ctrl_state)
+        pad = np.eye(2 ** (num_ctrl_qubits - 1))
+        expected = Operator(np.kron(pad, action))
+
+        self.assertTrue(
+            _equal_with_ancillas(
+                result,
+                expected,
+                ancilla_qubits=list(range(num_ctrl_qubits + 1, synthesized.num_qubits)),
+                ignore_phase=True,
+            )
+        )
 
 
 if __name__ == "__main__":

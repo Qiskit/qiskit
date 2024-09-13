@@ -81,6 +81,7 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -1087,13 +1088,18 @@ class TestControlledGate(QiskitTestCase):
         """
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonControlledGate isn't directly instantiated.")
-        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-        num_free_params = len(gate_params)
-        free_params = [0.1 * i for i in range(num_free_params)]
-        # set number of control qubits
-        for i in range(num_free_params):
-            if gate_params[i] == "num_ctrl_qubits":
-                free_params[i] = 3
+
+        if gate_class is MCMTGate:
+            # parameters are (base_gate, num_controls, num_targets)
+            free_params = [HGate(), 3, 2]
+        else:
+            gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+            num_free_params = len(gate_params)
+            free_params = [0.1 * i for i in range(num_free_params)]
+            # set number of control qubits
+            for i in range(num_free_params):
+                if gate_params[i] == "num_ctrl_qubits":
+                    free_params[i] = 3
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
@@ -1490,13 +1496,19 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonGateClass isn't intended for direct initalization")
-        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-        num_free_params = len(gate_params)
-        free_params = [0.1 * i for i in range(1, num_free_params + 1)]
-        # set number of control qubits
-        for i in range(num_free_params):
-            if gate_params[i] == "num_ctrl_qubits":
-                free_params[i] = 3
+
+        if gate_class is MCMTGate:
+            # parameters are (base_gate, num_controls, num_targets)
+            free_params = [HGate(), 3, 2]
+        else:
+            gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+            num_free_params = len(gate_params)
+            free_params = [0.1 * i for i in range(1, num_free_params + 1)]
+            # set number of control qubits
+            for i in range(num_free_params):
+                if gate_params[i] == "num_ctrl_qubits":
+                    free_params[i] = 3
+
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
 

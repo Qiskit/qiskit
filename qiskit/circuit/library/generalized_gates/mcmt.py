@@ -266,7 +266,7 @@ class MCMTGate(ControlledGate):
             new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
 
             gate = MCMTGate(
-                self.gate,
+                self.base_gate,
                 self.num_ctrl_qubits + num_ctrl_qubits,
                 self.num_target_qubits,
                 ctrl_state=new_ctrl_state,

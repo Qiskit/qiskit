@@ -18,7 +18,9 @@ from qiskit.circuit import QuantumCircuit, Gate
 from qiskit._accelerate.synthesis.multi_controlled import mcmt_v_chain
 
 
-def synth_mcmt_vchain(gate: Gate, num_ctrl_qubits: int, num_target_qubits: int) -> QuantumCircuit:
+def synth_mcmt_vchain(
+    gate: Gate, num_ctrl_qubits: int, num_target_qubits: int, ctrl_state: int | None = None
+) -> QuantumCircuit:
     """Synthesize MCMT using a V-chain.
 
     This uses a chain of CCX gates, using ``num_ctrl_qubits - 1`` auxiliary qubits.
@@ -42,6 +44,6 @@ def synth_mcmt_vchain(gate: Gate, num_ctrl_qubits: int, num_target_qubits: int) 
 
     """
     circ = QuantumCircuit._from_circuit_data(
-        mcmt_v_chain(gate.control(), num_ctrl_qubits, num_target_qubits)
+        mcmt_v_chain(gate.control(), num_ctrl_qubits, num_target_qubits, ctrl_state)
     )
     return circ

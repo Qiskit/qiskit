@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use core::num;
+
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -93,12 +95,13 @@ fn ccx_chain<'a>(
 ///                    └───┘          └───┘
 ///
 #[pyfunction]
-#[pyo3(signature = (controlled_gate, num_ctrl_qubits, num_target_qubits))]
+#[pyo3(signature = (controlled_gate, num_ctrl_qubits, num_target_qubits, control_state=None))]
 pub fn mcmt_v_chain(
     py: Python,
     controlled_gate: OperationFromPython,
     num_ctrl_qubits: usize,
     num_target_qubits: usize,
+    control_state: Option<usize>,
 ) -> PyResult<CircuitData> {
     let packed_controlled_gate = controlled_gate.operation;
     let num_qubits = if num_ctrl_qubits > 1 {
@@ -106,6 +109,22 @@ pub fn mcmt_v_chain(
     } else {
         1 + num_target_qubits // we can have 1 control and multiple targets
     };
+
+    let control_state = control_state
+        .or(Some(usize::pow(2, num_ctrl_qubits as u32) - 1))
+        .unwrap();
+
+    // First, we handle bitflips in case of open controls.
+    let flip_control_state = (0..num_ctrl_qubits)
+        .filter(|index| control_state & (1 << index) == 0)
+        .map(|index| {
+            (
+                PackedOperation::from_standard(StandardGate::XGate),
+                smallvec![] as SmallVec<[Param; 3]>,
+                vec![Qubit(index as u32)],
+                vec![] as Vec<Clbit>,
+            )
+        });
 
     // First, we create the operations that apply the controlled base gate.
     // That's because we only add the V-chain of CCX gates, if the number of controls
@@ -128,7 +147,16 @@ pub fn mcmt_v_chain(
     });
 
     if num_ctrl_qubits == 1 {
-        CircuitData::from_packed_operations(py, num_qubits as u32, 0, targets, Param::Float(0.0))
+        CircuitData::from_packed_operations(
+            py,
+            num_qubits as u32,
+            0,
+            flip_control_state
+                .clone()
+                .chain(targets)
+                .chain(flip_control_state),
+            Param::Float(0.0),
+        )
     } else {
         // If the number of controls is larger than 1, and we need to apply the V-chain,
         // create it here and sandwich the targets in-between.
@@ -141,7 +169,12 @@ pub fn mcmt_v_chain(
             py,
             num_qubits as u32,
             0,
-            down_chain.chain(targets).chain(up_chain),
+            flip_control_state
+                .clone()
+                .chain(down_chain)
+                .chain(targets)
+                .chain(up_chain)
+                .chain(flip_control_state),
             Param::Float(0.0),
         )
     }

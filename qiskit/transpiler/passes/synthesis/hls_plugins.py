@@ -948,20 +948,23 @@ class MCMTNoAux(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        print("I'm called!")
         base_gate = high_level_object.base_gate
+        ctrl_state = options.get("ctrl_state", None)
 
         if high_level_object.num_target_qubits == 1:
             # no broadcasting needed (makes for better circuit diagrams)
             circuit = QuantumCircuit(high_level_object.num_qubits)
-            circuit.append(base_gate.control(high_level_object.num_ctrl_qubits), circuit.qubits)
+            circuit.append(
+                base_gate.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state),
+                circuit.qubits,
+            )
 
         else:
             base = QuantumCircuit(high_level_object.num_target_qubits, name=high_level_object.label)
             for i in range(high_level_object.num_target_qubits):
                 base.append(base_gate, [i], [])
 
-            circuit = base.control(high_level_object.num_ctrl_qubits)
+            circuit = base.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state)
 
         return circuit.decompose()
 
@@ -973,8 +976,11 @@ class MCMTVChain(HighLevelSynthesisPlugin):
         if options.get("num_clean_ancillas", 0) < high_level_object.num_ctrl_qubits - 1:
             return None  # insufficient number of auxiliary qubits
 
+        ctrl_state = options.get("ctrl_state", None)
+
         return synth_mcmt_vchain(
             high_level_object.base_gate,
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
+            ctrl_state,
         )
