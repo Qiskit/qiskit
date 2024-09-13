@@ -90,6 +90,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "mcx.noaux_v24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24"
 "mcx.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisDefault"
 "mcmt.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTDefault"
+"mcmt.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTNoAux"
 "mcmt.vchain" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTVChain"
 "permutation.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation"

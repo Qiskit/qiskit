@@ -933,6 +933,22 @@ class MCMTDefault(HighLevelSynthesisPlugin):
     """A default decomposition for MCMT gates."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        # first try to use the V-chain synthesis if enough auxiliary qubits are available
+        if (
+            decomposition := MCMTVChain().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        return MCMTNoAux().run(high_level_object, coupling_map, target, qubits, **options)
+
+
+class MCMTNoAux(HighLevelSynthesisPlugin):
+    """A V-chain based synthesis for ``MCMTGate``."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        print("I'm called!")
         base_gate = high_level_object.base_gate
 
         if high_level_object.num_target_qubits == 1:
@@ -954,7 +970,7 @@ class MCMTVChain(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        if options.get("num_clean_ancillas") < high_level_object.num_ctrl_qubits - 1:
+        if options.get("num_clean_ancillas", 0) < high_level_object.num_ctrl_qubits - 1:
             return None  # insufficient number of auxiliary qubits
 
         return synth_mcmt_vchain(

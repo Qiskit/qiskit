@@ -19,9 +19,11 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import MCMT, MCMTVChain, CHGate, XGate, ZGate, CXGate, CZGate
+from qiskit.circuit.library import MCMT, MCMTVChain, CHGate, XGate, ZGate, CXGate, CZGate, MCMTGate
+from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.states import state_fidelity
+from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -152,6 +154,67 @@ class TestMCMT(QiskitTestCase):
             )
             f_i = state_fidelity(vec, vec_exp)
             self.assertAlmostEqual(f_i, 1)
+
+    def test_default_plugin(self):
+        """Test the default behavior of the plugin."""
+        num_controls = 5
+        num_target = 2
+        num_vchain_ancillas = num_controls - 1
+
+        gate = XGate()
+        mcmt = MCMTGate(gate, num_controls, num_target)
+
+        hls = HighLevelSynthesis()
+
+        # test a decomposition without sufficient ancillas for MCMT V-chain
+        with self.subTest(msg="insufficient auxiliaries"):
+            circuit = QuantumCircuit(num_controls + num_target + num_vchain_ancillas - 1)
+            circuit.append(mcmt, range(mcmt.num_qubits))
+
+            synthesized = hls(circuit)
+            num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
+
+            self.assertEqual(num_idle, num_vchain_ancillas - 1)
+
+        # test with enough auxiliary qubits available
+        with self.subTest(msg="enough auxiliaries"):
+            circuit = QuantumCircuit(num_controls + num_target + num_vchain_ancillas)
+            circuit.append(mcmt, range(mcmt.num_qubits))
+
+            synthesized = hls(circuit)
+            num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
+
+            self.assertEqual(num_idle, 0)
+
+    def test_explicit_plugin(self):
+        """Test explicitly setting the plugin."""
+        num_controls = 5
+        num_target = 2
+        num_vchain_ancillas = num_controls - 1
+
+        gate = XGate()
+        mcmt = MCMTGate(gate, num_controls, num_target)
+
+        circuit = QuantumCircuit(num_controls + num_target + num_vchain_ancillas)
+        circuit.append(mcmt, range(mcmt.num_qubits))
+
+        # test a decomposition without sufficient ancillas for MCMT V-chain
+        with self.subTest(msg="force default decomposition"):
+            config = HLSConfig(mcmt=["noaux"], mcx=["noaux_v24"])
+
+            synthesized = transpile(circuit, hls_config=config)
+            num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
+
+            self.assertEqual(num_idle, num_vchain_ancillas)
+
+        # test with enough auxiliary qubits available
+        with self.subTest(msg="enough auxiliaries"):
+            config = HLSConfig(mcmt=["vchain"])
+
+            synthesized = transpile(circuit, hls_config=config)
+            num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
+
+            self.assertEqual(num_idle, 0)
 
 
 if __name__ == "__main__":
