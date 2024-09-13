@@ -4095,7 +4095,7 @@ class TestTextIdleWires(QiskitTestCase):
     def test_wires_only_initially_idle(self):
         """Test a circuit where wires are only idle in the first layer.
         
-        Regression test of 
+        Regression test for https://github.com/Qiskit/qiskit/issues/13128
         """
         expected = "\n".join(["     ┌───┐ ░ ┌───┐",
                               "q_0: ┤ X ├─░─┤ H ├",
