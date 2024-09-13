@@ -1163,7 +1163,6 @@ impl TwoQubitGateSequence {
             global_phase: 0.,
         }
     }
-
     fn __getstate__(&self) -> (TwoQubitSequenceVec, f64) {
         (self.gates.clone(), self.global_phase)
     }
@@ -1187,6 +1186,12 @@ impl TwoQubitGateSequence {
             .into_any()
             .unbind()),
         }
+    }
+}
+
+impl Default for TwoQubitGateSequence {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -27,8 +27,8 @@ from typing import Any
 from itertools import product
 from functools import partial
 import numpy as np
+import rustworkx
 
-from qiskit._accelerate.unitary_synthesis import run_default_main_loop
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit import Gate, Parameter, CircuitInstruction
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -74,6 +74,8 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
 
+from qiskit._accelerate.sabre import NeighborTable
+from qiskit._accelerate.unitary_synthesis import run_default_main_loop
 
 GATE_NAME_MAP = {
     "cx": CXGate._standard_gate,
@@ -507,10 +509,6 @@ class UnitarySynthesis(TransformationPass):
         )
 
         if self.method == "default" and isinstance(kwargs["target"], Target):
-            print("RUST")
-            from qiskit._accelerate.sabre import NeighborTable
-            import rustworkx
-
             _gate_lengths = _gate_lengths or _build_gate_lengths(self._backend_props, self._target)
             _gate_errors = _gate_errors or _build_gate_errors(self._backend_props, self._target)
             if self._coupling_map is not None:
@@ -521,21 +519,16 @@ class UnitarySynthesis(TransformationPass):
             else:
                 _dist_matrix = None
                 _neighbor_table = None
-                
+
             out = run_default_main_loop(
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
                 kwargs["target"],
                 self._approximation_degree,
-                kwargs["basis_gates"],
                 _neighbor_table,
                 _dist_matrix,
-                # self._coupling_map,
                 kwargs["natural_direction"],
-                kwargs["pulse_optimize"],
-                _gate_lengths,
-                _gate_errors,
             )
             return out
         else:
