@@ -368,34 +368,28 @@ impl DAGOpNode {
 
     #[getter]
     fn label(&self) -> Option<&str> {
-        self.instruction
-            .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.label.as_deref())
+        self.instruction.extra_attrs.label()
     }
 
     #[getter]
     fn condition(&self, py: Python) -> Option<PyObject> {
         self.instruction
             .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.condition.as_ref().map(|x| x.clone_ref(py)))
+            .condition()
+            .map(|x| x.clone_ref(py))
     }
 
     #[getter]
     fn duration(&self, py: Python) -> Option<PyObject> {
         self.instruction
             .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.duration.as_ref().map(|x| x.clone_ref(py)))
+            .duration()
+            .map(|x| x.clone_ref(py))
     }
 
     #[getter]
     fn unit(&self) -> Option<&str> {
-        self.instruction
-            .extra_attrs
-            .as_ref()
-            .and_then(|attrs| attrs.unit.as_deref())
+        self.instruction.extra_attrs.unit()
     }
 
     /// Is the :class:`.Operation` contained in this node a Qiskit standard gate?
@@ -426,30 +420,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_label(&mut self, val: Option<String>) {
-        match self.instruction.extra_attrs.as_mut() {
-            Some(attrs) => attrs.label = val,
-            None => {
-                if val.is_some() {
-                    self.instruction.extra_attrs = Some(Box::new(
-                        crate::circuit_instruction::ExtraInstructionAttributes {
-                            label: val,
-                            duration: None,
-                            unit: None,
-                            condition: None,
-                        },
-                    ))
-                }
-            }
-        };
-        if let Some(attrs) = &self.instruction.extra_attrs {
-            if attrs.label.is_none()
-                && attrs.duration.is_none()
-                && attrs.unit.is_none()
-                && attrs.condition.is_none()
-            {
-                self.instruction.extra_attrs = None;
-            }
-        }
+        self.instruction.extra_attrs.set_label(val);
     }
 
     #[getter]
