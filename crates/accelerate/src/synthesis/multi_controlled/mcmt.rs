@@ -20,6 +20,23 @@ use smallvec::{smallvec, SmallVec};
 
 /// A Toffoli chain, implementing a multi-control condition on all controls using
 /// ``controls.len() - 1`` auxiliary qubits.
+///
+/// For example, for 4 controls we require 3 auxiliaries and create the circuit
+///
+///     control_0: ──■──────────────
+///                  │              
+///     control_1: ──■──────────────
+///                  │              
+///     control_2: ──┼────■─────────
+///                  │    │         
+///     control_3: ──┼────┼────■────
+///                ┌─┴─┐  │    │    
+///         aux_0: ┤ X ├──■────┼────
+///                └───┘┌─┴─┐  │    
+///         aux_1: ─────┤ X ├──■────
+///                     └───┘┌─┴─┐         "master control" qubit: controlling on this
+///         aux_2: ──────────┤ X ├──  <--  implements a controlled operation on all qubits
+///                          └───┘         in the "control" register
 fn ccx_chain<'a>(
     controls: &'a [usize],
     auxiliaries: &'a [usize],
@@ -53,6 +70,28 @@ fn ccx_chain<'a>(
 /// ``controlled_gate`` here must already be the controlled operation, e.g. if we
 /// call MCMT of X, then it must be a CX gate. This is because I currently don't know how to
 /// nicely map the single-qubit gate to it's controlled version.
+///
+/// For example, 4 controls and 2 target qubits for the Hadamard gate, generates
+///
+///     q_0: ──■──────────────────────────────────■──
+///            │                                  │
+///     q_1: ──■──────────────────────────────────■──
+///            │                                  │
+///     q_2: ──┼────■────────────────────────■────┼──
+///            │    │                        │    │
+///     q_3: ──┼────┼────■──────────────■────┼────┼──
+///            │    │    │  ┌───┐       │    │    │
+///     q_4: ──┼────┼────┼──┤ H ├───────┼────┼────┼──
+///            │    │    │  └─┬─┘┌───┐  │    │    │
+///     q_5: ──┼────┼────┼────┼──┤ H ├──┼────┼────┼──
+///          ┌─┴─┐  │    │    │  └─┬─┘  │    │  ┌─┴─┐
+///     q_6: ┤ X ├──■────┼────┼────┼────┼────■──┤ X ├
+///          └───┘┌─┴─┐  │    │    │    │  ┌─┴─┐└───┘
+///     q_7: ─────┤ X ├──■────┼────┼────■──┤ X ├─────
+///               └───┘┌─┴─┐  │    │  ┌─┴─┐└───┘
+///     q_8: ──────────┤ X ├──■────■──┤ X ├──────────
+///                    └───┘          └───┘
+///
 #[pyfunction]
 #[pyo3(signature = (controlled_gate, num_ctrl_qubits, num_target_qubits))]
 pub fn mcmt_v_chain(
