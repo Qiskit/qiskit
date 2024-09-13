@@ -23,6 +23,7 @@ use indexmap::{IndexMap, IndexSet};
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::{IntoPyArray, PyReadonlyArray2};
+use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use smallvec::{smallvec, SmallVec};
 
 // use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
@@ -187,7 +188,7 @@ fn dag_from_2q_gate_sequence(
             qubits: target_dag.qargs_interner.insert(&gate_qubits),
             clbits: target_dag.cargs_interner.get_default(),
             params: new_params,
-            extra_attrs: None,
+            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceCell::new(),
         };
