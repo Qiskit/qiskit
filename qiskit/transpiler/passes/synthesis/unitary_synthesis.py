@@ -508,15 +508,29 @@ class UnitarySynthesis(TransformationPass):
 
         if self.method == "default" and isinstance(kwargs["target"], Target):
             print("RUST")
+            from qiskit._accelerate.sabre import NeighborTable
+            import rustworkx
+
             _gate_lengths = _gate_lengths or _build_gate_lengths(self._backend_props, self._target)
             _gate_errors = _gate_errors or _build_gate_errors(self._backend_props, self._target)
+            if self._coupling_map is not None:
+                _dist_matrix = self._coupling_map.distance_matrix
+                _neighbor_table = NeighborTable(
+                    rustworkx.adjacency_matrix(self._coupling_map.graph)
+                )
+            else:
+                _dist_matrix = None
+                _neighbor_table = None
+                
             out = run_default_main_loop(
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
                 self._approximation_degree,
                 kwargs["basis_gates"],
-                self._coupling_map,
+                _neighbor_table,
+                _dist_matrix,
+                # self._coupling_map,
                 kwargs["natural_direction"],
                 kwargs["pulse_optimize"],
                 _gate_lengths,

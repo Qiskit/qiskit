@@ -13,8 +13,8 @@
 mod heuristic;
 mod layer;
 mod layout;
-mod neighbor_table;
-mod route;
+pub mod neighbor_table;
+pub mod route;
 pub mod sabre_dag;
 pub mod swap_map;
 

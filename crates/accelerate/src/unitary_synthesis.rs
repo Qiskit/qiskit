@@ -22,7 +22,7 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
-use numpy::IntoPyArray;
+use numpy::{IntoPyArray, PyReadonlyArray2};
 use smallvec::{smallvec, SmallVec};
 
 // use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
@@ -44,6 +44,8 @@ use crate::euler_one_qubit_decomposer::{
     optimize_1q_gates_decomposition, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
 use crate::nlayout::PhysicalQubit;
+use crate::sabre::neighbor_table::NeighborTable;
+use crate::sabre::route::RoutingTargetView;
 use crate::target_transpiler::{NormalOperation, Target};
 use crate::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitGateSequence, TwoQubitWeylDecomposition,
@@ -295,7 +297,9 @@ fn py_run_default_main_loop(
     min_qubits: usize,
     approximation_degree: Option<f64>,
     basis_gates: Option<HashSet<PyBackedStr>>,
-    coupling_map: Option<PyObject>,
+    neighbor_table: Option<NeighborTable>,
+    distance_matrix: Option<PyReadonlyArray2<f64>>,
+    // coupling_map: Option<PyObject>,
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
     gate_lengths: Option<Bound<'_, PyDict>>,
@@ -336,7 +340,9 @@ fn py_run_default_main_loop(
                             min_qubits,
                             approximation_degree,
                             basis_gates.clone(),
-                            coupling_map.clone(),
+                            neighbor_table.clone(),
+                            distance_matrix.clone(),
+                            // coupling_map.clone(),
                             natural_direction,
                             pulse_optimize,
                             gate_lengths.clone(),
@@ -404,7 +410,9 @@ fn py_run_default_main_loop(
                                 &wire_map,
                                 approximation_degree,
                                 &basis_gates,
-                                &coupling_map,
+                                // &coupling_map,
+                                neighbor_table.clone(),
+                                distance_matrix.clone(),
                                 natural_direction,
                                 pulse_optimize,
                                 &gate_lengths,
@@ -474,7 +482,9 @@ fn run_2q_unitary_synthesis(
     wire_map: &IndexMap<Qubit, PhysicalQubit>,
     approximation_degree: Option<f64>,
     _basis_gates: &Option<HashSet<PyBackedStr>>,
-    coupling_map: &Option<PyObject>,
+    neighbor_table: Option<NeighborTable>,
+    distance_matrix: Option<PyReadonlyArray2<f64>>,
+    // coupling_map: &Option<PyObject>,
     natural_direction: Option<bool>,
     _pulse_optimize: Option<bool>,
     gate_lengths: &Option<Bound<'_, PyDict>>,
@@ -510,7 +520,8 @@ fn run_2q_unitary_synthesis(
                 &decomposer_item.0,
                 wire_map,
                 natural_direction,
-                coupling_map,
+                &neighbor_table,
+                &distance_matrix,
                 gate_lengths,
                 gate_errors,
             )?;
@@ -534,7 +545,8 @@ fn run_2q_unitary_synthesis(
             &decomposer.0,
             wire_map,
             natural_direction,
-            coupling_map,
+            &neighbor_table,
+            &distance_matrix,
             gate_lengths,
             gate_errors,
         )?;
@@ -899,7 +911,8 @@ fn preferred_direction(
     decomposer: &DecomposerType,
     wire_map: &IndexMap<Qubit, PhysicalQubit>,
     natural_direction: Option<bool>,
-    coupling_map: &Option<PyObject>,
+    neighbor_table: &Option<NeighborTable>,
+    distance_matrix: &Option<PyReadonlyArray2<f64>>,
     gate_lengths: &Option<Bound<'_, PyDict>>,
     gate_errors: &Option<Bound<'_, PyDict>>,
 ) -> PyResult<Option<bool>> {
@@ -967,24 +980,22 @@ fn preferred_direction(
         Some(false) => (),
         _ => {
             // None or Some(true)
-            // find native gate directions from a (non-bidirectional) coupling map
-            match coupling_map {
-                Some(cmap) => {
-                    let neighbors0 = cmap
-                        .call_method1(py, "neighbors", PyTuple::new_bound(py, [qubits[0].0]))?
-                        .extract::<Vec<u32>>(py)?;
-                    let zero_one = neighbors0.contains(&qubits[1].0);
-                    let neighbors1 = cmap
-                        .call_method1(py, "neighbors", PyTuple::new_bound(py, [qubits[1].0]))?
-                        .extract::<Vec<u32>>(py)?;
-                    let one_zero = neighbors1.contains(&qubits[0].0);
-                    match (zero_one, one_zero) {
-                        (true, false) => preferred_direction = Some(true),
-                        (false, true) => preferred_direction = Some(false),
-                        _ => (),
-                    }
+            if let (Some(table), Some(matrix)) = (neighbor_table, distance_matrix) {
+                let routing_target = RoutingTargetView {
+                    neighbors: table,
+                    coupling: &table.coupling_graph(),
+                    distance: matrix.as_array(),
+                };
+                // find native gate directions from a (non-bidirectional) coupling map
+                let neighbors0 = &routing_target.neighbors[qubits[0]];
+                let zero_one = neighbors0.contains(&qubits[1]);
+                let neighbors1 = &routing_target.neighbors[qubits[1]];
+                let one_zero = neighbors1.contains(&qubits[0]);
+                match (zero_one, one_zero) {
+                    (true, false) => preferred_direction = Some(true),
+                    (false, true) => preferred_direction = Some(false),
+                    _ => (),
                 }
-                None => (),
             }
 
             if preferred_direction.is_none() && (gate_lengths.is_some() || gate_errors.is_some()) {
