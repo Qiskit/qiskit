@@ -15,7 +15,7 @@ use std::f64::consts::PI;
 use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, pymodule, wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
@@ -105,14 +105,14 @@ pub(crate) fn cancel_commutations(
         if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
                 if let Some(&nd) = com_set.first() {
-                    if !matches!(dag.dag[nd], NodeType::Operation(_)) {
+                    if !matches!(dag.dag()[nd], NodeType::Operation(_)) {
                         continue;
                     }
                 } else {
                     continue;
                 }
                 for node in com_set.iter() {
-                    let instr = match &dag.dag[*node] {
+                    let instr = match &dag.dag()[*node] {
                         NodeType::Operation(instr) => instr,
                         _ => panic!("Unexpected type in commutation set."),
                     };
@@ -198,7 +198,7 @@ pub(crate) fn cancel_commutations(
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
-                    let node_op = match &dag.dag[*current_node] {
+                    let node_op = match &dag.dag()[*current_node] {
                         NodeType::Operation(instr) => instr,
                         _ => panic!("Unexpected type in commutation set run."),
                     };
@@ -273,7 +273,6 @@ pub(crate) fn cancel_commutations(
     Ok(())
 }
 
-#[pymodule]
 pub fn commutation_cancellation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(cancel_commutations))?;
     Ok(())

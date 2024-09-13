@@ -121,12 +121,12 @@ impl CommutationChecker {
             py,
             &op1.instruction.operation.view(),
             &op1.instruction.params,
-            op1.instruction.extra_attrs.as_deref(),
+            &op1.instruction.extra_attrs,
             &qargs1,
             &cargs1,
             &op2.instruction.operation.view(),
             &op2.instruction.params,
-            op2.instruction.extra_attrs.as_deref(),
+            &op2.instruction.extra_attrs,
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -162,12 +162,12 @@ impl CommutationChecker {
             py,
             &op1.operation.view(),
             &op1.params,
-            op1.extra_attrs.as_deref(),
+            &op1.extra_attrs,
             &qargs1,
             &cargs1,
             &op2.operation.view(),
             &op2.params,
-            op2.extra_attrs.as_deref(),
+            &op2.extra_attrs,
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -232,12 +232,12 @@ impl CommutationChecker {
         py: Python,
         op1: &OperationRef,
         params1: &[Param],
-        attrs1: Option<&ExtraInstructionAttributes>,
+        attrs1: &ExtraInstructionAttributes,
         qargs1: &[Qubit],
         cargs1: &[Clbit],
         op2: &OperationRef,
         params2: &[Param],
-        attrs2: Option<&ExtraInstructionAttributes>,
+        attrs2: &ExtraInstructionAttributes,
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
@@ -494,20 +494,20 @@ impl CommutationChecker {
 fn commutation_precheck(
     op1: &OperationRef,
     params1: &[Param],
-    attrs1: Option<&ExtraInstructionAttributes>,
+    attrs1: &ExtraInstructionAttributes,
     qargs1: &[Qubit],
     cargs1: &[Clbit],
     op2: &OperationRef,
     params2: &[Param],
-    attrs2: Option<&ExtraInstructionAttributes>,
+    attrs2: &ExtraInstructionAttributes,
     qargs2: &[Qubit],
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
     if op1.control_flow()
         || op2.control_flow()
-        || attrs1.is_some_and(|attr| attr.condition.is_some())
-        || attrs2.is_some_and(|attr| attr.condition.is_some())
+        || attrs1.condition().is_some()
+        || attrs2.condition().is_some()
     {
         return Some(false);
     }
@@ -767,7 +767,6 @@ fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
         .collect()
 }
 
-#[pymodule]
 pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;

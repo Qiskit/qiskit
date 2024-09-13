@@ -225,7 +225,7 @@ pub struct DAGCircuit {
 
     calibrations: HashMap<String, Py<PyDict>>,
 
-    pub dag: StableDiGraph<NodeType, Wire>,
+    dag: StableDiGraph<NodeType, Wire>,
 
     #[pyo3(get)]
     qregs: Py<PyDict>,
@@ -237,9 +237,9 @@ pub struct DAGCircuit {
     /// The cache used to intern instruction cargs.
     cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
-    pub qubits: BitData<Qubit>,
+    qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
-    pub clbits: BitData<Clbit>,
+    clbits: BitData<Clbit>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -736,8 +736,8 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
-    #[getter]
-    pub fn qubits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter(qubits)]
+    pub fn py_qubits(&self, py: Python<'_>) -> Py<PyList> {
         self.qubits.cached().clone_ref(py)
     }
 
@@ -751,8 +751,8 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
-    #[getter]
-    pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
+    #[getter(clbits)]
+    pub fn py_clbits(&self, py: Python<'_>) -> Py<PyList> {
         self.clbits.cached().clone_ref(py)
     }
 
@@ -782,7 +782,7 @@ impl DAGCircuit {
 
     /// Return the global phase of the circuit.
     #[getter]
-    fn get_global_phase(&self) -> Param {
+    pub fn get_global_phase(&self) -> Param {
         self.global_phase.clone()
     }
 
@@ -2485,16 +2485,8 @@ def _format(operand):
                         true
                     };
                     let check_conditions = || -> PyResult<bool> {
-                        if let Some(cond1) = inst1
-                            .extra_attrs
-                            .as_ref()
-                            .and_then(|attrs| attrs.condition.as_ref())
-                        {
-                            if let Some(cond2) = inst2
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref())
-                            {
+                        if let Some(cond1) = inst1.extra_attrs.condition() {
+                            if let Some(cond2) = inst2.extra_attrs.condition() {
                                 legacy_condition_eq
                                     .call1((cond1, cond2, &self_bit_indices, &other_bit_indices))?
                                     .extract::<bool>()
@@ -2502,11 +2494,7 @@ def _format(operand):
                                 Ok(false)
                             }
                         } else {
-                            Ok(inst2
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.condition.as_ref())
-                                .is_none())
+                            Ok(inst2.extra_attrs.condition().is_none())
                         }
                     };
 
@@ -3067,11 +3055,7 @@ def _format(operand):
         let node_map = if propagate_condition && !node.op.control_flow() {
             // Nested until https://github.com/rust-lang/rust/issues/53667 is fixed in a stable
             // release
-            if let Some(condition) = node
-                .extra_attrs
-                .as_ref()
-                .and_then(|attrs| attrs.condition.as_ref())
-            {
+            if let Some(condition) = node.extra_attrs.condition() {
                 let mut in_dag = input_dag.copy_empty_like(py, "alike")?;
                 // The remapping of `condition` below is still using the old code that assumes a 2-tuple.
                 // This is because this remapping code only makes sense in the case of non-control-flow
@@ -3164,12 +3148,7 @@ def _format(operand):
                 for in_node_index in input_dag.topological_op_nodes()? {
                     let in_node = &input_dag.dag[in_node_index];
                     if let NodeType::Operation(inst) = in_node {
-                        if inst
-                            .extra_attrs
-                            .as_ref()
-                            .and_then(|attrs| attrs.condition.as_ref())
-                            .is_some()
-                        {
+                        if inst.extra_attrs.condition().is_some() {
                             return Err(DAGCircuitError::new_err(
                                 "cannot propagate a condition to an element that already has one",
                             ));
@@ -3189,16 +3168,9 @@ def _format(operand):
                         }
                         let mut new_inst = inst.clone();
                         if new_condition.is_truthy()? {
-                            if let Some(ref mut attrs) = new_inst.extra_attrs {
-                                attrs.condition = Some(new_condition.as_any().clone().unbind());
-                            } else {
-                                new_inst.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
-                                    condition: Some(new_condition.as_any().clone().unbind()),
-                                    label: None,
-                                    duration: None,
-                                    unit: None,
-                                }));
-                            }
+                            new_inst
+                                .extra_attrs
+                                .set_condition(Some(new_condition.as_any().clone().unbind()));
                             #[cfg(feature = "cache_pygates")]
                             {
                                 new_inst.py_op.take();
@@ -3283,13 +3255,7 @@ def _format(operand):
                         let raw_target = old_op.instruction.getattr(py, "target")?;
                         let target = raw_target.bind(py);
                         let kwargs = PyDict::new_bound(py);
-                        kwargs.set_item(
-                            "label",
-                            old_inst
-                                .extra_attrs
-                                .as_ref()
-                                .and_then(|attrs| attrs.label.as_ref()),
-                        )?;
+                        kwargs.set_item("label", old_inst.extra_attrs.label())?;
                         let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
                             (
                                 variable_mapper.map_target(target)?,
@@ -3318,11 +3284,7 @@ def _format(operand):
                         }
                     }
                 }
-                if let Some(condition) = old_inst
-                    .extra_attrs
-                    .as_ref()
-                    .and_then(|attrs| attrs.condition.as_ref())
-                {
+                if let Some(condition) = old_inst.extra_attrs.condition() {
                     if old_inst.op.name() != "switch_case" {
                         let new_condition: Option<PyObject> = variable_mapper
                             .map_condition(condition.bind(py), false)?
@@ -3332,18 +3294,7 @@ def _format(operand):
                         if let NodeType::Operation(ref mut new_inst) =
                             &mut self.dag[*new_node_index]
                         {
-                            match &mut new_inst.extra_attrs {
-                                Some(attrs) => attrs.condition.clone_from(&new_condition),
-                                None => {
-                                    new_inst.extra_attrs =
-                                        Some(Box::new(ExtraInstructionAttributes {
-                                            label: None,
-                                            condition: new_condition.clone(),
-                                            unit: None,
-                                            duration: None,
-                                        }))
-                                }
-                            }
+                            new_inst.extra_attrs.set_condition(new_condition.clone());
                             #[cfg(feature = "cache_pygates")]
                             {
                                 new_inst.py_op.take();
@@ -3440,14 +3391,8 @@ def _format(operand):
                     .map(|x| Wire::Clbit(*x)),
             )
             .collect();
-        let (additional_clbits, additional_vars) = self.additional_wires(
-            py,
-            new_op.operation.view(),
-            new_op
-                .extra_attrs
-                .as_ref()
-                .and_then(|attrs| attrs.condition.as_ref()),
-        )?;
+        let (additional_clbits, additional_vars) =
+            self.additional_wires(py, new_op.operation.view(), new_op.extra_attrs.condition())?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
         new_wires.extend(additional_vars.iter().map(|x| Wire::Var(x.clone_ref(py))));
 
@@ -3470,12 +3415,7 @@ def _format(operand):
             && !(node.instruction.operation.control_flow() || new_op.operation.control_flow())
         {
             // if new_op has a condition, the condition can't be propagated from the old node
-            if new_op
-                .extra_attrs
-                .as_ref()
-                .and_then(|extra| extra.condition.as_ref())
-                .is_some()
-            {
+            if new_op.extra_attrs.condition().is_some() {
                 return Err(DAGCircuitError::new_err(
                     "Cannot propagate a condition to an operation that already has one.",
                 ));
@@ -3486,17 +3426,8 @@ def _format(operand):
                         "Cannot add a condition on a generic Operation.",
                     ));
                 }
-                if let Some(ref mut extra) = extra_attrs {
-                    extra.condition = Some(old_condition.clone_ref(py));
-                } else {
-                    extra_attrs = ExtraInstructionAttributes::new(
-                        None,
-                        None,
-                        None,
-                        Some(old_condition.clone_ref(py)),
-                    )
-                    .map(Box::new)
-                }
+                extra_attrs.set_condition(Some(old_condition.clone_ref(py)));
+
                 let binding = self
                     .control_flow_module
                     .condition_resources(old_condition.bind(py))?;
@@ -4985,6 +4916,42 @@ def _format(operand):
 }
 
 impl DAGCircuit {
+    /// Returns an immutable view of the inner StableGraph managed by the circuit.
+    #[inline(always)]
+    pub fn dag(&self) -> &StableDiGraph<NodeType, Wire> {
+        &self.dag
+    }
+
+    /// Returns an immutable view of the Interner used for Qargs
+    #[inline(always)]
+    pub fn qargs_interner(&self) -> &Interner<[Qubit]> {
+        &self.qargs_interner
+    }
+
+    /// Returns an immutable view of the Interner used for Cargs
+    #[inline(always)]
+    pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
+        &self.cargs_interner
+    }
+
+    /// Returns an immutable view of the Global Phase `Param` of the circuit
+    #[inline(always)]
+    pub fn global_phase(&self) -> &Param {
+        &self.global_phase
+    }
+
+    /// Returns an immutable view of the Qubits registered in the circuit
+    #[inline(always)]
+    pub fn qubits(&self) -> &BitData<Qubit> {
+        &self.qubits
+    }
+
+    /// Returns an immutable view of the Classical bits registered in the circuit
+    #[inline(always)]
+    pub fn clbits(&self) -> &BitData<Clbit> {
+        &self.clbits
+    }
+
     /// Return an iterator of gate runs with non-conditional op nodes of given names
     pub fn collect_runs(
         &self,
@@ -4993,11 +4960,9 @@ impl DAGCircuit {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
-                NodeType::Operation(inst) => Ok(namelist.contains(inst.op.name())
-                    && match &inst.extra_attrs {
-                        None => true,
-                        Some(attrs) => attrs.condition.is_none(),
-                    }),
+                NodeType::Operation(inst) => {
+                    Ok(namelist.contains(inst.op.name()) && inst.extra_attrs.condition().is_none())
+                }
                 _ => Ok(false),
             }
         };
@@ -6240,7 +6205,7 @@ impl DAGCircuit {
                 clbits: old_node.clbits,
                 params: (!new_gate.1.is_empty())
                     .then(|| Box::new(new_gate.1.iter().map(|x| Param::Float(*x)).collect())),
-                extra_attrs: None,
+                extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceCell::new(),
             }
@@ -6339,7 +6304,7 @@ impl DAGCircuit {
                 params: (!new_op.params.is_empty()).then(|| Box::new(new_op.params)),
                 extra_attrs: new_op.extra_attrs,
                 #[cfg(feature = "cache_pygates")]
-                py_op: py_op,
+                py_op,
             };
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             self.dag.add_edge(source, new_index, weight.clone());
