@@ -1682,25 +1682,28 @@ def _format(operand):
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs.map(|q| q.value);
         let cargs = cargs.map(|c| c.value);
+        let node = {
+            let qubits_id = self
+                .qargs_interner
+                .insert_owned(self.qubits.map_bits(qargs.iter().flatten())?.collect());
+            let clbits_id = self
+                .cargs_interner
+                .insert_owned(self.clbits.map_bits(cargs.iter().flatten())?.collect());
+            let instr = PackedInstruction {
+                op: py_op.operation,
+                qubits: qubits_id,
+                clbits: clbits_id,
+                params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+                extra_attrs: py_op.extra_attrs,
+                #[cfg(feature = "cache_pygates")]
+                py_op: op.unbind().into(),
+            };
 
-        // Map the qargs to is respective indices
-        let qarg_indices: Vec<Qubit> = self.qubits.map_bits(qargs.iter().flatten())?.collect();
-        // Map the qargs to is respective indices
-        let carg_indices: Vec<Clbit> = self.clbits.map_bits(cargs.iter().flatten())?.collect();
-
-        let params = (!py_op.params.is_empty()).then_some(py_op.params);
-
-        let node = self.apply_operation_back(
-            py,
-            py_op.operation,
-            &qarg_indices,
-            &carg_indices,
-            params,
-            py_op.extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            Some(op.unbind()),
-            check,
-        )?;
+            if check {
+                self.check_op_addition(py, &instr)?;
+            }
+            self.push_back(py, instr)?
+        };
 
         self.get_node(py, node)
     }
@@ -1733,24 +1736,28 @@ def _format(operand):
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs.map(|q| q.value);
         let cargs = cargs.map(|c| c.value);
-        // Map the qargs to is respective indices
-        let qarg_indices: Vec<Qubit> = self.qubits.map_bits(qargs.iter().flatten())?.collect();
-        // Map the qargs to is respective indices
-        let carg_indices: Vec<Clbit> = self.clbits.map_bits(cargs.iter().flatten())?.collect();
+        let node = {
+            let qubits_id = self
+                .qargs_interner
+                .insert_owned(self.qubits.map_bits(qargs.iter().flatten())?.collect());
+            let clbits_id = self
+                .cargs_interner
+                .insert_owned(self.clbits.map_bits(cargs.iter().flatten())?.collect());
+            let instr = PackedInstruction {
+                op: py_op.operation,
+                qubits: qubits_id,
+                clbits: clbits_id,
+                params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+                extra_attrs: py_op.extra_attrs,
+                #[cfg(feature = "cache_pygates")]
+                py_op: op.unbind().into(),
+            };
 
-        let params = (!py_op.params.is_empty()).then_some(py_op.params);
-
-        let node = self.apply_operation_front(
-            py,
-            py_op.operation,
-            &qarg_indices,
-            &carg_indices,
-            params,
-            py_op.extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            Some(op.unbind()),
-            check,
-        )?;
+            if check {
+                self.check_op_addition(py, &instr)?;
+            }
+            self.push_front(py, instr)?
+        };
 
         self.get_node(py, node)
     }
@@ -5268,7 +5275,6 @@ impl DAGCircuit {
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: Option<Box<ExtraInstructionAttributes>>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
-        check: bool,
     ) -> PyResult<NodeIndex> {
         self.inner_apply_op(
             py,
@@ -5279,7 +5285,6 @@ impl DAGCircuit {
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
             py_op,
-            check,
             false,
         )
     }
@@ -5295,7 +5300,6 @@ impl DAGCircuit {
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: Option<Box<ExtraInstructionAttributes>>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
-        check: bool,
     ) -> PyResult<NodeIndex> {
         self.inner_apply_op(
             py,
@@ -5306,11 +5310,11 @@ impl DAGCircuit {
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
             py_op,
-            check,
             true,
         )
     }
 
+    #[inline]
     #[allow(clippy::too_many_arguments)]
     fn inner_apply_op(
         &mut self,
@@ -5321,12 +5325,11 @@ impl DAGCircuit {
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: Option<Box<ExtraInstructionAttributes>>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
-        check: bool,
         front: bool,
     ) -> PyResult<NodeIndex> {
         // Check that all qargs are within an acceptable range
         qargs.iter().try_for_each(|qarg| {
-            if !(0..self.num_qubits() as u32).contains(&qarg.0) {
+            if qarg.0 as usize >= self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
                     "Qubit index {} is out of range. This DAGCircuit currently has only {} qubits.",
                     qarg.0,
@@ -5338,7 +5341,7 @@ impl DAGCircuit {
 
         // Check that all cargs are within an acceptable range
         cargs.iter().try_for_each(|carg| {
-            if !(0..self.num_clbits() as u32).contains(&carg.0) {
+            if carg.0 as usize >= self.num_clbits() {
                 return Err(PyValueError::new_err(format!(
                     "Clbit index {} is out of range. This DAGCircuit currently has only {} clbits.",
                     carg.0,
@@ -5363,9 +5366,6 @@ impl DAGCircuit {
             #[cfg(feature = "cache_pygates")]
             py_op,
         };
-        if check {
-            self.check_op_addition(py, &packed_instruction)?;
-        }
 
         if front {
             self.push_front(py, packed_instruction)
