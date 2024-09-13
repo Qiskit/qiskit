@@ -188,6 +188,7 @@ def evolve_pauli(
 
 def reorder_paulis(
     operators: SparsePauliOp | list[SparsePauliOp],
+    strategy: rx.ColoringStrategy = rx.ColoringStrategy.Degree,
 ) -> SparsePauliOp | list[SparsePauliOp]:
     r"""
     Creates an equivalent operator by reordering terms in order to yield a
@@ -221,6 +222,9 @@ def reorder_paulis(
 
     Args:
         operators: The operator or list of operators whose terms to reorder.
+        strategy: The coloring heuristic to use. See
+          [``rx.ColoringStrategy``](https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy).
+          Default is ``rx.ColoringStrategy.Degree``.
     """
 
     def _term_sort_key(term: tuple[str, complex]) -> Any:
@@ -252,7 +256,7 @@ def reorder_paulis(
                 break
 
     # rx.graph_greedy_color is supposed to be deterministic
-    coloring = rx.graph_greedy_color(graph)
+    coloring = rx.graph_greedy_color(graph, strategy=strategy)
     terms_by_color = defaultdict(list)
     for term_idx, color in sorted(coloring.items()):
         term = graph.nodes()[term_idx]
