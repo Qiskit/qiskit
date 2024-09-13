@@ -526,6 +526,7 @@ class UnitarySynthesis(TransformationPass):
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
+                kwargs["target"],
                 self._approximation_degree,
                 kwargs["basis_gates"],
                 _neighbor_table,
@@ -535,7 +536,6 @@ class UnitarySynthesis(TransformationPass):
                 kwargs["pulse_optimize"],
                 _gate_lengths,
                 _gate_errors,
-                kwargs["target"],
             )
             return out
         else:
