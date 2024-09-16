@@ -31,6 +31,11 @@ class SabrePreLayout(AnalysisPass):
     ``sabre_starting_layouts`` (``list[Layout]``)
         An optional list of :class:`~.Layout` objects to use for additional Sabre layout trials.
 
+    **References:**
+
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
     """
 
     def __init__(

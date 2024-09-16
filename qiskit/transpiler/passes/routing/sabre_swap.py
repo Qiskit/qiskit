@@ -40,41 +40,41 @@ logger = logging.getLogger(__name__)
 class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
-        Implementation of the SWAP-based heuristic search from the SABRE qubit
-        mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
-        of lossy SWAPs inserted and the depth of the circuit.
+    Implementation of the SWAP-based heuristic search from the SABRE qubit
+    mapping paper [1][2] (Algorithm 1). The heuristic aims to minimize the number
+    of lossy SWAPs inserted and the depth of the circuit.
 
-        This algorithm starts from an initial layout of virtual qubits onto physical
-        qubits, and iterates over the circuit DAG until all gates are exhausted,
-        inserting SWAPs along the way. It only considers 2-qubit gates as only those
-        are germane for the mapping problem (it is assumed that 3+ qubit gates are
-        already decomposed).
+    This algorithm starts from an initial layout of virtual qubits onto physical
+    qubits, and iterates over the circuit DAG until all gates are exhausted,
+    inserting SWAPs along the way. It only considers 2-qubit gates as only those
+    are germane for the mapping problem (it is assumed that 3+ qubit gates are
+    already decomposed).
 
-        In each iteration, it will first check if there are any gates in the
-        ``front_layer`` that can be directly applied. If so, it will apply them and
-        remove them from ``front_layer``, and replenish that layer with new gates
-        if possible. Otherwise, it will try to search for SWAPs, insert the SWAPs,
-        and update the mapping.
+    In each iteration, it will first check if there are any gates in the
+    ``front_layer`` that can be directly applied. If so, it will apply them and
+    remove them from ``front_layer``, and replenish that layer with new gates
+    if possible. Otherwise, it will try to search for SWAPs, insert the SWAPs,
+    and update the mapping.
 
-        The search for SWAPs is restricted, in the sense that we only consider
-        physical qubits in the neighborhood of those qubits involved in
-        ``front_layer``. These give rise to a ``swap_candidate_list`` which is
-        scored according to some heuristic cost function. The best SWAP is
-        implemented and ``current_layout`` updated.
+    The search for SWAPs is restricted, in the sense that we only consider
+    physical qubits in the neighborhood of those qubits involved in
+    ``front_layer``. These give rise to a ``swap_candidate_list`` which is
+    scored according to some heuristic cost function. The best SWAP is
+    implemented and ``current_layout`` updated.
 
-        This transpiler pass adds onto the SABRE algorithm in that it will run
-        multiple trials of the algorithm with different seeds. The best output,
-        determined by the trial with the least amount of SWAPed inserted, will
-        be selected from the random trials.
+    This transpiler pass adds onto the SABRE algorithm in that it will run
+    multiple trials of the algorithm with different seeds. The best output,
+    determined by the trial with the least amount of SWAPed inserted, will
+    be selected from the random trials.
 
-        **References:**
+    **References:**
 
-        [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
-    +     "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
-    +     `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
-        [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
-        for NISQ-era quantum devices." ASPLOS 2019.
-        `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    for NISQ-era quantum devices." ASPLOS 2019.
+    `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
     def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None):
