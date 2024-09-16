@@ -171,10 +171,7 @@ deprecations:
     no longer supported and also only supported :class:`.BackendV1`. If you're
     using this functionality currently, similar jupyter tools exist in the
     `qiskit-ibm-provider <https://github.com/Qiskit/qiskit-ibm-provider>`__
-    package which can be used instead. The documentation for this module can
-    be found here:
-
-    https://docs.quantum.ibm.com/api/qiskit-ibm-provider/ibm_jupyter
+    package which can be used instead.
 
   - |
     The ``qiskit.tools.monitor`` module has been deprecated and will be removed
