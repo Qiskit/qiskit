@@ -826,8 +826,8 @@ pub fn compute_error_list(
 }
 
 #[pyfunction]
-#[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
-pub fn unitary_to_gate_sequence(
+#[pyo3(name = "unitary_to_gate_sequence", signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
+pub fn py_unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
     target_basis_list: Vec<PyBackedStr>,
     qubit: usize,
@@ -842,7 +842,7 @@ pub fn unitary_to_gate_sequence(
     {
         target_basis_set.add_basis(basis?);
     }
-    Ok(unitary_to_gate_sequence_inner(
+    Ok(unitary_to_gate_sequence(
         unitary.as_array(),
         &target_basis_set,
         qubit,
@@ -853,7 +853,7 @@ pub fn unitary_to_gate_sequence(
 }
 
 #[inline]
-pub fn unitary_to_gate_sequence_inner(
+pub fn unitary_to_gate_sequence(
     unitary_mat: ArrayView2<Complex64>,
     target_basis_list: &EulerBasisSet,
     qubit: usize,
@@ -892,7 +892,7 @@ pub fn unitary_to_circuit(
     {
         target_basis_set.add_basis(basis?);
     }
-    let circuit_sequence = unitary_to_gate_sequence_inner(
+    let circuit_sequence = unitary_to_gate_sequence(
         unitary.as_array(),
         &target_basis_set,
         qubit,
@@ -1198,7 +1198,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         } else {
             (error, raw_run.len())
         };
-        let sequence = unitary_to_gate_sequence_inner(
+        let sequence = unitary_to_gate_sequence(
             aview2(&operator),
             target_basis_set,
             qubit.0 as usize,
@@ -1260,7 +1260,7 @@ pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_u3))?;
     m.add_wrapped(wrap_pyfunction!(params_u1x))?;
     m.add_wrapped(wrap_pyfunction!(generate_circuit))?;
-    m.add_wrapped(wrap_pyfunction!(unitary_to_gate_sequence))?;
+    m.add_wrapped(wrap_pyfunction!(py_unitary_to_gate_sequence))?;
     m.add_wrapped(wrap_pyfunction!(unitary_to_circuit))?;
     m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
     m.add_wrapped(wrap_pyfunction!(optimize_1q_gates_decomposition))?;

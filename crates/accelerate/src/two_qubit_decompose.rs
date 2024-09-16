@@ -41,7 +41,7 @@ use pyo3::types::PyList;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
-    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
+    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence, EulerBasis, EulerBasisSet,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
 use crate::utils;
@@ -1066,7 +1066,7 @@ impl TwoQubitWeylDecomposition {
         let mut gate_sequence = CircuitData::with_capacity(py, 2, 0, 21, Param::Float(0.))?;
         let mut global_phase: f64 = self.global_phase;
 
-        let c2r = unitary_to_gate_sequence_inner(
+        let c2r = unitary_to_gate_sequence(
             self.K2r.view(),
             &target_1q_basis_list,
             0,
@@ -1083,7 +1083,7 @@ impl TwoQubitWeylDecomposition {
             )?
         }
         global_phase += c2r.global_phase;
-        let c2l = unitary_to_gate_sequence_inner(
+        let c2l = unitary_to_gate_sequence(
             self.K2l.view(),
             &target_1q_basis_list,
             1,
@@ -1106,7 +1106,7 @@ impl TwoQubitWeylDecomposition {
             atol.unwrap_or(ANGLE_ZERO_EPSILON),
             &mut global_phase,
         )?;
-        let c1r = unitary_to_gate_sequence_inner(
+        let c1r = unitary_to_gate_sequence(
             self.K1r.view(),
             &target_1q_basis_list,
             0,
@@ -1123,7 +1123,7 @@ impl TwoQubitWeylDecomposition {
             )?
         }
         global_phase += c2r.global_phase;
-        let c1l = unitary_to_gate_sequence_inner(
+        let c1l = unitary_to_gate_sequence(
             self.K1l.view(),
             &target_1q_basis_list,
             1,
@@ -1510,7 +1510,7 @@ impl TwoQubitBasisDecomposer {
     ) {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
-        let sequence = unitary_to_gate_sequence_inner(
+        let sequence = unitary_to_gate_sequence(
             unitary,
             &target_1q_basis_list,
             qubit as usize,
@@ -1758,7 +1758,7 @@ impl TwoQubitBasisDecomposer {
         let euler_decompositions: SmallVec<[Option<OneQubitGateSequence>; 8]> = decomposition
             .iter()
             .map(|decomp| {
-                unitary_to_gate_sequence_inner(
+                unitary_to_gate_sequence(
                     decomp.view(),
                     &target_1q_basis_list,
                     0,
@@ -2001,7 +2001,7 @@ impl TwoQubitBasisDecomposer {
         let euler_decompositions: SmallVec<[Option<OneQubitGateSequence>; 8]> = decomposition
             .iter()
             .map(|decomp| {
-                unitary_to_gate_sequence_inner(
+                unitary_to_gate_sequence(
                     decomp.view(),
                     &target_1q_basis_list,
                     0,
