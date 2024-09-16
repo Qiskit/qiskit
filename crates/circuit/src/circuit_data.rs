@@ -14,7 +14,9 @@
 use std::cell::OnceCell;
 
 use crate::bit_data::BitData;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{
+    CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
+};
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
@@ -157,10 +159,67 @@ impl CircuitData {
                 qubits,
                 clbits,
                 params,
-                extra_attrs: None,
+                extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceCell::new(),
             });
+            res.track_instruction_parameters(py, res.data.len() - 1)?;
+        }
+        Ok(res)
+    }
+
+    /// A constructor for CircuitData from an iterator of PackedInstruction objects
+    ///
+    /// This is tpically useful when iterating over a CircuitData or DAGCircuit
+    /// to construct a new CircuitData from the iterator of PackedInstructions. As
+    /// such it requires that you have `BitData` and `Interner` objects to run. If
+    /// you just wish to build a circuit data from an iterator of instructions
+    /// the `from_packed_operations` or `from_standard_gates` constructor methods
+    /// are a better choice
+    ///
+    /// # Args
+    ///
+    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
+    /// * qubits: The BitData to use for the new circuit's qubits
+    /// * clbits: The BitData to use for the new circuit's clbits
+    /// * qargs_interner: The interner for Qubit objects in the circuit. This must
+    ///     contain all the Interned<Qubit> indices stored in the
+    ///     PackedInstructions from `instructions`
+    /// * cargs_interner: The interner for Clbit objects in the circuit. This must
+    ///     contain all the Interned<Clbit> indices stored in the
+    ///     PackedInstructions from `instructions`
+    /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
+    ///     that contais the instructions to insert in iterator order to the new
+    ///     CircuitData. This returns a `PyResult` to facilitate the case where
+    ///     you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
+    ///     of the operation while iterating for constructing the new `CircuitData`. An
+    ///     example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
+    /// * global_phase: The global phase value to use for the new circuit.
+    pub fn from_packed_instructions<I>(
+        py: Python,
+        qubits: BitData<Qubit>,
+        clbits: BitData<Clbit>,
+        qargs_interner: Interner<[Qubit]>,
+        cargs_interner: Interner<[Clbit]>,
+        instructions: I,
+        global_phase: Param,
+    ) -> PyResult<Self>
+    where
+        I: IntoIterator<Item = PyResult<PackedInstruction>>,
+    {
+        let instruction_iter = instructions.into_iter();
+        let mut res = CircuitData {
+            data: Vec::with_capacity(instruction_iter.size_hint().0),
+            qargs_interner,
+            cargs_interner,
+            qubits,
+            clbits,
+            param_table: ParameterTable::new(),
+            global_phase,
+        };
+
+        for inst in instruction_iter {
+            res.data.push(inst?);
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
         Ok(res)
@@ -209,7 +268,7 @@ impl CircuitData {
                 qubits,
                 clbits: no_clbit_index,
                 params,
-                extra_attrs: None,
+                extra_attrs: ExtraInstructionAttributes::default(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceCell::new(),
             });
@@ -267,7 +326,7 @@ impl CircuitData {
             qubits,
             clbits: no_clbit_index,
             params,
-            extra_attrs: None,
+            extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceCell::new(),
         });
@@ -626,12 +685,7 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            if inst.op.try_standard_gate().is_some()
-                && !inst
-                    .extra_attrs
-                    .as_ref()
-                    .is_some_and(|attrs| attrs.condition.is_some())
-            {
+            if inst.op.try_standard_gate().is_some() && inst.extra_attrs.condition().is_none() {
                 continue;
             }
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
