@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    This release extends the `constraints.txt` file with a complete list of
+    pinned version numbers of Qiskit 0.46.3 dependencies. As this release
+    marks the end-of-life of the 0.46 version, this ensures a reproducible installation
+    environment for it going forward based on the version specifications in `constraints.txt`.

@@ -26,11 +26,11 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.m
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
-requirements = ["qiskit-terra==0.46.2"]
+requirements = ["qiskit-terra==0.46.3"]
 
 setup(
     name="qiskit",
-    version="0.46.2",
+    version="0.46.3",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",

@@ -393,7 +393,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "0.46.2"
+version = "0.46.3"
 dependencies = [
  "hashbrown 0.14.0",
  "pyo3",
@@ -401,7 +401,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit_accelerate"
-version = "0.46.2"
+version = "0.46.3"
 dependencies = [
  "ahash",
  "hashbrown 0.14.0",
