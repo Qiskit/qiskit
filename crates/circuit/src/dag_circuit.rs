@@ -5288,7 +5288,7 @@ impl DAGCircuit {
             op,
             qubits: self.qargs_interner.insert(qargs),
             clbits: self.cargs_interner.insert(cargs),
-            params: params.map(|params: SmallVec<[Param; 3]>| Box::new(params)),
+            params: params.map(Box::new),
             extra_attrs,
             #[cfg(feature = "cache_pygates")]
             py_op,
