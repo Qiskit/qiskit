@@ -33,6 +33,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseLibraryItem, PulseQobjInstruction
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestSchedule(QiskitTestCase):
@@ -58,6 +59,7 @@ class TestSchedule(QiskitTestCase):
         schedule_ref = program
         self.assertEqual(schedule_to_test, schedule_ref)
 
+    @ignore_pulse_deprecation_warnings
     def test_add_block(self):
         """Basic test pulse Schedule format."""
         program = ScheduleBlock()
@@ -184,6 +186,7 @@ class TestSchedule(QiskitTestCase):
 class TestCallable(QiskitTestCase):
     """Test case for the CallableDef."""
 
+    @ignore_pulse_deprecation_warnings
     def test_add_callable(self):
         """Basic test callable format."""
         program = Schedule()
@@ -288,6 +291,7 @@ class TestPulseQobj(QiskitTestCase):
                 ]
             )
 
+    @ignore_pulse_deprecation_warnings
     def test_add_qobj(self):
         """Basic test PulseQobj format."""
         with self.assertWarns(DeprecationWarning):

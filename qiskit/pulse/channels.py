@@ -58,6 +58,7 @@ import numpy as np
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.deprecate import deprecate_pulse_func
 
 
 class Channel(metaclass=ABCMeta):
@@ -90,6 +91,7 @@ class Channel(metaclass=ABCMeta):
 
         return super().__new__(cls)
 
+    @deprecate_pulse_func
     def __init__(self, index: int):
         """Channel class.
 
@@ -206,6 +208,7 @@ class SnapshotChannel(ClassicalIOChannel):
 
     prefix = "s"
 
+    @deprecate_pulse_func
     def __init__(self):
         """Create new snapshot channel."""
         super().__init__(0)

@@ -15,6 +15,7 @@
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.exceptions import PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
@@ -212,6 +213,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(bound_four_new(P5=5), -2.925)
         self.assertEqual(bound_four_new(5), -2.925)
 
+    @ignore_pulse_deprecation_warnings
     def test_argument_duplication(self):
         """Test duplication of *args and **kwargs."""
 

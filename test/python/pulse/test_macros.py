@@ -26,11 +26,13 @@ from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake27QPulseV1, GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestMeasure(QiskitTestCase):
     """Pulse measure macro."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         with self.assertWarns(DeprecationWarning):
@@ -91,6 +93,7 @@ class TestMeasure(QiskitTestCase):
         with self.assertRaises(PulseError):
             macros.measure(qubits=[0], measure_name="name", inst_map=inst_map, meas_map=[[0]])
 
+    @ignore_pulse_deprecation_warnings
     def test_fail_measure(self):
         """Test failing measure."""
         with self.assertRaises(PulseError):
@@ -213,6 +216,7 @@ class TestMeasure(QiskitTestCase):
 class TestMeasureAll(QiskitTestCase):
     """Pulse measure all macro."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         with self.assertWarns(DeprecationWarning):
@@ -224,6 +228,7 @@ class TestMeasureAll(QiskitTestCase):
             seed=42,
         )
 
+    @ignore_pulse_deprecation_warnings
     def test_measure_all(self):
         """Test measure_all function."""
         sched = macros.measure_all(self.backend_v1)

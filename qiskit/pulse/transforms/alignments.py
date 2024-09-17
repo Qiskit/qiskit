@@ -20,6 +20,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
+from qiskit.pulse.deprecate import deprecate_pulse_func
 
 
 class AlignmentKind(abc.ABC):
@@ -93,6 +94,7 @@ class AlignLeft(AlignmentKind):
     Instructions are placed at earliest available timeslots.
     """
 
+    @deprecate_pulse_func
     def __init__(self):
         """Create new left-justified context."""
         super().__init__(context_params=())
@@ -160,6 +162,7 @@ class AlignRight(AlignmentKind):
     Instructions are placed at latest available timeslots.
     """
 
+    @deprecate_pulse_func
     def __init__(self):
         """Create new right-justified context."""
         super().__init__(context_params=())
@@ -229,6 +232,7 @@ class AlignSequential(AlignmentKind):
     No buffer time is inserted in between instructions.
     """
 
+    @deprecate_pulse_func
     def __init__(self):
         """Create new sequential context."""
         super().__init__(context_params=())
@@ -263,6 +267,7 @@ class AlignEquispaced(AlignmentKind):
     This alignment is convenient to create dynamical decoupling sequences such as PDD.
     """
 
+    @deprecate_pulse_func
     def __init__(self, duration: int | ParameterExpression):
         """Create new equispaced context.
 
@@ -348,6 +353,7 @@ class AlignFunc(AlignmentKind):
 
     """
 
+    @deprecate_pulse_func
     def __init__(self, duration: int | ParameterExpression, func: Callable):
         """Create new equispaced context.
 

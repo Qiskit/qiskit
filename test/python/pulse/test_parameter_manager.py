@@ -27,11 +27,13 @@ from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
 from qiskit.pulse.utils import format_parameter_value
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class ParameterTestBase(QiskitTestCase):
     """A base class for parameter manager unittest, providing test schedule."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         """Just some useful, reusable Parameters, constants, schedules."""
         super().setUp()
@@ -103,6 +105,7 @@ class ParameterTestBase(QiskitTestCase):
 class TestParameterGetter(ParameterTestBase):
     """Test getting parameters."""
 
+    @ignore_pulse_deprecation_warnings
     def test_get_parameter_from_channel(self):
         """Test get parameters from channel."""
         test_obj = pulse.DriveChannel(self.ch1 + self.ch2)
@@ -125,6 +128,7 @@ class TestParameterGetter(ParameterTestBase):
 
         self.assertSetEqual(visitor.parameters, ref_params)
 
+    @ignore_pulse_deprecation_warnings
     def test_get_parameter_from_acquire(self):
         """Test get parameters from acquire instruction."""
         test_obj = pulse.Acquire(16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1))
@@ -331,6 +335,7 @@ class TestParameterSetter(ParameterTestBase):
 
         self.assertEqual(assigned.amp, 0.1j)
 
+    @ignore_pulse_deprecation_warnings
     def test_complex_parameter_expression(self):
         """Test assignment of complex-valued parameter expression to parameter,
         but raises PendingDeprecationWarning."""
@@ -454,6 +459,7 @@ class TestParameterSetter(ParameterTestBase):
 class TestAssignFromProgram(QiskitTestCase):
     """Test managing parameters from programs. Parameter manager is implicitly called."""
 
+    @ignore_pulse_deprecation_warnings
     def test_attribute_parameters(self):
         """Test the ``parameter`` attributes."""
         sigma = Parameter("sigma")
@@ -619,6 +625,7 @@ class TestScheduleTimeslots(QiskitTestCase):
         with self.assertRaises(PulseError):
             schedule.assign_parameters({param_idx2: 2})
 
+    @ignore_pulse_deprecation_warnings
     def test_cannot_build_schedule_with_unassigned_duration(self):
         """Test we cannot build schedule with parameterized instructions"""
         dur = Parameter("dur")

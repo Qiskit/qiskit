@@ -20,11 +20,13 @@ from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class BaseTestBlock(QiskitTestCase):
     """ScheduleBlock tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -91,6 +93,7 @@ class TestTransformation(BaseTestBlock):
 
         self.assertScheduleEqual(block, ref_sched)
 
+    @ignore_pulse_deprecation_warnings
     def test_equispace_alignment(self):
         """Test equispace alignment context."""
         block = pulse.ScheduleBlock(alignment_context=self.equispaced_context)
@@ -150,6 +153,7 @@ class TestBlockOperation(BaseTestBlock):
     This operation should be tested in `test.python.pulse.test_block.TestTransformation`.
     """
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -181,6 +185,7 @@ class TestBlockOperation(BaseTestBlock):
 
         self.assertEqual(block.blocks[0], pulse.Play(self.test_waveform0, self.d0))
 
+    @ignore_pulse_deprecation_warnings
     def test_append_a_block_to_empty_block(self):
         """Test append another ScheduleBlock to empty block."""
         block = pulse.ScheduleBlock()
@@ -379,6 +384,7 @@ class TestBlockEquality(BaseTestBlock):
     This should be tested for each transform.
     """
 
+    @ignore_pulse_deprecation_warnings
     def test_different_channels(self):
         """Test equality is False if different channels."""
         block1 = pulse.ScheduleBlock()
@@ -614,6 +620,7 @@ class TestBlockEquality(BaseTestBlock):
 class TestParametrizedBlockOperation(BaseTestBlock):
     """Test fundamental operation with parametrization."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -639,6 +646,7 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         self.assertTrue(block.is_parameterized())
         self.assertTrue(block.is_schedulable())
 
+    @ignore_pulse_deprecation_warnings
     def test_cannot_get_duration_if_not_assigned(self):
         """Test raise error when duration is not assigned."""
         block = pulse.ScheduleBlock()
@@ -722,6 +730,7 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 class TestBlockFilter(BaseTestBlock):
     """Test ScheduleBlock filtering methods."""
 
+    @ignore_pulse_deprecation_warnings
     def test_filter_channels(self):
         """Test filtering over channels."""
         with pulse.build() as blk:
