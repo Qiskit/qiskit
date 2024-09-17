@@ -167,6 +167,9 @@ pub trait Operation {
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
+    fn inverse(&self, params: &[Param]) -> Vec<(Self, Vec<Param>)>
+    where
+        Self: Sized;
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -2042,6 +2045,77 @@ impl Operation for StandardGate {
 
     fn standard_gate(&self) -> Option<StandardGate> {
         Some(*self)
+    }
+    fn inverse(&self, params: &[Param]) -> Vec<(Self, Vec<Param>)> {
+        match self {
+            Self::GlobalPhaseGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(
+                    Self::GlobalPhaseGate,
+                    vec![multiply_param(&params[0], -1.0, py)],
+                )]
+            }),
+            Self::HGate => vec![(Self::HGate, vec![])],
+            Self::IGate => vec![(Self::IGate, vec![])],
+            Self::XGate => vec![(Self::XGate, vec![])],
+            Self::YGate => vec![(Self::YGate, vec![])],
+            Self::ZGate => vec![(Self::ZGate, vec![])],
+            Self::PhaseGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(Self::PhaseGate, vec![multiply_param(&params[0], -1.0, py)])]
+            }),
+            Self::RGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(
+                    Self::RGate,
+                    vec![multiply_param(&params[0], -1.0, py), params[1]],
+                )]
+            }),
+            Self::RXGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(Self::RXGate, vec![multiply_param(&params[0], -1.0, py)])]
+            }),
+            Self::RYGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(Self::RYGate, vec![multiply_param(&params[0], -1.0, py)])]
+            }),
+            Self::RZGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(Self::RZGate, vec![multiply_param(&params[0], -1.0, py)])]
+            }),
+            Self::SGate => vec![(Self::SdgGate, vec![])],
+            Self::SdgGate => vec![(Self::SGate, vec![])],
+            Self::SXGate => vec![(Self::SXdgGate, vec![])],
+            Self::SXdgGate => vec![(Self::SXGate, vec![])],
+            Self::TGate => vec![(Self::TdgGate, vec![])],
+            Self::TdgGate => vec![(Self::TGate, vec![])],
+            Self::UGate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(
+                    Self::UGate,
+                    vec![
+                        multiply_param(&params[0], -1.0, py),
+                        multiply_param(&params[2], -1.0, py),
+                        multiply_param(&params[1], -1.0, py),
+                    ],
+                )]
+            }),
+            Self::U1Gate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(Self::U1Gate, vec![multiply_param(&params[0], -1.0, py)])]
+            }),
+            Self::U2Gate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(
+                    Self::U2Gate,
+                    vec![
+                        add_param(&multiply_param(&params[1], -1.0, py), -PI, py),
+                        add_param(&multiply_param(&params[0], -1.0, py), PI, py),
+                    ],
+                )]
+            }),
+            Self::U3Gate => Python::with_gil(|py| -> Vec<(Self, Vec<Param>)> {
+                vec![(
+                    Self::U3Gate,
+                    vec![
+                        multiply_param(&params[0], -1.0, py),
+                        multiply_param(&params[2], -1.0, py),
+                        multiply_param(&params[1], -1.0, py),
+                    ],
+                )]
+            }),
+        }
     }
 }
 
