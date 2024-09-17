@@ -712,8 +712,7 @@ fn get_2q_decomposers_from_target(
                     op.operation.matrix(&op.params).unwrap().view(),
                     None,
                     None,
-                )
-                .unwrap()
+                )?
                 .a;
             let mut fidelity_value = match available_2q_props.get(name) {
                 Some(&(_, error)) => 1.0 - error.unwrap_or(0.0),
@@ -781,17 +780,15 @@ fn get_2q_decomposers_from_target(
                 &embodiments_dict,
                 pi2_decomposer,
             ))?;
-            let decomposer_gate = decomposer.getattr("gate")?;
+            let decomposer_gate = decomposer.getattr(intern!(py, "gate"))?;
 
-            // .getattr("name")?
-            // .extract::<String>()?;
 
             decomposers.push(DecomposerElement {
                 decomposer: DecomposerType::XXDecomposer(decomposer.into()),
-                decomp_gate: decomposer_gate.getattr("name")?.extract::<String>()?,
+                decomp_gate: decomposer_gate.getattr(intern!(py, "name"))?.extract::<String>()?,
                 decomp_gate_params: Some(
                     decomposer_gate
-                        .getattr("params")?
+                        .getattr(intern!(py, "params"))?
                         .extract::<SmallVec<[Param; 3]>>()?,
                 ),
             });
@@ -816,7 +813,7 @@ fn preferred_direction(
     let reverse_qubits: SmallVec<[PhysicalQubit; 2]> = qubits.iter().rev().copied().collect();
 
     let compute_cost =
-        |lengths: bool, q_tuple: &SmallVec<[PhysicalQubit; 2]>, in_cost: f64| -> PyResult<f64> {
+        |lengths: bool, q_tuple: &[PhysicalQubit; 2], in_cost: f64| -> PyResult<f64> {
             let cost = match target.qargs_for_operation_name(&decomposer.decomp_gate) {
                 Ok(_) => match target[&decomposer.decomp_gate].get(Some(q_tuple)) {
                     Some(Some(_props)) => {
@@ -903,14 +900,15 @@ fn synth_su4(
     let synth_dag = match &decomposer_2q.decomposer {
         // the output will be a dag  in the relative basis
         DecomposerType::XXDecomposer(decomposer) => {
-            let mut kwargs = HashMap::<&str, bool>::new();
-            kwargs.insert("approximate", is_approximate);
-            kwargs.insert("use_dag", true);
+            let kwargs: HashMap<&str, bool> = [
+                ("approximate", is_approximate),
+                ("use_dag", true)
+            ].iter().collect();
             // can we avoid cloning the matrix to pass it to python?
             decomposer
                 .call_method_bound(
                     py,
-                    "__call__",
+                    intern!(py, "__call__"),
                     (su4_mat.clone().into_pyarray_bound(py),),
                     Some(&kwargs.into_py_dict_bound(py)),
                 )?
@@ -1025,16 +1023,12 @@ fn reversed_synth_su4(
     let mut su4_mat_mm = su4_mat.clone();
 
     // Swap rows 1 and 2
-    let row_1 = su4_mat_mm.slice(s![1, ..]).to_owned();
-    let row_2 = su4_mat_mm.slice(s![2, ..]).to_owned();
-    su4_mat_mm.slice_mut(s![1, ..]).assign(&row_2);
-    su4_mat_mm.slice_mut(s![2, ..]).assign(&row_1);
+    let (mut row_1, mut row_2) = su4_mat_mm.multi_slice_mut((s![1, ..], s![2, ..]));
+    azip!((x in &mut row_1, y in &mut row2) (*x, *y) = (*y, *x))
 
     // Swap columns 1 and 2
-    let col_1 = su4_mat_mm.slice(s![.., 1]).to_owned();
-    let col_2 = su4_mat_mm.slice(s![.., 2]).to_owned();
-    su4_mat_mm.slice_mut(s![.., 1]).assign(&col_2);
-    su4_mat_mm.slice_mut(s![.., 2]).assign(&col_1);
+    let (mut col_1, mut col_2) = su4_mat_mm.multi_slice_mut((s![.., 1], s![.., 2]));
+    azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x))
 
     let synth_dag = match &decomposer_2q.decomposer {
         DecomposerType::XXDecomposer(decomposer) => {
