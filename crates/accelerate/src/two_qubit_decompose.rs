@@ -472,11 +472,11 @@ impl Specialization {
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
-    pub a: f64,
+    a: f64,
     #[pyo3(get)]
-    pub b: f64,
+    b: f64,
     #[pyo3(get)]
-    pub c: f64,
+    c: f64,
     #[pyo3(get)]
     pub global_phase: f64,
     K1l: Array2<Complex64>,
@@ -494,6 +494,15 @@ pub struct TwoQubitWeylDecomposition {
 }
 
 impl TwoQubitWeylDecomposition {
+    pub fn a(&self) -> &f64 {
+        &self.a
+    }
+    pub fn b(&self) -> &f64 {
+        &self.b
+    }
+    pub fn c(&self) -> &f64 {
+        &self.c
+    }
     fn weyl_gate(
         &self,
         simplify: bool,

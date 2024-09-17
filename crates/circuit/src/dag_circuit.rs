@@ -6885,7 +6885,7 @@ impl DAGCircuit {
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
-pub fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param> {
+fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param> {
     Ok(match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => Param::ParameterExpression(

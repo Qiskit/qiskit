@@ -509,25 +509,16 @@ class UnitarySynthesis(TransformationPass):
         )
 
         if self.method == "default" and isinstance(kwargs["target"], Target):
-            _gate_lengths = _gate_lengths or _build_gate_lengths(self._backend_props, self._target)
-            _gate_errors = _gate_errors or _build_gate_errors(self._backend_props, self._target)
-            if self._coupling_map is not None:
-                _dist_matrix = self._coupling_map.distance_matrix
-                _neighbor_table = NeighborTable(
-                    rustworkx.adjacency_matrix(self._coupling_map.graph)
-                )
-            else:
-                _dist_matrix = None
-                _neighbor_table = None
-
+            _coupling_edges = (
+                set(self._coupling_map.get_edges()) if self._coupling_map is not None else None
+            )
             out = run_default_main_loop(
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
                 kwargs["target"],
                 self._approximation_degree,
-                _neighbor_table,
-                _dist_matrix,
+                _coupling_edges,
                 kwargs["natural_direction"],
             )
             return out
