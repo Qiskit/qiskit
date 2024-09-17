@@ -25,7 +25,7 @@ pub(crate) static REFLECTION_NAMES: [ReflectionName; 4] = [ReflectionName::NoRef
 // where reflection scalars (a, b, c) model the map (x, y, z) |-> (ax, by, cz),
 // global phase is a complex unit, and gate constructors are applied in sequence
 // and by conjugation to the first qubit and are passed pi as a parameter.
-static reflection_options: [(&[f64; 3], Complex64, &[StandardGate]); 4]  =
+static REFLECTION_OPTIONS: [(&[f64; 3], Complex64, &[StandardGate]); 4]  =
     [(&[1., 1., 1.], C_ONE, &[]), // 0
      (&[-1., -1., 1.], C_ONE, &[StandardGate::RZGate]), // 1
      (&[-1., 1., -1.], C_ONE, &[StandardGate::RYGate]), // 2
@@ -56,7 +56,7 @@ pub(crate) static SHIFT_NAMES: [ShiftName; 8] = [
     ShiftName::XYZShift,
     ];
 
-static shift_options: [(&[f64; 3], Complex64, &[StandardGate]); 8] =
+static SHIFT_OPTIONS: [(&[f64; 3], Complex64, &[StandardGate]); 8] =
 [(&[0., 0., 0.], C_ONE, &[]),
  (&[0., 0., 1.], IM, &[StandardGate::RZGate]),
  (&[0., 1., 0.], M_IM, &[StandardGate::RYGate]),
@@ -72,7 +72,7 @@ pub(crate) fn apply_reflection(reflection_name: ReflectionName, coordinate: &Coo
     (Coordinate, Vec<GateData>, Complex64)
 {
     let (reflection_scalars, reflection_phase_shift, source_reflection_gates) =
-        reflection_options[reflection_name as usize];
+        REFLECTION_OPTIONS[reflection_name as usize];
 
     let reflected_coord = coordinate.reflect(reflection_scalars);
     let source_reflection: Vec<_> = source_reflection_gates
@@ -86,7 +86,7 @@ pub(crate) fn apply_shift(shift_name: ShiftName, coordinate: &Coordinate) ->
     (Coordinate, Vec<GateData>, Complex64)
 {
     let (shift_scalars, shift_phase_shift, source_shift_gates) =
-        shift_options[shift_name as usize];
+        SHIFT_OPTIONS[shift_name as usize];
     let shifted_coord = coordinate.shift(shift_scalars);
 
     let source_shift: Vec<_> = source_shift_gates

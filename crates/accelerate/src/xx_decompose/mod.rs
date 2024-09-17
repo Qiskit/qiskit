@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused)]
 // This code is part of Qiskit.
 //
 // (C) Copyright IBM 2022
@@ -19,3 +21,4 @@ pub mod utilities;
 mod types;
 mod weyl;
 mod polytopes;
+mod paths;

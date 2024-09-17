@@ -9,24 +9,65 @@ use crate::xx_decompose::utilities::EPSILON;
 /// and
 ///
 ///     equalities[j][0] + sum_i equalities[j][i] * xi == 0.
-struct ConvexPolytopeData<const MI:usize, const NI: usize, const ME:usize, const NE: usize> {
-    inequalities: [[f64; MI]; NI],
-    equalities: [[f64; ME]; NE],
-    name: String,
+
+
+// The names of the four explicit ConvexPolytopeData are below.
+// These occur in both xx_lift... and xx_region... But the order is slightly different.
+// Combinations obey:
+// "ah" and "B3" are always together
+// "af" and "B1" are always together
+// So we use just B1 and B3 to distinguish the pairs.
+// "A unreflected", "B unreflected" and "slant" always appear together.
+// "A reflected", "B reflected" and "strength" always appear together.
+// We label these triples with just "reflected" and "unreflected".
+//
+// If this code is modified so that the characteristics of the polytopes
+// changes in the future, the simplifications mentioned above may not hold.
+//
+// "A unreflected ∩ ah slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B3"
+// "A reflected ∩ ah strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B3"
+// "A unreflected ∩ af slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B1"
+// "A reflected ∩ af strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B1"
+
+//#[allow(non_camel_case_types)]
+pub(crate) enum AlcoveDetails {
+    Reflected,
+    Unreflected,
 }
 
-/// The raw data of a union of convex polytopes.
-struct PolytopeData<const MI:usize, const NI: usize, const ME:usize, const NE: usize> {
-    convex_subpolytopes: Vec<ConvexPolytopeData<MI, NI, ME, NE>>,
+// B2 is also referenced in the Python code.
+// But no data carries a "tag" B2, so that code is never used.
+pub(crate) enum AF {
+    B1,
+    B3,
 }
+
+static polys: Vec<Polytope<'static, 11>> = vec! [ ];
+
+pub(crate) struct Polytope<'a, const NCOLS: usize> {
+    pub(crate) ineqs: &'a [[i32; NCOLS]],
+    pub(crate) eqs: Option<&'a[[i32; NCOLS]]>,
+    pub(crate) alcove_details: Option<(AlcoveDetails, AF)>
+}
+
+pub(crate) struct ConvexPolytopeData<'a, const MI:usize, const NI: usize, const ME:usize, const NE: usize> {
+    pub(crate) inequalities: [[i32; MI]; NI],
+    pub(crate) equalities: [[i32; ME]; NE],
+    pub(crate) name: &'a str,
+}
+
+// /// The raw data of a union of convex polytopes.
+// pub(crate) struct PolytopeData<'a, const MI:usize, const NI: usize, const ME:usize, const NE: usize, const NC: usize> {
+//     pub(crate) convex_subpolytopes: [ConvexPolytopeData<'a, MI, NI, ME, NE>; NC],
+// }
 
 // TODO: In the original, this is not a class-instance method. Could be I think.
 /// Tests whether `polytope` contains `point.
 fn polytope_has_element<const MI:usize, const NI: usize, const ME:usize, const NE: usize>
-    (polytope: ConvexPolytopeData<MI, NI, ME, NE>, point: &[f64; MI - 1]) -> bool {
+    (polytope: ConvexPolytopeData<MI, NI, ME, NE>, point: &Vec<f64>) -> bool {
     polytope.inequalities
             .iter()
-            .all(|ie| (-EPSILON <= ie[0] + point.iter().zip(&ie[1..]).map(|(p, i)| p * i).sum::<f64>()))
+            .all(|ie| (-EPSILON <= ie[0] as f64 + point.iter().zip(&ie[1..]).map(|(p, i)| p * *i as f64).sum::<f64>()))
     //         &&
     // polytope.equalities
     //         .iter()
@@ -99,7 +140,7 @@ static A1: [[[f64; 3]; 1] ; 7] =
 
        [[ 0.,  0., -1.]]];
 
-static A1inv: [[[f64; 1]; 3] ; 7] =
+static A1INV: [[[f64; 1]; 3] ; 7] =
         [[[ 0.5             ],
         [-0.5             ],
         [ 0.              ]],
@@ -198,7 +239,7 @@ static A2: [[[f64; 3]; 2]; 21] =
 // A3 collects all triples of rows in A
 // A3inv collects the pseudo-inverse of each 3x3 matrix.
 
-static A2inv: [[[f64; 2]; 3]; 21] =
+static A2INV: [[[f64; 2]; 3]; 21] =
     [[[ 0.6666666666666666,  0.3333333333333333],
         [-0.3333333333333333,  0.3333333333333333],
         [-0.3333333333333333, -0.6666666666666666]],
@@ -425,7 +466,7 @@ static A3: [[[f64; 3]; 3]; 35] =
         [ 1., -1., -1.],
         [ 0.,  0., -1.]]];
 
-static A3inv: [[[f64; 3]; 3]; 35] =
+static A3INV: [[[f64; 3]; 3]; 35] =
      [[[ 1.     ,  1.     ,  1.     ],
         [-0.     ,  1.     ,  1.     ],
         [-0.     , -0.     ,  1.     ]],
