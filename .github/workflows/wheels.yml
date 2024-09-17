@@ -24,7 +24,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.73
         if: runner.os == 'macOS'
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.19.2
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
@@ -45,7 +45,7 @@ jobs:
           python-version: '3.10'
       - uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           CIBW_ARCHS_MACOS: arm64 universal2
@@ -95,7 +95,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
@@ -129,7 +129,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
@@ -163,7 +163,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_ARCHS_LINUX: aarch64
       - uses: actions/upload-artifact@v4
