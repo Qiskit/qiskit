@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in the circuit drawers, which could fail or omit wires if ``idle_wires=False``.
+    Fixed `#13128 <https://github.com/Qiskit/qiskit/issues/13128>`__ and `#13146 <https://github.com/Qiskit/qiskit/issues/13146>`__.

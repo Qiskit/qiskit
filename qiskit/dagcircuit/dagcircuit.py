@@ -2090,7 +2090,7 @@ class DAGCircuit:
             new_layer = self.copy_empty_like(vars_mode=vars_mode)
 
             for node in op_nodes:
-                new_layer._apply_op_node_back(node, check=False)
+                new_layer._apply_op_node_back(copy.copy(node), check=False)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
