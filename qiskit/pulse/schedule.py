@@ -54,6 +54,7 @@ from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.utils import deprecate_arg
+from qiskit.pulse.deprecate import deprecate_pulse_func
 
 
 Interval = Tuple[int, int]
@@ -120,6 +121,7 @@ class Schedule:
     # Counter to count instance number.
     instances_counter = itertools.count()
 
+    @deprecate_pulse_func
     def __init__(
         self,
         *schedules: "ScheduleComponent" | tuple[int, "ScheduleComponent"],
@@ -986,6 +988,7 @@ class ScheduleBlock:
     # Counter to count instance number.
     instances_counter = itertools.count()
 
+    @deprecate_pulse_func
     def __init__(
         self, name: str | None = None, metadata: dict | None = None, alignment_context=None
     ):

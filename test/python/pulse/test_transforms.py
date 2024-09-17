@@ -39,11 +39,13 @@ from qiskit.pulse.channels import (
 from qiskit.pulse.instructions import directives
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestAlignMeasures(QiskitTestCase):
     """Test the helper function which aligns acquires."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         with self.assertWarns(DeprecationWarning):
@@ -134,6 +136,7 @@ class TestAlignMeasures(QiskitTestCase):
 
         self.assertEqual(aligned, ref)
 
+    @ignore_pulse_deprecation_warnings
     def test_align_across_schedules(self):
         """Test that acquires are aligned together across multiple schedules."""
         sched1 = pulse.Schedule(name="fake_experiment")
@@ -201,6 +204,7 @@ class TestAlignMeasures(QiskitTestCase):
 class TestAddImplicitAcquires(QiskitTestCase):
     """Test the helper function which makes implicit acquires explicit."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         with self.assertWarns(DeprecationWarning):
@@ -224,6 +228,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
                 acquired_qubits.add(inst.acquire.index)
         self.assertEqual(acquired_qubits, {0, 1})
 
+    @ignore_pulse_deprecation_warnings
     def test_add_across_meas_map_sublists(self):
         """Test that implicit acquires in separate meas map sublists are all added."""
         sched = transforms.add_implicit_acquires(self.sched, [[0, 2], [1, 3]])
@@ -361,6 +366,7 @@ class TestPad(QiskitTestCase):
 
         self.assertEqual(transforms.pad(sched, until=30, inplace=True), ref_sched)
 
+    @ignore_pulse_deprecation_warnings
     def test_pad_no_delay_on_classical_io_channels(self):
         """Test padding does not apply to classical IO channels."""
         delay = 10
@@ -496,6 +502,7 @@ class TestCompressTransform(QiskitTestCase):
         self.assertEqual(len(original_pulse_ids), 2)
         self.assertEqual(len(compressed_pulse_ids), 1)
 
+    @ignore_pulse_deprecation_warnings
     def test_multiple_schedules(self):
         """Test multiple schedules."""
         schedules = []
@@ -517,6 +524,7 @@ class TestCompressTransform(QiskitTestCase):
 class TestAlignSequential(QiskitTestCase):
     """Test sequential alignment transform."""
 
+    @ignore_pulse_deprecation_warnings
     def test_align_sequential(self):
         """Test sequential alignment without a barrier."""
         context = transforms.AlignSequential()
@@ -565,6 +573,7 @@ class TestAlignSequential(QiskitTestCase):
 class TestAlignLeft(QiskitTestCase):
     """Test left alignment transform."""
 
+    @ignore_pulse_deprecation_warnings
     def test_align_left(self):
         """Test left alignment without a barrier."""
         context = transforms.AlignLeft()
@@ -628,6 +637,7 @@ class TestAlignLeft(QiskitTestCase):
 class TestAlignRight(QiskitTestCase):
     """Test right alignment transform."""
 
+    @ignore_pulse_deprecation_warnings
     def test_align_right(self):
         """Test right alignment without a barrier."""
         context = transforms.AlignRight()
@@ -692,6 +702,7 @@ class TestAlignRight(QiskitTestCase):
 class TestAlignEquispaced(QiskitTestCase):
     """Test equispaced alignment transform."""
 
+    @ignore_pulse_deprecation_warnings
     def test_equispaced_with_short_duration(self):
         """Test equispaced context with duration shorter than the schedule duration."""
         context = transforms.AlignEquispaced(duration=20)
@@ -710,6 +721,7 @@ class TestAlignEquispaced(QiskitTestCase):
 
         self.assertEqual(schedule, reference)
 
+    @ignore_pulse_deprecation_warnings
     def test_equispaced_with_longer_duration(self):
         """Test equispaced context with duration longer than the schedule duration."""
         context = transforms.AlignEquispaced(duration=50)
@@ -775,6 +787,7 @@ class TestAlignFunc(QiskitTestCase):
         """Returns 0.25, 0.5, 0.75 for ind = 1, 2, 3."""
         return ind / (3 + 1)
 
+    @ignore_pulse_deprecation_warnings
     def test_numerical_with_short_duration(self):
         """Test numerical alignment context with duration shorter than the schedule duration."""
         context = transforms.AlignFunc(duration=20, func=self._position)
@@ -793,6 +806,7 @@ class TestAlignFunc(QiskitTestCase):
 
         self.assertEqual(schedule, reference)
 
+    @ignore_pulse_deprecation_warnings
     def test_numerical_with_longer_duration(self):
         """Test numerical alignment context with duration longer than the schedule duration."""
         context = transforms.AlignFunc(duration=80, func=self._position)
@@ -815,6 +829,7 @@ class TestAlignFunc(QiskitTestCase):
 class TestFlatten(QiskitTestCase):
     """Test flattening transform."""
 
+    @ignore_pulse_deprecation_warnings
     def test_flatten(self):
         """Test the flatten transform."""
         context_left = transforms.AlignLeft()
@@ -864,6 +879,7 @@ class _TestDirective(directives.Directive):
 class TestRemoveDirectives(QiskitTestCase):
     """Test removing of directives."""
 
+    @ignore_pulse_deprecation_warnings
     def test_remove_directives(self):
         """Test that all directives are removed."""
         d0 = pulse.DriveChannel(0)
@@ -884,6 +900,7 @@ class TestRemoveDirectives(QiskitTestCase):
 class TestRemoveTrivialBarriers(QiskitTestCase):
     """Test scheduling transforms."""
 
+    @ignore_pulse_deprecation_warnings
     def test_remove_trivial_barriers(self):
         """Test that trivial barriers are properly removed."""
         schedule = pulse.Schedule()

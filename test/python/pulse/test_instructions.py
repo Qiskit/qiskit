@@ -17,11 +17,13 @@ import numpy as np
 from qiskit import circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestAcquire(QiskitTestCase):
     """Acquisition tests."""
 
+    @ignore_pulse_deprecation_warnings
     def test_can_construct_valid_acquire_command(self):
         """Test if valid acquire command can be constructed."""
         kernel_opts = {"start_window": 0, "stop_window": 10}
@@ -88,6 +90,7 @@ class TestAcquire(QiskitTestCase):
 class TestDelay(QiskitTestCase):
     """Delay tests."""
 
+    @ignore_pulse_deprecation_warnings
     def test_delay(self):
         """Test delay."""
         delay = instructions.Delay(10, channels.DriveChannel(0), name="test_name")
@@ -124,6 +127,7 @@ class TestDelay(QiskitTestCase):
 class TestSetFrequency(QiskitTestCase):
     """Set frequency tests."""
 
+    @ignore_pulse_deprecation_warnings
     def test_freq(self):
         """Test set frequency basic functionality."""
         set_freq = instructions.SetFrequency(4.5e9, channels.DriveChannel(1), name="test")
@@ -140,6 +144,7 @@ class TestSetFrequency(QiskitTestCase):
         )
         self.assertEqual(repr(set_freq), "SetFrequency(4500000000.0, DriveChannel(1), name='test')")
 
+    @ignore_pulse_deprecation_warnings
     def test_freq_non_pulse_channel(self):
         """Test set frequency constructor with illegal channel"""
         with self.assertRaises(exceptions.PulseError):
@@ -176,6 +181,7 @@ class TestShiftFrequency(QiskitTestCase):
             repr(shift_freq), "ShiftFrequency(4500000000.0, DriveChannel(1), name='test')"
         )
 
+    @ignore_pulse_deprecation_warnings
     def test_freq_non_pulse_channel(self):
         """Test shift frequency constructor with illegal channel"""
         with self.assertRaises(exceptions.PulseError):
@@ -194,6 +200,7 @@ class TestShiftFrequency(QiskitTestCase):
 class TestSetPhase(QiskitTestCase):
     """Test the instruction construction."""
 
+    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test basic SetPhase."""
         set_phase = instructions.SetPhase(1.57, channels.DriveChannel(0))
@@ -229,6 +236,7 @@ class TestSetPhase(QiskitTestCase):
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
 
+    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test basic ShiftPhase."""
         shift_phase = instructions.ShiftPhase(1.57, channels.DriveChannel(0))
@@ -264,6 +272,7 @@ class TestShiftPhase(QiskitTestCase):
 class TestSnapshot(QiskitTestCase):
     """Snapshot tests."""
 
+    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default snapshot."""
         snapshot = instructions.Snapshot(label="test_name", snapshot_type="state")
@@ -279,12 +288,14 @@ class TestSnapshot(QiskitTestCase):
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         """Setup play tests."""
         super().setUp()
         self.duration = 4
         self.pulse_op = library.Waveform([1.0] * self.duration, name="test")
 
+    @ignore_pulse_deprecation_warnings
     def test_play(self):
         """Test basic play instruction."""
         play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
@@ -307,6 +318,7 @@ class TestPlay(QiskitTestCase):
 class TestDirectives(QiskitTestCase):
     """Test pulse directives."""
 
+    @ignore_pulse_deprecation_warnings
     def test_relative_barrier(self):
         """Test the relative barrier directive."""
         a0 = channels.AcquireChannel(0)

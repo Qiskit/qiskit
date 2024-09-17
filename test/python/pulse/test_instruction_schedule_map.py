@@ -35,11 +35,13 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake7QPulseV1
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
     """Test the InstructionScheduleMap."""
 
+    @ignore_pulse_deprecation_warnings
     def test_add(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()

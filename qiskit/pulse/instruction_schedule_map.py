@@ -46,6 +46,7 @@ from qiskit.pulse.calibration_entries import (
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.deprecate import deprecate_pulse_func
 
 
 class InstructionScheduleMap:
@@ -62,6 +63,7 @@ class InstructionScheduleMap:
     These can usually be seen as gate calibrations.
     """
 
+    @deprecate_pulse_func
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions

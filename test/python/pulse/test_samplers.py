@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.pulse import library
 from qiskit.pulse.library import samplers
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:
@@ -82,6 +83,7 @@ class TestSampler(QiskitTestCase):
         self.assertIsInstance(pulse, library.Waveform)
         self.assertEqual(pulse.name, "test")
 
+    @ignore_pulse_deprecation_warnings
     def test_default_arg_sampler(self):
         """Test that default arguments work with sampler."""
         m = 0.1

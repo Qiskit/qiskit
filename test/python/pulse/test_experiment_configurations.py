@@ -18,11 +18,13 @@ from qiskit.pulse.channels import DriveChannel, MeasureChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import LoConfig, LoRange, Kernel, Discriminator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestLoRange(QiskitTestCase):
     """Test LO LoRange."""
 
+    @ignore_pulse_deprecation_warnings
     def test_properties_includes_and_eq(self):
         """Test creation of LoRange. Test upper/lower bounds and includes.
         Test __eq__ for two same and different LoRange's.
@@ -43,6 +45,7 @@ class TestLoRange(QiskitTestCase):
 class TestLoConfig(QiskitTestCase):
     """LoConfig tests."""
 
+    @ignore_pulse_deprecation_warnings
     def test_can_create_empty_user_lo_config(self):
         """Test if a LoConfig can be created without no arguments."""
         user_lo_config = LoConfig()
@@ -97,6 +100,7 @@ class TestLoConfig(QiskitTestCase):
 class TestKernel(QiskitTestCase):
     """Test Kernel."""
 
+    @ignore_pulse_deprecation_warnings
     def test_eq(self):
         """Test if two kernels are equal."""
         kernel_a = Kernel(
@@ -157,6 +161,7 @@ class TestKernel(QiskitTestCase):
 class TestDiscriminator(QiskitTestCase):
     """Test Discriminator."""
 
+    @ignore_pulse_deprecation_warnings
     def test_eq(self):
         """Test if two discriminators are equal."""
         discriminator_a = Discriminator(

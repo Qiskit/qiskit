@@ -437,6 +437,7 @@ from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
+from qiskit.pulse.deprecate import deprecate_pulse_func
 
 
 if sys.version_info >= (3, 12):
@@ -477,6 +478,7 @@ class _PulseBuilder:
         "sequential": transforms.AlignSequential(),
     }
 
+    @deprecate_pulse_func
     def __init__(
         self,
         backend=None,
@@ -774,6 +776,7 @@ class _PulseBuilder:
         return self.backend.configuration().dt
 
 
+@deprecate_pulse_func
 def build(
     backend=None,
     schedule: ScheduleBlock | None = None,
@@ -1504,6 +1507,7 @@ def delay(duration: int, channel: chans.Channel, name: str | None = None):
     append_instruction(instructions.Delay(duration, channel, name=name))
 
 
+@deprecate_pulse_func
 def play(pulse: library.Pulse | np.ndarray, channel: chans.PulseChannel, name: str | None = None):
     """Play a ``pulse`` on a ``channel``.
 

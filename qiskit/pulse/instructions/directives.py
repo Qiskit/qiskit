@@ -18,6 +18,7 @@ from abc import ABC
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.deprecate import deprecate_pulse_func
 
 
 class Directive(instruction.Instruction, ABC):
@@ -35,6 +36,7 @@ class Directive(instruction.Instruction, ABC):
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
 
+    @deprecate_pulse_func
     def __init__(self, *channels: chans.Channel, name: str | None = None):
         """Create a relative barrier directive.
 
@@ -102,6 +104,7 @@ class TimeBlockade(Directive):
         user can insert another instruction without timing overlap.
     """
 
+    @deprecate_pulse_func
     def __init__(
         self,
         duration: int,

@@ -18,6 +18,7 @@ from qiskit import circuit, pulse
 from qiskit.pulse import ScheduleBlock, builder
 from qiskit.pulse.transforms import inline_subroutines
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestReference(QiskitTestCase):
@@ -247,6 +248,7 @@ class TestReference(QiskitTestCase):
 
         self.assertEqual(len(sched_z1.references), 2)
 
+    @ignore_pulse_deprecation_warnings
     def test_alignment_context(self):
         """Test nested alignment context.
 
@@ -433,6 +435,7 @@ class TestReference(QiskitTestCase):
 class TestSubroutineWithCXGate(QiskitTestCase):
     """Test called program scope with practical example of building fully parametrized CX gate."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -537,6 +540,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         params = sched.get_parameters(parameter_name="amp")
         self.assertEqual(len(params), 2)
 
+    @ignore_pulse_deprecation_warnings
     def test_cnot(self):
         """Integration test with CNOT schedule construction."""
         # echoed cross resonance
