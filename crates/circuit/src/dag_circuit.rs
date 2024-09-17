@@ -6800,3 +6800,49 @@ fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param>
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
+
+#[cfg(test)]
+mod test {
+    use crate::dag_circuit::DAGCircuit;
+    use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER};
+    use crate::operations::StandardGate;
+    use crate::packed_instruction::{PackedInstruction, PackedOperation};
+    use crate::Qubit;
+    use pyo3::prelude::*;
+    use pyo3::Python;
+
+    fn new_dag(py: Python, qubits: u32, clbits: u32) -> DAGCircuit {
+        let qreg = QUANTUM_REGISTER.get_bound(py).call1((qubits,)).unwrap();
+        let creg = CLASSICAL_REGISTER.get_bound(py).call1((clbits,)).unwrap();
+        let mut dag = DAGCircuit::new(py).unwrap();
+        dag.add_qreg(py, &qreg).unwrap();
+        dag.add_creg(py, &creg).unwrap();
+        dag
+    }
+
+    #[test]
+    fn test_push_back() {
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(|py| {
+            let mut dag = new_dag(py, 4, 4);
+            let cx = PackedInstruction {
+                op: PackedOperation::from_standard(StandardGate::CXGate),
+                qubits: dag.qargs_interner.insert_owned(vec![Qubit(0), Qubit(1)]),
+                clbits: dag.cargs_interner.get_default(),
+                params: None,
+                extra_attrs: Default::default(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: Default::default(),
+            };
+            let cx_node = dag.push_back(py, cx).unwrap();
+
+            let [q0_in_node, q0_out_node] = dag.qubit_io_map[0];
+            let [q1_in_node, q1_out_node] = dag.qubit_io_map[1];
+
+            assert!(dag.dag.find_edge(q0_in_node, cx_node).is_some());
+            assert!(dag.dag.find_edge(q1_in_node, cx_node).is_some());
+            assert!(dag.dag.find_edge(cx_node, q0_out_node).is_some());
+            assert!(dag.dag.find_edge(cx_node, q1_out_node).is_some());
+        });
+    }
+}
