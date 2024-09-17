@@ -6801,8 +6801,7 @@ fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param>
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
-#[cfg(test)]
-#[cfg_attr(miri, ignore)]
+#[cfg(all(test, not(miri)))]
 mod test {
     use crate::dag_circuit::DAGCircuit;
     use crate::imports::{CLASSICAL_REGISTER, QUANTUM_REGISTER};
