@@ -6822,7 +6822,6 @@ mod test {
 
     #[test]
     fn test_push_back() {
-        pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| {
             let mut dag = new_dag(py, 4, 4);
             let cx = PackedInstruction {
