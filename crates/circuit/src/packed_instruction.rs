@@ -411,7 +411,7 @@ impl Operation for PackedOperation {
         self.view().directive()
     }
     #[inline]
-    fn inverse(&self, params: &[Param]) -> Option<Vec<(StandardGate, Vec<Param>)>> {
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, Vec<Param>)> {
         self.view().inverse(params)
     }
 }
