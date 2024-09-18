@@ -167,7 +167,7 @@ pub trait Operation {
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
-    fn inverse(&self, params: &[Param]) -> Option<Vec<(Self, Vec<Param>)>>
+    fn inverse(&self, params: &[Param]) -> Option<Vec<(StandardGate, Vec<Param>)>>
     where
         Self: Sized;
 }
@@ -264,6 +264,15 @@ impl<'a> Operation for OperationRef<'a> {
             Self::Gate(gate) => gate.directive(),
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
+        }
+    }
+    #[inline]
+    fn inverse(&self, params: &[Param]) -> Option<Vec<(StandardGate, Vec<Param>)>> {
+        match self {
+            Self::Standard(standard) => standard.inverse(params),
+            Self::Gate(gate) => gate.inverse(params),
+            Self::Instruction(instruction) => instruction.inverse(params),
+            Self::Operation(operation) => operation.inverse(params),
         }
     }
 }
@@ -2333,6 +2342,9 @@ impl Operation for PyInstruction {
             }
         })
     }
+    fn inverse(&self, _params: &[Param]) -> Option<Vec<(StandardGate, Vec<Param>)>> {
+        None
+    }
 }
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
@@ -2409,6 +2421,27 @@ impl Operation for PyGate {
     fn directive(&self) -> bool {
         false
     }
+    fn inverse(&self, _params: &[Param]) -> Option<Vec<(StandardGate, Vec<Param>)>> {
+        Python::with_gil(|py| -> Option<Vec<(StandardGate, Vec<Param>)>> {
+            match self.gate.getattr(py, intern!(py, "inverse")) {
+                Ok(inverse) => {
+                    let res: Option<PyObject> = inverse.call0(py).ok()?.extract(py).ok();
+                    match res {
+                        Some(x) => {
+                            let out: Vec<(StandardGate, Vec<Param>)> = x
+                                .getattr(py, intern!(py, "inverse"))
+                                .ok()?
+                                .extract(py)
+                                .ok()?;
+                            Some(out)
+                        }
+                        None => None,
+                    }
+                }
+                Err(_) => None,
+            }
+        })
+    }
 }
 
 /// This class is used to wrap a Python side Operation that is not in the standard library
@@ -2459,5 +2492,8 @@ impl Operation for PyOperation {
                 Err(_) => false,
             }
         })
+    }
+    fn inverse(&self, _params: &[Param]) -> Option<Vec<(StandardGate, Vec<Param>)>> {
+        None
     }
 }
