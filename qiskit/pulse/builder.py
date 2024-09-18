@@ -131,7 +131,9 @@ channels for you.
 
 In the example below we demonstrate some more features of the pulse builder:
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
    import math
    from qiskit.compiler import schedule
@@ -246,7 +248,9 @@ Channels
 
 Methods to return the correct channels for the respective qubit indices.
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit import pulse
     from qiskit.providers.fake_provider import GenericBackendV2
@@ -351,7 +355,9 @@ Macros
 
 Macros help you add more complex functionality to your pulse program.
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit import pulse
     from qiskit.providers.fake_provider import GenericBackendV2
@@ -377,7 +383,9 @@ Utilities
 The utility functions can be used to gather attributes about the backend and modify
 how the program is built.
 
-.. code-block::
+.. plot::
+   :include-source:
+   :nofigs:
 
     from qiskit import pulse
 
@@ -783,7 +791,10 @@ def build(
 
     To enter a building context and starting building a pulse program:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit import transpile, pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -878,7 +889,9 @@ def append_instruction(instruction: instructions.Instruction):
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -901,7 +914,9 @@ def num_qubits() -> int:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -958,7 +973,9 @@ def qubit_channels(qubit: int) -> set[chans.Channel]:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1033,7 +1050,9 @@ def align_left() -> Generator[None, None, None]:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1071,7 +1090,9 @@ def align_right() -> Generator[None, None, None]:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1109,7 +1130,9 @@ def align_sequential() -> Generator[None, None, None]:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1284,7 +1307,9 @@ def phase_offset(phase: float, *channels: chans.PulseChannel) -> Generator[None,
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         import math
 
@@ -1322,8 +1347,9 @@ def frequency_offset(
 
     Examples:
 
-    .. code-block:: python
-        :emphasize-lines: 7, 16
+    .. plot::
+        :include-source:
+        :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1385,7 +1411,9 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1408,7 +1436,9 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1431,7 +1461,9 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1457,7 +1489,9 @@ def control_channels(*qubits: Iterable[int]) -> list[chans.ControlChannel]:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1488,7 +1522,9 @@ def delay(duration: int, channel: chans.Channel, name: str | None = None):
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1510,7 +1546,9 @@ def play(pulse: library.Pulse | np.ndarray, channel: chans.PulseChannel, name: s
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1549,7 +1587,9 @@ def acquire(
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1596,7 +1636,9 @@ def set_frequency(frequency: float, channel: chans.PulseChannel, name: str | Non
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1618,8 +1660,9 @@ def shift_frequency(frequency: float, channel: chans.PulseChannel, name: str | N
 
     Examples:
 
-    .. code-block:: python
-        :emphasize-lines: 6
+    .. plot::
+        :include-source:
+        :nofigs:
 
         from qiskit import pulse
 
@@ -1641,8 +1684,9 @@ def set_phase(phase: float, channel: chans.PulseChannel, name: str | None = None
 
     Examples:
 
-    .. code-block:: python
-        :emphasize-lines: 8
+    .. plot::
+        :include-source:
+        :nofigs:
 
         import math
 
@@ -1666,7 +1710,9 @@ def shift_phase(phase: float, channel: chans.PulseChannel, name: str | None = No
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         import math
 
@@ -1690,7 +1736,9 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1728,7 +1776,10 @@ def call(
 
         1. Calling a schedule block (recommended)
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context: reset
 
             from qiskit import circuit, pulse
             from qiskit.providers.fake_provider import GenericBackendV2
@@ -1760,7 +1811,10 @@ def call(
 
         The actual program is stored in the reference table attached to the schedule.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             print(pulse_prog.references)
 
@@ -1771,7 +1825,10 @@ def call(
 
         In addition, you can call a parameterized target program with parameter assignment.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             amp = circuit.Parameter("amp")
 
@@ -1810,7 +1867,10 @@ def call(
         If there is a name collision between parameters, you can distinguish them by specifying
         each parameter object in a python dictionary. For example,
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             amp1 = circuit.Parameter('amp')
             amp2 = circuit.Parameter('amp')
@@ -1839,7 +1899,10 @@ def call(
 
         2. Calling a schedule
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             x_sched = backend.instruction_schedule_map.get("x", (0,))
 
@@ -1904,7 +1967,9 @@ def reference(name: str, *extra_keys: str):
     A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
     and a schedule can be separately registered to the reference at a later stage.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
 
@@ -1931,7 +1996,10 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     the barrier. Consider the case where we want to enforce that one pulse
     happens after another on separate channels, this can be done with:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -1948,7 +2016,10 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
 
     Of course this could have been accomplished with:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         from qiskit.pulse import transforms
 
@@ -1967,7 +2038,9 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     in the case where we are calling an outside circuit or schedule and
     want to align a pulse at the end of one call:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         import math
         from qiskit import pulse
@@ -2076,7 +2149,10 @@ def measure(
     To use the measurement it is as simple as specifying the qubit you wish to
     measure:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -2096,7 +2172,10 @@ def measure(
     future we will support using this handle to a result register to build
     up ones program. It is also possible to supply this register:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         with pulse.build(backend) as pulse_prog:
             pulse.play(pulse.Constant(100, 1.0), qubit_drive_chan)
@@ -2158,7 +2237,9 @@ def measure_all() -> list[chans.MemorySlot]:
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
@@ -2198,7 +2279,9 @@ def delay_qubits(duration: int, *qubits: int):
 
     Examples:
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import pulse
         from qiskit.providers.fake_provider import FakeOpenPulse3Q

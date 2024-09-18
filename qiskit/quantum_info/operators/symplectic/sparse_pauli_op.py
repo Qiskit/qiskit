@@ -69,7 +69,9 @@ class SparsePauliOp(LinearOp):
     configure this by passing ``np.ndarray`` with a different dtype.  For example, a parameterized
     :class:`SparsePauliOp` can be made as follows:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         >>> import numpy as np
         >>> from qiskit.circuit import ParameterVector
@@ -530,7 +532,9 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp argsort.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -599,7 +603,9 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp sort.
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -792,7 +798,9 @@ class SparsePauliOp(LinearOp):
 
         can be constructed as
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info import SparsePauliOp
 
@@ -858,7 +866,9 @@ class SparsePauliOp(LinearOp):
 
         can be constructed as
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info import SparsePauliOp
 
@@ -1055,7 +1065,9 @@ class SparsePauliOp(LinearOp):
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.  For example:
 
-                .. code-block:: python
+                .. plot::
+                   :include-source:
+                   :nofigs:
 
                     >>> from qiskit.quantum_info import SparsePauliOp
                     >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])

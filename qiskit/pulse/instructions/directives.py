@@ -70,7 +70,9 @@ class TimeBlockade(Directive):
 
         This schedule plays constant pulse at t0 = 120.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 
@@ -79,7 +81,10 @@ class TimeBlockade(Directive):
 
         This schedule block is expected to be identical to above at a time of execution.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context: reset
 
             from qiskit.pulse import ScheduleBlock, Play, Constant, DriveChannel
             from qiskit.pulse.instructions import TimeBlockade
@@ -90,7 +95,10 @@ class TimeBlockade(Directive):
 
         Such conversion may be done by
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+           :context:
 
             from qiskit.pulse.transforms import block_to_schedule, remove_directives
 

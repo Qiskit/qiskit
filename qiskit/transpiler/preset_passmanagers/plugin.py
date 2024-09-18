@@ -314,7 +314,9 @@ def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
 
     This function is useful for getting more information about a plugin:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
         routing_plugins = passmanager_stage_plugins('routing')
