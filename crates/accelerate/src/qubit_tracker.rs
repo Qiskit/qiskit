@@ -171,7 +171,6 @@ impl QubitTracker {
         qubit_map: Option<HashMap<Qubit, Qubit>>,
         drop: Option<Vec<Qubit>>,
     ) -> PyResult<Self> {
-        println!("IN COPY: qubit_map = {:?}, drop = {:?}", qubit_map, drop);
         let (qubits, clean, dirty) = if qubit_map.is_none() && drop.is_none() {
             // Copy everything
             (self.qubits.clone(), self.clean.clone(), self.dirty.clone())

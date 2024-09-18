@@ -15,7 +15,6 @@
 import unittest
 
 from qiskit.exceptions import QiskitError
-# from qiskit.transpiler.passes.synthesis.qubit_tracker import QubitTracker
 from qiskit._accelerate.qubit_tracker import QubitTracker
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -43,7 +42,6 @@ class TestQubitTracker(QiskitTestCase):
         self.assertEqual(tracker.num_clean(), 6)
         self.assertEqual(tracker.num_dirty(), 5)
         tracker.drop([10, 0, 1, 5])  # clean becomes {2, 6, 8, 9}, dirty becomes {3, 4, 7}
-        print(tracker)
         self.assertEqual(tracker.num_clean(), 4)
         self.assertEqual(tracker.num_dirty(), 3)
         self.assertEqual(set(tracker.borrow(3)), {2, 6, 8})
