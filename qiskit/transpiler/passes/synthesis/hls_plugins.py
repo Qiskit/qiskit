@@ -505,6 +505,10 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
     This plugin name is :``qft.full`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
+    Note that the plugin mechanism is not applied if the gate is called ``qft`` but
+    is not an instance of ``QFTGate``. This allows users to create custom gates with
+    name ``qft``.
+
     The plugin supports the following additional options:
 
     * reverse_qubits (bool): Whether to synthesize the "QFT" operation (if ``False``,
@@ -532,10 +536,11 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given QFTGate."""
+
+        # Even though the gate is called "qft", it's not a QFTGate,
+        # and we should not synthesize it using the plugin.
         if not isinstance(high_level_object, QFTGate):
-            raise TranspilerError(
-                "The synthesis plugin 'qft.full` only applies to objects of type QFTGate."
-            )
+            return None
 
         reverse_qubits = options.get("reverse_qubits", False)
         approximation_degree = options.get("approximation_degree", 0)
@@ -559,6 +564,10 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
 
     This plugin name is :``qft.line`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    Note that the plugin mechanism is not applied if the gate is called ``qft`` but
+    is not an instance of ``QFTGate``. This allows users to create custom gates with
+    name ``qft``.
 
     The plugin supports the following additional options:
 
@@ -584,10 +593,11 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given QFTGate."""
+
+        # Even though the gate is called "qft", it's not a QFTGate,
+        # and we should not synthesize it using the plugin.
         if not isinstance(high_level_object, QFTGate):
-            raise TranspilerError(
-                "The synthesis plugin 'qft.line` only applies to objects of type QFTGate."
-            )
+            return None
 
         reverse_qubits = options.get("reverse_qubits", False)
         approximation_degree = options.get("approximation_degree", 0)
