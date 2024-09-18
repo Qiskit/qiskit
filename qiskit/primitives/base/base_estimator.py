@@ -92,7 +92,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [H1], [theta1])
         job_result = job.result() # It will block until the job finishes.
-        print(f"The primitive-job finished with result {job_result}"))
+        print(f"The primitive-job finished with result {job_result}")
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
@@ -144,7 +144,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 
         .. code-block:: python
 
-            values = parameter_values[i].
+            values = parameter_values[i]
 
         Args:
             circuits: one or more circuit objects.
