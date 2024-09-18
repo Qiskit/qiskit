@@ -425,22 +425,28 @@ impl StandardGate {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        extra_attrs: Option<&ExtraInstructionAttributes>,
+        extra_attrs: &ExtraInstructionAttributes,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty_bound(py),
             params => PyTuple::new_bound(py, params),
         };
-        if let Some(extra) = extra_attrs {
+        let (label, unit, duration, condition) = (
+            extra_attrs.label(),
+            extra_attrs.unit(),
+            extra_attrs.duration(),
+            extra_attrs.condition(),
+        );
+        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
             let kwargs = [
-                ("label", extra.label.to_object(py)),
-                ("unit", extra.py_unit(py).into_any()),
-                ("duration", extra.duration.to_object(py)),
+                ("label", label.to_object(py)),
+                ("unit", extra_attrs.py_unit(py).into_any()),
+                ("duration", duration.to_object(py)),
             ]
             .into_py_dict_bound(py);
             let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
-            if let Some(ref condition) = extra.condition {
+            if let Some(condition) = condition {
                 out = out.call_method0(py, "to_mutable")?;
                 out.setattr(py, "condition", condition)?;
             }
