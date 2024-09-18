@@ -256,9 +256,17 @@ fn py_run_default_main_loop(
                         .unwrap();
 
                         for gate in sequence.gates {
-                            out_dag.insert_1q_on_incoming_qubit(
-                                (gate.0, &gate.1),
-                                NodeIndex::new(qubit.0 as usize),
+                            let new_params: SmallVec<[Param; 3]> =
+                                gate.1.iter().map(|p| Param::Float(*p)).collect();
+                            let _ = out_dag.apply_operation_back(
+                                py,
+                                gate.0.into(),
+                                &[qubit],
+                                &[],
+                                Some(new_params),
+                                ExtraInstructionAttributes::new(None, None, None, None),
+                                #[cfg(feature = "cache_pygates")]
+                                None,
                             );
                         }
                         out_dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;

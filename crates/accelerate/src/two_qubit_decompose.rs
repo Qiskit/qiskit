@@ -1276,7 +1276,7 @@ impl Default for TwoQubitGateSequence {
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitBasisDecomposer {
-    pub gate: String,
+    gate: String,
     basis_fidelity: f64,
     euler_basis: EulerBasis,
     pulse_optimize: Option<bool>,

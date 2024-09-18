@@ -27,7 +27,6 @@ from typing import Any
 from itertools import product
 from functools import partial
 import numpy as np
-import rustworkx
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.circuit import Gate, Parameter, CircuitInstruction
@@ -74,7 +73,6 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.target import Target
 
-from qiskit._accelerate.sabre import NeighborTable
 from qiskit._accelerate.unitary_synthesis import run_default_main_loop
 
 GATE_NAME_MAP = {
@@ -258,10 +256,8 @@ def _preferred_direction(
         if coupling_map is not None:
             neighbors0 = coupling_map.neighbors(qubits[0])
             zero_one = qubits[1] in neighbors0
-
             neighbors1 = coupling_map.neighbors(qubits[1])
             one_zero = qubits[0] in neighbors1
-
             if zero_one and not one_zero:
                 preferred_direction = [0, 1]
             if one_zero and not zero_one:
@@ -307,7 +303,6 @@ def _preferred_direction(
                 preferred_direction = [0, 1]
             elif cost_1_0 < cost_0_1:
                 preferred_direction = [1, 0]
-
     if natural_direction is True and preferred_direction is None:
         raise TranspilerError(
             f"No preferred direction of gate on qubits {qubits} "
@@ -903,7 +898,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 if error is None:
                     error = 0.0
                 basis_2q_fidelity[strength] = 1 - error
-
             # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[v.base_class]
             if len(embodiment.parameters) == 1:
@@ -1066,14 +1060,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
         su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
         synth_circ = decomposer2q(su4_mat_mm, approximate=approximate, use_dag=True)
-
         out_dag = DAGCircuit()
         out_dag.global_phase = synth_circ.global_phase
         out_dag.add_qubits(list(reversed(synth_circ.qubits)))
         flip_bits = out_dag.qubits[::-1]
         for node in synth_circ.topological_op_nodes():
             qubits = tuple(flip_bits[synth_circ.find_bit(x).index] for x in node.qargs)
-
             node = DAGOpNode.from_instruction(
                 node._to_circuit_instruction().replace(qubits=qubits, params=node.params)
             )
