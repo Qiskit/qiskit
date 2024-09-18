@@ -12,11 +12,13 @@
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::{exceptions::PyTypeError, prelude::*};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_CIRCUIT, QUANTUM_REGISTER};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter_table::ParameterUuid;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::{DAGCircuit, NodeType},
@@ -109,8 +111,22 @@ pub(super) fn compose_transforms<'a>(
                 .map(|x| x.clone_ref(py))
                 .collect::<SmallVec<[Param; 3]>>(),
         ))?;
-
-        dag.py_apply_operation_back(py, gate, Some(qubits.extract()?), None, false)?;
+        let gate_obj: OperationFromPython = gate.extract()?;
+        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+        dag.apply_operation_back(
+            py,
+            gate_obj.operation,
+            &qubits,
+            &[],
+            if gate_obj.params.is_empty() {
+                None
+            } else {
+                Some(gate_obj.params)
+            },
+            gate_obj.extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            Some(gate.into()),
+        )?;
         mapped_instructions.insert(
             (gate_name.clone(), gate_num_qubits),
             (placeholder_params, dag),
