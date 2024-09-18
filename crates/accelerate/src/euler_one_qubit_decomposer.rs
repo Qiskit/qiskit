@@ -791,7 +791,6 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     params_zxz_inner(mat)
 }
 
-#[pymodule]
 pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;

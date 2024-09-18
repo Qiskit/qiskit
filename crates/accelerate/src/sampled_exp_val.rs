@@ -86,7 +86,6 @@ pub fn sampled_expval_complex(
     Ok(out.re)
 }
 
-#[pymodule]
 pub fn sampled_exp_val(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sampled_expval_float))?;
     m.add_wrapped(wrap_pyfunction!(sampled_expval_complex))?;

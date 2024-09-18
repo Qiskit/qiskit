@@ -208,7 +208,6 @@ pub fn density_expval_pauli_with_x(
     }
 }
 
-#[pymodule]
 pub fn pauli_expval(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(expval_pauli_no_x))?;
     m.add_wrapped(wrap_pyfunction!(expval_pauli_with_x))?;

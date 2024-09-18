@@ -91,7 +91,6 @@ pub fn compose_u3_rust(
     out_angles
 }
 
-#[pymodule]
 pub fn optimize_1q_gates(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(compose_u3_rust))?;
     Ok(())
