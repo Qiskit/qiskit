@@ -338,8 +338,10 @@ class AlignFunc(AlignmentKind):
 
     .. code-block:: python
 
+        import numpy as np
+
         def udd10_pos(j):
-        return np.sin(np.pi*j/(2*10 + 2))**2
+            return np.sin(np.pi*j/(2*10 + 2))**2
 
     .. note::
 
