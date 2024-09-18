@@ -12,8 +12,9 @@
 
 """Second-order Pauli-Z expansion circuit."""
 
-from typing import Callable, List, Union, Optional
+from typing import Callable, List, Union, Optional, Dict, Tuple
 import numpy as np
+from qiskit.utils.deprecation import deprecate_func
 from .pauli_feature_map import PauliFeatureMap
 
 
@@ -24,13 +25,13 @@ class ZZFeatureMap(PauliFeatureMap):
 
     .. parsed-literal::
 
-        ┌───┐┌─────────────────┐
-        ┤ H ├┤ U1(2.0*φ(x[0])) ├──■────────────────────────────■────────────────────────────────────
-        ├───┤├─────────────────┤┌─┴─┐┌──────────────────────┐┌─┴─┐
-        ┤ H ├┤ U1(2.0*φ(x[1])) ├┤ X ├┤ U1(2.0*φ(x[0],x[1])) ├┤ X ├──■────────────────────────────■──
-        ├───┤├─────────────────┤└───┘└──────────────────────┘└───┘┌─┴─┐┌──────────────────────┐┌─┴─┐
-        ┤ H ├┤ U1(2.0*φ(x[2])) ├──────────────────────────────────┤ X ├┤ U1(2.0*φ(x[1],x[2])) ├┤ X ├
-        └───┘└─────────────────┘                                  └───┘└──────────────────────┘└───┘
+        ┌───┐┌────────────────┐
+        ┤ H ├┤ P(2.0*φ(x[0])) ├──■───────────────────────────■───────────────────────────────────
+        ├───┤├────────────────┤┌─┴─┐┌─────────────────────┐┌─┴─┐
+        ┤ H ├┤ P(2.0*φ(x[1])) ├┤ X ├┤ P(2.0*φ(x[0],x[1])) ├┤ X ├──■───────────────────────────■──
+        ├───┤├────────────────┤└───┘└─────────────────────┘└───┘┌─┴─┐┌─────────────────────┐┌─┴─┐
+        ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
+        └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
     where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
     if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
@@ -39,12 +40,12 @@ class ZZFeatureMap(PauliFeatureMap):
 
         >>> from qiskit.circuit.library import ZZFeatureMap
         >>> prep = ZZFeatureMap(2, reps=1)
-        >>> print(prep)
-             ┌───┐┌──────────────┐
-        q_0: ┤ H ├┤ U1(2.0*x[0]) ├──■───────────────────────────────────────■──
-             ├───┤├──────────────┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐
-        q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
-             └───┘└──────────────┘└───┘└─────────────────────────────────┘└───┘
+        >>> print(prep.decompose())
+             ┌───┐┌─────────────┐
+        q_0: ┤ H ├┤ P(2.0*x[0]) ├──■──────────────────────────────────────■──
+             ├───┤├─────────────┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐
+        q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
+             └───┘└─────────────┘└───┘└────────────────────────────────┘└───┘
 
         >>> from qiskit.circuit.library import EfficientSU2
         >>> classifier = ZZFeatureMap(3) + EfficientSU2(3)
@@ -71,11 +72,23 @@ class ZZFeatureMap(PauliFeatureMap):
         OrderedDict([('ZZFeatureMap', 1), ('EfficientSU2', 1)])
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg=(
+            "Use the z_feature_map function as a replacement. Note that this will no longer "
+            "return a BlueprintCircuit, but just a plain QuantumCircuit."
+        ),
+        pending=True,
+    )
     def __init__(
         self,
         feature_dimension: int,
         reps: int = 2,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: Union[
+            str,
+            Dict[int, List[Tuple[int]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
+        ] = "full",
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,
@@ -87,7 +100,7 @@ class ZZFeatureMap(PauliFeatureMap):
             feature_dimension: Number of features.
             reps: The number of repeated circuits, has a min. value of 1.
             entanglement: Specifies the entanglement structure. Refer to
-                :class:`~qiskit.circuit.library.NLocal` for detail.
+                :class:`~qiskit.circuit.library.PauliFeatureMap` for detail.
             data_map_func: A mapping function for data x.
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions

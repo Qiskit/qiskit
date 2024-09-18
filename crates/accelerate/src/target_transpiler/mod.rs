@@ -52,7 +52,7 @@ mod exceptions {
 }
 
 // Custom types
-type Qargs = SmallVec<[PhysicalQubit; 2]>;
+pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
 type GateMap = IndexMap<u16, PropsMap, RandomState>;
 type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(u16, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
@@ -688,7 +688,7 @@ impl Target {
             Ok(false)
         } else if let Some(operation_name) = operation_name {
             let Some(operation_index) = self.gate_interner.get_item(&operation_name) else {
-                return Ok(self.instruction_supported(&operation_name, qargs.as_ref()))
+                return Ok(self.instruction_supported(&operation_name, qargs.as_ref()));
             };
             if let Some(parameters) = parameters {
                 if let Some(obj) = self.gate_name_map.get(&operation_index) {
@@ -1025,6 +1025,19 @@ impl Target {
         });
     }
 
+    /// Get the error rate of a given instruction in the target
+    pub fn get_error(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
+        self.gate_interner.get_item(name).and_then(|index| {
+            self.gate_map.get(&index).and_then(|gate_props| {
+                let qargs_key: Qargs = qargs.iter().cloned().collect();
+                match gate_props.get(Some(&qargs_key)) {
+                    Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
+                    None => None,
+                }
+            })
+        })
+    }
+
     /// Get an iterator over the indices of all physical qubits of the target
     pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
         0..self.num_qubits.unwrap_or_default()
@@ -1210,9 +1223,11 @@ impl Target {
         &self,
         operation: &str,
     ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetKeyError> {
-        let Some(gate_index) = self.gate_interner.get_item(operation) else { return Err(TargetKeyError::new_err(format!(
-            "Operation: {operation} not in Target."
-        )))};
+        let Some(gate_index) = self.gate_interner.get_item(operation) else {
+            return Err(TargetKeyError::new_err(format!(
+                "Operation: {operation} not in Target."
+            )));
+        };
         let gate_map_oper = &self.gate_map[&gate_index];
         if gate_map_oper.contains_key(None) {
             return Ok(None);
