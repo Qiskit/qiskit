@@ -89,7 +89,6 @@ class Schedule:
 
       .. code-block:: python
 
-          from qiskit.pulse import Schedule, Gaussian, DriveChannel, Play
           sched = Schedule()
           sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
 
@@ -97,7 +96,6 @@ class Schedule:
 
       .. code-block:: python
 
-          from qiskit.pulse import Schedule, Gaussian, DriveChannel, Play
           sched1 = Schedule()
           sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
