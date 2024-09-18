@@ -34,13 +34,21 @@ class DataBin(ShapedMixin):
 
     .. code-block:: python
 
+        import numpy as np
+        from qiskit.primitives import DataBin, BitArray
+
         data = DataBin(
-            alpha=BitArray.from_bitstrings(["0010"]),
+            alpha=BitArray.from_samples(["0010"]),
             beta=np.array([1.2])
         )
 
         print("alpha data:", data.alpha)
         print("beta data:", data.beta)
+
+    .. code-block::
+
+        alpha data: BitArray(<shape=(), num_shots=1, num_bits=2>)
+        beta data: [1.2]
 
     """
 

@@ -24,8 +24,6 @@ Gambetta, J. M. Validating quantum computers using randomized model circuits.
 arXiv:1811.12926 [quant-ph] (2018).
 """
 from __future__ import annotations
-import cmath
-import math
 import io
 import base64
 import warnings
@@ -91,41 +89,18 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
         QiskitError: if decomposition isn't possible.
     """
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
-    # extract the right component
-    R = special_unitary_matrix[:2, :2].copy()
-    detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
-    if abs(detR) < 0.1:
-        R = special_unitary_matrix[2:, :2].copy()
-        detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
-    if abs(detR) < 0.1:
-        raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detR < 0.1")
-    R /= np.sqrt(detR)
-
-    # extract the left component
-    temp = np.kron(np.eye(2), R.T.conj())
-    temp = special_unitary_matrix.dot(temp)
-    L = temp[::2, ::2]
-    detL = L[0, 0] * L[1, 1] - L[0, 1] * L[1, 0]
-    if abs(detL) < 0.9:
-        raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detL < 0.9")
-    L /= np.sqrt(detL)
-    phase = cmath.phase(detL) / 2
+    (L, R, phase) = two_qubit_decompose.decompose_two_qubit_product_gate(special_unitary_matrix)
 
     temp = np.kron(L, R)
     deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)
+
     if deviation > 1.0e-13:
         raise QiskitError(
             "decompose_two_qubit_product_gate: decomposition failed: "
             f"deviation too large: {deviation}"
         )
 
-    return L, R, phase
-
-
-_ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
-_ipy = np.array([[0, 1], [-1, 0]], dtype=complex)
-_ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
-_id = np.array([[1, 0], [0, 1]], dtype=complex)
+    return (L, R, phase)
 
 
 class TwoQubitWeylDecomposition:
@@ -233,13 +208,13 @@ class TwoQubitWeylDecomposition:
         circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        return QuantumCircuit._from_circuit_data(circuit_data)
+        return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
-        return trace_to_fid(trace)
+        return two_qubit_decompose.trace_to_fid(trace)
 
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases"""
@@ -460,40 +435,6 @@ class TwoQubitControlledUDecomposer:
         return circ
 
 
-def Ud(a, b, c):
-    r"""Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`"""
-    return np.array(
-        [
-            [cmath.exp(1j * c) * math.cos(a - b), 0, 0, 1j * cmath.exp(1j * c) * math.sin(a - b)],
-            [0, cmath.exp(-1j * c) * math.cos(a + b), 1j * cmath.exp(-1j * c) * math.sin(a + b), 0],
-            [0, 1j * cmath.exp(-1j * c) * math.sin(a + b), cmath.exp(-1j * c) * math.cos(a + b), 0],
-            [1j * cmath.exp(1j * c) * math.sin(a - b), 0, 0, cmath.exp(1j * c) * math.cos(a - b)],
-        ],
-        dtype=complex,
-    )
-
-
-def trace_to_fid(trace):
-    r"""Average gate fidelity is
-
-    .. math::
-
-        \bar{F} = \frac{d + |\mathrm{Tr} (U_\text{target} \cdot U^{\dag})|^2}{d(d+1)}
-
-    M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
-    return (4 + abs(trace) ** 2) / 20
-
-
-def rz_array(theta):
-    """Return numpy array for Rz(theta).
-
-    Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
-    """
-    return np.array(
-        [[cmath.exp(-1j * theta / 2.0), 0], [0, cmath.exp(1j * theta / 2.0)]], dtype=complex
-    )
-
-
 class TwoQubitBasisDecomposer:
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.
@@ -672,7 +613,7 @@ class TwoQubitBasisDecomposer:
                     approximate,
                     _num_basis_uses=_num_basis_uses,
                 )
-                return QuantumCircuit._from_circuit_data(circ_data)
+                return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
             else:
                 sequence = self._inner_decomposer(
                     np.asarray(unitary, dtype=complex),

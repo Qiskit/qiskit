@@ -1438,7 +1438,6 @@ class TestControlledGate(QiskitTestCase):
     @data(
         RXGate,
         RYGate,
-        RZGate,
         RXXGate,
         RYYGate,
         RZXGate,

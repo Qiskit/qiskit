@@ -425,22 +425,28 @@ impl StandardGate {
         &self,
         py: Python,
         params: Option<&[Param]>,
-        extra_attrs: Option<&ExtraInstructionAttributes>,
+        extra_attrs: &ExtraInstructionAttributes,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty_bound(py),
             params => PyTuple::new_bound(py, params),
         };
-        if let Some(extra) = extra_attrs {
+        let (label, unit, duration, condition) = (
+            extra_attrs.label(),
+            extra_attrs.unit(),
+            extra_attrs.duration(),
+            extra_attrs.condition(),
+        );
+        if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
             let kwargs = [
-                ("label", extra.label.to_object(py)),
-                ("unit", extra.py_unit(py).into_any()),
-                ("duration", extra.duration.to_object(py)),
+                ("label", label.to_object(py)),
+                ("unit", extra_attrs.py_unit(py).into_any()),
+                ("duration", duration.to_object(py)),
             ]
             .into_py_dict_bound(py);
             let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
-            if let Some(ref condition) = extra.condition {
+            if let Some(condition) = condition {
                 out = out.call_method0(py, "to_mutable")?;
                 out.setattr(py, "condition", condition)?;
             }
@@ -2051,7 +2057,8 @@ fn clone_param(param: &Param, py: Python) -> Param {
     }
 }
 
-fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
+/// Multiply a ``Param`` with a float.
+pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
@@ -2064,7 +2071,24 @@ fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
     }
 }
 
-fn add_param(param: &Param, summand: f64, py: Python) -> Param {
+/// Multiply two ``Param``s.
+pub fn multiply_params(param1: Param, param2: Param, py: Python) -> Param {
+    match (&param1, &param2) {
+        (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
+        (param, Param::Float(theta)) => multiply_param(param, *theta, py),
+        (Param::Float(theta), param) => multiply_param(param, *theta, py),
+        (Param::ParameterExpression(p1), Param::ParameterExpression(p2)) => {
+            Param::ParameterExpression(
+                p1.clone_ref(py)
+                    .call_method1(py, intern!(py, "__rmul__"), (p2,))
+                    .expect("Parameter expression multiplication failed"),
+            )
+        }
+        _ => unreachable!("Unsupported multiplication."),
+    }
+}
+
+pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta + summand),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
@@ -2225,10 +2249,7 @@ impl Operation for PyGate {
     fn standard_gate(&self) -> Option<StandardGate> {
         Python::with_gil(|py| -> Option<StandardGate> {
             match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => match stdgate.extract(py) {
-                    Ok(out_gate) => out_gate,
-                    Err(_) => None,
-                },
+                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
                 Err(_) => None,
             }
         })

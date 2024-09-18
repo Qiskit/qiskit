@@ -555,6 +555,9 @@ from .n_local import (
     QAOAAnsatz,
 )
 from .data_preparation import (
+    z_feature_map,
+    zz_feature_map,
+    pauli_feature_map,
     PauliFeatureMap,
     ZFeatureMap,
     ZZFeatureMap,

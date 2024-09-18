@@ -41,8 +41,9 @@ class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
-    mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
-    of lossy SWAPs inserted and the depth of the circuit.
+    mapping paper [2] (Algorithm 1) with the modifications from the LightSABRE
+    paper [1]. The heuristic aims to minimize the number of lossy SWAPs inserted
+    and the depth of the circuit.
 
     This algorithm starts from an initial layout of virtual qubits onto physical
     qubits, and iterates over the circuit DAG until all gates are exhausted,
@@ -69,7 +70,10 @@ class SabreSwap(TransformationPass):
 
     **References:**
 
-    [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
     for NISQ-era quantum devices." ASPLOS 2019.
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
