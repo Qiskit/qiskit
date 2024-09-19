@@ -2123,6 +2123,8 @@ impl Operation for PyInstruction {
             return vec![];
         }
         Python::with_gil(|py| -> Vec<CircuitData> {
+            // We expect that if PyInstruction::control_flow is true then the operation WILL
+            // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
             let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
             let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
             blocks
