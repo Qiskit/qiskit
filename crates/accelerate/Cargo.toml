@@ -58,3 +58,6 @@ features = ["ndarray"]
 [dependencies.pulp]
 version = "0.18.22"
 features = ["macro"]
+
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]

@@ -209,6 +209,7 @@ custom Python constructors to use for particular gates.  These custom constructo
 using the :class:`CustomGate` object:
 
 .. autoclass:: CustomGate
+    :members:
 
 In ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
 the gates defined in OpenQASM 3 standard library file ``stdgates.inc``.  This sequence of gates is

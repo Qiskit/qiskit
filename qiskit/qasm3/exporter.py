@@ -140,9 +140,16 @@ class Exporter:
     ):
         """
         Args:
-            includes: the filenames that should be emitted as includes.  These files will be parsed
-                for gates, and any objects dumped from this exporter will use those definitions
-                where possible.
+            includes: the filenames that should be emitted as includes.
+
+                .. note::
+
+                    At present, only the standard-library file ``stdgates.inc`` is properly
+                    understood by the exporter, in the sense that it knows the gates it defines.
+                    You can specify other includes, but you will need to pass the names of the gates
+                    they define in the ``basis_gates`` argument to avoid the exporter outputting a
+                    separate ``gate`` definition.
+
             basis_gates: the basic defined gate set of the backend.
             disable_constants: if ``True``, always emit floating-point constants for numeric
                 parameter values.  If ``False`` (the default), then values close to multiples of
@@ -675,9 +682,9 @@ class QASM3Builder:
     def build_includes(self):
         """Builds a list of included files."""
         for filename in self.includes:
-            if (definitions := _KNOWN_INCLUDES.get(filename)) is None:
-                raise QASM3ExporterError(f"Unknown OpenQASM 3 include file: '{filename}'")
-            for name, gate in definitions.items():
+            # Note: unknown include files have a corresponding `include` statement generated, but do
+            # not actually define any gates; we rely on the user to pass those in `basis_gates`.
+            for name, gate in _KNOWN_INCLUDES.get(filename, {}).items():
                 self.symbols.register_gate_without_definition(name, gate)
             yield ast.Include(filename)
 

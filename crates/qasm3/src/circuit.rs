@@ -65,12 +65,23 @@ register_type!(PyClassicalRegister);
 
 /// Information received from Python space about how to construct a Python-space object to
 /// represent a given gate that might be declared.
-#[pyclass(module = "qiskit._accelerate.qasm3", frozen, name = "CustomGate")]
+#[pyclass(
+    module = "qiskit._accelerate.qasm3",
+    frozen,
+    name = "CustomGate",
+    get_all
+)]
 #[derive(Clone, Debug)]
 pub struct PyGate {
+    /// A callable Python object that takes ``num_params`` angles as positional arguments, and
+    /// returns a :class:`~.circuit.Gate` object representing the gate.
     constructor: Py<PyAny>,
+    /// The name of the gate as it appears in the OpenQASM 3 program.  This is not necessarily
+    /// identical to the name that Qiskit gives the gate.
     name: String,
+    /// The number of angle-like parameters the gate requires.
     num_params: usize,
+    /// The number of qubits the gate acts on.
     num_qubits: usize,
 }
 
