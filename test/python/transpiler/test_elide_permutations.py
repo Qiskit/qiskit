@@ -225,8 +225,18 @@ class TestElidePermutations(QiskitTestCase):
         expected.cx(0, 1)
         expected.cx(4, 3)
 
-        res = self.swap_pass(qc)
+        pass_ = ElidePermutations()
+        res = pass_(qc)
+
+        # Make sure that the pass removes the permutation gate and remaps
+        # the following gate
         self.assertEqual(res, expected)
+
+        # Make sure that the transpiled circuit *with* the final permutation
+        # is equivalent to the original circuit
+        perm = pass_.property_set["virtual_permutation_layout"].to_permutation(qc.qubits)
+        res.append(PermutationGate(perm), [0, 1, 2, 3, 4])
+        self.assertEqual(Operator(res), Operator(qc))
 
     def test_permutation_at_beginning(self):
         """Test permutation in beginning of bell is elided."""
