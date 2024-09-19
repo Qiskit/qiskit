@@ -96,8 +96,8 @@ class ElidePermutations(TransformationPass):
             elif isinstance(node.op, PermutationGate):
                 starting_indices = [qubit_mapping[dag.find_bit(qarg).index] for qarg in node.qargs]
                 pattern = node.op.params[0]
-                pattern_indices = [qubit_mapping[idx] for idx in pattern]
-                for i, j in zip(starting_indices, pattern_indices):
+                updated_indices = [starting_indices[idx] for idx in pattern]
+                for i, j in zip(starting_indices, updated_indices):
                     qubit_mapping[i] = j
         input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
