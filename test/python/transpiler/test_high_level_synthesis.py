@@ -2136,6 +2136,22 @@ class TestQFTSynthesisPlugins(QiskitTestCase):
         ops = set(qct.count_ops().keys())
         self.assertEqual(ops, {"u", "cx"})
 
+    @data("line", "full")
+    def test_skip_non_qft(self, qft_plugin_name):
+        """Test that synthesis plugins are not applied on gates that are called `qft`, yet
+        that are not of type `QFTGate`.
+        """
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1, name="qft")
+        qc2.s(0)
+        qc.append(qc2.to_instruction(), qc.qregs[0])
+        hls_config = HLSConfig(qft=[qft_plugin_name])
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        qct = hls_pass(qc)
+        # HighLevelSynthesis should replace the custom gate called "qft"
+        # by the user-provided definition.
+        self.assertEqual(Operator(qc2), Operator(qct))
+
 
 if __name__ == "__main__":
     unittest.main()
