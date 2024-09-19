@@ -207,6 +207,37 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
+    def test_partial_permutation_in_middle(self):
+        """Test with a permutation gate in the middle of a circuit,
+        with the permutation gate defined only on a subset of qubits.
+        """
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.append(PermutationGate([1, 2, 0]), [0, 2, 4])
+        qc.cx(2, 3)
+
+        # The permutation corresponding to the permutation gate maps
+        #   2 -> 0, 4 -> 2, 0 -> 4, and 1 -> 1, 3 -> 3.
+        # Instead of the permutation gate, we can relabel the qubits
+        #   0 -> 2, 1 -> 1, 2 -> 4, 3 -> 3, 4 -> 2.
+        # Hence cx(2, 3) becomes cx(4, 3).
+        expected = QuantumCircuit(5)
+        expected.cx(0, 1)
+        expected.cx(4, 3)
+
+        pass_ = ElidePermutations()
+        res = pass_(qc)
+
+        # Make sure that the pass removes the permutation gate and remaps
+        # the following gate
+        self.assertEqual(res, expected)
+
+        # Make sure that the transpiled circuit *with* the final permutation
+        # is equivalent to the original circuit
+        perm = pass_.property_set["virtual_permutation_layout"].to_permutation(qc.qubits)
+        res.append(PermutationGate(perm), [0, 1, 2, 3, 4])
+        self.assertEqual(Operator(res), Operator(qc))
+
     def test_permutation_at_beginning(self):
         """Test permutation in beginning of bell is elided."""
         qc = QuantumCircuit(3, 3)
