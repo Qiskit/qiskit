@@ -1,0 +1,14 @@
+
+issues:
+  - |
+    Added support for taking absolute values of :class:`.ParameterExpression`\s. For example, 
+    the following is now possible::
+
+        from qiskit.circuit import QuantumCircuit, Parameter
+        
+        x = Parameter("x")
+        circuit = QuantumCircuit(1)
+        circuit.rx(abs(x), 0)
+        
+        bound = circuit.bind_parameters({x: -1})
+        

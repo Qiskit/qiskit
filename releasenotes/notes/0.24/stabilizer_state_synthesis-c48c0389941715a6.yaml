@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Add a new synthesis method :class:`.synth_stabilizer_layers` of a stabilizer state into layers.
+    It provides a similar decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov,
+    (arxiv:2003.09412) without the initial Hadamard-free sub-circuit which does not affect the stabilizer state.
+  - |
+    Add a new synthesis method :class:`.synth_stabilizer_lnn` of a stabilizer state
+    for linear nearest neighbor connectivity in 2-qubit depth of 2n+2 and two distinct CX layers,
+    using CX and phase gates (S, Sdg or Z).
+    The synthesis algorithm is based on the paper of Maslov and Roetteler (https://arxiv.org/abs/1705.09176).

@@ -17,15 +17,22 @@ Experiment Results (:mod:`qiskit.result`)
 
 .. currentmodule:: qiskit.result
 
+Core classes
+============
+
 .. autosummary::
    :toctree: ../stubs/
 
    Result
    ResultError
    Counts
-   marginal_counts
-   marginal_distribution
-   marginal_memory
+
+Marginalization
+===============
+
+.. autofunction:: marginal_counts
+.. autofunction:: marginal_distribution
+.. autofunction:: marginal_memory
 
 Distributions
 =============
@@ -39,10 +46,7 @@ Distributions
 Expectation values
 ==================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   sampled_expectation_value
+.. autofunction:: sampled_expectation_value
 
 Mitigation
 ==========

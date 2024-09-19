@@ -12,8 +12,7 @@
 
 
 """Implementations of boolean logic quantum circuits."""
-
-from typing import List, Optional
+from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
 from qiskit.circuit.library.standard_gates import MCXGate
@@ -33,7 +32,7 @@ class AND(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import AND
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = AND(5)
        _generate_circuit_library_visualization(circuit)
 
@@ -44,7 +43,7 @@ class AND(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import AND
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = AND(5, flags=[-1, 0, 0, 1, 1])
        _generate_circuit_library_visualization(circuit)
 
@@ -53,7 +52,7 @@ class AND(QuantumCircuit):
     def __init__(
         self,
         num_variable_qubits: int,
-        flags: Optional[List[int]] = None,
+        flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
         """Create a new logical AND circuit.
@@ -86,7 +85,7 @@ class AND(QuantumCircuit):
             qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
             circuit.add_register(qr_ancilla)
         else:
-            qr_ancilla = []
+            qr_ancilla = AncillaRegister(0)
 
         if len(flip_qubits) > 0:
             circuit.x(flip_qubits)

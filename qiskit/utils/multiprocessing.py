@@ -14,9 +14,7 @@
 
 import multiprocessing as mp
 import platform
-import sys
-
-import psutil
+import os
 
 
 def local_hardware_info():
@@ -28,13 +26,22 @@ def local_hardware_info():
     Returns:
         dict: The hardware information.
     """
+
+    if hasattr(os, "sched_getaffinity"):
+        num_cpus = len(os.sched_getaffinity(0))
+    else:
+        num_cpus = os.cpu_count()
+    if num_cpus is None:
+        num_cpus = 1
+    else:
+        num_cpus = int(num_cpus / 2) or 1
+
     results = {
         "python_compiler": platform.python_compiler(),
         "python_build": ", ".join(platform.python_build()),
         "python_version": platform.python_version(),
         "os": platform.system(),
-        "memory": psutil.virtual_memory().total / (1024**3),
-        "cpus": psutil.cpu_count(logical=False) or 1,
+        "cpus": num_cpus,
     }
     return results
 
@@ -44,14 +51,6 @@ def is_main_process():
     if platform.system() == "Windows":
         return not isinstance(mp.current_process(), mp.context.SpawnProcess)
     else:
-        return not (
-            isinstance(mp.current_process(), (mp.context.ForkProcess, mp.context.SpawnProcess))
-            # In python 3.5 and 3.6, processes created by "ProcessPoolExecutor" are not
-            # mp.context.ForkProcess or mp.context.SpawnProcess. As a workaround,
-            # "name" of the process is checked instead.
-            or (
-                sys.version_info[0] == 3
-                and (sys.version_info[1] == 5 or sys.version_info[1] == 6)
-                and mp.current_process().name != "MainProcess"
-            )
+        return not isinstance(
+            mp.current_process(), (mp.context.ForkProcess, mp.context.SpawnProcess)
         )

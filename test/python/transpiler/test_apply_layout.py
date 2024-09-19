@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,11 +15,16 @@
 import unittest
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.classical import expr, types
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.preset_passmanagers import common
+from qiskit.transpiler import PassManager, CouplingMap
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 
 class TestApplyLayout(QiskitTestCase):
@@ -114,6 +119,79 @@ class TestApplyLayout(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_final_layout_is_updated(self):
+        """Test that if vf2postlayout runs that we've updated the final layout."""
+        qubits = 3
+        qc = QuantumCircuit(qubits)
+        for i in range(5):
+            qc.cx(i % qubits, int(i + qubits / 2) % qubits)
+        initial_pm = PassManager([SetLayout([1, 3, 4])])
+        cmap = CouplingMap(YORKTOWN_CMAP)
+        initial_pm += common.generate_embed_passmanager(cmap)
+        first_layout_circ = initial_pm.run(qc)
+        out_pass = ApplyLayout()
+        out_pass.property_set["layout"] = first_layout_circ.layout.initial_layout
+        out_pass.property_set["original_qubit_indices"] = (
+            first_layout_circ.layout.input_qubit_mapping
+        )
+        out_pass.property_set["final_layout"] = Layout(
+            {
+                first_layout_circ.qubits[0]: 0,
+                first_layout_circ.qubits[1]: 3,
+                first_layout_circ.qubits[2]: 2,
+                first_layout_circ.qubits[3]: 4,
+                first_layout_circ.qubits[4]: 1,
+            }
+        )
+        # Set a post layout like vf2postlayout would:
+        out_pass.property_set["post_layout"] = Layout(
+            {
+                first_layout_circ.qubits[0]: 0,
+                first_layout_circ.qubits[2]: 4,
+                first_layout_circ.qubits[1]: 2,
+                first_layout_circ.qubits[3]: 1,
+                first_layout_circ.qubits[4]: 3,
+            }
+        )
+        out_pass(first_layout_circ)
+        self.assertEqual(
+            out_pass.property_set["final_layout"],
+            Layout(
+                {
+                    first_layout_circ.qubits[0]: 0,
+                    first_layout_circ.qubits[2]: 1,
+                    first_layout_circ.qubits[4]: 4,
+                    first_layout_circ.qubits[1]: 3,
+                    first_layout_circ.qubits[3]: 2,
+                }
+            ),
+        )
+
+    def test_works_with_var_nodes(self):
+        """Test that standalone var nodes work."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc.store(a, expr.bit_and(a, expr.bit_xor(qc.clbits[0], qc.clbits[1])))
+
+        expected = QuantumCircuit(QuantumRegister(2, "q"), *qc.cregs, inputs=[a])
+        expected.add_var(b, 12)
+        expected.h(1)
+        expected.cx(1, 0)
+        expected.measure([1, 0], [0, 1])
+        expected.store(a, expr.bit_and(a, expr.bit_xor(qc.clbits[0], qc.clbits[1])))
+
+        pass_ = ApplyLayout()
+        pass_.property_set["layout"] = Layout(dict(enumerate(reversed(qc.qubits))))
+        after = pass_(qc)
+
+        self.assertEqual(after, expected)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,17 @@
+---
+deprecations:
+  - |
+    Extensions of the ``qiskit`` and ``qiskit.providers`` namespaces by external
+    packages are now deprecated and the hook points enabling this will be
+    removed in a future release. In the past, the Qiskit project was composed
+    of elements that extended a shared namespace and these hook points enabled
+    doing that. However, it was not intended for these interfaces to ever be
+    used by other packages. Now that the overall Qiskit package is no longer
+    using that packaging model, leaving the possibility for these extensions
+    carry more risk than benefits and is therefore being deprecated for
+    future removal. If you're maintaining a package that extends the Qiskit
+    namespace (i.e. your users import from ``qiskit.x`` or
+    ``qiskit.providers.y``) you should transition to using a standalone
+    Python namespace for your package. No warning will be raised as part of this
+    because there is no method to inject a warning at the packaging level that
+    would be required to warn external packages of this change.

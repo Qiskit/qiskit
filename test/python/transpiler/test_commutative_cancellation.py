@@ -13,16 +13,18 @@
 """Gate cancellation pass testing"""
 
 import unittest
+
 import numpy as np
-from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
 from qiskit.circuit.parameter import Parameter
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCommutativeCancellation(QiskitTestCase):
@@ -75,7 +77,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(RZGate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
-
+        expected.global_phase = 0.5
         self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit1(self):
@@ -136,8 +138,15 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -190,7 +199,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot1(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[Z]------.--       qr0:---[Z]---
                 |               |
@@ -211,7 +220,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot2(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
                 |               |
@@ -232,7 +241,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot3(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[Rz]------.--       qr0:---[Rz]---
                 |                |
@@ -253,7 +262,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_control_bit_of_cnot4(self):
-        """A simple circuit where the two cnots shoule be cancelled.
+        """A simple circuit where the two cnots should be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
                 |               |
@@ -410,15 +419,22 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
         expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
         expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
-
+        expected.global_phase = 3 * np.pi / 8
         self.assertEqual(
             expected, new_circuit, msg=f"expected:\n{expected}\nnew_circuit:\n{new_circuit}"
         )
@@ -453,8 +469,15 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -509,8 +532,15 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -633,7 +663,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(Operator(circ), Operator(ccirc))
 
     def test_basis_global_phase_03(self):
-        """Test global phase preservation if cummulative z-rotation is 0"""
+        """Test global phase preservation if cumulative z-rotation is 0"""
         circ = QuantumCircuit(1)
         circ.rz(np.pi / 2, 0)
         circ.p(np.pi / 2, 0)
@@ -653,6 +683,130 @@ class TestCommutativeCancellation(QiskitTestCase):
         # triggering an internal logic error and crashing.
         transpiled = PassManager([CommutativeCancellation()]).run(original)
         self.assertEqual(original, transpiled)
+
+    def test_simple_if_else(self):
+        """Test that the pass is not confused by if-else."""
+        base_test1 = QuantumCircuit(3, 3)
+        base_test1.x(1)
+        base_test1.cx(0, 1)
+        base_test1.x(1)
+
+        base_test2 = QuantumCircuit(3, 3)
+        base_test2.rz(0.1, 1)
+        base_test2.rz(0.1, 1)
+
+        test = QuantumCircuit(3, 3)
+        test.h(0)
+        test.x(0)
+        test.rx(0.2, 0)
+        test.measure(0, 0)
+        test.x(0)
+        test.if_else(
+            (test.clbits[0], True), base_test1.copy(), base_test2.copy(), test.qubits, test.clbits
+        )
+
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.rx(np.pi + 0.2, 0)
+        expected.measure(0, 0)
+        expected.x(0)
+
+        expected_test1 = QuantumCircuit(3, 3)
+        expected_test1.cx(0, 1)
+
+        expected_test2 = QuantumCircuit(3, 3)
+        expected_test2.rz(0.2, 1)
+
+        expected.if_else(
+            (expected.clbits[0], True),
+            expected_test1.copy(),
+            expected_test2.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test)
+        self.assertEqual(new_circuit, expected)
+
+    def test_nested_control_flow(self):
+        """Test that the pass does not add barrier into nested control flow."""
+        level2_test = QuantumCircuit(2, 1)
+        level2_test.cz(0, 1)
+        level2_test.cz(0, 1)
+        level2_test.cz(0, 1)
+        level2_test.measure(0, 0)
+
+        level1_test = QuantumCircuit(2, 1)
+        level1_test.for_loop((0,), None, level2_test.copy(), level1_test.qubits, level1_test.clbits)
+        level1_test.h(0)
+        level1_test.h(0)
+        level1_test.measure(0, 0)
+
+        test = QuantumCircuit(2, 1)
+        test.while_loop((test.clbits[0], True), level1_test.copy(), test.qubits, test.clbits)
+        test.measure(0, 0)
+
+        level2_expected = QuantumCircuit(2, 1)
+        level2_expected.cz(0, 1)
+        level2_expected.measure(0, 0)
+
+        level1_expected = QuantumCircuit(2, 1)
+        level1_expected.for_loop(
+            (0,), None, level2_expected.copy(), level1_expected.qubits, level1_expected.clbits
+        )
+        level1_expected.measure(0, 0)
+
+        expected = QuantumCircuit(2, 1)
+        expected.while_loop(
+            (expected.clbits[0], True), level1_expected.copy(), expected.qubits, expected.clbits
+        )
+        expected.measure(0, 0)
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test)
+        self.assertEqual(new_circuit, expected)
+
+    def test_cancellation_not_crossing_block_boundary(self):
+        """Test that the pass does cancel gates across control flow op block boundaries."""
+        test1 = QuantumCircuit(2, 2)
+        test1.x(1)
+        with test1.if_test((0, False)):
+            test1.cx(0, 1)
+            test1.x(1)
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test1)
+        self.assertEqual(new_circuit, test1)
+
+    def test_cancellation_not_crossing_between_blocks(self):
+        """Test that the pass does cancel gates in different control flow ops."""
+        test2 = QuantumCircuit(2, 2)
+        with test2.if_test((0, True)):
+            test2.x(1)
+        with test2.if_test((0, True)):
+            test2.cx(0, 1)
+            test2.x(1)
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test2)
+        self.assertEqual(new_circuit, test2)
+
+    def test_no_intransitive_cancellation(self):
+        """Test that no unsound optimization occurs due to "intransitively-commuting" gates.
+        See: https://github.com/Qiskit/qiskit-terra/issues/8020.
+        """
+        circ = QuantumCircuit(1)
+
+        circ.x(0)
+        circ.id(0)
+        circ.h(0)
+        circ.id(0)
+        circ.x(0)
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(circ)
+        self.assertEqual(new_circuit, circ)
 
 
 if __name__ == "__main__":

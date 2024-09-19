@@ -12,13 +12,11 @@
 
 """ASAP Scheduling."""
 
-import warnings
-
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-
-from .base_scheduler import BaseSchedulerTransform
+from qiskit.transpiler.passes.scheduling.base_scheduler import BaseSchedulerTransform
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ASAPSchedule(BaseSchedulerTransform):
@@ -34,15 +32,15 @@ class ASAPSchedule(BaseSchedulerTransform):
         removed in a future release.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.ASAPScheduleAnalysis`, which is an "
+            "analysis pass that requires a padding pass to later modify the circuit."
+        ),
+        since="1.1.0",
+    )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.warn(
-            "The ASAPSchedule class has been supersceded by the ASAPScheduleAnalysis class "
-            "which performs the as analysis pass that requires a padding pass to later modify "
-            "the circuit. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
 
     def run(self, dag):
         """Run the ASAPSchedule pass on `dag`.
@@ -69,9 +67,8 @@ class ASAPSchedule(BaseSchedulerTransform):
             new_dag.add_creg(creg)
 
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
-        bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
-            op_duration = self._get_node_duration(node, bit_indices, dag)
+            op_duration = self._get_node_duration(node, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction
@@ -150,7 +147,11 @@ class ASAPSchedule(BaseSchedulerTransform):
             # Add delay to qubit wire
             for bit in node.qargs:
                 delta = t0 - idle_after[bit]
-                if delta > 0 and isinstance(bit, Qubit):
+                if (
+                    delta > 0
+                    and isinstance(bit, Qubit)
+                    and self._delay_supported(dag.find_bit(bit).index)
+                ):
                     new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
                 idle_after[bit] = t1
 
@@ -161,7 +162,8 @@ class ASAPSchedule(BaseSchedulerTransform):
             delta = circuit_duration - after
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
-            new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
+            if self._delay_supported(dag.find_bit(bit).index):
+                new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata

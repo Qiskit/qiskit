@@ -12,18 +12,26 @@
 
 """DAGDependency class for representing non-commutativity in a circuit.
 """
+from __future__ import annotations
 
 import math
 import heapq
+import typing
 from collections import OrderedDict, defaultdict
+from collections.abc import Iterator
 
 import rustworkx as rx
 
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.circuit.commutation_checker import CommutationChecker
+from qiskit.pulse import Schedule
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 # ToDo: DagDependency needs to be refactored:
@@ -35,7 +43,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 #    should investigate the possibility of using rx.descendants() instead of caching).
 #  - We should rethink the API of DAGDependency:
 #    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
-#    are only used when creating a new DAGDependency from another representation of a circuit.
+#    are only used when creating a new DAGDependency.
 #    On the other hand, replace_block_with_op is only used at the very end,
 #    just before DAGDependency is converted into QuantumCircuit or DAGCircuit.
 #    A part of the reason is that doing local changes to DAGDependency is tricky:
@@ -47,7 +55,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class DAGDependency:
-    """Object to represent a quantum circuit as a directed acyclic graph
+    """Object to represent a quantum circuit as a Directed Acyclic Graph (DAG)
     via operation dependencies (i.e. lack of commutation).
 
     The nodes in the graph are operations represented by quantum gates.
@@ -91,7 +99,7 @@ class DAGDependency:
         self.name = None
 
         # Circuit metadata
-        self.metadata = None
+        self.metadata = {}
 
         # Directed multigraph whose nodes are operations(gates) and edges
         # represent non-commutativity between two gates.
@@ -105,13 +113,13 @@ class DAGDependency:
         self.qubits = []
         self.clbits = []
 
-        self._global_phase = 0
-        self._calibrations = defaultdict(dict)
+        self._global_phase: float | ParameterExpression = 0.0
+        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self.duration = None
         self.unit = "dt"
 
-        self.comm_checker = CommutationChecker()
+        self.comm_checker = scc
 
     @property
     def global_phase(self):
@@ -119,7 +127,7 @@ class DAGDependency:
         return self._global_phase
 
     @global_phase.setter
-    def global_phase(self, angle):
+    def global_phase(self, angle: float | ParameterExpression):
         """Set the global phase of the circuit.
 
         Args:
@@ -138,16 +146,16 @@ class DAGDependency:
                 self._global_phase = angle % (2 * math.pi)
 
     @property
-    def calibrations(self):
+    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
-            {'gate_name': {(qubits, params): schedule}}
+        ``{'gate_name': {(qubits, params): schedule}}``.
         """
         return dict(self._calibrations)
 
     @calibrations.setter
-    def calibrations(self, calibrations):
+    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
@@ -179,7 +187,7 @@ class DAGDependency:
 
         duplicate_qubits = set(self.qubits).intersection(qubits)
         if duplicate_qubits:
-            raise DAGDependencyError("duplicate qubits %s" % duplicate_qubits)
+            raise DAGDependencyError(f"duplicate qubits {duplicate_qubits}")
 
         self.qubits.extend(qubits)
 
@@ -190,7 +198,7 @@ class DAGDependency:
 
         duplicate_clbits = set(self.clbits).intersection(clbits)
         if duplicate_clbits:
-            raise DAGDependencyError("duplicate clbits %s" % duplicate_clbits)
+            raise DAGDependencyError(f"duplicate clbits {duplicate_clbits}")
 
         self.clbits.extend(clbits)
 
@@ -199,7 +207,7 @@ class DAGDependency:
         if not isinstance(qreg, QuantumRegister):
             raise DAGDependencyError("not a QuantumRegister instance.")
         if qreg.name in self.qregs:
-            raise DAGDependencyError("duplicate register %s" % qreg.name)
+            raise DAGDependencyError(f"duplicate register {qreg.name}")
         self.qregs[qreg.name] = qreg
         existing_qubits = set(self.qubits)
         for j in range(qreg.size):
@@ -211,14 +219,14 @@ class DAGDependency:
         if not isinstance(creg, ClassicalRegister):
             raise DAGDependencyError("not a ClassicalRegister instance.")
         if creg.name in self.cregs:
-            raise DAGDependencyError("duplicate register %s" % creg.name)
+            raise DAGDependencyError(f"duplicate register {creg.name}")
         self.cregs[creg.name] = creg
         existing_clbits = set(self.clbits)
         for j in range(creg.size):
             if creg[j] not in existing_clbits:
                 self.clbits.append(creg[j])
 
-    def _add_multi_graph_node(self, node):
+    def _add_multi_graph_node(self, node: DAGDepNode) -> int:
         """
         Args:
             node (DAGDepNode): considered node.
@@ -230,14 +238,14 @@ class DAGDependency:
         node.node_id = node_id
         return node_id
 
-    def get_nodes(self):
+    def get_nodes(self) -> Iterator[DAGDepNode]:
         """
         Returns:
             generator(dict): iterator over all the nodes.
         """
         return iter(self._multi_graph.nodes())
 
-    def get_node(self, node_id):
+    def get_node(self, node_id: int) -> DAGDepNode:
         """
         Args:
             node_id (int): label of considered node.
@@ -247,7 +255,7 @@ class DAGDependency:
         """
         return self._multi_graph.get_node_data(node_id)
 
-    def _add_multi_graph_edge(self, src_id, dest_id, data):
+    def _add_multi_graph_edge(self, src_id: int, dest_id: int, data):
         """
         Function to add an edge from given data (dict) between two nodes.
 
@@ -310,7 +318,7 @@ class DAGDependency:
         """
         return self._multi_graph.out_edges(node_id)
 
-    def direct_successors(self, node_id):
+    def direct_successors(self, node_id: int) -> list[int]:
         """
         Direct successors id of a given node as sorted list.
 
@@ -334,7 +342,7 @@ class DAGDependency:
         """
         return sorted(self._multi_graph.adj_direction(node_id, True).keys())
 
-    def successors(self, node_id):
+    def successors(self, node_id: int) -> list[int]:
         """
         Successors id of a given node as sorted list.
 
@@ -346,7 +354,7 @@ class DAGDependency:
         """
         return self._multi_graph.get_node_data(node_id).successors
 
-    def predecessors(self, node_id):
+    def predecessors(self, node_id: int) -> list[int]:
         """
         Predecessors id of a given node as sorted list.
 
@@ -376,7 +384,7 @@ class DAGDependency:
 
         Args:
             operation (qiskit.circuit.Operation): operation
-            qargs (list[Qubit]): list of qubits on which the operation acts
+            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
 
         Returns:
@@ -394,11 +402,8 @@ class DAGDependency:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                if isinstance(operation.condition[0], Clbit):
-                    condition_bits = [operation.condition[0]]
-                else:
-                    condition_bits = operation.condition[0]
-                cindices_list = [self.clbits.index(clbit) for clbit in condition_bits]
+                cond_bits = condition_resources(operation.condition).clbits
+                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
         else:
@@ -423,67 +428,12 @@ class DAGDependency:
 
         Args:
             operation (qiskit.circuit.Operation): operation as a quantum gate
-            qargs (list[Qubit]): list of qubits on which the operation acts
+            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
         """
         new_node = self._create_op_node(operation, qargs, cargs)
         self._add_multi_graph_node(new_node)
         self._update_edges()
-
-    def _gather_pred(self, node_id, direct_pred):
-        """Function set an attribute predecessors and gather multiple lists
-        of direct predecessors into a single one.
-
-        Args:
-            node_id (int): label of the considered node in the DAG
-            direct_pred (list): list of direct successors for the given node
-
-        Returns:
-            DAGDependency: A multigraph with update of the attribute ['predecessors']
-            the lists of direct successors are put into a single one
-        """
-        gather = self._multi_graph
-        gather.get_node_data(node_id).predecessors = []
-        for d_pred in direct_pred:
-            gather.get_node_data(node_id).predecessors.append([d_pred])
-            pred = self._multi_graph.get_node_data(d_pred).predecessors
-            gather.get_node_data(node_id).predecessors.append(pred)
-        return gather
-
-    def _gather_succ(self, node_id, direct_succ):
-        """
-        Function set an attribute successors and gather multiple lists
-        of direct successors into a single one.
-
-        Args:
-            node_id (int): label of the considered node in the DAG
-            direct_succ (list): list of direct successors for the given node
-
-        Returns:
-            MultiDiGraph: with update of the attribute ['predecessors']
-            the lists of direct successors are put into a single one
-        """
-        gather = self._multi_graph
-        gather.get_node_data(node_id).successors = []
-        for d_succ in direct_succ:
-            gather.get_node_data(node_id).successors.append([d_succ])
-            succ = gather.get_node_data(d_succ).successors
-            gather.get_node_data(node_id).successors.append(succ)
-        return gather
-
-    def _list_pred(self, node_id):
-        """
-        Use _gather_pred function and merge_no_duplicates to construct
-        the list of predecessors for a given node.
-
-        Args:
-            node_id (int): label of the considered node
-        """
-        direct_pred = self.direct_predecessors(node_id)
-        self._multi_graph = self._gather_pred(node_id, direct_pred)
-        self._multi_graph.get_node_data(node_id).predecessors = list(
-            merge_no_duplicates(*(self._multi_graph.get_node_data(node_id).predecessors))
-        )
 
     def _update_edges(self):
         """
@@ -536,32 +486,23 @@ class DAGDependency:
 
     def _add_successors(self):
         """
-        Use _gather_succ and merge_no_duplicates to create the list of successors
-        for each node. Update DAGDependency 'successors' attribute. It has to
+        Create the list of successors. Update DAGDependency 'successors' attribute. It has to
         be used when the DAGDependency() object is complete (i.e. converters).
         """
         for node_id in range(len(self._multi_graph) - 1, -1, -1):
-            direct_successors = self.direct_successors(node_id)
-
-            self._multi_graph = self._gather_succ(node_id, direct_successors)
-
             self._multi_graph.get_node_data(node_id).successors = list(
-                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors)
+                rx.descendants(self._multi_graph, node_id)
             )
 
     def _add_predecessors(self):
         """
-        Use _gather_pred and merge_no_duplicates to create the list of predecessors
-        for each node. Update DAGDependency 'predecessors' attribute. It has to
-        be used when the DAGDependency() object is complete (i.e. converters).
+        Create the list of predecessors for each node. Update DAGDependency
+        'predecessors' attribute. It has to be used when the DAGDependency() object
+        is complete (i.e. converters).
         """
         for node_id in range(0, len(self._multi_graph)):
-            direct_predecessors = self.direct_predecessors(node_id)
-
-            self._multi_graph = self._gather_pred(node_id, direct_predecessors)
-
             self._multi_graph.get_node_data(node_id).predecessors = list(
-                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).predecessors)
+                rx.ancestors(self._multi_graph, node_id)
             )
 
     def copy(self):
@@ -596,8 +537,7 @@ class DAGDependency:
                          'color' (default): color input/output/op nodes
 
         Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file,
-                otherwise None.
+            Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
@@ -628,7 +568,7 @@ class DAGDependency:
                 node block to be replaced
             op (qiskit.circuit.Operation): The operation to replace the
                 block with
-            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
+            wire_pos_map (Dict[~qiskit.circuit.Qubit, int]): The dictionary mapping the qarg to
                 the position. This is necessary to reconstruct the qarg order
                 over multiple gates in the combined single op node.
             cycle_check (bool): When set to True this method will check that
@@ -655,8 +595,10 @@ class DAGDependency:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if nd.op.condition:
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_resources(cond).clbits)
 
         # Create replacement node
         new_node = self._create_op_node(

@@ -17,18 +17,17 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import U2Gate, SwapGate, CXGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import Target
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestConsolidateBlocks(QiskitTestCase):
@@ -190,10 +189,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         #          └╥┘       └────┘
         # c_0:  0 ══╩══════════════
         qc = QuantumCircuit(2, 1)
-        qc.i(0)
+        qc.id(0)
         qc.measure(1, 0)
         qc.cx(1, 0)
-        qc.i(1)
+        qc.id(1)
 
         # can't just add all the nodes to one block as in other tests
         # as we are trying to test the block gets added in the correct place
@@ -246,9 +245,9 @@ class TestConsolidateBlocks(QiskitTestCase):
         """
         qc = QuantumCircuit(3)
         qc.cx(1, 2)
-        qc.i(1)
+        qc.id(1)
         qc.cx(0, 1)
-        qc.i(2)
+        qc.id(2)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -277,13 +276,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc = QuantumCircuit(4)
         qc.cx(0, 1)
         qc.cx(3, 2)
-        qc.i(1)
-        qc.i(2)
+        qc.id(1)
+        qc.id(2)
 
         qc.swap(1, 2)
 
-        qc.i(1)
-        qc.i(2)
+        qc.id(1)
+        qc.id(2)
         qc.cx(0, 1)
         qc.cx(3, 2)
 
@@ -310,7 +309,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.t(1)
         qc.sdg(1)
         qc.z(1)
-        qc.i(1)
+        qc.id(1)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -427,6 +426,149 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
         pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
+    def test_descent_into_control_flow(self):
+        """Test consolidation in blocks when control flow op is the same as at top level."""
+
+        def circuit_of_test_gates():
+            qc = QuantumCircuit(2, 1)
+            qc.cx(0, 1)
+            qc.cx(1, 0)
+            return qc
+
+        def do_consolidation(qc):
+            pass_manager = PassManager()
+            pass_manager.append(Collect2qBlocks())
+            pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+            return pass_manager.run(qc)
+
+        result_top = do_consolidation(circuit_of_test_gates())
+
+        qc_control_flow = QuantumCircuit(2, 1)
+        ifop = IfElseOp((qc_control_flow.clbits[0], False), circuit_of_test_gates(), None)
+        qc_control_flow.append(ifop, qc_control_flow.qubits, qc_control_flow.clbits)
+
+        result_block = do_consolidation(qc_control_flow)
+        gate_top = result_top[0].operation
+        gate_block = result_block[0].operation.blocks[0][0].operation
+        np.testing.assert_allclose(gate_top, gate_block)
+
+    def test_not_crossing_between_control_flow_block_and_parent(self):
+        """Test that consolidation does not occur across the boundary between control flow
+        blocks and the parent circuit."""
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1)
+        qc_true = QuantumCircuit(2, 1)
+        qc_false = QuantumCircuit(2, 1)
+        qc_true.cx(0, 1)
+        qc_false.cz(0, 1)
+        ifop = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
+        qc.append(ifop, qc.qubits, qc.clbits)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        qc_out = pass_manager.run(qc)
+
+        self.assertIsInstance(qc_out[0].operation, UnitaryGate)
+        np.testing.assert_allclose(CXGate(), qc_out[0].operation)
+        op_true = qc_out[1].operation.blocks[0][0].operation
+        op_false = qc_out[1].operation.blocks[1][0].operation
+        np.testing.assert_allclose(CXGate(), op_true)
+        np.testing.assert_allclose(CZGate(), op_false)
+
+    def test_not_crossing_between_control_flow_ops(self):
+        """Test that consolidation does not occur between control flow ops."""
+        qc = QuantumCircuit(2, 1)
+        qc_true = QuantumCircuit(2, 1)
+        qc_false = QuantumCircuit(2, 1)
+        qc_true.cx(0, 1)
+        qc_false.cz(0, 1)
+        ifop1 = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
+        qc.append(ifop1, qc.qubits, qc.clbits)
+        ifop2 = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
+        qc.append(ifop2, qc.qubits, qc.clbits)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        qc_out = pass_manager.run(qc)
+
+        op_true1 = qc_out[0].operation.blocks[0][0].operation
+        op_false1 = qc_out[0].operation.blocks[1][0].operation
+        op_true2 = qc_out[1].operation.blocks[0][0].operation
+        op_false2 = qc_out[1].operation.blocks[1][0].operation
+        np.testing.assert_allclose(CXGate(), op_true1)
+        np.testing.assert_allclose(CZGate(), op_false1)
+        np.testing.assert_allclose(CXGate(), op_true2)
+        np.testing.assert_allclose(CZGate(), op_false2)
+
+    def test_inverted_order(self):
+        """Test that the `ConsolidateBlocks` pass creates matrices that are correct under the
+        application of qubit binding from the outer circuit to the inner block."""
+        body = QuantumCircuit(2, 1)
+        body.h(0)
+        body.cx(0, 1)
+
+        id_op = Operator(np.eye(4))
+        bell = Operator(body)
+
+        qc = QuantumCircuit(2, 1)
+        # The first two 'if' blocks here represent exactly the same operation as each other on the
+        # outer bits, because in the second, the bit-order of the block is reversed, but so is the
+        # order of the bits in the outer circuit that they're bound to, which makes them the same.
+        # The second two 'if' blocks also represent the same operation as each other, but the 'first
+        # two' and 'second two' pairs represent qubit-flipped operations.
+        qc.if_test((0, False), body.copy(), qc.qubits, qc.clbits)
+        qc.if_test((0, False), body.reverse_bits(), reversed(qc.qubits), qc.clbits)
+        qc.if_test((0, False), body.copy(), reversed(qc.qubits), qc.clbits)
+        qc.if_test((0, False), body.reverse_bits(), qc.qubits, qc.clbits)
+
+        # The first two operations represent Bell-state creation on _outer_ qubits (0, 1), the
+        # second two represent the same creation, but on outer qubits (1, 0).
+        expected = [
+            id_op.compose(bell, qargs=(0, 1)),
+            id_op.compose(bell, qargs=(0, 1)),
+            id_op.compose(bell, qargs=(1, 0)),
+            id_op.compose(bell, qargs=(1, 0)),
+        ]
+
+        actual = []
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks(force_consolidate=True)])
+        for instruction in pm.run(qc).data:
+            # For each instruction, the `UnitaryGate` that's been created will always have been made
+            # (as an implementation detail of `DAGCircuit.collect_2q_runs` as of commit e5950661) to
+            # apply to _inner_ qubits (0, 1).  We need to map that back to the _outer_ qubits that
+            # it applies to compare.
+            body = instruction.operation.blocks[0]
+            wire_map = {
+                inner: qc.find_bit(outer).index
+                for inner, outer in zip(body.qubits, instruction.qubits)
+            }
+            actual.append(
+                id_op.compose(
+                    Operator(body.data[0].operation),
+                    qargs=[wire_map[q] for q in body.data[0].qubits],
+                )
+            )
+        self.assertEqual(expected, actual)
+
+    def test_custom_no_target(self):
+        """Test pass doesn't fail with custom gate."""
+
+        class MyCustomGate(Gate):
+            """Custom gate."""
+
+            def __init__(self):
+                super().__init__(name="my_custom", num_qubits=2, params=[])
+
+        qc = QuantumCircuit(2)
+        qc.append(MyCustomGate(), [0, 1])
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        res = pm.run(qc)
+
+        self.assertEqual(res, qc)
 
 
 if __name__ == "__main__":

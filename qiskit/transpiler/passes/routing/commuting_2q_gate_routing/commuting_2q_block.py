@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 
 """A gate made of commuting two-qubit gates."""
+from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Qubit, Clbit
 from qiskit.dagcircuit import DAGOpNode
 
 
@@ -34,7 +35,8 @@ class Commuting2qBlock(Gate):
         Raises:
             QiskitError: If the nodes in the node block do not apply to two-qubits.
         """
-        qubits, cbits = set(), set()
+        qubits: set[Qubit] = set()
+        cbits: set[Clbit] = set()
         for node in node_block:
             if len(node.qargs) != 2:
                 raise QiskitError(f"Node {node.name} does not apply to two-qubits.")

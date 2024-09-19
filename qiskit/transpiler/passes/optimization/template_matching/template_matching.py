@@ -235,11 +235,11 @@ class TemplateMatching:
     def run_template_matching(self):
         """
         Run the complete algorithm for finding all maximal matches for the given template and
-        circuit. First it fixes the configuration of the the circuit due to the first match.
+        circuit. First it fixes the configuration of the circuit due to the first match.
         Then it explores all compatible qubit configurations of the circuit. For each
         qubit configurations, we apply first the Forward part of the algorithm  and then
         the Backward part of the algorithm. The longest matches for the given configuration
-        are stored. Finally the list of stored matches is sorted.
+        are stored. Finally, the list of stored matches is sorted.
         """
 
         # Get the number of qubits/clbits for both circuit and template.

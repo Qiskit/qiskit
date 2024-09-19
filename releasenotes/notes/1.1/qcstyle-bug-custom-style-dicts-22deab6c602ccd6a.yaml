@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed bug in :meth:`.QuantumCircuit.draw` that was causing custom style dictionaries 
+    for the Matplotlib drawer to be modified upon execution.

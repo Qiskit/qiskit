@@ -21,9 +21,10 @@ from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
+from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitToInstruction(QiskitTestCase):
@@ -217,6 +218,38 @@ class TestCircuitToInstruction(QiskitTestCase):
         compound = QuantumCircuit(1)
         compound.append(instruction, [], [])
         np.testing.assert_allclose(-np.eye(2), Operator(compound), atol=1e-16)
+
+    def test_forbids_captured_vars(self):
+        """Instructions (here an analogue of functions) cannot close over outer scopes."""
+        qc = QuantumCircuit(captures=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(QiskitError, "Circuits that capture variables cannot"):
+            qc.to_instruction()
+
+    def test_forbids_input_vars(self):
+        """This test can be relaxed when we have proper support for the behavior.
+
+        This actually has a natural meaning; the input variables could become typed parameters.
+        We don't have a formal structure for managing that yet, though, so it's forbidden until the
+        library is ready for that."""
+        qc = QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(QiskitError, "Circuits with 'input' variables cannot"):
+            qc.to_instruction()
+
+    def test_forbids_declared_vars(self):
+        """This test can be relaxed when we have proper support for the behavior.
+
+        This has a very natural representation, which needs basically zero special handling, since
+        the variables are necessarily entirely internal to the subroutine.  The reason it is
+        starting off as forbidden is because we don't have a good way to support variable renaming
+        during unrolling in transpilation, and we want the error to indicate an alternative at the
+        point the conversion happens."""
+        qc = QuantumCircuit()
+        qc.add_var("a", False)
+        with self.assertRaisesRegex(
+            QiskitError,
+            "Circuits with internal variables.*You may be able to use `QuantumCircuit.compose`",
+        ):
+            qc.to_instruction()
 
 
 if __name__ == "__main__":

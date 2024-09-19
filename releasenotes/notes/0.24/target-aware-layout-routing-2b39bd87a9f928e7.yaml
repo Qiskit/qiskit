@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    The following layout and routing transpiler passes from the
+    :mod:`.qiskit.transpiler.passes` modules now will support accepting a
+    :class:`~.Target` object which is used to model the constraints of a target
+    backend via the first positional argument (currently named either
+    ``coupling_map`` or ``backend_properties``).
+
+    The list of these passes with the support for new ``target`` argument are:
+
+      * :class:`~.CSPLayout`
+      * :class:`~.FullAncillaAllocation`
+      * :class:`~.Layout2qDistance`
+      * :class:`~.NoiseAdaptiveLayout`
+      * :class:`~.SabreLayout`
+      * :class:`~.TrivialLayout`
+      * :class:`~.BasicSwap`
+      * :class:`~.BIPMapping`
+      * :class:`~.LayoutTransformation`
+      * :class:`~.LookaheadSwap`
+      * :class:`~.SabreSwap`
+      * :class:`~.StochasticSwap`
+      * :class:`~.CheckMap`
+  - |
+    The pass manager construction helper function :func:`~.generate_embed_passmanager`
+    will now also accept a :class:`~.Target` for it's sole positional argument
+    (currently named ``coupling_map``). This can be used to construct a layout
+    embedding :class:`~.PassManager` from a :class:`~.Target` object instead of
+    from a :class:`~.CouplingMap`.

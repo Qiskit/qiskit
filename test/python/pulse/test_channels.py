@@ -25,8 +25,9 @@ from qiskit.pulse.channels import (
     PulseChannel,
     RegisterSlot,
     SnapshotChannel,
+    PulseError,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestChannel(QiskitTestCase):
@@ -88,6 +89,13 @@ class TestMemorySlot(QiskitTestCase):
         self.assertEqual(memory_slot.name, "m123")
         self.assertTrue(isinstance(memory_slot, ClassicalIOChannel))
 
+    def test_validation(self):
+        """Test channel validation"""
+        with self.assertRaises(PulseError):
+            MemorySlot(0.5)
+        with self.assertRaises(PulseError):
+            MemorySlot(-1)
+
 
 class TestRegisterSlot(QiskitTestCase):
     """RegisterSlot tests."""
@@ -99,6 +107,13 @@ class TestRegisterSlot(QiskitTestCase):
         self.assertEqual(register_slot.index, 123)
         self.assertEqual(register_slot.name, "c123")
         self.assertTrue(isinstance(register_slot, ClassicalIOChannel))
+
+    def test_validation(self):
+        """Test channel validation"""
+        with self.assertRaises(PulseError):
+            RegisterSlot(0.5)
+        with self.assertRaises(PulseError):
+            RegisterSlot(-1)
 
 
 class TestSnapshotChannel(QiskitTestCase):
@@ -123,6 +138,13 @@ class TestDriveChannel(QiskitTestCase):
         self.assertEqual(drive_channel.index, 123)
         self.assertEqual(drive_channel.name, "d123")
 
+    def test_validation(self):
+        """Test channel validation"""
+        with self.assertRaises(PulseError):
+            DriveChannel(0.5)
+        with self.assertRaises(PulseError):
+            DriveChannel(-1)
+
 
 class TestControlChannel(QiskitTestCase):
     """ControlChannel tests."""
@@ -134,6 +156,13 @@ class TestControlChannel(QiskitTestCase):
         self.assertEqual(control_channel.index, 123)
         self.assertEqual(control_channel.name, "u123")
 
+    def test_validation(self):
+        """Test channel validation"""
+        with self.assertRaises(PulseError):
+            ControlChannel(0.5)
+        with self.assertRaises(PulseError):
+            ControlChannel(-1)
+
 
 class TestMeasureChannel(QiskitTestCase):
     """MeasureChannel tests."""
@@ -144,6 +173,13 @@ class TestMeasureChannel(QiskitTestCase):
 
         self.assertEqual(measure_channel.index, 123)
         self.assertEqual(measure_channel.name, "m123")
+
+    def test_validation(self):
+        """Test channel validation"""
+        with self.assertRaises(PulseError):
+            MeasureChannel(0.5)
+        with self.assertRaises(PulseError):
+            MeasureChannel(-1)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`~.CommutationAnalysis` to group gates on a wire into sets, with each
+    set only containing gates that pairwise commute. This prevents
+    :class:`~.CommutationCancellation` from performing unsound optimizations.
+    See `#8020 <https://github.com/Qiskit/qiskit-terra/issues/8020>`__

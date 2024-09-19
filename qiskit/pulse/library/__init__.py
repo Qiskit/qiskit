@@ -23,8 +23,7 @@ The :class:`~Waveform` model directly stores the waveform data points in each cl
 This model provides the most flexibility to express arbitrary waveforms and allows
 a rapid prototyping of new control techniques. However, this model is typically memory
 inefficient and might be hard to scale to large-size quantum processors.
-Several waveform subclasses are defined by :ref:`waveforms`,
-but a user can also directly instantiate the :class:`~Waveform` class with ``samples`` argument
+A user can directly instantiate the :class:`~Waveform` class with ``samples`` argument
 which is usually a complex numpy array or any kind of array-like data.
 
 In contrast, the :class:`~SymbolicPulse` model only stores the function and its parameters
@@ -38,11 +37,6 @@ Note that :class:`~Waveform` object can be generated from an instance of
 a :class:`~SymbolicPulse` which will set values for the parameters and
 sample the parametric expression to create the :class:`~Waveform`.
 
-.. note::
-
-    QPY serialization support for :class:`.SymbolicPulse` is currently not available.
-    This feature will be implemented soon in Qiskit terra version 0.21.
-
 
 .. _pulse_models:
 
@@ -54,30 +48,6 @@ Pulse Models
 
    Waveform
    SymbolicPulse
-   ParametricPulse
-
-
-.. _waveforms:
-
-Waveform Pulse Representation
-=============================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   constant
-   zero
-   square
-   sawtooth
-   triangle
-   cos
-   sin
-   gaussian
-   gaussian_deriv
-   sech
-   sech_deriv
-   gaussian_square
-   drag
 
 
 .. _symbolic_pulses:
@@ -93,41 +63,35 @@ Parametric Pulse Representation
    Gaussian
    GaussianSquare
    GaussianSquareDrag
+   gaussian_square_echo
+   GaussianDeriv
    Sin
    Cos
    Sawtooth
    Triangle
+   Square
+   Sech
+   SechDeriv
 
 """
 
-from .discrete import (
-    constant,
-    zero,
-    square,
-    sawtooth,
-    triangle,
-    cos,
-    sin,
-    gaussian,
-    gaussian_deriv,
-    sech,
-    sech_deriv,
-    gaussian_square,
-    drag,
-)
-from .parametric_pulses import ParametricPulse
 from .symbolic_pulses import (
     SymbolicPulse,
     ScalableSymbolicPulse,
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    gaussian_square_echo,
+    GaussianDeriv,
     Drag,
     Constant,
     Sin,
     Cos,
     Sawtooth,
     Triangle,
+    Square,
+    Sech,
+    SechDeriv,
 )
 from .pulse import Pulse
 from .waveform import Waveform

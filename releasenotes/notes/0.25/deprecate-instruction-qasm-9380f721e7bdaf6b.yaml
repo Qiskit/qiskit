@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The method :meth:`~qiskit.circuit.Instruction.qasm` and all overriding methods of subclasses
+    of `:meth:`~qiskit.circuit.Instruction` are deprecated. There is no replacement for generating
+    an OpenQASM 2 string for an isolated instruction.

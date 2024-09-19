@@ -13,13 +13,13 @@
 """Tests for ScalarOp class."""
 
 import unittest
-from test import combine
 
 import numpy as np
 from ddt import ddt
 
 from qiskit.quantum_info.operators import Operator, ScalarOp
-from qiskit.test import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class ScalarOpTestCase(QiskitTestCase):
@@ -58,7 +58,7 @@ class TestScalarOpInit(ScalarOpTestCase):
     def test_custom_dims(self):
         """Test custom dims."""
         dims = (2, 3, 4, 5)
-        dim = np.product(dims)
+        dim = np.prod(dims)
         op = ScalarOp(dims)
         self.assertEqual(op.dim, (dim, dim))
         self.assertEqual(op.input_dims(), dims)
@@ -84,7 +84,7 @@ class TestScalarOpMethods(ScalarOpTestCase):
     @combine(dims=[2, 4, 5, (2, 3), (3, 2)], coeff=[0, 1, 2.1 - 3.1j])
     def test_to_operator(self, dims, coeff):
         """Test to_matrix and to_operator methods (dims={dims}, coeff={coeff})"""
-        dim = np.product(dims)
+        dim = np.prod(dims)
         iden = ScalarOp(dims, coeff=coeff)
         target = Operator(coeff * np.eye(dim), input_dims=dims, output_dims=dims)
         with self.subTest(msg="to_operator"):

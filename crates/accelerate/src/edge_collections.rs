@@ -12,15 +12,15 @@
 
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
-use pyo3::Python;
+
+use crate::nlayout::PhysicalQubit;
 
 /// A simple container that contains a vector representing edges in the
 /// coupling map that are found to be optimal by the swap mapper.
 #[pyclass(module = "qiskit._accelerate.stochastic_swap")]
-#[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct EdgeCollection {
-    pub edges: Vec<usize>,
+    pub edges: Vec<PhysicalQubit>,
 }
 
 impl Default for EdgeCollection {
@@ -32,6 +32,7 @@ impl Default for EdgeCollection {
 #[pymethods]
 impl EdgeCollection {
     #[new]
+    #[pyo3(text_signature = "(/)")]
     pub fn new() -> Self {
         EdgeCollection { edges: Vec::new() }
     }
@@ -42,7 +43,7 @@ impl EdgeCollection {
     ///     edge_start (int): The beginning edge.
     ///     edge_end (int): The end of the edge.
     #[pyo3(text_signature = "(self, edge_start, edge_end, /)")]
-    pub fn add(&mut self, edge_start: usize, edge_end: usize) {
+    pub fn add(&mut self, edge_start: PhysicalQubit, edge_end: PhysicalQubit) {
         self.edges.push(edge_start);
         self.edges.push(edge_end);
     }
@@ -54,14 +55,14 @@ impl EdgeCollection {
     /// output array here would be ``[0, 1, 1, 2, 2, 3]``.
     #[pyo3(text_signature = "(self, /)")]
     pub fn edges(&self, py: Python) -> PyObject {
-        self.edges.clone().into_pyarray(py).into()
+        self.edges.clone().into_pyarray_bound(py).into()
     }
 
-    fn __getstate__(&self) -> Vec<usize> {
+    fn __getstate__(&self) -> Vec<PhysicalQubit> {
         self.edges.clone()
     }
 
-    fn __setstate__(&mut self, state: Vec<usize>) {
+    fn __setstate__(&mut self, state: Vec<PhysicalQubit>) {
         self.edges = state
     }
 }

@@ -12,12 +12,10 @@
 
 # pylint: disable=no-name-in-module,broad-except,cyclic-import
 
-"""Contains the terra version."""
+"""Contains Qiskit version."""
 
 import os
 import subprocess
-import sys
-from collections.abc import Mapping
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -84,101 +82,3 @@ def get_version_info():
 
 
 __version__ = get_version_info()
-
-
-class QiskitVersion(Mapping):
-    """A lazy loading wrapper to get qiskit versions."""
-
-    __slots__ = ["_version_dict", "_loaded"]
-
-    def __init__(self):
-        self._version_dict = {
-            "qiskit-terra": __version__,
-            "qiskit-aer": None,
-            "qiskit-ignis": None,
-            "qiskit-ibmq-provider": None,
-            "qiskit": None,
-        }
-        self._loaded = False
-
-    def _load_versions(self):
-        if sys.version_info >= (3, 8):
-            from importlib.metadata import version
-        else:
-            from importlib_metadata import version
-
-        try:
-            # TODO: Update to use qiskit_aer instead when we remove the
-            # namespace redirect
-            from qiskit.providers import aer
-
-            self._version_dict["qiskit-aer"] = aer.__version__
-        except Exception:
-            self._version_dict["qiskit-aer"] = None
-        try:
-            from qiskit import ignis
-
-            self._version_dict["qiskit-ignis"] = ignis.__version__
-        except Exception:
-            self._version_dict["qiskit-ignis"] = None
-        try:
-            from qiskit.providers import ibmq
-
-            self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
-        except Exception:
-            self._version_dict["qiskit-ibmq-provider"] = None
-        try:
-            import qiskit_nature
-
-            self._version_dict["qiskit-nature"] = qiskit_nature.__version__
-        except Exception:
-            self._version_dict["qiskit-nature"] = None
-        try:
-            import qiskit_finance
-
-            self._version_dict["qiskit-finance"] = qiskit_finance.__version__
-        except Exception:
-            self._version_dict["qiskit-finance"] = None
-        try:
-            import qiskit_optimization
-
-            self._version_dict["qiskit-optimization"] = qiskit_optimization.__version__
-        except Exception:
-            self._version_dict["qiskit-optimization"] = None
-        try:
-            import qiskit_machine_learning
-
-            self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
-        except Exception:
-            self._version_dict["qiskit-machine-learning"] = None
-        try:
-            self._version_dict["qiskit"] = version("qiskit")
-        except Exception:
-            self._version_dict["qiskit"] = None
-        self._loaded = True
-
-    def __repr__(self):
-        if not self._loaded:
-            self._load_versions()
-        return repr(self._version_dict)
-
-    def __str__(self):
-        if not self._loaded:
-            self._load_versions()
-        return str(self._version_dict)
-
-    def __getitem__(self, key):
-        if not self._loaded:
-            self._load_versions()
-        return self._version_dict[key]
-
-    def __iter__(self):
-        if not self._loaded:
-            self._load_versions()
-        return iter(self._version_dict)
-
-    def __len__(self):
-        return len(self._version_dict)
-
-
-__qiskit_version__ = QiskitVersion()

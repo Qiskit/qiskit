@@ -12,9 +12,12 @@
 
 """The real-amplitudes 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable, Any
+from __future__ import annotations
+from collections.abc import Callable
+
 import numpy as np
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RYGate, CXGate
 from .two_local import TwoLocal
 
@@ -24,7 +27,7 @@ class RealAmplitudes(TwoLocal):
 
     The ``RealAmplitudes`` circuit is a heuristic trial wave function used as Ansatz in chemistry
     applications or classification circuits in machine learning. The circuit consists of
-    of alternating layers of :math:`Y` rotations and :math:`CX` entanglements. The entanglement
+    alternating layers of :math:`Y` rotations and :math:`CX` entanglements. The entanglement
     pattern can be user-defined or selected from a predefined set.
     It is called ``RealAmplitudes`` since the prepared quantum states will only have
     real amplitudes, the complex part is always 0.
@@ -115,18 +118,18 @@ class RealAmplitudes(TwoLocal):
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "reverse_linear",
+        num_qubits: int | None = None,
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: QuantumCircuit | None = None,
         name: str = "RealAmplitudes",
+        flatten: bool | None = None,
     ) -> None:
-        """Create a new RealAmplitudes 2-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the RealAmplitudes circuit.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -144,16 +147,19 @@ class RealAmplitudes(TwoLocal):
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
-            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-                that are entangled with another qubit. If False, the single qubit gates are applied
-                to each qubit in the Ansatz. Defaults to False.
             skip_final_rotation_layer: If False, a rotation layer is added at the end of the
                 ansatz. If True, no rotation layer is added.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
-
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
         """
         super().__init__(
             num_qubits=num_qubits,
@@ -167,10 +173,11 @@ class RealAmplitudes(TwoLocal):
             parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             name=name,
+            flatten=flatten,
         )
 
     @property
-    def parameter_bounds(self) -> List[Tuple[float, float]]:
+    def parameter_bounds(self) -> list[tuple[float, float]]:
         """Return the parameter bounds.
 
         Returns:

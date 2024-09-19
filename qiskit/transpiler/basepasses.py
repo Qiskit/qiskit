@@ -11,20 +11,41 @@
 # that they have been altered from the originals.
 
 """Base transpiler passes."""
+from __future__ import annotations
 
+import abc
 from abc import abstractmethod
-from collections.abc import Hashable
+from collections.abc import Callable, Hashable, Iterable
 from inspect import signature
-from .propertyset import PropertySet
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.passmanager.base_tasks import GenericPass, PassManagerIR
+from qiskit.passmanager.compilation_status import PropertySet, RunState, PassManagerState
+
+from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
 
-class MetaPass(type):
+class MetaPass(abc.ABCMeta):
     """Metaclass for transpiler passes.
 
     Enforces the creation of some fields in the pass while allowing passes to
     override ``__init__``.
     """
+
+    # Drop this functionality in the future.
+    # This metaclass provides a pass equivalence evaluation based on the constructor arguments.
+    # This implicit fake-hash based equivalence is fragile, and the pass developer must
+    # explicitly implement equivalence check logic for each pass if necessary.
+    # Currently, this metaclass is just here for backward compatibility, because
+    # circuit pass manager has a functionality to avoid multiple execution of the
+    # same pass (even though they are scheduled so). This is managed by the valid_passes set,
+    # and executed passes are added to this collection to avoid future execution.
+    # Dropping this metaclass causes many unittest failures and thus this is
+    # considered as a breaking API change.
+    # For example, test.python.transpiler.test_pass_scheduler.TestLogPasses.test_passes_in_linear
 
     def __call__(cls, *args, **kwargs):
         pass_instance = type.__call__(cls, *args, **kwargs)
@@ -47,31 +68,31 @@ class MetaPass(type):
         return frozenset(arguments)
 
 
-class BasePass(metaclass=MetaPass):
+class BasePass(GenericPass, metaclass=MetaPass):
     """Base class for transpiler passes."""
 
     def __init__(self):
-        self.requires = []  # List of passes that requires
-        self.preserves = []  # List of passes that preserves
-        self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
+        super().__init__()
+        self.preserves: Iterable[GenericPass] = []
         self._hash = hash(None)
 
     def __hash__(self):
         return self._hash
 
     def __eq__(self, other):
+        # Note that this implementation is incorrect.
+        # This must be reimplemented in the future release.
+        # See the discussion below for details.
+        # https://github.com/Qiskit/qiskit/pull/10127#discussion_r1329982732
         return hash(self) == hash(other)
 
-    def name(self):
-        """Return the name of the pass."""
-        return self.__class__.__name__
-
     @abstractmethod
-    def run(self, dag):
+    def run(self, dag: DAGCircuit):  # pylint:disable=arguments-renamed
         """Run a pass on the DAGCircuit. This is implemented by the pass developer.
 
         Args:
-            dag (DAGCircuit): the dag on which the pass is run.
+            dag: the dag on which the pass is run.
+
         Raises:
             NotImplementedError: when this is left unimplemented for a pass.
         """
@@ -96,26 +117,28 @@ class BasePass(metaclass=MetaPass):
         """
         return isinstance(self, AnalysisPass)
 
-    def __call__(self, circuit, property_set=None):
+    def __call__(
+        self,
+        circuit: QuantumCircuit,
+        property_set: PropertySet | dict | None = None,
+    ) -> QuantumCircuit:
         """Runs the pass on circuit.
 
         Args:
-            circuit (QuantumCircuit): the dag on which the pass is run.
-            property_set (PropertySet or dict or None): input/output property set. An analysis pass
+            circuit: The dag on which the pass is run.
+            property_set: Input/output property set. An analysis pass
                 might change the property set in-place.
 
         Returns:
-            QuantumCircuit: If on transformation pass, the resulting QuantumCircuit. If analysis
-                   pass, the input circuit.
+            If on transformation pass, the resulting QuantumCircuit.
+            If analysis pass, the input circuit.
         """
-        from qiskit.converters import circuit_to_dag, dag_to_circuit
-        from qiskit.dagcircuit.dagcircuit import DAGCircuit
-
         property_set_ = None
         if isinstance(property_set, dict):  # this includes (dict, PropertySet)
             property_set_ = PropertySet(property_set)
 
         if isinstance(property_set_, PropertySet):
+            # pylint: disable=attribute-defined-outside-init
             self.property_set = property_set_
 
         result = self.run(circuit_to_dag(circuit))
@@ -136,6 +159,8 @@ class BasePass(metaclass=MetaPass):
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
                 final_layout=self.property_set["final_layout"],
+                _input_qubit_count=len(circuit.qubits),
+                _output_qubit_list=result_circuit.qubits,
             )
         if self.property_set["clbit_write_latency"] is not None:
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
@@ -157,10 +182,40 @@ class BasePass(metaclass=MetaPass):
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
 
-    pass
-
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
 
-    pass
+    def execute(
+        self,
+        passmanager_ir: PassManagerIR,
+        state: PassManagerState,
+        callback: Callable = None,
+    ) -> tuple[PassManagerIR, PassManagerState]:
+        new_dag, state = super().execute(
+            passmanager_ir=passmanager_ir,
+            state=state,
+            callback=callback,
+        )
+
+        if state.workflow_status.previous_run == RunState.SUCCESS:
+            if isinstance(new_dag, DAGCircuit):
+                # Copy calibration data from the original program
+                new_dag.calibrations = passmanager_ir.calibrations
+            else:
+                raise TranspilerError(
+                    "Transformation passes should return a transformed dag."
+                    f"The pass {self.__class__.__name__} is returning a {type(new_dag)}"
+                )
+
+        return new_dag, state
+
+    def update_status(
+        self,
+        state: PassManagerState,
+        run_state: RunState,
+    ) -> PassManagerState:
+        state = super().update_status(state, run_state)
+        if run_state == RunState.SUCCESS:
+            state.workflow_status.completed_passes.intersection_update(set(self.preserves))
+        return state

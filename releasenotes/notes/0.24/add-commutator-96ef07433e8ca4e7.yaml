@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add utility functions :func:`~qiskit.quantum_info.commutator`,
+    :func:`~qiskit.quantum_info.anti_commutator`, and
+    :func:`~qiskit.quantum_info.double_commutator` to compute commutators
+    for any objects implementing a :class:`.LinearOp`.

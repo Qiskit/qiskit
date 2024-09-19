@@ -14,16 +14,21 @@
 Quantum measurement in the computational basis.
 """
 
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Measure(Instruction):
+class Measure(SingletonInstruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self):
-        """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [])
+    def __init__(self, label=None, *, duration=None, unit="dt"):
+        """
+        Args:
+            label: optional string label for this instruction.
+        """
+        super().__init__("measure", 1, 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]

@@ -23,6 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.utils import deprecate_func
 
 # A ``CircuitModule`` is a representation of a circuit execution on the backend.
 # It is currently a list of quantum circuits to execute, a run Qobj dictionary
@@ -37,6 +38,14 @@ CircuitModule = NewType(
 PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
 
 
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+    "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+    "workflow requires `Qobj` it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
+)
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
 
@@ -109,7 +118,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib):
         config = (tuple(gate["qubits"]), tuple(gate["params"]))
         cal = {
             config: pulse.Schedule(
-                name="{} {} {}".format(gate["name"], str(gate["params"]), str(gate["qubits"]))
+                name=f"{gate['name']} {str(gate['params'])} {str(gate['qubits'])}"
             )
         }
         for instruction in gate["instructions"]:
@@ -167,14 +176,8 @@ def _experiments_to_circuits(qobj):
                 pass
             if hasattr(circuit, name):
                 instr_method = getattr(circuit, name)
-                if i.name in ["snapshot"]:
-                    _inst = instr_method(
-                        i.label, snapshot_type=i.snapshot_type, qubits=qubits, params=params
-                    )
-                elif i.name == "initialize":
+                if i.name == "initialize":
                     _inst = instr_method(params, qubits)
-                elif i.name == "isometry":
-                    _inst = instr_method(*params, qubits, clbits)
                 elif i.name in ["mcx", "mcu1", "mcp"]:
                     _inst = instr_method(*params, qubits[:-1], qubits[-1], *clbits)
                 else:
@@ -237,13 +240,12 @@ def _experiments_to_circuits(qobj):
         pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, "pulse_library") else []
         # The dict update method did not work here; could investigate in the future
         if hasattr(qobj.config, "calibrations"):
-            circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib)
-            )
+            circuit.calibrations = {
+                **circuit.calibrations,
+                **_qobj_to_circuit_cals(qobj, pulse_lib),
+            }
         if hasattr(exp.config, "calibrations"):
-            circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)
-            )
+            circuit.calibrations = {**circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)}
         circuits.append(circuit)
     return circuits
 

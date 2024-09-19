@@ -16,12 +16,23 @@
 QPY Type keys for several namespace.
 """
 
+import uuid
 from abc import abstractmethod
-from enum import Enum
+from enum import Enum, IntEnum
 
 import numpy as np
 
-from qiskit.circuit import Gate, Instruction, QuantumCircuit, ControlledGate
+from qiskit.circuit import (
+    Gate,
+    Instruction,
+    QuantumCircuit,
+    ControlledGate,
+    CASE_DEFAULT,
+    Clbit,
+    ClassicalRegister,
+)
+from qiskit.circuit.annotated_operation import AnnotatedOperation, Modifier
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -35,6 +46,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
+from qiskit.pulse.configuration import Discriminator, Kernel
 from qiskit.pulse.instructions import (
     Acquire,
     Play,
@@ -45,6 +57,7 @@ from qiskit.pulse.instructions import (
     ShiftPhase,
     RelativeBarrier,
     TimeBlockade,
+    Reference,
 )
 from qiskit.pulse.library import Waveform, SymbolicPulse
 from qiskit.pulse.schedule import ScheduleBlock
@@ -93,12 +106,16 @@ class Value(TypeKeyBase):
     INTEGER = b"i"
     FLOAT = b"f"
     COMPLEX = b"c"
+    CASE_DEFAULT = b"d"
+    REGISTER = b"R"
     NUMPY_OBJ = b"n"
     PARAMETER = b"p"
     PARAMETER_VECTOR = b"v"
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
     NULL = b"z"
+    EXPRESSION = b"x"
+    MODIFIER = b"m"
 
     @classmethod
     def assign(cls, obj):
@@ -118,8 +135,16 @@ class Value(TypeKeyBase):
             return cls.PARAMETER_EXPRESSION
         if isinstance(obj, str):
             return cls.STRING
+        if isinstance(obj, (Clbit, ClassicalRegister)):
+            return cls.REGISTER
         if obj is None:
             return cls.NULL
+        if obj is CASE_DEFAULT:
+            return cls.CASE_DEFAULT
+        if isinstance(obj, expr.Expr):
+            return cls.EXPRESSION
+        if isinstance(obj, Modifier):
+            return cls.MODIFIER
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -128,6 +153,18 @@ class Value(TypeKeyBase):
     @classmethod
     def retrieve(cls, type_key):
         raise NotImplementedError
+
+
+class Condition(IntEnum):
+    """Type keys for the ``conditional_key`` field of the INSTRUCTION struct."""
+
+    # This class is deliberately raw integers and not in terms of ASCII characters for backwards
+    # compatibility in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
+    # have the enumeration values 0 and 1.
+
+    NONE = 0
+    TWO_TUPLE = 1
+    EXPRESSION = 2
 
 
 class Container(TypeKeyBase):
@@ -159,6 +196,7 @@ class CircuitInstruction(TypeKeyBase):
     GATE = b"g"
     PAULI_EVOL_GATE = b"p"
     CONTROLLED_GATE = b"c"
+    ANNOTATED_OPERATION = b"a"
 
     @classmethod
     def assign(cls, obj):
@@ -166,6 +204,8 @@ class CircuitInstruction(TypeKeyBase):
             return cls.PAULI_EVOL_GATE
         if isinstance(obj, ControlledGate):
             return cls.CONTROLLED_GATE
+        if isinstance(obj, AnnotatedOperation):
+            return cls.ANNOTATED_OPERATION
         if isinstance(obj, Gate):
             return cls.GATE
         if isinstance(obj, Instruction):
@@ -233,9 +273,10 @@ class ScheduleInstruction(TypeKeyBase):
     SHIFT_PHASE = b"r"
     BARRIER = b"b"
     TIME_BLOCKADE = b"t"
+    REFERENCE = b"y"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
-    # Call instructon is not supported by QPY.
+    # Call instruction is not supported by QPY.
     # This instruction has been excluded from ScheduleBlock instructions with
     # qiskit-terra/#8005 and new instruction Reference will be added instead.
     # Call is only applied to Schedule which is not supported by QPY.
@@ -261,6 +302,8 @@ class ScheduleInstruction(TypeKeyBase):
             return cls.BARRIER
         if isinstance(obj, TimeBlockade):
             return cls.TIME_BLOCKADE
+        if isinstance(obj, Reference):
+            return cls.REFERENCE
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -286,6 +329,8 @@ class ScheduleInstruction(TypeKeyBase):
             return RelativeBarrier
         if type_key == cls.TIME_BLOCKADE:
             return TimeBlockade
+        if type_key == cls.REFERENCE:
+            return Reference
 
         raise exceptions.QpyError(
             f"A class corresponding to type key '{type_key}' is not found in {cls.__name__} namespace."
@@ -298,10 +343,14 @@ class ScheduleOperand(TypeKeyBase):
     WAVEFORM = b"w"
     SYMBOLIC_PULSE = b"s"
     CHANNEL = b"c"
+    KERNEL = b"k"
+    DISCRIMINATOR = b"d"
 
-    # Discriminator and Acquire instance are not serialzied.
-    # Data format of these object is somewhat opaque and not defiend well.
-    # It's rarely used in the Qiskit experiements. Of course these can be added later.
+    # We need to have own string type definition for operands of schedule instruction.
+    # Note that string type is already defined in the Value namespace,
+    # but its key "s" conflicts with the SYMBOLIC_PULSE in the ScheduleOperand namespace.
+    # New in QPY version 7.
+    OPERAND_STR = b"o"
 
     @classmethod
     def assign(cls, obj):
@@ -311,6 +360,12 @@ class ScheduleOperand(TypeKeyBase):
             return cls.SYMBOLIC_PULSE
         if isinstance(obj, Channel):
             return cls.CHANNEL
+        if isinstance(obj, str):
+            return cls.OPERAND_STR
+        if isinstance(obj, Kernel):
+            return cls.KERNEL
+        if isinstance(obj, Discriminator):
+            return cls.DISCRIMINATOR
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -388,6 +443,129 @@ class Program(TypeKeyBase):
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
         )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class Expression(TypeKeyBase):
+    """Type keys for the ``EXPRESSION`` QPY item."""
+
+    VAR = b"x"
+    VALUE = b"v"
+    CAST = b"c"
+    UNARY = b"u"
+    BINARY = b"b"
+    INDEX = b"i"
+
+    @classmethod
+    def assign(cls, obj):
+        if (
+            isinstance(obj, expr.Expr)
+            and (key := getattr(cls, obj.__class__.__name__.upper(), None)) is not None
+        ):
+            return key
+        raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVarDeclaration(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR_DECLARATION`` QPY item."""
+
+    INPUT = b"I"
+    CAPTURE = b"C"
+    LOCAL = b"L"
+
+    @classmethod
+    def assign(cls, obj):
+        raise NotImplementedError
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprType(TypeKeyBase):
+    """Type keys for the ``EXPR_TYPE`` QPY item."""
+
+    BOOL = b"b"
+    UINT = b"u"
+
+    @classmethod
+    def assign(cls, obj):
+        if (
+            isinstance(obj, types.Type)
+            and (key := getattr(cls, obj.__class__.__name__.upper(), None)) is not None
+        ):
+            return key
+        raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVar(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR`` QPY item."""
+
+    CLBIT = b"C"
+    REGISTER = b"R"
+    UUID = b"U"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, uuid.UUID):
+            return cls.UUID
+        if isinstance(obj, Clbit):
+            return cls.CLBIT
+        if isinstance(obj, ClassicalRegister):
+            return cls.REGISTER
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprValue(TypeKeyBase):
+    """Type keys for the ``EXPR_VALUE`` QPY item."""
+
+    BOOL = b"b"
+    INT = b"i"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, bool):
+            return cls.BOOL
+        if isinstance(obj, int):
+            return cls.INT
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class SymExprEncoding(TypeKeyBase):
+    """Type keys for the symbolic encoding field in the file header."""
+
+    SYMPY = b"p"
+    SYMENGINE = b"e"
+
+    @classmethod
+    def assign(cls, obj):
+        if obj:
+            return cls.SYMENGINE
+        else:
+            return cls.SYMPY
 
     @classmethod
     def retrieve(cls, type_key):

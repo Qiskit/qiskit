@@ -13,6 +13,7 @@
 """A circuit implementing a quadratic form on binary variables."""
 
 from typing import Union, Optional, List
+import math
 
 import numpy as np
 
@@ -182,7 +183,7 @@ class QuadraticForm(QuantumCircuit):
 
         bounds = []  # bounds = [minimum value, maximum value]
         for condition in [lambda x: x < 0, lambda x: x > 0]:
-            bound = 0
+            bound = 0.0
             bound += sum(sum(q_ij for q_ij in q_i if condition(q_ij)) for q_i in quadratic)
             bound += sum(l_i for l_i in linear if condition(l_i))
             bound += offset if condition(offset) else 0
@@ -190,8 +191,8 @@ class QuadraticForm(QuantumCircuit):
 
         # the minimum number of qubits is the number of qubits needed to represent
         # the minimum/maximum value plus one sign qubit
-        num_qubits_for_min = int(np.ceil(np.log2(max(-bounds[0], 1))))
-        num_qubits_for_max = int(np.ceil(np.log2(bounds[1] + 1)))
+        num_qubits_for_min = math.ceil(math.log2(max(-bounds[0], 1)))
+        num_qubits_for_max = math.ceil(math.log2(bounds[1] + 1))
         num_result_qubits = 1 + max(num_qubits_for_min, num_qubits_for_max)
 
         return num_result_qubits

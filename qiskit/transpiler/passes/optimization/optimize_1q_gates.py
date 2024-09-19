@@ -25,7 +25,7 @@ from qiskit.circuit.library.standard_gates.u3 import U3Gate
 from qiskit.circuit import ParameterExpression
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.synthesis import Quaternion
+from qiskit.quantum_info.quaternion import Quaternion
 from qiskit._accelerate.optimize_1q_gates import compose_u3_rust
 
 _CHOP_THRESHOLD = 1e-15
@@ -43,7 +43,7 @@ class Optimize1qGates(TransformationPass):
                 the set `{'u1','u2','u3', 'u', 'p'}`.
             eps (float): EPS to check against
             target (Target): The :class:`~.Target` representing the target backend, if both
-                ``basis`` and this are specified then this argument will take
+                ``basis`` and ``target`` are specified then this argument will take
                 precedence and ``basis`` will be ignored.
         """
         super().__init__()
@@ -61,19 +61,16 @@ class Optimize1qGates(TransformationPass):
             DAGCircuit: the optimized DAG.
 
         Raises:
-            TranspilerError: if YZY and ZYZ angles do not give same rotation matrix.
+            TranspilerError: if ``YZY`` and ``ZYZ`` angles do not give same rotation matrix.
         """
         use_u = "u" in self.basis
         use_p = "p" in self.basis
         runs = dag.collect_runs(["u1", "u2", "u3", "u", "p"])
-        qubit_mapping = {}
-        if self.target is not None:
-            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         runs = _split_runs_on_parameters(runs)
         for run in runs:
             run_qubits = None
             if self.target is not None:
-                run_qubits = tuple(qubit_mapping[x] for x in run[0].qargs)
+                run_qubits = tuple(dag.find_bit(x).index for x in run[0].qargs)
 
                 if self.target.instruction_supported("p", run_qubits):
                     right_name = "p"
@@ -311,7 +308,7 @@ class Optimize1qGates(TransformationPass):
                 if "u3" in self.basis:
                     new_op = U3Gate(*right_parameters)
                 else:
-                    raise TranspilerError("It was not possible to use the basis %s" % self.basis)
+                    raise TranspilerError(f"It was not possible to use the basis {self.basis}")
 
             dag.global_phase += right_global_phase
 
@@ -377,7 +374,7 @@ def _split_runs_on_parameters(runs):
         # We exclude only u3 and u gate because for u1 and u2 we can really straightforward
         # merge two gate with parameters.
         # It would be great to combine all gate with parameters but this requires
-        # support parameters in qiskit.quantum_info.synthesis.Quaternion.
+        # support parameters in qiskit.quantum_info.Quaternion.
         groups = groupby(run, lambda x: x.op.is_parameterized() and x.op.name in ("u3", "u"))
 
         for group_is_parameterized, gates in groups:

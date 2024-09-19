@@ -41,8 +41,7 @@ class JobStatus:
                          :meth:`to_dict`.
 
         Returns:
-            qiskit.providers.model.JobStatus: The ``JobStatus`` from the input
-                dictionary.
+            JobStatus: The ``JobStatus`` from the input dictionary.
         """
         return cls(**data)
 

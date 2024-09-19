@@ -11,14 +11,19 @@
 # that they have been altered from the originals.
 
 """Padding pass to fill empty timeslot."""
+from __future__ import annotations
 
-from typing import List, Optional, Union
+from collections.abc import Iterable
+import logging
 
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
+
+logger = logging.getLogger(__name__)
 
 
 class BasePadding(TransformationPass):
@@ -49,6 +54,20 @@ class BasePadding(TransformationPass):
     which may result in violation of hardware alignment constraints.
     """
 
+    def __init__(
+        self,
+        target: Target = None,
+    ):
+        """BasePadding initializer.
+
+        Args:
+            target: The :class:`~.Target` representing the target backend.
+                If it supplied and it does not support delay instruction on a qubit,
+                padding passes do not pad any idle time of the qubit.
+        """
+        super().__init__()
+        self.target = target
+
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
 
@@ -74,7 +93,7 @@ class BasePadding(TransformationPass):
 
         # Update start time dictionary for the new_dag.
         # This information may be used for further scheduling tasks,
-        # but this is immediately invalidated becasue node id is updated in the new_dag.
+        # but this is immediately invalidated because node id is updated in the new_dag.
         self.property_set["node_start_time"].clear()
 
         new_dag.name = dag.name
@@ -104,9 +123,8 @@ class BasePadding(TransformationPass):
                     continue
 
                 for bit in node.qargs:
-
                     # Fill idle time with some sequence
-                    if t0 - idle_after[bit] > 0:
+                    if t0 - idle_after[bit] > 0 and self.__delay_supported(dag.find_bit(bit).index):
                         # Find previous node on the wire, i.e. always the latest node on the wire
                         prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
                         self._pad(
@@ -129,7 +147,9 @@ class BasePadding(TransformationPass):
 
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
-            if circuit_duration - idle_after[bit] > 0:
+            if circuit_duration - idle_after[bit] > 0 and self.__delay_supported(
+                dag.find_bit(bit).index
+            ):
                 node = new_dag.output_map[bit]
                 prev_node = next(new_dag.predecessors(node))
                 self._pad(
@@ -145,6 +165,12 @@ class BasePadding(TransformationPass):
 
         return new_dag
 
+    def __delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
+
     def _pre_runhook(self, dag: DAGCircuit):
         """Extra routine inserted before running the padding pass.
 
@@ -159,18 +185,24 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        for qarg, _ in enumerate(dag.qubits):
+            if not self.__delay_supported(qarg):
+                logger.debug(
+                    "No padding on qubit %d as delay is not supported on it",
+                    qarg,
+                )
 
     def _apply_scheduled_op(
         self,
         dag: DAGCircuit,
         t_start: int,
         oper: Instruction,
-        qubits: Union[Qubit, List[Qubit]],
-        clbits: Optional[Union[Clbit, List[Clbit]]] = None,
+        qubits: Qubit | Iterable[Qubit],
+        clbits: Clbit | Iterable[Clbit] = (),
     ):
         """Add new operation to DAG with scheduled information.
 
-        This is identical to apply_operation_back + updating the node_start_time propety.
+        This is identical to apply_operation_back + updating the node_start_time property.
 
         Args:
             dag: DAG circuit on which the sequence is applied.
@@ -184,7 +216,7 @@ class BasePadding(TransformationPass):
         if isinstance(clbits, Clbit):
             clbits = [clbits]
 
-        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits)
+        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits, check=False)
         self.property_set["node_start_time"][new_node] = t_start
 
     def _pad(

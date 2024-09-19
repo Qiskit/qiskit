@@ -1,0 +1,9 @@
+---
+features_transpiler:
+  - |
+    Added a new exception class :exc:`.CircuitToWideForTarget` which
+    subclasses :exc:`.TranspilerError`. It's used in places where a
+    :exc:`.TranspilerError` was previously raised when the error was that
+    the number of circuit qubits was larger than the target backend's qubits.
+    The new class enables more differentiating between this error condition and
+    other :exc:`.TranspilerError`\s.

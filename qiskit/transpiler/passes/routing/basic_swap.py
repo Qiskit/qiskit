@@ -10,17 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
+"""Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 
 class BasicSwap(TransformationPass):
-    """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
+    """Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates.
 
     The basic mapper is a minimum effort to insert swap gates to map the DAG onto
     a coupling map. When a cx is not in the coupling map possibilities, it inserts
@@ -31,12 +33,17 @@ class BasicSwap(TransformationPass):
         """BasicSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
-            fake_run (bool): if true, it only pretend to do routing, i.e., no
+            coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
+            fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.fake_run = fake_run
 
     def run(self, dag):
@@ -50,10 +57,10 @@ class BasicSwap(TransformationPass):
 
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG, or if the coupling_map=None.
+            compatible with the DAG, or if the ``coupling_map=None``.
         """
         if self.fake_run:
-            return self.fake_run(dag)
+            return self._fake_run(dag)
 
         new_dag = dag.copy_empty_like()
 
@@ -65,7 +72,9 @@ class BasicSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
-
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
         canonical_register = dag.qregs["q"]
         trivial_layout = Layout.generate_trivial_layout(canonical_register)
         current_layout = trivial_layout.copy()
@@ -91,7 +100,7 @@ class BasicSwap(TransformationPass):
 
                         # create the swap operation
                         swap_layer.apply_operation_back(
-                            SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
+                            SwapGate(), (qubit_1, qubit_2), cargs=(), check=False
                         )
 
                     # layer insertion
@@ -105,7 +114,13 @@ class BasicSwap(TransformationPass):
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
 
-        self.property_set["final_layout"] = current_layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_layout
+        else:
+            self.property_set["final_layout"] = current_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
+
         return new_dag
 
     def _fake_run(self, dag):
@@ -142,5 +157,10 @@ class BasicSwap(TransformationPass):
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-        self.property_set["final_layout"] = current_layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_layout
+        else:
+            self.property_set["final_layout"] = current_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         return dag

@@ -16,13 +16,16 @@ from typing import Optional
 
 import numpy as np
 
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 from .xx_plus_yy import XXPlusYYGate
 
 
-class iSwapGate(Gate):
+@with_gate_array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
+class iSwapGate(SingletonGate):
     r"""iSWAP gate.
 
     A 2-qubit XX+YY interaction.
@@ -83,9 +86,13 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None):
+    _standard_gate = StandardGate.ISwapGate
+
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new iSwap gate."""
-        super().__init__("iswap", 2, [], label=label)
+        super().__init__("iswap", 2, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -120,10 +127,8 @@ class iSwapGate(Gate):
 
         self.definition = qc
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)
-
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return XXPlusYYGate(-np.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, iSwapGate)

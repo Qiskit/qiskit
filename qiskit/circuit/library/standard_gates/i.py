@@ -13,11 +13,13 @@
 """Identity gate."""
 
 from typing import Optional
-import numpy
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
+from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
-class IGate(Gate):
+@with_gate_array([[1, 0], [0, 1]])
+class IGate(SingletonGate):
     r"""Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
@@ -44,18 +46,30 @@ class IGate(Gate):
              └───┘
     """
 
-    def __init__(self, label: Optional[str] = None):
-        """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label)
+    _standard_gate = StandardGate.IGate
 
-    def inverse(self):
-        """Invert this gate."""
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+        """Create new Identity gate."""
+        super().__init__("id", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
+
+    def inverse(self, annotated: bool = False):
+        """Returne the inverse gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            IGate: inverse gate (self-inverse).
+        ."""
         return IGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the identity gate."""
-        return numpy.array([[1, 0], [0, 1]], dtype=dtype)
-
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return IGate()
+
+    def __eq__(self, other):
+        return isinstance(other, IGate)

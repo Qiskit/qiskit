@@ -17,30 +17,27 @@
 These are pulses which are described by symbolic equations for their envelopes and for their
 parameter constraints.
 """
+from __future__ import annotations
 import functools
 import warnings
-from typing import Any, Dict, List, Optional, Union, Callable, Tuple
+from collections.abc import Mapping, Callable
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
+import symengine as sym
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.utils import optionals as _optional
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _lifted_gaussian(
     t: sym.Symbol,
-    center: Union[sym.Symbol, sym.Expr, complex],
-    t_zero: Union[sym.Symbol, sym.Expr, complex],
-    sigma: Union[sym.Symbol, sym.Expr, complex],
+    center: sym.Symbol | sym.Expr | complex,
+    t_zero: sym.Symbol | sym.Expr | complex,
+    sigma: sym.Symbol | sym.Expr | complex,
 ) -> sym.Expr:
     r"""Helper function that returns a lifted Gaussian symbolic equation.
 
@@ -83,7 +80,9 @@ def _lifted_gaussian(
 
 
 @functools.lru_cache(maxsize=None)
-def _is_amplitude_valid(envelope_lam: Callable, time: Tuple[float, ...], *fargs: float) -> bool:
+def _is_amplitude_valid(
+    envelope_lam: Callable, time: tuple[float, ...], *fargs: float
+) -> bool | np.bool_:
     """A helper function to validate maximum amplitude limit.
 
     Result is cached for better performance.
@@ -104,7 +103,7 @@ def _is_amplitude_valid(envelope_lam: Callable, time: Tuple[float, ...], *fargs:
     return np.all(samples_norm < 1.0 + epsilon)
 
 
-def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float]:
+def _get_expression_args(expr: sym.Expr, params: dict[str, float]) -> list[np.ndarray | float]:
     """A helper function to get argument to evaluate expression.
 
     Args:
@@ -117,7 +116,7 @@ def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float
     Raises:
         PulseError: When a free symbol value is not defined in the pulse instance parameters.
     """
-    args = []
+    args: list[np.ndarray | float] = []
     for symbol in sorted(expr.free_symbols, key=lambda s: s.name):
         if symbol.name == "t":
             # 't' is a special parameter to represent time vector.
@@ -159,7 +158,7 @@ class LambdifiedExpression:
                 the target expression to evaluate.
         """
         self.attribute = attribute
-        self.lambda_funcs = {}
+        self.lambda_funcs: dict[int, Callable] = {}
 
     def __get__(self, instance, owner) -> Callable:
         expr = getattr(instance, self.attribute, None)
@@ -174,7 +173,7 @@ class LambdifiedExpression:
     def __set__(self, instance, value):
         key = hash(value)
         if key not in self.lambda_funcs:
-            params = []
+            params: list[Any] = []
             for p in sorted(value.free_symbols, key=lambda s: s.name):
                 if p.name == "t":
                     # Argument "t" must be placed at first. This is a vector.
@@ -182,34 +181,31 @@ class LambdifiedExpression:
                     continue
                 params.append(p)
 
-            if _optional.HAS_SYMENGINE:
-                try:
-                    lamb = sym.lambdify(params, [value], real=False)
+            try:
+                lamb = sym.lambdify(params, [value], real=False)
 
-                    def _wrapped_lamb(*args):
-                        if isinstance(args[0], np.ndarray):
-                            # When the args[0] is a vector ("t"), tile other arguments args[1:]
-                            # to prevent evaluation from looping over each element in t.
-                            t = args[0]
-                            args = np.hstack(
-                                (
-                                    t.reshape(t.size, 1),
-                                    np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
-                                )
+                def _wrapped_lamb(*args):
+                    if isinstance(args[0], np.ndarray):
+                        # When the args[0] is a vector ("t"), tile other arguments args[1:]
+                        # to prevent evaluation from looping over each element in t.
+                        t = args[0]
+                        args = np.hstack(
+                            (
+                                t.reshape(t.size, 1),
+                                np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
                             )
-                        return lamb(args)
+                        )
+                    return lamb(args)
 
-                    func = _wrapped_lamb
-                except RuntimeError:
-                    # Currently symengine doesn't support complex_double version for
-                    # several functions such as comparison operator and piecewise.
-                    # If expression contains these function, it fall back to sympy lambdify.
-                    # See https://github.com/symengine/symengine.py/issues/406 for details.
-                    import sympy
+                func = _wrapped_lamb
+            except RuntimeError:
+                # Currently symengine doesn't support complex_double version for
+                # several functions such as comparison operator and piecewise.
+                # If expression contains these function, it fall back to sympy lambdify.
+                # See https://github.com/symengine/symengine.py/issues/406 for details.
+                import sympy
 
-                    func = sympy.lambdify(params, value)
-            else:
-                func = sym.lambdify(params, value)
+                func = sympy.lambdify(params, value)
 
             self.lambda_funcs[key] = func
 
@@ -263,6 +259,17 @@ class SymbolicPulse(Pulse):
     thus a symbolic pulse instance only stores parameter values and waveform shape,
     which greatly reduces memory footprint during the program generation.
 
+
+    .. _symbolic_pulse_validation:
+
+    .. rubric:: Pulse validation
+
+    When a symbolic pulse is instantiated, the method :meth:`.validate_parameters` is called,
+    and performs validation of the pulse. The validation process involves testing the constraint
+    functions and the maximal amplitude of the pulse (see below). While the validation process
+    will improve code stability, it will reduce performance and might create
+    compatibility issues (particularly with JAX). Therefore, it is possible to disable the
+    validation by setting the class attribute :attr:`.disable_validation` to ``True``.
 
     .. _symbolic_pulse_constraints:
 
@@ -389,6 +396,8 @@ class SymbolicPulse(Pulse):
         "_valid_amp_conditions",
     )
 
+    disable_validation = False
+
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
     _envelope_lam = LambdifiedExpression("_envelope")
     _constraints_lam = LambdifiedExpression("_constraints")
@@ -397,13 +406,13 @@ class SymbolicPulse(Pulse):
     def __init__(
         self,
         pulse_type: str,
-        duration: Union[ParameterExpression, int],
-        parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
-        envelope: Optional[sym.Expr] = None,
-        constraints: Optional[sym.Expr] = None,
-        valid_amp_conditions: Optional[sym.Expr] = None,
+        duration: ParameterExpression | int,
+        parameters: Mapping[str, ParameterExpression | complex] | None = None,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
+        envelope: sym.Expr | None = None,
+        constraints: sym.Expr | None = None,
+        valid_amp_conditions: sym.Expr | None = None,
     ):
         """Create a parametric pulse.
 
@@ -439,6 +448,8 @@ class SymbolicPulse(Pulse):
         self._envelope = envelope
         self._constraints = constraints
         self._valid_amp_conditions = valid_amp_conditions
+        if not self.__class__.disable_validation:
+            self.validate_parameters()
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -537,13 +548,12 @@ class SymbolicPulse(Pulse):
         return any(isinstance(val, ParameterExpression) for val in self.parameters.values())
 
     @property
-    def parameters(self) -> Dict[str, Any]:
-        params = {"duration": self.duration}
+    def parameters(self) -> dict[str, Any]:
+        params: dict[str, ParameterExpression | complex | int] = {"duration": self.duration}
         params.update(self._params)
         return params
 
-    def __eq__(self, other: "SymbolicPulse") -> bool:
-
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, SymbolicPulse):
             return NotImplemented
 
@@ -560,11 +570,8 @@ class SymbolicPulse(Pulse):
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
-        return "{}({}{})".format(
-            self._pulse_type,
-            param_repr,
-            f", name='{self.name}'" if self.name is not None else "",
-        )
+        name_repr = f", name='{self.name}'" if self.name is not None else ""
+        return f"{self._pulse_type}({param_repr}{name_repr})"
 
     __hash__ = None
 
@@ -589,15 +596,15 @@ class ScalableSymbolicPulse(SymbolicPulse):
     def __init__(
         self,
         pulse_type: str,
-        duration: Union[ParameterExpression, int],
-        amp: Union[ParameterExpression, float, complex],
-        angle: Union[ParameterExpression, float],
-        parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
-        envelope: Optional[sym.Expr] = None,
-        constraints: Optional[sym.Expr] = None,
-        valid_amp_conditions: Optional[sym.Expr] = None,
+        duration: ParameterExpression | int,
+        amp: ParameterValueType,
+        angle: ParameterValueType,
+        parameters: dict[str, ParameterExpression | complex] | None = None,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
+        envelope: sym.Expr | None = None,
+        constraints: sym.Expr | None = None,
+        valid_amp_conditions: sym.Expr | None = None,
     ):
         """Create a scalable symbolic pulse.
 
@@ -619,24 +626,14 @@ class ScalableSymbolicPulse(SymbolicPulse):
                 creates a full-waveform.
 
         Raises:
-            PulseError: If both `amp` is complex and `angle` is not `None` or 0.
-
+            PulseError: If ``amp`` is complex.
         """
-        # This should be removed once complex amp support is deprecated.
         if isinstance(amp, complex):
-            if angle is None or angle == 0:
-                warnings.warn(
-                    "Complex amp will be deprecated. "
-                    "Use float amp (for the magnitude) and float angle instead.",
-                    PendingDeprecationWarning,
-                )
-            else:
-                raise PulseError("amp can't be complex with angle not None or 0")
+            raise PulseError(
+                "amp represents the magnitude of the complex amplitude and can't be complex"
+            )
 
-        if angle is None:
-            angle = 0
-
-        if not isinstance(parameters, Dict):
+        if not isinstance(parameters, dict):
             parameters = {"amp": amp, "angle": angle}
         else:
             parameters = deepcopy(parameters)
@@ -655,7 +652,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
         )
 
     # pylint: disable=too-many-return-statements
-    def __eq__(self, other: "ScalableSymbolicPulse") -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ScalableSymbolicPulse):
             return NotImplemented
 
@@ -677,8 +674,8 @@ class ScalableSymbolicPulse(SymbolicPulse):
             if not np.isclose(complex_amp1, complex_amp2):
                 return False
 
-        for key in self.parameters:
-            if key not in ["amp", "angle"] and self.parameters[key] != other.parameters[key]:
+        for key, value in self.parameters.items():
+            if key not in ["amp", "angle"] and value != other.parameters[key]:
                 return False
 
         return True
@@ -722,8 +719,10 @@ class Gaussian(metaclass=_PulseType):
 
     .. math::
 
+        \begin{aligned}
         f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
         f(x) &= \text{A} \times  \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+        \end{aligned}
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling, and
     :math:`\text{A} = \text{amp} \times \exp\left(i\times\text{angle}\right)`.
@@ -733,19 +732,18 @@ class Gaussian(metaclass=_PulseType):
 
     def __new__(
         cls,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        angle: Optional[Union[float, ParameterExpression]] = None,
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
+        duration: int | ParameterValueType,
+        amp: ParameterValueType,
+        sigma: ParameterValueType,
+        angle: ParameterValueType = 0.0,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the Gaussian envelope.
-                    Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             angle: The angle of the complex amplitude of the Gaussian envelope. Default value 0.
@@ -769,7 +767,7 @@ class Gaussian(metaclass=_PulseType):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
             amp=amp,
@@ -781,9 +779,6 @@ class Gaussian(metaclass=_PulseType):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 class GaussianSquare(metaclass=_PulseType):
@@ -796,8 +791,10 @@ class GaussianSquare(metaclass=_PulseType):
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -807,6 +804,7 @@ class GaussianSquare(metaclass=_PulseType):
 
     .. math::
 
+        \\begin{aligned}
         f'(x) &= \\begin{cases}\
             \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
                 & x < \\text{risefall}\\\\
@@ -820,6 +818,7 @@ class GaussianSquare(metaclass=_PulseType):
         \\end{cases}\\\\
         f(x) &= \\text{A} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
             \\quad 0 \\le x < \\text{duration}
+        \\end{aligned}
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling, and
     :math:`\\text{A} = \\text{amp} \\times \\exp\\left(i\\times\\text{angle}\\right)`.
@@ -829,21 +828,20 @@ class GaussianSquare(metaclass=_PulseType):
 
     def __new__(
         cls,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        width: Optional[Union[float, ParameterExpression]] = None,
-        angle: Optional[Union[float, ParameterExpression]] = None,
-        risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
+        duration: int | ParameterValueType,
+        amp: ParameterValueType,
+        sigma: ParameterValueType,
+        width: ParameterValueType | None = None,
+        angle: ParameterValueType = 0.0,
+        risefall_sigma_ratio: ParameterValueType | None = None,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the Gaussian and square pulse.
-                    Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
             width: The duration of the embedded square pulse.
@@ -897,7 +895,7 @@ class GaussianSquare(metaclass=_PulseType):
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
             amp=amp,
@@ -909,21 +907,18 @@ class GaussianSquare(metaclass=_PulseType):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 def GaussianSquareDrag(
-    duration: Union[int, ParameterExpression],
-    amp: Union[float, ParameterExpression],
-    sigma: Union[float, ParameterExpression],
-    beta: Union[float, ParameterExpression],
-    width: Optional[Union[float, ParameterExpression]] = None,
-    angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
-    name: Optional[str] = None,
-    limit_amplitude: Optional[bool] = None,
+    duration: int | ParameterExpression,
+    amp: float | ParameterExpression,
+    sigma: float | ParameterExpression,
+    beta: float | ParameterExpression,
+    width: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    risefall_sigma_ratio: float | ParameterExpression | None = None,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
 ) -> ScalableSymbolicPulse:
     """A square pulse with a Drag shaped rise and fall
 
@@ -942,8 +937,10 @@ def GaussianSquareDrag(
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -954,8 +951,10 @@ def GaussianSquareDrag(
 
     .. math::
 
+        \\begin{aligned}
         g(x, c, σ) &= \\exp\\Bigl(-\\frac12 \\frac{(x - c)^2}{σ^2}\\Bigr)\\\\
         g'(x, c, σ) &= \\frac{g(x, c, σ)-g(-1, c, σ)}{1-g(-1, c, σ)}
+        \\end{aligned}
 
     From these, the lifted DRAG curve :math:`d'(x, c, σ, β)` can be written as
 
@@ -968,6 +967,7 @@ def GaussianSquareDrag(
 
     .. math::
 
+        \\begin{aligned}
         f'(x) &= \\begin{cases}\
             \\text{A} \\times d'(x, \\text{risefall}, \\text{sigma}, \\text{beta})\
                 & x < \\text{risefall}\\\\
@@ -981,6 +981,7 @@ def GaussianSquareDrag(
                 )\
                 & \\text{risefall} + \\text{width} \\le x\
         \\end{cases}\\\\
+        \\end{aligned}
 
     where :math:`\\text{A} = \\text{amp} \\times
     \\exp\\left(i\\times\\text{angle}\\right)`.
@@ -1046,7 +1047,7 @@ def GaussianSquareDrag(
     consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
     valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="GaussianSquareDrag",
         duration=duration,
         amp=amp,
@@ -1058,9 +1059,272 @@ def GaussianSquareDrag(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
 
-    return instance
+
+def gaussian_square_echo(
+    duration: int | ParameterValueType,
+    amp: float | ParameterExpression,
+    sigma: float | ParameterExpression,
+    width: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    active_amp: float | ParameterExpression | None = 0.0,
+    active_angle: float | ParameterExpression | None = 0.0,
+    risefall_sigma_ratio: float | ParameterExpression | None = None,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
+) -> SymbolicPulse:
+    """An echoed Gaussian square pulse with an active tone overlaid on it.
+
+    The Gaussian Square Echo pulse is composed of three pulses. First, a Gaussian Square pulse
+    :math:`f_{echo}(x)` with amplitude ``amp`` and phase ``angle`` playing for half duration,
+    followed by a second Gaussian Square pulse :math:`-f_{echo}(x)` with opposite amplitude
+    and same phase playing for the rest of the duration. Third a Gaussian Square pulse
+    :math:`f_{active}(x)` with amplitude ``active_amp`` and phase ``active_angle``
+    playing for the entire duration. The Gaussian Square Echo pulse :math:`g_e()`
+    can be written as:
+
+    .. math::
+
+        \\begin{aligned}
+        g_e(x) &= \\begin{cases}\
+            f_{\\text{active}} + f_{\\text{echo}}(x)\
+                & x < \\frac{\\text{duration}}{2}\\\\
+            f_{\\text{active}} - f_{\\text{echo}}(x)\
+                & \\frac{\\text{duration}}{2} < x\
+        \\end{cases}\\\\
+        \\end{aligned}
+
+    One case where this pulse can be used is when implementing a direct CNOT gate with
+    a cross-resonance superconducting qubit architecture. When applying this pulse to
+    the target qubit, the active portion can be used to cancel IX terms from the
+    cross-resonance drive while the echo portion can reduce the impact of a static ZZ coupling.
+
+    Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
+
+    If ``risefall_sigma_ratio`` is not ``None`` and ``width`` is ``None``:
+
+    .. math::
+
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
+        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
+
+    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
+
+    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
+
+    References:
+        1. |citation1|_
+
+        .. _citation1: https://iopscience.iop.org/article/10.1088/2058-9565/abe519
+
+        .. |citation1| replace:: *Jurcevic, P., Javadi-Abhari, A., Bishop, L. S.,
+            Lauer, I., Bogorin, D. F., Brink, M., Capelluto, L., G{\"u}nl{\"u}k, O.,
+            Itoko, T., Kanazawa, N. & others
+            Demonstration of quantum volume 64 on a superconducting quantum
+            computing system. (Section V)*
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The amplitude of the rise and fall and of the echoed pulse.
+        sigma: A measure of how wide or narrow the risefall is; see the class
+               docstring for more details.
+        width: The duration of the embedded square pulse.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the echoed pulse. Default value 0.
+        active_amp: The amplitude of the active pulse.
+        active_angle: The angle in radian of the complex phase factor uniformly
+            scaling the active pulse. Default value 0.
+        risefall_sigma_ratio: The ratio of each risefall duration to sigma.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    Raises:
+        PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
+    """
+    # Convert risefall_sigma_ratio into width which is defined in OpenPulse spec
+    if width is None and risefall_sigma_ratio is None:
+        raise PulseError(
+            "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
+        )
+    if width is not None and risefall_sigma_ratio is not None:
+        raise PulseError(
+            "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+            " but not both."
+        )
+
+    if width is None and risefall_sigma_ratio is not None:
+        width = duration - 2.0 * risefall_sigma_ratio * sigma
+
+    parameters = {
+        "amp": amp,
+        "angle": angle,
+        "sigma": sigma,
+        "width": width,
+        "active_amp": active_amp,
+        "active_angle": active_angle,
+    }
+
+    # Prepare symbolic expressions
+    (
+        _t,
+        _duration,
+        _amp,
+        _sigma,
+        _active_amp,
+        _width,
+        _angle,
+        _active_angle,
+    ) = sym.symbols("t, duration, amp, sigma, active_amp, width, angle, active_angle")
+
+    # gaussian square echo for rotary tone
+    _center = _duration / 4
+
+    _width_echo = (_duration - 2 * (_duration - _width)) / 2
+
+    _sq_t0 = _center - _width_echo / 2
+    _sq_t1 = _center + _width_echo / 2
+
+    _gaussian_ledge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
+    _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration / 2 + 1, _sigma)
+
+    envelope_expr_p = (
+        _amp
+        * sym.exp(sym.I * _angle)
+        * sym.Piecewise(
+            (_gaussian_ledge, _t <= _sq_t0),
+            (_gaussian_redge, _t >= _sq_t1),
+            (1, True),
+        )
+    )
+
+    _center_echo = _duration / 2 + _duration / 4
+
+    _sq_t0_echo = _center_echo - _width_echo / 2
+    _sq_t1_echo = _center_echo + _width_echo / 2
+
+    _gaussian_ledge_echo = _lifted_gaussian(_t, _sq_t0_echo, _duration / 2 - 1, _sigma)
+    _gaussian_redge_echo = _lifted_gaussian(_t, _sq_t1_echo, _duration + 1, _sigma)
+
+    envelope_expr_echo = (
+        -1
+        * _amp
+        * sym.exp(sym.I * _angle)
+        * sym.Piecewise(
+            (_gaussian_ledge_echo, _t <= _sq_t0_echo),
+            (_gaussian_redge_echo, _t >= _sq_t1_echo),
+            (1, True),
+        )
+    )
+
+    envelope_expr = sym.Piecewise(
+        (envelope_expr_p, _t <= _duration / 2), (envelope_expr_echo, _t >= _duration / 2), (0, True)
+    )
+
+    # gaussian square for active cancellation tone
+    _center_active = _duration / 2
+
+    _sq_t0_active = _center_active - _width / 2
+    _sq_t1_active = _center_active + _width / 2
+
+    _gaussian_ledge_active = _lifted_gaussian(_t, _sq_t0_active, -1, _sigma)
+    _gaussian_redge_active = _lifted_gaussian(_t, _sq_t1_active, _duration + 1, _sigma)
+
+    envelope_expr_active = (
+        _active_amp
+        * sym.exp(sym.I * _active_angle)
+        * sym.Piecewise(
+            (_gaussian_ledge_active, _t <= _sq_t0_active),
+            (_gaussian_redge_active, _t >= _sq_t1_active),
+            (1, True),
+        )
+    )
+
+    envelop_expr_total = envelope_expr + envelope_expr_active
+
+    consts_expr = sym.And(
+        _sigma > 0, _width >= 0, _duration >= _width, _duration / 2 >= _width_echo
+    )
+
+    # Check validity of amplitudes
+    valid_amp_conditions_expr = sym.And(sym.Abs(_amp) + sym.Abs(_active_amp) <= 1.0)
+
+    return SymbolicPulse(
+        pulse_type="gaussian_square_echo",
+        duration=duration,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelop_expr_total,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+
+
+def GaussianDeriv(
+    duration: int | ParameterValueType,
+    amp: float | ParameterExpression,
+    sigma: float | ParameterExpression,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
+) -> ScalableSymbolicPulse:
+    """An unnormalized Gaussian derivative pulse.
+
+    The Gaussian function is centered around the halfway point of the pulse,
+    and the envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) = -\\text{A}\\frac{x-\\mu}{\\text{sigma}^{2}}\\exp
+            \\left[-\\left(\\frac{x-\\mu}{2\\text{sigma}}\\right)^{2}\\right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\mu=\\text{duration}/2`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the pulse
+            (the value of the corresponding Gaussian at the midpoint `duration`/2).
+        sigma: A measure of how wide or narrow the corresponding Gaussian peak is in terms of `dt`;
+            described mathematically in the class docstring.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    parameters = {"sigma": sigma}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _sigma = sym.symbols("t, duration, amp, angle, sigma")
+    envelope_expr = (
+        -_amp
+        * sym.exp(sym.I * _angle)
+        * ((_t - (_duration / 2)) / _sigma**2)
+        * sym.exp(-(1 / 2) * ((_t - (_duration / 2)) / _sigma) ** 2)
+    )
+    consts_expr = _sigma > 0
+    valid_amp_conditions_expr = sym.Abs(_amp / _sigma) <= sym.exp(1 / 2)
+
+    return ScalableSymbolicPulse(
+        pulse_type="GaussianDeriv",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
 
 
 class Drag(metaclass=_PulseType):
@@ -1074,11 +1338,13 @@ class Drag(metaclass=_PulseType):
 
     .. math::
 
+        \\begin{aligned}
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
         g'(x) &= \\text{A}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
         f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
             \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
             \\quad 0 \\le x < \\text{duration}
+        \\end{aligned}
 
     where :math:`g(x)` is a standard unlifted Gaussian waveform, :math:`g'(x)` is the lifted
     :class:`~qiskit.pulse.library.Gaussian` waveform, and
@@ -1105,20 +1371,19 @@ class Drag(metaclass=_PulseType):
 
     def __new__(
         cls,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        beta: Union[float, ParameterExpression],
-        angle: Optional[Union[float, ParameterExpression]] = None,
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
+        duration: int | ParameterValueType,
+        amp: ParameterValueType,
+        sigma: ParameterValueType,
+        beta: ParameterValueType,
+        angle: ParameterValueType = 0.0,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the DRAG envelope.
-                    Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             beta: The correction amplitude.
@@ -1146,7 +1411,7 @@ class Drag(metaclass=_PulseType):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type="Drag",
             duration=duration,
             amp=amp,
@@ -1158,9 +1423,6 @@ class Drag(metaclass=_PulseType):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 class Constant(metaclass=_PulseType):
@@ -1176,18 +1438,17 @@ class Constant(metaclass=_PulseType):
 
     def __new__(
         cls,
-        duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
-        angle: Optional[Union[float, ParameterExpression]] = None,
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
+        duration: int | ParameterValueType,
+        amp: ParameterValueType,
+        angle: ParameterValueType = 0.0,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the square envelope.
-                    Complex amp support will be deprecated.
             angle: The angle of the complex amplitude of the square envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
@@ -1202,8 +1463,7 @@ class Constant(metaclass=_PulseType):
         # Note this is implemented using Piecewise instead of just returning amp
         # directly because otherwise the expression has no t dependence and sympy's
         # lambdify will produce a function f that for an array t returns amp
-        # instead of amp * np.ones(t.shape). This does not work well with
-        # ParametricPulse.get_waveform().
+        # instead of amp * np.ones(t.shape).
         #
         # See: https://github.com/sympy/sympy/issues/5642
         envelope_expr = (
@@ -1214,7 +1474,7 @@ class Constant(metaclass=_PulseType):
 
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type="Constant",
             duration=duration,
             amp=amp,
@@ -1224,19 +1484,16 @@ class Constant(metaclass=_PulseType):
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 def Sin(
-    duration: Union[int, ParameterExpression],
-    amp: Union[float, ParameterExpression],
-    phase: Union[float, ParameterExpression],
-    freq: Optional[Union[float, ParameterExpression]] = None,
-    angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    name: Optional[str] = None,
-    limit_amplitude: Optional[bool] = None,
+    duration: int | ParameterExpression,
+    amp: float | ParameterExpression,
+    phase: float | ParameterExpression,
+    freq: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
 ) -> ScalableSymbolicPulse:
     """A sinusoidal pulse.
 
@@ -1244,7 +1501,7 @@ def Sin(
 
     .. math::
 
-        f(x) &= \\text{A}\\sin\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+        f(x) = \\text{A}\\sin\\left(2\\pi\\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
 
@@ -1279,7 +1536,7 @@ def Sin(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Sin",
         duration=duration,
         amp=amp,
@@ -1291,19 +1548,16 @@ def Sin(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Cos(
-    duration: Union[int, ParameterExpression],
-    amp: Union[float, ParameterExpression],
-    phase: Union[float, ParameterExpression],
-    freq: Optional[Union[float, ParameterExpression]] = None,
-    angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    name: Optional[str] = None,
-    limit_amplitude: Optional[bool] = None,
+    duration: int | ParameterExpression,
+    amp: float | ParameterExpression,
+    phase: float | ParameterExpression,
+    freq: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
 ) -> ScalableSymbolicPulse:
     """A cosine pulse.
 
@@ -1311,7 +1565,7 @@ def Cos(
 
     .. math::
 
-        f(x) &= \\text{A}\\cos\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+        f(x) = \\text{A}\\cos\\left(2\\pi\\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
 
@@ -1346,7 +1600,7 @@ def Cos(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Cos",
         duration=duration,
         amp=amp,
@@ -1358,19 +1612,16 @@ def Cos(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Sawtooth(
-    duration: Union[int, ParameterExpression],
-    amp: Union[float, ParameterExpression],
-    phase: Union[float, ParameterExpression],
-    freq: Optional[Union[float, ParameterExpression]] = None,
-    angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    name: Optional[str] = None,
-    limit_amplitude: Optional[bool] = None,
+    duration: int | ParameterExpression,
+    amp: float | ParameterExpression,
+    phase: float | ParameterExpression,
+    freq: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
 ) -> ScalableSymbolicPulse:
     """A sawtooth pulse.
 
@@ -1378,7 +1629,7 @@ def Sawtooth(
 
     .. math::
 
-        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-
+        f(x) = 2\\text{A}\\left[g\\left(x\\right)-
             \\lfloor g\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
@@ -1417,7 +1668,7 @@ def Sawtooth(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Sawtooth",
         duration=duration,
         amp=amp,
@@ -1429,27 +1680,24 @@ def Sawtooth(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Triangle(
-    duration: Union[int, ParameterExpression],
-    amp: Union[float, ParameterExpression],
-    phase: Union[float, ParameterExpression],
-    freq: Optional[Union[float, ParameterExpression]] = None,
-    angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    name: Optional[str] = None,
-    limit_amplitude: Optional[bool] = None,
+    duration: int | ParameterExpression,
+    amp: float | ParameterExpression,
+    phase: float | ParameterExpression,
+    freq: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
 ) -> ScalableSymbolicPulse:
-    """A triangle pulse.
+    """A triangle wave pulse.
 
     The envelope of the pulse is given by:
 
     .. math::
 
-        f(x) &= \\text{A}\\left[\\text{sawtooth}\\left(x\\right)right]  ,  0 <= x < duration
+        f(x) = \\text{A}\\left[\\text{sawtooth}\\left(x\\right)\\right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
     and :math:`\\text{sawtooth}\\left(x\\right)` is a sawtooth wave with the same frequency
@@ -1488,7 +1736,7 @@ def Triangle(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Triangle",
         duration=duration,
         amp=amp,
@@ -1500,6 +1748,213 @@ def Triangle(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
 
-    return instance
+
+def Square(
+    duration: int | ParameterValueType,
+    amp: float | ParameterExpression,
+    phase: float | ParameterExpression,
+    freq: float | ParameterExpression | None = None,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
+) -> ScalableSymbolicPulse:
+    """A square wave pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) = \\text{A}\\text{sign}\\left[\\sin
+            \\left(2\\pi x\\times\\text{freq}+\\text{phase}\\right)\\right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\text{sign}`
+    is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=1`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period ``dt``.
+        amp: The magnitude of the amplitude of the square wave. Wave range is
+            :math:`\\left[-\\texttt{amp},\\texttt{amp}\\right]`.
+        phase: The phase of the square wave (note that this is not equivalent to the angle of
+            the complex amplitude).
+        freq: The frequency of the square wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e :math:`\\frac{1}{\\text{duration}}`).
+            The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1 / duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    _x = _freq * _t + _phase / (2 * sym.pi)
+
+    envelope_expr = (
+        _amp * sym.exp(sym.I * _angle) * (2 * (2 * sym.floor(_x) - sym.floor(2 * _x)) + 1)
+    )
+
+    consts_expr = sym.And(_freq > 0, _freq < 0.5)
+
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    return ScalableSymbolicPulse(
+        pulse_type="Square",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+
+
+def Sech(
+    duration: int | ParameterValueType,
+    amp: float | ParameterExpression,
+    sigma: float | ParameterExpression,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    zero_ends: bool | None = True,
+    limit_amplitude: bool | None = None,
+) -> ScalableSymbolicPulse:
+    """An unnormalized sech pulse.
+
+    The sech function is centered around the halfway point of the pulse,
+    and the envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) = \\text{A}\\text{sech}\\left(
+            \\frac{x-\\mu}{\\text{sigma}}\\right)  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\mu=\\text{duration}/2`.
+
+    If `zero_ends` is set to `True`, the output `y` is modified:
+    .. math::
+
+        y\\left(x\\right) \\mapsto \\text{A}\\frac{y-y^{*}}{\\text{A}-y^{*}},
+
+    where :math:`y^{*}` is the value of :math:`y` at the endpoints (at :math:`x=-1
+    and :math:`x=\\text{duration}+1`). This shifts the endpoints value to zero, while also
+    rescaling to preserve the amplitude at `:math:`\\text{duration}/2``.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the pulse (the value at the midpoint `duration`/2).
+        sigma: A measure of how wide or narrow the sech peak is in terms of `dt`;
+            described mathematically in the class docstring.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        zero_ends: If True, zeros the ends at x = -1, x = `duration` + 1,
+            but rescales to preserve `amp`. Default value True.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    parameters = {"sigma": sigma}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _sigma = sym.symbols("t, duration, amp, angle, sigma")
+    complex_amp = _amp * sym.exp(sym.I * _angle)
+    envelope_expr = complex_amp * sym.sech((_t - (_duration / 2)) / _sigma)
+
+    if zero_ends:
+        shift_val = complex_amp * sym.sech((-1 - (_duration / 2)) / _sigma)
+        envelope_expr = complex_amp * (envelope_expr - shift_val) / (complex_amp - shift_val)
+
+    consts_expr = _sigma > 0
+
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    return ScalableSymbolicPulse(
+        pulse_type="Sech",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+
+
+def SechDeriv(
+    duration: int | ParameterValueType,
+    amp: float | ParameterExpression,
+    sigma: float | ParameterExpression,
+    angle: float | ParameterExpression | None = 0.0,
+    name: str | None = None,
+    limit_amplitude: bool | None = None,
+) -> ScalableSymbolicPulse:
+    """An unnormalized sech derivative pulse.
+
+    The sech function is centered around the halfway point of the pulse, and the envelope of the
+    pulse is given by:
+
+    .. math::
+
+        f(x) = \\text{A}\\frac{d}{dx}\\left[\\text{sech}
+            \\left(\\frac{x-\\mu}{\\text{sigma}}\\right)\\right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    :math:`\\mu=\\text{duration}/2`, and :math:`d/dx` is a derivative with respect to `x`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the pulse (the value of the corresponding sech
+            function at the midpoint `duration`/2).
+        sigma: A measure of how wide or narrow the corresponding sech peak is, in terms of `dt`;
+            described mathematically in the class docstring.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    parameters = {"sigma": sigma}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _sigma = sym.symbols("t, duration, amp, angle, sigma")
+    time_argument = (_t - (_duration / 2)) / _sigma
+    sech_deriv = -sym.tanh(time_argument) * sym.sech(time_argument) / _sigma
+
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * sech_deriv
+
+    consts_expr = _sigma > 0
+
+    valid_amp_conditions_expr = sym.Abs(_amp) / _sigma <= 2.0
+
+    return ScalableSymbolicPulse(
+        pulse_type="SechDeriv",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )

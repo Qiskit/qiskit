@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the option to pass a callback to the :class:`.UMDA` optimizer, which allows
+    to keep track of the number of function evaluations, the current parameters, and the 
+    best achieved function value.
+

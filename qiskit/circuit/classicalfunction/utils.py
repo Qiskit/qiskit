@@ -47,7 +47,7 @@ def _convert_tweedledum_operator(op):
         if op.kind() == "py_operator":
             return op.py_op()
         else:
-            raise RuntimeError("Unrecognized operator: %s" % op.kind())
+            raise RuntimeError(f"Unrecognized operator: {op.kind()}")
 
     # TODO: need to deal with cbits too!
     if op.num_controls() > 0:
@@ -75,8 +75,7 @@ def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
         QuantumCircuit: The Tweedledum circuit converted to a Qiskit circuit.
 
     Raises:
-        ClassicalFunctionCompilerError: If there a gate in the Tweedledum circuit has no Qiskit
-        equivalent.
+        ClassicalFunctionCompilerError: If a gate in the Tweedledum circuit has no Qiskit equivalent.
     """
     if qregs:
         qiskit_qc = QuantumCircuit(*qregs, name=name)

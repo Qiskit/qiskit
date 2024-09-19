@@ -14,14 +14,15 @@
 
 import unittest
 from numpy import pi
+
 from qiskit.utils import optionals
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @unittest.skipUnless(optionals.HAS_Z3, "z3-solver needs to be installed to run these tests")
@@ -659,6 +660,41 @@ class TestHoareOptimizer(QiskitTestCase):
         result2 = pass_.run(circuit_to_dag(circuit2))
 
         self.assertEqual(result2, circuit_to_dag(expected))
+
+    def test_remove_control_then_identity(self):
+        """This first simplifies a gate by removing its control, then removes the
+        simplified gate by canceling it with another gate.
+        See: https://github.com/Qiskit/qiskit-terra/issues/13079
+        """
+        #      ┌───┐┌───┐┌───┐
+        # q_0: ┤ X ├┤ X ├┤ X ├
+        #      └─┬─┘└───┘└─┬─┘
+        # q_1: ──■─────────┼──
+        #      ┌───┐       │
+        # q_2: ┤ X ├───────■──
+        #      └───┘
+        circuit = QuantumCircuit(3)
+        circuit.cx(1, 0)
+        circuit.x(2)
+        circuit.x(0)
+        circuit.cx(2, 0)
+
+        simplified = HoareOptimizer()(circuit)
+
+        # The CX(1, 0) gate is removed as the control qubit q_1 is initially 0.
+        # The CX(2, 0) gate is first replaced by X(0) gate as the control qubit q_2 is at 1,
+        # then the two X(0) gates are removed.
+        #
+        # q_0: ─────
+        #
+        # q_1: ─────
+        #      ┌───┐
+        # q_2: ┤ X ├
+        #      └───┘
+        expected = QuantumCircuit(3)
+        expected.x(2)
+
+        self.assertEqual(simplified, expected)
 
 
 if __name__ == "__main__":

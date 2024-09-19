@@ -13,6 +13,7 @@
 Quantum information measures, metrics, and related functions for states.
 """
 
+from __future__ import annotations
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
@@ -25,7 +26,9 @@ from qiskit.quantum_info.states.utils import (
 )
 
 
-def state_fidelity(state1, state2, validate=True):
+def state_fidelity(
+    state1: Statevector | DensityMatrix, state2: Statevector | DensityMatrix, validate: bool = True
+) -> float:
     r"""Return the state fidelity between two quantum states.
 
     The state fidelity :math:`F` for density matrix input states
@@ -76,7 +79,7 @@ def state_fidelity(state1, state2, validate=True):
     return float(np.real(fid))
 
 
-def purity(state, validate=True):
+def purity(state: Statevector | DensityMatrix, validate: bool = True) -> float:
     r"""Calculate the purity of a quantum state.
 
     The purity of a density matrix :math:`\rho` is
@@ -99,7 +102,7 @@ def purity(state, validate=True):
     return state.purity()
 
 
-def entropy(state, base=2):
+def entropy(state: Statevector | DensityMatrix, base: int = 2) -> float:
     r"""Calculate the von-Neumann entropy of a quantum state.
 
     The entropy :math:`S` is given by
@@ -128,7 +131,7 @@ def entropy(state, base=2):
     return shannon_entropy(evals, base=base)
 
 
-def mutual_information(state, base=2):
+def mutual_information(state: Statevector | DensityMatrix, base: int = 2) -> float:
     r"""Calculate the mutual information of a bipartite state.
 
     The mutual information :math:`I` is given by:
@@ -159,7 +162,7 @@ def mutual_information(state, base=2):
     return entropy(rho_a, base=base) + entropy(rho_b, base=base) - entropy(state, base=base)
 
 
-def concurrence(state):
+def concurrence(state: Statevector | DensityMatrix) -> float:
     r"""Calculate the concurrence of a quantum state.
 
     The concurrence of a bipartite
@@ -219,7 +222,7 @@ def concurrence(state):
     return max(0.0, w[-1] - np.sum(w[0:-1]))
 
 
-def entanglement_of_formation(state):
+def entanglement_of_formation(state: Statevector | DensityMatrix) -> float:
     """Calculate the entanglement of formation of quantum state.
 
     The input quantum state must be either a bipartite state vector, or a
@@ -252,3 +255,34 @@ def entanglement_of_formation(state):
     conc = concurrence(state)
     val = (1 + np.sqrt(1 - (conc**2))) / 2
     return shannon_entropy([val, 1 - val])
+
+
+def negativity(state, qargs):
+    r"""Calculates the negativity
+
+    The mathematical expression for negativity is given by:
+    .. math::
+        {\cal{N}}(\rho) = \frac{|| \rho^{T_A}|| - 1 }{2}
+
+    Args:
+        state (Statevector or DensityMatrix): a quantum state.
+        qargs (list): The subsystems to be transposed.
+
+    Returns:
+        negv (float): Negativity value of the quantum state
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+    """
+
+    if isinstance(state, Statevector):
+        # If input is statevector then converting it into density matrix
+        state = DensityMatrix(state)
+    # Generating partially transposed state
+    state = state.partial_transpose(qargs)
+    # Calculating SVD
+    singular_values = np.linalg.svd(state.data, compute_uv=False)
+    eigvals = np.sum(singular_values)
+    # Calculating negativity
+    negv = (eigvals - 1) / 2
+    return negv

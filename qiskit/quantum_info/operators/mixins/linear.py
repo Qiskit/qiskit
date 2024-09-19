@@ -14,9 +14,15 @@
 Mixin for linear operator interface.
 """
 
+import sys
 from abc import ABC, abstractmethod
 
 from .multiply import MultiplyMixin
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class LinearMixin(MultiplyMixin, ABC):
@@ -37,7 +43,7 @@ class LinearMixin(MultiplyMixin, ABC):
         - ``_multiply(self, other)``
     """
 
-    def __add__(self, other):
+    def __add__(self, other) -> Self:
         # enable easy use of sum(...)
         if not isinstance(other, type(self)) and other == 0:
             return self
@@ -45,7 +51,7 @@ class LinearMixin(MultiplyMixin, ABC):
         qargs = getattr(other, "qargs", None)
         return self._add(other, qargs=qargs)
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> Self:
         # enable easy use of sum(...)
         if not isinstance(other, type(self)) and other == 0:
             return self
@@ -53,11 +59,11 @@ class LinearMixin(MultiplyMixin, ABC):
         qargs = getattr(other, "qargs", None)
         return self._add(other, qargs=qargs)
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> Self:
         qargs = getattr(other, "qargs", None)
         return self._add(-other, qargs=qargs)
 
-    def __rsub__(self, other):
+    def __rsub__(self, other) -> Self:
         qargs = getattr(other, "qargs", None)
         return (-self)._add(other, qargs=qargs)
 

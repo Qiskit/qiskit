@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,15 +18,21 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.bit import Bit
-from qiskit.extensions.quantum_initializer.initializer import Initialize
-from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.circuit.library.data_preparation import Initialize
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import PauliList, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="1.2",
+    additional_msg="To initialize a circuit from a ``Statevector`` instance, "
+    + "use ``QuantumCircuit.initialize`` instead.",
+)
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state by converting the input to a quantum circuit.
 
@@ -45,7 +51,11 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
-def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliOp:
+@deprecate_func(
+    since="1.2",
+    additional_msg="Use the constructor of ``SparsePauliOp`` instead.",
+)
+def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Args:
@@ -55,23 +65,25 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
         The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Raises:
-        TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
-            coefficient.
+        QiskitError: when observable type cannot be converted to SparsePauliOp.
     """
+
     if isinstance(observable, SparsePauliOp):
         return observable
-    elif isinstance(observable, PauliSumOp):
-        if isinstance(observable.coeff, ParameterExpression):
-            raise TypeError(
-                f"Observable must have numerical coefficient, not {type(observable.coeff)}."
-            )
-        return observable.coeff * observable.primitive
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
-        return SparsePauliOp.from_operator(observable)
+        raise QiskitError(f"observable type not supported: {type(observable)}")
     else:
+        if isinstance(observable, PauliList):
+            raise QiskitError(f"observable type not supported: {type(observable)}")
         return SparsePauliOp(observable)
 
 
+@deprecate_func(
+    since="1.2",
+    additional_msg="Use ``QuantumCircuit.layout`` and ``SparsePauliOp.apply_layout`` "
+    + "to adjust an operator for a layout. Otherwise, use ``mthree.utils.final_measurement_mapping``. "
+    + "See https://qiskit-extensions.github.io/mthree/apidocs/utils.html for details.",
+)
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.
 
@@ -213,3 +225,23 @@ def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
     )
     inst.definition = circuit
     return inst
+
+
+def _statevector_from_circuit(
+    circuit: QuantumCircuit, rng: np.random.Generator | None
+) -> Statevector:
+    """Generate a statevector from a circuit
+
+    If the input circuit includes any resets for a some subsystem,
+    :meth:`.Statevector.reset` behaves in a stochastic way in :meth:`.Statevector.evolve`.
+    This function sets a random number generator to be reproducible.
+
+    See :meth:`.Statevector.reset` for details.
+
+    Args:
+        circuit: The quantum circuit.
+        seed: The random number generator or None.
+    """
+    sv = Statevector.from_int(0, 2**circuit.num_qubits)
+    sv.seed(rng)
+    return sv.evolve(bound_circuit_to_instruction(circuit))

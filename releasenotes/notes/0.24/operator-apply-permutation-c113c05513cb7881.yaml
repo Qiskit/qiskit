@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Added a method :meth:`qiskit.quantum_info.Operator.apply_permutation` that
+    pre-composes or post-composes an Operator with a Permutation. This method
+    works for general qudits.
+
+    Here is an example to calculate :math:`P^\dagger.O.P` which reorders Operator's bits::
+
+        import numpy as np
+        from qiskit.quantum_info.operators import Operator
+
+        op = Operator(np.array(range(576)).reshape((24, 24)), input_dims=(2, 3, 4), output_dims=(2, 3, 4))
+        perm = [1, 2, 0]
+        inv_perm = [2, 0, 1]
+        conjugate_op = op.apply_permutation(inv_perm, front=True).apply_permutation(perm, front=False)
+
+    The conjugate operator has dimensions `(4, 2, 3) x (4, 2, 3)`, which is consistent with permutation
+    moving qutrit to position 0, qubit to position 1, and the 4-qudit to position 2.

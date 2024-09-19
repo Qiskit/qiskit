@@ -13,7 +13,7 @@
 """Transform a circuit with virtual qubits into a circuit with physical qubits."""
 
 from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -36,7 +36,7 @@ class ApplyLayout(TransformationPass):
     """
 
     def run(self, dag):
-        """Run the ApplyLayout pass on `dag`.
+        """Run the ApplyLayout pass on ``dag``.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -45,7 +45,7 @@ class ApplyLayout(TransformationPass):
             DAGCircuit: A mapped DAG (with physical qubits).
 
         Raises:
-            TranspilerError: if no layout is found in `property_set` or no full physical qubits.
+            TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
         layout = self.property_set["layout"]
         if not layout:
@@ -56,11 +56,16 @@ class ApplyLayout(TransformationPass):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         post_layout = self.property_set["post_layout"]
-
         q = QuantumRegister(len(layout), "q")
 
         new_dag = DAGCircuit()
         new_dag.add_qreg(q)
+        for var in dag.iter_input_vars():
+            new_dag.add_input_var(var)
+        for var in dag.iter_captured_vars():
+            new_dag.add_captured_var(var)
+        for var in dag.iter_declared_vars():
+            new_dag.add_declared_var(var)
         new_dag.metadata = dag.metadata
         new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
@@ -71,30 +76,48 @@ class ApplyLayout(TransformationPass):
             }
             for qreg in dag.qregs.values():
                 self.property_set["layout"].add_register(qreg)
-            virtual_phsyical_map = layout.get_virtual_bits()
+            virtual_physical_map = layout.get_virtual_bits()
             for node in dag.topological_op_nodes():
-                qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+                qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
+                new_dag._apply_op_node_back(
+                    DAGOpNode.from_instruction(
+                        node._to_circuit_instruction().replace(qubits=qargs)
+                    ),
+                    check=False,
+                )
         else:
             # First build a new layout object going from:
-            # old virtual -> old phsyical -> new virtual -> new physical
+            # old virtual -> old physical -> new virtual -> new physical
             # to:
             # old virtual -> new physical
             full_layout = Layout()
             old_phys_to_virtual = layout.get_physical_bits()
             new_virtual_to_physical = post_layout.get_virtual_bits()
-            qubit_index_map = {bit: index for index, bit in enumerate(dag.qubits)}
+            phys_map = list(range(len(new_dag.qubits)))
             for new_virt, new_phys in new_virtual_to_physical.items():
-                old_phys = qubit_index_map[new_virt]
+                old_phys = dag.find_bit(new_virt).index
                 old_virt = old_phys_to_virtual[old_phys]
+                phys_map[old_phys] = new_phys
                 full_layout.add(old_virt, new_phys)
             for reg in layout.get_registers():
                 full_layout.add_register(reg)
             # Apply new layout to the circuit
             for node in dag.topological_op_nodes():
                 qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+                new_dag._apply_op_node_back(
+                    DAGOpNode.from_instruction(
+                        node._to_circuit_instruction().replace(qubits=qargs)
+                    ),
+                    check=False,
+                )
             self.property_set["layout"] = full_layout
-        new_dag._global_phase = dag._global_phase
+            if (final_layout := self.property_set["final_layout"]) is not None:
+                final_layout_mapping = {
+                    new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
+                    for old_virt, old_phys in final_layout.get_virtual_bits().items()
+                }
+                out_layout = Layout(final_layout_mapping)
+                self.property_set["final_layout"] = out_layout
+        new_dag.global_phase = dag.global_phase
 
         return new_dag

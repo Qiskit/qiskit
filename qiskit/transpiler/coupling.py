@@ -21,9 +21,7 @@ onto a device with this coupling.
 
 import math
 from typing import List
-import warnings
 
-import numpy as np
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
@@ -103,7 +101,7 @@ class CouplingMap:
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(
-                "The physical qubit %s is already in the coupling graph" % physical_qubit
+                f"The physical qubit {physical_qubit} is already in the coupling graph"
             )
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
@@ -124,22 +122,6 @@ class CouplingMap:
         self.graph.add_edge(src, dst, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
-
-    def subgraph(self, nodelist):
-        """Return a CouplingMap object for a subgraph of self.
-
-        nodelist (list): list of integer node labels
-        """
-        warnings.warn(
-            "The .subgraph() method is deprecated and will be removed in a "
-            "future release. Instead the .reduce() method should be used "
-            "instead which does the same thing but preserves nodelist order.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        subcoupling = CouplingMap()
-        subcoupling.graph = self.graph.subgraph(nodelist)
-        return subcoupling
 
     @property
     def physical_qubits(self):
@@ -206,9 +188,9 @@ class CouplingMap:
             CouplingError: if the qubits do not exist in the CouplingMap
         """
         if physical_qubit1 >= self.size():
-            raise CouplingError("%s not in coupling graph" % physical_qubit1)
+            raise CouplingError(f"{physical_qubit1} not in coupling graph")
         if physical_qubit2 >= self.size():
-            raise CouplingError("%s not in coupling graph" % physical_qubit2)
+            raise CouplingError(f"{physical_qubit2} not in coupling graph")
         self.compute_distance_matrix()
         res = self._dist_matrix[physical_qubit1, physical_qubit2]
         if res == math.inf:
@@ -269,14 +251,16 @@ class CouplingMap:
         """
         return self.graph.is_symmetric()
 
-    def reduce(self, mapping):
+    def reduce(self, mapping, check_if_connected=True):
         """Returns a reduced coupling map that
         corresponds to the subgraph of qubits
         selected in the mapping.
 
         Args:
             mapping (list): A mapping of reduced qubits to device
-                            qubits.
+                qubits.
+            check_if_connected (bool): if True, checks that the reduced
+                coupling map is connected.
 
         Returns:
             CouplingMap: A reduced coupling_map for the selected qubits.
@@ -285,9 +269,6 @@ class CouplingMap:
             CouplingError: Reduced coupling map must be connected.
         """
 
-        from scipy.sparse import coo_matrix, csgraph
-
-        reduced_qubits = len(mapping)
         inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
@@ -298,17 +279,17 @@ class CouplingMap:
             if edge[0] in mapping and edge[1] in mapping:
                 reduced_cmap.append([inv_map[edge[0]], inv_map[edge[1]]])
 
-        # Verify coupling_map is connected
-        rows = np.array([edge[0] for edge in reduced_cmap], dtype=int)
-        cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
-        data = np.ones_like(rows)
+        # Note: using reduced_coupling_map.graph is significantly faster
+        # than calling add_physical_qubit / add_edge.
+        reduced_coupling_map = CouplingMap()
+        for node in range(len(mapping)):
+            reduced_coupling_map.graph.add_node(node)
+        reduced_coupling_map.graph.extend_from_edge_list([tuple(x) for x in reduced_cmap])
 
-        mat = coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
-
-        if csgraph.connected_components(mat)[0] != 1:
+        if check_if_connected and not reduced_coupling_map.is_connected():
             raise CouplingError("coupling_map must be connected.")
 
-        return CouplingMap(reduced_cmap)
+        return reduced_coupling_map
 
     @classmethod
     def from_full(cls, num_qubits, bidirectional=True) -> "CouplingMap":
@@ -458,7 +439,7 @@ class CouplingMap:
             from qiskit.transpiler import CouplingMap
 
             cmap = CouplingMap([[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]])
-            component_cmaps = cmap.get_component_subgraphs()
+            component_cmaps = cmap.connected_components()
             print(component_cmaps[1].graph[0])
 
         will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
@@ -476,7 +457,7 @@ class CouplingMap:
         output_list = []
         for component in components:
             new_cmap = CouplingMap()
-            new_cmap.graph = self.graph.subgraph(list(sorted(component)))
+            new_cmap.graph = self.graph.subgraph(sorted(component))
             output_list.append(new_cmap)
         return output_list
 

@@ -20,13 +20,10 @@ Compilation Routines (:mod:`qiskit.compiler`)
 Circuit and Pulse Compilation Functions
 =======================================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   assemble
-   schedule
-   transpile
-   sequence
+.. autofunction:: assemble
+.. autofunction:: schedule
+.. autofunction:: transpile
+.. autofunction:: sequence
 
 """
 

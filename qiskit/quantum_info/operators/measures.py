@@ -14,8 +14,8 @@
 A collection of useful quantum information functions for operators.
 """
 
+from __future__ import annotations
 import logging
-import warnings
 import numpy as np
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -31,7 +31,12 @@ from qiskit.utils import optionals as _optionals
 logger = logging.getLogger(__name__)
 
 
-def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
+def process_fidelity(
+    channel: Operator | QuantumChannel,
+    target: Operator | QuantumChannel | None = None,
+    require_cp: bool = True,
+    require_tp: bool = True,
+) -> float:
     r"""Return the process fidelity of a noisy quantum channel.
 
 
@@ -70,7 +75,7 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
         require_tp (bool): check if input and target channels are
                            trace-preserving and if non-TP log warning
                            containing negative eigenvalues of partial
-                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           Choi-matrix :math:`Tr_{\text{out}}[\mathcal{E}] - I`
                            [Default: True].
 
     Returns:
@@ -88,7 +93,7 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
         if channel.dim != target.dim:
             raise QiskitError(
                 "Input quantum channel and target unitary must have the same "
-                "dimensions ({} != {}).".format(channel.dim, target.dim)
+                f"dimensions ({channel.dim} != {target.dim})."
             )
 
     # Validate complete-positivity and trace-preserving
@@ -137,16 +142,23 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
     return state_fidelity(state1, state2, validate=False)
 
 
-def average_gate_fidelity(channel, target=None, require_cp=True, require_tp=False):
+def average_gate_fidelity(
+    channel: QuantumChannel | Operator,
+    target: Operator | None = None,
+    require_cp: bool = True,
+    require_tp: bool = False,
+) -> float:
     r"""Return the average gate fidelity of a noisy quantum channel.
 
     The average gate fidelity :math:`F_{\text{ave}}` is given by
 
     .. math::
+        \begin{aligned}
         F_{\text{ave}}(\mathcal{E}, U)
             &= \int d\psi \langle\psi|U^\dagger
                 \mathcal{E}(|\psi\rangle\!\langle\psi|)U|\psi\rangle \\
             &= \frac{d F_{\text{pro}}(\mathcal{E}, U) + 1}{d + 1}
+        \end{aligned}
 
     where :math:`F_{\text{pro}}(\mathcal{E}, U)` is the
     :meth:`~qiskit.quantum_info.process_fidelity` of the input quantum
@@ -164,7 +176,7 @@ def average_gate_fidelity(channel, target=None, require_cp=True, require_tp=Fals
         require_tp (bool): check if input and target channels are
                            trace-preserving and if non-TP log warning
                            containing negative eigenvalues of partial
-                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           Choi-matrix :math:`Tr_{\text{out}}[\mathcal{E}] - I`
                            [Default: True].
 
     Returns:
@@ -192,7 +204,12 @@ def average_gate_fidelity(channel, target=None, require_cp=True, require_tp=Fals
     return (dim * f_pro + 1) / (dim + 1)
 
 
-def gate_error(channel, target=None, require_cp=True, require_tp=False):
+def gate_error(
+    channel: QuantumChannel,
+    target: Operator | None = None,
+    require_cp: bool = True,
+    require_tp: bool = False,
+) -> float:
     r"""Return the gate error of a noisy quantum channel.
 
     The gate error :math:`E` is given by the average gate infidelity
@@ -216,7 +233,7 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
         require_tp (bool): check if input and target channels are
                            trace-preserving and if non-TP log warning
                            containing negative eigenvalues of partial
-                           Choi-matrix :math:`Tr_{\mbox{out}}[\mathcal{E}] - I`
+                           Choi-matrix :math:`Tr_{\text{out}}[\mathcal{E}] - I`
                            [Default: True].
 
     Returns:
@@ -234,7 +251,7 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
     )
 
 
-def diamond_norm(choi, **kwargs):
+def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> float:
     r"""Return the diamond norm of the input quantum channel object.
 
     This function computes the completely-bounded trace-norm (often
@@ -244,11 +261,11 @@ def diamond_norm(choi, **kwargs):
     Args:
         choi(Choi or QuantumChannel): a quantum channel object or
                                       Choi-matrix array.
+        solver (str): The solver to use.
         kwargs: optional arguments to pass to CVXPY solver.
 
     Returns:
-        float: The completely-bounded trace norm
-               :math:`\|\mathcal{E}\|_{\diamond}`.
+        float: The completely-bounded trace norm :math:`\|\mathcal{E}\|_{\diamond}`.
 
     Raises:
         QiskitError: if CVXPY package cannot be found.
@@ -299,7 +316,7 @@ def diamond_norm(choi, **kwargs):
     iden = sparse.eye(dim_out)
 
     # Watrous uses row-vec convention for his Choi matrix while we use
-    # col-vec. It turns out row-vec convention is requried for CVXPY too
+    # col-vec. It turns out row-vec convention is required for CVXPY too
     # since the cvxpy.kron function must have a constant as its first argument.
     c_r = cvxpy.bmat([[cvxpy.kron(iden, r0_r), x_r], [x_r.T, cvxpy.kron(iden, r1_r)]])
     c_i = cvxpy.bmat([[cvxpy.kron(iden, r0_i), x_i], [-x_i.T, cvxpy.kron(iden, r1_i)]])
@@ -329,7 +346,7 @@ def diamond_norm(choi, **kwargs):
     # Objective function
     obj = cvxpy.Maximize(cvxpy.trace(choi_rt_r @ x_r) + cvxpy.trace(choi_rt_i @ x_i))
     prob = cvxpy.Problem(obj, cons)
-    sol = prob.solve(**kwargs)
+    sol = prob.solve(solver=solver, **kwargs)
     return sol
 
 
@@ -370,16 +387,10 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
         return Operator(obj)
     if hasattr(obj, "to_operator"):
         return obj.to_operator()
-
-    warnings.warn(
-        "Passing in a list or Numpy array to `{}` `{}` argument is "
-        "deprecated as of 0.17.0 since the matrix representation cannot be inferred "
-        "unambiguously. Use a Gate or BaseOperator subclass (eg. Operator, "
-        "SuperOp, Choi) object instead.".format(func_name, arg_name),
-        DeprecationWarning,
+    raise TypeError(
+        f"invalid type supplied to {arg_name} of {func_name}."
+        f" A {fallback_class.__name__} is best."
     )
-    warnings.warn(f"Treating array input as a {fallback_class.__name__} object")
-    return fallback_class(obj)
 
 
 def _cp_condition(channel):

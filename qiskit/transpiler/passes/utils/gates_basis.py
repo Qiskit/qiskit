@@ -12,7 +12,6 @@
 
 """Check if all gates in the DAGCircuit are in the specified basis gates."""
 
-from qiskit.circuit import ControlFlowOp
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -32,7 +31,7 @@ class GatesInBasis(AnalysisPass):
         self._basis_gates = None
         if basis_gates is not None:
             self._basis_gates = set(basis_gates).union(
-                {"measure", "reset", "barrier", "snapshot", "delay"}
+                {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             )
         self._target = target
 
@@ -46,8 +45,8 @@ class GatesInBasis(AnalysisPass):
 
             def _visit_target(dag, wire_map):
                 for gate in dag.op_nodes():
-                    # Barrier is universal and supported by all backends
-                    if gate.name == "barrier":
+                    # Barrier and store are assumed universal and supported by all backends
+                    if gate.name in ("barrier", "store"):
                         continue
                     if not self._target.instruction_supported(
                         gate.name, tuple(wire_map[bit] for bit in gate.qargs)
@@ -55,7 +54,7 @@ class GatesInBasis(AnalysisPass):
                         return True
                     # Control-flow ops still need to be supported, so don't skip them in the
                     # previous checks.
-                    if isinstance(gate.op, ControlFlowOp):
+                    if gate.is_control_flow():
                         for block in gate.op.blocks:
                             inner_wire_map = {
                                 inner: wire_map[outer]

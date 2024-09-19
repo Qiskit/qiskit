@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    When running the :func:`~.transpile` function with a :class:`~.BackendV1`
+    based backend or a :class:`~.BackendProperties` via the ``backend_properties``
+    keyword argument that has any qubits or gates flagged as faulty the function
+    will no longer try to automatically remap the qubits based on this information.
+    The method by which :func:`~.transpile` attempted to do this remapping was
+    fundamentally flawed and in most cases of such a backend it would result
+    an internal error being raised. In practice very few backends ever set the
+    fields in :class:`~.BackendProperties` to flag a qubit or gate as faulty.
+    If you were somehow successfully relying on :func:`~.transpile to do this
+    re-mapping for you will now need to manually do that and pass a
+    mapped input to the ``coupling_map`` and ``backend_properties`` arguments
+    which has filtered out the faulty qubits and gates and then manually re-map
+    the output.

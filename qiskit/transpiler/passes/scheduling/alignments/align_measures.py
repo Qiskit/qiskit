@@ -11,18 +11,22 @@
 # that they have been altered from the originals.
 
 """Align measurement instructions."""
+from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
-from typing import List, Union
+from collections.abc import Iterable
+from typing import Type
+
+from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class AlignMeasures(TransformationPass):
@@ -86,6 +90,13 @@ class AlignMeasures(TransformationPass):
         However, it may return meaningless measurement data mainly due to the phase error.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.ConstrainedReschedule`, which performs the same function "
+            "but also supports aligning to additional timing constraints."
+        ),
+        since="1.1.0",
+    )
     def __init__(self, alignment: int = 1):
         """Create new pass.
 
@@ -95,13 +106,6 @@ class AlignMeasures(TransformationPass):
                 the control electronics of your quantum processor.
         """
         super().__init__()
-        warnings.warn(
-            "The AlignMeasures class has been supersceded by the ConstrainedReschedule class "
-            "which performs the same function but also supports aligning to additional timing "
-            "constraints. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
         self.alignment = alignment
 
     def run(self, dag: DAGCircuit):
@@ -139,17 +143,19 @@ class AlignMeasures(TransformationPass):
         # * pad_with_delay is called only with non-delay node to avoid consecutive delay
         new_dag = dag.copy_empty_like()
 
-        qubit_time_available = defaultdict(int)  # to track op start time
-        qubit_stop_times = defaultdict(int)  # to track delay start time for padding
-        clbit_readable = defaultdict(int)
-        clbit_writeable = defaultdict(int)
+        qubit_time_available: dict[QubitSpecifier, int] = defaultdict(int)  # to track op start time
+        qubit_stop_times: dict[QubitSpecifier, int] = defaultdict(
+            int
+        )  # to track delay start time for padding
+        clbit_readable: dict[ClbitSpecifier, int] = defaultdict(int)
+        clbit_writeable: dict[ClbitSpecifier, int] = defaultdict(int)
 
-        def pad_with_delays(qubits: List[int], until, unit) -> None:
+        def pad_with_delays(qubits: Iterable[QubitSpecifier], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
             for q in qubits:
                 if qubit_stop_times[q] < until:
                     idle_duration = until - qubit_stop_times[q]
-                    new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
+                    new_dag.apply_operation_back(Delay(idle_duration, unit), (q,), check=False)
 
         for node in dag.topological_op_nodes():
             # choose appropriate clbit available time depending on op
@@ -174,7 +180,7 @@ class AlignMeasures(TransformationPass):
 
             if not isinstance(node.op, Delay):  # exclude delays for combining consecutive delays
                 pad_with_delays(node.qargs, until=start_time, unit=time_unit)
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
 
             stop_time = start_time + node.op.duration
             # update time table
@@ -204,7 +210,7 @@ class AlignMeasures(TransformationPass):
 def _check_alignment_required(
     dag: DAGCircuit,
     alignment: int,
-    instructions: Union[Instruction, List[Instruction]],
+    instructions: Type | list[Type],
 ) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
 

@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The minimum version required for symengine was bumped to >=0.11.

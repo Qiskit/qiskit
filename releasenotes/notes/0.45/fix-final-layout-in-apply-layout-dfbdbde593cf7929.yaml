@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~.transpile` function and all the preset
+    pass managers generated via :func:`~.generate_preset_pass_manager` where
+    the output :class:`~.QuantumCircuit` object's :attr:`~.QuantumCircuit.layout`
+    attribute would have an invalid :attr:`.TranspileLayout.final_layout`
+    attribute. This would occur in scenarios when the :class:`~.VF2PostLayout`
+    pass would run and find an alternative initial layout that has lower
+    reported error rates. When altering the initial layout the
+    :attr:`~.TranspileLayout.final_layout` attribute was never updated to
+    reflect this change. This has been corrected so that the ``final_layout``
+    is always correctly reflecting the output permutation caused by the routing
+    stage.
+    Fixed `#10457 <https://github.com/Qiskit/qiskit-terra/issues/10457>`__

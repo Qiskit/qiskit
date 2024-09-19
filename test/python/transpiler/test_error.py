@@ -15,8 +15,8 @@
 import unittest
 
 from qiskit.transpiler.passes import Error
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestErrorPass(QiskitTestCase):
@@ -52,6 +52,18 @@ class TestErrorPass(QiskitTestCase):
         with self.assertLogs("qiskit.transpiler.passes.utils.error", level="INFO") as log:
             pass_.run(None)
         self.assertEqual(log.output, ["INFO:qiskit.transpiler.passes.utils.error:a message"])
+
+    def test_message_callable(self):
+        """Test that the message can be a callable that accepts the property set."""
+
+        def message(property_set):
+            self.assertIn("sentinel key", property_set)
+            return property_set["sentinel key"]
+
+        pass_ = Error(message)
+        pass_.property_set["sentinel key"] = "sentinel value"
+        with self.assertRaisesRegex(TranspilerError, "sentinel value"):
+            pass_.run(None)
 
 
 if __name__ == "__main__":

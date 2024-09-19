@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The transpiler's built-in :class:`.EquivalenceLibrary` has been taught more Pauli-rotation
+    equivalences between the one-qubit :math:`R_X`, :math:`R_Y` and :math:`R_Z` gates, and between
+    the two-qubit :math:`R_{XX}`, :math:`R_{YY}` and :math:`R_{ZZ}` gates.  This should make
+    simple basis translations more reliable, especially circuits that use :math:`Y` rotations.
+    See `#7332 <https://github.com/Qiskit/qiskit-terra/issues/7332>`__.

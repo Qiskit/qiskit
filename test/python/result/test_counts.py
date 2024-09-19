@@ -114,6 +114,36 @@ class TestCounts(unittest.TestCase):
         result = utils.marginal_distribution(counts_obj, [0, 1])
         self.assertEqual(expected, result)
 
+    def test_marginal_distribution_int_counts_numpy_64_bit(self):
+        raw_counts = {
+            0: np.int64(4),
+            1: np.int64(7),
+            2: np.int64(10),
+            6: np.int64(5),
+            9: np.int64(11),
+            13: np.int64(9),
+            14: np.int64(8),
+        }
+        expected = {"00": 4, "01": 27, "10": 23}
+        counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
+        result = utils.marginal_distribution(counts_obj, [0, 1])
+        self.assertEqual(expected, result)
+
+    def test_marginal_distribution_int_counts_numpy_8_bit(self):
+        raw_counts = {
+            0: np.int8(4),
+            1: np.int8(7),
+            2: np.int8(10),
+            6: np.int8(5),
+            9: np.int8(11),
+            13: np.int8(9),
+            14: np.int8(8),
+        }
+        expected = {"00": 4, "01": 27, "10": 23}
+        counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
+        result = utils.marginal_distribution(counts_obj, [0, 1])
+        self.assertEqual(expected, result)
+
     def test_int_outcomes_with_int_counts(self):
         raw_counts = {0: 21, 2: 12, 3: 5, 46: 265}
         counts_obj = counts.Counts(raw_counts)

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Angles in the OpenQASM 2 exporter (:func:`.QuantumCircuit.qasm`) will now always include a
+    decimal point, for example in the case of ``1.e-5``.  This is required by a strict interpretation of the
+    floating-point-literal specification in OpenQASM 2.  Qiskit's OpenQASM 2 parser
+    (:func:`.qasm2.load` and :func:`~.qasm2.loads`) is more permissive by default, and will allow
+    ``1e-5`` without the decimal point unless in ``strict`` mode.

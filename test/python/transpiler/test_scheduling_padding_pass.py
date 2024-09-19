@@ -19,7 +19,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit.library import CXGate, HGate
 from qiskit.pulse import Schedule, Play, Constant, DriveChannel
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
@@ -30,6 +29,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -850,6 +850,23 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         ).run(qc)
 
         self.assertEqual(scheduled, qc)
+
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    def test_respect_target_instruction_constraints(self, schedule_pass):
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(1, 2)
+
+        target = Target(dt=1)
+        target.add_instruction(CXGate(), {(1, 2): InstructionProperties(duration=1000)})
+        # delays are not supported
+
+        pm = PassManager([schedule_pass(target=target), PadDelay(target=target)])
+        scheduled = pm.run(qc)
+
+        self.assertEqual(qc, scheduled)
 
 
 if __name__ == "__main__":

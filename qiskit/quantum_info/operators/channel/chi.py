@@ -15,9 +15,12 @@
 Chi-matrix representation of a Quantum Channel.
 """
 
-import copy
+from __future__ import annotations
+import copy as _copy
+import math
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -26,6 +29,7 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_chi
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Chi(QuantumChannel):
@@ -37,11 +41,13 @@ class Chi(QuantumChannel):
 
     .. math::
 
-        \mathcal{E}(ρ) = \sum_{i, j} \chi_{i,j} P_i ρ P_j
+        \mathcal{E}(ρ) = \frac{1}{2^n} \sum_{i, j} \chi_{i,j} P_i ρ P_j
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order. It is related to the :class:`Choi` representation by a change
-    of basis of the Choi-matrix into the Pauli basis.
+    of basis of the Choi-matrix into the Pauli basis. The :math:`\frac{1}{2^n}`
+    in the definition above is a normalization factor that arises from scaling the
+    Pauli basis to make it orthonormal.
 
     See reference [1] for further details.
 
@@ -51,7 +57,12 @@ class Chi(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
+    ):
         """Initialize a quantum channel Chi-matrix operator.
 
         Args:
@@ -83,11 +94,11 @@ class Chi(QuantumChannel):
             if dim_l != dim_r:
                 raise QiskitError("Invalid Chi-matrix input.")
             if input_dims:
-                input_dim = np.product(input_dims)
+                input_dim = np.prod(input_dims)
             if output_dims:
-                output_dim = np.product(input_dims)
+                output_dim = np.prod(input_dims)
             if output_dims is None and input_dims is None:
-                output_dim = int(np.sqrt(dim_l))
+                output_dim = int(math.sqrt(dim_l))
                 input_dim = dim_l // output_dim
             elif input_dims is None:
                 input_dim = dim_l // output_dim
@@ -116,15 +127,14 @@ class Chi(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        num_qubits = int(np.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__(chi_mat, num_qubits=num_qubits)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     @property
     def _bipartite_shape(self):
@@ -150,7 +160,7 @@ class Chi(QuantumChannel):
     def adjoint(self):
         return Chi(Choi(self).adjoint())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Chi, qargs: list | None = None, front: bool = False) -> Chi:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -159,19 +169,19 @@ class Chi(QuantumChannel):
         # representation conversion to SuperOp and then convert back to Chi
         return Chi(Choi(self).compose(other, front=front))
 
-    def tensor(self, other):
+    def tensor(self, other: Chi) -> Chi:
         if not isinstance(other, Chi):
             other = Chi(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Chi) -> Chi:
         if not isinstance(other, Chi):
             other = Chi(other)
         return self._tensor(other, self)
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a._data, b.data)
         return ret

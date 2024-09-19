@@ -11,13 +11,14 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
-import warnings
-from typing import Optional, List, Tuple, Union, Iterable, Set
+from __future__ import annotations
+from typing import Optional, List, Tuple, Union, Iterable
 
-from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit, ParameterExpression
+import qiskit.circuit
+from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
+from qiskit.providers.backend import BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
 
@@ -35,11 +36,13 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: Optional["InstructionDurationsType"] = None, dt: float = None
+        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
     ):
-        self.duration_by_name = {}
-        self.duration_by_name_qubits = {}
-        self.duration_by_name_qubits_params = {}
+        self.duration_by_name: dict[str, tuple[float, str]] = {}
+        self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
+        self.duration_by_name_qubits_params: dict[
+            tuple[str, tuple[int, ...], tuple[float, ...]], tuple[float, str]
+        ] = {}
         self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
@@ -73,6 +76,9 @@ class InstructionDurations:
             TranspilerError: If dt and dtm is different in the backend.
         """
         # All durations in seconds in gate_length
+        if isinstance(backend, BackendV2):
+            return backend.target.durations()
+
         instruction_durations = []
         backend_properties = backend.properties()
         if hasattr(backend_properties, "_gates"):
@@ -91,9 +97,9 @@ class InstructionDurations:
         except AttributeError:
             dt = None
 
-        return InstructionDurations(instruction_durations, dt=dt)
+        return cls(instruction_durations, dt=dt)
 
-    def update(self, inst_durations: Optional["InstructionDurationsType"], dt: float = None):
+    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:
@@ -120,7 +126,6 @@ class InstructionDurations:
             )
         else:
             for i, items in enumerate(inst_durations):
-
                 if not isinstance(items[-1], str):
                     items = (*items, "dt")  # set default unit
 
@@ -162,10 +167,10 @@ class InstructionDurations:
 
     def get(
         self,
-        inst: Union[str, Instruction],
-        qubits: Union[int, List[int], Qubit, List[Qubit]],
+        inst: str | qiskit.circuit.Instruction,
+        qubits: int | list[int],
         unit: str = "dt",
-        parameters: Optional[List[float]] = None,
+        parameters: list[float] | None = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters.
 
@@ -173,7 +178,7 @@ class InstructionDurations:
 
         Args:
             inst: An instruction or its name to be queried.
-            qubits: Qubits or its indices that the instruction acts on.
+            qubits: Qubit indices that the instruction acts on.
             unit: The unit of duration to be returned. It must be 's' or 'dt'.
             parameters: The value of the parameters of the desired instruction.
 
@@ -193,19 +198,8 @@ class InstructionDurations:
         else:
             inst_name = inst
 
-        if isinstance(qubits, (int, Qubit)):
+        if isinstance(qubits, int):
             qubits = [qubits]
-
-        if isinstance(qubits[0], Qubit):
-            warnings.warn(
-                "Querying an InstructionDurations object with a Qubit "
-                "has been deprecated and will be removed in a future "
-                "release. Instead, query using the integer qubit "
-                "index.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            qubits = [q.index for q in qubits]
 
         try:
             return self._get(inst_name, qubits, unit, parameters)
@@ -217,9 +211,9 @@ class InstructionDurations:
     def _get(
         self,
         name: str,
-        qubits: List[int],
+        qubits: list[int],
         to_unit: str,
-        parameters: Optional[Iterable[float]] = None,
+        parameters: Iterable[float] | None = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters."""
         if name == "barrier":
@@ -263,7 +257,7 @@ class InstructionDurations:
         else:
             raise TranspilerError(f"Conversion from '{from_unit}' to '{to_unit}' is not supported")
 
-    def units_used(self) -> Set[str]:
+    def units_used(self) -> set[str]:
         """Get the set of all units used in this instruction durations.
 
         Returns:

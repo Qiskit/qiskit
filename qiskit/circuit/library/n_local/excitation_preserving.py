@@ -12,7 +12,8 @@
 
 """The ExcitationPreserving 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable, Any
+from __future__ import annotations
+from collections.abc import Callable
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
@@ -29,12 +30,12 @@ class ExcitationPreserving(TwoLocal):
 
     .. math::
 
-        \newcommand{\th}{\theta/2}
+        \newcommand{\rotationangle}{\theta/2}
 
         \begin{pmatrix}
         1 & 0 & 0 & 0 \\
-        0 & \cos(\th) & -i\sin(\th) & 0 \\
-        0 & -i\sin(\th) & \cos(\th) & 0 \\
+        0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+        0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
         0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
@@ -90,19 +91,19 @@ class ExcitationPreserving(TwoLocal):
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
+        num_qubits: int | None = None,
         mode: str = "iswap",
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: QuantumCircuit | None = None,
         name: str = "ExcitationPreserving",
+        flatten: bool | None = None,
     ) -> None:
-        """Create a new ExcitationPreserving 2-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the ExcitationPreserving circuit.
             mode: Choose the entangler mode, can be `'iswap'` or `'fsim'`.
@@ -118,15 +119,19 @@ class ExcitationPreserving(TwoLocal):
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
-            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-                that are entangled with another qubit. If False, the single qubit gates are applied
-                to each qubit in the Ansatz. Defaults to False.
             skip_final_rotation_layer: If True, a rotation layer is added at the end of the
                 ansatz. If False, no rotation layer is added. Defaults to True.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         Raises:
             ValueError: If the selected mode is not supported.
@@ -155,10 +160,11 @@ class ExcitationPreserving(TwoLocal):
             insert_barriers=insert_barriers,
             initial_state=initial_state,
             name=name,
+            flatten=flatten,
         )
 
     @property
-    def parameter_bounds(self) -> List[Tuple[float, float]]:
+    def parameter_bounds(self) -> list[tuple[float, float]]:
         """Return the parameter bounds.
 
         Returns:

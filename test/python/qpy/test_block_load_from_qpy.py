@@ -13,9 +13,10 @@
 """Test cases for the schedule block qpy loading and saving."""
 
 import io
+import unittest
 from ddt import ddt, data, unpack
-
 import numpy as np
+import symengine as sym
 
 from qiskit.pulse import builder, Schedule
 from qiskit.pulse.library import (
@@ -36,24 +37,19 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
-from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
-
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
+from qiskit.pulse.configuration import Kernel, Discriminator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyScheduleTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, block):
+    def assert_roundtrip_equal(self, block, use_symengine=False):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(block, qpy_file)
+        dump(block, qpy_file, use_symengine=use_symengine)
         qpy_file.seek(0)
         new_block = load(qpy_file)[0]
 
@@ -207,6 +203,50 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             builder.call(refsched, name="test_ref")
         self.assert_roundtrip_equal(test_sched)
 
+    def test_unassigned_reference(self):
+        """Test schedule with unassigned reference."""
+        with builder.build() as test_sched:
+            builder.reference("custom1", "q0")
+            builder.reference("custom1", "q1")
+
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_partly_assigned_reference(self):
+        """Test schedule with partly assigned reference."""
+        with builder.build() as test_sched:
+            builder.reference("custom1", "q0")
+            builder.reference("custom1", "q1")
+
+        with builder.build() as sub_q0:
+            builder.delay(Parameter("duration"), DriveChannel(0))
+
+        test_sched.assign_references(
+            {("custom1", "q0"): sub_q0},
+            inplace=True,
+        )
+
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_nested_assigned_reference(self):
+        """Test schedule with assigned reference for nested schedule."""
+        with builder.build() as test_sched:
+            with builder.align_left():
+                builder.reference("custom1", "q0")
+            builder.reference("custom1", "q1")
+
+        with builder.build() as sub_q0:
+            builder.delay(Parameter("duration"), DriveChannel(0))
+
+        with builder.build() as sub_q1:
+            builder.delay(Parameter("duration"), DriveChannel(1))
+
+        test_sched.assign_references(
+            {("custom1", "q0"): sub_q0, ("custom1", "q1"): sub_q1},
+            inplace=True,
+        )
+
+        self.assert_roundtrip_equal(test_sched)
+
     def test_bell_schedule(self):
         """Test complex schedule to create a Bell state."""
         with builder.build() as test_sched:
@@ -228,6 +268,51 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                 with builder.align_left():
                     builder.play(GaussianSquare(8000, 0.2, 64, 7744), MeasureChannel(0))
                     builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
+
+        self.assert_roundtrip_equal(test_sched)
+
+    @unittest.skipUnless(_optional.HAS_SYMENGINE, "Symengine required for this test")
+    def test_bell_schedule_use_symengine(self):
+        """Test complex schedule to create a Bell state."""
+        with builder.build() as test_sched:
+            with builder.align_sequential():
+                # H
+                builder.shift_phase(-1.57, DriveChannel(0))
+                builder.play(Drag(160, 0.05, 40, 1.3), DriveChannel(0))
+                builder.shift_phase(-1.57, DriveChannel(0))
+                # ECR
+                with builder.align_left():
+                    builder.play(GaussianSquare(800, 0.05, 64, 544), DriveChannel(1))
+                    builder.play(GaussianSquare(800, 0.22, 64, 544, 2), ControlChannel(0))
+                builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
+                with builder.align_left():
+                    builder.play(GaussianSquare(800, -0.05, 64, 544), DriveChannel(1))
+                    builder.play(GaussianSquare(800, -0.22, 64, 544, 2), ControlChannel(0))
+                builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
+                # Measure
+                with builder.align_left():
+                    builder.play(GaussianSquare(8000, 0.2, 64, 7744), MeasureChannel(0))
+                    builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
+
+        self.assert_roundtrip_equal(test_sched, True)
+
+    def test_with_acquire_instruction_with_kernel(self):
+        """Test a schedblk with acquire instruction with kernel."""
+        kernel = Kernel(
+            name="my_kernel", kernel={"real": np.ones(10), "imag": np.zeros(10)}, bias=[0, 0]
+        )
+        with builder.build() as test_sched:
+            builder.acquire(100, AcquireChannel(0), MemorySlot(0), kernel=kernel)
+
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_with_acquire_instruction_with_discriminator(self):
+        """Test a schedblk with acquire instruction with a discriminator."""
+        discriminator = Discriminator(
+            name="my_discriminator", discriminator_type="linear", params=[1, 0]
+        )
+        with builder.build() as test_sched:
+            builder.acquire(100, AcquireChannel(0), MemorySlot(0), discriminator=discriminator)
 
         self.assert_roundtrip_equal(test_sched)
 
@@ -308,3 +393,63 @@ class TestPulseGate(QpyScheduleTestCase):
         qc.add_calibration(mygate, (1,), caldef2)
 
         self.assert_roundtrip_equal(qc)
+
+    def test_with_acquire_instruction_with_kernel(self):
+        """Test a pulse gate with acquire instruction with kernel."""
+        kernel = Kernel(
+            name="my_kernel", kernel={"real": np.zeros(10), "imag": np.zeros(10)}, bias=[0, 0]
+        )
+
+        with builder.build() as sched:
+            builder.acquire(10, AcquireChannel(0), MemorySlot(0), kernel=kernel)
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.add_calibration("measure", (0,), sched)
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_with_acquire_instruction_with_discriminator(self):
+        """Test a pulse gate with acquire instruction with discriminator."""
+        discriminator = Discriminator("my_discriminator")
+
+        with builder.build() as sched:
+            builder.acquire(10, AcquireChannel(0), MemorySlot(0), discriminator=discriminator)
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.add_calibration("measure", (0,), sched)
+
+        self.assert_roundtrip_equal(qc)
+
+
+class TestSymengineLoadFromQPY(QiskitTestCase):
+    """Test use of symengine in qpy set of methods."""
+
+    def setUp(self):
+        super().setUp()
+
+        # pylint: disable=invalid-name
+        t, amp, freq = sym.symbols("t, amp, freq")
+        sym_envelope = 2 * amp * (freq * t - sym.floor(1 / 2 + freq * t))
+
+        my_pulse = SymbolicPulse(
+            pulse_type="Sawtooth",
+            duration=100,
+            parameters={"amp": 0.1, "freq": 0.05},
+            envelope=sym_envelope,
+            name="pulse1",
+        )
+        with builder.build() as test_sched:
+            builder.play(my_pulse, DriveChannel(0))
+
+        self.test_sched = test_sched
+
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
+    def test_symengine_full_path(self):
+        """Test use_symengine option for circuit with parameter expressions."""
+        qpy_file = io.BytesIO()
+        dump(self.test_sched, qpy_file, use_symengine=True)
+        qpy_file.seek(0)
+        new_sched = load(qpy_file)[0]
+        self.assertEqual(self.test_sched, new_sched)

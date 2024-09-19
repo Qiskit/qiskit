@@ -12,12 +12,14 @@
 
 """Double-CNOT gate."""
 
-import numpy as np
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
-class DCXGate(Gate):
+@with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
+class DCXGate(SingletonGate):
     r"""Double-CNOT gate.
 
     A 2-qubit Clifford gate consisting of two back-to-back
@@ -47,9 +49,13 @@ class DCXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    _standard_gate = StandardGate.DCXGate
+
+    def __init__(self, label=None, *, duration=None, unit="dt"):
         """Create new DCX gate."""
-        super().__init__("dcx", 2, [])
+        super().__init__("dcx", 2, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -67,6 +73,5 @@ class DCXGate(Gate):
 
         self.definition = qc
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the DCX gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=dtype)
+    def __eq__(self, other):
+        return isinstance(other, DCXGate)

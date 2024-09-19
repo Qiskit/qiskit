@@ -14,13 +14,19 @@
 Abstract base class for Quantum Channels.
 """
 
+from __future__ import annotations
 import copy
+import math
+import sys
 from abc import abstractmethod
 from numbers import Number, Integral
+
 import numpy as np
 
+from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.linear_op import LinearOp
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.transformations import _transform_rep
@@ -29,11 +35,21 @@ from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
+
 
 class QuantumChannel(LinearOp):
     """Quantum channel representation base class."""
 
-    def __init__(self, data, num_qubits=None, op_shape=None):
+    def __init__(
+        self,
+        data: list | np.ndarray,
+        num_qubits: int | None = None,
+        op_shape: OpShape | None = None,
+    ):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
@@ -50,15 +66,12 @@ class QuantumChannel(LinearOp):
     def __repr__(self):
         prefix = f"{self._channel_rep}("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(np.asarray(self.data), separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(np.asarray(self.data), separator=', ', prefix=prefix)}"
+            f",\n{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self):
         """Test if two QuantumChannels are equal."""
         if not super().__eq__(other):
             return False
@@ -100,7 +113,7 @@ class QuantumChannel(LinearOp):
         """
 
     @abstractmethod
-    def transpose(self):
+    def transpose(self) -> Self:
         r"""Return the transpose quantum channel.
 
         .. note::
@@ -111,7 +124,7 @@ class QuantumChannel(LinearOp):
             :math:`S_{mathcal{E}^T} = S_{\mathcal{E}}^T`.
         """
 
-    def adjoint(self):
+    def adjoint(self) -> Self:
         r"""Return the adjoint quantum channel.
 
         .. note::
@@ -123,7 +136,7 @@ class QuantumChannel(LinearOp):
         """
         return self.conjugate().transpose()
 
-    def power(self, n):
+    def power(self, n: float) -> Self:
         r"""Return the power of the quantum channel.
 
         Args:
@@ -160,7 +173,7 @@ class QuantumChannel(LinearOp):
         ret._data = _transform_rep("SuperOp", rep, superop, input_dim, output_dim)
         return ret
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> Self:
         qargs = getattr(other, "qargs", None)
         if not isinstance(other, type(self)):
             other = type(self)(other)
@@ -192,22 +205,22 @@ class QuantumChannel(LinearOp):
     # Additional methods
     # ---------------------------------------------------------------------
 
-    def is_cptp(self, atol=None, rtol=None):
+    def is_cptp(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if completely-positive trace-preserving (CPTP)."""
         choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_cp_helper(choi, atol, rtol) and self._is_tp_helper(choi, atol, rtol)
 
-    def is_tp(self, atol=None, rtol=None):
+    def is_tp(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Test if a channel is trace-preserving (TP)"""
         choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_tp_helper(choi, atol, rtol)
 
-    def is_cp(self, atol=None, rtol=None):
+    def is_cp(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Test if Choi-matrix is completely-positive (CP)"""
         choi = _to_choi(self._channel_rep, self._data, *self.dim)
         return self._is_cp_helper(choi, atol, rtol)
 
-    def is_unitary(self, atol=None, rtol=None):
+    def is_unitary(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if QuantumChannel is a unitary channel."""
         try:
             op = self.to_operator()
@@ -215,12 +228,12 @@ class QuantumChannel(LinearOp):
         except QiskitError:
             return False
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Try to convert channel to a unitary representation Operator."""
         mat = _to_operator(self._channel_rep, self._data, *self.dim)
         return Operator(mat, self.input_dims(), self.output_dims())
 
-    def to_instruction(self):
+    def to_instruction(self) -> Instruction:
         """Convert to a Kraus or UnitaryGate circuit instruction.
 
         If the channel is unitary it will be added as a unitary gate,
@@ -232,10 +245,9 @@ class QuantumChannel(LinearOp):
         Raises:
             QiskitError: if input data is not an N-qubit CPTP quantum channel.
         """
-        from qiskit.circuit.instruction import Instruction
 
         # Check if input is an N-qubit CPTP channel.
-        num_qubits = int(np.log2(self._input_dim))
+        num_qubits = int(math.log2(self._input_dim))
         if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
             raise QiskitError(
                 "Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel."

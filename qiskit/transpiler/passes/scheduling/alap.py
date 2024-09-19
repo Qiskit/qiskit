@@ -12,13 +12,11 @@
 
 """ALAP Scheduling."""
 
-import warnings
-
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-
-from .base_scheduler import BaseSchedulerTransform
+from qiskit.transpiler.passes.scheduling.base_scheduler import BaseSchedulerTransform
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ALAPSchedule(BaseSchedulerTransform):
@@ -26,23 +24,17 @@ class ALAPSchedule(BaseSchedulerTransform):
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
-
-    .. note::
-
-        This base class has been superseded by :class:`~.ALAPScheduleAnalysis` and
-        the new scheduling workflow. It will be deprecated and subsequently
-        removed in a future release.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.ALAPScheduleAnalysis`, which is an "
+            "analysis pass that requires a padding pass to later modify the circuit."
+        ),
+        since="1.1.0",
+    )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.warn(
-            "The ALAPSchedule class has been supersceded by the ALAPScheduleAnalysis class "
-            "which performs the as analysis pass that requires a padding pass to later modify "
-            "the circuit. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -68,9 +60,8 @@ class ALAPSchedule(BaseSchedulerTransform):
             new_dag.add_creg(creg)
 
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
-            op_duration = self._get_node_duration(node, bit_indices, dag)
+            op_duration = self._get_node_duration(node, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction
@@ -137,18 +128,19 @@ class ALAPSchedule(BaseSchedulerTransform):
 
             for bit in node.qargs:
                 delta = t0 - idle_before[bit]
-                if delta > 0:
-                    new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
+                if delta > 0 and self._delay_supported(dag.find_bit(bit).index):
+                    new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [], check=False)
                 idle_before[bit] = t1
 
-            new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
+            new_dag.apply_operation_front(node.op, node.qargs, node.cargs, check=False)
 
         circuit_duration = max(idle_before.values())
         for bit, before in idle_before.items():
             delta = circuit_duration - before
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
-            new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
+            if self._delay_supported(dag.find_bit(bit).index):
+                new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [], check=False)
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata

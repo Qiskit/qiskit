@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,16 +16,12 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
-from test import combine
 import unittest
 import numpy as np
-
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
+from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -47,7 +43,13 @@ from qiskit.transpiler.passes import (
     TrivialLayout,
 )
 from qiskit.circuit.library import (
+    IGate,
     CXGate,
+    RZGate,
+    RXGate,
+    SXGate,
+    XGate,
+    iSwapGate,
     ECRGate,
     UGate,
     ZGate,
@@ -55,8 +57,52 @@ from qiskit.circuit.library import (
     RZZGate,
     RXXGate,
 )
+from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+    FakeMumbaiFractionalCX,
+)
+from ..legacy_cmaps import YORKTOWN_CMAP
+
+
+class FakeBackend2QV2(GenericBackendV2):
+    """A 2-qubit fake backend"""
+
+    def __init__(self):
+        super().__init__(num_qubits=2, basis_gates=["rx", "u"], seed=42)
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        }
+        self._target.add_instruction(CXGate(), cx_props)
+        ecr_props = {
+            (1, 0): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+        }
+        self._target.add_instruction(ECRGate(), ecr_props)
+
+
+class FakeBackend5QV2(GenericBackendV2):
+    """A 5-qubit fake backend"""
+
+    def __init__(self, bidirectional=True):
+        super().__init__(num_qubits=5, basis_gates=["u"], seed=42)
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+            (3, 4): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        }
+        if bidirectional:
+            cx_props[(1, 0)] = InstructionProperties(duration=6.23e-7, error=0.00099115)
+            cx_props[(4, 3)] = InstructionProperties(duration=7.23e-7, error=0.00099115)
+        self._target.add_instruction(CXGate(), cx_props)
+        ecr_props = {
+            (1, 2): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+            (2, 3): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+        }
+        if bidirectional:
+            ecr_props[(2, 1)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
+            ecr_props[(3, 2)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
 
 
 @ddt
@@ -103,7 +149,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify two qubit unitaries are synthesized to match basis gates."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap(conf.coupling_map)
@@ -137,7 +184,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify two qubit unitaries are synthesized to match basis gates."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap(conf.coupling_map)
@@ -173,7 +221,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         across multiple registers."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr0 = QuantumRegister(1)
         qr1 = QuantumRegister(1)
@@ -208,7 +257,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify natural cx direction is used when specified in coupling map."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -251,7 +301,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         when natural_direction is None."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -294,7 +345,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         when natural_direction is None."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -334,32 +386,45 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     def test_two_qubit_synthesis_not_pulse_optimal(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
-        coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
-        triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=False,
-            natural_direction=True,
+        coupling_map = CouplingMap([[0, 1]])
+        pm_nonoptimal = PassManager(
+            [
+                TrivialLayout(coupling_map),
+                UnitarySynthesis(
+                    basis_gates=conf.basis_gates,
+                    coupling_map=coupling_map,
+                    backend_props=backend.properties(),
+                    pulse_optimize=False,
+                    natural_direction=True,
+                ),
+            ]
         )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        if isinstance(qc_out, QuantumCircuit):
-            num_ops = qc_out.count_ops()
-        else:
-            num_ops = qc_out[0].count_ops()
-        self.assertIn("sx", num_ops)
-        self.assertGreaterEqual(num_ops["sx"], 16)
+        pm_optimal = PassManager(
+            [
+                TrivialLayout(coupling_map),
+                UnitarySynthesis(
+                    basis_gates=conf.basis_gates,
+                    coupling_map=coupling_map,
+                    backend_props=backend.properties(),
+                    pulse_optimize=True,
+                    natural_direction=True,
+                ),
+            ]
+        )
+        qc_nonoptimal = pm_nonoptimal.run(qc)
+        qc_optimal = pm_optimal.run(qc)
+        self.assertGreater(qc_nonoptimal.count_ops()["sx"], qc_optimal.count_ops()["sx"])
 
     def test_two_qubit_pulse_optimal_true_raises(self):
         """Verify raises if pulse optimal==True but cx is not in the backend basis."""
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         # this assumes iswawp pulse optimal decomposition doesn't exist
         conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
@@ -382,7 +447,8 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_two_qubit_natural_direction_true_duration_fallback(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         # conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
         qr = QuantumRegister(2)
@@ -406,7 +472,8 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         for _, nduv in backend.properties()._gates["cx"].items():
             nduv["gate_length"] = (4e-7, nduv["gate_length"][1])
@@ -429,7 +496,8 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_two_qubit_pulse_optimal_none_optimal(self):
         """Verify pulse optimal decomposition when pulse_optimize==None."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -456,7 +524,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify pulse optimal decomposition when pulse_optimize==None doesn't
         raise when pulse optimal decomposition unknown."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake5QV1()
         conf = backend.configuration()
         conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
         qr = QuantumRegister(2)
@@ -606,7 +675,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeVigo()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            calibrate_instructions=True,
+            pulse_channels=True,
+            seed=42,
+        )
         tqc = transpile(
             circ,
             backend=backend,
@@ -618,7 +694,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertTrue(
             all(
                 (
-                    (0, 1) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
+                    (1, 0) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
                     for instr in tqc.get_instructions("cx")
                 )
             )
@@ -663,7 +739,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeBackendV2()
+        backend = FakeBackend2QV2()
         tqc = transpile(
             circ,
             backend=backend,
@@ -775,7 +851,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_true_body.unitary(qc_uni_mat, [0, 1])
 
         qc = QuantumCircuit(qr, cr)
-        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
         dag = circuit_to_dag(qc)
         cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
         cqc = dag_to_circuit(cdag)
@@ -802,12 +878,45 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
         self.assertEqual(qc_uni1_mat, Operator(cbody))
 
+    def test_mapping_control_flow(self):
+        """Test that inner dags use proper qubit mapping."""
+        qr = QuantumRegister(3, "q")
+        qc = QuantumCircuit(qr)
+
+        # Create target that supports CX only between 0 and 2.
+        fake_target = Target()
+        fake_target.add_instruction(CXGate(), {(0, 2): None})
+        fake_target.add_instruction(
+            UGate(Parameter("t"), Parameter("p"), Parameter("l")),
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+            },
+        )
+
+        qc_uni1 = QuantumCircuit(2)
+        qc_uni1.swap(0, 1)
+        qc_uni1_mat = Operator(qc_uni1)
+
+        loop_body = QuantumCircuit(2)
+        loop_body.unitary(qc_uni1_mat, [0, 1])
+
+        # Loop body uses qubits 0 and 2, mapped to 0 and 1 in the block.
+        # If synthesis doesn't handle recursive mapping, it'll incorrectly
+        # look for a CX on (0, 1) instead of on (0, 2).
+        qc.for_loop((0,), None, loop_body, [0, 2], [])
+
+        dag = circuit_to_dag(qc)
+        UnitarySynthesis(basis_gates=["u", "cx"], target=fake_target).run(dag)
+
     def test_single_qubit_with_target(self):
         """Test input circuit with only 1q works with target."""
         qc = QuantumCircuit(1)
         qc.append(ZGate(), [qc.qubits[0]])
         dag = circuit_to_dag(qc)
-        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
+        unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(qc, result_qc)
@@ -817,7 +926,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.unitary([[1.0, 0.0], [0.0, 1.0]], 0)
         dag = circuit_to_dag(qc)
-        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        backend = GenericBackendV2(num_qubits=5)
+        unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, QuantumCircuit(1))
@@ -827,7 +937,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4), [0, 1])
         dag = circuit_to_dag(qc)
-        target = FakeBelemV2().target
+        target = GenericBackendV2(num_qubits=5).target
         target.add_instruction(IfElseOp, name="if_else")
         target.add_instruction(ZGate())
         target.add_instruction(ECRGate())
@@ -855,13 +965,73 @@ class TestUnitarySynthesis(QiskitTestCase):
         unitary_synth_pass = UnitarySynthesis(target=target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
-        self.assertEqual(result_qc, QuantumCircuit(2))
+        self.assertEqual(result_qc, qc)
 
     def test_default_does_not_fail_on_no_syntheses(self):
         qc = QuantumCircuit(1)
         qc.unitary(np.eye(2), [0])
         pass_ = UnitarySynthesis(["unknown", "gates"])
         self.assertEqual(qc, pass_(qc))
+
+    def test_iswap_no_cx_synthesis_succeeds(self):
+        """Test basis set with iswap but no cx can synthesize a circuit"""
+        target = Target()
+        theta = Parameter("theta")
+
+        i_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        target.add_instruction(IGate(), i_props)
+        rz_props = {
+            (0,): InstructionProperties(duration=0, error=0),
+            (1,): InstructionProperties(duration=0, error=0),
+        }
+        target.add_instruction(RZGate(theta), rz_props)
+        sx_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        target.add_instruction(SXGate(), sx_props)
+        x_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        target.add_instruction(XGate(), x_props)
+        iswap_props = {
+            (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
+            (1, 0): InstructionProperties(duration=554.66e-9, error=0.01201),
+        }
+        target.add_instruction(iSwapGate(), iswap_props)
+        measure_props = {
+            (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
+            (1,): InstructionProperties(duration=5.813e-6, error=0.0225),
+        }
+        target.add_instruction(Measure(), measure_props)
+
+        qc = QuantumCircuit(2)
+        cxmat = Operator(CXGate()).to_matrix()
+        qc.unitary(cxmat, [0, 1])
+        unitary_synth_pass = UnitarySynthesis(target=target)
+        dag = circuit_to_dag(qc)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
+
+    def test_parameterized_basis_gate_in_target(self):
+        """Test synthesis with parameterized RXX gate."""
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(RZGate(lam))
+        target.add_instruction(RXGate(theta))
+        target.add_instruction(RXXGate(theta))
+        qc = QuantumCircuit(2)
+        qc.cp(np.pi / 2, 0, 1)
+        qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
 
 if __name__ == "__main__":

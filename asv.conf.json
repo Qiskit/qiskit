@@ -1,0 +1,24 @@
+{
+    "version": 1,
+    "project": "qiskit",
+    "project_url": "https://qiskit.org",
+    "repo": ".",
+    "install_command": [
+        "in-dir={env_dir} python -m pip install {wheel_file}[csp-layout-pass]"
+      ],
+    "uninstall_command": [
+        "return-code=any python -m pip uninstall -y qiskit qiskit-terra"
+    ],
+    "build_command": [
+        "python -m pip install -U build",
+        "python -m build --outdir {build_cache_dir} --wheel {build_dir}"
+    ],
+    "branches": ["main"],
+    "dvcs": "git",
+    "environment_type": "virtualenv",
+    "show_commit_url": "http://github.com/Qiskit/qiskit/commit/",
+    "pythons": ["3.9", "3.10", "3.11", "3.12"],
+    "benchmark_dir": "test/benchmarks",
+    "env_dir": ".asv/env",
+    "results_dir": ".asv/results"
+}

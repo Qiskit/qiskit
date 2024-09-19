@@ -131,9 +131,8 @@ class MplPlotter(BasePlotter):
                 self.ax.plot(xvals.repeat(len(offsets)), offsets, **data.styles)
 
             else:
-                VisualizationError(
-                    "Data {name} is not supported by {plotter}"
-                    "".format(name=data, plotter=self.__class__.__name__)
+                raise VisualizationError(
+                    f"Data {data} is not supported by {self.__class__.__name__}"
                 )
 
     def _time_bucket_outline(

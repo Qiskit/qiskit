@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.pulse.Channel` where index validation was done incorrectly and only
+    raised an error when the index was both non-integer and negative, instead of either.

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix a bug in the :class:`~.VF2Layout` and :class:`~.VF2PostLayout` passes
+    where the passes wer failing to account for the 1 qubit error component when
+    evaluating a potential layout.

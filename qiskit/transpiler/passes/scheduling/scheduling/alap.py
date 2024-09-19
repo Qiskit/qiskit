@@ -46,9 +46,8 @@ class ALAPScheduleAnalysis(BaseScheduler):
 
         node_start_time = {}
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
-            op_duration = self._get_node_duration(node, bit_indices, dag)
+            op_duration = self._get_node_duration(node, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction

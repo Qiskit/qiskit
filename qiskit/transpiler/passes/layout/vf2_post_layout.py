@@ -12,10 +12,10 @@
 
 
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
-import os
 from enum import Enum
 import logging
 import inspect
+import itertools
 import time
 
 from rustworkx import PyDiGraph, vf2_mapping, PyGraph
@@ -34,13 +34,14 @@ class VF2PostLayoutStopReason(Enum):
     """Stop reasons for VF2PostLayout pass."""
 
     SOLUTION_FOUND = "solution found"
+    NO_BETTER_SOLUTION_FOUND = "no better solution found"
     NO_SOLUTION_FOUND = "nonexistent solution"
     MORE_THAN_2Q = ">2q gates in basis"
 
 
 def _target_match(node_a, node_b):
     # Node A is the set of operations in the target. Node B is the count dict
-    # of oeprations on the node or edge in the circuit.
+    # of operations on the node or edge in the circuit.
     if isinstance(node_a, set):
         return node_a.issuperset(node_b.keys())
     # Node A is the count dict of operations on the node or edge in the circuit
@@ -50,7 +51,7 @@ def _target_match(node_a, node_b):
 
 
 class VF2PostLayout(AnalysisPass):
-    """A pass for choosing a Layout after transpilation of a circuit onto a
+    """A pass for improving an existing Layout after transpilation of a circuit onto a
     Coupling graph, as a subgraph isomorphism problem, solved by VF2++.
 
     Unlike the :class:`~.VF2Layout` transpiler pass which is designed to find an
@@ -65,17 +66,18 @@ class VF2PostLayout(AnalysisPass):
 
     If a solution is found that means there is a lower error layout available for the
     circuit. If a solution is found the layout will be set in the property set as
-    ``property_set['post_layout']``. However, if no solution is found, no
+    ``property_set['post_layout']``. However, if no solution or no better solution is found, no
     ``property_set['post_layout']`` is set. The stopping reason is
     set in ``property_set['VF2PostLayout_stop_reason']`` in all the cases and will be
     one of the values enumerated in ``VF2PostLayoutStopReason`` which has the
     following values:
 
         * ``"solution found"``: If a solution was found.
+        * ``"no better solution found"``: If the initial layout of the circuit is the best solution.
         * ``"nonexistent solution"``: If no solution was found.
-        * ``">2q gates in basis"``: If VF2PostLayout can't work with basis
+        * ``">2q gates in basis"``: If VF2PostLayout can't work with the basis of the circuit.
 
-    By default this pass will construct a heuristic scoring map based on the
+    By default, this pass will construct a heuristic scoring map based on
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
@@ -106,6 +108,7 @@ class VF2PostLayout(AnalysisPass):
         call_limit=None,
         time_limit=None,
         strict_direction=True,
+        max_trials=0,
     ):
         """Initialize a ``VF2PostLayout`` pass instance
 
@@ -131,6 +134,8 @@ class VF2PostLayout(AnalysisPass):
                 However, if ``strict_direction=True`` the pass expects the input
                 :class:`~.DAGCircuit` object to :meth:`~.VF2PostLayout.run` to be in
                 the target set of instructions.
+            max_trials (int): The maximum number of trials to run VF2 to find
+                a layout. A value of ``0`` (the default) means 'unlimited'.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
@@ -141,6 +146,7 @@ class VF2PostLayout(AnalysisPass):
         self.properties = properties
         self.call_limit = call_limit
         self.time_limit = time_limit
+        self.max_trials = max_trials
         self.seed = seed
         self.strict_direction = strict_direction
         self.avg_error_map = None
@@ -163,6 +169,8 @@ class VF2PostLayout(AnalysisPass):
             self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
+        scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
+        scoring_edge_list = vf2_utils.build_edge_list(im_graph)
 
         if self.target is not None:
             # If qargs is None then target is global and ideal so no
@@ -174,7 +182,7 @@ class VF2PostLayout(AnalysisPass):
             else:
                 cm_graph = PyGraph(multigraph=False)
             # If None is present in qargs there are globally defined ideal operations
-            # we should add these to all entries based on the number of qubits so we
+            # we should add these to all entries based on the number of qubits, so we
             # treat that as a valid operation even if there is no scoring for the
             # strict direction case
             global_ops = None
@@ -211,6 +219,16 @@ class VF2PostLayout(AnalysisPass):
                         ops.update(global_ops[2])
                     cm_graph.add_edge(qargs[0], qargs[1], ops)
             cm_nodes = list(cm_graph.node_indexes())
+            # Filter qubits without any supported operations. If they
+            # don't support any operations, they're not valid for layout selection.
+            # This is only needed in the undirected case because in strict direction
+            # mode the node matcher will not match since none of the circuit ops
+            # will match the cmap ops.
+            if not self.strict_direction:
+                has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+                to_remove = set(cm_graph.node_indices()).difference(has_operations)
+                if to_remove:
+                    cm_graph.remove_nodes_from(list(to_remove))
         else:
             cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
                 self.coupling_map, self.seed, self.strict_direction
@@ -238,15 +256,14 @@ class VF2PostLayout(AnalysisPass):
                 call_limit=self.call_limit,
             )
         chosen_layout = None
-        run_in_parallel = (
-            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
-            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
-        )
         try:
             if self.strict_direction:
                 initial_layout = Layout({bit: index for index, bit in enumerate(dag.qubits)})
                 chosen_layout_score = self._score_layout(
-                    initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                    initial_layout,
+                    im_graph_node_map,
+                    reverse_im_graph_node_map,
+                    im_graph,
                 )
             else:
                 initial_layout = {
@@ -261,13 +278,16 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
-                    run_in_parallel,
+                    edge_list=scoring_edge_list,
+                    bit_list=scoring_bit_list,
                 )
+            chosen_layout = initial_layout
+            stop_reason = VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
-            self.property_set[
-                "VF2PostLayout_stop_reason"
-            ] = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            self.property_set["VF2PostLayout_stop_reason"] = (
+                VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            )
             return
 
         logger.debug("Initial layout has score %s", chosen_layout_score)
@@ -277,7 +297,6 @@ class VF2PostLayout(AnalysisPass):
         for mapping in mappings:
             trials += 1
             logger.debug("Running trial: %s", trials)
-            stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
             layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             if self.strict_direction:
                 layout = Layout(
@@ -294,7 +313,8 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
-                    run_in_parallel,
+                    edge_list=scoring_edge_list,
+                    bit_list=scoring_bit_list,
                 )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
@@ -310,6 +330,12 @@ class VF2PostLayout(AnalysisPass):
                 )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
+                stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
+
+            if self.max_trials and trials >= self.max_trials:
+                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
+                break
+
             elapsed_time = time.time() - start_time
             if self.time_limit is not None and elapsed_time >= self.time_limit:
                 logger.debug(
@@ -318,9 +344,7 @@ class VF2PostLayout(AnalysisPass):
                     self.time_limit,
                 )
                 break
-        if chosen_layout is None:
-            stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
-        else:
+        if stop_reason == VF2PostLayoutStopReason.SOLUTION_FOUND:
             chosen_layout = vf2_utils.map_free_qubits(
                 free_nodes,
                 chosen_layout,
@@ -344,7 +368,10 @@ class VF2PostLayout(AnalysisPass):
                                 chosen_layout.add(bit, i)
                                 break
             self.property_set["post_layout"] = chosen_layout
-
+        else:
+            if chosen_layout is None:
+                stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            # else the initial layout is optimal -> don't set post_layout, return 'no better solution'
         self.property_set["VF2PostLayout_stop_reason"] = stop_reason
 
     def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):

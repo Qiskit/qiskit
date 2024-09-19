@@ -13,3 +13,5 @@
 """Module containing cnot-phase circuits"""
 
 from .cz_depth_lnn import synth_cz_depth_line_mr
+from .cx_cz_depth_lnn import synth_cx_cz_depth_line_my
+from .cnot_phase_synth import synth_cnot_phase_aam

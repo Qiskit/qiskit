@@ -14,7 +14,7 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumRegister, ControlledGate, Gate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
@@ -203,20 +203,24 @@ class HoareOptimizer(TransformationPass):
         """
         import z3
 
-        for node in dag.topological_op_nodes():
+        # Pre-generate all DAG nodes, since we later iterate over them, while
+        # potentially modifying and removing some of them.
+        nodes = list(dag.topological_op_nodes())
+        for node in nodes:
             gate = node.op
-            ctrlqb, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+            _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
             ctrl_ones = z3.And(*ctrlvar)
 
-            remove_ctrl, new_dag, qb_idx = self._remove_control(gate, ctrlvar, trgtvar)
+            remove_ctrl, new_dag, _ = self._remove_control(gate, ctrlvar, trgtvar)
 
             if remove_ctrl:
-                dag.substitute_node_with_dag(node, new_dag)
-                gate = gate.base_gate
-                node.op = gate
-                node.name = gate.name
-                node.qargs = tuple((ctrlqb + trgtqb)[qi] for qi in qb_idx)
+                # We are replacing a node by a new node over a smaller number of qubits.
+                # This can be done using substitute_node_with_dag, which furthermore returns
+                # a mapping from old node ids to new nodes.
+                mapped_nodes = dag.substitute_node_with_dag(node, new_dag)
+                node = next(iter(mapped_nodes.values()))
+                gate = node.op
                 _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
                 ctrl_ones = z3.And(*ctrlvar)
@@ -291,10 +295,10 @@ class HoareOptimizer(TransformationPass):
 
         if isinstance(gate1, ControlledGate):
             gate1 = gate1.base_gate
-        gate1 = type(gate1)
+        gate1 = gate1.base_class
         if isinstance(gate2, ControlledGate):
             gate2 = gate2.base_gate
-        gate2 = type(gate2)
+        gate2 = gate2.base_class
 
         # equality of gates can be determined via type and parameters, unless
         # the gates have no specific type, in which case definition is used

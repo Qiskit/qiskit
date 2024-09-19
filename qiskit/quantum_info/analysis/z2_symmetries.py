@@ -17,12 +17,13 @@ from __future__ import annotations
 import itertools
 from collections.abc import Iterable
 from copy import deepcopy
+import math
 from typing import Union, cast
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from ..operators import Pauli, SparsePauliOp
 
 
 class Z2Symmetries:
@@ -121,7 +122,7 @@ class Z2Symmetries:
             A list of unitaries used to diagonalize the Hamiltonian.
         """
         cliffords = [
-            (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
+            (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / math.sqrt(2)
             for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)
         ]
         return cliffords
@@ -394,7 +395,7 @@ class Z2Symmetries:
         spo = spo.chop(self.tol)
         return spo
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Z2Symmetries) -> bool:
         """
         Overload `==` operation to evaluate equality between Z2Symmetries.
 
@@ -415,7 +416,7 @@ class Z2Symmetries:
         )
 
 
-def _kernel_f2(matrix_in) -> list[np.ndarray]:
+def _kernel_f2(matrix_in):
     """
     Compute the kernel of a binary matrix on the binary finite field.
 
@@ -439,7 +440,7 @@ def _kernel_f2(matrix_in) -> list[np.ndarray]:
     return kernel
 
 
-def _row_echelon_f2(matrix_in) -> np.ndarray:
+def _row_echelon_f2(matrix_in):
     """
     Compute the row Echelon form of a binary matrix on the binary finite field.
 

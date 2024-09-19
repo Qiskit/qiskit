@@ -10,19 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for Clifford class."""
+
+"""Tests for Clifford synthesis methods."""
 
 import unittest
-from test import combine
 from ddt import ddt
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.clifford import synth_clifford_layers, synth_clifford_depth_lnn
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -52,18 +53,18 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
 
     @combine(num_qubits=[4, 5, 6, 7])
     def test_decompose_lnn_depth(self, num_qubits):
-        """Test layered decomposition for linear-nearest-neighbour (LNN) connectivity."""
+        """Test layered decomposition for linear-nearest-neighbor (LNN) connectivity."""
         rng = np.random.default_rng(1234)
         samples = 10
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
             circ = synth_clifford_depth_lnn(cliff)
-            # Check that the Clifford circuit 2-qubit depth is bounded by 9*n+4
+            # Check that the Clifford circuit 2-qubit depth is bounded by 7*n+2
             depth2q = (circ.decompose()).depth(
                 filter_function=lambda x: x.operation.num_qubits == 2
             )
-            self.assertTrue(depth2q <= 9 * num_qubits + 4)
-            # Check that the Clifford circuit has linear nearest neighbour connectivity
+            self.assertTrue(depth2q <= 7 * num_qubits + 2)
+            # Check that the Clifford circuit has linear nearest neighbor connectivity
             self.assertTrue(check_lnn_connectivity(circ.decompose()))
             cliff_target = Clifford(circ)
             self.assertEqual(cliff, cliff_target)

@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    The construction performance of :class:`.NLocal` and its derived circuit-library subclasses
+    (e.g. :class:`.EfficientSU2` and :class:`.RealAmplitudes`) has significantly improved, when the
+    rotation and/or entanglement subblocks are simple applications of a single Qiskit
+    standard-library gate.  Since these circuits are constructed lazily, you might not see the
+    improvement immediately on instantiation of the class, but instead on first access to its
+    internal structure.  Performance improvements are on the order of ten times faster.

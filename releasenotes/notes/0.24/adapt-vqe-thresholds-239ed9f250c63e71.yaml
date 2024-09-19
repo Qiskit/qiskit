@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds the new :attr:`~qiskit.algorithms.minimum_eigensolvers.AdaptVQE.eigenvalue_threshold`
+    setting which allows configuring a new kind of threshold to terminate the algorithm once
+    the eigenvalue changes less than a set value.
+  - |
+    Adds the new :attr:`~qiskit.algorithms.minimum_eigensolvers.AdaptVQE.gradient_threshold`
+    setting which will replace the :attr:`~qiskit.algorithms.minimum_eigensolvers.AdaptVQE.threshold`
+    in the future.

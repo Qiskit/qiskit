@@ -13,36 +13,10 @@
 
 """Synthesize LinearFunctions."""
 
-import warnings
-
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit.library import PermutationGate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
-
-
-class LinearFunctionsSynthesis(HighLevelSynthesis):
-    """DEPRECATED: Synthesize linear functions.
-
-    Under the hood, this runs the default high-level synthesis plugin for linear functions.
-    """
-
-    def __init__(self):
-        warnings.warn(
-            "The LinearFunctionsSynthesis class is deprecated as of Qiskit Terra 0.23.0 "
-            "and will be removed no sooner than 3 months after the release date. "
-            "Instead use the HighLevelSynthesis class.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        # This config synthesizes only linear functions using the "default" method.
-        default_linear_config = HLSConfig(
-            linear_function=[("default", {})],
-            use_default_on_unspecified=False,
-        )
-        super().__init__(hls_config=default_linear_config)
 
 
 class LinearFunctionsToPermutations(TransformationPass):

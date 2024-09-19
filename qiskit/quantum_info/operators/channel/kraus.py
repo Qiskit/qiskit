@@ -14,10 +14,13 @@
 Kraus representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
+import math
 from numbers import Number
 import numpy as np
 
+from qiskit import circuit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -28,6 +31,7 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Kraus(QuantumChannel):
@@ -58,27 +62,26 @@ class Kraus(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
+    ):
         """Initialize a quantum channel Kraus operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
-            QiskitError: if input data cannot be initialized as a
-                         a list of Kraus matrices.
+            QiskitError: if input data cannot be initialized as a list of Kraus matrices.
 
         Additional Information:
             If the input or output dimensions are None, they will be
             automatically determined from the input data. If the input data is
-            a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be
+            a list of Numpy arrays of shape :math:`(2^N,\\,2^N)` qubit systems will be
             used. If the input does not correspond to an N-qubit channel, it
             will assign a single subsystem with dimension specified by the
             shape of the input.
@@ -220,7 +223,7 @@ class Kraus(QuantumChannel):
         ret._data = (kraus_l, kraus_r)
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Kraus, qargs: list | None = None, front: bool = False) -> Kraus:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -252,12 +255,12 @@ class Kraus(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(other, self)
@@ -313,7 +316,7 @@ class Kraus(QuantumChannel):
             return ret
         # If the number is real we can update the Kraus operators
         # directly
-        val = np.sqrt(other)
+        val = math.sqrt(other)
         kraus_r = None
         kraus_l = [val * k for k in self._data[0]]
         if self._data[1] is not None:

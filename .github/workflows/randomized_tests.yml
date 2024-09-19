@@ -5,30 +5,32 @@ on:
   workflow_dispatch:
 jobs:
   randomized_tests:
+    if: github.repository_owner == 'Qiskit'
     name: Randomized tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
-          pip install -U -r requirements.txt -c constraints.txt
-          pip install -U -r requirements-dev.txt coveralls -c constraints.txt
-          pip install -c constraints.txt -e .
-          pip install "qiskit-ibmq-provider" -c constraints.txt
-          pip install "qiskit-aer"
-        env:
-          SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            coveralls \
+            qiskit-aer \
+            -e .
       - name: Run randomized tests
         run: make test_randomized
         env:
           RUST_BACKTRACE: 1
       - name: Create comment on failed test run
         if: ${{ failure() }}
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: 2645
           body: |

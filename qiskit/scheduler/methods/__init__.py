@@ -10,15 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-.. currentmodule:: qiskit.scheduler.methods
-
-Pulse scheduling methods.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   basic
-"""
+"""Scheduling methods."""
 
 from qiskit.scheduler.methods.basic import as_soon_as_possible, as_late_as_possible

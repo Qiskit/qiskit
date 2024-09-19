@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    :meth:`.PrimitiveJob.submit` no longer blocks on execution finishing.
+    As a result, :meth:`.Sampler.run`, :meth:`.BackendSampler.run`, :meth:`.Estimator.run`
+    and :meth:`.BaseEstimator.run` do not block until :meth:`.PrimitiveJob.result` method is called.

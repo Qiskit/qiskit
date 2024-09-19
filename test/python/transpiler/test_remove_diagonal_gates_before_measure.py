@@ -17,10 +17,11 @@ from copy import deepcopy
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit.library import U1Gate, CU1Gate
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
@@ -38,6 +39,29 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
         circuit.rz(0.1, qr[0])
+        circuit.measure(qr[0], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_optimize_1phase_1measure(self):
+        """Remove a single PhaseGate
+        qr0:--P--m--       qr0:--m-
+                 |               |
+        qr1:-----|--  ==>  qr1:--|-
+                 |               |
+        cr0:-----.--       cr0:--.-
+        """
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.p(0.1, qr[0])
         circuit.measure(qr[0], cr[0])
         dag = circuit_to_dag(circuit)
 
@@ -73,7 +97,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1t_1measure(self):
-        """Remove a single TGate, SGate, TdgGate, SdgGate, U1Gate
+        """Remove a single TGate
         qr0:--T--m--       qr0:--m-
                  |               |
         qr1:-----|--  ==>  qr1:--|-
@@ -251,10 +275,12 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         base_expected.measure(1, 0)
 
         body_test = QuantumCircuit(2, 1)
-        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, [])
+        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)
 
         body_expected = QuantumCircuit(2, 1)
-        body_expected.for_loop((0,), None, base_expected.copy(), body_expected.qubits, [])
+        body_expected.for_loop(
+            (0,), None, base_expected.copy(), body_expected.qubits, body_expected.clbits
+        )
 
         test = QuantumCircuit(2, 1)
         test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
@@ -295,6 +321,56 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_optimize_1cs_2measure(self):
+        """Remove a single CSGate
+        qr0:-CS--m---       qr0:--m---
+              |  |                |
+        qr1:--.--|-m-  ==>  qr1:--|-m-
+                 | |              | |
+        cr0:-----.-.-       cr0:--.-.-
+        """
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cs(qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_optimize_1csdg_2measure(self):
+        """Remove a single CSdgGate
+        qr0:-CSdg--m---       qr0:--m---
+                |  |                |
+        qr1:----.--|-m-  ==>  qr1:--|-m-
+                   | |              | |
+        cr0:-------.-.-       cr0:--.-.-
+        """
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.csdg(qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     def test_optimize_1crz_2measure(self):
         """Remove a single CRZGate
         qr0:-RZ--m---       qr0:--m---
@@ -307,6 +383,31 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
         circuit.crz(0.1, qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_optimize_1cp_2measure(self):
+        """Remove a single CPhaseGate
+        qr0:-CP--m---       qr0:--m---
+              |  |                |
+        qr1:--.--|-m-  ==>  qr1:--|-m-
+                 | |              | |
+        cr0:-----.-.-       cr0:--.-.-
+        """
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cp(0.1, qr[0], qr[1])
         circuit.measure(qr[0], cr[0])
         circuit.measure(qr[1], cr[0])
         dag = circuit_to_dag(circuit)
@@ -370,6 +471,27 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_optimize_1ccz_3measure(self):
+        """Remove a single CCZGate"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.ccz(qr[0], qr[1], qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[0])
+        circuit.measure(qr[2], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[0])
+        expected.measure(qr[2], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
     """Test situations where remove_diagonal_gates_before_measure should not optimize"""
@@ -389,6 +511,22 @@ class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cz(qr[0], qr[1])
         circuit.measure(qr[0], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = deepcopy(dag)
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(expected, after)
+
+    def test_optimize_1ccz_1measure(self):
+        """Do not remove a CCZGate because measure happens on only one of the wires"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.ccz(qr[0], qr[1], qr[2])
+        circuit.measure(qr[1], cr[0])
         dag = circuit_to_dag(circuit)
 
         expected = deepcopy(dag)
@@ -448,8 +586,10 @@ class TestRemoveDiagonalGatesBeforeMeasureFixedPoint(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(
-            [RemoveDiagonalGatesBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
+            DoWhileController(
+                [RemoveDiagonalGatesBeforeMeasure(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         )
         after = pass_manager.run(circuit)
 

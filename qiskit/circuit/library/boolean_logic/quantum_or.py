@@ -12,7 +12,7 @@
 
 
 """Implementations of boolean logic quantum circuits."""
-
+from __future__ import annotations
 from typing import List, Optional
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
@@ -33,7 +33,7 @@ class OR(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import OR
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = OR(5)
        _generate_circuit_library_visualization(circuit)
 
@@ -44,7 +44,7 @@ class OR(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import OR
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = OR(5, flags=[-1, 0, 0, 1, 1])
        _generate_circuit_library_visualization(circuit)
 
@@ -85,7 +85,7 @@ class OR(QuantumCircuit):
             qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
             circuit.add_register(qr_ancilla)
         else:
-            qr_ancilla = []
+            qr_ancilla = AncillaRegister(0)
 
         circuit.x(qr_result)
         if len(flip_qubits) > 0:

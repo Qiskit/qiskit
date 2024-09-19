@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Qiskit Terra 0.25 has dropped support for Python 3.7 following deprecation warnings started in
+    Qiskit Terra 0.23.  This is consistent with Python 3.7's end-of-life on the 27th of June, 2023.
+    To continue using Qiskit, you must upgrade to a more recent version of Python.

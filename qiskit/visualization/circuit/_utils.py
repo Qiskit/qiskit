@@ -19,16 +19,20 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import (
+    ClassicalRegister,
     Clbit,
+    ControlFlowOp,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
-    ControlFlowOp,
+    QuantumCircuit,
+    Qubit,
 )
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -46,6 +50,16 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+    anno_list = []
+    anno_text = ""
+    if isinstance(op, AnnotatedOperation) and op.modifiers:
+        for modifier in op.modifiers:
+            if isinstance(modifier, InverseModifier):
+                anno_list.append("Inv")
+            elif isinstance(modifier, PowerModifier):
+                anno_list.append("Pow(" + str(round(modifier.power, 1)) + ")")
+        anno_text = ", ".join(anno_list)
+
     op_label = getattr(op, "label", None)
     op_type = type(op)
     base_name = base_label = base_type = None
@@ -53,6 +67,8 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         base_name = op.base_gate.name
         base_label = op.base_gate.label
         base_type = type(op.base_gate)
+    if hasattr(op, "base_op"):
+        base_name = op.base_op.name
     ctrl_text = None
 
     if base_label:
@@ -100,7 +116,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             gate_text = gate_text.replace("-", "\\mbox{-}")
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
-    # Only captitalize internally-created gate or instruction names
+    # Only capitalize internally-created gate or instruction names
     elif (
         (gate_text == op.name and op_type not in (Gate, Instruction))
         or (gate_text == base_name and base_type not in (Gate, Instruction))
@@ -114,15 +130,19 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         else:
             gate_text = gate_text + "\n(cal)"
 
+    if anno_text:
+        gate_text += " - " + anno_text
+
     return gate_text, ctrl_text, raw_gate_text
 
 
 def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
-    if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
-        return ""
-
-    if isinstance(op, ControlFlowOp):
+    if (
+        not hasattr(op, "params")
+        or any(isinstance(param, np.ndarray) for param in op.params)
+        or any(isinstance(param, QuantumCircuit) for param in op.params)
+    ):
         return ""
 
     if isinstance(op, Delay):
@@ -196,29 +216,19 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-def get_bit_reg_index(circuit, bit, reverse_bits=None):
+def get_bit_reg_index(circuit, bit):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
 
     Args:
         circuit (QuantumCircuit): the circuit being drawn
         bit (Qubit, Clbit): the bit to use to find the register and indexes
-        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         (ClassicalRegister, None): register associated with the bit
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
     """
-    if reverse_bits is not None:
-        warn(
-            "The 'reverse_bits' kwarg to the function "
-            "~qiskit.visualization.utils.get_bit_reg_index "
-            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
-            "after the release date.",
-            DeprecationWarning,
-            2,
-        )
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
     register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
@@ -291,28 +301,18 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
+def get_condition_label_val(condition, circuit, cregbundle):
     """Get the label and value list to display a condition
 
     Args:
         condition (Union[Clbit, ClassicalRegister], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
-        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
     """
-    if reverse_bits is not None:
-        warn(
-            "The 'reverse_bits' kwarg to the function "
-            "~qiskit.visualization.utils.get_condition_label_val "
-            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
-            "after the release date.",
-            DeprecationWarning,
-            2,
-        )
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
@@ -374,8 +374,31 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
+def _get_valid_justify_arg(justify):
+    """Returns a valid `justify` argument, warning if necessary."""
+    if isinstance(justify, str):
+        justify = justify.lower()
+
+    if justify is None:
+        justify = "left"
+
+    if justify not in ("left", "right", "none"):
+        # This code should be changed to an error raise, once the deprecation is complete.
+        warn(
+            f"Setting QuantumCircuit.draw()’s or circuit_drawer()'s justify argument: {justify}, to a "
+            "value other than 'left', 'right', 'none' or None (='left'). Default 'left' will be used. "
+            "Support for invalid justify arguments is deprecated as of Qiskit 1.2.0. Starting no "
+            "earlier than 3 months after the release date, invalid arguments will error.",
+            DeprecationWarning,
+            2,
+        )
+        justify = "left"
+
+    return justify
+
+
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -388,9 +411,10 @@ def _get_layered_instructions(
         reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
-            the circuit should be justified.
+            the circuit should be justified. If an invalid value is provided,
+            default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
-        wire_order (list): A list of ints that modifies the order of the bits
+        wire_order (list): A list of ints that modifies the order of the bits.
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -398,13 +422,12 @@ def _get_layered_instructions(
     Raises:
         VisualizationError: if both reverse_bits and wire_order are entered.
     """
-    if justify:
-        justify = justify.lower()
+    justify = _get_valid_justify_arg(justify)
 
-    # default to left
-    justify = justify if justify in ("right", "none") else "left"
-
-    qubits = circuit.qubits.copy()
+    if wire_map is not None:
+        qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
+    else:
+        qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()
     nodes = []
 
@@ -431,14 +454,12 @@ def _get_layered_instructions(
         clbits = new_clbits
 
     dag = circuit_to_dag(circuit)
-    dag.qubits = qubits
-    dag.clbits = clbits
 
     if justify == "none":
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, justify, measure_map)
+        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -478,31 +499,39 @@ def _get_gate_span(qubits, node):
         if index > max_index:
             max_index = index
 
-    if node.cargs or getattr(node.op, "condition", None):
-        return qubits[min_index : len(qubits)]
+    # Because of wrapping boxes for mpl control flow ops, this
+    # type of op must be the only op in the layer
+    if isinstance(node.op, ControlFlowOp):
+        span = qubits
+    elif node.cargs or getattr(node.op, "condition", None):
+        span = qubits[min_index : len(qubits)]
+    else:
+        span = qubits[min_index : max_index + 1]
 
-    return qubits[min_index : max_index + 1]
+    return span
 
 
 def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node)
-    all_indices = []
-    for check_node in nodes:
-        if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
-    return any(i in gate_span for i in all_indices)
+    return bool(
+        set(_get_gate_span(qubits, node)).intersection(
+            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        )
+    )
+
+
+_GLOBAL_NID = 0
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, qubits, clbits, justification, measure_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
-        self.qubits = dag.qubits
-        self.clbits = dag.clbits
+        self.qubits = qubits
+        self.clbits = clbits
         self.justification = justification
         self.measure_map = measure_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
@@ -553,16 +582,11 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if getattr(node.op, "condition", None):
-                if isinstance(node.op.condition[0], Clbit):
-                    cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
-                    index_stop = self.measure_map[cond_bit[0]]
-                else:
-                    for bit in node.op.condition[0]:
-                        max_index = -1
-                        if bit in self.measure_map:
-                            if self.measure_map[bit] > max_index:
-                                index_stop = max_index = self.measure_map[bit]
+            if (condition := getattr(node.op, "condition", None)) is not None:
+                index_stop = max(
+                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                    default=index_stop,
+                )
             if node.cargs:
                 for carg in node.cargs:
                     try:
@@ -636,6 +660,15 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
+        # Before we add the node, we set its node ID to be globally unique
+        # within this spooler. This is necessary because nodes may span
+        # layers (which are separate DAGs), and thus can falsely compare
+        # as equal if their contents and node IDs happen to be the same.
+        # This is particularly important for the matplotlib drawer, which
+        # keys several of its internal data structures with these nodes.
+        global _GLOBAL_NID  # pylint: disable=global-statement
+        node._node_id = _GLOBAL_NID
+        _GLOBAL_NID += 1
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:

@@ -14,7 +14,9 @@ Optimized list of Pauli operators
 """
 # pylint: disable=invalid-name
 
+from __future__ import annotations
 import copy
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
@@ -24,6 +26,9 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+
+if TYPE_CHECKING:
+    from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 # utility for _to_matrix
@@ -36,7 +41,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     Base class for Pauli and PauliList.
     """
 
-    def __init__(self, z, x, phase):
+    def __init__(self, z: np.ndarray, x: np.ndarray, phase: np.ndarray):
         """Initialize the BasePauli.
 
         This is an array of M N-qubit Paulis defined as
@@ -91,7 +96,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    def compose(self, other, qargs=None, front=False, inplace=False):
+    def compose(self, other, qargs: list | None = None, front: bool = False, inplace=False):
         """Return the composition of Paulis.
 
         Args:
@@ -193,29 +198,29 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return self
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
 
-    def commutes(self, other, qargs=None):
-        """Return True if Pauli that commutes with other.
+    def commutes(self, other: BasePauli, qargs: list | None = None) -> np.ndarray:
+        """Return ``True`` if Pauli commutes with ``other``.
 
         Args:
             other (BasePauli): another BasePauli operator.
-            qargs (list): qubits to apply dot product on (default: None).
+            qargs (list): qubits to apply dot product on (default: ``None``).
 
         Returns:
-            np.array: Boolean array of True if Pauli's commute, False if
+            np.array: Boolean array of ``True`` if Paulis commute, ``False`` if
                       they anti-commute.
 
         Raises:
-            QiskitError: if number of qubits of other does not match qargs.
+            QiskitError: if number of qubits of ``other`` does not match ``qargs``.
         """
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
                 "Number of qubits of other Pauli does not match number of "
-                "qargs ({} != {}).".format(other.num_qubits, len(qargs))
+                f"qargs ({other.num_qubits} != {len(qargs)})."
             )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
                 "Number of qubits of other Pauli does not match the current "
-                "Pauli ({} != {}).".format(other.num_qubits, self.num_qubits)
+                f"Pauli ({other.num_qubits} != {self.num_qubits})."
             )
         if qargs is not None:
             inds = list(qargs)
@@ -226,37 +231,43 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         b_dot_a = np.mod(_count_y(other._x, z1), 2)
         return a_dot_b == b_dot_a
 
-    def evolve(self, other, qargs=None, frame="h"):
-        r"""Heisenberg picture evolution of a Pauli by a Clifford.
+    def evolve(
+        self,
+        other: BasePauli | QuantumCircuit | Clifford,
+        qargs: list | None = None,
+        frame: Literal["h", "s"] = "h",
+    ) -> BasePauli:
+        r"""Performs either Heisenberg (default) or Schrödinger picture
+        evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
-        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
+        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``.
+        This option yields a faster calculation.
 
-        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
-        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+        Heisenberg picture evolves the Pauli as :math:`P^\prime = C^\dagger.P.C`.
+
+        Schrödinger picture evolves the Pauli as :math:`P^\prime = C.P.C^\dagger`.
 
         Args:
             other (BasePauli or QuantumCircuit): The Clifford circuit to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg or ``'s'`` for Schrödinger framework.
 
         Returns:
-            BasePauli: the Pauli :math:`C^\dagger.P.C`.
+            BasePauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
+            or the Pauli :math:`C.P.C^\dagger` (Schrödinger picture).
 
         Raises:
-            QiskitError: if the Clifford number of qubits and qargs don't match.
+            QiskitError: if the Clifford number of qubits and ``qargs`` don't match.
         """
         # Check dimension
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
-                "Incorrect number of qubits for Clifford circuit ({} != {}).".format(
-                    other.num_qubits, len(qargs)
-                )
+                f"Incorrect number of qubits for Clifford circuit ({other.num_qubits} != {len(qargs)})."
             )
         if qargs is None and self.num_qubits != other.num_qubits:
             raise QiskitError(
-                "Incorrect number of qubits for Clifford circuit ({} != {}).".format(
-                    other.num_qubits, self.num_qubits
-                )
+                f"Incorrect number of qubits for Clifford circuit "
+                f"({other.num_qubits} != {self.num_qubits})."
             )
 
         # Evolve via Pauli
@@ -340,7 +351,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return ret
 
     def _count_y(self, dtype=None):
-        """Count the number of I Pauli's"""
+        """Count the number of I Paulis"""
         return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
@@ -405,16 +416,16 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (array): The symplectic representation z vector.
             x (array): The symplectic representation x vector.
             phase (int): Pauli phase.
-            group_phase (bool): Optional. If True use group-phase convention
+            group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
-                                (default: False).
-            sparse (bool): Optional. Of True return a sparse CSR matrix,
+                                (default: ``False``).
+            sparse (bool): Optional. Of ``True`` return a sparse CSR matrix,
                            otherwise return a dense Numpy array
-                           (default: False).
+                           (default: ``False``).
 
         Returns:
-            array: if sparse=False.
-            csr_matrix: if sparse=True.
+            array: if ``sparse=False``.
+            csr_matrix: if ``sparse=True``.
         """
         num_qubits = z.size
 
@@ -424,7 +435,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             phase %= 4
 
         dim = 2**num_qubits
-        twos_array = 1 << np.arange(num_qubits)
+        twos_array = 1 << np.arange(num_qubits, dtype=np.uint)
         x_indices = np.asarray(x).dot(twos_array)
         z_indices = np.asarray(z).dot(twos_array)
 
@@ -466,21 +477,21 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (array): The symplectic representation z vector.
             x (array): The symplectic representation x vector.
             phase (int): Pauli phase.
-            group_phase (bool): Optional. If True use group-phase convention
+            group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
-                                (default: False).
+                                (default: ``False``).
             full_group (bool): If True return the Pauli label from the full Pauli group
                 including complex coefficient from [1, -1, 1j, -1j]. If
-                False return the unsigned Pauli label with coefficient 1
-                (default: True).
-            return_phase (bool): If True return the adjusted phase for the coefficient
+                ``False`` return the unsigned Pauli label with coefficient 1
+                (default: ``True``).
+            return_phase (bool): If ``True`` return the adjusted phase for the coefficient
                 of the returned Pauli label. This can be used even if
                 ``full_group=False``.
 
         Returns:
             str: the Pauli label from the full Pauli group (if ``full_group=True``) or
                 from the unsigned Pauli group (if ``full_group=False``).
-            Tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
+            tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
                             label (from either the full or unsigned Pauli group) and
                             the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
                             for the label from the full Pauli group.
@@ -527,75 +538,49 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if qargs is None:
             qargs = list(range(self.num_qubits))
 
-        if isinstance(circuit, QuantumCircuit):
-            gate = circuit.to_instruction()
-        else:
+        if not isinstance(circuit, QuantumCircuit):
             gate = circuit
 
-        # Basis Clifford Gates
-        basis_1q = {
-            "i": _evolve_i,
-            "id": _evolve_i,
-            "iden": _evolve_i,
-            "x": _evolve_x,
-            "y": _evolve_y,
-            "z": _evolve_z,
-            "h": _evolve_h,
-            "s": _evolve_s,
-            "sdg": _evolve_sdg,
-            "sinv": _evolve_sdg,
-        }
-        basis_2q = {"cx": _evolve_cx, "cz": _evolve_cz, "cy": _evolve_cy, "swap": _evolve_swap}
+            if isinstance(gate, str):
+                # Check if gate is a valid Clifford basis gate string
+                if gate not in _basis_1q and gate not in _basis_2q:
+                    raise QiskitError(f"Invalid Clifford gate name string {gate}")
+                name = gate
+            else:
+                # Assume gate is an Instruction
+                name = gate.name
 
-        # Non-Clifford gates
-        non_clifford = ["t", "tdg", "ccx", "ccz"]
+            # Apply gate if it is a Clifford basis gate
+            if name in _non_clifford:
+                raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
+            if name in _basis_1q:
+                if len(qargs) != 1:
+                    raise QiskitError("Invalid qubits for 1-qubit gate.")
+                return _basis_1q[name](self, qargs[0])
+            if name in _basis_2q:
+                if len(qargs) != 2:
+                    raise QiskitError("Invalid qubits for 2-qubit gate.")
+                return _basis_2q[name](self, qargs[0], qargs[1])
 
-        if isinstance(gate, str):
-            # Check if gate is a valid Clifford basis gate string
-            if gate not in basis_1q and gate not in basis_2q:
-                raise QiskitError(f"Invalid Clifford gate name string {gate}")
-            name = gate
-        else:
-            # Assume gate is an Instruction
-            name = gate.name
-
-        # Apply gate if it is a Clifford basis gate
-        if name in non_clifford:
-            raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
-        if name in basis_1q:
-            if len(qargs) != 1:
-                raise QiskitError("Invalid qubits for 1-qubit gate.")
-            return basis_1q[name](self, qargs[0])
-        if name in basis_2q:
-            if len(qargs) != 2:
-                raise QiskitError("Invalid qubits for 2-qubit gate.")
-            return basis_2q[name](self, qargs[0], qargs[1])
-
-        # If not a Clifford basis gate we try to unroll the gate and
-        # raise an exception if unrolling reaches a non-Clifford gate.
-        if gate.definition is None:
-            raise QiskitError(f"Cannot apply Instruction: {gate.name}")
-        if not isinstance(gate.definition, QuantumCircuit):
-            raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    gate.name, type(gate.definition)
+            # If not a Clifford basis gate we try to unroll the gate and
+            # raise an exception if unrolling reaches a non-Clifford gate.
+            if gate.definition is None:
+                raise QiskitError(f"Cannot apply Instruction: {gate.name}")
+            if not isinstance(gate.definition, QuantumCircuit):
+                raise QiskitError(
+                    f"{gate.name} instruction definition is {type(gate.definition)};"
+                    f" expected QuantumCircuit"
                 )
-            )
 
-        flat_instr = gate.definition
-        bit_indices = {
-            bit: index
-            for bits in [flat_instr.qubits, flat_instr.clbits]
-            for index, bit in enumerate(bits)
-        }
+            circuit = gate.definition
 
-        for instruction in flat_instr:
+        for instruction in circuit:
             if instruction.clbits:
                 raise QiskitError(
                     f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
-            new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+            new_qubits = [qargs[circuit.find_bit(qb)[0]] for qb in instruction.qubits]
             self._append_circuit(instruction.operation, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
@@ -701,6 +686,42 @@ def _evolve_swap(base_pauli, q1, q2):
     return base_pauli
 
 
+def _evolve_ecr(base_pauli, q1, q2):
+    """Update P -> ECR.P.ECR"""
+    base_pauli = _evolve_s(base_pauli, q1)
+    base_pauli = _evolve_h(base_pauli, q2)
+    base_pauli = _evolve_s(base_pauli, q2)
+    base_pauli = _evolve_h(base_pauli, q2)
+    base_pauli = _evolve_cx(base_pauli, q1, q2)
+    base_pauli = _evolve_x(base_pauli, q1)
+    return base_pauli
+
+
 def _count_y(x, z, dtype=None):
-    """Count the number of I Pauli's"""
+    """Count the number of I Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)
+
+
+# Basis Clifford Gates
+_basis_1q = {
+    "i": _evolve_i,
+    "id": _evolve_i,
+    "iden": _evolve_i,
+    "x": _evolve_x,
+    "y": _evolve_y,
+    "z": _evolve_z,
+    "h": _evolve_h,
+    "s": _evolve_s,
+    "sdg": _evolve_sdg,
+    "sinv": _evolve_sdg,
+}
+_basis_2q = {
+    "cx": _evolve_cx,
+    "cz": _evolve_cz,
+    "cy": _evolve_cy,
+    "swap": _evolve_swap,
+    "ecr": _evolve_ecr,
+}
+
+# Non-Clifford gates
+_non_clifford = ["t", "tdg", "ccx", "ccz"]

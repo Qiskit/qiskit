@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler synthesis."""
-import unittest
-from qiskit.test import QiskitTestCase
 
+import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
@@ -26,6 +26,7 @@ if HAS_TWEEDLEDUM:
 
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestSynthesis(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests ClassicalFunction.synth method."""
 
     def test_grover_oracle(self):
@@ -49,10 +50,10 @@ class TestSynthesis(QiskitTestCase):
         qr_c = QuantumRegister(1, "c")
         qr_d = QuantumRegister(1, "d")
         qr_return = QuantumRegister(1, "return")
-        expected = QuantumCircuit(qr_d, qr_c, qr_b, qr_a, qr_return)
+        expected = QuantumCircuit(qr_a, qr_b, qr_c, qr_d, qr_return)
         expected.append(
             XGate().control(4, ctrl_state="1010"),
-            [qr_d[0], qr_c[0], qr_b[0], qr_a[0], qr_return[0]],
+            [qr_a[0], qr_b[0], qr_c[0], qr_d[0], qr_return[0]],
         )
 
         self.assertEqual(quantum_circuit.name, "grover_oracle")

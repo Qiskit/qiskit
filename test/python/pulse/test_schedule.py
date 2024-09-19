@@ -45,8 +45,8 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BaseTestSchedule(QiskitTestCase):
@@ -61,7 +61,8 @@ class BaseTestSchedule(QiskitTestCase):
             return slope * x + intercept
 
         self.linear = linear
-        self.config = FakeOpenPulse2Q().configuration()
+        with self.assertWarns(DeprecationWarning):
+            self.config = FakeOpenPulse2Q().configuration()
 
 
 class TestScheduleBuilding(BaseTestSchedule):
@@ -117,8 +118,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error."""
-        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.7, sigma=3)
+        gp0 = library.Gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.7, sigma=3)
 
         sched = Schedule()
         sched = sched.append(Play(gp0, self.config.drive(0)))
@@ -147,8 +148,8 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test that in place operations on schedule are still immutable
         and return equivalent schedules."""
-        gp0 = library.gaussian(duration=20, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.Gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched += Play(gp0, self.config.drive(0))
@@ -162,8 +163,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_immutability(self):
         """Test that operations are immutable."""
-        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Play(gp1, self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
@@ -173,8 +174,8 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
-        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3)
-        gp1 = library.gaussian(duration=20, amp=0.5, sigma=3)
+        gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
         sched = sched + Play(gp1, self.config.drive(0))
@@ -300,7 +301,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""
-        gp0 = library.gaussian(duration=100, amp=0.7, sigma=3, name="pulse_name")
+        gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3, name="pulse_name")
         snapshot = Snapshot("snapshot_label", "state")
 
         sched1 = Schedule(name="test_name")
@@ -337,8 +338,8 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_parametric_commands_in_sched(self):
         """Test that schedules can be built with parametric commands."""
         sched = Schedule(name="test_parametric")
-        sched += Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
-        sched += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), DriveChannel(1))
+        sched += Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), DriveChannel(0))
+        sched += Play(Drag(duration=25, amp=0.4, angle=0.5, sigma=7.8, beta=4), DriveChannel(1))
         sched += Play(Constant(duration=25, amp=1), DriveChannel(2))
         sched_duration = sched.duration
         sched += (

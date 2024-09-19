@@ -21,7 +21,7 @@ from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.converters import circuit_to_dagdependency
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 try:
     import rustworkx as rx
@@ -318,6 +318,12 @@ class TestDagProperties(QiskitTestCase):
         qc = QuantumCircuit(q)
         dag = circuit_to_dagdependency(qc)
         self.assertEqual(dag.depth(), 0)
+
+    def test_default_metadata_value(self):
+        """Test that the default DAGDependency metadata is valid QuantumCircuit metadata."""
+        qc = QuantumCircuit(1)
+        qc.metadata = self.dag.metadata
+        self.assertEqual(qc.metadata, {})
 
 
 if __name__ == "__main__":
