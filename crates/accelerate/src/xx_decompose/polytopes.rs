@@ -29,14 +29,28 @@ use crate::xx_decompose::utilities::EPSILON;
 // "A unreflected ∩ af slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B1"
 // "A reflected ∩ af strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B1"
 
-//#[allow(non_camel_case_types)]
-pub(crate) enum AlcoveDetails {
+
+#[derive(PartialEq)]
+pub(crate) struct AlcoveDetails {
+    reflection: Reflection,
+    af: AF
+}
+
+impl AlcoveDetails {
+    pub(crate) fn new(reflection: Reflection, af: AF) -> AlcoveDetails {
+        AlcoveDetails { reflection, af }
+    }
+}
+
+#[derive(PartialEq)]
+pub(crate) enum Reflection {
     Reflected,
     Unreflected,
 }
 
 // B2 is also referenced in the Python code.
 // But no data carries a "tag" B2, so that code is never used.
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) enum AF {
     B1,
     B3,
@@ -47,7 +61,31 @@ static polys: Vec<Polytope<'static, 11>> = vec! [ ];
 pub(crate) struct Polytope<'a, const NCOLS: usize> {
     pub(crate) ineqs: &'a [[i32; NCOLS]],
     pub(crate) eqs: Option<&'a[[i32; NCOLS]]>,
-    pub(crate) alcove_details: Option<(AlcoveDetails, AF)>
+    pub(crate) alcove_details: Option<AlcoveDetails>,
+}
+
+impl<'a, const NCOLS: usize> Polytope<'a, NCOLS> {
+
+    /// Tests whether the polytope contains `point`.
+    pub(crate) fn has_element(&self, point: &Vec<f64>) -> bool {
+        if ! self.ineqs
+            .iter()
+            .all(|ie| (-EPSILON <= ie[0] as f64 + point.iter().zip(&ie[1..]).map(|(p, i)| p * *i as f64).sum::<f64>())) {
+                return false
+            };
+        if self.eqs.is_none() {
+            return false
+        }
+        // This is never called due to the static data in the current implementation.
+        self.eqs.unwrap()
+            .iter()
+            .all(|e| (e[0] as f64 + point.iter().zip(&e[1..]).map(|(p, i)| p * *i as f64).sum::<f64>() <= EPSILON))
+    }
+
+    #[allow(non_snake_case)]
+    pub(crate) fn get_AF(&self) -> Option<AF> {        
+        self.alcove_details.as_ref().map(|x| x.af)
+    }
 }
 
 pub(crate) struct ConvexPolytopeData<'a, const MI:usize, const NI: usize, const ME:usize, const NE: usize> {
@@ -62,17 +100,17 @@ pub(crate) struct ConvexPolytopeData<'a, const MI:usize, const NI: usize, const 
 // }
 
 // TODO: In the original, this is not a class-instance method. Could be I think.
-/// Tests whether `polytope` contains `point.
-fn polytope_has_element<const MI:usize, const NI: usize, const ME:usize, const NE: usize>
-    (polytope: ConvexPolytopeData<MI, NI, ME, NE>, point: &Vec<f64>) -> bool {
-    polytope.inequalities
-            .iter()
-            .all(|ie| (-EPSILON <= ie[0] as f64 + point.iter().zip(&ie[1..]).map(|(p, i)| p * *i as f64).sum::<f64>()))
-    //         &&
-    // polytope.equalities
-    //         .iter()
-    //         .all(|e| (e[0] + point.iter().zip(&e[1..]).map(|(p, i)| p * i).sum::<f64>() <= EPSILON))
-}
+
+// fn polytope_has_element<const MI:usize, const NI: usize, const ME:usize, const NE: usize>
+//     (polytope: ConvexPolytopeData<MI, NI, ME, NE>, point: &Vec<f64>) -> bool {
+//     polytope.inequalities
+//             .iter()
+//             .all(|ie| (-EPSILON <= ie[0] as f64 + point.iter().zip(&ie[1..]).map(|(p, i)| p * *i as f64).sum::<f64>()))
+//     //         &&
+//     // polytope.equalities
+//     //         .iter()
+//     //         .all(|e| (e[0] + point.iter().zip(&e[1..]).map(|(p, i)| p * i).sum::<f64>() <= EPSILON))
+// }
 
 /// Describes those two-qubit programs accessible to a given sequence of XX-type interactions.
 ///

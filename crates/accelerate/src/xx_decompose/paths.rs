@@ -1,9 +1,13 @@
 // from paths.py
+use hashbrown::HashMap;
 
-use crate::xx_decompose::polytopes::{ Polytope, AlcoveDetails, AF};
+const PI: f64 = std::f64::consts::PI;
 
+use crate::xx_decompose::polytopes::{ Polytope, AlcoveDetails, AF, Reflection};
+
+// TODO: Do we know that target_coordinate has length 3?
 /// Assembles a coordinate in the system used by `xx_region_polytope`.
-fn get_augmented_coordinate(target_coordinate: &[f64; 3], strengths: &[f64]) -> Vec<f64> {
+fn get_augmented_coordinate(target_coordinate: &[f64], strengths: &[f64]) -> Vec<f64> {
     let (beta, strengths) = strengths.split_last().unwrap();
     let mut strengths = Vec::from(strengths);
     strengths.extend([0., 0.]);
@@ -16,28 +20,82 @@ fn get_augmented_coordinate(target_coordinate: &[f64; 3], strengths: &[f64]) -> 
     target_coordinate
 }
 
-fn make_polys1() {
+// Given a `target_coordinate` and a list of interaction `strengths`, produces a new canonical
+// coordinate which is one step back along `strengths`.
+//
+// `target_coordinate` is taken to be in positive canonical coordinates, and the entries of
+// strengths are taken to be [0, pi], so that (sj / 2, 0, 0) is a positive canonical coordinate.
+fn decomposition_hop(target_coordinate: &[f64; 3], strengths: &[f64]) {
+    let target_coordinate: Vec<_> = target_coordinate.iter().map(|x| x / (2. * PI)).collect();
+    let strengths: Vec<_> = strengths.iter().map(|x| x / PI).collect();
+    let augmented_coordinate = get_augmented_coordinate(&target_coordinate, &strengths);
+
+    let (xx_lift_polytope, xx_region_polytope) = make_polys1();
+
+    for cp in xx_region_polytope.iter() {
+        if ! cp.has_element(&augmented_coordinate) {
+            continue
+        }
+        let af = match cp.get_AF() {
+            Some(AF::B1) => target_coordinate[0],
+            Some(AF::B3) => target_coordinate[2],
+            None => panic!("Static data is incorrect") // halfway between programming error and data error.
+        };
+        let mut coefficient_dict = HashMap::<(i32, i32), f64>::new();
+        let raw_convex_polytope = xx_lift_polytope
+            .iter()
+            .find(|p| p.alcove_details.as_ref() == cp.alcove_details.as_ref()).unwrap(); // TODO: handle None
+        for ineq in raw_convex_polytope.ineqs.iter() {
+            if ineq[1] == 0 && ineq[2] == 0 {
+                continue
+            }
+            let offset = (
+                ineq[0] as f64  // old constant term
+                + (ineq[3] as f64) * af
+                + (ineq[4] as f64) * augmented_coordinate[0]  // b1
+                + (ineq[5] as f64) * augmented_coordinate[1]  // b2
+                + (ineq[6] as f64) * augmented_coordinate[2]  // b3
+                + (ineq[7] as f64) * augmented_coordinate[3]  // s+
+                + (ineq[8] as f64) * augmented_coordinate[4]  // s1
+                + (ineq[9] as f64) * augmented_coordinate[5]  // s2
+                    + (ineq[10] as f64) * augmented_coordinate[6]);  // beta
+            
+            let _offset = match coefficient_dict.get(&(ineq[1], ineq[2])) {
+                Some(_offset) => *_offset,
+                None => offset,
+            };
+            if offset <= _offset {
+                coefficient_dict.insert((ineq[1], ineq[2]), offset);
+            }
+        }
+        // Need a new data structure
+        // let special_ineqs: Vec<_> = coefficient_dict.iter()
+        //     .map(|((h, l), v)| [h, l, *v]).collect();
+     }
+}
+
+fn make_polys1() ->  (Vec<Polytope<'static, MLIFT>>, Vec<Polytope<'static, MREGION>>) {
     let xx_lift_polytope: Vec<Polytope<'static, MLIFT>> =
         vec! [
             Polytope {
                 ineqs: &LIFT_INEQ1,
                 eqs: Some(&LIFT_EQ1),
-                alcove_details: Some((AlcoveDetails::Unreflected, AF::B3))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Unreflected, AF::B3))
             },
             Polytope {
                 ineqs: &LIFT_INEQ2,
                 eqs: Some(&LIFT_EQ2),
-                alcove_details: Some((AlcoveDetails::Unreflected, AF::B1))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Unreflected, AF::B1))
             },
             Polytope {
                 ineqs: &LIFT_INEQ3,
                 eqs: Some(&LIFT_EQ3),
-                alcove_details: Some((AlcoveDetails::Reflected, AF::B1))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Reflected, AF::B1))
             },
             Polytope {
                 ineqs: &LIFT_INEQ4,
                 eqs: Some(&LIFT_EQ4),
-                alcove_details: Some((AlcoveDetails::Reflected, AF::B3))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Reflected, AF::B3))
             },
         ];
 
@@ -46,24 +104,26 @@ fn make_polys1() {
             Polytope {
                 ineqs: &REGION_INEQ1,
                 eqs: None,
-                alcove_details: Some((AlcoveDetails::Unreflected, AF::B3))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Unreflected, AF::B3))
             },
             Polytope {
                 ineqs: &REGION_INEQ2,
                 eqs: None,
-                alcove_details: Some((AlcoveDetails::Reflected, AF::B3))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Reflected, AF::B3))
             },
             Polytope {
                 ineqs: &REGION_INEQ3,
                 eqs: None,
-                alcove_details: Some((AlcoveDetails::Unreflected, AF::B1))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Unreflected, AF::B1))
             },
             Polytope {
                 ineqs: &REGION_INEQ4,
                 eqs: None,
-                alcove_details: Some((AlcoveDetails::Reflected, AF::B1))
+                alcove_details: Some(AlcoveDetails::new(Reflection::Reflected, AF::B1))
             },
         ];
+
+    (xx_lift_polytope, xx_region_polytope)
 }
 
 const MLIFT: usize = 11;
