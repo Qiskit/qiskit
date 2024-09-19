@@ -106,8 +106,9 @@ also add initial logical optimization prior to routing, you would do something l
 .. code-block:: python
 
     import numpy as np
+    from qiskit.providers.fake_provider import GenericBackendV2
     from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
-    from qiskit.transpiler import PassManager
+    from qiskit.transpiler import PassManager, generate_preset_pass_manager
     from qiskit.transpiler.passes import (
         ALAPScheduleAnalysis,
         CXCancellation,
@@ -115,6 +116,7 @@ also add initial logical optimization prior to routing, you would do something l
         PadDynamicalDecoupling,
     )
 
+    backend = GenericBackendV2(num_qubits=5)
     dd_sequence = [XGate(), XGate()]
     scheduling_pm = PassManager(
         [
@@ -135,6 +137,9 @@ also add initial logical optimization prior to routing, you would do something l
         ]
     )
 
+    pass_manager = generate_preset_pass_manager(
+        optimization_level=0
+    )
 
     # Add pre-layout stage to run extra logical optimization
     pass_manager.pre_layout = logical_opt

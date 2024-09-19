@@ -794,6 +794,8 @@ class SparsePauliOp(LinearOp):
 
         .. code-block:: python
 
+            from qiskit.quantum_info import SparsePauliOp
+
             # via tuples and the full Pauli string
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
@@ -857,6 +859,8 @@ class SparsePauliOp(LinearOp):
         can be constructed as
 
         .. code-block:: python
+
+            from qiskit.quantum_info import SparsePauliOp
 
             # via triples and local Paulis with indices
             op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1), ("YY", [0, 3], 2)], num_qubits=5)
@@ -1053,6 +1057,7 @@ class SparsePauliOp(LinearOp):
 
                 .. code-block:: python
 
+                    >>> from qiskit.quantum_info import SparsePauliOp
                     >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
                     >>> op.group_commuting()
                     [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),

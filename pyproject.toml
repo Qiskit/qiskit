@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qiskit"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "Apache 2.0"}
 authors = [
     { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
@@ -27,7 +27,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -140,12 +139,12 @@ include = ["qiskit", "qiskit.*"]
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py39', 'py310', 'py311']
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686 cp38-macosx_arm64"
+skip = "pp* cp36-* cp37-* cp38-* *musllinux* *win32 *i686 cp38-macosx_arm64"
 test-skip = "*win32 *linux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -197,7 +196,7 @@ extension-pkg-allow-list = [
     "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
-py-version = "3.8"  # update it when bumping minimum supported python version
+py-version = "3.9"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]

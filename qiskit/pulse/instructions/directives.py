@@ -72,12 +72,17 @@ class TimeBlockade(Directive):
 
         .. code-block:: python
 
+            from qiskit.pulse import Schedule, Play, Constant, DriveChannel
+
             schedule = Schedule()
             schedule.insert(120, Play(Constant(10, 0.1), DriveChannel(0)))
 
         This schedule block is expected to be identical to above at a time of execution.
 
         .. code-block:: python
+
+            from qiskit.pulse import ScheduleBlock, Play, Constant, DriveChannel
+            from qiskit.pulse.instructions import TimeBlockade
 
             block = ScheduleBlock()
             block.append(TimeBlockade(120, DriveChannel(0)))
