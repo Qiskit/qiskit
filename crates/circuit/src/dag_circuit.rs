@@ -5074,7 +5074,7 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
-    pub fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
+    fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = instr.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
@@ -6297,16 +6297,6 @@ impl DAGCircuit {
     /// Get cargs from an intern index
     pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
         self.cargs_interner.get(index)
-    }
-
-    /// Insert qargs, return the intern index
-    pub fn set_qargs(&mut self, qargs: &[Qubit]) -> Interned<[Qubit]> {
-        self.qargs_interner.insert(qargs)
-    }
-
-    /// Insert cargs, return the intern index
-    pub fn set_cargs(&mut self, cargs: &[Clbit]) -> Interned<[Clbit]> {
-        self.cargs_interner.insert(cargs)
     }
 
     /// Insert a new 1q standard gate on incoming qubit

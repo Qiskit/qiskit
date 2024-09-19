@@ -75,17 +75,25 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                 }
                 _ => {
                     // General instruction
-                    let mut mapped_inst = inst.clone();
                     let qargs = dag.get_qargs(inst.qubits);
+                    let cargs = dag.get_cargs(inst.clbits);
                     let mapped_qargs: Vec<Qubit> = qargs
                         .iter()
                         .map(|q| q.0 as usize)
                         .map(|q| mapping[q])
                         .map(|q| Qubit(q.try_into().unwrap()))
                         .collect();
-                    let mapped_qubits = new_dag.set_qargs(&mapped_qargs);
-                    mapped_inst.qubits = mapped_qubits;
-                    new_dag.push_back(py, mapped_inst)?;
+                    let params = inst.params.clone();
+
+                    new_dag.apply_operation_back(
+                        py,
+                        inst.op.clone(),
+                        &mapped_qargs,
+                        cargs,
+                        None, //params,
+                        inst.extra_attrs.clone(),
+                        None,
+                    )?;
                 }
             }
         } else {
