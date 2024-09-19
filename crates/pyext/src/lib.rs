@@ -20,7 +20,7 @@ use qiskit_accelerate::{
     euler_one_qubit_decomposer::euler_one_qubit_decomposer, filter_op_nodes::filter_op_nodes_mod,
     gate_direction::gate_direction, inverse_cancellation::inverse_cancellation_mod,
     isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
-    pauli_exp_val::pauli_expval,
+    pauli_exp_val::pauli_expval, qubit_tracker::qubit_tracker_mod,
     remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, results::results,
     sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
     split_2q_unitaries::split_2q_unitaries_mod, star_prerouting::star_prerouting,
@@ -58,6 +58,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, nlayout, "nlayout")?;
     add_submodule(m, optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, pauli_expval, "pauli_expval")?;
+    add_submodule(m, qubit_tracker_mod, "qubit_tracker")?;
     add_submodule(m, synthesis, "synthesis")?;
     add_submodule(
         m,
