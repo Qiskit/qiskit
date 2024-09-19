@@ -216,6 +216,22 @@ fn py_decompose_two_qubit_product_gate(
     ))
 }
 
+/// Computes the Weyl coordinates for a given two-qubit unitary matrix.
+///
+/// Args:
+///     U (np.ndarray): Input two-qubit unitary.
+///
+/// Returns:
+///     np.ndarray: Array of the 3 Weyl coordinates.
+#[pyfunction]
+fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyObject {
+    let array = unitary.as_array();
+    __weyl_coordinates(array.into_faer_complex())
+        .to_vec()
+        .into_pyarray_bound(py)
+        .into()
+}
+
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
     let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
@@ -2352,6 +2368,7 @@ pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
     m.add_wrapped(wrap_pyfunction!(py_trace_to_fid))?;
     m.add_wrapped(wrap_pyfunction!(py_ud))?;
+    m.add_wrapped(wrap_pyfunction!(weyl_coordinates))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
     m.add_class::<Specialization>()?;
