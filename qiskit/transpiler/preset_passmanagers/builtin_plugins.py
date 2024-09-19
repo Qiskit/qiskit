@@ -150,7 +150,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
             )
-            init.append(ElidePermutations())
+            if pass_manager_config.routing_method != "none":
+                init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
             init.append(
                 InverseCancellation(
