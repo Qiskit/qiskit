@@ -454,7 +454,7 @@ attempt to "close over" outer circuit registers, or use hidden parameters inside
 :class:`Instruction`\ s can be related to other circuits to provide a decompositions by using
 their :attr:`Instruction.definition` attribute, which provides a local, one-off decomposition.  This
 can be in whatever basis set of operations is most convenient to you, as long as the definitions of
-all contained gates have some topological order; that is, you cannot use a gate in a definition it
+all contained gates have some topological order; that is, you cannot use a gate in a definition if
 its own definition depends on the parent.  If the :class:`Instruction` should be considered entirely
 opaque to optimizers, its :attr:`~Instruction.definition` can be ``None``.  See
 :ref:`circuit-custom-gates` for more detail.
