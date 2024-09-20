@@ -1,3 +1,13 @@
+use rand;
+use rand::seq::SliceRandom;
+use ndarray::prelude::*;
+use ndarray::{arr2, aview2, Array2, Array};
+use faer::Mat;
+use faer_ext::{IntoFaerComplex, IntoNdarrayComplex, IntoNdarray};
+use faer_ext::IntoFaer;
+use faer::solvers::Qr;
+use faer::solvers::SpSolverLstsq;
+
 use crate::xx_decompose::types::Coordinate;
 use crate::xx_decompose::utilities::EPSILON;
 
@@ -56,7 +66,57 @@ pub(crate) enum AF {
     B3,
 }
 
-static polys: Vec<Polytope<'static, 11>> = vec! [ ];
+pub(crate) struct SpecialPolytope {
+//    pub(crate) ineqs: Vec<([i32;2], f64)>,
+    pub(crate) ineqs: Vec<[f64;3]>,
+}
+
+impl SpecialPolytope {
+
+    pub(crate) fn has_element(&self, point: &Vec<f64>) -> bool {
+        if ! self.ineqs
+            .iter()
+            .all(|ie| (-EPSILON <= ie[0] as f64 + point.iter().zip(&ie[1..]).map(|(p, i)| p * *i as f64).sum::<f64>())) {
+                return false
+            };
+        true
+    }
+
+    // TODO: Reduce copying and conversion below.
+    // TODO: RNG seed
+    pub(crate) fn manual_get_vertex(&self)  -> Vec<f64> {
+        let sentences = &self.ineqs;
+        let dimension = sentences.len() - 1;
+        let mut rng = rand::thread_rng();
+
+        // generate random permutation
+        let mut y: Vec<usize> = (0..sentences.len()).collect();
+        y.shuffle(&mut rng);
+
+        // Create faer matrix.
+        let slicemat: &[[f64; 3]] = &sentences[1..][..];
+        // Notice additive inverse in following line.
+        let matvec: Vec<f64> = slicemat.into_iter().flatten().map(|x| -*x).collect();
+        let matrix: Array2<f64> = Array::from_shape_vec((dimension, sentences.len()), matvec).ok().unwrap();
+        let fmatrix = matrix.view().into_faer();
+
+        // Create faer vector.
+        let slicevector = &sentences[0..1][..];
+        let vecvector: Vec<f64> = slicemat.into_iter().flatten().map(|x| *x).collect();
+        let vector : Array2<f64> = Array::from_shape_vec((1, sentences.len()), vecvector).ok().unwrap();
+        let fvector = vector.view().into_faer();
+
+        // Solve overdetermined system as if these were equalities, typically 7 inequalities in three variables
+        let qr = fmatrix.qr();
+        let vertex: Mat<f64> = qr.solve_lstsq(&fvector);
+        let vertexvec = vertex.col_as_slice(0).to_vec();
+        if self.has_element(&vertexvec) {
+            return vertexvec
+        }
+        // TODO: error handling
+        panic!();
+    }
+}
 
 pub(crate) struct Polytope<'a, const NCOLS: usize> {
     pub(crate) ineqs: &'a [[i32; NCOLS]],
@@ -83,7 +143,7 @@ impl<'a, const NCOLS: usize> Polytope<'a, NCOLS> {
     }
 
     #[allow(non_snake_case)]
-    pub(crate) fn get_AF(&self) -> Option<AF> {        
+    pub(crate) fn get_AF(&self) -> Option<AF> {
         self.alcove_details.as_ref().map(|x| x.af)
     }
 }

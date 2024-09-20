@@ -3,7 +3,7 @@ use hashbrown::HashMap;
 
 const PI: f64 = std::f64::consts::PI;
 
-use crate::xx_decompose::polytopes::{ Polytope, AlcoveDetails, AF, Reflection};
+use crate::xx_decompose::polytopes::{Polytope, SpecialPolytope, AlcoveDetails, AF, Reflection};
 
 // TODO: Do we know that target_coordinate has length 3?
 /// Assembles a coordinate in the system used by `xx_region_polytope`.
@@ -25,13 +25,14 @@ fn get_augmented_coordinate(target_coordinate: &[f64], strengths: &[f64]) -> Vec
 //
 // `target_coordinate` is taken to be in positive canonical coordinates, and the entries of
 // strengths are taken to be [0, pi], so that (sj / 2, 0, 0) is a positive canonical coordinate.
-fn decomposition_hop(target_coordinate: &[f64; 3], strengths: &[f64]) {
+fn decomposition_hop(target_coordinate: &[f64; 3], strengths: &[f64]) -> Vec<f64> {
     let target_coordinate: Vec<_> = target_coordinate.iter().map(|x| x / (2. * PI)).collect();
     let strengths: Vec<_> = strengths.iter().map(|x| x / PI).collect();
     let augmented_coordinate = get_augmented_coordinate(&target_coordinate, &strengths);
 
     let (xx_lift_polytope, xx_region_polytope) = make_polys1();
 
+    let mut special_polytope = None;
     for cp in xx_region_polytope.iter() {
         if ! cp.has_element(&augmented_coordinate) {
             continue
@@ -68,10 +69,22 @@ fn decomposition_hop(target_coordinate: &[f64; 3], strengths: &[f64]) {
                 coefficient_dict.insert((ineq[1], ineq[2]), offset);
             }
         }
-        // Need a new data structure
-        // let special_ineqs: Vec<_> = coefficient_dict.iter()
-        //     .map(|((h, l), v)| [h, l, *v]).collect();
-     }
+        special_polytope = Some(SpecialPolytope {
+                ineqs: coefficient_dict.iter()
+                .map(|((h, l), v)| [*h as f64, *l as f64, *v]).collect()
+        });
+        break;
+        let special_polytope = special_polytope.unwrap_or_else(|| panic!("Failed to match a constrained_polytope summand."));
+        let vertex = special_polytope.manual_get_vertex();
+        let the_as = [vertex[0], vertex[1], af];
+        // Note that we sort in reverse order.
+        the_as.sort_by(|&a, &b| b.partial_cmp(&a).unwrap());
+        let retval: Vec<f64> = the_as.iter()
+            .map(|x| x * PI / 2.0)
+            .collect();
+        return retval
+    }
+    panic!()
 }
 
 fn make_polys1() ->  (Vec<Polytope<'static, MLIFT>>, Vec<Polytope<'static, MREGION>>) {
