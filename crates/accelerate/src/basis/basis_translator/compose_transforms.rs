@@ -13,9 +13,7 @@
 use hashbrown::{HashMap, HashSet};
 use pyo3::{exceptions::PyTypeError, prelude::*};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_CIRCUIT, QUANTUM_REGISTER};
-use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
@@ -27,23 +25,21 @@ use qiskit_circuit::{
 use smallvec::SmallVec;
 
 // Custom types
-// TODO: Remove these and use the version from `basis_search`
-pub type BasisTransforms = Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)>;
-pub type MappedTransforms = HashMap<(String, u32), (SmallVec<[Param; 3]>, DAGCircuit)>;
+pub type GateIdentifier = (String, u32);
+pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
+pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 // TODO: Remove these and use the version from `EquivalenceLibrary`
 
 /// Representation of QuantumCircuit which the original circuit object + an
 /// instance of `CircuitData`.
 #[derive(Debug, Clone)]
-pub struct CircuitRep(pub CircuitData);
+pub struct CircuitFromPython(pub CircuitData);
 
-impl FromPyObject<'_> for CircuitRep {
+impl FromPyObject<'_> for CircuitFromPython {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.downcast_into()?;
-            let data_extract: CircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract))
+            let data: CircuitData = ob.getattr("_data")?.extract()?;
+            Ok(Self(data))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",
@@ -52,40 +48,25 @@ impl FromPyObject<'_> for CircuitRep {
     }
 }
 
-impl IntoPy<PyObject> for CircuitRep {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1("_from_circuit_data", (self.0,))
-            .unwrap()
-            .unbind()
-    }
-}
-
-impl ToPyObject for CircuitRep {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        self.clone().into_py(py)
-    }
-}
-
 #[pyfunction(name = "compose_transforms")]
 pub(super) fn py_compose_transforms(
     py: Python,
-    basis_transforms: BasisTransforms,
-    source_basis: HashSet<(String, u32)>,
+    basis_transforms: Vec<(GateIdentifier, BasisTransformIn)>,
+    source_basis: HashSet<GateIdentifier>,
     source_dag: &DAGCircuit,
-) -> PyResult<MappedTransforms> {
+) -> PyResult<HashMap<GateIdentifier, BasisTransformOut>> {
     compose_transforms(py, &basis_transforms, &source_basis, source_dag)
 }
 
 pub(super) fn compose_transforms<'a>(
     py: Python,
-    basis_transforms: &'a BasisTransforms,
+    basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
     source_basis: &'a HashSet<(String, u32)>,
     source_dag: &'a DAGCircuit,
-) -> PyResult<MappedTransforms> {
-    let example_gates = *get_example_gates(py, source_dag, None)?;
-    let mut mapped_instructions: MappedTransforms = HashMap::new();
+) -> PyResult<HashMap<GateIdentifier, BasisTransformOut>> {
+    let mut example_gates: HashMap<(String, u32), PackedInstruction> = HashMap::default();
+    get_example_gates(source_dag, &mut example_gates)?;
+    let mut mapped_instructions: HashMap<GateIdentifier, BasisTransformOut> = HashMap::new();
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         // Need to grab a gate instance to find num_qubits and num_params.
@@ -127,13 +108,10 @@ pub(super) fn compose_transforms<'a>(
             #[cfg(feature = "cache_pygates")]
             Some(gate.into()),
         )?;
-        mapped_instructions.insert(
-            (gate_name.clone(), gate_num_qubits),
-            (placeholder_params, dag),
-        );
+        mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
 
-        for (gate_name, gate_num_qubits, equiv_params, equiv) in basis_transforms {
-            for ((_mapped_instr_name, _), (_dag_params, dag)) in &mut mapped_instructions {
+        for ((gate_name, gate_num_qubits), (equiv_params, equiv)) in basis_transforms {
+            for (_, dag) in &mut mapped_instructions.values_mut() {
                 let doomed_nodes = dag
                     .op_nodes(true)
                     .filter_map(|node| {
@@ -172,7 +150,13 @@ pub(super) fn compose_transforms<'a>(
                     let replace_dag: DAGCircuit =
                         DAGCircuit::from_circuit_data(py, replacement.0, true)?;
                     let op_node = dag.get_node(py, node)?;
-                    dag.substitute_node_with_dag(py, op_node.bind(py), &replace_dag, None, true)?;
+                    dag.py_substitute_node_with_dag(
+                        py,
+                        op_node.bind(py),
+                        &replace_dag,
+                        None,
+                        true,
+                    )?;
                 }
             }
         }
@@ -181,26 +165,38 @@ pub(super) fn compose_transforms<'a>(
 }
 
 fn get_example_gates(
-    py: Python,
     dag: &DAGCircuit,
-    example_gates: Option<Box<HashMap<(String, u32), PackedInstruction>>>,
-) -> PyResult<Box<HashMap<(String, u32), PackedInstruction>>> {
-    let mut example_gates = example_gates.unwrap_or_default();
+    example_gates: &mut HashMap<(String, u32), PackedInstruction>,
+) -> PyResult<()> {
     for node in dag.op_nodes(true) {
         if let Some(NodeType::Operation(op)) = dag.dag().node_weight(node) {
             example_gates.insert((op.op.name().to_string(), op.op.num_qubits()), op.clone());
             if op.op.control_flow() {
-                let OperationRef::Instruction(inst) = op.op.view() else {
-                    panic!("Control flow op can only be an instruction")
-                };
-                let inst_bound = inst.instruction.bind(py);
-                let blocks = inst_bound.getattr("blocks")?;
-                for block in blocks.iter()? {
-                    let block_as_dag = circuit_to_dag(py, block?.extract()?, true, None, None)?;
-                    example_gates = get_example_gates(py, &block_as_dag, Some(example_gates))?;
+                let blocks = op.op.blocks();
+                for block in blocks {
+                    get_example_gates_circuit(&block, example_gates)?;
                 }
             }
         }
     }
-    Ok(example_gates)
+    Ok(())
+}
+
+fn get_example_gates_circuit(
+    circuit: &CircuitData,
+    example_gates: &mut HashMap<(String, u32), PackedInstruction>,
+) -> PyResult<()> {
+    for inst in circuit.iter() {
+        example_gates.insert(
+            (inst.op.name().to_string(), inst.op.num_qubits()),
+            inst.clone(),
+        );
+        if inst.op.control_flow() {
+            let blocks = inst.op.blocks();
+            for block in blocks {
+                get_example_gates_circuit(&block, example_gates)?;
+            }
+        }
+    }
+    Ok(())
 }

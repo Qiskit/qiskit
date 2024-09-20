@@ -2860,8 +2860,8 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(signature = (node, input_dag, wires=None, propagate_condition=true))]
-    pub fn substitute_node_with_dag(
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=true))]
+    pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,

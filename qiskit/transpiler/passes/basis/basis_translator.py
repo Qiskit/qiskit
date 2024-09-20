@@ -482,7 +482,9 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
                 rule.circuit,
                 score,
             )
-            self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
+            self._basis_transforms.append(
+                ((gate.name, gate.num_qubits), (rule.params, rule.circuit))
+            )
         # we can stop the search if we have found all gates in the original circuit.
         if not self._source_gates_remain:
             # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
@@ -587,7 +589,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
             rtn = vis.basis_transforms
 
             logger.debug("Transformation path:")
-            for gate_name, gate_num_qubits, params, equiv in rtn:
+            for (gate_name, gate_num_qubits), (params, equiv) in rtn:
                 logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
     finally:
         # Remove dummy node in order to return graph to original state
