@@ -20,7 +20,7 @@ version=$1
 parts=( ${version//./ } )
 # qiskit_version is the version under test, We're testing that we can correctly
 # read the qpy files generated with source version with this version.
-qiskit_version=`./qiskit_venv/bin/python -c "import qiskit;print(qiskit.__version__)"`
+qiskit_version=$(./qiskit_venv/bin/python -c "import qiskit;print(qiskit.__version__)")
 qiskit_parts=( ${qiskit_version//./ } )
 
 
@@ -43,21 +43,27 @@ fi
 
 if [[ ! -d qpy_$version ]] ; then
     echo "Building venv for qiskit-terra $version"
-    python -m venv $version
+    python -m venv "$version"
     if [[ ${parts[0]} -eq 0 ]] ; then
-        ./$version/bin/pip install -c qpy_test_constraints.txt "qiskit-terra==$version"
+        if ! "./$version/bin/pip" install -c qpy_test_constraints.txt "qiskit-terra==$version"; then
+            echo "Skipping uninstallable version $version";
+            exit 0;
+        fi
     else
-        ./$version/bin/pip install -c qpy_test_constraints.txt "qiskit==$version"
+        if ! "./$version/bin/pip" install -c qpy_test_constraints.txt "qiskit==$version"; then
+            echo "Skipping uninstallable version $version";
+            exit 0;
+        fi
     fi
-    mkdir qpy_$version
-    pushd qpy_$version
+    mkdir "qpy_$version"
+    pushd "qpy_$version"
     echo "Generating qpy files with qiskit-terra $version"
-    ../$version/bin/python ../test_qpy.py generate --version=$version
+    "../$version/bin/python" ../test_qpy.py generate --version="$version"
 else
     echo "Using cached QPY files for $version"
-    pushd qpy_$version
+    pushd "qpy_$version"
 fi
 echo "Loading qpy files from $version with dev qiskit-terra"
-../qiskit_venv/bin/python ../test_qpy.py load --version=$version
+../qiskit_venv/bin/python ../test_qpy.py load --version="$version"
 popd
-rm -rf ./$version
+rm -rf "./$version"
