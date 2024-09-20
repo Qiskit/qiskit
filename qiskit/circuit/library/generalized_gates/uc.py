@@ -60,10 +60,15 @@ class UCGate(Gate):
 
     The decomposition is based on Ref. [1].
 
+    Unnecessary controls and repeated operators can be removed as described in Ref [2].
+
     **References:**
 
     [1] Bergholm et al., Quantum circuits with uniformly controlled one-qubit gates (2005).
         `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
+
+    [2] de Carvalho et al., Quantum multiplexer simplification for state preparation (2024).
+        `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
 
     """
 
@@ -78,6 +83,9 @@ class UCGate(Gate):
                 or if it is decomposed completely (default: False).
                 If the ``UCGate`` :math:`U` is decomposed up to a diagonal :math:`D`, this means
                 that the circuit implements a unitary :math:`U'` such that :math:`D U' = U`.
+            mux_simp: Determines whether the search for repetitions is conducted (default: True).
+                The intention is to perform a possible simplification in the number of controls
+                and operators.
 
         Raises:
             QiskitError: in case of bad input to the constructor
