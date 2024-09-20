@@ -18,6 +18,12 @@ import copy
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.controlflow import (
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+)
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend import Backend
@@ -34,6 +40,14 @@ from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
+
+CONTROL_FLOW_MAPPING = {
+    "if_else": IfElseOp,
+    "while_loop": WhileLoopOp,
+    "for_loop": ForLoopOp,
+    "switch_case": SwitchCaseOp,
+}
+
 
 def generate_preset_pass_manager(
     optimization_level=2,
@@ -277,7 +291,12 @@ def generate_preset_pass_manager(
             stacklevel=2,
         )
 
-    if target is None and backend is None and scheduling_method is not None and coupling_map is None:
+    if (
+        target is None
+        and backend is None
+        and scheduling_method is not None
+        and coupling_map is None
+    ):
         warnings.warn(
             "A coupling map is required for the scheduling stage. "
             "It must be defined through the `target` or "
@@ -285,7 +304,6 @@ def generate_preset_pass_manager(
             category=DeprecationWarning,
             stacklevel=2,
         )
-
 
     # Check if a custom inst_map was specified before overwriting inst_map
     _given_inst_map = bool(inst_map)
@@ -330,7 +348,11 @@ def generate_preset_pass_manager(
             # try:
             target = Target.from_configuration(
                 basis_gates=basis_gates,
-                num_qubits=backend.num_qubits if backend is not None else coupling_map.size() if coupling_map is not None else None,
+                num_qubits=(
+                    backend.num_qubits
+                    if backend is not None
+                    else coupling_map.size() if coupling_map is not None else None
+                ),
                 coupling_map=coupling_map,
                 # If the instruction map has custom gates, do not give as config, the information
                 # will be added to the target with update_from_instruction_schedule_map
@@ -438,6 +460,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
         for name in default_gates:
             if name not in instructions:
                 instructions.add(name)
+        name_mapping.update({name: CONTROL_FLOW_MAPPING[name] for name in CONTROL_FLOW_OP_NAMES})
     except TypeError:
         instructions = None
 

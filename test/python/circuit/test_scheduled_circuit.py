@@ -329,7 +329,7 @@ class TestScheduledCircuit(QiskitTestCase):
         sc = transpile(
             qc,
             scheduling_method="alap",
-            coupling_map=[[0,1]],
+            coupling_map=[[0, 1]],
             basis_gates=["h", "cx"],
             instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
         )
