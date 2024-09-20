@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import re
 import subprocess
 import sys
@@ -522,7 +523,9 @@ def _main():
             print("\n".join(header_lines + new_lines))
             sys.exit(ExitCode.MAILMAP_NEEDS_MANUAL_CHANGE)
 
-        mailmap_path.write_text("\n".join(header_lines + new_lines), encoding="UTF8")
+        with open(mailmap_path, "w", encoding="utf8") as fptr:
+            for line in itertools.chain(header_lines, new_lines):
+                print(line, file=fptr)
         print_yellow(
             "Changes were made to mailmap. "
             "Skipping check for duplicates. Please re-run this tool after confirming them."
@@ -548,7 +551,9 @@ def _main():
             print("\n".join(header_lines + new_body_lines))
             sys.exit(ExitCode.MAILMAP_NEEDS_MANUAL_CHANGE)
         else:
-            mailmap_path.write_text("\n".join(header_lines + new_body_lines), encoding="UTF8")
+            with open(mailmap_path, "w", encoding="utf8") as fptr:
+                for line in itertools.chain(header_lines, new_body_lines):
+                    print(line, file=fptr)
             print_yellow(
                 "Changes were made to mailmap. Please re-run this tool after confirming them."
             )
