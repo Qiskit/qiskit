@@ -572,10 +572,15 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ### Testing Rust components
 
-Rust-accelerated functions are generally tested from Python space, but in cases
-where there is Rust-specific internal details to be tested, `#[test]` functions
-can be included inline.  Typically it's most convenient to place these in a
-separate inline module that is only conditionally compiled in, such as
+Many of Qiskit's core data structures and algorithms are implemented in Rust.
+The bulk of this code is exercised heavily by our Python-based unit testing,
+but this coverage really only provides integration-level testing from the
+perspective of Rust.
+
+To provide proper Rust unit testing, we use `cargo test`. Rust tests are
+integrated directly into the Rust file being tested within a `tests` module.
+Functions decorated with `#[test]` within these modules are built and run
+as tests.
 
 ```rust
 #[cfg(test)]
@@ -587,15 +592,57 @@ mod tests {
 }
 ```
 
-To run the Rust-space tests, do
+Rust tests are run separately from the Python tests. To run them, do
 
 ```bash
+python setup.py build_rust --release --inplace
 cargo test --no-default-features
 ```
 
-Our Rust-space components are configured such that setting the
-``-no-default-features`` flag will compile the test runner, but not attempt to
-build a linked CPython extension module, which would cause linker failures.
+The first command builds Qiskit from source (in release mode, but --debug is fine too),
+which ensures that Rust tests that interact with Qiskit's Python code actually
+use the latest Python code from your working directory.
+
+The second command actually invokes the tests via Cargo. The ``-no-default-features``
+flag is used to compile an isolated test runner without building a linked CPython
+extension module (which would otherwise cause linker failures).
+
+#### Calling Python from Rust tests
+By default, our Cargo project configuration allows Rust tests to interact with the
+Python interpreter by calling `Python::with_gil` to obtain a `Python` (`py`) token.
+This is particularly helpful when testing Rust code that (still) requires interaction
+with Python.
+
+To execute code that needs the GIL in your tests, define the `tests` module as
+follows:
+
+```rust
+#[cfg(all(test, not(miri)))] // disable for Miri!
+mod tests {
+    use pyo3::prelude::*;
+    
+    #[test]
+    fn my_first_test() {
+        Python::with_gil(|py| {
+            todo!() // do something that needs a `py` token.
+        })
+    }
+}
+```
+
+To ensure that Rust tests are properly importing changes in Qiskit's Python code
+from the working directory, be sure to build and install Qiskit from source prior
+to running `cargo test --no-default-features`. 
+
+> [!IMPORTANT]
+> Note that we explicitly disable compilation of such tests when running with Miri, i.e.
+`#[cfg(not(miri))]`. This is necessary because Miri doesn't support the FFI
+> code used internally by PyO3.
+>
+> If not all of your tests will use the `Python` token, you can disable Miri on a per-test
+basis within the same module by decorating *the specific test* with `#[cfg_attr(miri, ignore)]`
+instead of disabling Miri for the entire module.
+
 
 ### Unsafe code and Miri
 
