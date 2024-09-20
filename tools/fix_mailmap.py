@@ -236,26 +236,22 @@ def parse_mailmap(mailmap_lines: list[str], raw_authors: dict):
     else:
         print_green("Mailmap was already alphabetized.")
 
-    for name in canonical_names:
-        emails = canonical_names[name]
+    for name, emails in canonical_names.items():
         if len(emails) == 1:
             continue
         print_red(f"Multiple canonical emails associated with canonical name '{name}':")
         for email in emails:
             print_red(f"    <{email}> from:")
-            for match_email in email_mapping:
-                cname, cemail, index = email_mapping[match_email]
+            for match_email, (cname, cemail, index) in email_mapping.items():
                 if cname == name and cemail == email:
                     print_red(f"        Matching <{match_email}> at {mailmap_line(index)}")
-    for email in canonical_emails:
-        names = canonical_emails[email]
+    for email, names in canonical_emails.items():
         if len(names) == 1:
             continue
         print_red(f"Multiple canonical names associated with canonical email <{email}>:")
         for name in names:
             print_red(f"    '{name}' from:")
-            for match_email in email_mapping:
-                cname, cemail, index = email_mapping[match_email]
+            for match_email, (cname, cemail, index) in email_mapping.items():
                 if cname == name and cemail == email:
                     print_red(f"        Matching <{match_email}> at {mailmap_line(index)}")
 
@@ -284,8 +280,8 @@ def check_duplicates(authors: list, email_mapping: dict):
         _count, name, email = author
         names.setdefault(normalize_name(name), set()).add(author)
         emails.setdefault(normalize_email(email), set()).add(author)
-    duplicated_names = {n: names[n] for n in names if len(names[n]) > 1}
-    duplicated_emails = {e: emails[e] for e in emails if len(emails[e]) > 1}
+    duplicated_names = {name: others for name, others in names.items() if len(others) > 1}
+    duplicated_emails = {email: names for email, names in emails.items() if len(names) > 1}
 
     canonical_names = set()
     canonical_emails = set()
