@@ -693,6 +693,25 @@ cx q[0], q[1];
 """
         self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
 
+    def test_include_unknown_file(self):
+        """Test export can target a non-standard include without complaints."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        expected = """\
+OPENQASM 3.0;
+include "mygates.inc";
+bit[2] c;
+qubit[2] q;
+h q[0];
+cx q[0], q[1];
+c[0] = measure q[0];
+c[1] = measure q[1];
+"""
+        self.assertEqual(dumps(qc, includes=["mygates.inc"], basis_gates=["h", "cx"]), expected)
+
     def test_teleportation(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)

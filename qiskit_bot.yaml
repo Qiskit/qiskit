@@ -25,9 +25,6 @@ notifications:
         - "`@t-imamichi`"
         - "`@ajavadia`"
         - "`@levbishop`"
-    ".*\\.rs$|^Cargo":
-        - "`@mtreinish`"
-        - "`@kevinhartman`"
     "(?!.*pulse.*)\\bvisualization\\b":
         - "@enavarro51"
     "^docs/":
