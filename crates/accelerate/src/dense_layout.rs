@@ -223,7 +223,6 @@ pub fn best_subset(
     ))
 }
 
-#[pymodule]
 pub fn dense_layout(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(best_subset))?;
     Ok(())

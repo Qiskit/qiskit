@@ -215,7 +215,6 @@ fn layout_trial(
     (initial_layout, final_permutation, sabre_result)
 }
 
-#[pymodule]
 pub fn sabre_layout(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sabre_layout_and_routing))?;
     Ok(())
