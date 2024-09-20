@@ -21,7 +21,7 @@ pub trait PyRegister {
     // or at a minimum
     //      fn iter<'a>(&'a self, py: Python<'a>) -> ::pyo3::types::iter::PyListIterator<'a>;
     // but we can't use the former before Rust 1.75 and the latter before PyO3 0.21.
-    fn bit_list<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyList>;
+    fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList>;
 }
 
 macro_rules! register_type {
@@ -38,7 +38,7 @@ macro_rules! register_type {
         }
 
         impl PyRegister for $name {
-            fn bit_list<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyList> {
+            fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList> {
                 self.items.bind(py)
             }
         }
@@ -286,7 +286,7 @@ pub struct PyCircuit(Py<PyAny>);
 
 impl PyCircuit {
     /// Untyped access to the inner Python object.
-    pub fn inner<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyAny> {
+    pub fn inner<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyAny> {
         self.0.bind(py)
     }
 
