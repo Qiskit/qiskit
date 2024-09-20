@@ -153,7 +153,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
             )
-            init.append(ElidePermutations())
+            if pass_manager_config.routing_method != "none":
+                init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
             init.append(
                 InverseCancellation(

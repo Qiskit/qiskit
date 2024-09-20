@@ -27,6 +27,9 @@ class PadDelay(BasePadding):
 
     .. code-block:: python
 
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler import InstructionDurations
+
         durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
 
         qc = QuantumCircuit(2)
