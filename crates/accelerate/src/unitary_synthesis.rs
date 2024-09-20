@@ -617,7 +617,7 @@ fn get_2q_decomposers_from_target(
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
                     .unwrap();
-                relative_eq!(*kak.a(), PI4) && relative_eq!(*kak.c(), 0.0)
+                relative_eq!(kak.a(), PI4) && relative_eq!(kak.c(), 0.0)
             }
         }
     }
@@ -629,7 +629,7 @@ fn get_2q_decomposers_from_target(
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
                     .unwrap();
-                relative_eq!(*kak.b(), 0.0) && relative_eq!(*kak.c(), 0.0)
+                relative_eq!(kak.b(), 0.0) && relative_eq!(kak.c(), 0.0)
             }
         }
     }

@@ -494,14 +494,14 @@ pub struct TwoQubitWeylDecomposition {
 }
 
 impl TwoQubitWeylDecomposition {
-    pub fn a(&self) -> &f64 {
-        &self.a
+    pub fn a(&self) -> f64 {
+        self.a
     }
-    pub fn b(&self) -> &f64 {
-        &self.b
+    pub fn b(&self) -> f64 {
+        self.b
     }
-    pub fn c(&self) -> &f64 {
-        &self.c
+    pub fn c(&self) -> f64 {
+        self.c
     }
     fn weyl_gate(
         &self,
