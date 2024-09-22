@@ -23,7 +23,7 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawings, types
 from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
 from qiskit.visualization.utils import matplotlib_close_if_inline
-
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
 
 class Mpl2DPlotter(BasePlotter):
     """Matplotlib API for pulse drawer.
@@ -32,6 +32,7 @@ class Mpl2DPlotter(BasePlotter):
     Each chart is map to X-Y axis of the canvas.
     """
 
+    @_deprecate_pulse_dependency
     def __init__(self, canvas: core.DrawerCanvas, axis: Optional[plt.Axes] = None):
         """Create new plotter.
 

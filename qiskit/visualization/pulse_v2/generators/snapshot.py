@@ -40,8 +40,10 @@ the plotter API.
 from typing import Dict, Any, List
 
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
 
 
+@_deprecate_pulse_dependency
 def gen_snapshot_name(
     data: types.SnapshotInstruction,
     formatter: Dict[str, Any],
@@ -82,6 +84,7 @@ def gen_snapshot_name(
     return [text]
 
 
+@_deprecate_pulse_dependency
 def gen_snapshot_symbol(
     data: types.SnapshotInstruction,
     formatter: Dict[str, Any],

@@ -31,6 +31,7 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.utils import MeasLevel
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
 
 
 class ParametricPulseShapes(Enum):
@@ -532,6 +533,7 @@ class QobjToInstructionConverter:
 
     __chan_regex__ = re.compile(r"([a-zA-Z]+)(\d+)")
 
+    @_deprecate_pulse_dependency
     def __init__(
         self,
         pulse_library: Optional[List[PulseLibraryItem]] = None,

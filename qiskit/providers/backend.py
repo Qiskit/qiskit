@@ -24,6 +24,7 @@ from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
 
 
 class Backend:
@@ -485,6 +486,7 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
+    @_deprecate_pulse_dependency
     def instruction_schedule_map(self):
         """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions defined in this backend's target."""
@@ -524,6 +526,7 @@ class BackendV2(Backend, ABC):
             return self.target.qubit_properties[qubit]
         return [self.target.qubit_properties[q] for q in qubit]
 
+    @_deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
 
@@ -539,6 +542,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @_deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         """Return the measure stimulus channel for the given qubit.
 
@@ -554,6 +558,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @_deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         """Return the acquisition channel for the given qubit.
 
@@ -569,6 +574,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @_deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         """Return the secondary drive channel for the given qubit
 

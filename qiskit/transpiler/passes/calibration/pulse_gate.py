@@ -19,6 +19,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
 
 from .base_builder import CalibrationBuilder
 
@@ -47,6 +48,7 @@ class PulseGates(CalibrationBuilder):
           https://arxiv.org/abs/2104.14722
     """
 
+    @_deprecate_pulse_dependency
     def __init__(
         self,
         inst_map: InstructionScheduleMap = None,

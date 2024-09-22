@@ -25,10 +25,13 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_arg, _deprecate_pulse_dependency
+
 
 logger = logging.getLogger(__name__)
 
 
+@_deprecate_pulse_arg("defaults")
 def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
@@ -436,15 +439,19 @@ class BackendV2Converter(BackendV2):
     def meas_map(self) -> List[List[int]]:
         return self._config.meas_map
 
+    @_deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         return self._config.drive(qubit)
 
+    @_deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         return self._config.measure(qubit)
 
+    @_deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         return self._config.acquire(qubit)
 
+    @_deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         return self._config.control(qubits)
 

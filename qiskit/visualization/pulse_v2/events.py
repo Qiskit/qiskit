@@ -84,6 +84,7 @@ from collections.abc import Iterator
 
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
+from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
 
 
 class ChannelEvents:
@@ -101,6 +102,7 @@ class ChannelEvents:
         pulse.instructions.ShiftPhase,
     )
 
+    @_deprecate_pulse_dependency
     def __init__(
         self,
         waveforms: dict[int, pulse.Instruction],
