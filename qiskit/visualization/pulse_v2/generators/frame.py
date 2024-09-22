@@ -44,10 +44,10 @@ import numpy as np
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_formatted_phase(
     data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
@@ -105,7 +105,7 @@ def gen_formatted_phase(
     return [text]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_formatted_freq_mhz(
     data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
@@ -154,7 +154,7 @@ def gen_formatted_freq_mhz(
     return [text]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_formatted_frame_values(
     data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
@@ -231,7 +231,7 @@ def gen_formatted_frame_values(
     return texts
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_raw_operand_values_compact(
     data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
@@ -287,7 +287,7 @@ def gen_raw_operand_values_compact(
     return [text]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_frame_symbol(
     data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:

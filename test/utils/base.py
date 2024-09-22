@@ -164,6 +164,13 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit.providers.fake_provider.fake_backend",
         )
 
+        # Safe to remove once Pulse is removed in Qiskit 2.0
+        warnings.filterwarnings(
+            'ignore',
+            category=DeprecationWarning,
+            message=".*The entire Qiskit Pulse package is being deprecated.*",
+        )
+
         allow_DeprecationWarning_message = [
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
         ]

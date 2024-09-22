@@ -39,7 +39,6 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse import functional_pulse, PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestWaveform(QiskitTestCase):
@@ -86,7 +85,6 @@ class TestWaveform(QiskitTestCase):
         sample_pulse_list = Waveform(samples_list)
         self.assertEqual(sample_pulse_list.samples.dtype, np.complex128)
 
-    @ignore_pulse_deprecation_warnings
     def test_pulse_limits(self):
         """Test that limits of pulse norm of one are enforced properly."""
 
@@ -588,7 +586,6 @@ class TestSymbolicPulses(QiskitTestCase):
             waveform = GaussianSquareDrag(duration=100, sigma=1.0, amp=1.1, beta=0.1, width=10)
             self.assertGreater(np.abs(waveform.amp), 1.0)
 
-    @ignore_pulse_deprecation_warnings
     def test_class_level_disable_validation(self):
         """Test that pulse validation can be disabled on the class level.
 
@@ -836,7 +833,6 @@ class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""
 
     # pylint: disable=invalid-name
-    @ignore_pulse_deprecation_warnings
     def test_gaussian(self):
         """Test gaussian pulse."""
 
@@ -892,7 +888,6 @@ class TestScalableSymbolicPulse(QiskitTestCase):
         gaussian1._params["sigma"] = 10
         self.assertNotEqual(gaussian1, gaussian2)
 
-    @ignore_pulse_deprecation_warnings
     def test_complex_amp_error(self):
         """Test that initializing a pulse with complex amp raises an error"""
         with self.assertRaises(PulseError):

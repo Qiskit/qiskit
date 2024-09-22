@@ -28,7 +28,6 @@ from qiskit.pulse.channels import (
     PulseError,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestChannel(QiskitTestCase):
@@ -59,7 +58,6 @@ class TestAcquireChannel(QiskitTestCase):
         self.assertEqual(acquire_channel.index, 123)
         self.assertEqual(acquire_channel.name, "a123")
 
-    @ignore_pulse_deprecation_warnings
     def test_channel_hash(self):
         """Test hashing for acquire channel."""
         acq_channel_1 = AcquireChannel(123)
@@ -83,7 +81,6 @@ class TestClassicalIOChannel(QiskitTestCase):
 class TestMemorySlot(QiskitTestCase):
     """MemorySlot tests."""
 
-    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default memory slot."""
         memory_slot = MemorySlot(123)
@@ -103,7 +100,6 @@ class TestMemorySlot(QiskitTestCase):
 class TestRegisterSlot(QiskitTestCase):
     """RegisterSlot tests."""
 
-    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default register slot."""
         register_slot = RegisterSlot(123)
@@ -123,7 +119,6 @@ class TestRegisterSlot(QiskitTestCase):
 class TestSnapshotChannel(QiskitTestCase):
     """SnapshotChannel tests."""
 
-    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default snapshot channel."""
         snapshot_channel = SnapshotChannel()
@@ -136,7 +131,6 @@ class TestSnapshotChannel(QiskitTestCase):
 class TestDriveChannel(QiskitTestCase):
     """DriveChannel tests."""
 
-    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default drive channel."""
         drive_channel = DriveChannel(123)
@@ -155,7 +149,6 @@ class TestDriveChannel(QiskitTestCase):
 class TestControlChannel(QiskitTestCase):
     """ControlChannel tests."""
 
-    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default control channel."""
         control_channel = ControlChannel(123)
@@ -174,7 +167,6 @@ class TestControlChannel(QiskitTestCase):
 class TestMeasureChannel(QiskitTestCase):
     """MeasureChannel tests."""
 
-    @ignore_pulse_deprecation_warnings
     def test_default(self):
         """Test default measure channel."""
         measure_channel = MeasureChannel(123)

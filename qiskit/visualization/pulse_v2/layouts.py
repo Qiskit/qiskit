@@ -83,10 +83,10 @@ import numpy as np
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import types
 from qiskit.visualization.pulse_v2.device_info import DrawerBackendInfo
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def channel_type_grouped_sort(
     channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
@@ -137,7 +137,7 @@ def channel_type_grouped_sort(
         yield chan.name.upper(), [chan]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def channel_index_grouped_sort(
     channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
@@ -200,7 +200,7 @@ def channel_index_grouped_sort(
         yield chan.name.upper(), [chan]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def channel_index_grouped_sort_u(
     channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
@@ -264,7 +264,7 @@ def channel_index_grouped_sort_u(
         yield chan.name.upper(), [chan]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def qubit_index_sort(
     channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
@@ -308,7 +308,7 @@ def qubit_index_sort(
         yield f"Q{qind:d}", chans
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def time_map_in_ns(
     time_window: Tuple[int, int], axis_breaks: List[Tuple[int, int]], dt: Optional[float] = None
 ) -> types.HorizontalAxis:
@@ -367,7 +367,7 @@ def time_map_in_ns(
     )
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def detail_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo) -> str:
     """Layout function for generating figure title.
 
@@ -389,7 +389,7 @@ def detail_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerB
     return ", ".join(title_str)
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def empty_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo) -> str:
     """Layout function for generating an empty figure title."""
     return ""

@@ -14,7 +14,6 @@
 
 from math import pi
 import numpy as np
-from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
@@ -109,7 +108,6 @@ class TestBuilderBase(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-    @ignore_pulse_deprecation_warnings
     def test_default_alignment_alignmentkind_instance(self):
         """Test default AlignmentKind instance"""
         d0 = pulse.DriveChannel(0)
@@ -157,7 +155,6 @@ class TestContexts(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-    @ignore_pulse_deprecation_warnings
     def test_align_left(self):
         """Test the left alignment context."""
         d0 = pulse.DriveChannel(0)
@@ -271,7 +268,6 @@ class TestChannels(TestBuilder):
         with pulse.build(self.backend):
             self.assertEqual(pulse.measure_channel(0), pulse.MeasureChannel(0))
 
-    @ignore_pulse_deprecation_warnings
     def test_acquire_channel(self):
         """Text context builder acquire channel."""
         with pulse.build(self.backend):
@@ -348,7 +344,6 @@ class TestInstructions(TestBuilder):
 
         self.assertEqual(schedule.instructions[0][1].name, "new_name")
 
-    @ignore_pulse_deprecation_warnings
     def test_acquire_memory_slot(self):
         """Test acquire instruction into memory slot."""
         acquire0 = pulse.AcquireChannel(0)
@@ -517,7 +512,6 @@ class TestDirectives(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-    @ignore_pulse_deprecation_warnings
     def test_barrier_on_qubits(self):
         """Test barrier directive on qubits."""
         with pulse.build(self.backend) as schedule:
@@ -547,7 +541,6 @@ class TestDirectives(TestBuilder):
 class TestUtilities(TestBuilder):
     """Test builder utilities."""
 
-    @ignore_pulse_deprecation_warnings
     def test_active_backend(self):
         """Test getting active builder backend."""
         with pulse.build(self.backend):
@@ -709,7 +702,6 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-    @ignore_pulse_deprecation_warnings
     def test_delay_qubit(self):
         """Test delaying on a qubit macro."""
         with pulse.build(self.backend) as schedule:
@@ -760,7 +752,6 @@ class TestMacros(TestBuilder):
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
 
-    @ignore_pulse_deprecation_warnings
     def test_complex_build(self):
         """Test a general program build with nested contexts,
         circuits and macros."""
@@ -858,7 +849,6 @@ class TestBuilderComposition(TestBuilder):
 class TestSubroutineCall(TestBuilder):
     """Test for calling subroutine."""
 
-    @ignore_pulse_deprecation_warnings
     def test_call(self):
         """Test calling schedule instruction."""
         d0 = pulse.DriveChannel(0)

@@ -18,7 +18,7 @@ from typing import Any, Dict, List
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, PulseQobjDef
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class MeasurementKernel:
@@ -170,7 +170,7 @@ class PulseDefaults:
 
     _data = {}
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def __init__(
         self,
         qubit_freq_est: List[float],

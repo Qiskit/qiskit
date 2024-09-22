@@ -16,13 +16,13 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from qiskit.visualization.pulse_v2 import core
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class BasePlotter(ABC):
     """Base class of Qiskit plotter."""
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def __init__(self, canvas: core.DrawerCanvas):
         """Create new plotter.
 

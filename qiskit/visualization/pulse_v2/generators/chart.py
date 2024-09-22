@@ -40,10 +40,10 @@ the plotter API.
 from typing import Dict, Any, List
 
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_baseline(
     data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.LineData]:
@@ -80,7 +80,7 @@ def gen_baseline(
     return [baseline]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_chart_name(
     data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
@@ -118,7 +118,7 @@ def gen_chart_name(
     return [text]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_chart_scale(
     data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
@@ -159,7 +159,7 @@ def gen_chart_scale(
     return [text]
 
 
-@_deprecate_pulse_dependency
+@deprecate_pulse_dependency
 def gen_channel_freqs(
     data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:

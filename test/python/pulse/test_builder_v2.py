@@ -24,13 +24,11 @@ from qiskit.pulse import instructions
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import MUMBAI_CMAP
-from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class TestBuilderV2(QiskitTestCase):
     """Test the pulse builder context with backendV2."""
 
-    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
         self.backend = GenericBackendV2(
@@ -48,7 +46,6 @@ class TestBuilderV2(QiskitTestCase):
 class TestContextsV2(TestBuilderV2):
     """Test builder contexts."""
 
-    @ignore_pulse_deprecation_warnings
     def test_phase_compensated_frequency_offset(self):
         """Test that the phase offset context properly compensates for phase
         accumulation with backendV2."""
@@ -80,7 +77,6 @@ class TestChannelsV2(TestBuilderV2):
         with pulse.build(self.backend):
             self.assertEqual(pulse.measure_channel(0), pulse.MeasureChannel(0))
 
-    @ignore_pulse_deprecation_warnings
     def test_acquire_channel(self):
         """Text context builder acquire channel."""
         with pulse.build(self.backend):
@@ -95,7 +91,6 @@ class TestChannelsV2(TestBuilderV2):
 class TestDirectivesV2(TestBuilderV2):
     """Test builder directives."""
 
-    @ignore_pulse_deprecation_warnings
     def test_barrier_on_qubits(self):
         """Test barrier directive on qubits with backendV2.
         A part of qubits map of Mumbai
@@ -127,7 +122,6 @@ class TestDirectivesV2(TestBuilderV2):
 class TestUtilitiesV2(TestBuilderV2):
     """Test builder utilities."""
 
-    @ignore_pulse_deprecation_warnings
     def test_active_backend(self):
         """Test getting active builder backend."""
         with pulse.build(self.backend):
@@ -254,7 +248,6 @@ class TestMacrosV2(TestBuilderV2):
 
         self.assertScheduleEqual(schedule, reference)
 
-    @ignore_pulse_deprecation_warnings
     def test_delay_qubit(self):
         """Test delaying on a qubit macro."""
         with pulse.build(self.backend) as schedule:

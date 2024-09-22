@@ -42,7 +42,7 @@ from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
 from qiskit.pulse.calibration_entries import PulseQobjDef
 from qiskit.providers.models.pulsedefaults import MeasurementKernel, Discriminator
 from qiskit.qobj.pulse_qobj import QobjMeasurementOption
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency, _deprecate_pulse_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
 # Noise default values/ranges for duration and error of supported
 # instructions. There are two possible formats:
@@ -88,7 +88,7 @@ class PulseDefaults:
 
     _data = {}
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def __init__(
         self,
         qubit_freq_est: List[float],
@@ -244,7 +244,7 @@ class PulseLibraryItem:
     """INTERNAL - An item in a pulse library."""
 
     # Copy from the deprecated from qiskit.qobj.PulseLibraryItem
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def __init__(self, name, samples):
         """Instantiate a pulse library item.
 
@@ -313,7 +313,7 @@ class PulseQobjInstruction:
         "parameters",
     ]
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def __init__(
         self,
         name,
@@ -523,7 +523,7 @@ class GenericBackendV2(BackendV2):
     """
 
 
-    @_deprecate_pulse_arg("pulse_channels")
+    @deprecate_pulse_arg("pulse_channels")
     def __init__(
         self,
         num_qubits: int,
@@ -996,7 +996,7 @@ class GenericBackendV2(BackendV2):
         else:
             return BasicSimulator._default_options()
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
         qubits = (qubit,)
@@ -1004,7 +1004,7 @@ class GenericBackendV2(BackendV2):
             return drive_channels_map[qubits][0]
         return None
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
         qubits = (qubit,)
@@ -1012,7 +1012,7 @@ class GenericBackendV2(BackendV2):
             return measure_channels_map[qubits][0]
         return None
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
         qubits = (qubit,)
@@ -1020,7 +1020,7 @@ class GenericBackendV2(BackendV2):
             return acquire_channels_map[qubits][0]
         return None
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         control_channels_map = getattr(self, "channels_map", {}).get("control", {})
         qubits = tuple(qubits)

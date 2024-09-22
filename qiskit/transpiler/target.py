@@ -57,7 +57,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.utils import deprecate_func
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 logger = logging.getLogger(__name__)
 
@@ -605,7 +605,7 @@ class Target(BaseTarget):
             self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def instruction_schedule_map(self):
         """Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions in the target with a pulse schedule defined.
@@ -628,7 +628,7 @@ class Target(BaseTarget):
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def has_calibration(
         self,
         operation_name: str,
@@ -650,7 +650,7 @@ class Target(BaseTarget):
             return False
         return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def get_calibration(
         self,
         operation_name: str,

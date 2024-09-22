@@ -17,7 +17,7 @@ from qiskit.pulse import Play
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
-from qiskit.utils.deprecate_pulse import _deprecate_pulse_dependency
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class ValidatePulseGates(AnalysisPass):
@@ -41,7 +41,7 @@ class ValidatePulseGates(AnalysisPass):
     the backend control electronics.
     """
 
-    @_deprecate_pulse_dependency
+    @deprecate_pulse_dependency
     def __init__(
         self,
         granularity: int = 1,

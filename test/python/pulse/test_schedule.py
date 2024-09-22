@@ -47,7 +47,6 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from qiskit.pulse.deprecate import ignore_pulse_deprecation_warnings
 
 
 class BaseTestSchedule(QiskitTestCase):
@@ -233,7 +232,6 @@ class TestScheduleBuilding(BaseTestSchedule):
         for _, instr in sched.instructions:
             self.assertIsInstance(instr, Instruction)
 
-    @ignore_pulse_deprecation_warnings
     def test_absolute_start_time_of_grandchild(self):
         """Test correct calculation of start time of grandchild of a schedule."""
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
@@ -516,7 +514,6 @@ class TestReplace(BaseTestSchedule):
         sched.replace(old, new, inplace=True)
         self.assertEqual(sched, ref_sched)
 
-    @ignore_pulse_deprecation_warnings
     def test_replace_fails_on_overlap(self):
         """Test that replacement fails on overlap."""
         old = Play(Constant(20, 1.0), DriveChannel(0))
@@ -578,7 +575,6 @@ class TestDelay(BaseTestSchedule):
             sched = Delay(self.delay_time, control_ch) | Play(pulse, control_ch)
             self.assertIsInstance(sched, Schedule)
 
-    @ignore_pulse_deprecation_warnings
     def test_delay_acquire_channel(self):
         """Test Delay on DriveChannel"""
 
@@ -807,7 +803,6 @@ class TestScheduleFilter(BaseTestSchedule):
             self.assertIsInstance(inst, Acquire)
         self.assertTrue(len(filtered.instructions), 2)
 
-    @ignore_pulse_deprecation_warnings
     def test_custom_filters(self):
         """Test custom filters."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
@@ -890,7 +885,6 @@ class TestScheduleFilter(BaseTestSchedule):
 class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""
 
-    @ignore_pulse_deprecation_warnings
     def test_different_channels(self):
         """Test equality is False if different channels."""
         self.assertNotEqual(
