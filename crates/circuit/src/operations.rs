@@ -12,6 +12,7 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::vec;
 
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::ExtraInstructionAttributes;
@@ -163,6 +164,7 @@ pub trait Operation {
     fn num_clbits(&self) -> u32;
     fn num_params(&self) -> u32;
     fn control_flow(&self) -> bool;
+    fn blocks(&self) -> Vec<CircuitData>;
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
@@ -226,6 +228,15 @@ impl<'a> Operation for OperationRef<'a> {
             Self::Gate(gate) => gate.control_flow(),
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
+        }
+    }
+    #[inline]
+    fn blocks(&self) -> Vec<CircuitData> {
+        match self {
+            OperationRef::Standard(standard) => standard.blocks(),
+            OperationRef::Gate(gate) => gate.blocks(),
+            OperationRef::Instruction(instruction) => instruction.blocks(),
+            OperationRef::Operation(operation) => operation.blocks(),
         }
     }
     #[inline]
@@ -544,20 +555,20 @@ impl Operation for StandardGate {
         STANDARD_GATE_NUM_QUBITS[*self as usize]
     }
 
-    fn num_params(&self) -> u32 {
-        STANDARD_GATE_NUM_PARAMS[*self as usize]
-    }
-
     fn num_clbits(&self) -> u32 {
         0
+    }
+
+    fn num_params(&self) -> u32 {
+        STANDARD_GATE_NUM_PARAMS[*self as usize]
     }
 
     fn control_flow(&self) -> bool {
         false
     }
 
-    fn directive(&self) -> bool {
-        false
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
     }
 
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
@@ -2057,6 +2068,7 @@ impl Operation for StandardGate {
     fn standard_gate(&self) -> Option<StandardGate> {
         Some(*self)
     }
+
     fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
             Self::GlobalPhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
@@ -2248,6 +2260,10 @@ impl Operation for StandardGate {
             Self::RC3XGate => None, // the inverse in not a StandardGate
         }
     }
+
+    fn directive(&self) -> bool {
+        false
+    }
 }
 
 const FLOAT_ZERO: Param = Param::Float(0.0);
@@ -2350,6 +2366,26 @@ impl Operation for PyInstruction {
     fn control_flow(&self) -> bool {
         self.control_flow
     }
+    fn blocks(&self) -> Vec<CircuitData> {
+        if !self.control_flow {
+            return vec![];
+        }
+        Python::with_gil(|py| -> Vec<CircuitData> {
+            // We expect that if PyInstruction::control_flow is true then the operation WILL
+            // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
+            let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
+            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
+            blocks
+                .iter()
+                .map(|b| {
+                    b.getattr(intern!(py, "_data"))
+                        .unwrap()
+                        .extract::<CircuitData>()
+                        .unwrap()
+                })
+                .collect()
+        })
+    }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None
     }
@@ -2418,6 +2454,9 @@ impl Operation for PyGate {
     }
     fn control_flow(&self) -> bool {
         false
+    }
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
@@ -2515,6 +2554,9 @@ impl Operation for PyOperation {
     }
     fn control_flow(&self) -> bool {
         false
+    }
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None
