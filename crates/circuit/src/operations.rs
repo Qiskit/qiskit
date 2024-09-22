@@ -21,7 +21,7 @@ use crate::{gate_matrix, Qubit};
 
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
@@ -167,7 +167,7 @@ pub trait Operation {
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
-    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, Vec<Param>)>;
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)>;
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -265,7 +265,7 @@ impl<'a> Operation for OperationRef<'a> {
         }
     }
     #[inline]
-    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, Vec<Param>)> {
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
             Self::Standard(standard) => standard.inverse(params),
             Self::Gate(gate) => gate.inverse(params),
@@ -491,7 +491,7 @@ impl StandardGate {
         self.definition(&params)
     }
 
-    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, Vec<Param>)> {
+    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         self.inverse(&params)
     }
 
@@ -2057,102 +2057,129 @@ impl Operation for StandardGate {
     fn standard_gate(&self) -> Option<StandardGate> {
         Some(*self)
     }
-    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, Vec<Param>)> {
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
-            Self::GlobalPhaseGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::GlobalPhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::GlobalPhaseGate,
-                    vec![multiply_param(&params[0], -1.0, py)],
+                    smallvec![multiply_param(&params[0], -1.0, py)],
                 )
             })),
-            Self::HGate => Some((Self::HGate, vec![])),
-            Self::IGate => Some((Self::IGate, vec![])),
-            Self::XGate => Some((Self::XGate, vec![])),
-            Self::YGate => Some((Self::YGate, vec![])),
-            Self::ZGate => Some((Self::ZGate, vec![])),
-            Self::PhaseGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::PhaseGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::HGate => Some((Self::HGate, smallvec![])),
+            Self::IGate => Some((Self::IGate, smallvec![])),
+            Self::XGate => Some((Self::XGate, smallvec![])),
+            Self::YGate => Some((Self::YGate, smallvec![])),
+            Self::ZGate => Some((Self::ZGate, smallvec![])),
+            Self::PhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::PhaseGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::RGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::RGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::RGate,
-                    vec![multiply_param(&params[0], -1.0, py), params[1].clone()],
+                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
                 )
             })),
-            Self::RXGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RXGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::RYGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RYGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::RZGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RZGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RZGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RZGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::SGate => Some((Self::SdgGate, vec![])),
-            Self::SdgGate => Some((Self::SGate, vec![])),
-            Self::SXGate => Some((Self::SXdgGate, vec![])),
-            Self::SXdgGate => Some((Self::SXGate, vec![])),
-            Self::TGate => Some((Self::TdgGate, vec![])),
-            Self::TdgGate => Some((Self::TGate, vec![])),
-            Self::UGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::SGate => Some((Self::SdgGate, smallvec![])),
+            Self::SdgGate => Some((Self::SGate, smallvec![])),
+            Self::SXGate => Some((Self::SXdgGate, smallvec![])),
+            Self::SXdgGate => Some((Self::SXGate, smallvec![])),
+            Self::TGate => Some((Self::TdgGate, smallvec![])),
+            Self::TdgGate => Some((Self::TGate, smallvec![])),
+            Self::UGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::UGate,
-                    vec![
+                    smallvec![
                         multiply_param(&params[0], -1.0, py),
                         multiply_param(&params[2], -1.0, py),
                         multiply_param(&params[1], -1.0, py),
                     ],
                 )
             })),
-            Self::U1Gate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::U1Gate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::U1Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::U1Gate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::U2Gate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::U2Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::U2Gate,
-                    vec![
+                    smallvec![
                         add_param(&multiply_param(&params[1], -1.0, py), -PI, py),
                         add_param(&multiply_param(&params[0], -1.0, py), PI, py),
                     ],
                 )
             })),
-            Self::U3Gate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::U3Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::U3Gate,
-                    vec![
+                    smallvec![
                         multiply_param(&params[0], -1.0, py),
                         multiply_param(&params[2], -1.0, py),
                         multiply_param(&params[1], -1.0, py),
                     ],
                 )
             })),
-            Self::CHGate => Some((Self::CHGate, vec![])),
-            Self::CXGate => Some((Self::CXGate, vec![])),
-            Self::CYGate => Some((Self::CYGate, vec![])),
-            Self::CZGate => Some((Self::CZGate, vec![])),
+            Self::CHGate => Some((Self::CHGate, smallvec![])),
+            Self::CXGate => Some((Self::CXGate, smallvec![])),
+            Self::CYGate => Some((Self::CYGate, smallvec![])),
+            Self::CZGate => Some((Self::CZGate, smallvec![])),
             Self::DCXGate => None, // the inverse in not a StandardGate
-            Self::ECRGate => Some((Self::ECRGate, vec![])),
-            Self::SwapGate => Some((Self::SwapGate, vec![])),
+            Self::ECRGate => Some((Self::ECRGate, smallvec![])),
+            Self::SwapGate => Some((Self::SwapGate, smallvec![])),
             Self::ISwapGate => None, // the inverse in not a StandardGate
-            Self::CPhaseGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::CPhaseGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::CPhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CPhaseGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::CRXGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::CRXGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::CRXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CRXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::CRYGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::CRYGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::CRYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CRYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::CRZGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::CRZGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::CRZGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CRZGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::CSGate => Some((Self::CSdgGate, vec![])),
-            Self::CSdgGate => Some((Self::CSGate, vec![])),
+            Self::CSGate => Some((Self::CSdgGate, smallvec![])),
+            Self::CSdgGate => Some((Self::CSGate, smallvec![])),
             Self::CSXGate => None, // the inverse in not a StandardGate
-            Self::CUGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::CUGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::CUGate,
-                    vec![
+                    smallvec![
                         multiply_param(&params[0], -1.0, py),
                         multiply_param(&params[2], -1.0, py),
                         multiply_param(&params[1], -1.0, py),
@@ -2160,48 +2187,63 @@ impl Operation for StandardGate {
                     ],
                 )
             })),
-            Self::CU1Gate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::CU1Gate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::CU1Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::CU1Gate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::CU3Gate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::CU3Gate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::CU3Gate,
-                    vec![
+                    smallvec![
                         multiply_param(&params[0], -1.0, py),
                         multiply_param(&params[2], -1.0, py),
                         multiply_param(&params[1], -1.0, py),
                     ],
                 )
             })),
-            Self::RXXGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RXXGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RXXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RXXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::RYYGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RYYGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RYYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RYYGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::RZZGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RZZGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RZZGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RZZGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::RZXGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
-                (Self::RZXGate, vec![multiply_param(&params[0], -1.0, py)])
+            Self::RZXGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
+                (
+                    Self::RZXGate,
+                    smallvec![multiply_param(&params[0], -1.0, py)],
+                )
             })),
-            Self::XXMinusYYGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::XXMinusYYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::XXMinusYYGate,
-                    vec![multiply_param(&params[0], -1.0, py), params[1].clone()],
+                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
                 )
             })),
-            Self::XXPlusYYGate => Some(Python::with_gil(|py| -> (Self, Vec<Param>) {
+            Self::XXPlusYYGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
                     Self::XXPlusYYGate,
-                    vec![multiply_param(&params[0], -1.0, py), params[1].clone()],
+                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
                 )
             })),
-            Self::CCXGate => Some((Self::CCXGate, vec![])),
-            Self::CCZGate => Some((Self::CCZGate, vec![])),
-            Self::CSwapGate => Some((Self::CSwapGate, vec![])),
+            Self::CCXGate => Some((Self::CCXGate, smallvec![])),
+            Self::CCZGate => Some((Self::CCZGate, smallvec![])),
+            Self::CSwapGate => Some((Self::CSwapGate, smallvec![])),
             Self::RCCXGate => None, // the inverse in not a StandardGate
-            Self::C3XGate => Some((Self::C3XGate, vec![])),
+            Self::C3XGate => Some((Self::C3XGate, smallvec![])),
             Self::C3SXGate => None, // the inverse in not a StandardGate
             Self::RC3XGate => None, // the inverse in not a StandardGate
         }
@@ -2344,7 +2386,7 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, Vec<Param>)> {
+    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         None
     }
 }
@@ -2423,14 +2465,14 @@ impl Operation for PyGate {
     fn directive(&self) -> bool {
         false
     }
-    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, Vec<Param>)> {
-        Python::with_gil(|py| -> Option<(StandardGate, Vec<Param>)> {
+    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        Python::with_gil(|py| -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
             match self.gate.getattr(py, intern!(py, "inverse")) {
                 Ok(inverse) => {
                     let res: Option<PyObject> = inverse.call0(py).ok()?.extract(py).ok();
                     match res {
                         Some(x) => {
-                            let out: (StandardGate, Vec<Param>) = x
+                            let out: (StandardGate, SmallVec<[Param; 3]>) = x
                                 .getattr(py, intern!(py, "inverse"))
                                 .ok()?
                                 .extract(py)
@@ -2495,7 +2537,7 @@ impl Operation for PyOperation {
             }
         })
     }
-    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, Vec<Param>)> {
+    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         None
     }
 }
