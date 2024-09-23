@@ -579,7 +579,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     # we'll start the search from this dummy node.
     dummy = graph.add_node(
         NodeData(
-            key=Key("key", 0),
+            key=Key("key", 2**31 - 1),
             equivs=[Equivalence([], QuantumCircuit(0, name="dummy starting node"))],
         )
     )

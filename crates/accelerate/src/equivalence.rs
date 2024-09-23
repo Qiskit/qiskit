@@ -345,7 +345,7 @@ type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
-    pub graph: GraphType,
+    graph: GraphType,
     key_to_node_index: KTIType,
     rule_id: usize,
     _graph: Option<PyObject>,
@@ -684,6 +684,11 @@ impl EquivalenceLibrary {
     /// `NodeIndex`
     pub fn node_index(&self, key: &Key) -> NodeIndex {
         self.key_to_node_index[key]
+    }
+
+    /// Expose an immutable view of the inner graph.
+    pub fn graph(&self) -> &GraphType {
+        &self.graph
     }
 }
 
