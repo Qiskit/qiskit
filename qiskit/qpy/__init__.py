@@ -1621,8 +1621,8 @@ struct is used:
 
 this matches the internal C representation of Python's complex type. [#f3]_
 
-Footnotes
-=========
+References
+==========
 
 .. [#f1] https://tools.ietf.org/html/rfc1700
 .. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
