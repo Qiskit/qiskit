@@ -505,15 +505,16 @@ class UnitarySynthesis(TransformationPass):
 
         if self.method == "default" and isinstance(kwargs["target"], Target):
             _coupling_edges = (
-                set(self._coupling_map.get_edges()) if self._coupling_map is not None else None
+                list(self._coupling_map.get_edges()) if self._coupling_map is not None else []
             )
+
             out = run_default_main_loop(
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
                 kwargs["target"],
-                self._approximation_degree,
                 _coupling_edges,
+                self._approximation_degree,
                 kwargs["natural_direction"],
             )
             return out

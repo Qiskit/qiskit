@@ -23,7 +23,6 @@ use indexmap::IndexMap;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use pyo3::conversion::FromPyObjectBound;
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use smallvec::{smallvec, SmallVec};
 
@@ -178,8 +177,8 @@ fn py_run_default_main_loop(
     qubit_indices: &Bound<'_, PyList>,
     min_qubits: usize,
     target: &Target,
+    coupling_edges: &Bound<'_, PyList>,
     approximation_degree: Option<f64>,
-    coupling_edges: Option<&Bound<'_, PyAny>>,
     natural_direction: Option<bool>,
 ) -> PyResult<DAGCircuit> {
     let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
@@ -209,8 +208,8 @@ fn py_run_default_main_loop(
                             &PyList::new_bound(py, new_ids),
                             min_qubits,
                             target,
-                            approximation_degree,
                             coupling_edges,
+                            approximation_degree,
                             natural_direction,
                         )?;
                         new_blocks.push(dag_to_circuit.call1((res,))?);
@@ -291,8 +290,8 @@ fn py_run_default_main_loop(
                                 py,
                                 unitary,
                                 &ref_qubits,
+                                coupling_edges,
                                 approximation_degree,
-                                &coupling_edges,
                                 natural_direction,
                                 target,
                             )?;
@@ -357,8 +356,8 @@ fn run_2q_unitary_synthesis(
     py: Python,
     unitary: Array2<Complex64>,
     ref_qubits: &[PhysicalQubit; 2],
+    coupling_edges: &Bound<'_, PyList>,
     approximation_degree: Option<f64>,
-    coupling_edges: &Option<&Bound<'_, PyAny>>,
     natural_direction: Option<bool>,
     target: &Target,
 ) -> PyResult<Option<UnitarySynthesisReturnType>> {
@@ -781,7 +780,7 @@ fn preferred_direction(
     decomposer: &DecomposerElement,
     ref_qubits: &[PhysicalQubit; 2],
     natural_direction: Option<bool>,
-    coupling_edges: &Option<&Bound<'_, PyAny>>,
+    coupling_edges: &Bound<'_, PyList>,
     target: &Target,
 ) -> PyResult<Option<bool>> {
     // Returns:
@@ -818,40 +817,46 @@ fn preferred_direction(
         Some(false) => None,
         _ => {
             // None or Some(true)
-            if let Some(edges) = coupling_edges {
-                let edge_set: HashSet<(u32, u32)> =
-                    HashSet::from_py_object_bound(edges.as_borrowed())?;
-                let zero_one = edge_set.contains(&(qubits[0].0, qubits[1].0));
-                let one_zero = edge_set.contains(&(qubits[1].0, qubits[0].0));
-
-                match (zero_one, one_zero) {
-                    (true, false) => Some(true),
-                    (false, true) => Some(false),
-                    _ => {
-                        let mut cost_0_1: f64 = f64::INFINITY;
-                        let mut cost_1_0: f64 = f64::INFINITY;
-
-                        // Try to find the cost in gate_lengths
-                        cost_0_1 = compute_cost(true, qubits, cost_0_1)?;
-                        cost_1_0 = compute_cost(true, reverse_qubits, cost_1_0)?;
-
-                        // If no valid cost was found in gate_lengths, check gate_errors
-                        if !(cost_0_1 < f64::INFINITY || cost_1_0 < f64::INFINITY) {
-                            cost_0_1 = compute_cost(false, qubits, cost_0_1)?;
-                            cost_1_0 = compute_cost(false, reverse_qubits, cost_1_0)?;
-                        }
-
-                        if cost_0_1 < cost_1_0 {
-                            Some(true)
-                        } else if cost_1_0 < cost_0_1 {
-                            Some(false)
-                        } else {
-                            None
-                        }
+            let mut edge_set = HashSet::new();
+            for item in coupling_edges.iter() {
+                if let Ok(tuple) = item.extract::<(usize, usize)>() {
+                    edge_set.insert(tuple);
+                } else if let Ok(inner_list) = item.extract::<&PyList>() {
+                    if inner_list.len() == 2 {
+                        let first: usize = inner_list.get_item(0)?.extract()?;
+                        let second: usize = inner_list.get_item(1)?.extract()?;
+                        edge_set.insert((first, second));
                     }
                 }
-            } else {
-                None
+            }
+            let zero_one = edge_set.contains(&(qubits[0].0 as usize, qubits[1].0 as usize));
+            let one_zero = edge_set.contains(&(qubits[1].0 as usize, qubits[0].0 as usize));
+
+            match (zero_one, one_zero) {
+                (true, false) => Some(true),
+                (false, true) => Some(false),
+                _ => {
+                    let mut cost_0_1: f64 = f64::INFINITY;
+                    let mut cost_1_0: f64 = f64::INFINITY;
+
+                    // Try to find the cost in gate_lengths
+                    cost_0_1 = compute_cost(true, qubits, cost_0_1)?;
+                    cost_1_0 = compute_cost(true, reverse_qubits, cost_1_0)?;
+
+                    // If no valid cost was found in gate_lengths, check gate_errors
+                    if !(cost_0_1 < f64::INFINITY || cost_1_0 < f64::INFINITY) {
+                        cost_0_1 = compute_cost(false, qubits, cost_0_1)?;
+                        cost_1_0 = compute_cost(false, reverse_qubits, cost_1_0)?;
+                    }
+
+                    if cost_0_1 < cost_1_0 {
+                        Some(true)
+                    } else if cost_1_0 < cost_0_1 {
+                        Some(false)
+                    } else {
+                        None
+                    }
+                }
             }
         }
     };
