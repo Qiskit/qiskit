@@ -29,12 +29,12 @@ def deprecate_pulse_func(func):
 
 
 def deprecate_pulse_dependency(func):
-    """Deprecation message for functions and classes"""
+    """Deprecation message for functions and classes which use or depend on Pulse"""
     return deprecate_func(
         since="1.3",
         removal_timeline="in Qiskit 2.0",
         additional_msg="The entire Qiskit Pulse package is being deprecated. "
-        "This is a dependency on the package.",
+        "This is a dependency an as such it being deprecated as well.",
     )(func)
 
 
