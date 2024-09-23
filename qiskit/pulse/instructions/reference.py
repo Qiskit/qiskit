@@ -17,7 +17,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import instruction
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Reference(instruction.Instruction):

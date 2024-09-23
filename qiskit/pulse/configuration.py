@@ -18,7 +18,7 @@ import numpy as np
 
 from .channels import DriveChannel, MeasureChannel
 from .exceptions import PulseError
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _assert_nested_dict_equal(a: dict, b: dict):

@@ -20,7 +20,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class AlignmentKind(abc.ABC):

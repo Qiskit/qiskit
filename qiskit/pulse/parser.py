@@ -24,7 +24,7 @@ from typing import Any
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.circuit import ParameterExpression
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class PulseExpression(ast.NodeTransformer):

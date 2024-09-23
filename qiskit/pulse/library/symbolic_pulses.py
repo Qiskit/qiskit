@@ -31,7 +31,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _lifted_gaussian(

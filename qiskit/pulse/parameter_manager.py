@@ -67,7 +67,7 @@ from qiskit.pulse.utils import (
     _validate_parameter_vector,
     _validate_parameter_value,
 )
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class NodeVisitor:

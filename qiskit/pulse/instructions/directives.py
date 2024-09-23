@@ -18,7 +18,7 @@ from abc import ABC
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Directive(instruction.Instruction, ABC):

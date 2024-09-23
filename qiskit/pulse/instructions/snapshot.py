@@ -18,7 +18,7 @@ from typing import Optional, Tuple
 from qiskit.pulse.channels import SnapshotChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Snapshot(Instruction):

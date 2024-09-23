@@ -24,7 +24,7 @@ from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 IncompletePulseQobj = object()

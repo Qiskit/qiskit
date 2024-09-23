@@ -28,7 +28,7 @@ from collections.abc import Iterable
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.deprecate import deprecate_pulse_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 # pylint: disable=bad-docstring-quotes
