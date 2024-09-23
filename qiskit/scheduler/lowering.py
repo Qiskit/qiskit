@@ -29,6 +29,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.providers import BackendV1, BackendV2
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 CircuitPulseDef = namedtuple(
     "CircuitPulseDef",
@@ -36,6 +37,7 @@ CircuitPulseDef = namedtuple(
 )  # The labels of the qubits involved in the command according to the circuit
 
 
+@deprecate_pulse_dependency
 def lower_gates(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
