@@ -57,7 +57,11 @@ def available_versions():
                 continue
             if max_version is not None and other_version >= max_version:
                 continue
-            if other_version > our_version or other_version.is_prerelease:
+            if other_version > our_version:
+                continue
+            if other_version.pre is not None and other_version.pre[0] in ("a", "b"):
+                # We skip alpha and beta prereleases, but we currently want to test for
+                # compatibility with release candidates.
                 continue
             # Note: this ignores versions that are uninstallable because we're using a Python
             # version that's too new, which can be a problem for the oldest Terras, especially from
