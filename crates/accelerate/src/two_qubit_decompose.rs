@@ -32,7 +32,7 @@ use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::{IntoPyArray, ToPyArray};
-use numpy::{PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{PyArray2, PyArrayLike2, PyReadonlyArray1, PyReadonlyArray2};
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -154,6 +154,15 @@ impl TraceToFidelity for c64 {
     }
 }
 
+#[pyfunction]
+#[pyo3(name = "trace_to_fid")]
+/// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
+/// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
+fn py_trace_to_fid(trace: Complex64) -> PyResult<f64> {
+    let fid = trace.trace_to_fid();
+    Ok(fid)
+}
+
 fn decompose_two_qubit_product_gate(
     special_unitary: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
@@ -182,7 +191,29 @@ fn decompose_two_qubit_product_gate(
     }
     l.mapv_inplace(|x| x / det_l.sqrt());
     let phase = det_l.arg() / 2.;
+
     Ok((l, r, phase))
+}
+
+#[pyfunction]
+#[pyo3(name = "decompose_two_qubit_product_gate")]
+/// Decompose :math:`U = U_l \otimes U_r` where :math:`U \in SU(4)`,
+/// and :math:`U_l,~U_r \in SU(2)`.
+/// Args:
+///     special_unitary_matrix: special unitary matrix to decompose
+/// Raises:
+///     QiskitError: if decomposition isn't possible.
+fn py_decompose_two_qubit_product_gate(
+    py: Python,
+    special_unitary: PyArrayLike2<Complex64>,
+) -> PyResult<(PyObject, PyObject, f64)> {
+    let view = special_unitary.as_array();
+    let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
+    Ok((
+        l.into_pyarray_bound(py).unbind().into(),
+        r.into_pyarray_bound(py).unbind().into(),
+        phase,
+    ))
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
@@ -299,6 +330,43 @@ fn ry_matrix(theta: f64) -> Array2<Complex64> {
 fn rz_matrix(theta: f64) -> Array2<Complex64> {
     let ilam2 = c64(0., 0.5 * theta);
     array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+}
+
+/// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`
+fn ud(a: f64, b: f64, c: f64) -> Array2<Complex64> {
+    array![
+        [
+            (IM * c).exp() * (a - b).cos(),
+            C_ZERO,
+            C_ZERO,
+            IM * (IM * c).exp() * (a - b).sin()
+        ],
+        [
+            C_ZERO,
+            (M_IM * c).exp() * (a + b).cos(),
+            IM * (M_IM * c).exp() * (a + b).sin(),
+            C_ZERO
+        ],
+        [
+            C_ZERO,
+            IM * (M_IM * c).exp() * (a + b).sin(),
+            (M_IM * c).exp() * (a + b).cos(),
+            C_ZERO
+        ],
+        [
+            IM * (IM * c).exp() * (a - b).sin(),
+            C_ZERO,
+            C_ZERO,
+            (IM * c).exp() * (a - b).cos()
+        ]
+    ]
+}
+
+#[pyfunction]
+#[pyo3(name = "Ud")]
+fn py_ud(py: Python, a: f64, b: f64, c: f64) -> Py<PyArray2<Complex64>> {
+    let ud_mat = ud(a, b, c);
+    ud_mat.into_pyarray_bound(py).unbind()
 }
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
@@ -2278,9 +2346,12 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
 
 pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
+    m.add_wrapped(wrap_pyfunction!(py_decompose_two_qubit_product_gate))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_decompose_up_to_diagonal))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_local_invariants))?;
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
+    m.add_wrapped(wrap_pyfunction!(py_trace_to_fid))?;
+    m.add_wrapped(wrap_pyfunction!(py_ud))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
     m.add_class::<Specialization>()?;
