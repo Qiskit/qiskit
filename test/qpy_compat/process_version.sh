@@ -20,7 +20,7 @@ function usage {
 }
 
 python="python"
-while getopts "p:" opt; do 
+while getopts "p:" opt; do
     case "$opt" in
         p)
             python="$OPTARG"
@@ -45,16 +45,6 @@ our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
 cache_dir="$(pwd -P)/qpy_$version"
 venv_dir="$(pwd -P)/${version}"
 
-<<<<<<< HEAD
-if [[ ! -d qpy_$version ]] ; then
-    echo "Building venv for qiskit-terra $version"
-    python -m venv $version
-    ./$version/bin/pip install "qiskit-terra==$version"
-    mkdir qpy_$version
-    pushd qpy_$version
-    echo "Generating qpy files with qiskit-terra $version"
-    ../$version/bin/python ../test_qpy.py generate --version=$version
-=======
 if [[ ! -d $cache_dir ]] ; then
     echo "Building venv for $package==$version"
     "$python" -m venv "$venv_dir"
@@ -63,7 +53,6 @@ if [[ ! -d $cache_dir ]] ; then
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
     "$venv_dir/bin/python" "${our_dir}/test_qpy.py" generate --version="$version"
->>>>>>> 1344cddbe (Skip uninstallable tags in QPY backwards compatibility tests (#13202))
 else
     echo "Using cached QPY files for $version"
     pushd "${cache_dir}"
