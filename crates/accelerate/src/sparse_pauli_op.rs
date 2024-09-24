@@ -60,7 +60,6 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
     )
 }
 
-#[pymodule]
 pub fn sparse_pauli_op(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     Ok(())

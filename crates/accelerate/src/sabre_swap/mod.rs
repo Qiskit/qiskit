@@ -741,7 +741,6 @@ fn choose_best_swap(
     *best_swaps.choose(rng).unwrap()
 }
 
-#[pymodule]
 pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
