@@ -1,4 +1,6 @@
 use crate::xx_decompose::utilities::Square;
+use crate::euler_one_qubit_decomposer::EulerBasis;
+
 
 struct Point {
     a: f64,
@@ -26,3 +28,4 @@ fn _average_infidelity(p: Point, q: Point) -> f64 {
                 * ((a0 - a1).cos().sq() * (b0 - b1).cos().sq() * (c0 - c1).cos().sq()
                     + (a0 - a1).sin().sq() * (b0 - b1).sin().sq() * (c0 - c1).sin().sq()))
 }
+

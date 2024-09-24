@@ -1,6 +1,5 @@
 // from paths.py
 use hashbrown::HashMap;
-
 const PI: f64 = std::f64::consts::PI;
 
 use crate::xx_decompose::polytopes::{Polytope, SpecialPolytope, AlcoveDetails, AF, Reflection};

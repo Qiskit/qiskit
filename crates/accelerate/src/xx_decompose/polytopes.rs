@@ -1,3 +1,5 @@
+const PI: f64 = std::f64::consts::PI;
+use std::iter;
 use rand;
 use rand::seq::SliceRandom;
 use ndarray::prelude::*;
@@ -184,11 +186,76 @@ struct XXPolytope {
 
 impl XXPolytope {
 
+    /// Constructs an XXPolytope from a sequence of strengths.
+    pub(crate) fn from_strengths(strengths: &[f64]) -> XXPolytope {
+        let [mut total_strength, mut max_strength, mut place_strength] = [0., 0., 0.];
+        for strength in strengths {
+            total_strength += strength;
+            if *strength >= max_strength {
+                [max_strength, place_strength] = [*strength, max_strength]
+            }
+            else if *strength >= place_strength {
+                place_strength = *strength
+            }
+        }
+        XXPolytope { total_strength, max_strength, place_strength }
+    }
+
+    /// Returns b with A*x + b ≥ 0 iff x belongs to the XXPolytope.
+    fn _offsets(&self) -> [f64; 7] {
+        [
+                0.,
+                0.,
+                0.,
+                PI / 2.,
+                self.total_strength,
+                self.total_strength - 2. * self.max_strength,
+                self.total_strength - self.max_strength - self.place_strength,
+        ]
+    }
+
+    /// Returns True when `point` is a member of `self`.
+    fn member(&self, point: Vec<Vec<f64>>) -> bool {
+        let offsets = self._offsets();
+        for row in point {
+            // TODO: calculate the three entries and assign to f64 vars.
+            // then refer to these vars below. We need no dynamic allocation
+            // at all.
+            let new_row =
+                if row[0] >= PI / 4. + EPSILON {
+                    let mut _row = row.clone();
+                    _row[0] = PI / 2. - row[0];
+                    _row
+                } else {
+                    row
+                };
+            // There are seven rows and seven offset entries.
+            for (Arow, offset_val) in std::iter::zip(A, offsets) {
+                let mut Amul = offset_val;
+
+                for i in 0..3 {
+                   Amul += Arow[i] as f64 * new_row[i];
+                }
+                if Amul >= -EPSILON {
+                    return false
+                }
+            }
+        }
+        true
+    }
+
+//                 rows = reflected_point[:, 0] >= np.pi / 4 + EPSILON
+        // reflected_point[rows, 0] = np.pi / 2 - reflected_point[rows, 0]
+        // reflected_point = reflected_point.reshape(point.shape)
+
+        // return np.all(
+        //     self._offsets + np.einsum("ij,...j->...i", A, reflected_point) >= -EPSILON, axis=-1
+        // )
+
     // Method add_strength appears in the original Python
     // But it is only called in the test suite.
     //    fn add_strength() {}
-}
-
+} // impl XXPolytope {
 
 // Comment from polytopes.py:
 // These globals house matrices, computed once-and-for-all, which project onto the Euclidean-nearest
