@@ -13,11 +13,9 @@
 
 """Add a barrier before final measurements."""
 
-from qiskit.circuit.barrier import Barrier
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from .merge_adjacent_barriers import MergeAdjacentBarriers
 from qiskit._accelerate.barrier_before_final_measurement import barrier_before_final_measurements
+from qiskit.transpiler.basepasses import TransformationPass
+from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
 class BarrierBeforeFinalMeasurements(TransformationPass):
