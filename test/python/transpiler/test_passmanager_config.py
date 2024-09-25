@@ -33,7 +33,7 @@ class TestPassManagerConfig(QiskitTestCase):
         """
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        config = PassManagerConfig.from_backend(backend)
+            config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
         self.assertEqual(config.inst_map, backend.defaults().instruction_schedule_map)
         self.assertEqual(
@@ -66,9 +66,9 @@ class TestPassManagerConfig(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend = Fake20QV1()
-        config = PassManagerConfig.from_backend(
-            backend, basis_gates=["user_gate"], initial_layout=initial_layout
-        )
+            config = PassManagerConfig.from_backend(
+                backend, basis_gates=["user_gate"], initial_layout=initial_layout
+            )
         self.assertEqual(config.basis_gates, ["user_gate"])
         self.assertNotEqual(config.basis_gates, backend.configuration().basis_gates)
         self.assertIsNone(config.inst_map)
@@ -107,7 +107,8 @@ class TestPassManagerConfig(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
         backend.defaults = lambda: None
-        config = PassManagerConfig.from_backend(backend)
+        with self.assertWarns(DeprecationWarning):
+            config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
 
