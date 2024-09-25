@@ -38,7 +38,7 @@ pub fn build_dot<T>(
 where
     T: Write,
 {
-    let graph = &dag.dag;
+    let graph = dag.dag();
     writeln!(file, "{} {{", TYPE[graph.is_directed() as usize])?;
     if let Some(graph_attr_map) = graph_attrs {
         for (key, value) in graph_attr_map.iter() {
@@ -57,8 +57,8 @@ where
     }
     for edge in graph.edge_references() {
         let edge_weight = match edge.weight() {
-            Wire::Qubit(qubit) => dag.qubits.get(*qubit).unwrap(),
-            Wire::Clbit(clbit) => dag.clbits.get(*clbit).unwrap(),
+            Wire::Qubit(qubit) => dag.qubits().get(*qubit).unwrap(),
+            Wire::Clbit(clbit) => dag.clbits().get(*clbit).unwrap(),
             Wire::Var(var) => var,
         };
         writeln!(

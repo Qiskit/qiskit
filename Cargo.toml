@@ -34,7 +34,7 @@ rayon = "1.10"
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.21.2", features = ["abi3-py38"] }
+pyo3 = { version = "0.21.2", features = ["abi3-py39"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }

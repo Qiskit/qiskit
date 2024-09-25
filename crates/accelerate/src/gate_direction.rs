@@ -89,7 +89,7 @@ where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
     for node in dag.op_nodes(false) {
-        let NodeType::Operation(packed_inst) = &dag.dag[node] else {
+        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {
             panic!("PackedInstruction is expected");
         };
 
@@ -142,7 +142,6 @@ where
     Ok(true)
 }
 
-#[pymodule]
 pub fn gate_direction(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_check_with_coupling_map))?;
     m.add_wrapped(wrap_pyfunction!(py_check_with_target))?;

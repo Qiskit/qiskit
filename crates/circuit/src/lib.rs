@@ -13,6 +13,7 @@
 pub mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
+pub mod converters;
 pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
