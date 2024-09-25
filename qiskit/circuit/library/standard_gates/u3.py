@@ -188,7 +188,7 @@ class CU3Gate(ControlledGate):
 
     .. warning::
 
-       This gate is deprecated. Instead, the following replacement should be used
+       This gate is deprecated. Instead, the :class:`.CUGate` should be used
 
        .. math::
 
@@ -197,7 +197,8 @@ class CU3Gate(ControlledGate):
        .. code-block:: python
 
           circuit = QuantumCircuit(2)
-          circuit.cu(theta, phi, lambda, 0, 1)
+          gamma = 0
+          circuit.cu(theta, phi, lambda, gamma, 0, 1)
 
 
 

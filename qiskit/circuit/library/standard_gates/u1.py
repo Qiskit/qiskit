@@ -179,16 +179,16 @@ class CU1Gate(ControlledGate):
 
     .. warning::
 
-       This gate is deprecated. Instead, the following replacement should be used
+       This gate is deprecated. Instead, the :class:`.CPhaseGate` should be used
 
        .. math::
 
-           CU1(\lambda, 2) = CP(\lambda, 2)
+           CU1(\lambda) = CP(\lambda)
 
        .. code-block:: python
 
-          circuit = QuantumCircuit(3)
-          circuit.cp(lambda, [0, 1], 2)
+          circuit = QuantumCircuit(2)
+          circuit.cp(lambda, 0, 1)
 
 
 
@@ -354,7 +354,7 @@ class MCU1Gate(ControlledGate):
 
        .. math::
 
-           MCU1(\lambda) = MCP(\lambda)= MCU(0,0,\lambda,0)
+           MCU1(\lambda) = MCP(\lambda)
 
        .. code-block:: python
 
