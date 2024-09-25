@@ -358,8 +358,8 @@ class MCU1Gate(ControlledGate):
 
        .. code-block:: python
 
-          circuit = QuantumCircuit(2)
-          circuit.mcp(lambda, 0, 1)
+          circuit = QuantumCircuit(5)
+          circuit.mcp(lambda, list(range(4)), 4)
 
 
 
