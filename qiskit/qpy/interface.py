@@ -74,9 +74,11 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_pulse_arg("programs",
-                    description="Passing 'ScheduleBlock'('s) to 'programs'",
-                    predicate=lambda p: isinstance(p, ScheduleBlock))
+@deprecate_pulse_arg(
+    "programs",
+    description="Passing 'ScheduleBlock'('s) to 'programs'",
+    predicate=lambda p: isinstance(p, ScheduleBlock),
+)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,

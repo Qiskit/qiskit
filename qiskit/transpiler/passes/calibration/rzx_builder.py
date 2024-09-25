@@ -36,6 +36,7 @@ from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -65,6 +66,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
+    @deprecate_pulse_dependency
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,

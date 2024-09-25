@@ -24,6 +24,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.library.symbolic_pulses import Drag
 from qiskit.transpiler.passes.calibration.base_builder import CalibrationBuilder
 from qiskit.transpiler.target import Target
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class RXCalibrationBuilder(CalibrationBuilder):
@@ -75,6 +76,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
           `arXiv:2004.11205 <https://arxiv.org/abs/2004.11205>`
     """
 
+    @deprecate_pulse_dependency
     def __init__(
         self,
         target: Target = None,

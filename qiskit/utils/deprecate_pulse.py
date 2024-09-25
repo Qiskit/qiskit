@@ -48,6 +48,5 @@ def deprecate_pulse_arg(arg_name, description=None, predicate=None):
         additional_msg="The entire Qiskit Pulse package is being deprecated "
         "and will be moved to the Qiskit Dynamics repository: "
         "https://github.com/qiskit-community/qiskit-dynamics",
-        predicate=predicate
+        predicate=predicate,
     )
-

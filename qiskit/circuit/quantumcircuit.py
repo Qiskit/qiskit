@@ -47,6 +47,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -69,7 +70,6 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 if typing.TYPE_CHECKING:
@@ -1343,6 +1343,7 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
+    @deprecate_pulse_dependency
     def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.

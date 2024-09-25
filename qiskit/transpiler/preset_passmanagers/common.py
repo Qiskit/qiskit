@@ -52,6 +52,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -529,6 +530,7 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
+@deprecate_pulse_arg("inst_map")
 def generate_scheduling(
     instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
 ):

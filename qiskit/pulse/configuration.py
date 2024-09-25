@@ -15,10 +15,10 @@ Configurations for pulse experiments.
 """
 from __future__ import annotations
 import numpy as np
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 from .channels import DriveChannel, MeasureChannel
 from .exceptions import PulseError
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _assert_nested_dict_equal(a: dict, b: dict):

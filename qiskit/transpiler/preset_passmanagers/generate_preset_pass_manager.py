@@ -29,6 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, target_to_backend_properties
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -36,6 +37,7 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
 
+@deprecate_pulse_arg("inst_map")
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,

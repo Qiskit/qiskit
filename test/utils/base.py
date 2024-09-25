@@ -166,7 +166,7 @@ class QiskitTestCase(BaseTestCase):
 
         # Safe to remove once Pulse is removed in Qiskit 2.0
         warnings.filterwarnings(
-            'ignore',
+            "ignore",
             category=DeprecationWarning,
             message=".*The entire Qiskit Pulse package is being deprecated.*",
         )

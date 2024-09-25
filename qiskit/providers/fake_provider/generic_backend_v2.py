@@ -524,6 +524,7 @@ class GenericBackendV2(BackendV2):
 
 
     @deprecate_pulse_arg("pulse_channels")
+    @deprecate_pulse_arg("calibration_instructions")
     def __init__(
         self,
         num_qubits: int,
