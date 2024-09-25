@@ -27,6 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 # pylint: disable=invalid-name
@@ -73,6 +74,9 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
+@deprecate_pulse_arg("programs",
+                    description="Passing 'ScheduleBlock'('s) to 'programs'",
+                    predicate=lambda p: isinstance(p, ScheduleBlock))
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
