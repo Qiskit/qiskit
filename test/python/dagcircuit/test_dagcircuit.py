@@ -561,7 +561,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
     def test_apply_operation_back(self):
         """The apply_operation_back() method."""
-        x_gate = XGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            x_gate = XGate().c_if(*self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
@@ -573,7 +574,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
     def test_edges(self):
         """Test that DAGCircuit.edges() behaves as expected with ops."""
-        x_gate = XGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            x_gate = XGate().c_if(*self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
@@ -590,8 +592,8 @@ class TestDagApplyOperation(QiskitTestCase):
         """Test consistency of apply_operation_back with condition set."""
 
         # Single qubit gate conditional: qc.h(qr[2]).c_if(cr, 3)
-
-        h_gate = HGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            h_gate = HGate().c_if(*self.condition)
         h_node = self.dag.apply_operation_back(h_gate, [self.qubit2], [])
 
         self.assertEqual(h_node.qargs, (self.qubit2,))
@@ -630,8 +632,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
         new_creg = ClassicalRegister(1, "cr2")
         self.dag.add_creg(new_creg)
-
-        meas_gate = Measure().c_if(new_creg, 0)
+        with self.assertWarns(DeprecationWarning):
+            meas_gate = Measure().c_if(new_creg, 0)
         meas_node = self.dag.apply_operation_back(meas_gate, [self.qubit0], [self.clbit0])
 
         self.assertEqual(meas_node.qargs, (self.qubit0,))
@@ -675,8 +677,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
         # Measure targeting a clbit which _is_ a member of the conditional
         # register. qc.measure(qr[0], cr[0]).c_if(cr, 3)
-
-        meas_gate = Measure().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            meas_gate = Measure().c_if(*self.condition)
         meas_node = self.dag.apply_operation_back(meas_gate, [self.qubit1], [self.clbit1])
 
         self.assertEqual(meas_node.qargs, (self.qubit1,))
@@ -1239,7 +1241,8 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_collect_runs_start_with_conditional(self):
         """Test collect runs with a conditional at the start of the run."""
-        h_gate = HGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            h_gate = HGate().c_if(*self.condition)
         self.dag.apply_operation_back(h_gate, [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
@@ -1252,7 +1255,8 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_dag_collect_runs_conditional_in_middle(self):
         """Test collect_runs with a conditional in the middle of a run."""
-        h_gate = HGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            h_gate = HGate().c_if(*self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(h_gate, [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
@@ -1294,7 +1298,8 @@ class TestDagNodeSelection(QiskitTestCase):
         """Test collect 1q runs with a conditional at the start of the run."""
         self.dag.apply_operation_back(Reset(), [self.qubit0])
         self.dag.apply_operation_back(Delay(100), [self.qubit0])
-        h_gate = HGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            h_gate = HGate().c_if(*self.condition)
         self.dag.apply_operation_back(h_gate, [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
@@ -1309,7 +1314,8 @@ class TestDagNodeSelection(QiskitTestCase):
         """Test collect_1q_runs with a conditional in the middle of a run."""
         self.dag.apply_operation_back(Reset(), [self.qubit0])
         self.dag.apply_operation_back(Delay(100), [self.qubit0])
-        h_gate = HGate().c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            h_gate = HGate().c_if(*self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(h_gate, [self.qubit0])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
@@ -1387,7 +1393,8 @@ class TestDagLayers(QiskitTestCase):
         qubit1 = qreg[1]
         clbit0 = creg[0]
         clbit1 = creg[1]
-        x_gate = XGate().c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            x_gate = XGate().c_if(creg, 3)
         dag = DAGCircuit()
         dag.add_qreg(qreg)
         dag.add_creg(creg)
@@ -1856,29 +1863,41 @@ class TestDagEquivalence(QiskitTestCase):
         qreg = QuantumRegister(1, name="q")
         creg = ClassicalRegister(1, name="c")
         qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc1.x(0).c_if(qc1.cregs[0], 1)
-        qc1.x(0).c_if(qc1.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.clbits[-1], True)
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc2.x(0).c_if(qc2.cregs[0], 1)
-        qc2.x(0).c_if(qc2.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.clbits[-1], True)
         self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
         # Order of operations transposed.
         qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc1.x(0).c_if(qc1.cregs[0], 1)
-        qc1.x(0).c_if(qc1.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.clbits[-1], True)
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc2.x(0).c_if(qc2.clbits[-1], True)
-        qc2.x(0).c_if(qc2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.cregs[0], 1)
         self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
         # Single-bit condition values not the same.
         qc1 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc1.x(0).c_if(qc1.cregs[0], 1)
-        qc1.x(0).c_if(qc1.clbits[-1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc1.x(0).c_if(qc1.clbits[-1], True)
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
-        qc2.x(0).c_if(qc2.cregs[0], 1)
-        qc2.x(0).c_if(qc2.clbits[-1], False)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0).c_if(qc2.clbits[-1], False)
         self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
     def test_semantic_expr(self):
@@ -2489,7 +2508,8 @@ class TestDagSubstitute(QiskitTestCase):
 
         sub = QuantumCircuit(2, 1)
         sub.h(0)
-        sub.cx(0, 1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            sub.cx(0, 1).c_if(0, True)
         sub.h(0)
 
         expected = DAGCircuit()
@@ -2522,7 +2542,8 @@ class TestDagSubstitute(QiskitTestCase):
 
         sub = QuantumCircuit(QuantumRegister(2), ClassicalRegister(2))
         sub.h(0)
-        sub.cx(0, 1).c_if(sub.cregs[0], 3)
+        with self.assertWarns(DeprecationWarning):
+            sub.cx(0, 1).c_if(sub.cregs[0], 3)
         sub.h(0)
 
         expected = DAGCircuit()
@@ -2559,8 +2580,10 @@ class TestDagSubstitute(QiskitTestCase):
         sub.cx(0, 1)
         sub.h(0)
 
-        conditioned_h = HGate().c_if(*conditioned_cz.condition)
-        conditioned_cx = CXGate().c_if(*conditioned_cz.condition)
+        with self.assertWarns(DeprecationWarning):
+            conditioned_h = HGate().c_if(*conditioned_cz.condition)
+        with self.assertWarns(DeprecationWarning):
+            conditioned_cx = CXGate().c_if(*conditioned_cz.condition)
 
         expected = DAGCircuit()
         expected.add_qubits(base_qubits)
@@ -2593,7 +2616,8 @@ class TestDagSubstitute(QiskitTestCase):
 
         sub = QuantumCircuit(2, 1)
         sub.h(0)
-        sub.cx(0, 1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            sub.cx(0, 1).c_if(0, True)
         sub.h(0)
 
         conditioned_cx = CXGate().to_mutable()
@@ -2626,7 +2650,8 @@ class TestDagSubstitute(QiskitTestCase):
         target = base.apply_operation_back(Instruction("dummy", 2, 2, []), base_qreg, base_creg[:2])
 
         sub = QuantumCircuit(QuantumRegister(2), ClassicalRegister(2))
-        sub.cx(0, 1).c_if(sub.cregs[0], 3)
+        with self.assertWarns(DeprecationWarning):
+            sub.cx(0, 1).c_if(sub.cregs[0], 3)
 
         base.substitute_node_with_dag(target, circuit_to_dag(sub))
 
@@ -2731,12 +2756,14 @@ class TestDagSubstituteNode(QiskitTestCase):
         dag = DAGCircuit()
         dag.add_qreg(qr)
         dag.add_creg(cr)
-        node = dag.apply_operation_back(XGate().c_if(cr, 2), qr, [])
+        with self.assertWarns(DeprecationWarning):
+            node = dag.apply_operation_back(XGate().c_if(cr, 2), qr, [])
 
         with self.assertRaisesRegex(DAGCircuitError, "Cannot propagate a condition"):
-            dag.substitute_node(
-                node, XGate().c_if(cr, 1), inplace=inplace, propagate_condition=True
-            )
+            with self.assertWarns(DeprecationWarning):
+                dag.substitute_node(
+                    node, XGate().c_if(cr, 1), inplace=inplace, propagate_condition=True
+                )
 
     @data(True, False)
     def test_replace_if_else_op_with_another(self, inplace):
@@ -3194,7 +3221,8 @@ class TestConditional(QiskitTestCase):
     def test_creg_conditional(self):
         """Test consistency of conditional on classical register."""
 
-        self.circuit.h(self.qreg[0]).c_if(self.creg, 1)
+        with self.assertWarns(DeprecationWarning):
+            self.circuit.h(self.qreg[0]).c_if(self.creg, 1)
         self.dag = circuit_to_dag(self.circuit)
         gate_node = self.dag.gate_nodes()[0]
         self.assertEqual(gate_node.op, HGate())
@@ -3235,8 +3263,8 @@ class TestConditional(QiskitTestCase):
 
     def test_clbit_conditional(self):
         """Test consistency of conditional on single classical bit."""
-
-        self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
         self.dag = circuit_to_dag(self.circuit)
         gate_node = self.dag.gate_nodes()[0]
         self.assertEqual(gate_node.op, HGate())

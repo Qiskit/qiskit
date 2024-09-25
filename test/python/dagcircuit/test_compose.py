@@ -321,8 +321,10 @@ class TestDagCompose(QiskitTestCase):
         creg = ClassicalRegister(2, "rcr")
 
         circuit_right = QuantumCircuit(qreg, creg)
-        circuit_right.x(qreg[1]).c_if(creg, 2)
-        circuit_right.h(qreg[0]).c_if(creg, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.x(qreg[1]).c_if(creg, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.h(qreg[0]).c_if(creg, 1)
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
@@ -330,16 +332,19 @@ class TestDagCompose(QiskitTestCase):
         dag_right = circuit_to_dag(circuit_right)
 
         # permuted subset of qubits and clbits
-        dag_left.compose(
-            dag_right,
-            qubits=[self.left_qubit1, self.left_qubit4],
-            clbits=[self.left_clbit1, self.left_clbit0],
-        )
+        with self.assertWarns(DeprecationWarning):
+            dag_left.compose(
+                dag_right,
+                qubits=[self.left_qubit1, self.left_qubit4],
+                clbits=[self.left_clbit1, self.left_clbit0],
+            )
         circuit_composed = dag_to_circuit(dag_left)
 
         circuit_expected = self.circuit_left.copy()
-        circuit_expected.x(self.left_qubit4).c_if(*self.condition1)
-        circuit_expected.h(self.left_qubit1).c_if(*self.condition2)
+        with self.assertWarns(DeprecationWarning):
+            circuit_expected.x(self.left_qubit4).c_if(*self.condition1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_expected.h(self.left_qubit1).c_if(*self.condition2)
         circuit_expected.measure(self.left_qubit4, self.left_clbit0)
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
 
@@ -423,12 +428,13 @@ class TestDagCompose(QiskitTestCase):
 
         circuit_left = QuantumCircuit(qreg, creg1, creg2)
         circuit_right = QuantumCircuit(qreg, creg1, creg2)
-        circuit_right.h(0).c_if(creg1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.h(0).c_if(creg1, 1)
 
         dag_left = circuit_to_dag(circuit_left)
         dag_right = circuit_to_dag(circuit_right)
-
-        dag_composed = dag_left.compose(dag_right, qubits=[0], clbits=[0, 1], inplace=False)
+        with self.assertWarns(DeprecationWarning):
+            dag_composed = dag_left.compose(dag_right, qubits=[0], clbits=[0, 1], inplace=False)
 
         dag_expected = circuit_to_dag(circuit_right.copy())
 

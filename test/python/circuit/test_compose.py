@@ -367,7 +367,8 @@ class TestCircuitCompose(QiskitTestCase):
                 super().__init__("mygate", 1, [])
 
         conditional = QuantumCircuit(1, 1)
-        conditional.append(Custom(), [0], []).c_if(conditional.clbits[0], True)
+        with self.assertWarns(DeprecationWarning):
+            conditional.append(Custom(), [0], []).c_if(conditional.clbits[0], True)
         test = base.compose(conditional, qubits=[0], clbits=[0], copy=False)
         self.assertIs(test.data[-1].operation, conditional.data[-1].operation)
         self.assertEqual(test.data[-1].operation.condition, (test.clbits[0], True))
@@ -463,16 +464,20 @@ class TestCircuitCompose(QiskitTestCase):
         creg = ClassicalRegister(2, "rcr")
 
         circuit_right = QuantumCircuit(qreg, creg)
-        circuit_right.x(qreg[1]).c_if(creg, 3)
-        circuit_right.h(qreg[0]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.x(qreg[1]).c_if(creg, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit_right.h(qreg[0]).c_if(creg, 3)
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
         circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[0, 1])
 
         circuit_expected = self.circuit_left.copy()
-        circuit_expected.x(self.left_qubit4).c_if(*self.condition)
-        circuit_expected.h(self.left_qubit1).c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            circuit_expected.x(self.left_qubit4).c_if(*self.condition)
+        with self.assertWarns(DeprecationWarning):
+            circuit_expected.h(self.left_qubit1).c_if(*self.condition)
         circuit_expected.measure(self.left_qubit1, self.left_clbit0)
         circuit_expected.measure(self.left_qubit4, self.left_clbit1)
 
@@ -489,8 +494,10 @@ class TestCircuitCompose(QiskitTestCase):
         right.cx(0, 1)
         right.h(0)
         right.measure([0, 1], [0, 1])
-        right.z(2).c_if(right.cregs[0], 1)
-        right.x(2).c_if(right.cregs[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            right.z(2).c_if(right.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            right.x(2).c_if(right.cregs[1], 1)
         test = QuantumCircuit(3, 3).compose(right, range(3), range(2))
         z = next(ins.operation for ins in test.data[::-1] if ins.operation.name == "z")
         x = next(ins.operation for ins in test.data[::-1] if ins.operation.name == "x")
@@ -724,7 +731,8 @@ class TestCircuitCompose(QiskitTestCase):
         """Test that compose can correctly handle circuits that contain conditions on single
         bits.  This is a regression test of the bug that broke qiskit-experiments in gh-7653."""
         base = QuantumCircuit(1, 1)
-        base.x(0).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            base.x(0).c_if(0, True)
         test = QuantumCircuit(1, 1).compose(base)
         self.assertIsNot(base.clbits[0], test.clbits[0])
         self.assertEqual(base, test)

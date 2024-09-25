@@ -160,6 +160,7 @@ class Instruction(Operation):
         return self.copy()
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True, stacklevel=2)
     def condition(self):
         """The classical condition on the instruction."""
         return self._condition
@@ -499,6 +500,7 @@ class Instruction(Operation):
         inverse_gate.definition = inverse_definition
         return inverse_gate
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
         ``classical`` and value ``val``.

@@ -620,7 +620,8 @@ class TestCliffordPasses(QiskitTestCase):
         qc.cx(1, 0)
         qc.x(0)
         qc.x(1)
-        qc.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(1).c_if(0, 1)
         qc.x(0)
         qc.x(1)
         qc.cx(0, 1)

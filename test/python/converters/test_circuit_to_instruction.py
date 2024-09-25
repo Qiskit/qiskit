@@ -56,12 +56,16 @@ class TestCircuitToInstruction(QiskitTestCase):
         cr1 = ClassicalRegister(3, "cr1")
         cr2 = ClassicalRegister(3, "cr2")
         circ = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circ.h(qr1[0]).c_if(cr1[1], True)
-        circ.h(qr2[1]).c_if(cr2[0], False)
-        circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(qr1[0]).c_if(cr1[1], True)
+        with self.assertWarns(DeprecationWarning):
+            circ.h(qr2[1]).c_if(cr2[0], False)
+        with self.assertWarns(DeprecationWarning):
+            circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
         circ.measure(qr2[2], cr2[0])
 
-        inst = circuit_to_instruction(circ)
+        with self.assertWarns(DeprecationWarning):
+            inst = circuit_to_instruction(circ)
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(6, "c")
 
@@ -196,8 +200,10 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         Regression test of gh-7394."""
         expected = QuantumCircuit([Qubit(), Clbit()])
-        expected.h(0).c_if(expected.clbits[0], 0)
-        test = circuit_to_instruction(expected)
+        with self.assertWarns(DeprecationWarning):
+            expected.h(0).c_if(expected.clbits[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            test = circuit_to_instruction(expected)
 
         self.assertIsInstance(test, Instruction)
         self.assertIsInstance(test.definition, QuantumCircuit)

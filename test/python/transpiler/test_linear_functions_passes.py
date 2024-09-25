@@ -615,7 +615,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         qc = QuantumCircuit(2, 1)
         qc.cx(1, 0)
         qc.swap(1, 0)
-        qc.cx(0, 1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(0, 1)
         qc.cx(0, 1)
         qc.cx(1, 0)
 

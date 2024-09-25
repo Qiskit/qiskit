@@ -808,15 +808,20 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         body = QuantumCircuit(1)
 
         with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            qc.while_loop((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
+            with self.assertWarns(DeprecationWarning):
+                qc.while_loop((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(
+                    qc.clbits[0], True
+                )
 
         with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            qc.if_test((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
+            with self.assertWarns(DeprecationWarning):
+                qc.if_test((qc.clbits[0], False), body, [qc.qubits[0]], []).c_if(qc.clbits[0], True)
 
         with self.assertRaisesRegex(NotImplementedError, r"cannot be classically controlled"):
-            qc.if_else((qc.clbits[0], False), body, body, [qc.qubits[0]], []).c_if(
-                qc.clbits[0], True
-            )
+            with self.assertWarns(DeprecationWarning):
+                qc.if_else((qc.clbits[0], False), body, body, [qc.qubits[0]], []).c_if(
+                    qc.clbits[0], True
+                )
 
     def test_nested_parameters_are_recognised(self):
         """Verify that parameters added inside a control-flow operator get added to the outer

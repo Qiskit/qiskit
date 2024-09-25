@@ -104,9 +104,12 @@ class TestCircuitQASM3(QiskitTestCase):
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
         qc.measure(qr2[1], cr[2])
-        qc.x(qr2[1]).c_if(cr, 0)
-        qc.y(qr1[0]).c_if(cr, 1)
-        qc.z(qr1[0]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(qr2[1]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.y(qr1[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(qr1[0]).c_if(cr, 2)
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
@@ -723,8 +726,10 @@ c[1] = measure q[1];
         qc.barrier()
         qc.measure([0, 1], [0, 1])
         qc.barrier()
-        qc.x(2).c_if(qc.clbits[1], 1)
-        qc.z(2).c_if(qc.clbits[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(2).c_if(qc.clbits[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(2).c_if(qc.clbits[0], 1)
 
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
         expected_qasm = """\
@@ -780,8 +785,10 @@ if (c[0]) {
         qc.barrier()
         qc.measure([0, 1], [0, 1])
         qc.barrier()
-        qc.x(2).c_if(qc.clbits[1], 1)
-        qc.z(2).c_if(qc.clbits[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(2).c_if(qc.clbits[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.z(2).c_if(qc.clbits[0], 1)
 
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
         expected_qasm = """\
@@ -2046,11 +2053,15 @@ U(0.5, 0.125, 0.25) q[0];
         qc = QuantumCircuit(3, 2)
         qc.h(0)
         qc.measure(0, 0)
-        qc.measure(1, 1).c_if(0, True)
-        qc.reset([0, 1]).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.measure(1, 1).c_if(0, True)
+        with self.assertWarns(DeprecationWarning):
+            qc.reset([0, 1]).c_if(0, True)
         with qc.while_loop((qc.clbits[0], True)):
-            qc.break_loop().c_if(0, True)
-            qc.continue_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                qc.break_loop().c_if(0, True)
+            with self.assertWarns(DeprecationWarning):
+                qc.continue_loop().c_if(0, True)
         # Terra forbids delay and barrier from being conditioned through `c_if`, but in theory they
         # should work fine in a dynamic-circuits sense (although what a conditional barrier _means_
         # is a whole other kettle of fish).

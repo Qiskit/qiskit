@@ -62,7 +62,8 @@ class TestUnroll3qOrMore(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)

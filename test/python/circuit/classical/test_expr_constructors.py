@@ -26,7 +26,8 @@ class TestExprConstructors(QiskitTestCase):
         clbit = Clbit()
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(cr, 7)
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(cr, 7)
         self.assertEqual(
             expr.lift_legacy_condition(inst.condition),
             expr.Binary(
@@ -38,7 +39,8 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(cr, 255)
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(cr, 255)
         self.assertEqual(
             expr.lift_legacy_condition(inst.condition),
             expr.Binary(
@@ -50,7 +52,8 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(clbit, False)
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(clbit, False)
         self.assertEqual(
             expr.lift_legacy_condition(inst.condition),
             expr.Unary(
@@ -61,7 +64,8 @@ class TestExprConstructors(QiskitTestCase):
         )
 
         inst = Instruction("custom", 1, 0, [])
-        inst.c_if(clbit, True)
+        with self.assertWarns(DeprecationWarning):
+            inst.c_if(clbit, True)
         self.assertEqual(
             expr.lift_legacy_condition(inst.condition),
             expr.Var(clbit, types.Bool()),

@@ -1214,7 +1214,8 @@ class TestOptimizationWithCondition(QiskitTestCase):
         qr = QuantumRegister(2)
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
-        qc.cx(0, 1).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(cr, 1)
         backend = GenericBackendV2(
             num_qubits=20,
             coupling_map=TOKYO_CMAP,
@@ -1227,7 +1228,8 @@ class TestOptimizationWithCondition(QiskitTestCase):
     def test_input_dag_copy(self):
         """Test substitute_node_with_dag input_dag copy on condition"""
         qc = QuantumCircuit(2, 1)
-        qc.cx(0, 1).c_if(qc.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(qc.cregs[0], 1)
         qc.cx(1, 0)
         circ = transpile(qc, basis_gates=["u3", "cz"])
         self.assertIsInstance(circ, QuantumCircuit)

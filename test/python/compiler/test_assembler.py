@@ -284,7 +284,8 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qc.measure(qr[0], cr1)  # Measure not required for a later conditional
         qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
-        qc.h(qr[1]).c_if(cr2, 3)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[1]).c_if(cr2, 3)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -304,7 +305,8 @@ class TestCircuitAssembler(QiskitTestCase):
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
 
-        qc.h(qr[0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr, 1)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -325,7 +327,8 @@ class TestCircuitAssembler(QiskitTestCase):
         cr = ClassicalRegister(3)
         qc = QuantumCircuit(qr, cr)
 
-        qc.h(qr[0]).c_if(cr[2], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr[2], 1)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)
@@ -351,7 +354,8 @@ class TestCircuitAssembler(QiskitTestCase):
         cr3 = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr1, cr2, cr3)
 
-        qc.h(qr[0]).c_if(cr2, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(qr[0]).c_if(cr2, 2)
 
         with self.assertWarns(DeprecationWarning):
             qobj = assemble(qc)

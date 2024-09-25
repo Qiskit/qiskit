@@ -19,6 +19,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit import _utils
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.utils import deprecate_func
 
 
 @_utils.with_gate_array(np.eye(2, dtype=complex))
@@ -42,6 +43,7 @@ class Delay(Instruction):
         """Special case. Return self."""
         return self
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         raise CircuitError("Conditional Delay is not yet implemented.")
 

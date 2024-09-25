@@ -226,8 +226,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q[2], q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
-        qc.h(q[2]).c_if(c, 2)
-        qc.h(q[3]).c_if(c, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[2]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c, 4)
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_conditionals2(self):
@@ -258,8 +260,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q[2], q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[0], c[0])
-        qc.h(q[2]).c_if(c, 2)
-        qc.h(q[3]).c_if(c, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[2]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c, 4)
         self.assertEqual(qc.depth(), 6)
 
     def test_circuit_depth_conditionals3(self):
@@ -287,7 +291,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.cx(q[0], q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c, 2)
 
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
@@ -320,8 +325,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[2], c[2])
-        qc.h(q[1]).c_if(c[0], True)
-        qc.h(q[3]).c_if(c[2], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[1]).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c[2], False)
         self.assertEqual(qc.depth(), 3)
 
     def test_circuit_depth_bit_conditionals2(self):
@@ -362,12 +369,18 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.measure(q[0], c[0])
         qc.measure(q[2], c[2])
-        qc.h(q[1]).c_if(c[1], True)
-        qc.h(q[3]).c_if(c[3], True)
-        qc.cx(0, 1).c_if(c[0], False)
-        qc.cx(2, 3).c_if(c[2], False)
-        qc.ch(0, 2).c_if(c[1], True)
-        qc.ch(1, 3).c_if(c[3], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[1]).c_if(c[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[3]).c_if(c[3], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(c[0], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(2, 3).c_if(c[2], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.ch(0, 2).c_if(c[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.ch(1, 3).c_if(c[3], True)
         self.assertEqual(qc.depth(), 4)
 
     def test_circuit_depth_bit_conditionals3(self):
@@ -395,9 +408,12 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.h(1).c_if(c[0], True)
-        qc.h(q[2]).c_if(c, 2)
-        qc.h(3).c_if(c[3], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(1).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[2]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(3).c_if(c[3], True)
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
@@ -608,7 +624,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ.rz(0.1, 1)
         circ.cz(1, 3)
         circ.measure(1, 0)
-        circ.x(0).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            circ.x(0).c_if(0, 1)
         self.assertEqual(
             circ.depth(lambda x: x.operation.num_qubits >= 2 or x.operation.condition is not None),
             4,
@@ -765,7 +782,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cry(0.1, q[2], q[4])
         qc.z(q[3:])
         qc.cswap(q[1], q[2], q[3])
-        qc.iswap(q[0], q[4]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.iswap(q[0], q[4]).c_if(c, 2)
         result = qc.num_nonlocal_gates()
         expected = 3
         self.assertEqual(expected, result)
@@ -921,7 +939,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.cx(q[0], q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c, 2)
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
@@ -949,8 +968,10 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         qc.h(q[2])
         qc.h(q[3])
-        qc.h(0).c_if(c, 0)
-        qc.cx(1, 2).c_if(c, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(c, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 2).c_if(c, 4)
         self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_with_cond3(self):
@@ -977,10 +998,13 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.h(q[0]).c_if(c, 0)
-        qc.cx(q[1], q[2]).c_if(c, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[0]).c_if(c, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[1], q[2]).c_if(c, 1)
         qc.measure(q[2], c[2])
-        qc.x(q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[3]).c_if(c, 2)
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_with_bit_cond(self):
@@ -1007,7 +1031,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[2])
         qc.h(q[3])
         qc.measure(q[0], c[0])
-        qc.cx(q[0], q[3]).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c[0], True)
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
@@ -1035,9 +1060,12 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         qc.h(q[2])
         qc.h(q[3])
-        qc.h(0).c_if(c[1], True)
-        qc.cx(1, 0).c_if(c[4], False)
-        qc.cz(2, 3).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(c[1], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 0).c_if(c[4], False)
+        with self.assertWarns(DeprecationWarning):
+            qc.cz(2, 3).c_if(c[0], True)
         self.assertEqual(qc.num_connected_components(), 5)
 
     def test_circuit_connected_components_with_bit_cond3(self):
@@ -1063,9 +1091,12 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         qc.h(q[2])
         qc.h(q[3])
-        qc.h(q[0]).c_if(c[0], True)
-        qc.cx(q[1], q[2]).c_if(c, 1)
-        qc.x(q[3]).c_if(c[2], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(q[0]).c_if(c[0], True)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[1], q[2]).c_if(c, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.x(q[3]).c_if(c[2], True)
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_unitary_factors1(self):
@@ -1109,7 +1140,8 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[3])
         qc.cx(q[1], q[2])
         qc.cx(q[1], q[2])
-        qc.cx(q[0], q[3]).c_if(c, 2)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(q[0], q[3]).c_if(c, 2)
         qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])
         qc.cx(q[0], q[3])

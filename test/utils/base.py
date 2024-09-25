@@ -164,6 +164,13 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit.providers.fake_provider.fake_backend",
         )
 
+        # Remove with the condition attribute in 2.0:
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*Instruction\.condition.*is deprecated.*",
+        )
+
         allow_DeprecationWarning_message = [
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
         ]
