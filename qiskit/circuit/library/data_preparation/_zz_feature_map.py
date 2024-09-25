@@ -54,12 +54,12 @@ class ZZFeatureMap(PauliFeatureMap):
     .. code-block::
 
          from qiskit.circuit.library import EfficientSU2
-         classifier = ZZFeatureMap(3) + EfficientSU2(3)
+         classifier = ZZFeatureMap(3).compose(EfficientSU2(3))
          classifier.num_parameters
 
     .. parsed-literal::
 
-         15
+         27
 
     .. code-block::
 
