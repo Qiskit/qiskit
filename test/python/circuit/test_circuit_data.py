@@ -400,15 +400,15 @@ class TestQuantumCircuitData(QiskitTestCase):
         which in turn uses fn operations_with_qubits in circuit_data.rs
         """
         qs = QuantumCircuit(2)
-        qs.cx(1,0)
+        qs.cx(1, 0)
         qs.x(1)
         qs.x(1)
         qs.h(0)
         print(qs.count_ops_with_qubits())
         results = qs.count_ops_with_qubits()
         assert results == [
-            {'h': 1, 'cx': 1}, 
-            {'x': 2, 'cx': 1},
+            {"h": 1, "cx": 1},
+            {"x": 2, "cx": 1},
         ]
 
 
