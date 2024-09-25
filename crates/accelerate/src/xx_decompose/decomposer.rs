@@ -1,5 +1,6 @@
+use std::f64::consts::PI;
 use crate::xx_decompose::utilities::Square;
-use crate::euler_one_qubit_decomposer::EulerBasis;
+use crate::euler_one_qubit_decomposer::{self, EulerBasis};
 use hashbrown::HashMap;
 
 use super::types::Circuit2Q;
@@ -35,9 +36,33 @@ fn _average_infidelity(p: Point, q: Point) -> f64 {
 // caller to inject an alternative optimizer to run under certain conditions. For various
 // reasons, I prefer omit this field. Instead, `XXDecomposer` can signal failure somehow.
 pub(crate) struct XXDecomposer {
-    basis_fidelity: Option<HashMap<f64, f64>>,
+    basis_fidelity: Option<BasisFidelity>,
     euler_basis: EulerBasis,
     embodiments: Option<HashMap<f64, Circuit2Q>>,
+}
+
+// `f64` is not `Hash`. This is one way around.
+struct BasisFidelity {
+    data: HashMap<u64, f64>,
+}
+
+impl BasisFidelity {
+    fn get(&self, k: f64) -> Option<f64> {
+        self.data.get(&(k.to_bits())).copied()
+    }
+}
+
+fn _strength_map_to_infidelity(strengths: &BasisFidelity, approximate: bool) -> BasisFidelity {
+    let mapfunc = if approximate {
+        |(strength, fidelity): (&u64, &f64) | (*strength, 1.0 - fidelity)
+    } else {
+        |(strength, fidelity): (&u64, &f64) | (*strength, 1e-12 + 1e-10 * f64::from_bits(*strength) / (PI / 2.0))
+    };
+    BasisFidelity { data:
+                    strengths.data.iter()
+                    .map(mapfunc)
+                    .collect()
+    }
 }
 
 // basis_fidelity: dict | float = 1.0,

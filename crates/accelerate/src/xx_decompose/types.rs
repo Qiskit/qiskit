@@ -14,10 +14,10 @@ use crate::xx_decompose::utilities::EPSILON;
 // We could do this in three bits if need be. We´ll try to hide the implementation.
 #[derive(Copy, Clone)]
 pub(crate) struct GateData {
-    pub gate: StdGate,
-    pub param: Option<f64>,
-    pub qubit0: i32, // Takes values zero and one
-    pub qubit1: Option<i32>,
+    gate: StdGate,
+    param: Option<f64>,
+    qubit0: i32, // Takes values zero and one
+    qubit1: Option<i32>,
 }
 
 impl GateData {
@@ -59,7 +59,13 @@ impl GateData {
         ! self.is_oneq()
     }
 
-    pub(crate) fn reverse(&self) -> GateData {
+    // Invert a gate. Only gates needed for XXDecomposer are handled.
+    // Other gates will cause `panic`.
+    // * reflect the angle in rotation gates
+    // * return copy for idempotent gates
+    // * Other gates can only have an inverse identified by name, so we
+    //   handle these explicitly.
+    pub(crate) fn inverse(&self) -> GateData {
         let mut gate = self.clone();
         if self.has_param() {
             gate.param = Some(-self.get_param());
@@ -73,7 +79,10 @@ impl GateData {
                 => self.get_name(),
             StdGate::SGate => StdGate::SdgGate,
             StdGate::TGate => StdGate::TdgGate,
-            StdGate::SXGate => StdGate::SXdgGate,
+            StdGate::SXdgGate => StdGate::SXGate,
+            StdGate::SdgGate => StdGate::SGate,
+            StdGate::TdgGate => StdGate::TGate,
+            StdGate::SXdgGate => StdGate::SXGate,
             _ => panic!("No support for this gate"),
         };
         gate.gate = gate_name;
@@ -89,16 +98,13 @@ pub(crate) struct Circuit2Q {
 
 impl Circuit2Q {
 
-    // Reverse the quantum circuit by reversing the order of gates,
-    // reflecting the parameter (angle) in rotation gates, and reversing
-    // the circuit phase. This is correct for the gates used in this decomposer.
-    // This decomposer has only rotation gates and H gates until the last step,
-    // at which point we introduce Python and CircuitData.
-    fn reverse(&self) -> Circuit2Q {
+    // Invert the quantum circuit by reversing the order of gates, inverting each gate,
+    // and additive-inverting the circuit phase.
+    fn inverse(&self) -> Circuit2Q {
         let gates: Vec<GateData> = self.gates
             .iter()
             .rev()
-            .map(|g| g.reverse())
+            .map(|g| g.inverse())
             .collect();
         Circuit2Q {gates, phase: -self.phase}
     }
