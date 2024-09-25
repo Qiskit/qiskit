@@ -522,6 +522,7 @@ class PauliFeatureMap(NLocal):
 
     @property
     def entanglement_blocks(self):
+        """Returns the entanglement block objects which could be Quantum Circuit objects or Quantum gates depending on the type of entanglement used in the circuit."""
         return [self.pauli_block(pauli) for pauli in self._paulis]
 
     @entanglement_blocks.setter
