@@ -118,6 +118,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     @property
     def parameters(self) -> ParameterView:
+        """Returns all parameters of class ParameterView."""
         if not self._is_built:
             self._build()
         return super().parameters
