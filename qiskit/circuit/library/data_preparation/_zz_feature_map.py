@@ -19,7 +19,7 @@ from .pauli_feature_map import PauliFeatureMap
 
 
 class ZZFeatureMap(PauliFeatureMap):
-    r"""Second-order Pauli-Z evolution circuit: Using the Pauli-Z gate to create entanglement between pairs of qubits, allowing them to evolve in a way that captures deeper relationships between data points.
+    r"""Second-order Pauli-Z evolution circuit: Using the Pauli-Z gate to create entanglement between pairs of qubits allowing them to evolve.
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
 
