@@ -399,19 +399,16 @@ class TestQuantumCircuitData(QiskitTestCase):
         """test count_ops_with_qubits() in quantumcircuit.py
         which in turn uses fn operations_with_qubits in circuit_data.rs
         """
-        a = QuantumCircuit(3, 3)
-        a.h(0)
-        a.x(1)
-        a.h(1)
-        # a.h(3)
-        a.cx(1, 0)
-        b = a.count_ops_with_qubits()
-        assert b == [
-            ("h", "Qubit(QuantumRegister(3, 'q'), 0)"),
-            ("x", "Qubit(QuantumRegister(3, 'q'), 1)"),
-            ("h", "Qubit(QuantumRegister(3, 'q'), 1)"),
-            ("cx", "Qubit(QuantumRegister(3, 'q'), 1)"),
-            ("cx", "Qubit(QuantumRegister(3, 'q'), 0)"),
+        qs = QuantumCircuit(2)
+        qs.cx(1,0)
+        qs.x(1)
+        qs.x(1)
+        qs.h(0)
+        print(qs.count_ops_with_qubits())
+        results = qs.count_ops_with_qubits()
+        assert results == [
+            {'h': 1, 'cx': 1}, 
+            {'x': 2, 'cx': 1},
         ]
 
 

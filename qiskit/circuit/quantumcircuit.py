@@ -3519,9 +3519,10 @@ class QuantumCircuit:
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
 
-    # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
-    # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
-    # support is dropped.
+    # return counts per operation for every qubit in the QuantumCircuit
+    # every element of the list corresponds to one qubit in the QuantumCitcuit
+    # and every such element is a hashmap with the operation-name as the key and 
+    # the number of such operations in that qubit as value.
     def count_ops_with_qubits(self) -> list:
         """Count each operation kind in the circuit, along with the qubits used in those operations.
 

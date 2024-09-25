@@ -507,21 +507,42 @@ impl CircuitData {
 
     /// Lists all operations along with the qubits involved in those operations.
     ///
-    /// Returns:
-    ///     list.
+    /// Returns: a list of Hashmaps listing the counts of operations per qubit,
+    /// with each element of the list referring to one of the qubits in the QuantumCircuit.
+    ///     
     #[pyo3(signature = ())]
-    pub fn operations_with_qubits(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        let mut ret: Vec<(Option<String>, Option<String>)> = vec![];
+    pub fn operations_with_qubits(&self, py: Python<'_>) -> Vec<HashMap<String, usize>> {
+        //number of qubits in this QuantumCircuit
+        let num_qubits = self.qubits.len();
+        let mut ret_list: Vec<HashMap<String, usize>> = Vec::new();
+        for i in 0..self.qubits.len() {
+            let mut hmap_elem: HashMap<String, usize> = HashMap::new();
+            ret_list.push(hmap_elem);
+        }
+        //loop over every instruction in the circuit
         for (_index, inst) in self.data.iter().enumerate() {
-            let op_str = inst.op.view().name().to_string();
-            for b in self.qargs_interner.get(inst.qubits) {
-                ret.push((
-                    Some(op_str.to_string()),
-                    Some(self.qubits.get(*b).unwrap().to_string()),
-                ));
+            //the operation name for this instruction eg cx, x, h etc.
+            let op_str = &inst.op.view().name().to_string();
+            //list of qubits involved in this operation
+            let q: &[Qubit] = self.get_qargs(inst.qubits);
+            //loop over every qubit in the current instruction
+            for i in 0..q.len() {
+                //the qubit for the instruction q
+                let inst_qubit = q[i].0;
+                //increment the op_str's count in the inst_qubit index of 
+                //the ret_list vector
+                for (ret_list_i, hmap_elem) in ret_list.iter_mut().enumerate() {
+                    if ret_list_i == q[i].0.try_into().unwrap()  {
+                        if hmap_elem.contains_key(op_str) {
+                            hmap_elem.insert(op_str.to_string(), hmap_elem[op_str]+1);
+                        } else {
+                            hmap_elem.insert(op_str.to_string(), 1);
+                        }
+                    }
+                }  
             }
         }
-        Ok(ret.into_py(py))
+        ret_list
     }
 
     /// Performs a shallow copy.
