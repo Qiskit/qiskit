@@ -94,6 +94,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     @property
     def data(self):
+        """Returns data of type QuantumCircuitData. It contains details about the circuit like operation, clbits, qubits, params."""
         if not self._is_built:
             self._build()
         return super().data
