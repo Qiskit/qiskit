@@ -20,12 +20,7 @@ set -x
 export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
 echo "PYTHONHASHSEED=$PYTHONHASHSEED"
 
-<<<<<<< HEAD
-python -m venv qiskit_venv
-qiskit_venv/bin/pip install ../..
-=======
 our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
->>>>>>> 1344cddbe (Skip uninstallable tags in QPY backwards compatibility tests (#13202))
 
 qiskit_venv="$(pwd -P)/qiskit_venv"
 qiskit_python="$qiskit_venv/bin/python"
