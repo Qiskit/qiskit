@@ -914,6 +914,9 @@ fn synth_su4_sequence(
         None => Ok(sequence),
         Some(preferred_dir) => {
             let mut synth_direction: Option<SmallVec<[u8; 2]>> = None;
+            // if the gates in synthesis are in the opposite direction of the preferred direction
+            // resynthesize a new operator which is the original conjugated by swaps.
+            // this new operator is doubly mirrored from the original and is locally equivalent.
             for (gate, _, qubits) in &sequence.gate_sequence.gates {
                 if gate.is_none() || gate.unwrap().name() == "cx" {
                     synth_direction = Some(qubits.clone());
@@ -957,7 +960,7 @@ fn reversed_synth_su4_sequence(
 
     let mut synth =
         if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
-            decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
+            decomp.call_inner(su4_mat_mm.view(), None, is_approximate, None)?
         } else {
             panic!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
         };
