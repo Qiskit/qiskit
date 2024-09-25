@@ -111,6 +111,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     @property
     def num_parameters(self) -> int:
+        """Returns the number of parameters."""
         if not self._is_built:
             self._build()
         return super().num_parameters
