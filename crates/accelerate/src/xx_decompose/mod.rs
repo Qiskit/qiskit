@@ -22,3 +22,4 @@ mod types;
 mod weyl;
 mod polytopes;
 mod paths;
+mod embodiments;

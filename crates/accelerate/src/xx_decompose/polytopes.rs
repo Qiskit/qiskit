@@ -214,6 +214,14 @@ impl XXPolytope {
         ]
     }
 
+
+    fn _member(&self, _point: &Coordinate) {
+        let mut point: Coordinate = (*_point).clone();
+        if point.needs_reflect0() {
+            point.reflect0();
+        }
+    }
+
     /// Returns True when `point` is a member of `self`.
     fn member(&self, point: Vec<Vec<f64>>) -> bool {
         let offsets = self._offsets();
@@ -244,17 +252,13 @@ impl XXPolytope {
         true
     }
 
-//                 rows = reflected_point[:, 0] >= np.pi / 4 + EPSILON
-        // reflected_point[rows, 0] = np.pi / 2 - reflected_point[rows, 0]
-        // reflected_point = reflected_point.reshape(point.shape)
+    fn nearest(point: &[f64; 3]) {
 
-        // return np.all(
-        //     self._offsets + np.einsum("ij,...j->...i", A, reflected_point) >= -EPSILON, axis=-1
-        // )
+    }
 
-    // Method add_strength appears in the original Python
+    // Method `add_strength` appears in the original Python.
     // But it is only called in the test suite.
-    //    fn add_strength() {}
+
 } // impl XXPolytope {
 
 // Comment from polytopes.py:
@@ -290,6 +294,7 @@ static A: [[i32; 3]; 7] = [
 // scipy can compute the pseudo-inverse of each 3-vector.
 // The result is A1inv.
 
+// dim(A1) = (7, 1, 3)
 static A1: [[[f64; 3]; 1] ; 7] =
       [[[ 1., -1.,  0.]],
 
@@ -305,6 +310,13 @@ static A1: [[[f64; 3]; 1] ; 7] =
 
        [[ 0.,  0., -1.]]];
 
+
+// A1INV each 3x1 element is the pseudoinverse
+// of the corresponding 1x3 element in A1.
+// The vector-pseudoinverse of v is the (co)vector iv
+// such that iv · v equals one.
+//
+// dim(A1INV) = (7, 3, 1)
 static A1INV: [[[f64; 1]; 3] ; 7] =
         [[[ 0.5             ],
         [-0.5             ],

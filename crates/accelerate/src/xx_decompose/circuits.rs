@@ -91,7 +91,7 @@ fn xx_circuit_step(source: &Coordinate, strength: f64, target: &Coordinate,
 
     let mut permute_source_for_overlap: Option<Vec<GateData>> = None;
     let mut permute_target_for_overlap: Option<Vec<GateData>> = None;
-    
+
     for reflection_name in &weyl::REFLECTION_NAMES {
         let (reflected_source_coord, source_reflection, reflection_phase_shift) = weyl::apply_reflection(*reflection_name, source);
         for source_shift_name in &weyl::SHIFT_NAMES {
@@ -166,7 +166,7 @@ fn xx_circuit_step(source: &Coordinate, strength: f64, target: &Coordinate,
 //   target = affix source prefix
 // and computing just the prefix / affix circuits.
 
-    
+
     return Ok(())
 }
 

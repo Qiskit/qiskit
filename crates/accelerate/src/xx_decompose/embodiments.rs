@@ -1,10 +1,22 @@
-// The Python version embodiments.py is not used in XXDecomposer
-// itself. More precisely, functions and data in this file are
-// not reference in the module xx_decompose.
-// Rather it is meant to be (and is) used by consumers of XXDecomposer
+use qiskit_circuit::operations::StandardGate as StdGate;
+use crate::xx_decompose::types::{GateData, Circuit2Q};
 
-// We will keep embodiments in Python for the moment.
-// The easiest way to convert to Rust for the moment
-// is via CircuitData machinery
+fn rzx_circuit(theta: f64) -> Circuit2Q {
+    let gates = vec! [
+        GateData::oneq_no_param(StdGate::HGate, 0),
+        GateData::twoq_param(StdGate::RZXGate, theta, 0, 1),
+        GateData::oneq_no_param(StdGate::HGate, 0),
+    ];
+    Circuit2Q::from_gates(gates)
+}
 
-
+fn rzz_circuit(theta: f64) -> Circuit2Q {
+    let gates = vec! [
+        GateData::oneq_no_param(StdGate::HGate, 0),
+        GateData::oneq_no_param(StdGate::HGate, 1),
+        GateData::twoq_param(StdGate::RZZGate, theta, 0, 1),
+        GateData::oneq_no_param(StdGate::HGate, 0),
+        GateData::oneq_no_param(StdGate::HGate, 1),
+    ];
+    Circuit2Q::from_gates(gates)
+}
