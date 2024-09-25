@@ -90,8 +90,9 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         inst.op.clone(),
                         &mapped_qargs,
                         cargs,
-                        None, //params,
+                        params.as_deref().cloned(),
                         inst.extra_attrs.clone(),
+                        #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
                 }
