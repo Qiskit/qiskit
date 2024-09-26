@@ -339,7 +339,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         # check gates are shifted over accordingly
         circuit.h(qr)
         circuit.measure(qr, cr)
-        circuit.h(qr[0]).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr, 2)
 
         fname = "reg_conditional.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -362,8 +363,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.x(qr[0])
         circuit.measure(qr, cr)
-        circuit.h(qr[0]).c_if(cr[0], 1)
-        circuit.x(qr[1]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[1]).c_if(cr[1], 0)
 
         fname = "bit_conditional_bundle.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -386,8 +389,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.x(qr[0])
         circuit.measure(qr, cr)
-        circuit.h(qr[0]).c_if(cr[0], 1)
-        circuit.x(qr[1]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[0]).c_if(cr[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr[1]).c_if(cr[1], 0)
 
         fname = "bit_conditional_no_bundle.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname, cregbundle=False)
@@ -1073,7 +1078,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
-        circuit.h(qr[1]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr, 1)
 
         fname = "meas_condition.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -1099,7 +1105,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.x(0)
         circuit.measure(2, 1)
-        circuit.x(2).c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(2).c_if(cr, 2)
 
         fname = "reverse_bits_cond_true.png"
         self.circuit_drawer(
@@ -1394,8 +1401,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(1)
         circuit.measure(0, cr1[1])
-        circuit.measure(1, cr2[0]).c_if(cr1, 1)
-        circuit.h(0).c_if(cr2, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.measure(1, cr2[0]).c_if(cr1, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(0).c_if(cr2, 3)
 
         fname = "measure_cond_false.png"
         self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
@@ -1427,7 +1436,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(crx[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(crx[1], 0)
         circuit.measure(0, bits[3])
 
         fname = "measure_cond_bits_false.png"
@@ -1461,8 +1471,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[1])
-        circuit.h(qr[1]).c_if(cr[1], 0)
-        circuit.h(qr[2]).c_if(cr[0], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[1]).c_if(cr[1], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.h(qr[2]).c_if(cr[0], 0)
 
         fname = "measure_cond_bits_right.png"
         self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
@@ -1482,7 +1494,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         cr = ClassicalRegister(2, "cr")
         crx = ClassicalRegister(2, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
-        circuit.x(0).c_if(bits[3], 0)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(0).c_if(bits[3], 0)
 
         fname = "cond_bits_reverse.png"
         self.circuit_drawer(
@@ -1503,7 +1516,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         circuit = QuantumCircuit(qr, cr)
-        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
 
         fname = "sidetext_condition.png"
         self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
@@ -1523,22 +1537,38 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         cr = ClassicalRegister(5, "cr")
         circuit = QuantumCircuit(qr, cr)
 
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 3)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 5)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 7)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 9)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 11)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 13)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 15)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 17)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 19)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 21)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 23)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 25)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 27)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
-        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 3)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 5)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 7)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 9)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 11)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 13)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 15)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 17)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 19)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 21)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 23)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 25)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 27)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
 
         fname = "fold_with_conditions.png"
         self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
@@ -1579,7 +1609,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        circuit.x(3).c_if(cr, 10)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(3).c_if(cr, 10)
 
         fname = "wire_order.png"
         self.circuit_drawer(
@@ -1728,14 +1759,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.measure(0, 1)
         circuit.measure(1, 2)
         circuit.x(2)
-        circuit.x(2, label="XLabel").c_if(cr, 2)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(2, label="XLabel").c_if(cr, 2)
 
         qr2 = QuantumRegister(3, "qr2")
         qc2 = QuantumCircuit(qr2, cr)
         qc2.x(1)
         qc2.y(1)
         qc2.z(0)
-        qc2.x(0, label="X1i").c_if(cr, 4)
+        with self.assertWarns(DeprecationWarning):
+            qc2.x(0, label="X1i").c_if(cr, 4)
 
         circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
         circuit.x(0, label="X1i")
@@ -1760,7 +1793,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with self.assertWarns(DeprecationWarning):
+                circuit.x(0, label="X c_if").c_if(cr, 4)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
@@ -1801,7 +1835,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with self.assertWarns(DeprecationWarning):
+                circuit.x(0, label="X c_if").c_if(cr, 4)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
@@ -1848,7 +1883,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
-            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with self.assertWarns(DeprecationWarning):
+                circuit.x(0, label="X c_if").c_if(cr, 4)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
                 circuit.y(1)
