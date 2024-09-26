@@ -4376,7 +4376,7 @@ def _format(operand):
             name_list_set.insert(name.extract::<String>()?);
         }
         match self.collect_runs(name_list_set) {
-            Some(runs) => {
+            Ok(runs) => {
                 let run_iter = runs.map(|node_indices| {
                     PyTuple::new_bound(
                         py,
@@ -4392,9 +4392,7 @@ def _format(operand):
                 }
                 Ok(out_set.unbind())
             }
-            None => Err(PyRuntimeError::new_err(
-                "Invalid DAGCircuit, cycle encountered",
-            )),
+            Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
         }
     }
 
@@ -4957,7 +4955,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+    ) -> PyResult<impl Iterator<Item = Vec<NodeIndex>> + '_> {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
@@ -4967,8 +4965,13 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
-        rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn)
-            .map(|node_iter| node_iter.map(|x| x.unwrap()))
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => Ok(iter.filter_map(|result| result.ok())),
+            None => Err(PyRuntimeError::new_err(
+                "Invalid DAGCircuit, cycle encountered",
+            )),
+        }
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
