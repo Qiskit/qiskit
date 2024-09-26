@@ -156,6 +156,28 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit_aer",
         )
 
+        # Remove these four filters in Qiskit 2.0.0 when we remove unit and duration
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*qiskit.circuit.instruction.Instruction.unit.*",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*qiskit.circuit.instruction.Instruction.duration.*",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*qiskit.circuit.quantumcircuit.QuantumCircuit.unit.*",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*qiskit.circuit.quantumcircuit.QuantumCircuit.duration.*",
+        )
+
         # Safe to remove once `FakeBackend` is removed (2.0)
         warnings.filterwarnings(
             "ignore",  # If "default", it floods the CI output
