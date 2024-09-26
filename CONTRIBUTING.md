@@ -440,21 +440,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy310 -- -n test.python.test_examples
+tox -epy310 -- -n test.python.compiler.test_transpiler
 ```
 or to run the same module by path:
 
 ```
-tox -epy310 -- -n test/python/test_examples.py
+tox -epy310 -- -n test/python/compiler/test_transpiler.py
 ```
 to run a class:
 
 ```
-tox -epy310 -- -n test.python.test_examples.TestPythonExamples
+tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
 ```
 to run a method:
 ```
-tox -epy310 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
 ```
 
 Alternatively there is a makefile provided to run tests, however this
