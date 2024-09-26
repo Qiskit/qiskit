@@ -1234,7 +1234,7 @@ pub struct TwoQubitGateSequence {
 #[pymethods]
 impl TwoQubitGateSequence {
     #[new]
-    pub fn new() -> Self {
+    fn new() -> Self {
         TwoQubitGateSequence {
             gates: Vec::new(),
             global_phase: 0.,
@@ -1263,12 +1263,6 @@ impl TwoQubitGateSequence {
             .into_any()
             .unbind()),
         }
-    }
-}
-
-impl Default for TwoQubitGateSequence {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

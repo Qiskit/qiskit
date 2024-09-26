@@ -988,7 +988,7 @@ def _format(operand):
     }
 
     /// Add all wires in a quantum register.
-    pub fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
+    fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
         if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
             return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
         }
@@ -5605,7 +5605,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    pub fn add_qubit_unchecked(&mut self, py: Python, bit: &Bound<PyAny>) -> PyResult<Qubit> {
+    fn add_qubit_unchecked(&mut self, py: Python, bit: &Bound<PyAny>) -> PyResult<Qubit> {
         let qubit = self.qubits.add(py, bit, false)?;
         self.qubit_locations.bind(py).set_item(
             bit,
@@ -5621,7 +5621,7 @@ impl DAGCircuit {
         Ok(qubit)
     }
 
-    pub fn add_clbit_unchecked(&mut self, py: Python, bit: &Bound<PyAny>) -> PyResult<Clbit> {
+    fn add_clbit_unchecked(&mut self, py: Python, bit: &Bound<PyAny>) -> PyResult<Clbit> {
         let clbit = self.clbits.add(py, bit, false)?;
         self.clbit_locations.bind(py).set_item(
             bit,
@@ -6578,6 +6578,7 @@ impl DAGCircuit {
 
             // Get the correct qubit indices
             let qubits_id = instr.qubits;
+
             // Insert op-node to graph.
             let new_node = self.dag.add_node(NodeType::Operation(instr));
             new_nodes.push(new_node);
