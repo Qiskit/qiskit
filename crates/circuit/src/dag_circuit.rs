@@ -82,6 +82,10 @@ pub enum NodeType {
 }
 
 impl NodeType {
+    /// Unwraps this node as an operation and returns a reference to
+    /// the contained [PackedInstruction].
+    ///
+    /// Panics if this is not an operation node.
     pub fn unwrap_operation(&self) -> &PackedInstruction {
         match self {
             NodeType::Operation(instr) => instr,
