@@ -28,6 +28,7 @@ where
 #[rustfmt::skip]
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
+    add_submodule(m, ::qiskit_accelerate::barrier_before_final_measurement::barrier_before_final_measurements_mod, "barrier_before_final_measurement")?;
     add_submodule(m, ::qiskit_accelerate::basis::basis, "basis")?;
     add_submodule(m, ::qiskit_accelerate::check_map::check_map_mod, "check_map")?;
     add_submodule(m, ::qiskit_accelerate::circuit_library::circuit_library, "circuit_library")?;
@@ -36,6 +37,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::commutation_checker::commutation_checker, "commutation_checker")?;
     add_submodule(m, ::qiskit_accelerate::convert_2q_block_matrix::convert_2q_block_matrix, "convert_2q_block_matrix")?;
     add_submodule(m, ::qiskit_accelerate::dense_layout::dense_layout, "dense_layout")?;
+    add_submodule(m, ::qiskit_accelerate::equivalence::equivalence, "equivalence")?;
     add_submodule(m, ::qiskit_accelerate::error_map::error_map, "error_map")?;
     add_submodule(m, ::qiskit_accelerate::euler_one_qubit_decomposer::euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
     add_submodule(m, ::qiskit_accelerate::filter_op_nodes::filter_op_nodes_mod, "filter_op_nodes")?;
