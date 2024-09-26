@@ -41,6 +41,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::euler_one_qubit_decomposer::euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
     add_submodule(m, ::qiskit_accelerate::filter_op_nodes::filter_op_nodes_mod, "filter_op_nodes")?;
     add_submodule(m, ::qiskit_accelerate::gate_direction::gate_direction, "gate_direction")?;
+    add_submodule(m, ::qiskit_accelerate::gates_in_basis::gates_in_basis, "gates_in_basis")?;
     add_submodule(m, ::qiskit_accelerate::inverse_cancellation::inverse_cancellation_mod, "inverse_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::isometry::isometry, "isometry")?;
     add_submodule(m, ::qiskit_accelerate::nlayout::nlayout, "nlayout")?;

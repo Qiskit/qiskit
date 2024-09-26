@@ -81,6 +81,19 @@ pub enum NodeType {
     Operation(PackedInstruction),
 }
 
+impl NodeType {
+    /// Unwraps this node as an operation and returns a reference to
+    /// the contained [PackedInstruction].
+    ///
+    /// Panics if this is not an operation node.
+    pub fn unwrap_operation(&self) -> &PackedInstruction {
+        match self {
+            NodeType::Operation(instr) => instr,
+            _ => panic!("Node is not an operation!"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Wire {
     Qubit(Qubit),
