@@ -23,7 +23,7 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
 #[pyfunction]
-fn any_gate_missing_from_target(_py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
+fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     #[inline]
     fn is_universal(gate: &PackedInstruction) -> bool {
         matches!(gate.op.name(), "barrier" | "store")
