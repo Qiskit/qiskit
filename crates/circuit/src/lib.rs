@@ -20,7 +20,7 @@ mod dot_utils;
 mod error;
 pub mod gate_matrix;
 pub mod imports;
-mod interner;
+pub mod interner;
 pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
