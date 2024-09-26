@@ -160,7 +160,7 @@ class Instruction(Operation):
         return self.copy()
 
     @property
-    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True, stacklevel=2)
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition(self):
         """The classical condition on the instruction."""
         return self._condition

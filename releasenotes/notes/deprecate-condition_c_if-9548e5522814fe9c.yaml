@@ -1,12 +1,12 @@
 ---
 deprecations_circuits:
   - |
-    Deprecated the :attr:`.Instruction.condition` and the
-    :meth:`.Instruction.c_if` method. This attribute and method will be removed
-    in Qiskit 2.0 and along with any other uses of this in the Qiskit data
-    model. This functionality has been superseded by the :class:`.IfElseOp`
-    which can be used to describe a classically condition in a circuit. For
-    example, a circuit using :attr:`.Instruction.condition` like::
+    Deprecated the :attr:`.Instruction.condition` attribute and the
+    :meth:`.Instruction.c_if` method. They will be removed
+    in Qiskit 2.0, along with any uses in the Qiskit data
+    model. This functionality has been superseded by the :class:`.IfElseOp` class
+    which can be used to describe a classical condition in a circuit. For
+    example, a circuit using  :meth:`.Instruction.c_if` like::
 
         from qiskit.circuit import QuantumCircuit
 
@@ -17,7 +17,7 @@ deprecations_circuits:
         qc.measure(0, 0)
         qc.measure(1, 1)
 
-    can be rewritten using as::
+    can be rewritten as::
 
         qc = QuantumCircuit(2, 2)
         qc.h(0)
