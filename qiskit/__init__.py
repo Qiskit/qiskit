@@ -83,6 +83,9 @@ sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
 sys.modules["qiskit._accelerate.synthesis.permutation"] = _accelerate.synthesis.permutation
 sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linear
 sys.modules["qiskit._accelerate.synthesis.clifford"] = _accelerate.synthesis.clifford
+sys.modules["qiskit._accelerate.barrier_before_final_measurement"] = (
+    _accelerate.barrier_before_final_measurement
+)
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
