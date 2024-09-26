@@ -185,8 +185,8 @@ please ensure that:
    which will run these checks and report any issues.
 
    If your code fails the local style checks (specifically the black
-   or rust code formatting check) you can use `tox -eblack` and
-   `cargo fmt` to automatically fix update the code formatting.
+   or Rust code formatting check) you can use `tox -eblack` and
+   `cargo fmt` to automatically fix the code formatting.
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -566,8 +566,8 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 ### Testing Rust components
 
 Many Rust-accelerated functions are generally tested from Python space, but in cases
-where new Rust-native APIs are being added or there is Rust-specific internal details
-to be tested, `#[test]` functions can be included inline.  Typically it's most
+where new Rust-native APIs are being added, or there are Rust-specific internal details
+to be tested, `#[test]` functions can be included inline. It's typically most
 convenient to place these in a separate inline module that is only conditionally
 compiled in, such as
 
@@ -582,8 +582,7 @@ mod tests {
 ```
 
 For more detailed guidance on how to add Rust testing you can refer to the Rust
-documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html)
-for more details and suggestions.
+documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
 
 To run the Rust-space tests, do
 
@@ -652,17 +651,12 @@ the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ### Rust style and lint
 
-If you're working on Rust code the Rust formatting and lint checking are done
-using different tooling. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
-code formatting, and you can simply run `cargo fmt` (if you installed Rust with the
-default settings using `rustup`) and it will update the code formating automatically to
-conform to the style guidelines. This is very similar manner to what `black` and running
-`tox -eblack` for Python code. For lint Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy)
-which can be invoked via `cargo clippy`. For CI to pass you will need clippy to pass
-without any warnings or errors.
+For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
+code formatting. You can simply run `cargo fmt` (if you installed Rust with the
+default settings using `rustup`), and it will update the code formatting automatically to
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
 
-These still get checked via the tox lint commands but if you need to update formating
-you'll need to run ``cargo fmt``.
+Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
 
 ## Building API docs locally
