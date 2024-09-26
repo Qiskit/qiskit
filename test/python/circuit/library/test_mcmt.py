@@ -19,7 +19,18 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import MCMT, MCMTVChain, CHGate, XGate, ZGate, CXGate, CZGate, MCMTGate
+from qiskit.circuit.library import (
+    MCMT,
+    MCMTVChain,
+    CHGate,
+    XGate,
+    ZGate,
+    CXGate,
+    CZGate,
+    MCMTGate,
+    GlobalPhaseGate,
+    SwapGate,
+)
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Statevector
@@ -245,6 +256,13 @@ class TestMCMT(QiskitTestCase):
                 ignore_phase=True,
             )
         )
+
+    def test_invalid_base_gate_width(self):
+        """Test only 1-qubit base gates are accepted."""
+        for gate in [GlobalPhaseGate(0.2), SwapGate()]:
+            with self.subTest(gate=gate):
+                with self.assertRaises(ValueError):
+                    _ = MCMTGate(gate, 10, 2)
 
 
 if __name__ == "__main__":

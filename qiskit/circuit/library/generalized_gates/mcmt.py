@@ -25,7 +25,29 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class MCMT(QuantumCircuit):
-    """A circuit for a multi-control, multi-target gate."""
+    """The multi-controlled multi-target gate, for an arbitrary singly controlled target gate.
+
+    For example, the H gate controlled on 3 qubits and acting on 2 target qubit is represented as:
+
+    .. parsed-literal::
+
+        ───■────
+           │
+        ───■────
+           │
+        ───■────
+        ┌──┴───┐
+        ┤0     ├
+        │  2-H │
+        ┤1     ├
+        └──────┘
+
+    This default implementations requires no ancilla qubits, by broadcasting the target gate
+    to the number of target qubits and using Qiskit's generic control routine to control the
+    broadcasted target on the control qubits. If ancilla qubits are available, a more efficient
+    variant using the so-called V-chain decomposition can be used. This is implemented in
+    :class:`~qiskit.circuit.library.MCMTVChain`.
+    """
 
     @deprecate_func(since="1.3", additional_msg="Use MCMTGate instead.", pending=True)
     def __init__(
@@ -180,11 +202,10 @@ class MCMTGate(ControlledGate):
         ┤1     ├
         └──────┘
 
-    This default implementations requires no ancilla qubits, by broadcasting the target gate
-    to the number of target qubits and using Qiskit's generic control routine to control the
-    broadcasted target on the control qubits. If ancilla qubits are available, a more efficient
-    variant using the so-called V-chain decomposition can be used. This is implemented in
-    :class:`~qiskit.circuit.library.MCMTVChain`.
+    Depending on the number of available auxiliary qubits, this operation can be synthesized
+    using different methods. For example, if :math:`n - 1` clean auxiliary qubits are available
+    (where :math:`n` is the number of control qubits), a V-chain decomposition can be used whose
+    depth is linear in :math:`n`. See also :func:`.synth_mcmt_chain`.
     """
 
     def __init__(
@@ -206,6 +227,9 @@ class MCMTGate(ControlledGate):
         """
         if num_target_qubits < 1:
             raise ValueError("Need at least one target qubit.")
+
+        if num_ctrl_qubits < 1:
+            raise ValueError("Need at least one control qubit.")
 
         self.num_target_qubits = num_target_qubits
 
@@ -235,10 +259,6 @@ class MCMTGate(ControlledGate):
     def _identify_base_gate(gate):
         """Get the control base gate. Note this must be a single qubit gate."""
 
-        # TODO deprecate
-        if callable(gate):
-            gate = gate.__name__
-
         # try getting the standard name from the string
         if isinstance(gate, str):
             standard_gates = get_standard_gate_name_mapping()
@@ -251,11 +271,22 @@ class MCMTGate(ControlledGate):
 
         # extract the base gate
         if isinstance(gate, ControlledGate):
+            warnings.warn(
+                "Passing a controlled gate to MCMT is pending deprecation since Qiskit 1.3. Pass a "
+                "single-qubit gate instance or the gate name instead, e.g. pass 'h' instead of 'ch'.",
+                category=PendingDeprecationWarning,
+                stacklevel=2,
+            )
             base_gate = gate.base_gate
         elif isinstance(gate, Gate):
             base_gate = gate
         else:
             raise TypeError(f"Invalid gate type {type(gate)}.")
+
+        if base_gate.num_qubits != 1:
+            raise ValueError(
+                f"MCMTGate requires a base gate with a single qubit, but got {base_gate.num_qubits}."
+            )
 
         return base_gate
 

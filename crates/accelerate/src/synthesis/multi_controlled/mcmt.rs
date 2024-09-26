@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use core::num;
-
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -19,6 +17,8 @@ use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
+
+use crate::QiskitError;
 
 /// A Toffoli chain, implementing a multi-control condition on all controls using
 /// ``controls.len() - 1`` auxiliary qubits.
@@ -51,20 +51,20 @@ fn ccx_chain<'a>(
     ),
 > + 'a {
     let n = controls.len() - 1; // number of chain elements
-    let indices = std::iter::once((controls[0], controls[1], auxiliaries[0]))
-        .chain((0..n - 1).map(|i| (controls[i + 2], auxiliaries[i], auxiliaries[i + 1])));
-    indices.map(|(ctrl1, ctrl2, target)| {
-        (
-            StandardGate::CCXGate.into(),
-            smallvec![],
-            vec![
-                Qubit(ctrl1 as u32),
-                Qubit(ctrl2 as u32),
-                Qubit(target as u32),
-            ],
-            vec![],
-        )
-    })
+    std::iter::once((controls[0], controls[1], auxiliaries[0]))
+        .chain((0..n - 1).map(|i| (controls[i + 2], auxiliaries[i], auxiliaries[i + 1])))
+        .map(|(ctrl1, ctrl2, target)| {
+            (
+                StandardGate::CCXGate.into(),
+                smallvec![],
+                vec![
+                    Qubit(ctrl1 as u32),
+                    Qubit(ctrl2 as u32),
+                    Qubit(target as u32),
+                ],
+                vec![],
+            )
+        })
 }
 
 /// Implement multi-control, multi-target of a single-qubit gate using a V-chain with
@@ -103,6 +103,10 @@ pub fn mcmt_v_chain(
     num_target_qubits: usize,
     control_state: Option<usize>,
 ) -> PyResult<CircuitData> {
+    if num_ctrl_qubits < 1 {
+        return Err(QiskitError::new_err("Need at least 1 control qubit."));
+    }
+
     let packed_controlled_gate = controlled_gate.operation;
     let num_qubits = if num_ctrl_qubits > 1 {
         2 * num_ctrl_qubits - 1 + num_target_qubits
@@ -110,9 +114,7 @@ pub fn mcmt_v_chain(
         1 + num_target_qubits // we can have 1 control and multiple targets
     };
 
-    let control_state = control_state
-        .or(Some(usize::pow(2, num_ctrl_qubits as u32) - 1))
-        .unwrap();
+    let control_state = control_state.unwrap_or(usize::pow(2, num_ctrl_qubits as u32) - 1);
 
     // First, we handle bitflips in case of open controls.
     let flip_control_state = (0..num_ctrl_qubits)
@@ -126,7 +128,7 @@ pub fn mcmt_v_chain(
             )
         });
 
-    // First, we create the operations that apply the controlled base gate.
+    // Then, we create the operations that apply the controlled base gate.
     // That's because we only add the V-chain of CCX gates, if the number of controls
     // is larger than 1, otherwise we're already done here.
     let master_control = if num_ctrl_qubits > 1 {
@@ -146,6 +148,7 @@ pub fn mcmt_v_chain(
         )
     });
 
+    // Finally we add the V-chain (or return in case of 1 control).
     if num_ctrl_qubits == 1 {
         CircuitData::from_packed_operations(
             py,
