@@ -74,7 +74,7 @@ pub(crate) fn basis_search(
     let mut basis_transforms: Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)> = vec![];
 
     // Initialize visitor attributes:
-    initialize_num_gates_remain_for_rule(&equiv_lib.graph, &mut num_gates_remaining_for_rule);
+    initialize_num_gates_remain_for_rule(equiv_lib.graph(), &mut num_gates_remaining_for_rule);
 
     // TODO: Logs
     let mut source_basis_remain: HashSet<Key> = source_basis
@@ -100,12 +100,12 @@ pub(crate) fn basis_search(
     // their names and we need to have in addition the number of qubits they act on.
     let target_basis_keys: Vec<Key> = equiv_lib
         .keys()
+        .filter(|&key| target_basis.contains(key.name.as_str()))
         .cloned()
-        .filter(|key| target_basis.contains(key.name.as_str()))
         .collect();
 
     // Dummy node is inserted in the graph. Which is where the search will start
-    let dummy: NodeIndex = equiv_lib.graph.add_node(NodeData {
+    let dummy: NodeIndex = equiv_lib.mut_graph().add_node(NodeData {
         equivs: vec![],
         key: Key {
             name: "key".to_string(),
@@ -121,7 +121,7 @@ pub(crate) fn basis_search(
 
     // Connect each edge in the target_basis to the dummy node.
     target_basis_indices.iter().for_each(|node| {
-        equiv_lib.graph.add_edge(dummy, *node, None);
+        equiv_lib.mut_graph().add_edge(dummy, *node, None);
     });
 
     // Edge cost function for Visitor
@@ -147,13 +147,13 @@ pub(crate) fn basis_search(
     };
 
     let basis_transforms = match dijkstra_search(
-        &equiv_lib.graph,
+        &equiv_lib.graph(),
         [dummy],
         edge_weight,
         |event: DijkstraEvent<NodeIndex, &Option<EdgeData>, u32>| {
             match event {
                 DijkstraEvent::Discover(n, score) => {
-                    let gate_key = &equiv_lib.graph[n].key;
+                    let gate_key = &equiv_lib.graph()[n].key;
                     let gate = (gate_key.name.to_string(), gate_key.num_qubits);
                     source_basis_remain.remove(gate_key);
                     let mut borrowed_cost_map = opt_cost_map.borrow_mut();
@@ -178,7 +178,7 @@ pub(crate) fn basis_search(
                     }
                 }
                 DijkstraEvent::EdgeRelaxed(_, target, Some(edata)) => {
-                    let gate = &equiv_lib.graph[target].key;
+                    let gate = &equiv_lib.graph()[target].key;
                     predecessors
                         .borrow_mut()
                         .entry((gate.name.to_string(), gate.num_qubits))
@@ -190,7 +190,7 @@ pub(crate) fn basis_search(
                         .entry(edata.index)
                         .and_modify(|val| *val -= 1)
                         .or_insert(0);
-                    let target = &equiv_lib.graph[target].key;
+                    let target = &equiv_lib.graph()[target].key;
 
                     // If there are gates in this `rule` that we have not yet generated, we can't apply
                     // this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
@@ -210,7 +210,7 @@ pub(crate) fn basis_search(
     };
 
     // TODO: Values will have to be cloned in order for the dummy node to be removed.
-    equiv_lib.graph.remove_node(dummy);
+    equiv_lib.mut_graph().remove_node(dummy);
     basis_transforms
 }
 

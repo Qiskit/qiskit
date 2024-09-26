@@ -13,7 +13,6 @@
 
 """Translates gates to a target basis using a given equivalence library."""
 
-import random
 import time
 import logging
 
