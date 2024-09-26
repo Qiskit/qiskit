@@ -19,9 +19,9 @@ from collections.abc import Callable
 
 from qiskit import circuit
 from qiskit.circuit import ControlledGate, Gate, QuantumCircuit
-from qiskit.circuit.library import get_standard_gate_name_mapping
 from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit.utils.deprecation import deprecate_func
+from ..standard_gates import get_standard_gate_name_mapping
 
 
 class MCMT(QuantumCircuit):
@@ -170,6 +170,7 @@ class MCMTVChain(MCMT):
         super().__init__(gate, num_ctrl_qubits, num_target_qubits)
 
     def _build(self):
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 
         synthesized = synth_mcmt_vchain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
@@ -251,6 +252,7 @@ class MCMTGate(ControlledGate):
 
     def _define(self):
         """Default definition relying on gate.control. Control state is handled by superclass."""
+        # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.synthesis.hls_plugins import MCMTDefault
 
         self.definition = MCMTDefault().run(self)
