@@ -86,6 +86,7 @@ and then loading that file will return a list with all the circuits
     :nofigs:
     :context:
 
+    # This block is hidden from readers. It's cleanup code.
     from pathlib import Path
     Path("bell.qpy").unlink()
     Path("twenty_bells.qpy").unlink()
@@ -847,6 +848,7 @@ users to save pulse programs in the QPY binary format as follows:
 .. plot::
    :nofigs:
 
+   # This block is hidden from readers. It's cleanup code.
    from pathlib import Path
    Path("schedule.qpy").unlink()
 

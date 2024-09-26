@@ -92,6 +92,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
 .. plot::
    :nofigs:
 
+   # This block is hidden from readers. It's cleanup code.
    from pathlib import Path
    Path("new_hist.png").unlink()
 
