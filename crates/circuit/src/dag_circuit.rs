@@ -4388,27 +4388,18 @@ def _format(operand):
         for name in namelist.iter() {
             name_list_set.insert(name.extract::<String>()?);
         }
-        match self.collect_runs(name_list_set) {
-            Some(runs) => {
-                let run_iter = runs.map(|node_indices| {
-                    PyTuple::new_bound(
-                        py,
-                        node_indices
-                            .into_iter()
-                            .map(|node_index| self.get_node(py, node_index).unwrap()),
-                    )
-                    .unbind()
-                });
-                let out_set = PySet::empty_bound(py)?;
-                for run_tuple in run_iter {
-                    out_set.add(run_tuple)?;
-                }
-                Ok(out_set.unbind())
-            }
-            None => Err(PyRuntimeError::new_err(
-                "Invalid DAGCircuit, cycle encountered",
-            )),
+
+        let out_set = PySet::empty_bound(py)?;
+
+        for run in self.collect_runs(name_list_set) {
+            let run_tuple = PyTuple::new_bound(
+                py,
+                run.into_iter()
+                    .map(|node_index| self.get_node(py, node_index).unwrap()),
+            );
+            out_set.add(run_tuple)?;
         }
+        Ok(out_set.unbind())
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
@@ -4970,7 +4961,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
@@ -4980,8 +4971,11 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
-        rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn)
-            .map(|node_iter| node_iter.map(|x| x.unwrap()))
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("invalid DAG: cycle(s) detected!"),
+        }
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
