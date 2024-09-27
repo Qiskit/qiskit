@@ -108,7 +108,7 @@ class RZXGate(Gate):
 
         .. math::
 
-            R_{ZX}(\theta = \pi) = -i Z \otimes X
+            R_{ZX}(\theta = \pi) = -i X \otimes Z
 
         .. math::
 
