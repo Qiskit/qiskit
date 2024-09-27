@@ -4955,7 +4955,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> PyResult<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+    ) -> impl Iterator<Item = Vec<NodeIndex>> {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
@@ -4967,10 +4967,8 @@ impl DAGCircuit {
         };
 
         match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
-            Some(iter) => Ok(iter.filter_map(|result| result.ok())),
-            None => Err(PyRuntimeError::new_err(
-                "Invalid DAGCircuit, cycle encountered",
-            )),
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("invalid DAG: cycle(s) detected!"),
         }
     }
 
