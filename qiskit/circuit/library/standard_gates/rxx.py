@@ -63,7 +63,7 @@ class RXXGate(Gate):
 
         .. math::
 
-            R_{XX}(\theta = \pi) = i X \otimes X
+            R_{XX}(\theta = \pi) = -i X \otimes X
 
         .. math::
 
