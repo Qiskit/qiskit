@@ -15,6 +15,7 @@ use std::env;
 use pyo3::import_exception;
 
 pub mod barrier_before_final_measurement;
+pub mod basis;
 pub mod check_map;
 pub mod circuit_library;
 pub mod commutation_analysis;
@@ -28,6 +29,7 @@ pub mod error_map;
 pub mod euler_one_qubit_decomposer;
 pub mod filter_op_nodes;
 pub mod gate_direction;
+pub mod gates_in_basis;
 pub mod inverse_cancellation;
 pub mod isometry;
 pub mod nlayout;
