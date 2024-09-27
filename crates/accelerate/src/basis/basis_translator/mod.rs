@@ -13,9 +13,11 @@
 use pyo3::prelude::*;
 
 pub mod basis_search;
+mod compose_transforms;
 
 #[pymodule]
 pub fn basis_translator(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(basis_search::py_basis_search))?;
+    m.add_wrapped(wrap_pyfunction!(compose_transforms::py_compose_transforms))?;
     Ok(())
 }

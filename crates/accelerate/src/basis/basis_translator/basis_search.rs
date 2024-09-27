@@ -15,12 +15,13 @@ use std::cell::RefCell;
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 
-use crate::equivalence::{CircuitRep, EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
-use qiskit_circuit::operations::{Operation, Param};
+use crate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
+use qiskit_circuit::operations::Operation;
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex, StableDiGraph};
 use rustworkx_core::petgraph::visit::Control;
 use rustworkx_core::traversal::{dijkstra_search, DijkstraEvent};
-use smallvec::SmallVec;
+
+use super::compose_transforms::{BasisTransformIn, GateIdentifier};
 
 #[pyfunction]
 #[pyo3(name = "basis_search")]
@@ -38,7 +39,7 @@ use smallvec::SmallVec;
 pub(crate) fn py_basis_search(
     py: Python,
     equiv_lib: &mut EquivalenceLibrary,
-    source_basis: HashSet<(String, u32)>,
+    source_basis: HashSet<GateIdentifier>,
     target_basis: HashSet<String>,
 ) -> PyObject {
     basis_search(
@@ -52,7 +53,7 @@ pub(crate) fn py_basis_search(
     .into_py(py)
 }
 
-type BasisTransforms = Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)>;
+type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 /// Search for a set of transformations from source_basis to target_basis.
 ///
 /// Performs a Dijkstra search algorithm on the `EquivalenceLibrary`'s core graph
@@ -68,10 +69,10 @@ pub(crate) fn basis_search(
 ) -> Option<BasisTransforms> {
     // Build the visitor attributes:
     let mut num_gates_remaining_for_rule: HashMap<usize, usize> = HashMap::default();
-    let predecessors: RefCell<HashMap<(String, u32), Equivalence>> =
+    let predecessors: RefCell<HashMap<GateIdentifier, Equivalence>> =
         RefCell::new(HashMap::default());
-    let opt_cost_map: RefCell<HashMap<(String, u32), u32>> = RefCell::new(HashMap::default());
-    let mut basis_transforms: Vec<(String, u32, SmallVec<[Param; 3]>, CircuitRep)> = vec![];
+    let opt_cost_map: RefCell<HashMap<GateIdentifier, u32>> = RefCell::new(HashMap::default());
+    let mut basis_transforms: Vec<(GateIdentifier, BasisTransformIn)> = vec![];
 
     // Initialize visitor attributes:
     initialize_num_gates_remain_for_rule(equiv_lib.graph(), &mut num_gates_remaining_for_rule);
@@ -165,10 +166,8 @@ pub(crate) fn basis_search(
                     if let Some(rule) = predecessors.borrow().get(&gate) {
                         // TODO: Logger
                         basis_transforms.push((
-                            gate_key.name.to_string(),
-                            gate_key.num_qubits,
-                            rule.params.clone(),
-                            rule.circuit.clone(),
+                            (gate_key.name.to_string(), gate_key.num_qubits),
+                            (rule.params.clone(), rule.circuit.clone()),
                         ));
                     }
 
