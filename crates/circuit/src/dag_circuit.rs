@@ -4375,25 +4375,18 @@ def _format(operand):
         for name in namelist.iter() {
             name_list_set.insert(name.extract::<String>()?);
         }
-        match self.collect_runs(name_list_set) {
-            Ok(runs) => {
-                let run_iter = runs.map(|node_indices| {
-                    PyTuple::new_bound(
-                        py,
-                        node_indices
-                            .into_iter()
-                            .map(|node_index| self.get_node(py, node_index).unwrap()),
-                    )
-                    .unbind()
-                });
-                let out_set = PySet::empty_bound(py)?;
-                for run_tuple in run_iter {
-                    out_set.add(run_tuple)?;
-                }
-                Ok(out_set.unbind())
-            }
-            Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
+
+        let out_set = PySet::empty_bound(py)?;
+
+        for run in self.collect_runs(name_list_set) {
+            let run_tuple = PyTuple::new_bound(
+                py,
+                run.into_iter()
+                    .map(|node_index| self.get_node(py, node_index).unwrap()),
+            );
+            out_set.add(run_tuple)?;
         }
+        Ok(out_set.unbind())
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
