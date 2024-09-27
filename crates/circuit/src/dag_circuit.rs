@@ -1001,7 +1001,7 @@ def _format(operand):
     }
 
     /// Add all wires in a quantum register.
-    fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
+    pub fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
         if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
             return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
         }
@@ -1684,7 +1684,7 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: if a leaf node is connected to multiple outputs
     #[pyo3(name = "apply_operation_back", signature = (op, qargs=None, cargs=None, *, check=true))]
-    fn py_apply_operation_back(
+    pub fn py_apply_operation_back(
         &mut self,
         py: Python,
         op: Bound<PyAny>,
@@ -2873,8 +2873,8 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(signature = (node, input_dag, wires=None, propagate_condition=true))]
-    fn substitute_node_with_dag(
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=true))]
+    pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,
