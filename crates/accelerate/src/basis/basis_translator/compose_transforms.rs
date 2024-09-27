@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{exceptions::PyTypeError, prelude::*};
+use pyo3::prelude::*;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_CIRCUIT, QUANTUM_REGISTER};
+use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_REGISTER};
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
@@ -23,29 +23,12 @@ use qiskit_circuit::{
 };
 use smallvec::SmallVec;
 
+use crate::equivalence::CircuitFromPython;
+
 // Custom types
 pub type GateIdentifier = (String, u32);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
-// TODO: Remove these and use the version from `EquivalenceLibrary`
-
-/// Representation of QuantumCircuit which the original circuit object + an
-/// instance of `CircuitData`.
-#[derive(Debug, Clone)]
-pub struct CircuitFromPython(pub CircuitData);
-
-impl FromPyObject<'_> for CircuitFromPython {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            let data: CircuitData = ob.getattr("_data")?.extract()?;
-            Ok(Self(data))
-        } else {
-            Err(PyTypeError::new_err(
-                "Provided object was not an instance of QuantumCircuit",
-            ))
-        }
-    }
-}
 
 #[pyfunction(name = "compose_transforms")]
 pub(super) fn py_compose_transforms(
@@ -63,12 +46,12 @@ pub(super) fn compose_transforms<'a>(
     source_basis: &'a HashSet<GateIdentifier>,
     source_dag: &'a DAGCircuit,
 ) -> PyResult<HashMap<GateIdentifier, BasisTransformOut>> {
-    let mut example_gates: HashMap<GateIdentifier, usize> = HashMap::default();
-    get_gates_num_params(source_dag, &mut example_gates)?;
+    let mut gate_param_counts: HashMap<GateIdentifier, usize> = HashMap::default();
+    get_gates_num_params(source_dag, &mut gate_param_counts)?;
     let mut mapped_instructions: HashMap<GateIdentifier, BasisTransformOut> = HashMap::new();
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
-        let num_params = example_gates[&(gate_name.clone(), gate_num_qubits)];
+        let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
         let placeholder_params: SmallVec<[Param; 3]> = PARAMETER_VECTOR
             .get_bound(py)
