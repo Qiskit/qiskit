@@ -21,12 +21,15 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumcircuit import Gate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
+    @deprecate_func(since="1.3", pending=True, additional_msg="Use PermutationGate instead.")
     def __init__(
         self,
         num_qubits: int,
@@ -117,11 +120,11 @@ class PermutationGate(Gate):
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
-                A = [2,4,3,0,1]
+                A = [2, 4, 3, 0, 1]
                 permutation = PermutationGate(A)
                 circuit = QuantumCircuit(5)
                 circuit.append(permutation, [0, 1, 2, 3, 4])
-                circuit.draw('mpl')
+                circuit.draw("mpl")
 
         Expanded Circuit:
             .. plot::
@@ -129,7 +132,7 @@ class PermutationGate(Gate):
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
                 from qiskit.visualization.library import _generate_circuit_library_visualization
-                A = [2,4,3,0,1]
+                A = [2, 4, 3, 0, 1]
                 permutation = PermutationGate(A)
                 circuit = QuantumCircuit(5)
                 circuit.append(permutation, [0, 1, 2, 3, 4])
@@ -141,7 +144,7 @@ class PermutationGate(Gate):
             raise CircuitError(
                 "Permutation pattern must be some ordering of 0..num_qubits-1 in a list."
             )
-        pattern = np.array(pattern)
+        pattern = np.asarray(pattern)
 
         super().__init__(name="permutation", num_qubits=num_qubits, params=[pattern])
 
@@ -168,12 +171,14 @@ class PermutationGate(Gate):
         return parameter
 
     @property
-    def pattern(self):
+    def pattern(self) -> np.ndarray[bool]:
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
 
-    def inverse(self, annotated: bool = False):
+    def inverse(self, annotated: bool = False) -> PermutationGate:
         """Returns the inverse of the permutation."""
+        if annotated:
+            return AnnotatedOperation(self.copy(), InverseModifier)
 
         # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
