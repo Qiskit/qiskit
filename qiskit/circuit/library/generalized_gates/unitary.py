@@ -118,11 +118,8 @@ class UnitaryGate(Gate):
         dtype = self.params[0].dtype if dtype is None else dtype
         return numpy.array(self.params[0], dtype=dtype, copy=copy)
 
-    def inverse(self, annotated: bool = False) -> "UnitaryGate" | AnnotatedOperation:
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
-        if annotated:
-            return AnnotatedOperation(self, InverseModifier)
-
         return self.adjoint()
 
     def conjugate(self):
