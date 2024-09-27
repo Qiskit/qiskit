@@ -4948,7 +4948,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> impl Iterator<Item = Vec<NodeIndex>> {
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
