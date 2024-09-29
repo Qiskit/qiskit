@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
 
+
 @deprecate_pulse_arg("inst_map")
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,

@@ -25,6 +25,7 @@ from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
 from qiskit.visualization.utils import matplotlib_close_if_inline
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
+
 class Mpl2DPlotter(BasePlotter):
     """Matplotlib API for pulse drawer.
 

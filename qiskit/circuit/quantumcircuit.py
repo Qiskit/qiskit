@@ -1323,7 +1323,7 @@ class QuantumCircuit:
         return self._op_start_times
 
     @property
-    @deprecate_pulse_dependency
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self) -> dict:
         """Return calibration dictionary.
 
@@ -1333,7 +1333,7 @@ class QuantumCircuit:
         return dict(self._calibrations)
 
     @calibrations.setter
-    @deprecate_pulse_dependency
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self, calibrations: dict):
         """Set the circuit calibration data from a dictionary of calibration definition.
 

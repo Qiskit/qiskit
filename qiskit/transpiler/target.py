@@ -108,7 +108,7 @@ class InstructionProperties(BaseInstructionProperties):
         self.calibration = calibration
 
     @property
-    @deprecate_pulse_dependency
+    @deprecate_pulse_dependency(is_property=True)
     def calibration(self):
         """The pulse representation of the instruction.
 
@@ -141,7 +141,7 @@ class InstructionProperties(BaseInstructionProperties):
         return self._calibration.get_schedule()
 
     @calibration.setter
-    @deprecate_pulse_dependency
+    @deprecate_pulse_dependency(is_property=True)
     def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()

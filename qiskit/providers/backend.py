@@ -486,7 +486,7 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
-    @deprecate_pulse_dependency
+    @deprecate_pulse_dependency(is_property=True)
     def instruction_schedule_map(self):
         """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions defined in this backend's target."""

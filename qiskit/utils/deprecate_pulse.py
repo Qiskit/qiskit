@@ -28,25 +28,32 @@ def deprecate_pulse_func(func):
     )(func)
 
 
-def deprecate_pulse_dependency(func):
+def deprecate_pulse_dependency(*args, **kwargs):
     """Deprecation message for functions and classes which use or depend on Pulse"""
-    return deprecate_func(
+
+    decorator = deprecate_func(
         since="1.3",
         removal_timeline="in Qiskit 2.0",
         additional_msg="The entire Qiskit Pulse package is being deprecated "
         "and this is a dependency on the package.",
-    )(func)
+        **kwargs,
+    )
+
+    # Taken when `deprecate_pulse_dependency` is used with no arguments and with empty parentheses,
+    # in which case the decorated function is passed
+    if args:
+        return decorator(args[0])
+    return decorator
 
 
-def deprecate_pulse_arg(arg_name, description=None, predicate=None):
+def deprecate_pulse_arg(arg_name, **kwargs):
     """Deprecation message for arguments related to Pulse"""
     return deprecate_arg(
         name=arg_name,
         since="1.3",
-        deprecation_description=description,
         removal_timeline="in Qiskit 2.0",
         additional_msg="The entire Qiskit Pulse package is being deprecated "
         "and will be moved to the Qiskit Dynamics repository: "
         "https://github.com/qiskit-community/qiskit-dynamics",
-        predicate=predicate,
+        **kwargs,
     )
