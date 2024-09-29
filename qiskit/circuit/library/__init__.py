@@ -142,7 +142,8 @@ Note here that the object on the right belongs to the broad class:
 
 * :class:`qiskit.circuit.Instruction`
 
-This function returns a map of all the standard gates present in the qiskit library. Instruction object for a particular gate can be captured by indexing the map with the name of the gate.
+This function returns a map of all the standard gates present in the qiskit library. 
+Instruction object for a particular gate can be captured by indexing the map with the name of the gate.
 
 For Example:
 
