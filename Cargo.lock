@@ -388,12 +388,12 @@ dependencies = [
 
 [[package]]
 name = "faer-ext"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf30f6ae73f372c0e0cf7556c44e50f1eee0a714d71396091613d68c43625c9"
+checksum = "fa0b66079aff3caae4e41177b37487914cbcb377651e86a838d6a2088fb4b666"
 dependencies = [
  "faer",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
 ]
 
@@ -824,13 +824,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
+dependencies = [
+ "matrixmultiply",
+ "num-complex",
+ "num-integer",
+ "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
+ "rawpointer",
+]
+
+[[package]]
 name = "ndarray_einsum_beta"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "668b3abeae3e0637740340e0e32a9bf9308380e146ea6797950f9ff16e88d88a"
 dependencies = [
  "lazy_static",
- "ndarray",
+ "ndarray 0.15.6",
  "num-traits",
  "regex",
 ]
@@ -893,7 +908,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec170733ca37175f5d75a5bea5911d6ff45d2cd52849ce98b685394e4f2f37f4"
 dependencies = [
  "libc",
- "ndarray",
+ "ndarray 0.15.6",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1064,6 +1079,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da544ee218f0d287a911e9c99a39a8c9bc8fcad3cb8db5959940044ecfc67265"
 
 [[package]]
+name = "portable-atomic-util"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcdd8420072e66d54a407b3316991fe946ce3ab1083a7f575b2463866624704d"
+dependencies = [
+ "portable-atomic",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1232,7 +1256,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
- "ndarray",
+ "ndarray 0.15.6",
  "ndarray_einsum_beta",
  "num-bigint",
  "num-complex",
@@ -1261,7 +1285,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "indexmap",
  "itertools 0.13.0",
- "ndarray",
+ "ndarray 0.15.6",
  "num-complex",
  "numpy",
  "pyo3",
@@ -1506,7 +1530,7 @@ dependencies = [
  "fixedbitset",
  "hashbrown 0.14.5",
  "indexmap",
- "ndarray",
+ "ndarray 0.15.6",
  "num-traits",
  "petgraph",
  "priority-queue",

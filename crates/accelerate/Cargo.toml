@@ -52,7 +52,7 @@ workspace = true
 features = ["rayon"]
 
 [dependencies.faer-ext]
-version = "0.2.0"
+version = "0.3.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
