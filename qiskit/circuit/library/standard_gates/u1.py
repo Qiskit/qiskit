@@ -183,7 +183,7 @@ class CU1Gate(ControlledGate):
 
 
         q_0: ─■──
-              │λ
+              │θ
         q_1: ─■──
 
 
@@ -191,13 +191,13 @@ class CU1Gate(ControlledGate):
 
     .. math::
 
-        CU1(\lambda) =
+        CU1(\theta) =
             I \otimes |0\rangle\langle 0| + U1 \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\lambda}
+                0 & 0 & 0 & e^{i\theta}
             \end{pmatrix}
 
     .. seealso::
