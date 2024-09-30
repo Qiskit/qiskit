@@ -62,7 +62,8 @@ def get_standard_gate_name_mapping():
     * :class:`qiskit.circuit.Instruction`
 
     This function returns a map of all the standard gates present in the qiskit library. 
-    Instruction object for a particular gate can be captured by indexing the map with the name of the gate.
+    Instruction object for a particular gate can be captured by indexing the map with the name 
+    of the gate.
 
     For Example:
 
