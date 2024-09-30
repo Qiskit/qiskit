@@ -140,7 +140,7 @@ def iqp(
             raise ValueError("Only one of interactions or num_qubits can be provided, not both.")
 
         num_qubits = len(interactions)
-        interactions = np.asarray(interactions).astype(int)
+        interactions = np.asarray(interactions).astype(np.int64)
 
     # set the label -- if the number of qubits is too large, do not show the interactions matrix
     if num_qubits < 5 and interactions is not None:
