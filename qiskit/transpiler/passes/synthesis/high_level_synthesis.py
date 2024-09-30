@@ -549,7 +549,7 @@ class HighLevelSynthesis(TransformationPass):
 
             # Do not allow access to control qubits
             tracker.disable(context.to_globals(control_qubits))
-            synthesized_base_op, baseop_data = self._synthesize_operation(
+            synthesized_base_op, _ = self._synthesize_operation(
                 operation.base_op,
                 baseop_qubits,
                 tracker,
@@ -683,7 +683,7 @@ class HighLevelSynthesis(TransformationPass):
             raise TranspilerError(f"Unexpected synthesized type: {type(synthesized)}")
 
         if isinstance(synthesized, DAGCircuit) and synthesized_context is None:
-            raise TranspilerError(f"Synthesized DAGCircuit without data")
+            raise TranspilerError("HighLevelSynthesis internal error.")
 
         return synthesized, synthesized_context
 
