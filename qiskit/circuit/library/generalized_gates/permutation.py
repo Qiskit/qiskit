@@ -21,7 +21,6 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumcircuit import Gate
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
 
