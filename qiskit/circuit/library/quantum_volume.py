@@ -12,6 +12,8 @@
 
 """Quantum Volume model circuit."""
 
+from __future__ import annotations
+
 from typing import Optional, Union
 
 import numpy as np
