@@ -175,7 +175,7 @@ class CPhaseGate(ControlledGate):
 
 
         q_0: ─■──
-              │λ
+              │θ
         q_1: ─■──
 
 
@@ -189,7 +189,7 @@ class CPhaseGate(ControlledGate):
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\lambda}
+                0 & 0 & 0 & e^{i\theta}
             \end{pmatrix}
 
     .. seealso::
