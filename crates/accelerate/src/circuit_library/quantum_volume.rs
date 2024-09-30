@@ -22,7 +22,7 @@ use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::IntoPyArray;
 use rand::prelude::*;
-use rand_distr::Normal;
+use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
@@ -33,6 +33,12 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 use smallvec::smallvec;
 
+#[inline(always)]
+fn random_complex(rng: &mut Pcg64Mcg) -> Complex64 {
+    Complex64::new(rng.sample(StandardNormal), rng.sample(StandardNormal))
+        * std::f64::consts::FRAC_1_SQRT_2
+}
+
 // This function's implementation was modeled off of the algorithm used in the
 // `scipy.stats.unitary_group.rvs()` function defined here:
 //
@@ -40,22 +46,48 @@ use smallvec::smallvec;
 #[inline]
 fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Complex64>> {
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
-    let dist = Normal::new(0., 1.0).unwrap();
 
     (0..size).map(move |_| {
-        let mut z: Array2<Complex64> = Array2::from_shape_simple_fn((4, 4), || {
-            Complex64::new(dist.sample(&mut rng), dist.sample(&mut rng))
-        });
-        z.mapv_inplace(|x| x * std::f64::consts::FRAC_1_SQRT_2);
-        let qr = z.view().into_faer_complex().qr();
-        let r = qr.compute_r().as_ref().into_ndarray_complex().to_owned();
-        let mut d = r.into_diag();
-        d.mapv_inplace(|d| d / d.norm());
+        let raw_numbers: [[Complex64; 4]; 4] = [
+            [
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+            ],
+            [
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+            ],
+            [
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+            ],
+            [
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+                random_complex(&mut rng),
+            ],
+        ];
+
+        let qr = aview2(&raw_numbers).into_faer_complex().qr();
+        let r = qr.compute_r();
+        let diag: [Complex64; 4] = [
+            r[(0, 0)].to_num_complex() / r[(0, 0)].abs(),
+            r[(1, 1)].to_num_complex() / r[(1, 1)].abs(),
+            r[(2, 2)].to_num_complex() / r[(2, 2)].abs(),
+            r[(3, 3)].to_num_complex() / r[(3, 3)].abs(),
+        ];
         let mut q = qr.compute_q().as_ref().into_ndarray_complex().to_owned();
         q.axis_iter_mut(Axis(0)).for_each(|mut row| {
             row.iter_mut()
                 .enumerate()
-                .for_each(|(index, val)| *val *= d.diag()[index])
+                .for_each(|(index, val)| *val *= diag[index])
         });
         q
     })
