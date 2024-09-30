@@ -128,7 +128,7 @@ For example:
 
 
 get_standard_gate_name_mapping()
--------------------
+-------------------------------------
 It returns a dictionary mapping the name of standard gates and instructions to an object for that name.
 
 For Example:
