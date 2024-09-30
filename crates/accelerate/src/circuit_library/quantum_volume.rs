@@ -33,6 +33,10 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 use smallvec::smallvec;
 
+// This function's implementation was modeled off of the algorithm used in the
+// `scipy.stats.unitary_group.rvs()` function defined here:
+//
+// https://github.com/scipy/scipy/blob/v1.14.1/scipy/stats/_multivariate.py#L4224-L4256
 #[inline]
 fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Complex64>> {
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
