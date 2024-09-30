@@ -80,9 +80,7 @@ def get_standard_gate_name_mapping():
     .. parsed-literal::
 
         Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])
-        _SingletonCXGate
- 
-    """
+        _SingletonCXGate"""
     
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.measure import Measure
