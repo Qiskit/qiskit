@@ -17,8 +17,8 @@ from collections.abc import Sequence
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
+from qiskit._accelerate.circuit_library import py_iqp
 
 
 class IQP(QuantumCircuit):
@@ -84,7 +84,7 @@ class IQP(QuantumCircuit):
 def iqp(
     interactions: Sequence[Sequence[int]] | None = None, num_qubits: int | None = None
 ) -> QuantumCircuit:
-    r"""Instantaneous quantum polynomial (IQP) circuit.
+    r"""Instantaneous quantum polynomial time (IQP) circuit.
 
     The circuit consists of a column of Hadamard gates, a column of powers of T gates,
     a sequence of powers of CS gates (up to :math:`\frac{n^2-n}{2}` of them), and a final column of
@@ -121,7 +121,8 @@ def iqp(
     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
 
     Args:
-        interactions: The interactions as symmetric square matrix of width ``num_qubits``.
+        interactions: The interactions as symmetric square matrix. If ``None``, then the
+            ``num_qubits`` argument must be set and a random IQP circuit will be generated.
         num_qubits: If no interactions are given, construct a random IQP circuit with this
             number of qubits. This argument cannot be passed at the same time as ``interactions``.
 
@@ -133,41 +134,21 @@ def iqp(
         if num_qubits is None:
             raise ValueError("Either interactions or num_qubits must be provided.")
 
-        # create a symmetric random interactions matrix
-        random_full = np.random.random_integers(0, 8, size=(num_qubits, num_qubits))
-        interactions = np.triu(random_full) + np.triu(random_full, -1)
-
     # otherwise validate the interactions
     else:
         if num_qubits is not None:
             raise ValueError("Only one of interactions or num_qubits can be provided, not both.")
 
         num_qubits = len(interactions)
-        interactions = np.asarray(interactions)
-
-        if not np.allclose(interactions, interactions.T):
-            raise CircuitError("The interactions matrix is not symmetric")
+        interactions = np.asarray(interactions).astype(int)
 
     # set the label -- if the number of qubits is too large, do not show the interactions matrix
-    if num_qubits < 5:
+    if num_qubits < 5 and interactions is not None:
         label = np.array_str(interactions)
         name = "iqp:" + label.replace("\n", ";")
     else:
-        label = "iqp"
+        name = "iqp"
 
-    # construct the circuit
-    circuit = QuantumCircuit(num_qubits, name=name)
-
-    circuit.h(range(num_qubits))
-    for i in range(num_qubits):
-        for j in range(i + 1, num_qubits):
-            if interactions[i][j] % 4 != 0:
-                circuit.cp(interactions[i][j] * np.pi / 2, i, j)
-
-    for i in range(num_qubits):
-        if interactions[i][i] % 8 != 0:
-            circuit.p(interactions[i][i] * np.pi / 8, i)
-
-    circuit.h(range(num_qubits))
-
+    circuit = QuantumCircuit._from_circuit_data(py_iqp(num_qubits, interactions), add_regs=True)
+    circuit.name = name
     return circuit

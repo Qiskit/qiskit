@@ -13,10 +13,12 @@
 use pyo3::prelude::*;
 
 mod entanglement;
+mod iqp;
 mod pauli_feature_map;
 
 pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(pauli_feature_map::pauli_feature_map))?;
     m.add_wrapped(wrap_pyfunction!(entanglement::get_entangler_map))?;
+    m.add_wrapped(wrap_pyfunction!(iqp::py_iqp))?;
     Ok(())
 }
