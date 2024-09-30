@@ -25,7 +25,7 @@ class ISRES(NLoptOptimizer):
     on a combination of a mutation rule and differential variation. The fitness ranking is simply
     via the objective function for problems without nonlinear constraints. When nonlinear
     constraints are included, the `stochastic ranking proposed by Runarsson and Yao
-    <https://notendur.hi.is/tpr/software/sres/Tec311r.pdf>`__
+    <https://www.cs.bham.ac.uk/~xin/papers/published_tec_sep00_constraint.pdf>`__
     is employed. This method supports arbitrary nonlinear inequality and equality constraints, in
     addition to the bound constraints.
 
