@@ -26,19 +26,28 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.utils import deprecate_func
 
 
 class GateConfig:
     """Class representing a Gate Configuration
 
     Attributes:
-        name: the gate name as it will be referred to in Qasm.
+        name: the gate name as it will be referred to in OpenQASM.
         parameters: variable names for the gate parameters (if any).
-        qasm_def: definition of this gate in terms of Qasm primitives U
+        qasm_def: definition of this gate in terms of OpenQASM 2 primitives U
                   and CX.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         name,
@@ -52,11 +61,10 @@ class GateConfig:
         """Initialize a GateConfig object
 
         Args:
-            name (str): the gate name as it will be referred to in Qasm.
+            name (str): the gate name as it will be referred to in OpenQASM.
             parameters (list): variable names for the gate parameters (if any)
                                as a list of strings.
-            qasm_def (str): definition of this gate in terms of Qasm primitives
-                            U and CX.
+            qasm_def (str): definition of this gate in terms of OpenQASM 2 primitives U and CX.
             coupling_map (list): An optional coupling map for the gate. In
                 the form of a list of lists of integers representing the qubit
                 groupings which are coupled by this gate.
@@ -143,6 +151,14 @@ class UchannelLO:
         scale: Scale factor for qubit frequency.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, q, scale):
         """Initialize a UchannelLOSchema object
 
@@ -195,7 +211,7 @@ class UchannelLO:
 
 
 class QasmBackendConfiguration:
-    """Class representing a Qasm Backend Configuration.
+    """Class representing an OpenQASM 2.0 Backend Configuration.
 
     Attributes:
         backend_name: backend name.
@@ -213,6 +229,15 @@ class QasmBackendConfiguration:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         backend_name,
@@ -493,9 +518,19 @@ class QasmBackendConfiguration:
 
 
 class BackendConfiguration(QasmBackendConfiguration):
-    """Backwards compat shim representing an abstract backend configuration."""
+    """Backwards compatibility shim representing an abstract backend configuration."""
 
-    pass
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class PulseBackendConfiguration(QasmBackendConfiguration):
@@ -503,6 +538,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         backend_name: str,
@@ -831,22 +875,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
         return AcquireChannel(qubit)
 
-    @deprecate_arg(
-        "channel",
-        since="0.19.0",
-        additional_msg=(
-            "Instead, use the ``qubits`` argument. This method will now return accurate "
-            "ControlChannels determined by qubit indices."
-        ),
-    )
-    def control(self, qubits: Iterable[int] = None, channel: int = None) -> List[ControlChannel]:
+    def control(self, qubits: Iterable[int] = None) -> List[ControlChannel]:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
 
         Args:
             qubits: Tuple or list of qubits of the form `(control_qubit, target_qubit)`.
-            channel: Deprecated.
 
         Raises:
             BackendConfigurationError: If the ``qubits`` is not a part of the system or if
@@ -855,8 +890,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         Returns:
             List of control channels.
         """
-        if channel is not None:
-            qubits = [channel]
         try:
             if isinstance(qubits, list):
                 qubits = tuple(qubits)
@@ -905,9 +938,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         channels = set()
         try:
             if isinstance(qubit, int):
-                for key in self._qubit_channel_map.keys():
+                for key, value in self._qubit_channel_map.items():
                     if qubit in key:
-                        channels.update(self._qubit_channel_map[key])
+                        channels.update(value)
                 if len(channels) == 0:
                     raise KeyError
             elif isinstance(qubit, list):

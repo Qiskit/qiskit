@@ -16,9 +16,11 @@ Chi-matrix representation of a Quantum Channel.
 """
 
 from __future__ import annotations
-import copy
+import copy as _copy
+import math
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -39,11 +41,13 @@ class Chi(QuantumChannel):
 
     .. math::
 
-        \mathcal{E}(ρ) = \sum_{i, j} \chi_{i,j} P_i ρ P_j
+        \mathcal{E}(ρ) = \frac{1}{2^n} \sum_{i, j} \chi_{i,j} P_i ρ P_j
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order. It is related to the :class:`Choi` representation by a change
-    of basis of the Choi-matrix into the Pauli basis.
+    of basis of the Choi-matrix into the Pauli basis. The :math:`\frac{1}{2^n}`
+    in the definition above is a normalization factor that arises from scaling the
+    Pauli basis to make it orthonormal.
 
     See reference [1] for further details.
 
@@ -94,7 +98,7 @@ class Chi(QuantumChannel):
             if output_dims:
                 output_dim = np.prod(input_dims)
             if output_dims is None and input_dims is None:
-                output_dim = int(np.sqrt(dim_l))
+                output_dim = int(math.sqrt(dim_l))
                 input_dim = dim_l // output_dim
             elif input_dims is None:
                 input_dim = dim_l // output_dim
@@ -123,15 +127,14 @@ class Chi(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        num_qubits = int(np.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__(chi_mat, num_qubits=num_qubits)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     @property
     def _bipartite_shape(self):
@@ -178,7 +181,7 @@ class Chi(QuantumChannel):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a._data, b.data)
         return ret

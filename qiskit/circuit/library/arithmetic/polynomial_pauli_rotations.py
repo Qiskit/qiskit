@@ -19,7 +19,6 @@ from itertools import product
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_func
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 
@@ -224,16 +223,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             return len(self.coeffs) - 1
         return 0
 
-    @property
-    @deprecate_func(
-        is_property=True,
-        since="0.16.0",
-        additional_msg="Instead, use the property :attr:`~num_ancillas`.",
-    )
-    def num_ancilla_qubits(self):
-        """Deprecated. Use num_ancillas instead."""
-        return self.num_ancillas
-
     def _reset_registers(self, num_state_qubits):
         """Reset the registers."""
         if num_state_qubits is not None:
@@ -259,7 +248,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             if raise_on_failure:
                 raise CircuitError(
                     "Not enough qubits in the circuit, need at least "
-                    "{}.".format(self.num_state_qubits + 1)
+                    f"{self.num_state_qubits + 1}."
                 )
 
         return valid

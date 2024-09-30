@@ -14,24 +14,50 @@
 set -e
 set -x
 
-version=$1
-parts=( ${version//./ } )
-if [[ ${parts[1]} -lt 18 ]] ; then
-    exit 0
+function usage {
+    echo "usage: ${BASH_SOURCE[0]} -p /path/to/qiskit/python <package> <version>" 1>&2
+    exit 1
+}
+
+python="python"
+while getopts "p:" opt; do 
+    case "$opt" in
+        p)
+            python="$OPTARG"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift "$((OPTIND-1))"
+if [[ $# != 2 ]]; then
+    usage
 fi
 
-if [[ ! -d qpy_$version ]] ; then
-    echo "Building venv for qiskit-terra $version"
-    python -m venv $version
-    ./$version/bin/pip install "qiskit-terra==$version"
-    mkdir qpy_$version
-    pushd qpy_$version
-    echo "Generating qpy files with qiskit-terra $version"
-    ../$version/bin/python ../test_qpy.py generate --version=$version
+# `package` is the name of the Python distribution to install (qiskit or qiskit-terra). `version` is
+# the source version: the release with which to generate qpy files with to load with the version
+# under test.
+package="$1"
+version="$2"
+
+our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
+cache_dir="$(pwd -P)/qpy_$version"
+venv_dir="$(pwd -P)/${version}"
+
+if [[ ! -d $cache_dir ]] ; then
+    echo "Building venv for $package==$version"
+    "$python" -m venv "$venv_dir"
+    "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}"
+    mkdir "$cache_dir"
+    pushd "$cache_dir"
+    echo "Generating QPY files with $package==$version"
+    "$venv_dir/bin/python" "${our_dir}/test_qpy.py" generate --version="$version"
 else
     echo "Using cached QPY files for $version"
-    pushd qpy_$version
+    pushd "${cache_dir}"
 fi
-echo "Loading qpy files from $version with dev qiskit-terra"
-../qiskit_venv/bin/python ../test_qpy.py load --version=$version
+echo "Loading qpy files from $version with dev Qiskit"
+"$python" "${our_dir}/test_qpy.py" load --version="$version"
 popd
+rm -rf "$venv_dir"

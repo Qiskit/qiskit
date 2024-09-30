@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix the Quantum Shannon Decomposition implemented in :func:`.qs_decomposition`. When a unitary
+    could not take advantage of the diagonal commutation optimization, it used to error.
+    Now, it leaves it as undecomposed 2-qubit unitary gate.
+    Fixes `#10787 <https://github.com/Qiskit/qiskit/issues/10787>`__

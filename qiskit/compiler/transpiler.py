@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
-import copy
 import logging
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
@@ -21,19 +20,18 @@ import warnings
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
+from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.transpiler.target import Target, target_to_backend_properties
+from qiskit.transpiler.target import Target
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +65,37 @@ def transpile(  # pylint: disable=too-many-return-statements
     init_method: Optional[str] = None,
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
+    num_processes: Optional[int] = None,
+    qubits_initially_zero: bool = True,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     Transpilation is potentially done in parallel using multiprocessing when ``circuits``
-    is a list with > 1 :class:`~.QuantumCircuit` object depending on the local environment
+    is a list with > 1 :class:`~.QuantumCircuit` object, depending on the local environment
     and configuration.
+
+    The prioritization of transpilation target constraints works as follows: if a ``target``
+    input is provided, it will take priority over any ``backend`` input or loose constraints
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
+    from the list above, the loose constraint will take priority over the corresponding backend
+    constraint. This behavior is independent of whether the ``backend`` instance is of type
+    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    in the table summarizes the potential user-provided constraints, and each cell shows whether
+    the priority is assigned to that specific constraint input or another input
+    (`target`/`backend(V1)`/`backend(V2)`).
+
+    ============================ ========= ======================== =======================
+    User Provided                target    backend(V1)              backend(V2)
+    ============================ ========= ======================== =======================
+    **basis_gates**              target    basis_gates              basis_gates
+    **coupling_map**             target    coupling_map             coupling_map
+    **instruction_durations**    target    instruction_durations    instruction_durations
+    **inst_map**                 target    inst_map                 inst_map
+    **dt**                       target    dt                       dt
+    **timing_constraints**       target    timing_constraints       timing_constraints
+    **backend_properties**       target    backend_properties       backend_properties
+    ============================ ========= ======================== =======================
 
     Args:
         circuits: Circuit(s) to transpile
@@ -130,7 +153,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre').
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'sabre').
             This can also be the external plugin name to use for the ``layout`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
@@ -196,7 +219,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             * 2: heavy optimization
             * 3: even heavier optimization
 
-            If ``None``, level 1 will be chosen as default.
+            If ``None``, level 2 will be chosen as default.
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments,
@@ -231,7 +254,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
             only be necessary when a unitary synthesis plugin is specified with
-            the ``unitary_synthesis`` argument. As this is custom for each
+            the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
         target: A backend transpiler target. Normally this is specified as part of
@@ -257,6 +280,12 @@ def transpile(  # pylint: disable=too-many-return-statements
             to support custom compilation target-specific passes/plugins which support
             backend-specific compilation techniques. If you'd prefer that these defaults were
             not used this option is used to disable those backend-specific defaults.
+        num_processes: The maximum number of parallel processes to launch for this call to
+            transpile if parallel execution is enabled. This argument overrides
+            ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
+            environment variable. If set to ``None`` the system default or local user configuration
+            will be used.
+        qubits_initially_zero: Indicates whether the input circuit is zero-initialized.
 
     Returns:
         The transpiled circuit(s).
@@ -285,7 +314,31 @@ def transpile(  # pylint: disable=too-many-return-statements
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get("transpile_optimization_level", 1)
+        optimization_level = config.get("transpile_optimization_level", 2)
+
+    if backend is not None and getattr(backend, "version", 0) <= 1:
+        warnings.warn(
+            "The `transpile` function will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        with warnings.catch_warnings():
+            # This is a temporary conversion step to allow for a smoother transition
+            # to a fully target-based transpiler pipeline while maintaining the behavior
+            # of `transpile` with BackendV1 inputs.
+            # TODO BackendV1 is deprecated and this path can be
+            #   removed once it gets removed:
+            #   https://github.com/Qiskit/qiskit/pull/12850
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
+                module="qiskit",
+            )
+            backend = BackendV2Converter(backend)
 
     if (
         scheduling_method is not None
@@ -299,108 +352,29 @@ def transpile(  # pylint: disable=too-many-return-statements
             UserWarning,
         )
 
-    _skip_target = False
-    # If a target is specified have it override any implicit selections from a backend
-    if target is not None:
-        if coupling_map is None:
-            coupling_map = target.build_coupling_map()
-        if basis_gates is None:
-            basis_gates = list(target.operation_names)
-        if instruction_durations is None:
-            instruction_durations = target.durations()
-        if inst_map is None:
-            inst_map = target.instruction_schedule_map()
-        if dt is None:
-            dt = target.dt
-        if timing_constraints is None:
-            timing_constraints = target.timing_constraints()
-        if backend_properties is None:
-            backend_properties = target_to_backend_properties(target)
-    # If target is not specified and any hardware constraint object is
-    # manually specified then do not use the target from the backend as
-    # it is invalidated by a custom basis gate list or a custom coupling map
-    elif basis_gates is not None or coupling_map is not None:
-        _skip_target = True
-    else:
-        target = getattr(backend, "target", None)
-
-    initial_layout = _parse_initial_layout(initial_layout)
-    coupling_map = _parse_coupling_map(coupling_map, backend)
-    approximation_degree = _parse_approximation_degree(approximation_degree)
-
-    output_name = _parse_output_name(output_name, circuits)
-    inst_map = _parse_inst_map(inst_map, backend)
-
-    _check_circuits_coupling_map(circuits, coupling_map, backend)
-
-    timing_constraints = _parse_timing_constraints(backend, timing_constraints)
-
-    if inst_map is not None and inst_map.has_custom_gate() and target is not None:
-        # Do not mutate backend target
-        target = copy.deepcopy(target)
-        target.update_from_instruction_schedule_map(inst_map)
-
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
             scheduling_method = backend.get_scheduling_stage_plugin()
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
 
-    if instruction_durations or dt:
-        # If durations are provided and there is more than one circuit
-        # we need to serialize the execution because the full durations
-        # is dependent on the circuit calibrations which are per circuit
-        if len(circuits) > 1:
-            out_circuits = []
-            for circuit in circuits:
-                instruction_durations = _parse_instruction_durations(
-                    backend, instruction_durations, dt, circuit
-                )
-                pm = generate_preset_pass_manager(
-                    optimization_level,
-                    backend=backend,
-                    target=target,
-                    basis_gates=basis_gates,
-                    inst_map=inst_map,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    backend_properties=backend_properties,
-                    timing_constraints=timing_constraints,
-                    initial_layout=initial_layout,
-                    layout_method=layout_method,
-                    routing_method=routing_method,
-                    translation_method=translation_method,
-                    scheduling_method=scheduling_method,
-                    approximation_degree=approximation_degree,
-                    seed_transpiler=seed_transpiler,
-                    unitary_synthesis_method=unitary_synthesis_method,
-                    unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-                    hls_config=hls_config,
-                    init_method=init_method,
-                    optimization_method=optimization_method,
-                    _skip_target=_skip_target,
-                )
-                out_circuits.append(pm.run(circuit, callback=callback))
-            for name, circ in zip(output_name, out_circuits):
-                circ.name = name
-                end_time = time()
-            _log_transpile_time(start_time, end_time)
-            return out_circuits
-        else:
-            instruction_durations = _parse_instruction_durations(
-                backend, instruction_durations, dt, circuits[0]
-            )
+    output_name = _parse_output_name(output_name, circuits)
+    coupling_map = _parse_coupling_map(coupling_map)
+    _check_circuits_coupling_map(circuits, coupling_map, backend)
 
+    # Edge cases require using the old model (loose constraints) instead of building a target,
+    # but we don't populate the passmanager config with loose constraints unless it's one of
+    # the known edge cases to control the execution path.
     pm = generate_preset_pass_manager(
         optimization_level,
-        backend=backend,
         target=target,
+        backend=backend,
         basis_gates=basis_gates,
-        inst_map=inst_map,
         coupling_map=coupling_map,
         instruction_durations=instruction_durations,
         backend_properties=backend_properties,
         timing_constraints=timing_constraints,
+        inst_map=inst_map,
         initial_layout=initial_layout,
         layout_method=layout_method,
         routing_method=routing_method,
@@ -413,14 +387,16 @@ def transpile(  # pylint: disable=too-many-return-statements
         hls_config=hls_config,
         init_method=init_method,
         optimization_method=optimization_method,
-        _skip_target=_skip_target,
+        dt=dt,
+        qubits_initially_zero=qubits_initially_zero,
     )
-    out_circuits = pm.run(circuits, callback=callback)
+
+    out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
+
     for name, circ in zip(output_name, out_circuits):
         circ.name = name
     end_time = time()
     _log_transpile_time(start_time, end_time)
-
     if arg_circuits_list:
         return out_circuits
     else:
@@ -433,121 +409,37 @@ def _check_circuits_coupling_map(circuits, cmap, backend):
     if cmap is not None:
         max_qubits = cmap.size()
     elif backend is not None:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if not backend.configuration().simulator:
-                max_qubits = backend.configuration().n_qubits
-            else:
-                max_qubits = None
-        else:
-            max_qubits = backend.num_qubits
+        max_qubits = backend.num_qubits
+
     for circuit in circuits:
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
         if max_qubits is not None and (num_qubits > max_qubits):
-            raise TranspilerError(
+            raise CircuitTooWideForTarget(
                 f"Number of qubits ({num_qubits}) in {circuit.name} "
                 f"is greater than maximum ({max_qubits}) in the coupling_map"
             )
 
 
 def _log_transpile_time(start_time, end_time):
-    log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    log_msg = f"Total Transpile Time - {((end_time - start_time) * 1000):.5f} (ms)"
     logger.info(log_msg)
 
 
-def _parse_inst_map(inst_map, backend):
-    # try getting inst_map from user, else backend
-    if inst_map is None:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if hasattr(backend, "defaults"):
-                inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
-        else:
-            inst_map = backend.target.instruction_schedule_map()
-    return inst_map
-
-
-def _parse_coupling_map(coupling_map, backend):
-    # try getting coupling_map from user, else backend
-    if coupling_map is None:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if getattr(backend, "configuration", None):
-                configuration = backend.configuration()
-                if hasattr(configuration, "coupling_map") and configuration.coupling_map:
-                    coupling_map = CouplingMap(configuration.coupling_map)
-        else:
-            coupling_map = backend.coupling_map
-
+def _parse_coupling_map(coupling_map):
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
-    if coupling_map is None or isinstance(coupling_map, CouplingMap):
-        return coupling_map
     if isinstance(coupling_map, list) and all(
         isinstance(i, list) and len(i) == 2 for i in coupling_map
     ):
         return CouplingMap(coupling_map)
-    else:
+    elif isinstance(coupling_map, list):
         raise TranspilerError(
             "Only a single input coupling map can be used with transpile() if you need to "
             "target different coupling maps for different circuits you must call transpile() "
             "multiple times"
         )
-
-
-def _parse_initial_layout(initial_layout):
-    # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
-    # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
-    if initial_layout is None or isinstance(initial_layout, Layout):
-        return initial_layout
-    if isinstance(initial_layout, dict):
-        return Layout(initial_layout)
-    if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
-        return Layout.from_qubit_list(initial_layout)
     else:
-        return initial_layout
-
-
-def _parse_instruction_durations(backend, inst_durations, dt, circuit):
-    """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
-    the backend will be ignored, otherwise, the durations will be populated from the
-    backend. If any circuits have gate calibrations, those calibration durations would
-    take precedence over backend durations, but be superceded by ``inst_duration``s.
-    """
-    if not inst_durations:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            backend_durations = InstructionDurations()
-            try:
-                backend_durations = InstructionDurations.from_backend(backend)
-            except AttributeError:
-                pass
-        else:
-            backend_durations = backend.instruction_durations
-
-    circ_durations = InstructionDurations()
-    if not inst_durations:
-        circ_durations.update(backend_durations, dt or backend_durations.dt)
-
-    if circuit.calibrations:
-        cal_durations = []
-        for gate, gate_cals in circuit.calibrations.items():
-            for (qubits, parameters), schedule in gate_cals.items():
-                cal_durations.append((gate, qubits, parameters, schedule.duration))
-        circ_durations.update(cal_durations, circ_durations.dt)
-
-    if inst_durations:
-        circ_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
-
-    return circ_durations
-
-
-def _parse_approximation_degree(approximation_degree):
-    if approximation_degree is None:
-        return None
-    if approximation_degree < 0.0 or approximation_degree > 1.0:
-        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
-    return approximation_degree
+        return coupling_map
 
 
 def _parse_output_name(output_name, circuits):
@@ -580,24 +472,7 @@ def _parse_output_name(output_name, circuits):
         else:
             raise TranspilerError(
                 "The parameter output_name should be a string or a"
-                "list of strings: %s was used." % type(output_name)
+                f"list of strings: {type(output_name)} was used."
             )
     else:
         return [circuit.name for circuit in circuits]
-
-
-def _parse_timing_constraints(backend, timing_constraints):
-    if isinstance(timing_constraints, TimingConstraints):
-        return timing_constraints
-    if backend is None and timing_constraints is None:
-        timing_constraints = TimingConstraints()
-    else:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if timing_constraints is None:
-                # get constraints from backend
-                timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
-            timing_constraints = TimingConstraints(**timing_constraints)
-        else:
-            timing_constraints = backend.target.timing_constraints()
-    return timing_constraints

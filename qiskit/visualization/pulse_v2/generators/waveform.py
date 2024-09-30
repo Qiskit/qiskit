@@ -203,11 +203,10 @@ def gen_ibmq_latex_waveform_name(
                 if frac.numerator == 1:
                     angle = rf"\pi/{frac.denominator:d}"
                 else:
-                    angle = r"{num:d}/{denom:d} \pi".format(
-                        num=frac.numerator, denom=frac.denominator
-                    )
+                    angle = rf"{frac.numerator:d}/{frac.denominator:d} \pi"
             else:
                 # single qubit pulse
+                # pylint: disable-next=consider-using-f-string
                 op_name = r"{{\rm {}}}".format(match_dict["op"])
                 angle_val = match_dict["angle"]
                 if angle_val is None:
@@ -217,9 +216,7 @@ def gen_ibmq_latex_waveform_name(
                     if frac.numerator == 1:
                         angle = rf"\pi/{frac.denominator:d}"
                     else:
-                        angle = r"{num:d}/{denom:d} \pi".format(
-                            num=frac.numerator, denom=frac.denominator
-                        )
+                        angle = rf"{frac.numerator:d}/{frac.denominator:d} \pi"
             latex_name = rf"{op_name}({sign}{angle})"
         else:
             latex_name = None
@@ -271,7 +268,7 @@ def gen_waveform_max_value(
     if isinstance(data.inst, instructions.Play):
         # pulse
         operand = data.inst.pulse
-        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
+        if isinstance(operand, pulse.SymbolicPulse):
             pulse_data = operand.get_waveform()
         else:
             pulse_data = operand
@@ -490,7 +487,7 @@ def _draw_opaque_waveform(
     fill_objs.append(box_obj)
 
     # parameter name
-    func_repr = "{func}({params})".format(func=pulse_shape, params=", ".join(pnames))
+    func_repr = f"{pulse_shape}({', '.join(pnames)})"
 
     text_style = {
         "zorder": formatter["layer.annotate"],
@@ -563,7 +560,7 @@ def _parse_waveform(
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
-        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
+        if isinstance(operand, pulse.SymbolicPulse):
             # parametric pulse
             params = operand.parameters
             duration = params.pop("duration", None)
@@ -630,8 +627,7 @@ def _parse_waveform(
         meta.update(acq_data)
     else:
         raise VisualizationError(
-            "Unsupported instruction {inst} by "
-            "filled envelope.".format(inst=inst.__class__.__name__)
+            f"Unsupported instruction {inst.__class__.__name__} by " "filled envelope."
         )
 
     meta.update(

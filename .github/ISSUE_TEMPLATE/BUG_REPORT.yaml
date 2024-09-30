@@ -10,12 +10,12 @@ body:
   - type: textarea
     attributes:
       label: Environment
-      description: For the version of Terra, please give the actual version number (_e.g._ 0.18.3) if you are using a release version, or the first 7-8 characters of the commit hash if you have installed from `git`.  If anything else is relevant, you can add it to the list.
+      description: For the version of Qiskit, please give the actual version number (_e.g._ 0.45.2) if you are using a release version, or the first 7-8 characters of the commit hash if you have installed from `git`.  If anything else is relevant, you can add it to the list.
       # The trailing spaces on the following lines are to make filling the form
       # in easier.  The type is 'textarea' rather than three separate 'input's
       # to make the resulting issue body less noisy with headings.
       value: |
-        - **Qiskit Terra version**: 
+        - **Qiskit version**: 
         - **Python version**: 
         - **Operating system**: 
     validations:

@@ -18,6 +18,22 @@ import struct
 from collections import namedtuple
 
 
+# FILE_HEADER_V10
+FILE_HEADER_V10 = namedtuple(
+    "FILE_HEADER",
+    [
+        "preface",
+        "qpy_version",
+        "major_version",
+        "minor_version",
+        "patch_version",
+        "num_programs",
+        "symbolic_encoding",
+    ],
+)
+FILE_HEADER_V10_PACK = "!6sBBBBQc"
+FILE_HEADER_V10_SIZE = struct.calcsize(FILE_HEADER_V10_PACK)
+
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",
@@ -25,6 +41,24 @@ FILE_HEADER = namedtuple(
 )
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
+
+
+CIRCUIT_HEADER_V12 = namedtuple(
+    "HEADER",
+    [
+        "name_size",
+        "global_phase_type",
+        "global_phase_size",
+        "num_qubits",
+        "num_clbits",
+        "metadata_size",
+        "num_registers",
+        "num_instructions",
+        "num_vars",
+    ],
+)
+CIRCUIT_HEADER_V12_PACK = "!H1cHIIQIQI"
+CIRCUIT_HEADER_V12_SIZE = struct.calcsize(CIRCUIT_HEADER_V12_PACK)
 
 # CIRCUIT_HEADER_V2
 CIRCUIT_HEADER_V2 = namedtuple(
@@ -122,6 +156,11 @@ PAULI_EVOLUTION_DEF = namedtuple(
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+
+# Modifier
+MODIFIER_DEF = namedtuple("MODIFIER_DEF", ["type", "num_ctrl_qubits", "ctrl_state", "power"])
+MODIFIER_DEF_PACK = "!1cIId"
+MODIFIER_DEF_SIZE = struct.calcsize(MODIFIER_DEF_PACK)
 
 # CUSTOM_CIRCUIT_DEF_HEADER
 CUSTOM_CIRCUIT_DEF_HEADER = namedtuple("CUSTOM_CIRCUIT_DEF_HEADER", ["size"])
@@ -262,6 +301,21 @@ MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
 MAP_ITEM_PACK = "!H1cH"
 MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
 
+LAYOUT_V2 = namedtuple(
+    "LAYOUT",
+    [
+        "exists",
+        "initial_layout_size",
+        "input_mapping_size",
+        "final_layout_size",
+        "extra_registers",
+        "input_qubit_count",
+    ],
+)
+LAYOUT_V2_PACK = "!?iiiIi"
+LAYOUT_V2_SIZE = struct.calcsize(LAYOUT_V2_PACK)
+
+
 LAYOUT = namedtuple(
     "LAYOUT",
     ["exists", "initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"],
@@ -272,6 +326,13 @@ LAYOUT_SIZE = struct.calcsize(LAYOUT_PACK)
 INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"])
 INITIAL_LAYOUT_BIT_PACK = "!ii"
 INITIAL_LAYOUT_BIT_SIZE = struct.calcsize(INITIAL_LAYOUT_BIT_PACK)
+
+# EXPR_VAR_DECLARATION
+
+EXPR_VAR_DECLARATION = namedtuple("EXPR_VAR_DECLARATION", ["uuid_bytes", "usage", "name_size"])
+EXPR_VAR_DECLARATION_PACK = "!16scH"
+EXPR_VAR_DECLARATION_SIZE = struct.calcsize(EXPR_VAR_DECLARATION_PACK)
+
 
 # EXPRESSION
 
@@ -314,6 +375,10 @@ EXPR_VAR_CLBIT_SIZE = struct.calcsize(EXPR_VAR_CLBIT_PACK)
 EXPR_VAR_REGISTER = namedtuple("EXPR_VAR_REGISTER", ["reg_name_size"])
 EXPR_VAR_REGISTER_PACK = "!H"
 EXPR_VAR_REGISTER_SIZE = struct.calcsize(EXPR_VAR_REGISTER_PACK)
+
+EXPR_VAR_UUID = namedtuple("EXPR_VAR_UUID", ["var_index"])
+EXPR_VAR_UUID_PACK = "!H"
+EXPR_VAR_UUID_SIZE = struct.calcsize(EXPR_VAR_UUID_PACK)
 
 
 # EXPR_VALUE

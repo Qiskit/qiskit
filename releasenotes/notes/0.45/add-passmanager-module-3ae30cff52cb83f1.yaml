@@ -1,0 +1,98 @@
+---
+features:
+  - |
+    A new module :mod:`qiskit.passmanager` is added.
+    This module implements a generic pass manager and flow controllers,
+    and provides infrastructure to manage execution of pass manager tasks.
+    The pass manager is a base class and not aware of the input and output object types,
+    and subclass must be created for a particular program type to optimize.
+    The :mod:`qiskit.transpiler` module is also reorganized to rebuild the existing
+    pass manager based off of the generic pass manager.
+    See upgrade notes for more details.
+upgrade:
+  - |
+    One new base class for passes (:class:`.GenericPass`) and one for flow controllers (:class:`.BaseController`)
+    are introduced in the :mod:`qiskit.passmanager` module.
+    Because the flow controller is a collection of passes and a controller can be recursively
+    nested into the task pipeline, new classes are designed with the idea of
+    the composite pattern, and the interface class :class:`.passmanager.Task`
+    is also introduced. This class defines the signature of a :meth:`.Task.execute` method.
+    This unified design eliminates complexity of the conventional pass manager;
+    the execution logic dispatch and task structure renormalization
+    are no longer necessary, whom the :class:`.RunningPassManager` used to be responsible for.
+    Existing flow controllers :class:`.FlowControllerLinear`,
+    :class:`.ConditionalController`, and :class:`.DoWhileController` are now subclasses of
+    the :class:`.BaseController`.
+    Note that these controllers are no longer iterable, as they drop the implementation of
+    :meth:`~object.__iter__` method; they are now only iterable in the context of a flow-controller
+    execution, which threads the compilation state through after each inner task is executed.
+  - |
+    The :class:`.RunningPassManager` becomes largely an alias of :class:`.FlowControllerLinear`,
+    and this class will be completely replaced with the flow controller in the feature release.
+    This means the running pass manager becomes a stateless flow controller, and
+    the pass manager framework consists of :class:`.BasePassManager` and :class:`.BaseController`.
+    The pass manager is responsible for the construction of task pipeline,
+    while the controller is responsible for the execution of associated tasks.
+    Subclassing the :class:`.RunningPassManager` is no longer recommended.
+  - |
+    A new class :class:`.WorkflowStatus` is introduced to track the status of pass manager workflow.
+    This portable object is created when the pass manager is run,
+    and handed over to the underlying tasks.
+    Such status was previously managed by the :class:`.RunningPassManager` with instance variables,
+    however, now running pass manager becomes a controller object.
+  - |
+    The transpiler-specific (:func:`.transpile`) :class:`.transpiler.PassManager` is now a subclass of
+    the :class:`.passmanager.BasePassManager`.
+    There is no API break at public member level due to this class hierarchy change.
+  - |
+    A new exception :exc:`~qiskit.passmanager.PassManagerError` is introduced as the base class of
+    exceptions raised during pass-manager execution.  The transpiler-specific
+    :class:`.transpile.PassManager` continues to raise :exc:`.TranspilerError`, which is now a
+    subclass of :exc:`.PassManagerError`, for errors raised by specific tasks.  A generic failure of
+    the pass-manager machinery, typically indicating programmer error and not recoverable, will
+    raise :exc:`.PassManagerError` for general pass managers, but :class:`.transpile.PassManager`
+    will currently wrap this in its specific :exc:`.TranspilerError` for backwards compatibility.
+    This wrapping will be removed in the future.
+  - |
+    Use of :class:`.FencedObject` in the pass manager framework is removed.
+    These wrapper class cannot protect mutable object attribute from modification,
+    and protection doesn't matter as long as the code is properly implemented;
+    analysis passes should not modify an input IR,
+    controllers should not update the property set, and so forth.
+    Implementation of the proper code is the responsibility of pass manager developer.
+deprecations:
+  - |
+    The flow controller factory method :meth:`.FlowController.controller_factory` is deprecated
+    along with :meth:`.FlowController.add_flow_controller` and
+    :meth:`.FlowController.remove_flow_controller`,
+    as we are also going to deprecate task construction with
+    keyword arguments in the :meth:`.BasePassManager.append` method.
+    Controllers must be explicitly instantiated and appended to the pass manager.
+    For example, conventional syntax
+
+    .. code-block:: python
+
+        pm.append([task1, task2], condition=lambda x: x["value1"] > 10)
+
+    must be replaced with
+
+    .. code-block:: python
+
+        controller = ConditionalController([task1, task2], condition=lambda x: x["value1"] > 10)
+        pm.append(controller)
+
+    The latter allows more precise control on the order of controllers
+    especially when multiple keyword arguments are specified together, and allows for the
+    construction of general flow controllers that may have more than one pipeline or do not take a
+    single simple conditional function in their constructors.
+  - |
+    The :meth:`.FlowControllerLinear.append`, :meth:`.DoWhileController.append`,
+    and :meth:`.ConditionalController.append` methods are all deprecated immediately.
+    The construction of pass manager task pipeline is the role of :class:`.BasePassManager`,
+    and individual flow controller do not need to implement method like this.  For a flow
+    controller, you should pass all the passes in one go directly to the constructor.
+  - |
+    The general attribute and variable name :code:`passes` is replaced with :code:`tasks`
+    all over the :mod:`qiskit.passmanager` module. Note that a task must indicate a union of pass
+    and controller, and the singular form `pass` conflicts with the Python keyword.
+    In this sense, use of `tasks` is much preferable.

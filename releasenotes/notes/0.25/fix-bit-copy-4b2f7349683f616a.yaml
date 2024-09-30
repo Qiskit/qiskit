@@ -2,6 +2,6 @@
 fixes:
   - |
     Fixed an issue with copying circuits with new-style :class:`.Clbit`\ s and
-    :class:`.Qubit`\ s (bits without registers) where references to these bits
+    :class:`~qiskit.circuit.Qubit`\ s (bits without registers) where references to these bits
     from the containing circuit could be broken, causing issues with
     serialization and circuit visualization.

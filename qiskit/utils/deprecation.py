@@ -17,17 +17,19 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import Any, Callable, Dict, Optional, Type, Tuple, Union
+from collections.abc import Callable
+from typing import Any, Type
 
 
 def deprecate_func(
     *,
     since: str,
-    additional_msg: Optional[str] = None,
+    additional_msg: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit-terra",
+    package_name: str = "qiskit",
     removal_timeline: str = "no earlier than 3 months after the release date",
     is_property: bool = False,
+    stacklevel: int = 2,
 ):
     """Decorator to indicate a function has been deprecated.
 
@@ -49,7 +51,7 @@ def deprecate_func(
         is_property: If the deprecated function is a `@property`, set this to True so that the
             generated message correctly describes it as such. (This isn't necessary for
             property setters, as their docstring is ignored by Python.)
-
+        stacklevel: Stack level passed to :func:`warnings.warn`.
     Returns:
         Callable: The decorated callable.
     """
@@ -91,7 +93,7 @@ def deprecate_func(
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(msg, category=category, stacklevel=2)
+            warnings.warn(msg, category=category, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
         add_deprecation_to_docstring(wrapper, msg, since=since, pending=pending)
@@ -104,12 +106,12 @@ def deprecate_arg(
     name: str,
     *,
     since: str,
-    additional_msg: Optional[str] = None,
-    deprecation_description: Optional[str] = None,
+    additional_msg: str | None = None,
+    deprecation_description: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit-terra",
-    new_alias: Optional[str] = None,
-    predicate: Optional[Callable[[Any], bool]] = None,
+    package_name: str = "qiskit",
+    new_alias: str | None = None,
+    predicate: Callable[[Any], bool] | None = None,
     removal_timeline: str = "no earlier than 3 months after the release date",
 ):
     """Decorator to indicate an argument has been deprecated in some way.
@@ -204,10 +206,10 @@ def deprecate_arg(
 
 
 def deprecate_arguments(
-    kwarg_map: Dict[str, Optional[str]],
+    kwarg_map: dict[str, str | None],
     category: Type[Warning] = DeprecationWarning,
     *,
-    since: Optional[str] = None,
+    since: str | None = None,
 ):
     """Deprecated. Instead, use `@deprecate_arg`.
 
@@ -230,9 +232,9 @@ def deprecate_arguments(
             msg_suffix = (
                 "will in the future be removed." if new_arg is None else f"replaced with {new_arg}."
             )
-            old_kwarg_to_msg[
-                old_arg
-            ] = f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+            old_kwarg_to_msg[old_arg] = (
+                f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+            )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -280,7 +282,7 @@ def deprecate_function(
     stacklevel: int = 2,
     category: Type[Warning] = DeprecationWarning,
     *,
-    since: Optional[str] = None,
+    since: str | None = None,
 ):
     """Deprecated. Instead, use `@deprecate_func`.
 
@@ -313,15 +315,15 @@ def deprecate_function(
 
 def _maybe_warn_and_rename_kwarg(
     args: tuple[Any, ...],
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     *,
     func_name: str,
     original_func_co_varnames: tuple[str, ...],
     old_arg_name: str,
-    new_alias: Optional[str],
+    new_alias: str | None,
     warning_msg: str,
     category: Type[Warning],
-    predicate: Optional[Callable[[Any], bool]],
+    predicate: Callable[[Any], bool] | None,
 ) -> None:
     # In Python 3.10+, we should set `zip(strict=False)` (the default). That is, we want to
     # stop iterating once `args` is done, since some args may have not been explicitly passed as
@@ -353,9 +355,11 @@ def _write_deprecation_msg(
     pending: bool,
     additional_msg: str,
     removal_timeline: str,
-) -> Tuple[str, Union[Type[DeprecationWarning], Type[PendingDeprecationWarning]]]:
+) -> tuple[str, Type[DeprecationWarning] | Type[PendingDeprecationWarning]]:
     if pending:
-        category = PendingDeprecationWarning
+        category: Type[DeprecationWarning] | Type[PendingDeprecationWarning] = (
+            PendingDeprecationWarning
+        )
         deprecation_status = "pending deprecation"
         removal_desc = f"marked deprecated in a future release, and then removed {removal_timeline}"
     else:
@@ -412,7 +416,7 @@ _NAPOLEON_META_LINES = frozenset(
 
 
 def add_deprecation_to_docstring(
-    func: Callable, msg: str, *, since: Optional[str], pending: bool
+    func: Callable, msg: str, *, since: str | None, pending: bool
 ) -> None:
     """Dynamically insert the deprecation message into ``func``'s docstring.
 
@@ -430,7 +434,7 @@ def add_deprecation_to_docstring(
             "This is a simplification to facilitate deprecation messages being added to the "
             "documentation. If you have a compelling reason to need "
             "new lines, feel free to improve this function or open a request at "
-            "https://github.com/Qiskit/qiskit-terra/issues."
+            "https://github.com/Qiskit/qiskit/issues."
         )
 
     if since is None:

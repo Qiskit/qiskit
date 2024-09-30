@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug with the :class:`.GateDirection` transpiler pass where it
+    unnecessarily raised an exception for input DAGs with more than 1
+    quantum register.
+    Fixed `#10824 <https://github.com/Qiskit/qiskit/issues/10824>`__.

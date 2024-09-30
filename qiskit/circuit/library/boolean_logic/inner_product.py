@@ -56,7 +56,7 @@ class InnerProduct(QuantumCircuit):
         .. plot::
 
            from qiskit.circuit.library import InnerProduct
-           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+           from qiskit.visualization.library import _generate_circuit_library_visualization
            circuit = InnerProduct(4)
            _generate_circuit_library_visualization(circuit)
     """

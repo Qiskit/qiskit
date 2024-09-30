@@ -48,7 +48,7 @@ class XOR(QuantumCircuit):
             .. plot::
 
                from qiskit.circuit.library import XOR
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               from qiskit.visualization.library import _generate_circuit_library_visualization
                circuit = XOR(5, seed=42)
                _generate_circuit_library_visualization(circuit)
         """

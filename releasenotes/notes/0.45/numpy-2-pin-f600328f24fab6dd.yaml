@@ -1,0 +1,10 @@
+---
+other:
+  - |
+    This version of Qiskit is explicitly pinned to the Numpy 1.x series, because it includes compiled
+    extensions that are not yet compiled against the as-yet-unreleased Numpy 2.x series.  We will
+    release a new version of Qiskit with Numpy 2.x support as soon as feasible.
+
+    We cannot prevent your package manager from resolving to older versions of Qiskit (which do not
+    have the same pin but are still likely to be incompatible) if you forcibly try to install Qiskit
+    alongside Numpy 2, before we have released a compatible version.

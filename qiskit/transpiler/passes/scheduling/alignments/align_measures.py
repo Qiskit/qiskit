@@ -95,8 +95,7 @@ class AlignMeasures(TransformationPass):
             "Instead, use :class:`~.ConstrainedReschedule`, which performs the same function "
             "but also supports aligning to additional timing constraints."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(self, alignment: int = 1):
         """Create new pass.
@@ -156,7 +155,7 @@ class AlignMeasures(TransformationPass):
             for q in qubits:
                 if qubit_stop_times[q] < until:
                     idle_duration = until - qubit_stop_times[q]
-                    new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
+                    new_dag.apply_operation_back(Delay(idle_duration, unit), (q,), check=False)
 
         for node in dag.topological_op_nodes():
             # choose appropriate clbit available time depending on op
@@ -181,7 +180,7 @@ class AlignMeasures(TransformationPass):
 
             if not isinstance(node.op, Delay):  # exclude delays for combining consecutive delays
                 pad_with_delays(node.qargs, until=start_time, unit=time_unit)
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
 
             stop_time = start_time + node.op.duration
             # update time table

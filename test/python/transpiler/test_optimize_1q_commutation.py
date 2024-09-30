@@ -26,7 +26,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_commutation import (
 )
 from qiskit.circuit.library import SXGate, PhaseGate
 from qiskit.transpiler import Target
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

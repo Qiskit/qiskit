@@ -33,7 +33,7 @@ class OR(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import OR
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = OR(5)
        _generate_circuit_library_visualization(circuit)
 
@@ -44,7 +44,7 @@ class OR(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import OR
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = OR(5, flags=[-1, 0, 0, 1, 1])
        _generate_circuit_library_visualization(circuit)
 

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Changes the way in which the :class:`.BackendEstimatorV2` class calculates the ``std`` to ensure that
+    it matches the correct formula.

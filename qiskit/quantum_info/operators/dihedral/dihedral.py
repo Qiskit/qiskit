@@ -97,7 +97,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             with optimal number of two qubit gates*, `Quantum 4(369), 2020
             <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
          2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-            *Scalable randomised benchmarking of non-Clifford gates*,
+            *Scalable randomized benchmarking of non-Clifford gates*,
             npj Quantum Inf 2, 16012 (2016).
     """
 
@@ -325,9 +325,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                with optimal number of two qubit gates*, `Quantum 4(369), 2020
                <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
             2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-               *Scalable randomised benchmarking of non-Clifford gates*,
+               *Scalable randomized benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
         return synth_cnotdihedral_full(self)
@@ -356,10 +357,11 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
@@ -450,8 +452,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             new_qubits = [bit_indices[tup] for tup in instruction.qubits]
             if instruction.operation.name == "p":
                 params = 2 * np.pi - instruction.operation.params[0]
-                instruction.operation.params[0] = params
-                new_circ.append(instruction.operation, new_qubits)
+                new_circ.p(params, new_qubits)
             elif instruction.operation.name == "t":
                 instruction.operation.name = "tdg"
                 new_circ.append(instruction.operation, new_qubits)

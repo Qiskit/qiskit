@@ -19,10 +19,10 @@ from numpy import array, float32, float64, int32, int64
 
 from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit.random import random_circuit
-from qiskit.primitives.base.base_primitive import BasePrimitive
+from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _circuit_key
-from qiskit.providers.fake_provider import FakeAlmaden
-from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -39,19 +39,19 @@ class TestCircuitValidation(QiskitTestCase):
     @unpack
     def test_validate_circuits(self, circuits, expected):
         """Test circuits standardization."""
-        self.assertEqual(BasePrimitive._validate_circuits(circuits), expected)
+        self.assertEqual(validation._validate_circuits(circuits), expected)
 
     @data(None, "ERROR", True, 0, 1.0, 1j, [0.0])
     def test_type_error(self, circuits):
         """Test type error if invalid input."""
         with self.assertRaises(TypeError):
-            BasePrimitive._validate_circuits(circuits)
+            validation._validate_circuits(circuits)
 
     @data((), [], "")
     def test_value_error(self, circuits):
         """Test value error if no circuits are provided."""
         with self.assertRaises(ValueError):
-            BasePrimitive._validate_circuits(circuits)
+            validation._validate_circuits(circuits)
 
 
 @ddt
@@ -87,9 +87,9 @@ class TestParameterValuesValidation(QiskitTestCase):
     def test_validate_parameter_values(self, _parameter_values, expected):
         """Test parameter_values standardization."""
         for parameter_values in [_parameter_values, array(_parameter_values)]:  # Numpy
-            self.assertEqual(BasePrimitive._validate_parameter_values(parameter_values), expected)
+            self.assertEqual(validation._validate_parameter_values(parameter_values), expected)
             self.assertEqual(
-                BasePrimitive._validate_parameter_values(None, default=parameter_values), expected
+                validation._validate_parameter_values(None, default=parameter_values), expected
             )
 
     @data(
@@ -108,12 +108,12 @@ class TestParameterValuesValidation(QiskitTestCase):
     def test_type_error(self, parameter_values):
         """Test type error if invalid input."""
         with self.assertRaises(TypeError):
-            BasePrimitive._validate_parameter_values(parameter_values)
+            validation._validate_parameter_values(parameter_values)
 
     def test_value_error(self):
         """Test value error if no parameter_values or default are provided."""
         with self.assertRaises(ValueError):
-            BasePrimitive._validate_parameter_values(None)
+            validation._validate_parameter_values(None)
 
 
 class TestCircuitKey(QiskitTestCase):
@@ -142,7 +142,11 @@ class TestCircuitKey(QiskitTestCase):
                 qc = QuantumCircuit(1)
                 qc.x(0)
                 qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
-                return transpile(qc, FakeAlmaden(), scheduling_method="alap")
+
+                backend = GenericBackendV2(
+                    num_qubits=2, basis_gates=["id", "u1", "u2", "u3", "cx"], seed=42
+                )
+                return transpile(qc, backend, scheduling_method="alap", optimization_level=1)
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))

@@ -27,6 +27,9 @@ class PadDelay(BasePadding):
 
     .. code-block:: python
 
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler import InstructionDurations
+
         durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
 
         qc = QuantumCircuit(2)
@@ -57,7 +60,7 @@ class PadDelay(BasePadding):
         Args:
             fill_very_end: Set ``True`` to fill the end of circuit with delay.
             target: The :class:`~.Target` representing the target backend.
-                If it supplied and it does not support delay instruction on a qubit,
+                If it is supplied and does not support delay instruction on a qubit,
                 padding passes do not pad any idle time of the qubit.
         """
         super().__init__(target=target)

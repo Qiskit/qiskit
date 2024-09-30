@@ -1,7 +1,7 @@
 // Originally source from the QUEKO benchmark suite
 // https://github.com/UCLA-VAST/QUEKO-benchmark
 // A benchmark that is near-term feasible for Google Sycamore with a optimal
-// soluation depth of 25
+// solution depth of 25
 OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[54];

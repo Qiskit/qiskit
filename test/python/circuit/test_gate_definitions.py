@@ -20,9 +20,9 @@ from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
-
+from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate,
@@ -55,6 +55,8 @@ from qiskit.circuit.library import (
     CZGate,
     RYYGate,
     PhaseGate,
+    PauliGate,
+    UCPauliRotGate,
     CPhaseGate,
     UGate,
     CUGate,
@@ -64,10 +66,11 @@ from qiskit.circuit.library import (
     RVGate,
     XXMinusYYGate,
 )
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 from .gate_utils import _get_free_params
 
@@ -184,6 +187,18 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(len(decomposed_circuit) > len(circuit))
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
+    def test_pauligate_repeat(self):
+        """Test `repeat` method for `PauliGate`."""
+        gate = PauliGate("XYZ")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
+    def test_ucpaulirotgate_repeat(self):
+        """Test `repeat` method for `UCPauliRotGate`."""
+        gate = UCPauliRotGate([0.3, 0.5], "X")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -261,7 +276,12 @@ class TestGateEquivalenceEqual(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
     yields the same matrix as the hardcoded matrix definition."""
 
-    class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+    class_list = (
+        SingletonGate.__subclasses__()
+        + SingletonControlledGate.__subclasses__()
+        + Gate.__subclasses__()
+        + ControlledGate.__subclasses__()
+    )
     exclude = {
         "ControlledGate",
         "DiagonalGate",
@@ -278,13 +298,20 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "ClassicalFunction",
         "ClassicalElement",
         "StatePreparation",
+        "UniformSuperpositionGate",
         "LinearFunction",
         "PermutationGate",
         "Commuting2qBlock",
         "PauliEvolutionGate",
+        "SingletonGate",
+        "SingletonControlledGate",
         "_U0Gate",
         "_DefinedGate",
+        "_SingletonGateOverrides",
+        "_SingletonControlledGateOverrides",
+        "QFTGate",
     }
+
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
     # to a "natural" comprehension or functional iterable definition:
     #   https://docs.python.org/3/reference/executionmodel.html#resolution-of-names
@@ -309,7 +336,11 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             with self.subTest(msg=gate.name + "_" + str(ieq)):
                 op1 = Operator(gate)
                 op2 = Operator(equivalency)
-                self.assertEqual(op1, op2)
+                msg = (
+                    f"Equivalence entry from '{gate.name}' to:\n"
+                    f"{str(equivalency.draw('text'))}\nfailed"
+                )
+                self.assertEqual(op1, op2, msg)
 
 
 @ddt
@@ -372,11 +403,11 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 
-        param_qc = QuantumCircuit(param_gate.num_qubits)
-        float_qc = QuantumCircuit(float_gate.num_qubits)
+        param_qc = QuantumCircuit([Qubit() for _ in range(param_gate.num_qubits)])
+        float_qc = QuantumCircuit([Qubit() for _ in range(float_gate.num_qubits)])
 
-        param_qc.append(param_gate, param_qc.qregs[0])
-        float_qc.append(float_gate, float_qc.qregs[0])
+        param_qc.append(param_gate, param_qc.qubits)
+        float_qc.append(float_gate, float_qc.qubits)
 
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))

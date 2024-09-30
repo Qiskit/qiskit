@@ -48,14 +48,10 @@ The function signature of the layout is restricted to:
 
 Arbitrary layout function satisfying the above format can be accepted.
 """
-
-import warnings
-
 from typing import List, Tuple
 import numpy as np
 
 from qiskit import circuit
-from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types
 
 
@@ -70,23 +66,9 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
     Returns:
         Sorted bits.
     """
-    qregs = []
-    cregs = []
-
-    for bit in bits:
-        if isinstance(bit, circuit.Qubit):
-            qregs.append(bit)
-        elif isinstance(bit, circuit.Clbit):
-            cregs.append(bit)
-        else:
-            raise VisualizationError(f"Unknown bit {bit} is provided.")
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        qregs = sorted(qregs, key=lambda x: x.index, reverse=False)
-        cregs = sorted(cregs, key=lambda x: x.index, reverse=False)
-
-    return qregs + cregs
+    return [x for x in bits if isinstance(x, circuit.Qubit)] + [
+        x for x in bits if isinstance(x, circuit.Clbit)
+    ]
 
 
 def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
@@ -100,21 +82,9 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
     Returns:
         Sorted bits.
     """
-    qregs = []
-    cregs = []
-
-    for bit in bits:
-        if isinstance(bit, circuit.Qubit):
-            qregs.append(bit)
-        elif isinstance(bit, circuit.Clbit):
-            cregs.append(bit)
-        else:
-            raise VisualizationError(f"Unknown bit {bit} is provided.")
-
-    qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
-    cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
-
-    return qregs + cregs
+    return [x for x in bits[::-1] if isinstance(x, circuit.Qubit)] + [
+        x for x in bits[::-1] if isinstance(x, circuit.Clbit)
+    ]
 
 
 def time_map_in_dt(time_window: Tuple[int, int]) -> types.HorizontalAxis:

@@ -13,7 +13,8 @@
 """Module for common pulse programming macros."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Union, TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -26,11 +27,11 @@ if TYPE_CHECKING:
 
 
 def measure(
-    qubits: List[int],
+    qubits: Sequence[int],
     backend=None,
-    inst_map: Optional[InstructionScheduleMap] = None,
-    meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
-    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    inst_map: InstructionScheduleMap | None = None,
+    meas_map: list[list[int]] | dict[int, list[int]] | None = None,
+    qubit_mem_slots: dict[int, int] | None = None,
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -89,10 +90,10 @@ def measure(
 
 
 def _measure_v1(
-    qubits: List[int],
+    qubits: Sequence[int],
     inst_map: InstructionScheduleMap,
-    meas_map: Union[List[List[int]], Dict[int, List[int]]],
-    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    meas_map: list[list[int]] | dict[int, list[int]],
+    qubit_mem_slots: dict[int, int] | None = None,
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -123,16 +124,21 @@ def _measure_v1(
     for qubit in qubits:
         measure_groups.add(tuple(meas_map[qubit]))
     for measure_group_qubits in measure_groups:
-        if qubit_mem_slots is not None:
-            unused_mem_slots = set(measure_group_qubits) - set(qubit_mem_slots.values())
+
+        unused_mem_slots = (
+            set()
+            if qubit_mem_slots is None
+            else set(measure_group_qubits) - set(qubit_mem_slots.values())
+        )
+
         try:
             default_sched = inst_map.get(measure_name, measure_group_qubits)
         except exceptions.PulseError as ex:
             raise exceptions.PulseError(
-                "We could not find a default measurement schedule called '{}'. "
+                f"We could not find a default measurement schedule called '{measure_name}'. "
                 "Please provide another name using the 'measure_name' keyword "
                 "argument. For assistance, the instructions which are defined are: "
-                "{}".format(measure_name, inst_map.instructions)
+                f"{inst_map.instructions}"
             ) from ex
         for time, inst in default_sched.instructions:
             if inst.channel.index not in qubits:
@@ -150,10 +156,10 @@ def _measure_v1(
 
 
 def _measure_v2(
-    qubits: List[int],
+    qubits: Sequence[int],
     target: Target,
-    meas_map: Union[List[List[int]], Dict[int, List[int]]],
-    qubit_mem_slots: Dict[int, int],
+    meas_map: list[list[int]] | dict[int, list[int]],
+    qubit_mem_slots: dict[int, int],
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -197,10 +203,10 @@ def _measure_v2(
                 schedule += _schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
         except KeyError as ex:
             raise exceptions.PulseError(
-                "We could not find a default measurement schedule called '{}'. "
+                f"We could not find a default measurement schedule called '{measure_name}'. "
                 "Please provide another name using the 'measure_name' keyword "
                 "argument. For assistance, the instructions which are defined are: "
-                "{}".format(measure_name, target.instructions)
+                f"{target.instructions}"
             ) from ex
     return schedule
 
@@ -225,7 +231,7 @@ def measure_all(backend) -> Schedule:
 
 
 def _schedule_remapping_memory_slot(
-    schedule: Schedule, qubit_mem_slots: Dict[int, int]
+    schedule: Schedule, qubit_mem_slots: dict[int, int]
 ) -> Schedule:
     """
     A helper function to overwrite MemorySlot index of :class:`.Acquire` instruction.

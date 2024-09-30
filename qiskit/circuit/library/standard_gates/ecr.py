@@ -15,8 +15,9 @@ from math import sqrt
 import numpy as np
 
 from qiskit.circuit._utils import with_gate_array
-from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
+from qiskit._accelerate.circuit import StandardGate
 from .rzx import RZXGate
 from .x import XGate
 
@@ -24,7 +25,7 @@ from .x import XGate
 @with_gate_array(
     sqrt(0.5) * np.array([[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]])
 )
-class ECRGate(Gate):
+class ECRGate(SingletonGate):
     r"""An echoed cross-resonance gate.
 
     This gate is maximally entangling and is equivalent to a CNOT up to
@@ -84,9 +85,13 @@ class ECRGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self):
+    _standard_gate = StandardGate.ECRGate
+
+    def __init__(self, label=None, *, duration=None, unit="dt"):
         """Create new ECR gate."""
-        super().__init__("ecr", 2, [])
+        super().__init__("ecr", 2, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -107,6 +112,19 @@ class ECRGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse ECR gate (itself)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse ECR gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            ECRGate: inverse gate (self-inverse).
+        """
         return ECRGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, ECRGate)

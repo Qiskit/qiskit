@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The performance of :meth:`.QuantumCircuit.assign_parameters` when assigning a
+    single parameter of a circuit that involves many parameters has been improved.

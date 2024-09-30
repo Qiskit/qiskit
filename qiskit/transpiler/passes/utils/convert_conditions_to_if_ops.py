@@ -17,12 +17,11 @@ from qiskit.circuit import (
     CircuitInstruction,
     ClassicalRegister,
     Clbit,
-    ControlFlowOp,
     IfElseOp,
     QuantumCircuit,
 )
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class ConvertConditionsToIfOps(TransformationPass):
@@ -37,7 +36,7 @@ class ConvertConditionsToIfOps(TransformationPass):
         was modified and ``False`` if not."""
         modified = False
         for node in dag.op_nodes():
-            if isinstance(node.op, ControlFlowOp):
+            if node.is_control_flow():
                 modified_blocks = False
                 new_dags = []
                 for block in node.op.blocks:
@@ -51,7 +50,7 @@ class ConvertConditionsToIfOps(TransformationPass):
                     node.op.replace_blocks(dag_to_circuit(block) for block in new_dags),
                     inplace=True,
                 )
-            elif getattr(node.op, "condition", None) is None:
+            elif node.condition is None:
                 continue
             else:
                 target, value = node.op.condition
@@ -74,7 +73,10 @@ class ConvertConditionsToIfOps(TransformationPass):
                 if isinstance(target, ClassicalRegister):
                     replacement.add_creg(target)
                 replacement.apply_operation_back(
-                    IfElseOp((target, value), block_body), block_body.qubits, block_body.clbits
+                    IfElseOp((target, value), block_body),
+                    block_body.qubits,
+                    block_body.clbits,
+                    check=False,
                 )
                 wire_map = {bit: bit for bit in block_body.qubits + block_body.clbits}
                 dag.substitute_node_with_dag(node, replacement, wire_map, propagate_condition=False)

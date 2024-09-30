@@ -13,6 +13,7 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
+import math
 from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
@@ -46,15 +47,15 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         if np.any(assignment_matrix < 0) or not np.allclose(np.sum(assignment_matrix, axis=0), 1):
             raise QiskitError("Assignment matrix columns must be valid probability distributions")
         assignment_matrix = np.asarray(assignment_matrix, dtype=float)
-        matrix_qubits_num = int(np.log2(assignment_matrix.shape[0]))
+        matrix_qubits_num = int(math.log2(assignment_matrix.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
         else:
             if len(qubits) != matrix_qubits_num:
                 raise QiskitError(
-                    "The number of given qubits ({}) is different than the number of "
-                    "qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num)
+                    f"The number of given qubits ({len(qubits)}) is different than the number of "
+                    f"qubits inferred from the matrices ({matrix_qubits_num})"
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
@@ -260,7 +261,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             float: the standard deviation upper bound.
         """
         gamma = self._compute_gamma()
-        return gamma / np.sqrt(shots)
+        return gamma / math.sqrt(shots)
 
     @property
     def qubits(self) -> Tuple[int]:

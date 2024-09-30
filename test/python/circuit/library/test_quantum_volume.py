@@ -14,26 +14,26 @@
 
 import unittest
 
-from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumCircuit
+from test.utils.base import QiskitTestCase
 from qiskit.circuit.library import QuantumVolume
-from qiskit.quantum_info import Operator
-from qiskit.quantum_info.random import random_unitary
 
 
 class TestQuantumVolumeLibrary(QiskitTestCase):
     """Test library of quantum volume quantum circuits."""
 
-    def test_qv(self):
+    def test_qv_seed_reproducibility(self):
         """Test qv circuit."""
-        circuit = QuantumVolume(2, 2, seed=2, classical_permutation=False)
-        expected = QuantumCircuit(2)
-        expected.swap(0, 1)
-        expected.append(random_unitary(4, seed=837), [0, 1])
-        expected.append(random_unitary(4, seed=262), [0, 1])
-        expected = Operator(expected)
-        simulated = Operator(circuit)
-        self.assertTrue(expected.equiv(simulated))
+        left = QuantumVolume(4, 4, seed=28, classical_permutation=False)
+        right = QuantumVolume(4, 4, seed=28, classical_permutation=False)
+        self.assertEqual(left, right)
+
+        left = QuantumVolume(4, 4, seed=3, classical_permutation=True)
+        right = QuantumVolume(4, 4, seed=3, classical_permutation=True)
+        self.assertEqual(left, right)
+
+        left = QuantumVolume(4, 4, seed=2024, flatten=True)
+        right = QuantumVolume(4, 4, seed=2024, flatten=True)
+        self.assertEqual(left, right)
 
 
 if __name__ == "__main__":

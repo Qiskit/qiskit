@@ -16,12 +16,12 @@ import unittest
 from ddt import ddt, data, unpack
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import MCMT, MCMTVChain, CHGate, XGate, ZGate, CXGate, CZGate
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.states import state_fidelity
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

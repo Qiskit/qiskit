@@ -18,8 +18,10 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 from __future__ import annotations
+from typing import List
 from dataclasses import dataclass
 
+from qiskit import circuit
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -96,8 +98,8 @@ class Layout:
             virtual = value1
         else:
             raise LayoutError(
-                "The map (%s -> %s) has to be a (Bit -> integer)"
-                " or the other way around." % (type(value1), type(value2))
+                f"The map ({type(value1)} -> {type(value2)}) has to be a (Bit -> integer)"
+                " or the other way around."
             )
         return virtual, physical
 
@@ -135,7 +137,7 @@ class Layout:
         else:
             raise LayoutError(
                 "The key to remove should be of the form"
-                " Qubit or integer) and %s was provided" % (type(key),)
+                f" Qubit or integer) and {type(key)} was provided"
             )
 
     def __len__(self):
@@ -366,39 +368,370 @@ class Layout:
             out.add_register(qreg)
         return out
 
+    def compose(self, other: Layout, qubits: List[Qubit]) -> Layout:
+        """Compose this layout with another layout.
+
+        If this layout represents a mapping from the P-qubits to the positions of the Q-qubits,
+        and the other layout represents a mapping from the Q-qubits to the positions of
+        the R-qubits, then the composed layout represents a mapping from the P-qubits to the
+        positions of the R-qubits.
+
+        Args:
+            other: The existing :class:`.Layout` to compose this :class:`.Layout` with.
+            qubits: A list of :class:`.Qubit` objects over which ``other`` is defined,
+                used to establish the correspondence between the positions of the ``other``
+                qubits and the actual qubits.
+
+        Returns:
+            A new layout object the represents this layout composed with the ``other`` layout.
+        """
+        other_v2p = other.get_virtual_bits()
+        return Layout({virt: other_v2p[qubits[phys]] for virt, phys in self._v2p.items()})
+
+    def inverse(self, source_qubits: List[Qubit], target_qubits: List[Qubit]):
+        """Finds the inverse of this layout.
+
+        This is possible when the layout is a bijective mapping, however the input
+        and the output qubits may be different (in particular, this layout may be
+        the mapping from the extended-with-ancillas virtual qubits to physical qubits).
+        Thus, if this layout represents a mapping from the P-qubits to the positions
+        of the Q-qubits, the inverse layout represents a mapping from the Q-qubits
+        to the positions of the P-qubits.
+
+        Args:
+            source_qubits: A list of :class:`.Qubit` objects representing the domain
+                of the layout.
+            target_qubits: A list of :class:`.Qubit` objects representing the image
+                of the layout.
+
+        Returns:
+            A new layout object the represents the inverse of this layout.
+        """
+        source_qubit_to_position = {q: p for p, q in enumerate(source_qubits)}
+        return Layout(
+            {
+                target_qubits[pos_phys]: source_qubit_to_position[virt]
+                for virt, pos_phys in self._v2p.items()
+            }
+        )
+
+    def to_permutation(self, qubits: List[Qubit]):
+        """Creates a permutation corresponding to this layout.
+
+        This is possible when the layout is a bijective mapping with the same
+        source and target qubits (for instance, a "final_layout" corresponds
+        to a permutation of the physical circuit qubits). If this layout is
+        a mapping from qubits to their new positions, the resulting permutation
+        describes which qubits occupy the positions 0, 1, 2, etc. after
+        applying the permutation.
+
+        For example, suppose that the list of qubits is ``[qr_0, qr_1, qr_2]``,
+        and the layout maps ``qr_0`` to ``2``, ``qr_1`` to ``0``, and
+        ``qr_2`` to ``1``. In terms of positions in ``qubits``, this maps ``0``
+        to ``2``, ``1`` to ``0`` and ``2`` to ``1``, with the corresponding
+        permutation being ``[1, 2, 0]``.
+        """
+
+        perm = [None] * len(qubits)
+        for i, q in enumerate(qubits):
+            pos = self._v2p[q]
+            perm[pos] = i
+        return perm
+
 
 @dataclass
 class TranspileLayout:
-    r"""Layout attributes from output circuit from transpiler.
+    r"""Layout attributes for the output circuit from transpiler.
 
-    The transpiler in general is unitary-perserving up to permutations caused
-    by setting and applying initial layout during the :ref:`layout_stage`
-    and :class:`~.SwapGate` insertion during the :ref:`routing_stage`. To
-    provide an interface to reason about these permutations caused by
-    the :mod:`~qiskit.transpiler`.
+    The :mod:`~qiskit.transpiler` is unitary-preserving up to the "initial layout"
+    and "final layout" permutations. The initial layout permutation is caused by
+    setting and applying the initial layout during the :ref:`layout_stage`.
+    The final layout permutation is caused by :class:`~.SwapGate` insertion during
+    the :ref:`routing_stage`. This class provides an interface to reason about these
+    permutations using a variety of helper methods.
 
-    There are three attributes associated with the class:
+    During the layout stage, the transpiler can potentially remap the order of the
+    qubits in the circuit as it fits the circuit to the target backend. For example,
+    let the input circuit be:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit import QuantumCircuit, QuantumRegister
+
+       qr = QuantumRegister(3, name="MyReg")
+       qc = QuantumCircuit(qr)
+       qc.h(0)
+       qc.cx(0, 1)
+       qc.cx(0, 2)
+       qc.draw("mpl")
+
+
+    Suppose that during the layout stage the transpiler reorders the qubits to be:
+
+    .. plot::
+       :include-source:
+
+       from qiskit import QuantumCircuit
+
+       qc = QuantumCircuit(3)
+       qc.h(2)
+       qc.cx(2, 1)
+       qc.cx(2, 0)
+       qc.draw("mpl")
+
+    Then the output of the :meth:`.initial_virtual_layout` method is
+    equivalent to::
+
+        Layout({
+            qr[0]: 2,
+            qr[1]: 1,
+            qr[2]: 0,
+        })
+
+    (it is also this attribute in the :meth:`.QuantumCircuit.draw` and
+    :func:`.circuit_drawer` which is used to display the mapping of qubits to
+    positions in circuit visualizations post-transpilation).
+
+    Building on the above example, suppose that during the routing stage
+    the transpiler needs to insert swap gates, and the output circuit
+    becomes:
+
+    .. plot::
+       :include-source:
+
+       from qiskit import QuantumCircuit
+
+       qc = QuantumCircuit(3)
+       qc.h(2)
+       qc.cx(2, 1)
+       qc.swap(0, 1)
+       qc.cx(2, 1)
+       qc.draw("mpl")
+
+    Then the output of the :meth:`routing_permutation` method is::
+
+        [1, 0, 2]
+
+    which maps positions of qubits before routing to their final positions
+    after routing.
+
+    There are three public attributes associated with the class, however these
+    are mostly provided for backwards compatibility and represent the internal
+    state from the transpiler. They are defined as:
 
       * :attr:`initial_layout` - This attribute is used to model the
-        permutation caused by the :ref:`layout_stage` it contains a
+        permutation caused by the :ref:`layout_stage`. It is a
         :class:`~.Layout` object that maps the input :class:`~.QuantumCircuit`\s
-        :class:`~.Qubit` objects to the position in the output
+        :class:`~.circuit.Qubit` objects to the position in the output
         :class:`.QuantumCircuit.qubits` list.
       * :attr:`input_qubit_mapping` - This attribute is used to retain
         input ordering of the original :class:`~.QuantumCircuit` object. It
-        maps the virtual :class:`~.Qubit` object from the original circuit
+        maps the virtual :class:`~.circuit.Qubit` object from the original circuit
         (and :attr:`initial_layout`) to its corresponding position in
         :attr:`.QuantumCircuit.qubits` in the original circuit. This
         is needed when computing the permutation of the :class:`Operator` of
         the circuit (and used by :meth:`.Operator.from_circuit`).
-      * :attr:`final_layout` - This is a :class:`~.Layout` object used to
-        model the output permutation caused ny any :class:`~.SwapGate`\s
-        inserted into the :class:~.QuantumCircuit` during the
-        :ref:`routing_stage`. It maps the output circuit's qubits from
-        :class:`.QuantumCircuit.qubits` to the final position after
-        routing.
+      * :attr:`final_layout` - This attribute is used to model the
+        permutation caused by the :ref:`routing_stage`. It is a
+        :class:`~.Layout` object that maps the output circuit's qubits from
+        :class:`.QuantumCircuit.qubits` in the output circuit to their final
+        positions after routing. Importantly, this only represents the
+        permutation caused by inserting :class:`~.SwapGate`\s into
+        the :class:`~.QuantumCircuit` during the :ref:`routing_stage`.
+        It is **not** a mapping from the original input circuit's position
+        to the final position at the end of the transpiled circuit.
+        If you need this, you can use the :meth:`.final_index_layout` to generate this.
+        If :attr:`final_layout` is set to ``None``, this indicates that routing was not
+        run, and can be considered equivalent to a trivial layout with the qubits from
+        the output circuit's :attr:`~.QuantumCircuit.qubits` list.
     """
 
     initial_layout: Layout
-    input_qubit_mapping: dict[Qubit, int]
+    input_qubit_mapping: dict[circuit.Qubit, int]
     final_layout: Layout | None = None
+    _input_qubit_count: int | None = None
+    _output_qubit_list: List[Qubit] | None = None
+
+    def initial_virtual_layout(self, filter_ancillas: bool = False) -> Layout:
+        """Return a :class:`.Layout` object for the initial layout.
+
+        This returns a mapping of virtual :class:`~.circuit.Qubit` objects in the input
+        circuit to the positions of the physical qubits selected during layout.
+        This is analogous to the :attr:`.initial_layout` attribute.
+
+        Args:
+            filter_ancillas: If set to ``True`` only qubits in the input circuit
+                will be in the returned layout. Any ancilla qubits added to the
+                output circuit will be filtered from the returned object.
+        Returns:
+            A layout object mapping the input circuit's :class:`~.circuit.Qubit`
+            objects to the positions of the selected physical qubits.
+        """
+        if not filter_ancillas:
+            return self.initial_layout
+        return Layout(
+            {
+                k: v
+                for k, v in self.initial_layout.get_virtual_bits().items()
+                if self.input_qubit_mapping[k] < self._input_qubit_count
+            }
+        )
+
+    def initial_index_layout(self, filter_ancillas: bool = False) -> List[int]:
+        """Generate an initial layout as an array of integers.
+
+        Args:
+            filter_ancillas: If set to ``True`` any ancilla qubits added
+                to the transpiler will not be included in the output.
+
+        Return:
+            A layout array that maps a position in the array to its new position in the output
+            circuit.
+        """
+
+        virtual_map = self.initial_layout.get_virtual_bits()
+        if filter_ancillas:
+            output = [None] * self._input_qubit_count
+        else:
+            output = [None] * len(virtual_map)
+        for index, (virt, phys) in enumerate(virtual_map.items()):
+            if filter_ancillas and index >= self._input_qubit_count:
+                break
+            pos = self.input_qubit_mapping[virt]
+            output[pos] = phys
+        return output
+
+    def routing_permutation(self) -> List[int]:
+        """Generate a final layout as an array of integers.
+
+        If there is no :attr:`.final_layout` attribute present then that indicates
+        there was no output permutation caused by routing or other transpiler
+        transforms. In this case the function will return a list of ``[0, 1, 2, .., n]``.
+
+        Returns:
+            A layout array that maps a position in the array to its new position in the output
+            circuit.
+        """
+        if self.final_layout is None:
+            return list(range(len(self._output_qubit_list)))
+        virtual_map = self.final_layout.get_virtual_bits()
+        return [virtual_map[virt] for virt in self._output_qubit_list]
+
+    def final_index_layout(self, filter_ancillas: bool = True) -> List[int]:
+        """Generate the final layout as an array of integers.
+
+        This method will generate an array of final positions for each qubit in the input circuit.
+        For example, if you had an input circuit like::
+
+            qc = QuantumCircuit(3)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+
+        and the output from the transpiler was::
+
+            tqc = QuantumCircuit(3)
+            tqc.h(2)
+            tqc.cx(2, 1)
+            tqc.swap(0, 1)
+            tqc.cx(2, 1)
+
+        then the :meth:`.final_index_layout` method returns::
+
+            [2, 0, 1]
+
+        This can be seen as follows. Qubit 0 in the original circuit is mapped to qubit 2
+        in the output circuit during the layout stage, which is mapped to qubit 2 during the
+        routing stage. Qubit 1 in the original circuit is mapped to qubit 1 in the output
+        circuit during the layout stage, which is mapped to qubit 0 during the routing
+        stage. Qubit 2 in the original circuit is mapped to qubit 0 in the output circuit
+        during the layout stage, which is mapped to qubit 1 during the routing stage.
+        The output list length will be as wide as the input circuit's number of qubits,
+        as the output list from this method is for tracking the permutation of qubits in the
+        original circuit caused by the transpiler.
+
+        Args:
+            filter_ancillas: If set to ``False`` any ancillas allocated in the output circuit will be
+                included in the layout.
+
+        Returns:
+            A list of final positions for each input circuit qubit.
+        """
+        if self._input_qubit_count is None:
+            # TODO: After there is a way to differentiate the ancilla qubits added by the transpiler
+            # don't use the ancilla name anymore.See #10817 for discussion on this.
+            num_source_qubits = len(
+                [
+                    x
+                    for x in self.input_qubit_mapping
+                    if getattr(x, "_register", "").startswith("ancilla")
+                ]
+            )
+        else:
+            num_source_qubits = self._input_qubit_count
+        if self._output_qubit_list is None:
+            circuit_qubits = list(self.final_layout.get_virtual_bits())
+        else:
+            circuit_qubits = self._output_qubit_list
+
+        pos_to_virt = {v: k for k, v in self.input_qubit_mapping.items()}
+        qubit_indices = []
+        if filter_ancillas:
+            num_qubits = num_source_qubits
+        else:
+            num_qubits = len(self._output_qubit_list)
+        for index in range(num_qubits):
+            qubit_idx = self.initial_layout[pos_to_virt[index]]
+            if self.final_layout is not None:
+                qubit_idx = self.final_layout[circuit_qubits[qubit_idx]]
+            qubit_indices.append(qubit_idx)
+        return qubit_indices
+
+    def final_virtual_layout(self, filter_ancillas: bool = True) -> Layout:
+        """Generate the final layout as a :class:`.Layout` object.
+
+        This method will generate an array of final positions for each qubit in the input circuit.
+        For example, if you had an input circuit like::
+
+            qc = QuantumCircuit(3)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+
+        and the output from the transpiler was::
+
+            tqc = QuantumCircuit(3)
+            tqc.h(2)
+            tqc.cx(2, 1)
+            tqc.swap(0, 1)
+            tqc.cx(2, 1)
+
+        then the return from this function would be a layout object::
+
+            Layout({
+                qc.qubits[0]: 2,
+                qc.qubits[1]: 0,
+                qc.qubits[2]: 1,
+            })
+
+        This can be seen as follows. Qubit 0 in the original circuit is mapped to qubit 2
+        in the output circuit during the layout stage, which is mapped to qubit 2 during the
+        routing stage. Qubit 1 in the original circuit is mapped to qubit 1 in the output
+        circuit during the layout stage, which is mapped to qubit 0 during the routing
+        stage. Qubit 2 in the original circuit is mapped to qubit 0 in the output circuit
+        during the layout stage, which is mapped to qubit 1 during the routing stage.
+        The output list length will be as wide as the input circuit's number of qubits,
+        as the output list from this method is for tracking the permutation of qubits in the
+        original circuit caused by the transpiler.
+
+        Args:
+            filter_ancillas: If set to ``False`` any ancillas allocated in the output circuit will be
+                included in the layout.
+
+        Returns:
+            A layout object mapping to the final positions for each qubit.
+        """
+        res = self.final_index_layout(filter_ancillas=filter_ancillas)
+        pos_to_virt = {v: k for k, v in self.input_qubit_mapping.items()}
+        return Layout({pos_to_virt[index]: phys for index, phys in enumerate(res)})

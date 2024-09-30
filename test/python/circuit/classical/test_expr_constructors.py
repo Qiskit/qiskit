@@ -16,7 +16,7 @@ import ddt
 
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction
 from qiskit.circuit.classical import expr, types
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -224,7 +224,7 @@ class TestExprConstructors(QiskitTestCase):
     )
     @ddt.unpack
     def test_binary_bitwise_uint_inference(self, function, opcode):
-        """The binary bitwise functions have specialised inference for the widths of integer
+        """The binary bitwise functions have specialized inference for the widths of integer
         literals, since the bitwise functions require the operands to already be of exactly the same
         width without promotion."""
         cr = ClassicalRegister(8, "c")
@@ -247,7 +247,7 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
-        # Inference between two integer literals is "best effort".  This behaviour isn't super
+        # Inference between two integer literals is "best effort".  This behavior isn't super
         # important to maintain if we want to change the expression system.
         self.assertEqual(
             function(5, 255),
@@ -381,6 +381,60 @@ class TestExprConstructors(QiskitTestCase):
 
     @ddt.data(expr.less, expr.less_equal, expr.greater, expr.greater_equal)
     def test_binary_relation_forbidden(self, function):
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Clbit(), ClassicalRegister(3, "c"))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(ClassicalRegister(3, "c"), False)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            function(Clbit(), Clbit())
+
+    def test_index_explicit(self):
+        cr = ClassicalRegister(4, "c")
+        a = expr.Var.new("a", types.Uint(8))
+
+        self.assertEqual(
+            expr.index(cr, 3),
+            expr.Index(expr.Var(cr, types.Uint(4)), expr.Value(3, types.Uint(2)), types.Bool()),
+        )
+        self.assertEqual(
+            expr.index(a, cr),
+            expr.Index(a, expr.Var(cr, types.Uint(4)), types.Bool()),
+        )
+
+    def test_index_forbidden(self):
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(Clbit(), 3)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(ClassicalRegister(3, "a"), False)
+
+    @ddt.data(
+        (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),
+        (expr.shift_right, expr.Binary.Op.SHIFT_RIGHT),
+    )
+    @ddt.unpack
+    def test_shift_explicit(self, function, opcode):
+        cr = ClassicalRegister(8, "c")
+        a = expr.Var.new("a", types.Uint(4))
+
+        self.assertEqual(
+            function(cr, 5),
+            expr.Binary(
+                opcode, expr.Var(cr, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
+            ),
+        )
+        self.assertEqual(
+            function(a, cr),
+            expr.Binary(opcode, a, expr.Var(cr, types.Uint(8)), types.Uint(4)),
+        )
+        self.assertEqual(
+            function(3, 5, types.Uint(8)),
+            expr.Binary(
+                opcode, expr.Value(3, types.Uint(8)), expr.Value(5, types.Uint(3)), types.Uint(8)
+            ),
+        )
+
+    @ddt.data(expr.shift_left, expr.shift_right)
+    def test_shift_forbidden(self, function):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             function(Clbit(), ClassicalRegister(3, "c"))
         with self.assertRaisesRegex(TypeError, "invalid types"):

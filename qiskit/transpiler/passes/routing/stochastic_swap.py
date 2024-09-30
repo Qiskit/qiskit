@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map a DAGCircuit onto a `coupling_map` adding swap gates."""
+"""Map a DAGCircuit onto a ``coupling_map`` adding swap gates."""
 
 import itertools
 import logging
@@ -33,12 +33,12 @@ from qiskit.circuit import (
     ForLoopOp,
     SwitchCaseOp,
     ControlFlowOp,
-    Instruction,
     CASE_DEFAULT,
 )
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
 from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit.utils import deprecate_func
 
 from .utils import get_swap_map_dag
 
@@ -60,6 +60,12 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
+    @deprecate_func(
+        since="1.3",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The StochasticSwap transpilation pass is a suboptimal "
+        "routing algorithm and has been superseded by the SabreSwap pass.",
+    )
     def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
 
@@ -72,11 +78,12 @@ class StochasticSwap(TransformationPass):
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
-            fake_run (bool): if true, it only pretend to do routing, i.e., no
+            fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
             initial_layout (Layout): starting layout at beginning of pass.
         """
         super().__init__()
+
         if isinstance(coupling_map, Target):
             self.target = coupling_map
             self.coupling_map = self.target.build_coupling_map()
@@ -202,13 +209,13 @@ class StochasticSwap(TransformationPass):
         cdist2 = coupling._dist_matrix**2
         int_qubit_subset = np.fromiter(
             (dag.find_bit(bit).index for bit in qubit_subset),
-            dtype=np.uintp,
+            dtype=np.uint32,
             count=len(qubit_subset),
         )
 
         int_gates = np.fromiter(
             (dag.find_bit(bit).index for gate in gates for bit in gate),
-            dtype=np.uintp,
+            dtype=np.uint32,
             count=2 * len(gates),
         )
 
@@ -216,9 +223,9 @@ class StochasticSwap(TransformationPass):
         int_layout = nlayout.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
-        trial_circuit.add_qubits(layout.get_virtual_bits())
+        trial_circuit.add_qubits(list(layout.get_virtual_bits()))
 
-        edges = np.asarray(coupling.get_edges(), dtype=np.uintp).ravel()
+        edges = np.asarray(coupling.get_edges(), dtype=np.uint32).ravel()
         cdist = coupling._dist_matrix
         best_edges, best_layout, best_depth = stochastic_swap_rs.swap_trials(
             trials,
@@ -240,7 +247,7 @@ class StochasticSwap(TransformationPass):
         for idx in range(len(edges) // 2):
             swap_src = self._int_to_qubit[edges[2 * idx]]
             swap_tgt = self._int_to_qubit[edges[2 * idx + 1]]
-            trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
+            trial_circuit.apply_operation_back(SwapGate(), (swap_src, swap_tgt), (), check=False)
         best_circuit = trial_circuit
 
         # Otherwise, we return our result for this layer
@@ -266,11 +273,13 @@ class StochasticSwap(TransformationPass):
         # Output any swaps
         if best_depth > 0:
             logger.debug("layer_update: there are swaps in this layer, depth %d", best_depth)
-            dag.compose(best_circuit, qubits={bit: bit for bit in best_circuit.qubits})
+            dag.compose(best_circuit, qubits=list(best_circuit.qubits), inline_captures=True)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
         # Output this layer
-        dag.compose(layer["graph"], qubits=best_layout.reorder_bits(dag.qubits))
+        dag.compose(
+            layer["graph"], qubits=best_layout.reorder_bits(dag.qubits), inline_captures=True
+        )
 
     def _mapper(self, circuit_graph, coupling_graph, trials=20):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
@@ -323,7 +332,7 @@ class StochasticSwap(TransformationPass):
                     # Update the DAG
                     if not self.fake_run:
                         self._layer_update(
-                            dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
+                            dagcircuit_output, layer, best_layout, best_depth, best_circuit
                         )
                     continue
 
@@ -354,9 +363,7 @@ class StochasticSwap(TransformationPass):
 
                     # Give up if we fail again
                     if not success_flag:
-                        raise TranspilerError(
-                            "swap mapper failed: " + "layer %d, sublayer %d" % (i, j)
-                        )
+                        raise TranspilerError(f"swap mapper failed: layer {i}, sublayer {j}")
 
                     # Update the record of qubit positions
                     # for each inner iteration
@@ -375,8 +382,13 @@ class StochasticSwap(TransformationPass):
         # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.initial_layout = %s", self.initial_layout)
         logger.debug("mapper: layout = %s", layout)
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = layout
+        else:
+            self.property_set["final_layout"] = layout.compose(
+                self.property_set["final_layout"], circuit_graph.qubits
+            )
 
-        self.property_set["final_layout"] = layout
         if self.fake_run:
             return circuit_graph
         return dagcircuit_output
@@ -433,7 +445,7 @@ class StochasticSwap(TransformationPass):
                 root_dag, self.coupling_map, layout, final_layout, seed=self._new_seed()
             )
             if swap_dag.size(recurse=False):
-                updated_dag_block.compose(swap_dag, qubits=swap_qubits)
+                updated_dag_block.compose(swap_dag, qubits=swap_qubits, inline_captures=True)
             idle_qubits &= set(updated_dag_block.idle_wires())
 
         # Now for each block, expand it to be full width over all active wires (all blocks of a
@@ -445,7 +457,7 @@ class StochasticSwap(TransformationPass):
 
         new_op = node.op.replace_blocks(block_circuits)
         new_qargs = block_circuits[0].qubits
-        dagcircuit_output.apply_operation_back(new_op, new_qargs, node.cargs)
+        dagcircuit_output.apply_operation_back(new_op, new_qargs, node.cargs, check=False)
         return final_layout
 
     def _new_seed(self):
@@ -499,10 +511,21 @@ def _dag_from_block(block, node, root_dag):
         out.add_qreg(qreg)
     # For clbits, we need to take more care.  Nested control-flow might need registers to exist for
     # conditions on inner blocks.  `DAGCircuit.substitute_node_with_dag` handles this register
-    # mapping when required, so we use that with a dummy block.
+    # mapping when required, so we use that with a dummy block that pretends to act on all variables
+    # in the DAG.
     out.add_clbits(node.cargs)
+    for var in block.iter_input_vars():
+        out.add_input_var(var)
+    for var in block.iter_captured_vars():
+        out.add_captured_var(var)
+    for var in block.iter_declared_vars():
+        out.add_declared_var(var)
+
     dummy = out.apply_operation_back(
-        Instruction("dummy", len(node.qargs), len(node.cargs), []), node.qargs, node.cargs
+        IfElseOp(expr.lift(True), block.copy_empty_like(vars_mode="captures")),
+        node.qargs,
+        node.cargs,
+        check=False,
     )
     wire_map = dict(itertools.chain(zip(block.qubits, node.qargs), zip(block.clbits, node.cargs)))
     out.substitute_node_with_dag(dummy, circuit_to_dag(block), wires=wire_map)

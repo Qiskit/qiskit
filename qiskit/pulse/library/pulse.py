@@ -13,10 +13,17 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
+from __future__ import annotations
+
+import typing
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any, Tuple, Union
+from typing import Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression
+
+
+if typing.TYPE_CHECKING:
+    from qiskit.providers import Backend  # pylint: disable=cyclic-import
 
 
 class Pulse(ABC):
@@ -31,9 +38,9 @@ class Pulse(ABC):
     @abstractmethod
     def __init__(
         self,
-        duration: Union[int, ParameterExpression],
-        name: Optional[str] = None,
-        limit_amplitude: Optional[bool] = None,
+        duration: int | ParameterExpression,
+        name: str | None = None,
+        limit_amplitude: bool | None = None,
     ):
         """Abstract base class for pulses
         Args:
@@ -59,7 +66,7 @@ class Pulse(ABC):
 
     @property
     @abstractmethod
-    def parameters(self) -> Dict[str, Any]:
+    def parameters(self) -> dict[str, typing.Any]:
         """Return a dictionary containing the pulse's parameters."""
         pass
 
@@ -69,13 +76,13 @@ class Pulse(ABC):
 
     def draw(
         self,
-        style: Optional[Dict[str, Any]] = None,
-        backend=None,  # importing backend causes cyclic import
-        time_range: Optional[Tuple[int, int]] = None,
+        style: dict[str, Any] | None = None,
+        backend: Backend | None = None,
+        time_range: tuple[int, int] | None = None,
         time_unit: str = "dt",
         show_waveform_info: bool = True,
         plotter: str = "mpl2d",
-        axis: Optional[Any] = None,
+        axis: Any | None = None,
     ):
         """Plot the interpolated envelope of pulse.
 
@@ -125,7 +132,9 @@ class Pulse(ABC):
         )
 
     @abstractmethod
-    def __eq__(self, other: "Pulse") -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Pulse):
+            return NotImplemented
         return isinstance(other, type(self))
 
     @abstractmethod

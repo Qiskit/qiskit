@@ -12,6 +12,7 @@
 
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
+import copy
 import io
 import math
 import os
@@ -19,9 +20,9 @@ import pathlib
 import pickle
 import shutil
 import tempfile
-import unittest
 
 import ddt
+import numpy as np
 
 import qiskit.qasm2
 from qiskit import qpy
@@ -34,14 +35,27 @@ from qiskit.circuit import (
     Qubit,
     library as lib,
 )
-from qiskit.test import QiskitTestCase
+from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import gate_builder
 
 
-class TestEmpty(QiskitTestCase):
+@ddt.ddt
+class TestWhitespace(QiskitTestCase):
     def test_allows_empty(self):
         self.assertEqual(qiskit.qasm2.loads(""), QuantumCircuit())
+
+    @ddt.data("", "\n", "\r\n", "\n  ", "\n\t", "\r\n\t")
+    def test_empty_except_comment(self, terminator):
+        program = "// final comment" + terminator
+        self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit())
+
+    @ddt.data("", "\n", "\r\n", "\n  ")
+    def test_final_comment(self, terminator):
+        # This is similar to the empty-circuit test, except that we also have an instruction.
+        program = "qreg q[2]; // final comment" + terminator
+        self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit(QuantumRegister(2, "q")))
 
 
 class TestVersion(QiskitTestCase):
@@ -308,6 +322,35 @@ class TestGateApplication(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(2, "q"))
         qc.cx(0, 1)
         qc.cx(1, 0)
+        self.assertEqual(parsed, qc)
+
+    def test_huge_conditions(self):
+        # Something way bigger than any native integer.
+        bigint = (1 << 300) + 123456789
+        program = f"""
+            qreg qr[2];
+            creg cr[2];
+            creg cond[500];
+            if (cond=={bigint}) U(0, 0, 0) qr[0];
+            if (cond=={bigint}) U(0, 0, 0) qr;
+            if (cond=={bigint}) reset qr[0];
+            if (cond=={bigint}) reset qr;
+            if (cond=={bigint}) measure qr[0] -> cr[0];
+            if (cond=={bigint}) measure qr -> cr;
+        """
+        parsed = qiskit.qasm2.loads(program)
+        qr, cr = QuantumRegister(2, "qr"), ClassicalRegister(2, "cr")
+        cond = ClassicalRegister(500, "cond")
+        qc = QuantumCircuit(qr, cr, cond)
+        qc.u(0, 0, 0, qr[0]).c_if(cond, bigint)
+        qc.u(0, 0, 0, qr[0]).c_if(cond, bigint)
+        qc.u(0, 0, 0, qr[1]).c_if(cond, bigint)
+        qc.reset(qr[0]).c_if(cond, bigint)
+        qc.reset(qr[0]).c_if(cond, bigint)
+        qc.reset(qr[1]).c_if(cond, bigint)
+        qc.measure(qr[0], cr[0]).c_if(cond, bigint)
+        qc.measure(qr[0], cr[0]).c_if(cond, bigint)
+        qc.measure(qr[1], cr[1]).c_if(cond, bigint)
         self.assertEqual(parsed, qc)
 
 
@@ -644,8 +687,6 @@ class TestGateDefinition(QiskitTestCase):
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
 
-    # See https://github.com/Qiskit/qiskit-terra/issues/8941
-    @unittest.expectedFailure
     def test_qpy_double_call_roundtrip(self):
         program = """
             include "qelib1.inc";
@@ -683,6 +724,32 @@ class TestGateDefinition(QiskitTestCase):
             fptr.seek(0)
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
+
+    def test_deepcopy_conditioned_defined_gate(self):
+        program = """
+            include "qelib1.inc";
+            gate my_gate a {
+                x a;
+            }
+            qreg q[1];
+            creg c[1];
+            if (c == 1) my_gate q[0];
+        """
+        parsed = qiskit.qasm2.loads(program)
+        my_gate = parsed.data[0].operation
+
+        self.assertEqual(my_gate.name, "my_gate")
+        self.assertEqual(my_gate.condition, (parsed.cregs[0], 1))
+
+        copied = copy.deepcopy(parsed)
+        copied_gate = copied.data[0].operation
+        self.assertEqual(copied_gate.name, "my_gate")
+        self.assertEqual(copied_gate.condition, (copied.cregs[0], 1))
+
+        pickled = pickle.loads(pickle.dumps(parsed))
+        pickled_gate = pickled.data[0].operation
+        self.assertEqual(pickled_gate.name, "my_gate")
+        self.assertEqual(pickled_gate.condition, (pickled.cregs[0], 1))
 
 
 class TestOpaque(QiskitTestCase):
@@ -869,6 +936,30 @@ class TestMeasure(QiskitTestCase):
             ClassicalRegister(1, "cond"),
         )
         self.assertEqual(parsed, qc)
+
+    def test_has_to_matrix(self):
+        program = """
+            OPENQASM 2.0;
+            include "qelib1.inc";
+            qreg qr[1];
+            gate my_gate(a) q {
+                rz(a) q;
+                rx(pi / 2) q;
+                rz(-a) q;
+            }
+            my_gate(1.0) qr[0];
+        """
+        parsed = qiskit.qasm2.loads(program)
+        expected = (
+            lib.RZGate(-1.0).to_matrix()
+            @ lib.RXGate(math.pi / 2).to_matrix()
+            @ lib.RZGate(1.0).to_matrix()
+        )
+        defined_gate = parsed.data[0].operation
+        self.assertEqual(defined_gate.name, "my_gate")
+        np.testing.assert_allclose(defined_gate.to_matrix(), expected, atol=1e-14, rtol=0)
+        # Also test that the standard `Operator` method on the whole circuit still works.
+        np.testing.assert_allclose(Operator(parsed), expected, atol=1e-14, rtol=0)
 
 
 class TestReset(QiskitTestCase):

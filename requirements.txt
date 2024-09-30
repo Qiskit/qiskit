@@ -1,14 +1,9 @@
-rustworkx>=0.13.0
-numpy>=1.17
-ply>=3.10
-psutil>=5
+rustworkx>=0.15.0
+numpy>=1.17,<3
 scipy>=1.5
 sympy>=1.3
 dill>=0.3
 python-dateutil>=2.8.0
 stevedore>=3.0.0
-typing-extensions; python_version<'3.11'
-# symengine pinning needed due lowered precision handling complex
-# multiplication in version 0.10 wich breaks parameter assignment test
-# (can be removed once issue is fix)
-symengine>=0.9, <0.10; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
+typing-extensions
+symengine>=0.11

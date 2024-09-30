@@ -33,7 +33,7 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -101,6 +101,26 @@ class TestGateDirection(QiskitTestCase):
 
         self.assertEqual(dag, after)
 
+    def test_multi_register(self):
+        """The CX is in the right direction
+        qr0:---(+)---
+                |
+        qr1:----.----
+
+        CouplingMap map: [0] -> [1]
+        """
+        qr1 = QuantumRegister(1, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.cx(qr1, qr2)
+        coupling = CouplingMap([[0, 1]])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = GateDirection(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(dag, after)
+
     def test_direction_flip(self):
         """Flip a CX
         qr0:----.----
@@ -152,12 +172,16 @@ class TestGateDirection(QiskitTestCase):
         #       ├─────────┴┐│  Ecr │├───┤
         # qr_1: ┤ Ry(-π/2) ├┤1     ├┤ H ├
         #       └──────────┘└──────┘└───┘
-        expected = QuantumCircuit(qr)
-        expected.ry(pi / 2, qr[0])
-        expected.ry(-pi / 2, qr[1])
-        expected.ecr(qr[0], qr[1])
-        expected.h(qr[0])
-        expected.h(qr[1])
+        expected = QuantumCircuit(qr, global_phase=-pi / 2)
+        expected.s(1)
+        expected.sx(1)
+        expected.sdg(1)
+        expected.sdg(0)
+        expected.sx(0)
+        expected.s(0)
+        expected.ecr(0, 1)
+        expected.h(0)
+        expected.h(1)
 
         pass_ = GateDirection(coupling)
         after = pass_.run(dag)
@@ -318,7 +342,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(pass_(circuit), expected)
 
     def test_target_parameter_any(self):
-        """Test that a parametrised 2q gate is replaced correctly both if available and not
+        """Test that a parametrized 2q gate is replaced correctly both if available and not
         available."""
         circuit = QuantumCircuit(2)
         circuit.rzx(1.5, 0, 1)
@@ -332,7 +356,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
     def test_target_parameter_exact(self):
-        """Test that a parametrised 2q gate is detected correctly both if available and not
+        """Test that a parametrized 2q gate is detected correctly both if available and not
         available."""
         circuit = QuantumCircuit(2)
         circuit.rzx(1.5, 0, 1)
@@ -385,8 +409,13 @@ class TestGateDirection(QiskitTestCase):
             expected.h([0, 1])
             expected.cx(0, 1)
             with expected.if_test((circuit.clbits[0], True)) as else_:
-                expected.ry(pi / 2, 2)
-                expected.ry(-pi / 2, 3)
+                expected.global_phase -= pi / 2
+                expected.sdg(2)
+                expected.sx(2)
+                expected.s(2)
+                expected.s(3)
+                expected.sx(3)
+                expected.sdg(3)
                 expected.ecr(2, 3)
                 expected.h([2, 3])
             with else_:
@@ -422,8 +451,13 @@ class TestGateDirection(QiskitTestCase):
             expected.h([0, 1])
             expected.cx(0, 1)
             with expected.if_test((circuit.clbits[0], True)) as else_:
-                expected.ry(pi / 2, 2)
-                expected.ry(-pi / 2, 3)
+                expected.global_phase -= pi / 2
+                expected.sdg(2)
+                expected.sx(2)
+                expected.s(2)
+                expected.s(3)
+                expected.sx(3)
+                expected.sdg(3)
                 expected.ecr(2, 3)
                 expected.h([2, 3])
             with else_:

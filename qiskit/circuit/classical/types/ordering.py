@@ -20,6 +20,8 @@ __all__ = [
     "is_supertype",
     "order",
     "greater",
+    "CastKind",
+    "cast_kind",
 ]
 
 import enum
@@ -161,3 +163,60 @@ def greater(left: Type, right: Type, /) -> Type:
     if order_ is Ordering.NONE:
         raise TypeError(f"no ordering exists between '{left}' and '{right}'")
     return left if order_ is Ordering.GREATER else right
+
+
+class CastKind(enum.Enum):
+    """A return value indicating the type of cast that can occur from one type to another."""
+
+    EQUAL = enum.auto()
+    """The two types are equal; no cast node is required at all."""
+    IMPLICIT = enum.auto()
+    """The 'from' type can be cast to the 'to' type implicitly.  A :class:`~.expr.Cast` node with
+    ``implicit==True`` is the minimum required to specify this."""
+    LOSSLESS = enum.auto()
+    """The 'from' type can be cast to the 'to' type explicitly, and the cast will be lossless.  This
+    requires a :class:`~.expr.Cast`` node with ``implicit=False``, but there's no danger from
+    inserting one."""
+    DANGEROUS = enum.auto()
+    """The 'from' type has a defined cast to the 'to' type, but depending on the value, it may lose
+    data.  A user would need to manually specify casts."""
+    NONE = enum.auto()
+    """There is no casting permitted from the 'from' type to the 'to' type."""
+
+
+def _uint_cast(from_: Uint, to_: Uint, /) -> CastKind:
+    if from_.width == to_.width:
+        return CastKind.EQUAL
+    if from_.width < to_.width:
+        return CastKind.LOSSLESS
+    return CastKind.DANGEROUS
+
+
+_ALLOWED_CASTS = {
+    (Bool, Bool): lambda _a, _b, /: CastKind.EQUAL,
+    (Bool, Uint): lambda _a, _b, /: CastKind.LOSSLESS,
+    (Uint, Bool): lambda _a, _b, /: CastKind.IMPLICIT,
+    (Uint, Uint): _uint_cast,
+}
+
+
+def cast_kind(from_: Type, to_: Type, /) -> CastKind:
+    """Determine the sort of cast that is required to move from the left type to the right type.
+
+    Examples:
+
+        .. code-block:: python
+
+            >>> from qiskit.circuit.classical import types
+            >>> types.cast_kind(types.Bool(), types.Bool())
+            <CastKind.EQUAL: 1>
+            >>> types.cast_kind(types.Uint(8), types.Bool())
+            <CastKind.IMPLICIT: 2>
+            >>> types.cast_kind(types.Bool(), types.Uint(8))
+            <CastKind.LOSSLESS: 3>
+            >>> types.cast_kind(types.Uint(16), types.Uint(8))
+            <CastKind.DANGEROUS: 4>
+    """
+    if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
+        return CastKind.NONE
+    return coercer(from_, to_)

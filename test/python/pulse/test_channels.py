@@ -27,7 +27,7 @@ from qiskit.pulse.channels import (
     SnapshotChannel,
     PulseError,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestChannel(QiskitTestCase):

@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Added a new keyword argument, ``min_qubits``, to the constructor of the
+    :class:`.BasisTranslator` transpiler pass. When set to a non-zero value this
+    is used to set a minimum number of qubits to filter operations to translate
+    in the circuit. For example, if ``min_qubits=3`` is set the
+    :class:`.BasisTranslator` instance will only translate gates in the circuit
+    that operate on 3 or more qubits.
+  - |
+    Added a new keyword argument, ``min_qubits``, to the constructor of the
+    :class:`.UnrollCustomDefinitions` transpiler pass. When set to a non-zero
+    value this is used to set a minimum number of qubits to filter operations
+    to translate in the circuit. For example, if ``min_qubits=3`` is set the
+    :class:`.UnrollCustomDefinitions` instance will only translate gates in the
+    circuit that operate on 3 or more qubits.
+

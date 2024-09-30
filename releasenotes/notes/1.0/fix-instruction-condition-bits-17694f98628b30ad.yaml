@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The property :attr:`.Instruction.condition_bits` will now correctly handle runtime classical
+    expressions (:mod:`qiskit.circuit.classical`).

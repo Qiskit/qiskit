@@ -15,9 +15,9 @@
 """Tests for generator of timeline drawer."""
 
 import qiskit
-from qiskit.test import QiskitTestCase
 from qiskit.visualization.timeline import generators, types, stylesheet
 from qiskit.circuit import library, Delay
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGates(QiskitTestCase):
@@ -27,7 +27,7 @@ class TestGates(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1))[0]
+        self.qubit = list(qiskit.QuantumRegister(1, name="foo"))[0]
 
         self.u1 = types.ScheduledGate(
             t0=100, operand=library.U1Gate(0), duration=0, bits=[self.qubit], bit_position=0
@@ -58,7 +58,7 @@ class TestGates(QiskitTestCase):
         ref_meta = {
             "name": "u3",
             "label": "n/a",
-            "bits": str(self.qubit.register.name),
+            "bits": [self.qubit],
             "t0": 100,
             "duration": 20,
             "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
@@ -109,9 +109,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0.0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u3(0.00, 0.00, 0.00)[20]")
-        ref_latex = "{name}(0.00, 0.00, 0.00)[20]".format(
-            name=self.formatter["latex_symbol.gates"]["u3"]
-        )
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u3']}(0.00, 0.00, 0.00)[20]"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -132,7 +130,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [self.formatter["label_offset.frame_change"]])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u1(0.00)")
-        ref_latex = "{name}(0.00)".format(name=self.formatter["latex_symbol.gates"]["u1"])
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u1']}(0.00)"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -159,7 +157,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [0.0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u3")
-        ref_latex = "{name}".format(name=self.formatter["latex_symbol.gates"]["u3"])
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u3']}"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -180,7 +178,7 @@ class TestGates(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.yvals), [self.formatter["label_offset.frame_change"]])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
         self.assertEqual(drawing_obj.text, "u1")
-        ref_latex = "{name}".format(name=self.formatter["latex_symbol.gates"]["u1"])
+        ref_latex = f"{self.formatter['latex_symbol.gates']['u1']}"
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
@@ -206,7 +204,9 @@ class TestTimeslot(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1))[0]
+        self.program = qiskit.QuantumCircuit(qiskit.QuantumRegister(1, "bar"))
+        self.program._op_start_times = []
+        self.qubit = self.program.qubits[0]
 
         style = stylesheet.QiskitTimelineStyle()
         self.formatter = style.formatter
@@ -238,16 +238,18 @@ class TestTimeslot(QiskitTestCase):
 
     def test_gen_bit_name(self):
         """Test gen_bit_name generator."""
-        drawing_obj = generators.gen_bit_name(self.qubit, self.formatter)[0]
+        with self.assertWarnsRegex(UserWarning, "bits cannot be accurately named"):
+            generators.gen_bit_name(self.qubit, self.formatter)
+
+        drawing_obj = generators.gen_bit_name(self.qubit, self.formatter, program=self.program)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.LabelType.BIT_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, str(self.qubit.register.name))
-        ref_latex = r"{{\rm {register}}}_{{{index}}}".format(
-            register=self.qubit.register.prefix, index=self.qubit.index
-        )
+        self.assertEqual(drawing_obj.text, "bar")
+        # pylint: disable-next=consider-using-f-string
+        ref_latex = r"{{\rm {register}}}_{{{index}}}".format(register="q", index="0")
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {

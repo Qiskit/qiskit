@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
+"""Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -22,7 +22,7 @@ from qiskit.transpiler.passes.layout import disjoint_utils
 
 
 class BasicSwap(TransformationPass):
-    """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
+    """Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates.
 
     The basic mapper is a minimum effort to insert swap gates to map the DAG onto
     a coupling map. When a cx is not in the coupling map possibilities, it inserts
@@ -34,7 +34,7 @@ class BasicSwap(TransformationPass):
 
         Args:
             coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
-            fake_run (bool): if true, it only pretend to do routing, i.e., no
+            fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
         """
         super().__init__()
@@ -57,7 +57,7 @@ class BasicSwap(TransformationPass):
 
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG, or if the coupling_map=None.
+            compatible with the DAG, or if the ``coupling_map=None``.
         """
         if self.fake_run:
             return self._fake_run(dag)
@@ -100,7 +100,7 @@ class BasicSwap(TransformationPass):
 
                         # create the swap operation
                         swap_layer.apply_operation_back(
-                            SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
+                            SwapGate(), (qubit_1, qubit_2), cargs=(), check=False
                         )
 
                     # layer insertion
@@ -114,7 +114,13 @@ class BasicSwap(TransformationPass):
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
 
-        self.property_set["final_layout"] = current_layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_layout
+        else:
+            self.property_set["final_layout"] = current_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
+
         return new_dag
 
     def _fake_run(self, dag):
@@ -151,5 +157,10 @@ class BasicSwap(TransformationPass):
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-        self.property_set["final_layout"] = current_layout
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = current_layout
+        else:
+            self.property_set["final_layout"] = current_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         return dag

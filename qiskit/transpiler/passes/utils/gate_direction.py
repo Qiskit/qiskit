@@ -21,7 +21,9 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit import QuantumRegister, ControlFlowOp
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit.library.standard_gates import (
-    RYGate,
+    SGate,
+    SdgGate,
+    SXGate,
     HGate,
     CXGate,
     CZGate,
@@ -49,17 +51,24 @@ class GateDirection(TransformationPass):
         q_1: ┤ X ├      q_1: ┤ H ├──■──┤ H ├
              └───┘           └───┘     └───┘
 
-             ┌──────┐          ┌───────────┐┌──────┐┌───┐
-        q_0: ┤0     ├     q_0: ┤ RY(-pi/2) ├┤1     ├┤ H ├
-             │  ECR │  =       └┬──────────┤│  ECR │├───┤
-        q_1: ┤1     ├     q_1: ─┤ RY(pi/2) ├┤0     ├┤ H ├
-             └──────┘           └──────────┘└──────┘└───┘
+
+                          global phase: 3π/2
+             ┌──────┐           ┌───┐ ┌────┐┌─────┐┌──────┐┌───┐
+        q_0: ┤0     ├     q_0: ─┤ S ├─┤ √X ├┤ Sdg ├┤1     ├┤ H ├
+             │  ECR │  =       ┌┴───┴┐├────┤└┬───┬┘│  Ecr │├───┤
+        q_1: ┤1     ├     q_1: ┤ Sdg ├┤ √X ├─┤ S ├─┤0     ├┤ H ├
+             └──────┘          └─────┘└────┘ └───┘ └──────┘└───┘
+
 
              ┌──────┐          ┌───┐┌──────┐┌───┐
         q_0: ┤0     ├     q_0: ┤ H ├┤1     ├┤ H ├
              │  RZX │  =       ├───┤│  RZX │├───┤
         q_1: ┤1     ├     q_1: ┤ H ├┤0     ├┤ H ├
              └──────┘          └───┘└──────┘└───┘
+
+    This pass assumes that the positions of the qubits in the :attr:`.DAGCircuit.qubits` attribute
+    are the physical qubit indices. For example if ``dag.qubits[0]`` is qubit 0 in the
+    :class:`.CouplingMap` or :class:`.Target`.
     """
 
     _KNOWN_REPLACEMENTS = frozenset(["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])
@@ -86,11 +95,19 @@ class GateDirection(TransformationPass):
         self._cx_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._cx_dag.apply_operation_back(HGate(), [qr[1]], [])
 
+        # This is done in terms of less-efficient S/SX/Sdg gates instead of the more natural
+        # `RY(pi /2)` so we have a chance for basis translation to keep things in a discrete basis
+        # during resynthesis, if that's what's being asked for.
         self._ecr_dag = DAGCircuit()
         qr = QuantumRegister(2)
+        self._ecr_dag.global_phase = -pi / 2
         self._ecr_dag.add_qreg(qr)
-        self._ecr_dag.apply_operation_back(RYGate(-pi / 2), [qr[0]], [])
-        self._ecr_dag.apply_operation_back(RYGate(pi / 2), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(SGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(SXGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(SdgGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(SdgGate(), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(SXGate(), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(SGate(), [qr[1]], [])
         self._ecr_dag.apply_operation_back(ECRGate(), [qr[1], qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[1]], [])
@@ -158,7 +175,7 @@ class GateDirection(TransformationPass):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                node.op = node.op.replace_blocks(
+                new_op = node.op.replace_blocks(
                     dag_to_circuit(
                         self._run_coupling_map(
                             circuit_to_dag(block),
@@ -171,6 +188,7 @@ class GateDirection(TransformationPass):
                     )
                     for block in node.op.blocks
                 )
+                dag.substitute_node(node, new_op, propagate_condition=False)
                 continue
             if len(node.qargs) != 2:
                 continue
@@ -205,7 +223,7 @@ class GateDirection(TransformationPass):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                node.op = node.op.replace_blocks(
+                new_op = node.op.replace_blocks(
                     dag_to_circuit(
                         self._run_target(
                             circuit_to_dag(block),
@@ -217,6 +235,7 @@ class GateDirection(TransformationPass):
                     )
                     for block in node.op.blocks
                 )
+                dag.substitute_node(node, new_op, propagate_condition=False)
                 continue
             if len(node.qargs) != 2:
                 continue
@@ -325,11 +344,6 @@ class GateDirection(TransformationPass):
                 cx nodes.
         """
         layout_map = {bit: i for i, bit in enumerate(dag.qubits)}
-        if len(dag.qregs) > 1:
-            raise TranspilerError(
-                "GateDirection expects a single qreg input DAG,"
-                "but input DAG had qregs: {}.".format(dag.qregs)
-            )
         if self.target is None:
             return self._run_coupling_map(dag, layout_map)
         return self._run_target(dag, layout_map)

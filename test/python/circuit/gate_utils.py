@@ -25,7 +25,7 @@ def _get_free_params(fun, ignore=None):
     Returns:
         list[str]: The name of the free parameters not listed in ``ignore``.
     """
-    ignore = ignore or []
+    ignore = ignore or ["kwargs"]
     free_params = []
     for name, param in signature(fun).parameters.items():
         if param.default == Parameter.empty and param.kind != Parameter.VAR_POSITIONAL:

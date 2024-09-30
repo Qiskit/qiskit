@@ -62,7 +62,7 @@ class Permutation(QuantumCircuit):
             .. plot::
 
                from qiskit.circuit.library import Permutation
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               from qiskit.visualization.library import _generate_circuit_library_visualization
                A = [2,4,3,0,1]
                circuit = Permutation(5, A)
                _generate_circuit_library_visualization(circuit.decompose())
@@ -80,15 +80,13 @@ class Permutation(QuantumCircuit):
 
         name = "permutation_" + np.array_str(pattern).replace(" ", ",")
 
-        circuit = QuantumCircuit(num_qubits, name=name)
-
         super().__init__(num_qubits, name=name)
 
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+        from qiskit.synthesis.permutation import synth_permutation_basic
 
-        for i, j in _get_ordered_swap(pattern):
-            circuit.swap(i, j)
+        circuit = synth_permutation_basic(pattern)
+        circuit.name = name
 
         all_qubits = self.qubits
         self.append(circuit.to_gate(), all_qubits)
@@ -130,7 +128,7 @@ class PermutationGate(Gate):
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
-                from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+                from qiskit.visualization.library import _generate_circuit_library_visualization
                 A = [2,4,3,0,1]
                 permutation = PermutationGate(A)
                 circuit = QuantumCircuit(5)
@@ -147,8 +145,11 @@ class PermutationGate(Gate):
 
         super().__init__(name="permutation", num_qubits=num_qubits, params=[pattern])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the Permutation gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+
         nq = len(self.pattern)
         mat = np.zeros((2**nq, 2**nq), dtype=dtype)
 
@@ -171,7 +172,7 @@ class PermutationGate(Gate):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Returns the inverse of the permutation."""
 
         # pylint: disable=cyclic-import
@@ -181,10 +182,11 @@ class PermutationGate(Gate):
 
     def _qasm2_decomposition(self):
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+        from qiskit.synthesis.permutation import synth_permutation_basic
 
         name = f"permutation__{'_'.join(str(n) for n in self.pattern)}_"
-        out = QuantumCircuit(self.num_qubits, name=name)
-        for i, j in _get_ordered_swap(self.pattern):
-            out.swap(i, j)
+
+        out = synth_permutation_basic(self.pattern)
+        out.name = name
+
         return out.to_gate()

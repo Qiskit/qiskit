@@ -14,10 +14,11 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 from math import pi
+import math
 from typing import Optional, Union, Tuple, List
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, ParameterExpression
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -113,7 +114,7 @@ def _mcsu2_real_diagonal(
     """
     # pylint: disable=cyclic-import
     from .x import MCXVChain
-    from qiskit.extensions import UnitaryGate
+    from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
     from qiskit.compiler import transpile
 
@@ -122,6 +123,9 @@ def _mcsu2_real_diagonal(
 
     if not is_unitary_matrix(unitary):
         raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
+
+    if not np.isclose(1.0, np.linalg.det(unitary)):
+        raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
 
     is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
     is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
@@ -141,18 +145,20 @@ def _mcsu2_real_diagonal(
     if np.isclose(z, -1):
         s_op = [[1.0, 0.0], [0.0, 1.0j]]
     else:
-        alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
-        alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+        alpha_i = z.imag / (
+            2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+        )
         alpha = alpha_r + 1.0j * alpha_i
-        beta = x / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
 
         # S gate definition
         s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
 
     s_gate = UnitaryGate(s_op)
 
-    k_1 = int(np.ceil(num_controls / 2.0))
-    k_2 = int(np.floor(num_controls / 2.0))
+    k_1 = math.ceil(num_controls / 2.0)
+    k_2 = math.floor(num_controls / 2.0)
 
     ctrl_state_k_1 = None
     ctrl_state_k_2 = None
@@ -194,7 +200,7 @@ def _mcsu2_real_diagonal(
         circuit.h(target)
 
     if use_basis_gates:
-        circuit = transpile(circuit, basis_gates=["p", "u", "cx"])
+        circuit = transpile(circuit, basis_gates=["p", "u", "cx"], qubits_initially_zero=False)
 
     return circuit
 
@@ -221,8 +227,8 @@ def mcrx(
     """
     from .rx import RXGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit
@@ -252,6 +258,9 @@ def mcrx(
             use_basis_gates=use_basis_gates,
         )
     else:
+        if isinstance(theta, ParameterExpression):
+            raise QiskitError(f"Cannot synthesize MCRX with unbound parameter: {theta}.")
+
         cgate = _mcsu2_real_diagonal(
             RXGate(theta).to_matrix(),
             num_controls=len(control_qubits),
@@ -266,8 +275,8 @@ def mcry(
     q_controls: Union[QuantumRegister, List[Qubit]],
     q_target: Qubit,
     q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
-    mode: str = None,
-    use_basis_gates=False,
+    mode: Optional[str] = None,
+    use_basis_gates: bool = False,
 ):
     """
     Apply Multiple-Controlled Y rotation gate
@@ -286,11 +295,11 @@ def mcry(
     """
     from .ry import RYGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
-    ancillary_qubits = [] if q_ancillae is None else self.qbit_argument_conversion(q_ancillae)
+    ancillary_qubits = [] if q_ancillae is None else self._qbit_argument_conversion(q_ancillae)
     all_qubits = control_qubits + target_qubit + ancillary_qubits
     target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
@@ -327,6 +336,9 @@ def mcry(
                 use_basis_gates=use_basis_gates,
             )
         else:
+            if isinstance(theta, ParameterExpression):
+                raise QiskitError(f"Cannot synthesize MCRY with unbound parameter: {theta}.")
+
             cgate = _mcsu2_real_diagonal(
                 RYGate(theta).to_matrix(),
                 num_controls=len(control_qubits),
@@ -359,8 +371,8 @@ def mcrz(
     """
     from .rz import CRZGate, RZGate
 
-    control_qubits = self.qbit_argument_conversion(q_controls)
-    target_qubit = self.qbit_argument_conversion(q_target)
+    control_qubits = self._qbit_argument_conversion(q_controls)
+    target_qubit = self._qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit
@@ -377,6 +389,9 @@ def mcrz(
         else:
             self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
+        if isinstance(lam, ParameterExpression):
+            raise QiskitError(f"Cannot synthesize MCRZ with unbound parameter: {lam}.")
+
         cgate = _mcsu2_real_diagonal(
             RZGate(lam).to_matrix(),
             num_controls=len(control_qubits),

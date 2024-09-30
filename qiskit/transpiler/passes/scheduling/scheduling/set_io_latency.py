@@ -19,7 +19,7 @@ class SetIOLatency(AnalysisPass):
     """Set IOLatency information to the input circuit.
 
     The ``clbit_write_latency`` and ``conditional_latency`` are added to
-    the property set of pass manager. These information can be shared among the passes
+    the property set of pass manager. This information can be shared among the passes
     that perform scheduling on instructions acting on classical registers.
 
     Once these latencies are added to the property set, this information

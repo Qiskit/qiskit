@@ -16,7 +16,6 @@ Quantum bit and Classical bit objects.
 import copy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_func
 
 
 class Bit:
@@ -24,8 +23,7 @@ class Bit:
 
     .. note::
         This class should not be instantiated directly. This is just a superclass
-        for :class:`~.Clbit` and :class:`~.Qubit`.
-
+        for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
     """
 
     __slots__ = {"_register", "_index", "_hash", "_repr"}
@@ -58,50 +56,6 @@ class Bit:
             self._index = index
             self._hash = hash((self._register, self._index))
             self._repr = f"{self.__class__.__name__}({self._register}, {self._index})"
-
-    @property
-    @deprecate_func(
-        is_property=True,
-        since="0.17",
-        additional_msg=(
-            "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
-            "all the containing registers within a circuit and the index of the bit within the "
-            "circuit."
-        ),
-    )
-    def register(self):  # pylint: disable=bad-docstring-quotes
-        """Get the register of an old-style bit.
-
-        In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
-        aliases to collections of bits.  A bit can be in many registers depending on the circuit, so
-        a single containing register is no longer a property of a bit.  It is an error to access
-        this attribute on bits that were not constructed as "owned" by a register."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError("Attempt to query register of a new-style Bit.")
-
-        return self._register
-
-    @property
-    @deprecate_func(
-        is_property=True,
-        since="0.17",
-        additional_msg=(
-            "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
-            "all the containing registers within a circuit and the index of the bit within the "
-            "circuit."
-        ),
-    )
-    def index(self):  # pylint: disable=bad-docstring-quotes
-        """Get the index of an old-style bit in the register that owns it.
-
-        In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
-        aliases to collections of bits.  A bit can be in many registers depending on the circuit, so
-        a single containing register is no longer a property of a bit.  It is an error to access
-        this attribute on bits that were not constructed as "owned" by a register."""
-        if (self._register, self._index) == (None, None):
-            raise CircuitError("Attempt to query index of a new-style Bit.")
-
-        return self._index
 
     def __repr__(self):
         """Return the official string representing the bit."""

@@ -22,6 +22,7 @@ from qiskit.transpiler.passes.optimization.collect_and_collapse import (
 )
 
 from qiskit.quantum_info.operators import Clifford
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
 
 
 class CollectCliffords(CollectAndCollapse):
@@ -69,21 +70,11 @@ class CollectCliffords(CollectAndCollapse):
         )
 
 
-clifford_gate_names = [
-    "x",
-    "y",
-    "z",
-    "h",
-    "s",
-    "sdg",
-    "cx",
-    "cy",
-    "cz",
-    "swap",
-    "clifford",
-    "linear_function",
-    "pauli",
-]
+clifford_gate_names = (
+    list(_BASIS_1Q.keys())
+    + list(_BASIS_2Q.keys())
+    + ["clifford", "linear_function", "pauli", "permutation"]
+)
 
 
 def _is_clifford_gate(node):

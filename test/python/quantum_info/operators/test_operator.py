@@ -17,6 +17,7 @@
 import unittest
 import logging
 import copy
+
 from test import combine
 import numpy as np
 from ddt import ddt
@@ -26,13 +27,15 @@ import scipy.linalg as la
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
-from qiskit.test import QiskitTestCase
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import Permutation, PermutationGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 
@@ -498,6 +501,18 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
         self.assertEqual(op.power(8), Operator(np.eye(2)))
 
+    def test_floating_point_power(self):
+        """Test handling floating-point powers."""
+        circuit = QuantumCircuit(2)
+        circuit.crz(np.pi, 0, 1)
+        op = Operator(circuit)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.crz(np.pi / 4, 0, 1)
+        expected_op = Operator(expected_circuit)
+
+        self.assertEqual(op.power(0.25), expected_op)
+
     def test_expand(self):
         """Test expand method."""
         mat1 = self.UX
@@ -723,6 +738,28 @@ class TestOperator(OperatorTestCase):
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
+    def test_from_circuit_initial_layout_final_layout(self):
+        """Test initialization from a circuit with a non-trivial initial_layout and final_layout as given
+        by a transpiled circuit."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(2, 1)
+        qc.cx(1, 2)
+        qc.cx(1, 0)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.h(2)
+
+        qc_transpiled = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            initial_layout=[2, 3, 4, 0, 1],
+            optimization_level=1,
+            seed_transpiler=17,
+        )
+
+        self.assertTrue(Operator.from_circuit(qc_transpiled).equiv(qc))
+
     def test_from_circuit_constructor_reverse_embedded_layout(self):
         """Test initialization from a circuit with an embedded reverse layout."""
         # Test tensor product of 1-qubit gates
@@ -805,7 +842,7 @@ class TestOperator(OperatorTestCase):
         circuit._layout = TranspileLayout(
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
-            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0}),
+            Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1}),
         )
         circuit.swap(0, 1)
         circuit.swap(1, 2)
@@ -827,7 +864,7 @@ class TestOperator(OperatorTestCase):
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
-        final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0})
+        final_layout = Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1})
         circuit.swap(0, 1)
         circuit.swap(1, 2)
         op = Operator.from_circuit(circuit, final_layout=final_layout)
@@ -954,7 +991,7 @@ class TestOperator(OperatorTestCase):
         circuit.h(0)
         circuit.cx(0, 1)
         layout = Layout()
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             Operator.from_circuit(circuit, layout=layout)
 
     def test_compose_scalar(self):
@@ -1065,6 +1102,27 @@ class TestOperator(OperatorTestCase):
         tqc = transpile(circuit, initial_layout=init_layout)
         result = Operator.from_circuit(tqc)
         self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_into_larger_map(self):
+        """Test from_circuit method when the number of physical
+        qubits is larger than the number of original virtual qubits."""
+
+        # original circuit on 3 qubits
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        # transpile into 5-qubits
+        tqc = transpile(qc, coupling_map=CouplingMap.from_line(5), initial_layout=[0, 2, 4])
+
+        # qc expanded with ancilla qubits
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+
+        self.assertEqual(Operator.from_circuit(tqc), Operator(expected))
 
     def test_apply_permutation_back(self):
         """Test applying permutation to the operator,
@@ -1197,6 +1255,29 @@ class TestOperator(OperatorTestCase):
         )
         op2 = op.apply_permutation([2, 0, 1], front=True)
         self.assertEqual(op2.input_dims(), (4, 2, 3))
+
+    def test_equality_with_ancillas(self):
+        """Check correctness of the equal_with_ancillas method."""
+
+        # The two circuits below are equal provided that qubit 1 is initially |0>.
+        qc1 = QuantumCircuit(4)
+        qc1.x(0)
+        qc1.x(2)
+        qc1.cx(1, 0)
+        qc1.cx(1, 2)
+        qc1.cx(1, 3)
+        op1 = Operator(qc1)
+
+        qc2 = QuantumCircuit(4)
+        qc2.x(0)
+        qc2.x(2)
+        op2 = Operator(qc2)
+
+        self.assertNotEqual(op1, op2)
+        self.assertFalse(_equal_with_ancillas(op1, op2, []))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [1]))
+        self.assertFalse(_equal_with_ancillas(op1, op2, [2]))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [2, 1]))
 
 
 if __name__ == "__main__":
