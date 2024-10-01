@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed an issue with :func:`.qpy.load` when loading a QPY payload that
+    contains a :class:`.ParameterExpression` that was generated when symengine
+    0.11 was installed and trying to load it in an environment where symengine
+    0.13 (the latest symengine release as of this qiskit release) or vice versa.
+    Previously, an error would have been raised by symengine around this version
+    mismatch. This has been worked around for these two specific symengine versions
+    but if you're trying to use different versions of symengine and there is a
+    mismatch with this version of Qiskit this might not work. You will need to
+    install Qiskit >1.3.0 to fix this mismatch issue more broadly for any potential
+    future version of symengine.

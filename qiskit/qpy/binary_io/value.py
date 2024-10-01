@@ -290,6 +290,29 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     payload = file_obj.read(data.expr_size)
     if use_symengine:
+        # This is a horrible hack to workaround the symengine version checking
+        # it's deserialization does. There were no changes to the serialization
+        # format between 0.11 and 0.13 but the deserializer checks that it can't
+        # load across a major or minor version boundary. This works around it
+        # by just lying about the generating version.
+        symengine_version = symengine.__version__.split(".")
+        major = payload[2]
+        minor = payload[3]
+        if int(symengine_version[1]) != minor:
+            if minor not in (11, 13):
+                raise exceptions.QpyError(
+                    f"Incompatible symengine version {major}.{minor} used to generate the QPY "
+                    "payload"
+                )
+            minor_version = int(symengine_version[1])
+            if minor_version not in (11, 13):
+                raise exceptions.QpyError(
+                    f"Incompatible installed symengine version {symengine.__version__} to load "
+                    "this QPY payload"
+                )
+            payload = bytearray(payload)
+            payload[3] = minor_version
+            payload = bytes(payload)
         expr_ = load_basic(payload)
     else:
         from sympy.parsing.sympy_parser import parse_expr
