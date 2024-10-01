@@ -172,11 +172,15 @@ pub fn quantum_volume(
             None => Pcg64Mcg::from_entropy(),
         };
         let seed: u64 = outer_rng.sample(rand::distributions::Standard);
+
+        let unitaries: Vec<Array2<Complex64>> = random_unitaries(seed, num_unitaries).collect();
+
         CircuitData::from_packed_operations(
             py,
             num_qubits,
             0,
-            random_unitaries(seed, num_unitaries)
+            unitaries
+                .into_iter()
                 .enumerate()
                 .map(|x| build_instruction(x, &mut outer_rng)),
             Param::Float(0.),
