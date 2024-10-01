@@ -42,7 +42,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
+from qiskit.pulse.calibration_entries import CalibrationEntry
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -71,26 +71,28 @@ class InstructionProperties(BaseInstructionProperties):
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = [
-        "_calibration",
-    ]
-
     def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
         duration=None,  # pylint: disable=keyword-arg-before-vararg
         error=None,  # pylint: disable=keyword-arg-before-vararg
+        calibration=None,
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
         return super(InstructionProperties, cls).__new__(  # pylint: disable=too-many-function-args
-            cls, duration, error
+            cls,
+            duration,
+            error,
+            calibration,
         )
 
     def __init__(
         self,
         duration: float | None = None,  # pylint: disable=unused-argument
         error: float | None = None,  # pylint: disable=unused-argument
-        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
+        calibration: (  # pylint: disable=unused-argument
+            Schedule | ScheduleBlock | CalibrationEntry | None
+        ) = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -102,63 +104,6 @@ class InstructionProperties(BaseInstructionProperties):
             calibration: The pulse representation of the instruction.
         """
         super().__init__()
-        self._calibration: CalibrationEntry | None = None
-        self.calibration = calibration
-
-    @property
-    def calibration(self):
-        """The pulse representation of the instruction.
-
-        .. note::
-
-            This attribute always returns a Qiskit pulse program, but it is internally
-            wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
-            and to uniformly handle different data representation,
-            for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
-
-            This value can be overridden through the property setter in following manner.
-            When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
-            always treated as a user-defined (custom) calibration and
-            the transpiler may automatically attach the calibration data to the output circuit.
-            This calibration data may appear in the wire format as an inline calibration,
-            which may further update the backend standard instruction set architecture.
-
-            If you are a backend provider who provides a default calibration data
-            that is not needed to be attached to the transpiled quantum circuit,
-            you can directly set :class:`.CalibrationEntry` instance to this attribute,
-            in which you should set :code:`user_provided=False` when you define
-            calibration data for the entry. End users can still intentionally utilize
-            the calibration data, for example, to run pulse-level simulation of the circuit.
-            However, such entry doesn't appear in the wire format, and backend must
-            use own definition to compile the circuit down to the execution format.
-
-        """
-        if self._calibration is None:
-            return None
-        return self._calibration.get_schedule()
-
-    @calibration.setter
-    def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
-        if isinstance(calibration, (Schedule, ScheduleBlock)):
-            new_entry = ScheduleDef()
-            new_entry.define(calibration, user_provided=True)
-        else:
-            new_entry = calibration
-        self._calibration = new_entry
-
-    def __repr__(self):
-        return (
-            f"InstructionProperties(duration={self.duration}, error={self.error}"
-            f", calibration={self._calibration})"
-        )
-
-    def __getstate__(self) -> tuple:
-        return (super().__getstate__(), self.calibration, self._calibration)
-
-    def __setstate__(self, state: tuple):
-        super().__setstate__(state[0])
-        self.calibration = state[1]
-        self._calibration = state[2]
 
 
 class Target(BaseTarget):
@@ -336,7 +281,6 @@ class Target(BaseTarget):
         concurrent_measurements=None,  # pylint: disable=unused-argument
     ):
         # A nested mapping of gate name -> qargs -> properties
-        self._gate_map = {}
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
@@ -424,10 +368,7 @@ class Target(BaseTarget):
             instruction_name = name
         if properties is None or is_class:
             properties = {None: None}
-        if instruction_name in self._gate_map:
-            raise AttributeError(f"Instruction {instruction_name} is already in the target")
         super().add_instruction(instruction, instruction_name, properties)
-        self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
@@ -443,7 +384,6 @@ class Target(BaseTarget):
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
         super().update_instruction_properties(instruction, qargs, properties)
-        self._gate_map[instruction][qargs] = properties
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
@@ -489,7 +429,7 @@ class Target(BaseTarget):
                 except TypeError:
                     qargs = (qargs,)
                 try:
-                    props = self._gate_map[inst_name][qargs]
+                    props = self[inst_name][qargs]
                 except (KeyError, TypeError):
                     props = None
 
@@ -516,14 +456,16 @@ class Target(BaseTarget):
                         continue
                 try:
                     # Update gate error if provided.
-                    props.error = error_dict[inst_name][qargs]
+                    props.error = error_dict[  # pylint: disable=attribute-defined-outside-init
+                        inst_name
+                    ][qargs]
                 except (KeyError, TypeError):
                     pass
                 out_props[qargs] = props
             if not out_props:
                 continue
             # Prepare Qiskit Gate object assigned to the entries
-            if inst_name not in self._gate_map:
+            if inst_name not in self:
                 # Entry not found: Add new instruction
                 if inst_name in qiskit_inst_name_map:
                     # Remove qargs with length that doesn't match with instruction qubit number
@@ -561,7 +503,7 @@ class Target(BaseTarget):
             else:
                 # Entry found: Update "existing" instructions.
                 for qargs, prop in out_props.items():
-                    if qargs not in self._gate_map[inst_name]:
+                    if qargs not in self[inst_name]:
                         continue
                     self.update_instruction_properties(inst_name, qargs, prop)
 
@@ -573,9 +515,9 @@ class Target(BaseTarget):
         Returns:
             set: The set of qargs the gate instance applies to.
         """
-        if None in self._gate_map[operation]:
+        if None in self[operation]:
             return None
-        return self._gate_map[operation].keys()
+        return self[operation].keys()
 
     def durations(self):
         """Get an InstructionDurations object from the target
@@ -587,7 +529,7 @@ class Target(BaseTarget):
         if self._instruction_durations is not None:
             return self._instruction_durations
         out_durations = []
-        for instruction, props_map in self._gate_map.items():
+        for instruction, props_map in self.items():
             for qarg, properties in props_map.items():
                 if properties is not None and properties.duration is not None:
                     out_durations.append((instruction, list(qarg), properties.duration, "s"))
@@ -615,7 +557,7 @@ class Target(BaseTarget):
         if self._instruction_schedule_map is not None:
             return self._instruction_schedule_map
         out_inst_schedule_map = InstructionScheduleMap()
-        for instruction, qargs in self._gate_map.items():
+        for instruction, qargs in self.items():
             for qarg, properties in qargs.items():
                 # Directly getting CalibrationEntry not to invoke .get_schedule().
                 # This keeps PulseQobjDef un-parsed.
@@ -641,11 +583,11 @@ class Target(BaseTarget):
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
         qargs = tuple(qargs)
-        if operation_name not in self._gate_map:
+        if operation_name not in self:
             return False
-        if qargs not in self._gate_map[operation_name]:
+        if qargs not in self[operation_name]:
             return False
-        return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
+        return getattr(self[operation_name][qargs], "_calibration", None) is not None
 
     def get_calibration(
         self,
@@ -672,28 +614,8 @@ class Target(BaseTarget):
             raise KeyError(
                 f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
             )
-        cal_entry = getattr(self._gate_map[operation_name][qargs], "_calibration")
+        cal_entry = getattr(self[operation_name][qargs], "_calibration")
         return cal_entry.get_schedule(*args, **kwargs)
-
-    @property
-    def operation_names(self):
-        """Get the operation names in the target."""
-        return self._gate_map.keys()
-
-    @property
-    def instructions(self):
-        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
-        for the target
-
-        For globally defined variable width operations the tuple will be of the form
-        ``(class, None)`` where class is the actual operation class that
-        is globally defined.
-        """
-        return [
-            (self._gate_name_map[op], qarg)
-            for op, qargs in self._gate_map.items()
-            for qarg in qargs
-        ]
 
     def instruction_properties(self, index):
         """Get the instruction properties for a specific instruction tuple
@@ -731,7 +653,7 @@ class Target(BaseTarget):
             InstructionProperties: The instruction properties for the specified instruction tuple
         """
         instruction_properties = [
-            inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
+            inst_props for qargs in self.values() for inst_props in qargs.values()
         ]
         return instruction_properties[index]
 
@@ -739,7 +661,7 @@ class Target(BaseTarget):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
         if self.num_qubits is not None:
             self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
-        for gate, qarg_map in self._gate_map.items():
+        for gate, qarg_map in self.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
                     self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
@@ -843,36 +765,12 @@ class Target(BaseTarget):
             graph.remove_nodes_from(list(to_remove))
         return graph
 
-    def __iter__(self):
-        return iter(self._gate_map)
-
-    def __getitem__(self, key):
-        return self._gate_map[key]
-
     def get(self, key, default=None):
         """Gets an item from the Target. If not found return a provided default or `None`."""
         try:
             return self[key]
         except KeyError:
             return default
-
-    def __len__(self):
-        return len(self._gate_map)
-
-    def __contains__(self, item):
-        return item in self._gate_map
-
-    def keys(self):
-        """Return the keys (operation_names) of the Target"""
-        return self._gate_map.keys()
-
-    def values(self):
-        """Return the Property Map (qargs -> InstructionProperties) of every instruction in the Target"""
-        return self._gate_map.values()
-
-    def items(self):
-        """Returns pairs of Gate names and its property map (str, dict[tuple, InstructionProperties])"""
-        return self._gate_map.items()
 
     def __str__(self):
         output = io.StringIO()
@@ -882,7 +780,7 @@ class Target(BaseTarget):
             output.write("Target\n")
         output.write(f"Number of qubits: {self.num_qubits}\n")
         output.write("Instructions:\n")
-        for inst, qarg_props in self._gate_map.items():
+        for inst, qarg_props in self.items():
             output.write(f"\t{inst}\n")
             for qarg, props in qarg_props.items():
                 if qarg is None:
@@ -912,7 +810,6 @@ class Target(BaseTarget):
 
     def __getstate__(self) -> dict:
         return {
-            "_gate_map": self._gate_map,
             "coupling_graph": self._coupling_graph,
             "instruction_durations": self._instruction_durations,
             "instruction_schedule_map": self._instruction_schedule_map,
@@ -920,7 +817,6 @@ class Target(BaseTarget):
         }
 
     def __setstate__(self, state: tuple):
-        self._gate_map = state["_gate_map"]
         self._coupling_graph = state["coupling_graph"]
         self._instruction_durations = state["instruction_durations"]
         self._instruction_schedule_map = state["instruction_schedule_map"]
