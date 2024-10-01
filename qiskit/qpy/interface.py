@@ -144,6 +144,16 @@ def dump(
                 from the QPY format at that version will persist. This should only be used if
                 compatibility with loading the payload with an older version of Qiskit is necessary.
 
+            .. note::
+
+                If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
+                :class:`.ParameterExpression` objects with version set to
+                :attr:`.qpy.QPY_COMPATIBILITY_VERSION` with the intent to load the payload using
+                a historical release of Qiskit, ensure you set the ``use_symengine`` flag to
+                ``False``. The symengine versions used between the Qiskit 1.0 major version boundary
+                are not compatible and you will be unable to load the QPY file in those cases.
+
+
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.

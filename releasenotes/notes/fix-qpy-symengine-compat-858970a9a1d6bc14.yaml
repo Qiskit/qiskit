@@ -11,3 +11,29 @@ fixes:
     mismatch with this version of Qiskit this might not work. You will need to
     install Qiskit >1.3.0 to fix this mismatch issue more broadly for any potential
     future version of symengine.
+issues:
+  - |
+    When dumping a QPY file using :func:`.qpy.dump` with the ``version=10`` flag and there are
+    unbound :class:`.ParameterExpression` in the circuit the output file
+    will not be loadable by Qiskit 0.45.x or 0.46.x due to incompatibilities
+    in the symengine serialization used between the symengine libraries used
+    in the different versions of Qiskit. Qiskit >= 1.0 requires symengine >=
+    0.11 and Qiskit < 1.0 required symengine >= 0.9.0 and < 0.10.0. Symengine
+    0.9.x and 0.11.0 (or 0.13.0) don't have a compatible serialization formats
+    which prevents the files from being loaded. In these cases the only option
+    available to generate a QPY file with unbound
+    :class:`.ParameterExpression` that can be loaded with Qiskit 0.45.x or
+    0.46.x is to set both ``version=10`` and ``use_symengine=False``.
+  - |
+    When loading a QPY file generated with Qiskit 0.45.x or 0.46.x and the
+    ``use_symengine`` flag set to ``True`` (an optional feature), these
+    payloads are not parsable with Qiskit >= 1.0 (including this release).
+    This is due to changes in the required symengine versions across the
+    Qiskit 1.0 major version boundary. Qiskit >= 1.0 requires symengine >=
+    0.11 and Qiskit < 1.0 required symengine >= 0.9.0 and < 0.10.0. Symengine
+    0.9.x and 0.11.0 (or 0.13.0) don't have a compatible serialization formats
+    which prevents newer version of Qiskit from loading those payloads. If you
+    have a QPY file generated with Qiskit 0.45.x or 0.46.x and the
+    ``use_symengine`` flag was set to ``True`` your only option is to load
+    the QPY file using Qiskit 0.46.3 and regenerate it using
+    ``use_symengine=False``.

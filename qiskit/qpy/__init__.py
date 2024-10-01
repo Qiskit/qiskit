@@ -116,6 +116,13 @@ and how the feature will be internally handled.
 
 .. autoexception:: QPYLoadingDeprecatedFeatureWarning
 
+.. note::
+
+    When loading a QPY file generated using Qiskit 0.45.x or 0.46.x where :func:`.qpy.dump`
+    was called with the ``use_symengine`` argument set ``True`` these files can not be
+    loaded by Qiskit releases >= 1.0.0 due to API differences in the ``symengine`` library
+    that is used when QPY serializes :class:`.ParameterExpression` objects.
+
 QPY format version history
 --------------------------
 

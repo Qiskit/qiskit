@@ -322,6 +322,17 @@ def load_symengine_payload(payload: bytes) -> symengine.Expr:
     major = payload[2]
     minor = payload[3]
     if int(symengine_version[1]) != minor:
+        if major != "0":
+            raise exceptions.QpyError(
+                "Qiskit doesn't support loading a symengine payload generated with symengine >= 1.0"
+            )
+        if minor == 9:
+            raise exceptions.QpyError(
+                "Qiskit doesn't support loading a historical QPY file with `use_symengine=True` "
+                "generated in an environment using symengine 0.9.0. If you need to load this file "
+                "you can do so with Qiskit 0.45.x or 0.46.x and re-export the QPY file using "
+                "`use_symengine=False`."
+            )
         if minor not in (11, 13):
             raise exceptions.QpyError(
                 f"Incompatible symengine version {major}.{minor} used to generate the QPY "
