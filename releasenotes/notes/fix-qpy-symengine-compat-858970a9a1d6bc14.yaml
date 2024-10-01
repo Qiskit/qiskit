@@ -37,3 +37,14 @@ issues:
     ``use_symengine`` flag was set to ``True`` your only option is to load
     the QPY file using Qiskit 0.46.3 and regenerate it using
     ``use_symengine=False``.
+upgrade_other:
+  - |
+    The requirement on the support versions of `symengine <https://pypi.org/project/symengine/>`__
+    has been pre-emptively capped at < 0.14.0 (which is the next minor version as of this release).
+    This has been done to protect against a potential incompatibility in :mod:`.qpy` when serializing
+    :class:`.ParameterExpression` objects. The serialization used in
+    :ref:`qpy_format` versions 10, 11, and 12 for :class:`.ParameterExpression`
+    objects is tied to the symengine version used to generate it and there is the potential
+    for a future symengine release to not be compatible. This upper version cap is to prevent
+    a future release of symengine causing incompatibilities when trying to load QPY files
+    using :class:`.qpy.load`.
