@@ -34,7 +34,7 @@ use crate::{Clbit, Qubit};
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
-pub enum PackedOperationType {
+enum PackedOperationType {
     // It's important that the `StandardGate` item is 0, so that zeroing out a `PackedOperation`
     // will make it appear as a standard gate, which will never allow accidental dangling-pointer
     // dereferencing.
@@ -132,7 +132,7 @@ impl PackedOperation {
 
     /// Extract the discriminant of the operation.
     #[inline]
-    pub fn discriminant(&self) -> PackedOperationType {
+    fn discriminant(&self) -> PackedOperationType {
         ::bytemuck::checked::cast((self.0 & Self::DISCRIMINANT_MASK) as u8)
     }
 

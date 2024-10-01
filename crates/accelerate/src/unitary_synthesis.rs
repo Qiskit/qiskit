@@ -36,7 +36,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation, PackedOperationType};
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
 use crate::euler_one_qubit_decomposer::{
@@ -597,9 +597,9 @@ fn get_2q_decomposers_from_target(
         for key in gates {
             match target.operation_from_name(key) {
                 Ok(op) => {
-                    match op.operation.discriminant() {
-                        PackedOperationType::Gate => (),
-                        PackedOperationType::StandardGate => (),
+                    match op.operation.view() {
+                        OperationRef::Gate(_) => (),
+                        OperationRef::Standard(_) => (),
                         _ => continue,
                     }
 
