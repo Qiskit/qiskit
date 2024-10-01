@@ -231,7 +231,7 @@ MCMT Synthesis
       - `k-1`
       - `0`
       - uses a linear number of Toffoli gates
-    * - ``"noaux_v24"``
+    * - ``"noaux"``
       - :class:`~.MCMTSynthesisNoAux`
       - `0`
       - `0`
