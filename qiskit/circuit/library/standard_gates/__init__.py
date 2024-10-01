@@ -74,8 +74,8 @@ def get_standard_gate_name_mapping():
         gate_name_map = get_standard_gate_name_mapping()
         cx_object = gate_name_map["cx"]
 
-        print(x)
-        type(x)
+        print(cx_object)
+        print(type(cx_object))
 
     .. parsed-literal::
 
