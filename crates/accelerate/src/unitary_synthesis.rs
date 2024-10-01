@@ -280,7 +280,7 @@ fn py_run_main_loop(
             .instruction
             .bind(py)
             .call_method1("replace_blocks", (new_blocks,))?;
-        dag.substitute_node(old_node.bind(py), &new_node, true, false)?;
+        dag.py_substitute_node(old_node.bind(py), &new_node, true, false)?;
     }
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
 
