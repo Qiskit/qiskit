@@ -3,8 +3,8 @@ features_visualization:
   - |
     The :func:`.timeline_drawer` visualization function has a new argument
     ``target``, used to specify a :class:`.Target` object for the
-    visualization. By default the function using the
-    :attr:`.Instruction.duration` to get the duration of a given isntruction,
+    visualization. By default the function used the
+    :attr:`.Instruction.duration` to get the duration of a given instruction,
     but specifying the target will leverage the timing details inside the
     target instead.
 deprecations_circuits:
@@ -31,7 +31,7 @@ deprecations_circuits:
   - |
     The :attr:`.Instruction.duration` and :attr:`.Instruction.unit` attributes
     have been deprecated and will be removed in Qiskit 2.0.0. This includes
-    setting the ``unit`` or ``duration`` arguments for any :class:`.Instruction`
+    setting the ``unit`` or ``duration`` arguments for any :class:`qiskit.circuit.Instruction`
     or subclass. These attributes were used to attach a custom execution
     duration and unit for that duration to an individual instruction. However,
     the source of truth of the duration of a gate is the :class:`.BackendV2`

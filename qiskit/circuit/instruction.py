@@ -105,7 +105,7 @@ class Instruction(Operation):
         self._definition = None
         if duration is not None:
             warnings.warn(
-                "Setting a custom duration per instruction is deprecated as of qiskit "
+                "Setting a custom duration per instruction is deprecated as of Qiskit "
                 "1.3.0. It will be removed in Qiskit 2.0.0.",
                 DeprecationWarning,
                 stacklevel=2,
@@ -113,7 +113,7 @@ class Instruction(Operation):
         self._duration = duration
         if unit is not None and unit != "dt":
             warnings.warn(
-                "Setting a custom duration per instruction is deprecated as of qiskit "
+                "Setting a custom duration per instruction is deprecated as of Qiskit "
                 "1.3.0. It will be removed in Qiskit 2.0.0.",
                 DeprecationWarning,
                 stacklevel=2,
