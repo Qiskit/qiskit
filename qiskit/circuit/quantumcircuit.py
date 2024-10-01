@@ -1145,16 +1145,34 @@ class QuantumCircuit:
         for var, initial in declarations:
             self.add_var(var, initial)
 
-        self.duration: int | float | None = None
-        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
-        specified by :attr:`unit`."""
-        self.unit = "dt"
-        """The unit that :attr:`duration` is specified in."""
+        self._duration = None
+        self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
         """Arbitrary user-defined metadata for the circuit.
- 
+
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
+
+    @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    def duration(self):
+        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
+        specified by :attr:`unit`."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, value: int | float | None):
+        self._duration = value
+
+    @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    def unit(self):
+        """The unit that :attr:`duration` is specified in."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, value):
+        self._unit = value
 
     @classmethod
     def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
