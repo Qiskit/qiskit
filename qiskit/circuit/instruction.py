@@ -341,6 +341,7 @@ class Instruction(Operation):
         sel.add_equivalence(self, decomposition)
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
     def duration(self):
         """Get the duration."""
         return self._duration
@@ -351,6 +352,7 @@ class Instruction(Operation):
         self._duration = duration
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
     def unit(self):
         """Get the time unit of duration."""
         return self._unit
