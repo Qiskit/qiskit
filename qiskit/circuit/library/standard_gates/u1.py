@@ -34,12 +34,12 @@ class U1Gate(Gate):
 
        .. math::
 
-           U1(\lambda) = P(\lambda)= U(0,0,\lambda)
+           U1(\theta) = P(\theta)= U(0,0,\theta)
 
        .. code-block:: python
 
           circuit = QuantumCircuit(1)
-          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+          circuit.p(theta, 0) # or circuit.u(0, 0, theta)
 
 
 
@@ -49,32 +49,32 @@ class U1Gate(Gate):
     .. parsed-literal::
 
              ┌───────┐
-        q_0: ┤ U1(λ) ├
+        q_0: ┤ U1(θ) ├
              └───────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        U1(\lambda) =
+        U1(\theta) =
             \begin{pmatrix}
                 1 & 0 \\
-                0 & e^{i\lambda}
+                0 & e^{i\theta}
             \end{pmatrix}
 
     **Examples:**
 
         .. math::
 
-            U1(\lambda = \pi) = Z
+            U1(\theta = \pi) = Z
 
         .. math::
 
-            U1(\lambda = \pi/2) = S
+            U1(\theta = \pi/2) = S
 
         .. math::
 
-            U1(\lambda = \pi/4) = T
+            U1(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -83,7 +83,7 @@ class U1Gate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2} RZ(\lambda)
+                U1(\theta) = e^{i{\theta}/2} RZ(\theta)
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
         U3 is a generalization of U2 that covers all single-qubit rotations,
