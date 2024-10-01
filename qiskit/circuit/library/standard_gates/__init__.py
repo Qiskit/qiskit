@@ -49,21 +49,6 @@ from .multi_control_rotation_gates import mcrx, mcry, mcrz
 def get_standard_gate_name_mapping():
     """Return a dictionary mapping the name of standard gates and instructions to an object for
     that name.
-    
-    For Example:
-
-    For the identity gate, the dictionary contains a mapping-
-
-    .. parsed-literal::
-        'id': Instruction(name='id', num_qubits=1, num_clbits=0, params=[])
-
-    Note here that the object on the right belongs to the broad class: 
-
-    * :class:`qiskit.circuit.Instruction`
-
-    This function returns a map of all the standard gates present in the qiskit library. 
-    Instruction object for a particular gate can be captured by indexing the map with the name 
-    of the gate.
 
     For Example:
 
@@ -81,7 +66,7 @@ def get_standard_gate_name_mapping():
 
         Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])
         _SingletonCXGate"""
-    
+
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.measure import Measure
     from qiskit.circuit.delay import Delay
