@@ -65,7 +65,7 @@ class ZZFeatureMap(PauliFeatureMap):
 
          classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters
 
-    .. parsed-literal::   
+    .. parsed-literal::
 
          ParameterView([
              ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
@@ -88,10 +88,10 @@ class ZZFeatureMap(PauliFeatureMap):
 
          classifier.count_ops()
 
-    .. parsed-literal::   
+    .. parsed-literal::
 
         OrderedDict([('ZZFeatureMap', 1), ('EfficientSU2', 1)])
-        
+
     """
 
     @deprecate_func(
