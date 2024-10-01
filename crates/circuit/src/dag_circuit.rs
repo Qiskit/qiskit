@@ -3362,7 +3362,7 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: If replacement operation was incompatible with
     ///     location of target node.
-    #[pyo3(signature = (node, op, inplace=false, propagate_condition=true))]
+    #[pyo3(name = "substitute_node", signature = (node, op, inplace=false, propagate_condition=true))]
     pub fn py_substitute_node(
         &mut self,
         node: &Bound<PyAny>,
