@@ -83,14 +83,13 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         .map(|q| mapping[q])
                         .map(|q| Qubit(q.try_into().unwrap()))
                         .collect();
-                    let params = inst.params.clone();
 
                     new_dag.apply_operation_back(
                         py,
                         inst.op.clone(),
                         &mapped_qargs,
                         cargs,
-                        params.as_deref().cloned(),
+                        inst.params.as_deref().cloned(),
                         inst.extra_attrs.clone(),
                         #[cfg(feature = "cache_pygates")]
                         None,
