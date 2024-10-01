@@ -214,6 +214,41 @@ not sufficient, the corresponding synthesis method will return `None`.
    MCXSynthesisNDirtyI15
    MCXSynthesis1CleanB95
    MCXSynthesisDefault
+
+MCMT Synthesis
+''''''''''''''
+
+.. list-table:: Plugins for :class:`.MCMTGate` (key = ``"mcmt"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Number of clean ancillas
+      - Number of dirty ancillas
+      - Description
+    * - ``"vchain"``
+      - :class:`.MCMTSynthesisVChain`
+      - `k-1`
+      - `0`
+      - uses a linear number of Toffoli gates
+    * - ``"noaux_v24"``
+      - :class:`~.MCMTSynthesisNoAux`
+      - `0`
+      - `0`
+      - uses Qiskit's standard control mechanism
+    * - ``"default"``
+      - :class:`~.MCMTSynthesisDefault`
+      - any
+      - any
+      - chooses the best algorithm based on the ancillas available
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MCMTSynthesisVChain
+   MCMTSynthesisNoAux
+   MCMTSynthesisDefault
+
 """
 
 import numpy as np
@@ -939,22 +974,22 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
         )
 
 
-class MCMTDefault(HighLevelSynthesisPlugin):
+class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
     """A default decomposition for MCMT gates."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         # first try to use the V-chain synthesis if enough auxiliary qubits are available
         if (
-            decomposition := MCMTVChain().run(
+            decomposition := MCMTSynthesisVChain().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
         ) is not None:
             return decomposition
 
-        return MCMTNoAux().run(high_level_object, coupling_map, target, qubits, **options)
+        return MCMTSynthesisNoAux().run(high_level_object, coupling_map, target, qubits, **options)
 
 
-class MCMTNoAux(HighLevelSynthesisPlugin):
+class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -979,7 +1014,7 @@ class MCMTNoAux(HighLevelSynthesisPlugin):
         return circuit.decompose()
 
 
-class MCMTVChain(HighLevelSynthesisPlugin):
+class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
     """A V-chain based synthesis for ``MCMTGate``."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):

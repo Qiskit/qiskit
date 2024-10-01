@@ -253,9 +253,9 @@ class MCMTGate(ControlledGate):
     def _define(self):
         """Default definition relying on gate.control. Control state is handled by superclass."""
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.synthesis.hls_plugins import MCMTDefault
+        from qiskit.transpiler.passes.synthesis.hls_plugins import MCMTSynthesisDefault
 
-        self.definition = MCMTDefault().run(self)
+        self.definition = MCMTSynthesisDefault().run(self)
 
     @staticmethod
     def _identify_base_gate(gate):
