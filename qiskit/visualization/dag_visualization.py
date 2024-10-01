@@ -236,8 +236,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 return n
-            if style == "custom" and node_attr_fn:
-                return node_attr_fn(node)
+            if style == "custom":
+                if node_attr_fn:
+                    return node_attr_fn(node)
+                return {}
             else:
                 raise VisualizationError(f"Unrecognized style {style} for the dag_drawer.")
 
@@ -288,8 +290,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color",
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 return n
-            if style == "custom" and node_attr_fn:
-                return node_attr_fn(node)
+            if style == "custom":
+                if node_attr_fn:
+                    return node_attr_fn(node)
+                return {}
             else:
                 raise VisualizationError(f"Invalid style {style}")
 
