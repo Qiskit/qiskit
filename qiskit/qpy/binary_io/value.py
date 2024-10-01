@@ -20,9 +20,6 @@ import uuid
 
 import numpy as np
 import symengine
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
