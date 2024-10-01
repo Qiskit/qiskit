@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base Sampler Classes"""
+"""Base Sampler V1 and V2 classes"""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
+from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.primitive_result import PrimitiveResult
 from ..containers.sampler_pub import SamplerPubLike
@@ -150,7 +151,30 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseSampler must implement `_run` method.")
 
 
-BaseSampler = BaseSamplerV1
+class BaseSampler(BaseSamplerV1[T]):
+    """DEPRECATED. Type alias for Sampler V1 base class
+
+    See :class:`.BaseSamplerV1` for details.
+    """
+
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The `BaseSampler` class is a type alias for the `BaseSamplerV1` "
+        "interface that has been deprecated in favor of explicitly versioned interface classes. "
+        "It is recommended to migrate all implementations to use `BaseSamplerV2`. "
+        "However, for implementations incompatible with `BaseSamplerV2`, `BaseSampler` can "
+        "be replaced with the explicitly versioned `BaseSamplerV1` class.",
+    )
+    def __init__(
+        self,
+        *,
+        options: dict | None = None,
+    ):
+        """
+        Args:
+            options: Default options.
+        """
+        super().__init__(options=options)
 
 
 class BaseSamplerV2(ABC):

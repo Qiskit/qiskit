@@ -97,17 +97,19 @@ class Gate(Instruction):
         return self.power(exponent)
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
+        gate = Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
+        gate.validate_parameter = self.validate_parameter
+        gate.params = self.params
+        return gate
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
-        """
-        Return the controlled version of itself.
+        """Return the controlled version of itself.
 
         Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
         or as an annotated operation (ref. :class:`.AnnotatedOperation`).
@@ -118,8 +120,12 @@ class Gate(Instruction):
                 operation.
             ctrl_state: the control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate is implemented
+                as an annotated gate. If ``None``, this is set to ``False``
+                if the controlled gate can directly be constructed, and otherwise
+                set to ``True``. This allows defering the construction process in case the
+                synthesis of the controlled gate requires more information (e.g.
+                values of unbound parameters).
 
         Returns:
             Controlled version of the given operation.
@@ -127,7 +133,7 @@ class Gate(Instruction):
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state
         """
-        if not annotated:
+        if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
             from .add_control import add_control
 

@@ -28,7 +28,8 @@ class BaseTestBlock(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
 
         self.test_waveform0 = pulse.Constant(100, 0.1)
         self.test_waveform1 = pulse.Constant(200, 0.1)

@@ -26,6 +26,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
+from qiskit.utils import deprecate_func
 
 
 class GateConfig:
@@ -38,6 +39,15 @@ class GateConfig:
                   and CX.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         name,
@@ -141,6 +151,14 @@ class UchannelLO:
         scale: Scale factor for qubit frequency.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def __init__(self, q, scale):
         """Initialize a UchannelLOSchema object
 
@@ -211,6 +229,15 @@ class QasmBackendConfiguration:
 
     _data = {}
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         backend_name,
@@ -491,9 +518,19 @@ class QasmBackendConfiguration:
 
 
 class BackendConfiguration(QasmBackendConfiguration):
-    """Backwards compat shim representing an abstract backend configuration."""
+    """Backwards compatibility shim representing an abstract backend configuration."""
 
-    pass
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class PulseBackendConfiguration(QasmBackendConfiguration):
@@ -501,6 +538,15 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The models in ``qiskit.providers.models`` are part "
+        "of the deprecated `BackendV1` workflow  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires these representations it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+        stacklevel=3,
+    )
     def __init__(
         self,
         backend_name: str,

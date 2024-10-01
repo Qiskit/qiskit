@@ -21,7 +21,7 @@ from qiskit.circuit.reset import Reset
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler import Target
+from qiskit.transpiler.target import Target
 
 
 class ConstrainedReschedule(AnalysisPass):

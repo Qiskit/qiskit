@@ -17,13 +17,13 @@ from functools import lru_cache
 import numpy as np
 
 from qiskit.circuit import Instruction
+from qiskit.circuit.library.standard_gates import RXGate
+from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, ScheduleBlock, builder, ScalableSymbolicPulse
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.library.symbolic_pulses import Drag
 from qiskit.transpiler.passes.calibration.base_builder import CalibrationBuilder
-from qiskit.transpiler import Target
-from qiskit.circuit.library.standard_gates import RXGate
-from qiskit.exceptions import QiskitError
+from qiskit.transpiler.target import Target
 
 
 class RXCalibrationBuilder(CalibrationBuilder):
@@ -45,7 +45,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
        from qiskit.circuit.library import QuantumVolume
        from qiskit.circuit.library.standard_gates import RXGate
 
-       from calibration.rx_builder import RXCalibrationBuilder
+       from qiskit.transpiler.passes import RXCalibrationBuilder
 
        qv = QuantumVolume(4, 4, seed=1004)
 

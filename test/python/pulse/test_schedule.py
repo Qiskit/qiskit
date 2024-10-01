@@ -61,7 +61,8 @@ class BaseTestSchedule(QiskitTestCase):
             return slope * x + intercept
 
         self.linear = linear
-        self.config = FakeOpenPulse2Q().configuration()
+        with self.assertWarns(DeprecationWarning):
+            self.config = FakeOpenPulse2Q().configuration()
 
 
 class TestScheduleBuilding(BaseTestSchedule):

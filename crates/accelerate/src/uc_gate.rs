@@ -156,7 +156,6 @@ pub fn dec_ucg_help(
     )
 }
 
-#[pymodule]
 pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(dec_ucg_help))?;
     Ok(())

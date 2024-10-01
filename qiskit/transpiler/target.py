@@ -20,16 +20,22 @@ from a backend
 from __future__ import annotations
 
 import itertools
+import warnings
 
 from typing import Optional, List, Any
 from collections.abc import Mapping
-from collections import defaultdict
 import datetime
 import io
 import logging
 import inspect
 
 import rustworkx as rx
+
+# import target class from the rust side
+from qiskit._accelerate.target import (
+    BaseTarget,
+    BaseInstructionProperties,
+)
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -50,12 +56,12 @@ from qiskit.exceptions import QiskitError
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
-
+from qiskit.utils import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
-class InstructionProperties:
+class InstructionProperties(BaseInstructionProperties):
     """A representation of the properties of a gate implementation.
 
     This class provides the optional properties that a backend can provide
@@ -65,12 +71,25 @@ class InstructionProperties:
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = ("duration", "error", "_calibration")
+    __slots__ = [
+        "_calibration",
+    ]
+
+    def __new__(  # pylint: disable=keyword-arg-before-vararg
+        cls,
+        duration=None,  # pylint: disable=keyword-arg-before-vararg
+        error=None,  # pylint: disable=keyword-arg-before-vararg
+        *args,  # pylint: disable=unused-argument
+        **kwargs,  # pylint: disable=unused-argument
+    ):
+        return super(InstructionProperties, cls).__new__(  # pylint: disable=too-many-function-args
+            cls, duration, error
+        )
 
     def __init__(
         self,
-        duration: float | None = None,
-        error: float | None = None,
+        duration: float | None = None,  # pylint: disable=unused-argument
+        error: float | None = None,  # pylint: disable=unused-argument
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
     ):
         """Create a new ``InstructionProperties`` object
@@ -82,10 +101,8 @@ class InstructionProperties:
                 set of qubits.
             calibration: The pulse representation of the instruction.
         """
+        super().__init__()
         self._calibration: CalibrationEntry | None = None
-
-        self.duration = duration
-        self.error = error
         self.calibration = calibration
 
     @property
@@ -135,8 +152,16 @@ class InstructionProperties:
             f", calibration={self._calibration})"
         )
 
+    def __getstate__(self) -> tuple:
+        return (super().__getstate__(), self.calibration, self._calibration)
 
-class Target(Mapping):
+    def __setstate__(self, state: tuple):
+        super().__setstate__(state[0])
+        self.calibration = state[1]
+        self._calibration = state[2]
+
+
+class Target(BaseTarget):
     """
     The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
@@ -221,37 +246,25 @@ class Target(Mapping):
     """
 
     __slots__ = (
-        "num_qubits",
         "_gate_map",
-        "_gate_name_map",
-        "_qarg_gate_map",
-        "description",
         "_coupling_graph",
         "_instruction_durations",
         "_instruction_schedule_map",
-        "dt",
-        "granularity",
-        "min_length",
-        "pulse_alignment",
-        "acquire_alignment",
-        "_non_global_basis",
-        "_non_global_strict_basis",
-        "qubit_properties",
-        "_global_operations",
-        "concurrent_measurements",
     )
 
-    def __init__(
-        self,
-        description=None,
-        num_qubits=0,
-        dt=None,
-        granularity=1,
-        min_length=1,
-        pulse_alignment=1,
-        acquire_alignment=1,
-        qubit_properties=None,
-        concurrent_measurements=None,
+    def __new__(  # pylint: disable=keyword-arg-before-vararg
+        cls,
+        description: str | None = None,
+        num_qubits: int = 0,
+        dt: float | None = None,
+        granularity: int = 1,
+        min_length: int = 1,
+        pulse_alignment: int = 1,
+        acquire_alignment: int = 1,
+        qubit_properties: list | None = None,
+        concurrent_measurements: list | None = None,
+        *args,  # pylint: disable=unused-argument disable=keyword-arg-before-vararg
+        **kwargs,  # pylint: disable=unused-argument
     ):
         """
         Create a new ``Target`` object
@@ -295,37 +308,38 @@ class Target(Mapping):
                 defined and the value of ``num_qubits`` differs from the length of
                 ``qubit_properties``.
         """
-        self.num_qubits = num_qubits
-        # A mapping of gate name -> gate instance
-        self._gate_name_map = {}
+        if description is not None:
+            description = str(description)
+        return super(Target, cls).__new__(  # pylint: disable=too-many-function-args
+            cls,
+            description,
+            num_qubits,
+            dt,
+            granularity,
+            min_length,
+            pulse_alignment,
+            acquire_alignment,
+            qubit_properties,
+            concurrent_measurements,
+        )
+
+    def __init__(
+        self,
+        description=None,  # pylint: disable=unused-argument
+        num_qubits=0,  # pylint: disable=unused-argument
+        dt=None,  # pylint: disable=unused-argument
+        granularity=1,  # pylint: disable=unused-argument
+        min_length=1,  # pylint: disable=unused-argument
+        pulse_alignment=1,  # pylint: disable=unused-argument
+        acquire_alignment=1,  # pylint: disable=unused-argument
+        qubit_properties=None,  # pylint: disable=unused-argument
+        concurrent_measurements=None,  # pylint: disable=unused-argument
+    ):
         # A nested mapping of gate name -> qargs -> properties
         self._gate_map = {}
-        # A mapping of number of qubits to set of op names which are global
-        self._global_operations = defaultdict(set)
-        # A mapping of qarg -> set(gate name)
-        self._qarg_gate_map = defaultdict(set)
-        self.dt = dt
-        self.description = description
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
-        self.granularity = granularity
-        self.min_length = min_length
-        self.pulse_alignment = pulse_alignment
-        self.acquire_alignment = acquire_alignment
-        self._non_global_basis = None
-        self._non_global_strict_basis = None
-        if qubit_properties is not None:
-            if not self.num_qubits:
-                self.num_qubits = len(qubit_properties)
-            else:
-                if self.num_qubits != len(qubit_properties):
-                    raise ValueError(
-                        "The value of num_qubits specified does not match the "
-                        "length of the input qubit_properties list"
-                    )
-        self.qubit_properties = qubit_properties
-        self.concurrent_measurements = concurrent_measurements
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -408,35 +422,15 @@ class Target(Mapping):
                     "An instruction added globally by class can't have properties set."
                 )
             instruction_name = name
-        if properties is None:
+        if properties is None or is_class:
             properties = {None: None}
         if instruction_name in self._gate_map:
             raise AttributeError(f"Instruction {instruction_name} is already in the target")
-        self._gate_name_map[instruction_name] = instruction
-        if is_class:
-            qargs_val = {None: None}
-        else:
-            if None in properties:
-                self._global_operations[instruction.num_qubits].add(instruction_name)
-            qargs_val = {}
-            for qarg in properties:
-                if qarg is not None and len(qarg) != instruction.num_qubits:
-                    raise TranspilerError(
-                        f"The number of qubits for {instruction} does not match the number "
-                        f"of qubits in the properties dictionary: {qarg}"
-                    )
-                if qarg is not None:
-                    self.num_qubits = max(
-                        self.num_qubits if self.num_qubits is not None else 0, max(qarg) + 1
-                    )
-                qargs_val[qarg] = properties[qarg]
-                self._qarg_gate_map[qarg].add(instruction_name)
-        self._gate_map[instruction_name] = qargs_val
+        super().add_instruction(instruction, instruction_name, properties)
+        self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
-        self._non_global_basis = None
-        self._non_global_strict_basis = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
         """Update the property object for an instruction qarg pair already in the Target
@@ -448,10 +442,7 @@ class Target(Mapping):
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
-        if instruction not in self._gate_map:
-            raise KeyError(f"Provided instruction: '{instruction}' not in this Target")
-        if qargs not in self._gate_map[instruction]:
-            raise KeyError(f"Provided qarg: '{qargs}' not in this Target for {instruction}")
+        super().update_instruction_properties(instruction, qargs, properties)
         self._gate_map[instruction][qargs] = properties
         self._instruction_durations = None
         self._instruction_schedule_map = None
@@ -574,14 +565,6 @@ class Target(Mapping):
                         continue
                     self.update_instruction_properties(inst_name, qargs, prop)
 
-    @property
-    def qargs(self):
-        """The set of qargs in the target."""
-        qargs = set(self._qarg_gate_map)
-        if len(qargs) == 1 and next(iter(qargs)) is None:
-            return None
-        return qargs
-
     def qargs_for_operation_name(self, operation):
         """Get the qargs for a given operation name
 
@@ -643,236 +626,6 @@ class Target(Mapping):
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
-    def operation_from_name(self, instruction):
-        """Get the operation class object for a given name
-
-        Args:
-            instruction (str): The instruction name to get the
-                :class:`~qiskit.circuit.Instruction` instance for
-        Returns:
-            qiskit.circuit.Instruction: The Instruction instance corresponding to the
-            name. This also can also be the class for globally defined variable with
-            operations.
-        """
-        return self._gate_name_map[instruction]
-
-    def operations_for_qargs(self, qargs):
-        """Get the operation class object for a specified qargs tuple
-
-        Args:
-            qargs (tuple): A qargs tuple of the qubits to get the gates that apply
-                to it. For example, ``(0,)`` will return the set of all
-                instructions that apply to qubit 0. If set to ``None`` this will
-                return any globally defined operations in the target.
-        Returns:
-            list: The list of :class:`~qiskit.circuit.Instruction` instances
-            that apply to the specified qarg. This may also be a class if
-            a variable width operation is globally defined.
-
-        Raises:
-            KeyError: If qargs is not in target
-        """
-        if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
-            raise KeyError(f"{qargs} not in target.")
-        res = [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
-        if qargs is not None:
-            res += self._global_operations.get(len(qargs), [])
-        for op in self._gate_name_map.values():
-            if inspect.isclass(op):
-                res.append(op)
-        if not res:
-            raise KeyError(f"{qargs} not in target.")
-        return list(res)
-
-    def operation_names_for_qargs(self, qargs):
-        """Get the operation names for a specified qargs tuple
-
-        Args:
-            qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
-                to it. For example, ``(0,)`` will return the set of all
-                instructions that apply to qubit 0. If set to ``None`` this will
-                return the names for any globally defined operations in the target.
-        Returns:
-            set: The set of operation names that apply to the specified ``qargs``.
-
-        Raises:
-            KeyError: If ``qargs`` is not in target
-        """
-        # if num_qubits == 0, we will return globally defined operations
-        if self.num_qubits == 0 or self.num_qubits is None:
-            qargs = None
-        if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
-            raise KeyError(f"{qargs} not in target.")
-        res = self._qarg_gate_map.get(qargs, set())
-        if qargs is not None:
-            res.update(self._global_operations.get(len(qargs), set()))
-        for name, op in self._gate_name_map.items():
-            if inspect.isclass(op):
-                res.add(name)
-        if not res:
-            raise KeyError(f"{qargs} not in target.")
-        return res
-
-    def instruction_supported(
-        self, operation_name=None, qargs=None, operation_class=None, parameters=None
-    ):
-        """Return whether the instruction (operation + qubits) is supported by the target
-
-        Args:
-            operation_name (str): The name of the operation for the instruction. Either
-                this or ``operation_class`` must be specified, if both are specified
-                ``operation_class`` will take priority and this argument will be ignored.
-            qargs (tuple): The tuple of qubit indices for the instruction. If this is
-                not specified then this method will return ``True`` if the specified
-                operation is supported on any qubits. The typical application will
-                always have this set (otherwise it's the same as just checking if the
-                target contains the operation). Normally you would not set this argument
-                if you wanted to check more generally that the target supports an operation
-                with the ``parameters`` on any qubits.
-            operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
-                the target supports a particular operation by class rather
-                than by name. This lookup is more expensive as it needs to
-                iterate over all operations in the target instead of just a
-                single lookup. If this is specified it will supersede the
-                ``operation_name`` argument. The typical use case for this
-                operation is to check whether a specific variant of an operation
-                is supported on the backend. For example, if you wanted to
-                check whether a :class:`~.RXGate` was supported on a specific
-                qubit with a fixed angle. That fixed angle variant will
-                typically have a name different from the object's
-                :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
-                This can be used to check if any instances of the class are
-                available in such a case.
-            parameters (list): A list of parameters to check if the target
-                supports them on the specified qubits. If the instruction
-                supports the parameter values specified in the list on the
-                operation and qargs specified this will return ``True`` but
-                if the parameters are not supported on the specified
-                instruction it will return ``False``. If this argument is not
-                specified this method will return ``True`` if the instruction
-                is supported independent of the instruction parameters. If
-                specified with any :class:`~.Parameter` objects in the list,
-                that entry will be treated as supporting any value, however parameter names
-                will not be checked (for example if an operation in the target
-                is listed as parameterized with ``"theta"`` and ``"phi"`` is
-                passed into this function that will return ``True``). For
-                example, if called with::
-
-                    parameters = [Parameter("theta")]
-                    target.instruction_supported("rx", (0,), parameters=parameters)
-
-                will return ``True`` if an :class:`~.RXGate` is supported on qubit 0
-                that will accept any parameter. If you need to check for a fixed numeric
-                value parameter this argument is typically paired with the ``operation_class``
-                argument. For example::
-
-                    target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
-
-                will return ``True`` if an RXGate(pi/4) exists on qubit 0.
-
-        Returns:
-            bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
-
-        """
-
-        def check_obj_params(parameters, obj):
-            for index, param in enumerate(parameters):
-                if isinstance(param, Parameter) and not isinstance(obj.params[index], Parameter):
-                    return False
-                if param != obj.params[index] and not isinstance(obj.params[index], Parameter):
-                    return False
-            return True
-
-        # Handle case where num_qubits is None by always checking globally supported operations
-        if self.num_qubits is None:
-            qargs = None
-        # Case a list if passed in by mistake
-        if qargs is not None:
-            qargs = tuple(qargs)
-        if operation_class is not None:
-            for op_name, obj in self._gate_name_map.items():
-                if inspect.isclass(obj):
-                    if obj != operation_class:
-                        continue
-                    # If no qargs operation class is supported
-                    if qargs is None:
-                        return True
-                    # If qargs set then validate no duplicates and all indices are valid on device
-                    elif all(qarg <= self.num_qubits for qarg in qargs) and len(set(qargs)) == len(
-                        qargs
-                    ):
-                        return True
-                    else:
-                        return False
-
-                if isinstance(obj, operation_class):
-                    if parameters is not None:
-                        if len(parameters) != len(obj.params):
-                            continue
-                        if not check_obj_params(parameters, obj):
-                            continue
-                    if qargs is None:
-                        return True
-                    if qargs in self._gate_map[op_name]:
-                        return True
-                    if self._gate_map[op_name] is None or None in self._gate_map[op_name]:
-                        return obj.num_qubits == len(qargs) and all(
-                            x < self.num_qubits for x in qargs
-                        )
-            return False
-        if operation_name in self._gate_map:
-            if parameters is not None:
-                obj = self._gate_name_map[operation_name]
-                if inspect.isclass(obj):
-                    # The parameters argument was set and the operation_name specified is
-                    # defined as a globally supported class in the target. This means
-                    # there is no available validation (including whether the specified
-                    # operation supports parameters), the returned value will not factor
-                    # in the argument `parameters`,
-
-                    # If no qargs a operation class is supported
-                    if qargs is None:
-                        return True
-                    # If qargs set then validate no duplicates and all indices are valid on device
-                    elif all(qarg <= self.num_qubits for qarg in qargs) and len(set(qargs)) == len(
-                        qargs
-                    ):
-                        return True
-                    else:
-                        return False
-                if len(parameters) != len(obj.params):
-                    return False
-                for index, param in enumerate(parameters):
-                    matching_param = False
-                    if isinstance(obj.params[index], Parameter):
-                        matching_param = True
-                    elif param == obj.params[index]:
-                        matching_param = True
-                    if not matching_param:
-                        return False
-                return True
-            if qargs is None:
-                return True
-            if qargs in self._gate_map[operation_name]:
-                return True
-            if self._gate_map[operation_name] is None or None in self._gate_map[operation_name]:
-                obj = self._gate_name_map[operation_name]
-                if inspect.isclass(obj):
-                    if qargs is None:
-                        return True
-                    # If qargs set then validate no duplicates and all indices are valid on device
-                    elif all(qarg <= self.num_qubits for qarg in qargs) and len(set(qargs)) == len(
-                        qargs
-                    ):
-                        return True
-                    else:
-                        return False
-                else:
-                    return self._gate_name_map[operation_name].num_qubits == len(qargs) and all(
-                        x < self.num_qubits for x in qargs
-                    )
-        return False
-
     def has_calibration(
         self,
         operation_name: str,
@@ -926,11 +679,6 @@ class Target(Mapping):
     def operation_names(self):
         """Get the operation names in the target."""
         return self._gate_map.keys()
-
-    @property
-    def operations(self):
-        """Get the operation class objects in the target."""
-        return list(self._gate_name_map.values())
 
     @property
     def instructions(self):
@@ -994,25 +742,30 @@ class Target(Mapping):
         for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
-                    self._coupling_graph = None
+                    self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
                     return
                 continue
             for qarg, properties in qarg_map.items():
                 if qarg is None:
-                    if self._gate_name_map[gate].num_qubits == 2:
+                    if self.operation_from_name(gate).num_qubits == 2:
                         self._coupling_graph = None
                         return
                     continue
                 if len(qarg) == 1:
-                    self._coupling_graph[qarg[0]] = properties
+                    self._coupling_graph[qarg[0]] = (
+                        properties  # pylint: disable=attribute-defined-outside-init
+                    )
                 elif len(qarg) == 2:
                     try:
                         edge_data = self._coupling_graph.get_edge_data(*qarg)
                         edge_data[gate] = properties
                     except rx.NoEdgeBetweenNodes:
                         self._coupling_graph.add_edge(*qarg, {gate: properties})
-        if self._coupling_graph.num_edges() == 0 and any(x is None for x in self._qarg_gate_map):
-            self._coupling_graph = None
+        qargs = self.qargs
+        if self._coupling_graph.num_edges() == 0 and (
+            qargs is None or any(x is None for x in qargs)
+        ):
+            self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
 
     def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
@@ -1059,7 +812,7 @@ class Target(Mapping):
         if two_q_gate is not None:
             coupling_graph = rx.PyDiGraph(multigraph=False)
             coupling_graph.add_nodes_from([None] * self.num_qubits)
-            for qargs, properties in self._gate_map[two_q_gate].items():
+            for qargs, properties in self[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(
                         f"Specified two_q_gate: {two_q_gate} is not a 2 qubit instruction"
@@ -1090,69 +843,18 @@ class Target(Mapping):
             graph.remove_nodes_from(list(to_remove))
         return graph
 
-    @property
-    def physical_qubits(self):
-        """Returns a sorted list of physical_qubits"""
-        return list(range(self.num_qubits))
-
-    def get_non_global_operation_names(self, strict_direction=False):
-        """Return the non-global operation names for the target
-
-        The non-global operations are those in the target which don't apply
-        on all qubits (for single qubit operations) or all multi-qubit qargs
-        (for multi-qubit operations).
-
-        Args:
-            strict_direction (bool): If set to ``True`` the multi-qubit
-                operations considered as non-global respect the strict
-                direction (or order of qubits in the qargs is significant). For
-                example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
-                defined over ``(1, 0)`` by default neither would be considered
-                non-global, but if ``strict_direction`` is set ``True`` both
-                ``cx`` and ``ecr`` would be returned.
-
-        Returns:
-            List[str]: A list of operation names for operations that aren't global in this target
-        """
-        if strict_direction:
-            if self._non_global_strict_basis is not None:
-                return self._non_global_strict_basis
-            search_set = self._qarg_gate_map.keys()
-        else:
-            if self._non_global_basis is not None:
-                return self._non_global_basis
-
-            search_set = {
-                frozenset(qarg)
-                for qarg in self._qarg_gate_map
-                if qarg is not None and len(qarg) != 1
-            }
-        incomplete_basis_gates = []
-        size_dict = defaultdict(int)
-        size_dict[1] = self.num_qubits
-        for qarg in search_set:
-            if qarg is None or len(qarg) == 1:
-                continue
-            size_dict[len(qarg)] += 1
-        for inst, qargs in self._gate_map.items():
-            qarg_sample = next(iter(qargs))
-            if qarg_sample is None:
-                continue
-            if not strict_direction:
-                qargs = {frozenset(qarg) for qarg in qargs}
-            if len(qargs) != size_dict[len(qarg_sample)]:
-                incomplete_basis_gates.append(inst)
-        if strict_direction:
-            self._non_global_strict_basis = incomplete_basis_gates
-        else:
-            self._non_global_basis = incomplete_basis_gates
-        return incomplete_basis_gates
-
     def __iter__(self):
         return iter(self._gate_map)
 
     def __getitem__(self, key):
         return self._gate_map[key]
+
+    def get(self, key, default=None):
+        """Gets an item from the Target. If not found return a provided default or `None`."""
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def __len__(self):
         return len(self._gate_map)
@@ -1161,12 +863,15 @@ class Target(Mapping):
         return item in self._gate_map
 
     def keys(self):
+        """Return the keys (operation_names) of the Target"""
         return self._gate_map.keys()
 
     def values(self):
+        """Return the Property Map (qargs -> InstructionProperties) of every instruction in the Target"""
         return self._gate_map.values()
 
     def items(self):
+        """Returns pairs of Gate names and its property map (str, dict[tuple, InstructionProperties])"""
         return self._gate_map.items()
 
     def __str__(self):
@@ -1188,10 +893,10 @@ class Target(Mapping):
                 prop_str_pieces = [f"\t\t{qarg}:\n"]
                 duration = getattr(props, "duration", None)
                 if duration is not None:
-                    prop_str_pieces.append(f"\t\t\tDuration: {duration} sec.\n")
+                    prop_str_pieces.append(f"\t\t\tDuration: {duration:g} sec.\n")
                 error = getattr(props, "error", None)
                 if error is not None:
-                    prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
+                    prop_str_pieces.append(f"\t\t\tError Rate: {error:g}\n")
                 schedule = getattr(props, "_calibration", None)
                 if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
@@ -1204,6 +909,22 @@ class Target(Mapping):
                     prop_str_pieces.append(f"\t\t\tExtra properties:\n{extra_props_str}\n")
                 output.write("".join(prop_str_pieces))
         return output.getvalue()
+
+    def __getstate__(self) -> dict:
+        return {
+            "_gate_map": self._gate_map,
+            "coupling_graph": self._coupling_graph,
+            "instruction_durations": self._instruction_durations,
+            "instruction_schedule_map": self._instruction_schedule_map,
+            "base": super().__getstate__(),
+        }
+
+    def __setstate__(self, state: tuple):
+        self._gate_map = state["_gate_map"]
+        self._coupling_graph = state["coupling_graph"]
+        self._instruction_durations = state["instruction_durations"]
+        self._instruction_schedule_map = state["instruction_schedule_map"]
+        super().__setstate__(state["base"])
 
     @classmethod
     def from_configuration(
@@ -1442,6 +1163,18 @@ class Target(Mapping):
         return target
 
 
+Mapping.register(Target)
+
+
+@deprecate_func(
+    since="1.2",
+    removal_timeline="in the 2.0 release",
+    additional_msg="This method is used to build an element from the deprecated "
+    "``qiskit.providers.models`` module. These models are part of the deprecated `BackendV1` "
+    "workflow and no longer necessary for `BackendV2`. If a user workflow requires these "
+    "representations it likely relies on deprecated functionality and "
+    "should be updated to use `BackendV2`.",
+)
 def target_to_backend_properties(target: Target):
     """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
 
@@ -1520,6 +1253,9 @@ def target_to_backend_properties(target: Target):
     if gates or qubits:
         properties_dict["gates"] = gates
         properties_dict["qubits"] = qubits
-        return BackendProperties.from_dict(properties_dict)
+        with warnings.catch_warnings():
+            # This raises BackendProperties internally
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return BackendProperties.from_dict(properties_dict)
     else:
         return None

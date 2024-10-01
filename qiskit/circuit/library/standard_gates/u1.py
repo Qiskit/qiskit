@@ -39,7 +39,7 @@ class U1Gate(Gate):
        .. code-block:: python
 
           circuit = QuantumCircuit(1)
-          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
 
 
@@ -128,7 +128,7 @@ class U1Gate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -176,6 +176,22 @@ class CU1Gate(ControlledGate):
 
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
+
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CPhaseGate` should be used
+
+       .. math::
+
+           CU1(\lambda) = CP(\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          circuit.cp(lambda, 0, 1)
+
+
+
 
     **Circuit symbol:**
 
@@ -278,7 +294,7 @@ class CU1Gate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -331,6 +347,22 @@ class MCU1Gate(ControlledGate):
 
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the state of the control qubits.
+
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           MCU1(\lambda) = MCP(\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(5)
+          circuit.mcp(lambda, list(range(4)), 4)
+
+
+
 
     **Circuit symbol:**
 
@@ -410,7 +442,7 @@ class MCU1Gate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:

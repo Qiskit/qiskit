@@ -774,7 +774,7 @@ In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping`
 
 With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://docs.quantum.ibm.com/build/pulse>`_.
+`Pulse Gates <https://docs.quantum.ibm.com/guides/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
 packed after the :ref:`qpy_instructions` block.
 
@@ -1621,6 +1621,8 @@ struct is used:
 
 this matches the internal C representation of Python's complex type. [#f3]_
 
+References
+==========
 
 .. [#f1] https://tools.ietf.org/html/rfc1700
 .. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html

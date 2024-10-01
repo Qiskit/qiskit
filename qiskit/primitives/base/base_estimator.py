@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""Base Estimator Classes"""
+"""Base Estimator V1 and V2 classes"""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
 from ..containers import (
     DataBin,
@@ -91,7 +92,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [H1], [theta1])
         job_result = job.result() # It will block until the job finishes.
-        print(f"The primitive-job finished with result {job_result}"))
+        print(f"The primitive-job finished with result {job_result}")
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
@@ -109,7 +110,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         options: dict | None = None,
     ):
         """
-        Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
+        Creating an instance of an Estimator V1, or using one in a ``with`` context opens a session that
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
@@ -143,7 +144,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 
         .. code-block:: python
 
-            values = parameter_values[i].
+            values = parameter_values[i]
 
         Args:
             circuits: one or more circuit objects.
@@ -187,7 +188,33 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
         raise NotImplementedError("The subclass of BaseEstimator must implement `_run` method.")
 
 
-BaseEstimator = BaseEstimatorV1
+class BaseEstimator(BaseEstimatorV1[T]):
+    """DEPRECATED. Type alias for Estimator V1 base class.
+
+    See :class:`.BaseEstimatorV1` for details.
+    """
+
+    @deprecate_func(
+        since="1.2",
+        additional_msg="The `BaseEstimator` class is a type alias for the `BaseEstimatorV1` "
+        "interface that has been deprecated in favor of explicitly versioned interface classes. "
+        "It is recommended to migrate all implementations to use `BaseEstimatorV2`. "
+        "However, for implementations incompatible with `BaseEstimatorV2`, `BaseEstimator` can "
+        "be replaced with the explicitly versioned `BaseEstimatorV1` class.",
+    )
+    def __init__(
+        self,
+        *,
+        options: dict | None = None,
+    ):
+        """
+        Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
+        holds resources until the instance is ``close()`` ed or the context is exited.
+
+        Args:
+            options: Default options.
+        """
+        super().__init__(options=options)
 
 
 class BaseEstimatorV2(ABC):

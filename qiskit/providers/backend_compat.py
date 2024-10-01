@@ -390,10 +390,13 @@ class BackendV2Converter(BackendV2):
         self._properties = None
         self._defaults = None
 
-        if hasattr(self._backend, "properties"):
-            self._properties = self._backend.properties()
-        if hasattr(self._backend, "defaults"):
-            self._defaults = self._backend.defaults()
+        with warnings.catch_warnings():
+            # The class QobjExperimentHeader is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            if hasattr(self._backend, "properties"):
+                self._properties = self._backend.properties()
+            if hasattr(self._backend, "defaults"):
+                self._defaults = self._backend.defaults()
 
         self._target = None
         self._name_mapping = name_mapping

@@ -281,29 +281,31 @@ class TestPulseQobj(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.converter = QobjToInstructionConverter(
-            pulse_library=[
-                PulseLibraryItem(name="waveform", samples=[0.3, 0.1, 0.2, 0.2, 0.3]),
-            ]
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.converter = QobjToInstructionConverter(
+                pulse_library=[
+                    PulseLibraryItem(name="waveform", samples=[0.3, 0.1, 0.2, 0.2, 0.3]),
+                ]
+            )
 
     def test_add_qobj(self):
         """Basic test PulseQobj format."""
-        serialized_program = [
-            PulseQobjInstruction(
-                name="parametric_pulse",
-                t0=0,
-                ch="d0",
-                label="TestPulse",
-                pulse_shape="constant",
-                parameters={"amp": 0.1 + 0j, "duration": 10},
-            ),
-            PulseQobjInstruction(
-                name="waveform",
-                t0=20,
-                ch="d0",
-            ),
-        ]
+        with self.assertWarns(DeprecationWarning):
+            serialized_program = [
+                PulseQobjInstruction(
+                    name="parametric_pulse",
+                    t0=0,
+                    ch="d0",
+                    label="TestPulse",
+                    pulse_shape="constant",
+                    parameters={"amp": 0.1 + 0j, "duration": 10},
+                ),
+                PulseQobjInstruction(
+                    name="waveform",
+                    t0=20,
+                    ch="d0",
+                ),
+            ]
 
         entry = PulseQobjDef(converter=self.converter, name="my_gate")
         entry.define(serialized_program)
@@ -328,13 +330,14 @@ class TestPulseQobj(QiskitTestCase):
 
     def test_missing_waveform(self):
         """Test incomplete Qobj should raise warning and calibration returns None."""
-        serialized_program = [
-            PulseQobjInstruction(
-                name="waveform_123456",
-                t0=20,
-                ch="d0",
-            ),
-        ]
+        with self.assertWarns(DeprecationWarning):
+            serialized_program = [
+                PulseQobjInstruction(
+                    name="waveform_123456",
+                    t0=20,
+                    ch="d0",
+                ),
+            ]
         entry = PulseQobjDef(converter=self.converter, name="my_gate")
         entry.define(serialized_program)
 
@@ -355,22 +358,23 @@ class TestPulseQobj(QiskitTestCase):
 
         Note that pulse parameter cannot be parameterized by convention.
         """
-        serialized_program = [
-            PulseQobjInstruction(
-                name="parametric_pulse",
-                t0=0,
-                ch="d0",
-                label="TestPulse",
-                pulse_shape="constant",
-                parameters={"amp": 0.1, "duration": 10},
-            ),
-            PulseQobjInstruction(
-                name="fc",
-                t0=0,
-                ch="d0",
-                phase="P1",
-            ),
-        ]
+        with self.assertWarns(DeprecationWarning):
+            serialized_program = [
+                PulseQobjInstruction(
+                    name="parametric_pulse",
+                    t0=0,
+                    ch="d0",
+                    label="TestPulse",
+                    pulse_shape="constant",
+                    parameters={"amp": 0.1, "duration": 10},
+                ),
+                PulseQobjInstruction(
+                    name="fc",
+                    t0=0,
+                    ch="d0",
+                    phase="P1",
+                ),
+            ]
 
         entry = PulseQobjDef(converter=self.converter, name="my_gate")
         entry.define(serialized_program)
@@ -395,27 +399,27 @@ class TestPulseQobj(QiskitTestCase):
 
     def test_equality(self):
         """Test equality evaluation between the pulse qobj entries."""
-        serialized_program1 = [
-            PulseQobjInstruction(
-                name="parametric_pulse",
-                t0=0,
-                ch="d0",
-                label="TestPulse",
-                pulse_shape="constant",
-                parameters={"amp": 0.1, "duration": 10},
-            )
-        ]
-
-        serialized_program2 = [
-            PulseQobjInstruction(
-                name="parametric_pulse",
-                t0=0,
-                ch="d0",
-                label="TestPulse",
-                pulse_shape="constant",
-                parameters={"amp": 0.2, "duration": 10},
-            )
-        ]
+        with self.assertWarns(DeprecationWarning):
+            serialized_program1 = [
+                PulseQobjInstruction(
+                    name="parametric_pulse",
+                    t0=0,
+                    ch="d0",
+                    label="TestPulse",
+                    pulse_shape="constant",
+                    parameters={"amp": 0.1, "duration": 10},
+                )
+            ]
+            serialized_program2 = [
+                PulseQobjInstruction(
+                    name="parametric_pulse",
+                    t0=0,
+                    ch="d0",
+                    label="TestPulse",
+                    pulse_shape="constant",
+                    parameters={"amp": 0.2, "duration": 10},
+                )
+            ]
 
         entry1 = PulseQobjDef(name="my_gate1")
         entry1.define(serialized_program1)
@@ -435,16 +439,17 @@ class TestPulseQobj(QiskitTestCase):
         Because the pulse qobj entry is a subclass of the schedule entry,
         these instances can be compared by the generated definition, i.e. Schedule.
         """
-        serialized_program = [
-            PulseQobjInstruction(
-                name="parametric_pulse",
-                t0=0,
-                ch="d0",
-                label="TestPulse",
-                pulse_shape="constant",
-                parameters={"amp": 0.1, "duration": 10},
-            )
-        ]
+        with self.assertWarns(DeprecationWarning):
+            serialized_program = [
+                PulseQobjInstruction(
+                    name="parametric_pulse",
+                    t0=0,
+                    ch="d0",
+                    label="TestPulse",
+                    pulse_shape="constant",
+                    parameters={"amp": 0.1, "duration": 10},
+                )
+            ]
         entry1 = PulseQobjDef(name="qobj_entry")
         entry1.define(serialized_program)
 
@@ -470,13 +475,14 @@ class TestPulseQobj(QiskitTestCase):
         In this situation, parsed calibration data must become None,
         instead of raising an error.
         """
-        serialized_program = [
-            PulseQobjInstruction(
-                name="SomeMissingPulse",
-                t0=0,
-                ch="d0",
-            )
-        ]
+        with self.assertWarns(DeprecationWarning):
+            serialized_program = [
+                PulseQobjInstruction(
+                    name="SomeMissingPulse",
+                    t0=0,
+                    ch="d0",
+                )
+            ]
         entry = PulseQobjDef(name="qobj_entry")
         entry.define(serialized_program)
 

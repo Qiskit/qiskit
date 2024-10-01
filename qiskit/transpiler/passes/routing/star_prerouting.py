@@ -14,11 +14,15 @@
 from typing import Iterable, Union, Optional, List, Tuple
 from math import floor, log10
 
-from qiskit.circuit import Barrier
+from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister, Barrier
+from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
-from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.library import SwapGate
+from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
+
+from qiskit._accelerate import star_prerouting
+from qiskit._accelerate.nlayout import NLayout
 
 
 class StarBlock:
@@ -305,113 +309,84 @@ class StarPreRouting(TransformationPass):
             new_dag: a dag specifying the pre-routed circuit
             qubit_mapping: the final qubit mapping after pre-routing
         """
-        node_to_block_id = {}
-        for i, block in enumerate(blocks):
-            for node in block.get_nodes():
-                node_to_block_id[node] = i
+        # Convert the DAG to a SabreDAG
+        num_qubits = len(dag.qubits)
+        canonical_register = dag.qregs["q"]
+        current_layout = Layout.generate_trivial_layout(canonical_register)
+        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
+        layout_mapping = {qubit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()}
+        initial_layout = NLayout(layout_mapping, num_qubits, num_qubits)
+        sabre_dag, circuit_to_dag_dict = _build_sabre_dag(dag, num_qubits, qubit_indices)
 
-        new_dag = dag.copy_empty_like()
-        processed_block_ids = set()
-        qubit_mapping = list(range(len(dag.qubits)))
-
-        def _apply_mapping(qargs, qubit_mapping, qubits):
-            return tuple(qubits[qubit_mapping[dag.find_bit(qubit).index]] for qubit in qargs)
-
-        is_first_star = True
-        last_2q_gate = [
-            op
-            for op in reversed(processing_order)
-            if ((len(op.qargs) > 1) and (op.name != "barrier"))
+        # Extract the nodes from the blocks for the Rust representation
+        rust_blocks = [
+            (block.center is not None, _extract_nodes(block.get_nodes(), dag)) for block in blocks
         ]
-        if len(last_2q_gate) > 0:
-            last_2q_gate = last_2q_gate[0]
-        else:
-            last_2q_gate = None
 
+        # Determine the processing order of the nodes in the DAG for the Rust representation
         int_digits = floor(log10(len(processing_order))) + 1
         processing_order_index_map = {
-            node: f"a{str(index).zfill(int(int_digits))}"
-            for index, node in enumerate(processing_order)
+            node: f"a{index:0{int_digits}}" for index, node in enumerate(processing_order)
         }
 
         def tie_breaker_key(node):
             return processing_order_index_map.get(node, node.sort_key)
 
-        for node in dag.topological_op_nodes(key=tie_breaker_key):
-            block_id = node_to_block_id.get(node, None)
-            if block_id is not None:
-                if block_id in processed_block_ids:
-                    continue
+        rust_processing_order = _extract_nodes(dag.topological_op_nodes(key=tie_breaker_key), dag)
 
-                processed_block_ids.add(block_id)
+        # Run the star prerouting algorithm to obtain the new DAG and qubit mapping
+        *sabre_result, qubit_mapping = star_prerouting.star_preroute(
+            sabre_dag, rust_blocks, rust_processing_order
+        )
 
-                # process the whole block
-                block = blocks[block_id]
-                sequence = block.nodes
-                center_node = block.center
+        res_dag = _apply_sabre_result(
+            dag.copy_empty_like(),
+            dag,
+            sabre_result,
+            initial_layout,
+            dag.qubits,
+            circuit_to_dag_dict,
+        )
 
-                if len(sequence) == 2:
-                    for inner_node in sequence:
-                        new_dag.apply_operation_back(
-                            inner_node.op,
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                            check=False,
-                        )
-                    continue
-                swap_source = None
-                prev = None
-                for inner_node in sequence:
-                    if (len(inner_node.qargs) == 1) or (inner_node.qargs == prev):
-                        new_dag.apply_operation_back(
-                            inner_node.op,
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                            check=False,
-                        )
-                        continue
-                    if is_first_star and swap_source is None:
-                        swap_source = center_node
-                        new_dag.apply_operation_back(
-                            inner_node.op,
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                            check=False,
-                        )
+        return res_dag, qubit_mapping
 
-                        prev = inner_node.qargs
-                        continue
-                    # place 2q-gate and subsequent swap gate
-                    new_dag.apply_operation_back(
-                        inner_node.op,
-                        _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                        inner_node.cargs,
-                        check=False,
-                    )
 
-                    if not inner_node is last_2q_gate and not isinstance(inner_node.op, Barrier):
-                        new_dag.apply_operation_back(
-                            SwapGate(),
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                            check=False,
-                        )
-                        # Swap mapping
-                        index_0 = dag.find_bit(inner_node.qargs[0]).index
-                        index_1 = dag.find_bit(inner_node.qargs[1]).index
-                        qubit_mapping[index_1], qubit_mapping[index_0] = (
-                            qubit_mapping[index_0],
-                            qubit_mapping[index_1],
-                        )
+def _extract_nodes(nodes, dag):
+    """Extract and format node information for Rust representation used in SabreDAG.
 
-                    prev = inner_node.qargs
-                is_first_star = False
-            else:
-                # the node is not part of a block
-                new_dag.apply_operation_back(
-                    node.op,
-                    _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
-                    node.cargs,
-                    check=False,
-                )
-        return new_dag, qubit_mapping
+    Each node is represented as a tuple containing:
+    - Node ID (int): The unique identifier of the node in the DAG.
+    - Qubit indices (list of int): Indices of qubits involved in the node's operation.
+    - Classical bit indices (set of int): Indices of classical bits involved in the node's operation.
+    - Directive flag (bool): Indicates whether the operation is a directive (True) or not (False).
+
+    Args:
+        nodes (list[DAGOpNode]): List of DAGOpNode objects to extract information from.
+        dag (DAGCircuit): DAGCircuit object containing the circuit structure.
+
+    Returns:
+        list of tuples: Each tuple contains information about a node in the format described above.
+    """
+    extracted_node_info = []
+    for node in nodes:
+        qubit_indices = [dag.find_bit(qubit).index for qubit in node.qargs]
+        classical_bit_indices = set()
+
+        if node.op.condition is not None:
+            classical_bit_indices.update(condition_resources(node.op.condition).clbits)
+
+        if isinstance(node.op, SwitchCaseOp):
+            switch_case_target = node.op.target
+            if isinstance(switch_case_target, Clbit):
+                classical_bit_indices.add(switch_case_target)
+            elif isinstance(switch_case_target, ClassicalRegister):
+                classical_bit_indices.update(switch_case_target)
+            else:  # Assume target is an expression involving classical bits
+                classical_bit_indices.update(node_resources(switch_case_target).clbits)
+
+        is_directive = getattr(node.op, "_directive", False)
+        extracted_node_info.append(
+            (node._node_id, qubit_indices, classical_bit_indices, is_directive)
+        )
+
+    return extracted_node_info

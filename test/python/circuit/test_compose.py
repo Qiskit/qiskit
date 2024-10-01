@@ -360,8 +360,14 @@ class TestCircuitCompose(QiskitTestCase):
         # For standard gates a fresh copy is returned from the data list each time
         self.assertEqual(forbid_copy.data[-1].operation, parametric.data[-1].operation)
 
+        class Custom(Gate):
+            """Custom gate that cannot be decomposed into Rust space."""
+
+            def __init__(self):
+                super().__init__("mygate", 1, [])
+
         conditional = QuantumCircuit(1, 1)
-        conditional.x(0).c_if(conditional.clbits[0], True)
+        conditional.append(Custom(), [0], []).c_if(conditional.clbits[0], True)
         test = base.compose(conditional, qubits=[0], clbits=[0], copy=False)
         self.assertIs(test.data[-1].operation, conditional.data[-1].operation)
         self.assertEqual(test.data[-1].operation.condition, (test.clbits[0], True))
