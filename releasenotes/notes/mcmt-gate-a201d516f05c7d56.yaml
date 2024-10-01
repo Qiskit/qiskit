@@ -1,10 +1,10 @@
 ---
 features_circuits:
   - |
-    Added the :class:`.MCMTGate` to represent multi-control multi-target
-    operations in a gate. This gate representation of the existing :class:`.MCMT`
+    Added the :class:`.MCMTGate` to represent a multi-control multi-target
+    operation as a gate. This gate representation of the existing :class:`.MCMT`
     circuit allows the compiler to select the best available implementation
-    according to the number of auxiliary qubits present in the circuit.
+    according to the number and the state of auxiliary qubits present in the circuit.
 
     Specific implementation can be chosen by specifying the high-level synthesis plugin::
 
