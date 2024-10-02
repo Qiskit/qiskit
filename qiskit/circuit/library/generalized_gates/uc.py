@@ -277,10 +277,8 @@ class UCGate(Gate):
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
             # where q[i] are the control qubits and t denotes the target qubit.
             diagonal = Diagonal(diag)
-            if mux_simplify:
-                circuit.append(diagonal, [q_target] + q_controls)
-            else:
-                circuit.append(diagonal, q)
+
+            circuit.append(diagonal, [q_target] + q_controls)
         return circuit, diag
 
     def _dec_ucg_help(self):
