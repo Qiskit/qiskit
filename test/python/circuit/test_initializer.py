@@ -67,7 +67,7 @@ class TestInitialize(QiskitTestCase):
         counts1 = qc1.count_ops()["cx"]
         counts2 = qc2.count_ops()["cx"]
 
-        self.assertTrue(counts2 <= counts1)
+        self.assertTrue(counts2 == counts1)
         self.assertTrue(np.allclose(statevector1, statevector2))
 
     def test_uniform_superposition(self):
