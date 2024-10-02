@@ -12,7 +12,7 @@
 
 """
 Clifford template 6_4:
-.. parsed-literal::
+.. code-block:: text
 
              ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
         q_0: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├

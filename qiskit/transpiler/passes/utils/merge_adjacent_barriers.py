@@ -40,7 +40,7 @@ class MergeAdjacentBarriers(TransformationPass):
 
     i.e,
 
-    .. parsed-literal::
+    .. code-block:: text
               ░  ░             ░  ░
         q_0: ─░──░─      q_0: ─░──░─
               ░  ░             ░  ░

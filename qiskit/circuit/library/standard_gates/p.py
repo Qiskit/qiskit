@@ -33,7 +33,7 @@ class PhaseGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────┐
         q_0: ┤ P(λ) ├
@@ -171,7 +171,7 @@ class CPhaseGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q_0: ─■──
@@ -318,7 +318,7 @@ class MCPhaseGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ───■────
                     │

@@ -12,7 +12,7 @@
 
 """
 Template 4a_1:
-.. parsed-literal::
+.. code-block:: text
     q_0: ───────■─────────■──
                 │         │
     q_1: ──■────┼────■────┼──
