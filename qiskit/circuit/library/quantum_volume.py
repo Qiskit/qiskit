@@ -149,7 +149,7 @@ def quantum_volume(
 
     [1] A. Cross et al. Validating quantum computers using
     randomized model circuits, Phys. Rev. A 100, 032328 (2019).
-    [`arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_]
+    `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
     """
     if isinstance(seed, np.random.Generator):
         seed = seed.integers(0, dtype=np.uint64)
