@@ -132,6 +132,11 @@ def quantum_volume(
     elements of SU(4) applied between corresponding pairs
     of qubits in a random bipartition.
 
+    This function is multithreaded and will launch a thread pool with threads equal to the number
+    of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
+    environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
+
     **Reference Circuit:**
 
     .. plot::
