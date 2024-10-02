@@ -15,7 +15,7 @@ fixes:
     work.
 issues:
   - |
-    Versions of Qiskit before 1.2.3 will not be able to load QPY files dumped
+    Versions of Qiskit before 1.2.4 will not be able to load QPY files dumped
     using :func:`.qpy.dump`, even with ``version`` set appropriately, if:
 
     * there are unbound :class:`.ParameterExpression`\ s in the QPY file,
@@ -25,7 +25,7 @@ issues:
       environments are not within the same minor version.
 
     This applies regardless of the version of Qiskit used in the generation (at
-    least up to Qiskit 1.2.3 inclusive).
+    least up to Qiskit 1.2.4 inclusive).
 
     If you want to maximize compatibility with older versions of Qiskit, you
     should set ``use_symengine=False``.  Newer versions of Qiskit should not
@@ -33,7 +33,7 @@ issues:
   - |
     QPY files from the Qiskit 0.45 series can, under a very specific and unlikely
     set of circumstances, fail to load with any newer version of Qiskit,
-    including Qiskit 1.2.3.  The criteria are:
+    including Qiskit 1.2.4.  The criteria are:
 
     * the :class:`.QuantumCircuit` or :class:`.ScheduleBlock` to be dumped
       contained unbound :class:`.ParameterExpression` objects,

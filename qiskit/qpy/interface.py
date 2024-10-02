@@ -149,7 +149,7 @@ def dump(
                 If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
                 :class:`.ParameterExpression` objects with ``version`` set low with the intent to
                 load the payload using a historical release of Qiskit, it is safest to set the
-                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.3 cannot load
+                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
                 QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
                 unless the version of ``symengine`` used between the loading and generating
                 environments matches.
