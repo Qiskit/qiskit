@@ -37,7 +37,7 @@ issues:
     ``use_symengine`` flag was set to ``True`` your only option is to load
     the QPY file using Qiskit 0.46.3 and regenerate it using
     ``use_symengine=False``.
-upgrade_other:
+upgrade:
   - |
     The requirement on the support versions of `symengine <https://pypi.org/project/symengine/>`__
     has been pre-emptively capped at < 0.14.0 (which is the next minor version as of this release).
