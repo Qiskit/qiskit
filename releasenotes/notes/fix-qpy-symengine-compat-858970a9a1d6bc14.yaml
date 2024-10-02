@@ -6,7 +6,7 @@ fixes:
     in the generating and loading environments were not the same.  For example,
     if a QPY file containing :class:`.ParameterExpression`\ s was generated
     using Qiskit 1.2.2 with ``symengine==0.11.0`` installed, Qiskit 1.2.2 with
-    ``syengine==0.13.0`` installed would be unable to load it.
+    ``symengine==0.13.0`` installed would be unable to load it.
 
     Previously, an error would have been raised by ``symengine`` around this
     version mismatch. This has been worked around for ``symengine`` 0.11 and
