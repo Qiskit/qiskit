@@ -10,10 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::thread::available_parallelism;
-
-use qiskit_circuit::imports::UNITARY_GATE;
-
 use pyo3::prelude::*;
 
 use crate::getenv_use_multiple_threads;
@@ -27,11 +23,19 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::imports::UNITARY_GATE;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::PyInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
-use smallvec::smallvec;
+use qiskit_circuit::{Clbit, Qubit};
+use smallvec::{smallvec, SmallVec};
+
+type Instruction = (
+    PackedOperation,
+    SmallVec<[Param; 3]>,
+    Vec<Qubit>,
+    Vec<Clbit>,
+);
 
 #[inline(always)]
 fn random_complex(rng: &mut Pcg64Mcg) -> Complex64 {
@@ -93,6 +97,8 @@ fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Compl
     })
 }
 
+const UNITARY_PER_SEED: usize = 50;
+
 #[pyfunction]
 pub fn quantum_volume(
     py: Python,
@@ -105,7 +111,8 @@ pub fn quantum_volume(
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
     let mut build_instruction = |(unitary_index, unitary_array): (usize, Array2<Complex64>),
-                                 rng: &mut Pcg64Mcg| {
+                                 rng: &mut Pcg64Mcg|
+     -> PyResult<Instruction> {
         let layer_index = unitary_index % width;
         if layer_index == 0 {
             permutation.shuffle(rng);
@@ -113,8 +120,7 @@ pub fn quantum_volume(
         let unitary = unitary_array.into_pyarray_bound(py);
         let unitary_gate = UNITARY_GATE
             .get_bound(py)
-            .call1((unitary.clone(), py.None(), false))
-            .unwrap();
+            .call1((unitary.clone(), py.None(), false))?;
         let instruction = PyInstruction {
             qubits: 2,
             clbits: 0,
@@ -124,66 +130,47 @@ pub fn quantum_volume(
             instruction: unitary_gate.unbind(),
         };
         let qubit = layer_index * 2;
-        (
+        Ok((
             PackedOperation::from_instruction(Box::new(instruction)),
             smallvec![Param::Obj(unitary.unbind().into())],
             vec![permutation[qubit], permutation[qubit + 1]],
             vec![],
-        )
+        ))
     };
 
-    if getenv_use_multiple_threads() {
-        let mut per_thread = num_unitaries / available_parallelism().unwrap();
-        if per_thread == 0 {
-            if num_unitaries > 10 {
-                per_thread = 10
-            } else {
-                per_thread = num_unitaries
-            }
-        }
-
-        let mut outer_rng = match seed {
-            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_entropy(),
-        };
-        let seed_vec: Vec<u64> = outer_rng
-            .clone()
-            .sample_iter(&rand::distributions::Standard)
-            .take(num_unitaries)
-            .collect();
-        let unitaries: Vec<Array2<Complex64>> = seed_vec
-            .into_par_iter()
-            .chunks(per_thread)
-            .flat_map_iter(|seeds| random_unitaries(seeds[0], seeds.len()))
-            .collect();
-        CircuitData::from_packed_operations(
-            py,
-            num_qubits,
-            0,
-            unitaries
-                .into_iter()
-                .enumerate()
-                .map(|x| build_instruction(x, &mut outer_rng)),
-            Param::Float(0.),
-        )
-    } else {
-        let mut outer_rng = match seed {
-            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_entropy(),
-        };
-        let seed: u64 = outer_rng.sample(rand::distributions::Standard);
-
-        let unitaries: Vec<Array2<Complex64>> = random_unitaries(seed, num_unitaries).collect();
-
-        CircuitData::from_packed_operations(
-            py,
-            num_qubits,
-            0,
-            unitaries
-                .into_iter()
-                .enumerate()
-                .map(|x| build_instruction(x, &mut outer_rng)),
-            Param::Float(0.),
-        )
+    let mut per_thread = num_unitaries / UNITARY_PER_SEED;
+    if per_thread == 0 {
+        per_thread = 10;
     }
+    let mut outer_rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
+    let seed_vec: Vec<u64> = rand::distributions::Standard
+        .sample_iter(&mut outer_rng)
+        .take(num_unitaries)
+        .collect();
+
+    let unitaries: Vec<Array2<Complex64>> = if getenv_use_multiple_threads() && num_unitaries > 200
+    {
+        seed_vec
+            .par_chunks(per_thread)
+            .flat_map_iter(|seeds| random_unitaries(seeds[0], seeds.len()))
+            .collect()
+    } else {
+        seed_vec
+            .chunks(per_thread)
+            .flat_map(|seeds| random_unitaries(seeds[0], seeds.len()))
+            .collect()
+    };
+    CircuitData::from_packed_operations(
+        py,
+        num_qubits,
+        0,
+        unitaries
+            .into_iter()
+            .enumerate()
+            .map(|x| build_instruction(x, &mut outer_rng)),
+        Param::Float(0.),
+    )
 }
