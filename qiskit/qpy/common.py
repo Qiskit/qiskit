@@ -312,7 +312,7 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
 
 
 def load_symengine_payload(payload: bytes) -> symengine.Expr:
-    """Load a symengine expression from it's serialized cereal payload."""
+    """Load a symengine expression from its serialized cereal payload."""
     # This is a horrible hack to workaround the symengine version checking
     # it's deserialization does. There were no changes to the serialization
     # format between 0.11 and 0.13 but the deserializer checks that it can't
