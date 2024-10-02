@@ -13,6 +13,7 @@
 use std::hash::{Hash, Hasher};
 
 use ahash::RandomState;
+use smallvec::SmallVec;
 
 use crate::bit_data::BitData;
 use crate::circuit_data::CircuitData;
@@ -26,7 +27,7 @@ use crate::error::DAGCircuitError;
 use crate::imports;
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
-use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::{BitType, Clbit, Qubit, TupleLikeArg};
 
@@ -78,6 +79,19 @@ pub enum NodeType {
     VarIn(PyObject),
     VarOut(PyObject),
     Operation(PackedInstruction),
+}
+
+impl NodeType {
+    /// Unwraps this node as an operation and returns a reference to
+    /// the contained [PackedInstruction].
+    ///
+    /// Panics if this is not an operation node.
+    pub fn unwrap_operation(&self) -> &PackedInstruction {
+        match self {
+            NodeType::Operation(instr) => instr,
+            _ => panic!("Node is not an operation!"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -987,7 +1001,7 @@ def _format(operand):
     }
 
     /// Add all wires in a quantum register.
-    fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
+    pub fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
         if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
             return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
         }
@@ -1670,7 +1684,7 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: if a leaf node is connected to multiple outputs
     #[pyo3(name = "apply_operation_back", signature = (op, qargs=None, cargs=None, *, check=true))]
-    fn py_apply_operation_back(
+    pub fn py_apply_operation_back(
         &mut self,
         py: Python,
         op: Bound<PyAny>,
@@ -2859,8 +2873,8 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(signature = (node, input_dag, wires=None, propagate_condition=true))]
-    fn substitute_node_with_dag(
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=true))]
+    pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,
@@ -4374,27 +4388,18 @@ def _format(operand):
         for name in namelist.iter() {
             name_list_set.insert(name.extract::<String>()?);
         }
-        match self.collect_runs(name_list_set) {
-            Some(runs) => {
-                let run_iter = runs.map(|node_indices| {
-                    PyTuple::new_bound(
-                        py,
-                        node_indices
-                            .into_iter()
-                            .map(|node_index| self.get_node(py, node_index).unwrap()),
-                    )
-                    .unbind()
-                });
-                let out_set = PySet::empty_bound(py)?;
-                for run_tuple in run_iter {
-                    out_set.add(run_tuple)?;
-                }
-                Ok(out_set.unbind())
-            }
-            None => Err(PyRuntimeError::new_err(
-                "Invalid DAGCircuit, cycle encountered",
-            )),
+
+        let out_set = PySet::empty_bound(py)?;
+
+        for run in self.collect_runs(name_list_set) {
+            let run_tuple = PyTuple::new_bound(
+                py,
+                run.into_iter()
+                    .map(|node_index| self.get_node(py, node_index).unwrap()),
+            );
+            out_set.add(run_tuple)?;
         }
+        Ok(out_set.unbind())
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
@@ -4956,7 +4961,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
@@ -4966,8 +4971,11 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
-        rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn)
-            .map(|node_iter| node_iter.map(|x| x.unwrap()))
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("invalid DAG: cycle(s) detected!"),
+        }
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
@@ -5073,7 +5081,7 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
-    fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
+    pub fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = instr.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
@@ -5190,6 +5198,114 @@ impl DAGCircuit {
         }
 
         Ok(new_node)
+    }
+
+    /// Apply a [PackedOperation] to the back of the circuit.
+    pub fn apply_operation_back(
+        &mut self,
+        py: Python,
+        op: PackedOperation,
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+        params: Option<SmallVec<[Param; 3]>>,
+        extra_attrs: ExtraInstructionAttributes,
+        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
+    ) -> PyResult<NodeIndex> {
+        self.inner_apply_op(
+            py,
+            op,
+            qargs,
+            cargs,
+            params,
+            extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            py_op,
+            false,
+        )
+    }
+
+    /// Apply a [PackedOperation] to the front of the circuit.
+    pub fn apply_operation_front(
+        &mut self,
+        py: Python,
+        op: PackedOperation,
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+        params: Option<SmallVec<[Param; 3]>>,
+        extra_attrs: ExtraInstructionAttributes,
+        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
+    ) -> PyResult<NodeIndex> {
+        self.inner_apply_op(
+            py,
+            op,
+            qargs,
+            cargs,
+            params,
+            extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            py_op,
+            true,
+        )
+    }
+
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    fn inner_apply_op(
+        &mut self,
+        py: Python,
+        op: PackedOperation,
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+        params: Option<SmallVec<[Param; 3]>>,
+        extra_attrs: ExtraInstructionAttributes,
+        #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
+        front: bool,
+    ) -> PyResult<NodeIndex> {
+        // Check that all qargs are within an acceptable range
+        qargs.iter().try_for_each(|qarg| {
+            if qarg.0 as usize >= self.num_qubits() {
+                return Err(PyValueError::new_err(format!(
+                    "Qubit index {} is out of range. This DAGCircuit currently has only {} qubits.",
+                    qarg.0,
+                    self.num_qubits()
+                )));
+            }
+            Ok(())
+        })?;
+
+        // Check that all cargs are within an acceptable range
+        cargs.iter().try_for_each(|carg| {
+            if carg.0 as usize >= self.num_clbits() {
+                return Err(PyValueError::new_err(format!(
+                    "Clbit index {} is out of range. This DAGCircuit currently has only {} clbits.",
+                    carg.0,
+                    self.num_clbits()
+                )));
+            }
+            Ok(())
+        })?;
+
+        #[cfg(feature = "cache_pygates")]
+        let py_op = if let Some(py_op) = py_op {
+            py_op.into()
+        } else {
+            OnceCell::new()
+        };
+        let packed_instruction = PackedInstruction {
+            op,
+            qubits: self.qargs_interner.insert(qargs),
+            clbits: self.cargs_interner.insert(cargs),
+            params: params.map(Box::new),
+            extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            py_op,
+        };
+
+        if front {
+            self.push_front(py, packed_instruction)
+        } else {
+            self.push_back(py, packed_instruction)
+        }
     }
 
     fn sort_key(&self, node: NodeIndex) -> SortKeyType {
