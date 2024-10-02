@@ -133,7 +133,7 @@ new numbers that don't contain five.
 
 Output:
 
-.. code-block:: text
+.. code-block:: python
 
     [12346789, 464, 36784]
 
@@ -178,7 +178,7 @@ As before, we schedule these passes with the pass manager and run.
 
 Output:
 
-.. code-block:: text
+.. code-block:: python
 
     [12346789, 45654, 36784]
 

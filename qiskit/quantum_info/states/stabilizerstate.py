@@ -49,12 +49,12 @@ class StabilizerState(QuantumState):
         print(stab)
 
         # Calculate the StabilizerState measurement probabilities dictionary
-        print (stab.probabilities_dict())
+        print(stab.probabilities_dict())
 
         # Calculate expectation value of the StabilizerState
-        print (stab.expectation_value(Pauli('ZZ')))
+        print(stab.expectation_value(Pauli('ZZ')))
 
-    .. code-block:: text
+    .. code-block:: python
 
         StabilizerState(StabilizerTable: ['+XX', '+ZZ'])
         {'00': 0.5, '11': 0.5}

@@ -654,7 +654,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix.from_label('-0')
                 print(rho.to_dict())
 
-            .. code-block:: text
+            .. code-block:: python
 
                {
                    '00|00': (0.4999999999999999+0j),
@@ -679,7 +679,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            .. code-block:: text
+            .. code-block:: python
 
                 {'00|00': (0.25+0j), '10|10': (0.25+0j), '20|20': (0.25+0j), '22|22': (0.25+0j)}
 
@@ -698,7 +698,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
 
-            .. code-block:: text
+            .. code-block:: python
 
                 {'00|00': (0.5+0j), '91|91': (0.5+0j)}
         """
