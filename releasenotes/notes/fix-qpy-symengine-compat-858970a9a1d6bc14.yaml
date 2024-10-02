@@ -18,12 +18,11 @@ issues:
     Versions of Qiskit before 1.2.3 will not be able to load QPY files dumped
     using :func:`.qpy.dump`, even with ``version`` set appropriately, if:
 
-    * there are unbound :class:`.ParameterExpression`\ s in the circuit,
+    * there are unbound :class:`.ParameterExpression`\ s in the QPY file,
     * the ``use_symengine=True`` flag was set (which is the default in Qiskit >=
       1.0.0) in :func:`.qpy.dump`,
     * the version of ``symengine`` installed in the generating and loading
-      environments are not within the same minor version (e.g. both 0.11, or
-      both 0.13).
+      environments are not within the same minor version.
 
     This applies regardless of the version of Qiskit used in the generation (at
     least up to Qiskit 1.2.3 inclusive).
