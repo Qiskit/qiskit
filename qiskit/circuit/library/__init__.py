@@ -318,6 +318,7 @@ Particular Quantum Circuits
    HiddenLinearFunction
    IQP
    QuantumVolume
+   quantum_volume
    PhaseEstimation
    GroverOperator
    PhaseOracle
@@ -564,7 +565,7 @@ from .data_preparation import (
     StatePreparation,
     Initialize,
 )
-from .quantum_volume import QuantumVolume
+from .quantum_volume import QuantumVolume, quantum_volume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
