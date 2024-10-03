@@ -134,11 +134,7 @@ and how the feature will be internally handled.
       used in the generating environment.
 
     To recover a QPY file that fails with ``symengine`` version-related errors during a call to
-<<<<<<< HEAD
-    :func:`.qpy.load`, try first to use Qiskit >= 1.2.3 to load the file.  If this still fails,
-=======
     :func:`.qpy.load`, first attempt to use Qiskit >= 1.2.4 to load the file.  If this still fails,
->>>>>>> e5ec41358 (Fix bug in QPY symengine payload version handling (#13259))
     it is likely because Qiskit 0.45.x was used to generate the file with ``use_symengine=True``.
     In this case, use Qiskit 0.45.3 with ``symengine==0.9.2`` to load the file, and then re-export
     it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later
