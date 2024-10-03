@@ -190,6 +190,7 @@ class CRXGate(ControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Rx(ϴ) ├
                  └───┬───┘

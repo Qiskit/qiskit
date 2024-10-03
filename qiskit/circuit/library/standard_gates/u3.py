@@ -237,6 +237,7 @@ class CU3Gate(ControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───────────┐
             q_0: ┤ U3(ϴ,φ,λ) ├
                  └─────┬─────┘

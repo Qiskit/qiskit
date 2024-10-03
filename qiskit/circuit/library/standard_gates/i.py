@@ -41,6 +41,7 @@ class IGate(SingletonGate):
     **Circuit symbol:**
 
     .. code-block:: text
+
              ┌───┐
         q_0: ┤ I ├
              └───┘

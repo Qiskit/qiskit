@@ -203,6 +203,7 @@ class CRZGate(ControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Rz(λ) ├
                  └───┬───┘

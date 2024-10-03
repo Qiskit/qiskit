@@ -189,6 +189,7 @@ class CRYGate(ControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Ry(ϴ) ├
                  └───┬───┘

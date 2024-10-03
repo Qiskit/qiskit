@@ -250,6 +250,7 @@ class CSXGate(SingletonControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌────┐
             q_0: ┤ √X ├
                  └─┬──┘

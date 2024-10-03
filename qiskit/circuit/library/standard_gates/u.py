@@ -252,6 +252,7 @@ class CUGate(ControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌────────────┐
             q_0: ┤ U(ϴ,φ,λ,γ) ├
                  └─────┬──────┘

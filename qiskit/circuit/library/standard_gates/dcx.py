@@ -29,6 +29,7 @@ class DCXGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
 
     .. code-block:: text
+
                   ┌───┐
         q_0: ──■──┤ X ├
              ┌─┴─┐└─┬─┘

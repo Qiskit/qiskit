@@ -1157,6 +1157,7 @@ instructions, such as separately scheduling qubits and classical registers,
 the insertion of the delay yields an unnecessarily longer total execution time.
 
 .. code-block:: text
+
     : Quantum Circuit, first-XGate
     0 ░▒▒▒░░░░░░░░░░░░░░░
     1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -1186,6 +1187,7 @@ is scheduled as follows:
 with the timing model:
 
 .. code-block:: text
+
     : Quantum Circuit, first-xgate
     0 ░░▒▒▒░░░░░░░░░░░░░░░
     1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░

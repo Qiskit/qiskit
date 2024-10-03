@@ -171,6 +171,7 @@ class CHGate(SingletonControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───┐
             q_0: ┤ H ├
                  └─┬─┘

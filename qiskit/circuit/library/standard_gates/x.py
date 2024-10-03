@@ -192,6 +192,7 @@ class CXGate(SingletonControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───┐
             q_0: ┤ X ├
                  └─┬─┘
@@ -345,6 +346,7 @@ class CCXGate(SingletonControlledGate):
         gate will be:
 
         .. code-block:: text
+
                  ┌───┐
             q_0: ┤ X ├
                  └─┬─┘
