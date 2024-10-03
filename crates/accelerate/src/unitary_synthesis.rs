@@ -33,6 +33,7 @@ use pyo3::Python;
 
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
@@ -235,7 +236,6 @@ fn py_run_main_loop(
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
 ) -> PyResult<DAGCircuit> {
-    let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
     let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
 
     // Run synthesis recursively over control flow ops, mapping qubit indices
@@ -265,7 +265,13 @@ fn py_run_main_loop(
             });
             let res = py_run_main_loop(
                 py,
-                &mut circuit_to_dag.call1((raw_block?,))?.extract()?,
+                &mut circuit_to_dag(
+                    py,
+                    QuantumCircuitData::extract_bound(&raw_block?)?,
+                    false,
+                    None,
+                    None,
+                )?,
                 &PyList::new_bound(py, new_ids),
                 min_qubits,
                 target,
@@ -365,7 +371,13 @@ fn py_run_main_loop(
             _ => {
                 let qs_decomposition: &Bound<'_, PyAny> = imports::QS_DECOMPOSITION.get_bound(py);
                 let synth_circ = qs_decomposition.call1((unitary.into_pyarray_bound(py),))?;
-                let synth_dag = circuit_to_dag.call1((synth_circ,))?.extract()?;
+                let synth_dag = circuit_to_dag(
+                    py,
+                    QuantumCircuitData::extract_bound(&synth_circ)?,
+                    false,
+                    None,
+                    None,
+                )?;
                 out_dag = synth_dag;
             }
         }
@@ -594,7 +606,10 @@ fn get_2q_decomposers_from_target(
     }
 
     for (q_pair, gates) in qubit_gate_map {
-        for op in gates.iter().map(|key|target.operation_from_name(*key)).flatten() {
+        for (key, op) in gates
+            .iter()
+            .zip(gates.iter().flat_map(|key| target.operation_from_name(key)))
+        {
             match op.operation.view() {
                 OperationRef::Gate(_) => (),
                 OperationRef::Standard(_) => (),
@@ -690,8 +705,8 @@ fn get_2q_decomposers_from_target(
 
     #[inline]
     fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
-        !basis_set.iter().any(|gate| !GOODBYE_SET.contains(gate))
         basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
+    }
 
     if check_goodbye(&available_basis_set) {
         return Ok(Some(decomposers));
@@ -699,8 +714,8 @@ fn get_2q_decomposers_from_target(
 
     // Let's now look for possible controlled decomposers (i.e. XXDecomposer)
     let controlled_basis: IndexMap<&str, NormalOperation> = available_2q_basis
-        .iter()  
-        .filter(|(_, v)| is_supercontrolled(v))  
+        .iter()
+        .filter(|(_, v)| is_controlled(v))
         .map(|(k, v)| (*k, v.clone()))
         .collect();
     let mut pi2_basis: Option<&str> = None;
@@ -727,7 +742,7 @@ fn get_2q_decomposers_from_target(
             }
             let mut embodiment =
                 xx_embodiments.get_item(op.clone().into_py(py).getattr(py, "base_class")?)?;
-                xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
+            xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
             if embodiment.getattr("parameters")?.len()? == 1 {
                 embodiment = embodiment.call_method1("assign_parameters", (vec![strength],))?;
             }
@@ -836,12 +851,6 @@ fn preferred_direction(
             for item in coupling_edges.iter() {
                 if let Ok(tuple) = item.extract::<(usize, usize)>() {
                     edge_set.insert(tuple);
-                } else if let Ok(inner_list) = item.extract::<&PyList>() {
-                    if inner_list.len() == 2 {
-                        let first: usize = inner_list.get_item(0)?.extract()?;
-                        let second: usize = inner_list.get_item(1)?.extract()?;
-                        edge_set.insert((first, second));
-                    }
                 }
             }
             let zero_one = edge_set.contains(&(qubits[0].0 as usize, qubits[1].0 as usize));
@@ -988,9 +997,8 @@ fn synth_su4_dag(
             .into_iter()
             .collect();
         decomposer
-            .call_method_bound(
+            .call_bound(
                 py,
-                intern!(py, "__call__"),
                 (su4_mat.clone().into_pyarray_bound(py),),
                 Some(&kwargs.into_py_dict_bound(py)),
             )?
@@ -1053,9 +1061,8 @@ fn reversed_synth_su4_dag(
             .into_iter()
             .collect();
         decomposer
-            .call_method_bound(
+            .call_bound(
                 py,
-                intern!(py, "__call__"),
                 (su4_mat_mm.clone().into_pyarray_bound(py),),
                 Some(&kwargs.into_py_dict_bound(py)),
             )?
