@@ -1,0 +1,6 @@
+---
+prelude: >
+    Qiskit 1.2.4 is a patch release that fixes a QPY problem introduced in the 
+    `yanked <https://peps.python.org/pep-0592/>`__ 1.2.3 bugfix release. In 1.2.3,
+    an error would be raised when loading a QPY file that was generated with 
+    a different symengine version from the version installed when loading.
