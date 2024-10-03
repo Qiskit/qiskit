@@ -948,13 +948,11 @@ fn synth_su4_sequence(
 }
 
 fn reversed_synth_su4_sequence(
-    su4_mat: &Array2<Complex64>,
+    su4_mat: Array2<Complex64>,
     decomposer_2q: &DecomposerElement,
     approximation_degree: Option<f64>,
 ) -> PyResult<TwoQubitUnitarySequence> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let mut su4_mat_mm = su4_mat.clone();
-
     // Swap rows 1 and 2
     let (mut row_1, mut row_2) = su4_mat_mm.multi_slice_mut((s![1, ..], s![2, ..]));
     azip!((x in &mut row_1, y in &mut row_2) (*x, *y) = (*y, *x));
