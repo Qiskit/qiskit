@@ -50,22 +50,23 @@ def get_standard_gate_name_mapping():
     """Return a dictionary mapping the name of standard gates and instructions to an object for
     that name.
 
-    For Example:
+    Examples:
 
-    .. code-block::
+        .. code-block:: python
 
-        from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+            from qiskit.circuit.library import get_standard_gate_name_mapping
 
-        gate_name_map = get_standard_gate_name_mapping()
-        cx_object = gate_name_map["cx"]
+            gate_name_map = get_standard_gate_name_mapping()
+            cx_object = gate_name_map["cx"]
 
-        print(cx_object)
-        print(type(cx_object))
+            print(cx_object)
+            print(type(cx_object))
 
-    .. parsed-literal::
+        .. code-block:: text
 
-        Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])
-        _SingletonCXGate"""
+            Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])
+            _SingletonCXGate
+    """
 
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.measure import Measure
