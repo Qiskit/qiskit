@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
+from itertools import chain
 from typing import Any
-import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
@@ -100,25 +100,22 @@ class LieTrotter(ProductFormula):
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
-        operators = evolution.operator
-        time = evolution.time
+    def expand(self, evolution):
+        operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
 
         # construct the evolution circuit
-        single_rep = QuantumCircuit(operators[0].num_qubits)
 
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
+        if isinstance(operators, list):
+            # the expansion formula is the same for commuting and non-commuting bits, so
+            # we'll just concatenate all Paulis
+            non_commuting = list(chain.from_iterable([op.to_sparse_list() for op in operators]))
         else:
-            pauli_list = [(op, 1) for op in operators]
+            # Assume no commutativity here. If we were to group commuting Paulis,
+            # here would be the location to do so.
+            non_commuting = operators.to_sparse_list()
 
-        for i, (op, coeff) in enumerate(pauli_list):
-            self.atomic_evolution(single_rep, op, coeff * time / self.reps)
-            if self.insert_barriers and i != len(pauli_list) - 1:
-                single_rep.barrier()
-
-        return single_rep.repeat(self.reps, insert_barriers=self.insert_barriers).decompose()
+        # we're already done here since Lie Trotter does not do any operator repetition
+        return non_commuting
 
     @property
     def settings(self) -> dict[str, Any]:

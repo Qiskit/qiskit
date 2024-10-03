@@ -16,8 +16,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-
-import numpy as np
+from itertools import chain
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -105,51 +104,60 @@ class SuzukiTrotter(ProductFormula):
             ValueError: If order is not even
         """
 
-        if order % 2 == 1:
+        if order > 1 and order % 2 == 1:
             raise ValueError(
                 "Suzuki product formulae are symmetric and therefore only defined "
-                "for even orders."
+                "for even orders (or order==1)."
             )
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
-        operators = evolution.operator
-        time = evolution.time
-
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
-        else:
-            pauli_list = [(op, 1) for op in operators]
-
-        ops_to_evolve = self._recurse(self.order, time / self.reps, pauli_list)
+    def expand(self, evolution):
+        operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
 
         # construct the evolution circuit
-        single_rep = QuantumCircuit(operators[0].num_qubits)
 
-        for i, (op, coeff) in enumerate(ops_to_evolve):
-            self.atomic_evolution(single_rep, op, coeff)
-            if self.insert_barriers and i != len(ops_to_evolve) - 1:
-                single_rep.barrier()
+        if isinstance(operators, list):  # already sorted into commuting bits
+            non_commuting = [operator.to_sparse_list() for operator in operators]
+        else:
+            # Assume no commutativity here. If we were to group commuting Paulis,
+            # here would be the location to do so.
+            non_commuting = [[op] for op in operators.to_sparse_list()]
 
-        return single_rep.repeat(self.reps, insert_barriers=self.insert_barriers).decompose()
+        # we're already done here since Lie Trotter does not do any operator repetition
+        product_formula = self._recurse(self.order, non_commuting)
+        flattened = list(chain.from_iterable(product_formula))
+        return flattened
 
     @staticmethod
-    def _recurse(order, time, pauli_list):
+    def _recurse(order, grouped_paulis):
         if order == 1:
-            return pauli_list
+            return grouped_paulis
 
         elif order == 2:
-            halves = [(op, coeff * time / 2) for op, coeff in pauli_list[:-1]]
-            full = [(pauli_list[-1][0], time * pauli_list[-1][1])]
+            halves = [
+                [(label, qubits, coeff / 2) for label, qubits, coeff in paulis]
+                for paulis in grouped_paulis[:-1]
+            ]
+            full = [grouped_paulis[-1]]
             return halves + full + list(reversed(halves))
 
         else:
             reduction = 1 / (4 - 4 ** (1 / (order - 1)))
             outer = 2 * SuzukiTrotter._recurse(
-                order - 2, time=reduction * time, pauli_list=pauli_list
+                order - 2,
+                [
+                    [(label, qubits, coeff * reduction) for label, qubits, coeff in paulis]
+                    for paulis in grouped_paulis
+                ],
             )
             inner = SuzukiTrotter._recurse(
-                order - 2, time=(1 - 4 * reduction) * time, pauli_list=pauli_list
+                order - 2,
+                [
+                    [
+                        (label, qubits, coeff * (1 - 4 * reduction))
+                        for label, qubits, coeff in paulis
+                    ]
+                    for paulis in grouped_paulis
+                ],
             )
             return outer + inner + outer
