@@ -118,11 +118,11 @@ and how the feature will be internally handled.
 
 .. note::
 
-    With versions of Qiskit before 1.2.3, the ``use_symengine=True`` argument to :func:`.qpy.dump`
+    With versions of Qiskit before 1.2.4, the ``use_symengine=True`` argument to :func:`.qpy.dump`
     could cause problems with backwards compatibility if there were :class:`.ParameterExpression`
     objects to serialize.  In particular:
 
-    * When the loading version of Qiskit is 1.2.3 or greater, QPY files generated with any version
+    * When the loading version of Qiskit is 1.2.4 or greater, QPY files generated with any version
       of Qiskit >= 0.46.0 can be loaded.  If a version of Qiskit between 0.45.0 and 0.45.3 was used
       to generate the files, and the non-default argument ``use_symengine=True`` was given to
       :func:`.qpy.dump`, the file can only be read if the version of ``symengine`` used in the
@@ -134,7 +134,7 @@ and how the feature will be internally handled.
       used in the generating environment.
 
     To recover a QPY file that fails with ``symengine`` version-related errors during a call to
-    :func:`.qpy.load`, try first to use Qiskit >= 1.2.3 to load the file.  If this still fails,
+    :func:`.qpy.load`, first attempt to use Qiskit >= 1.2.4 to load the file.  If this still fails,
     it is likely because Qiskit 0.45.x was used to generate the file with ``use_symengine=True``.
     In this case, use Qiskit 0.45.3 with ``symengine==0.9.2`` to load the file, and then re-export
     it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later

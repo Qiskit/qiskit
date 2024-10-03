@@ -322,7 +322,7 @@ def load_symengine_payload(payload: bytes) -> symengine.Expr:
     major = payload[2]
     minor = payload[3]
     if int(symengine_version[1]) != minor:
-        if major != "0":
+        if major != 0:
             raise exceptions.QpyError(
                 "Qiskit doesn't support loading a symengine payload generated with symengine >= 1.0"
             )
