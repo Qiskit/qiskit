@@ -902,7 +902,7 @@ class ScheduleBlock:
         sched_outer.assign_references({("grand_child",): sched_inner})
         print(sched_outer.parameters)
 
-    .. code-block:: python
+    .. code-block:: text
 
        {Parameter(amp1), Parameter(amp2)}
 
@@ -935,7 +935,7 @@ class ScheduleBlock:
 
         print(main.parameters)
 
-    .. code-block:: python
+    .. code-block:: text
 
        {Parameter(amp1), Parameter(amp2), Parameter(amp3}
 

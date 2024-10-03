@@ -603,7 +603,7 @@ It is important to highlight two special cases:
 
       print(backend.operation_names)
 
-   .. code-block:: python
+   .. code-block:: text
 
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
@@ -1022,7 +1022,7 @@ classical register wires, though theoretically two conditional instructions
 conditioned on the same register could commute, i.e. read-access to the
 classical register doesn't change its state.
 
-.. code-block:: python
+.. code-block:: text
 
     qc = QuantumCircuit(2, 1)
     qc.delay(100, 0)

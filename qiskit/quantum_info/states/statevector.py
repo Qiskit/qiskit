@@ -794,7 +794,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector.from_label('-0')
                 print(psi.to_dict())
 
-            .. code-block:: python
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '10': (-0.7071067811865475+0j)}
 
@@ -812,7 +812,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
-            .. code-block:: python
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '22': (0.7071067811865475+0j)}
 
@@ -831,7 +831,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
 
-            .. code-block:: python
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '91': (0.7071067811865475+0j)}
 

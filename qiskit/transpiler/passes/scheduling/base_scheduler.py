@@ -42,7 +42,7 @@ class BaseSchedulerTransform(TransformationPass):
         conditioned on the same register are commute, i.e. read-access to the
         classical register doesn't change its state.
 
-        .. code-block:: python
+        .. code-block:: text
 
             qc = QuantumCircuit(2, 1)
             qc.delay(100, 0)

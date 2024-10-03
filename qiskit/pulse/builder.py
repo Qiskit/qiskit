@@ -257,7 +257,7 @@ Methods to return the correct channels for the respective qubit indices.
         d0 = pulse.drive_channel(0)
         print(d0)
 
-.. code-block:: python
+.. code-block:: text
 
     DriveChannel(0)
 
@@ -362,7 +362,7 @@ Macros help you add more complex functionality to your pulse program.
         mem_slot = pulse.measure(0)
         print(mem_slot)
 
-.. code-block:: python
+.. code-block:: text
 
     MemorySlot(0)
 
@@ -889,7 +889,7 @@ def append_instruction(instruction: instructions.Instruction):
 
         print(pulse_prog.instructions)
 
-    .. code-block:: python
+    .. code-block:: text
 
         ((0, Delay(10, DriveChannel(0))),)
     """
@@ -911,7 +911,7 @@ def num_qubits() -> int:
         with pulse.build(backend):
             print(pulse.num_qubits())
 
-    .. code-block:: python
+    .. code-block:: text
 
        2
 
@@ -968,7 +968,7 @@ def qubit_channels(qubit: int) -> set[chans.Channel]:
         with pulse.build(backend):
             print(pulse.qubit_channels(0))
 
-    .. code-block:: python
+    .. code-block:: text
 
        {MeasureChannel(0), ControlChannel(0), DriveChannel(0), AcquireChannel(0), ControlChannel(1)}
 
@@ -1743,7 +1743,7 @@ def call(
 
             print(pulse_prog)
 
-        .. code-block:: python
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1784,7 +1784,7 @@ def call(
 
             print(pulse_prog)
 
-        .. code-block:: python
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1824,7 +1824,7 @@ def call(
 
             print(pulse_prog)
 
-        .. code-block:: python
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1848,7 +1848,7 @@ def call(
 
             print(pulse_prog)
 
-        .. code-block:: python
+        .. code-block:: text
 
             ScheduleBlock(
                 Call(
