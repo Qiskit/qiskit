@@ -653,9 +653,9 @@ fn get_2q_decomposers_from_target(
 
     // Iterate over 1q and 2q supercontrolled basis, append TwoQubitBasisDecomposers
     let supercontrolled_basis: IndexMap<&str, NormalOperation> = available_2q_basis
-        .clone()
-        .into_iter()
+        .iter()
         .filter(|(_, v)| is_supercontrolled(v))
+        .map(|(k, v)| (*k, v.clone()))
         .collect();
 
     for basis_1q in &available_1q_basis {
@@ -691,7 +691,7 @@ fn get_2q_decomposers_from_target(
     #[inline]
     fn check_goodbye(basis_set: &HashSet<&str>) -> bool {
         !basis_set.iter().any(|gate| !GOODBYE_SET.contains(gate))
-    }
+        basis_set.iter().all(|gate| GOODBYE_SET.contains(gate))
 
     if check_goodbye(&available_basis_set) {
         return Ok(Some(decomposers));
@@ -699,8 +699,9 @@ fn get_2q_decomposers_from_target(
 
     // Let's now look for possible controlled decomposers (i.e. XXDecomposer)
     let controlled_basis: IndexMap<&str, NormalOperation> = available_2q_basis
-        .into_iter()
-        .filter(|(_, v)| is_controlled(v))
+        .iter()  
+        .filter(|(_, v)| is_supercontrolled(v))  
+        .map(|(k, v)| (*k, v.clone()))
         .collect();
     let mut pi2_basis: Option<&str> = None;
     let xx_embodiments: &Bound<'_, PyAny> = imports::XX_EMBODIMENTS.get_bound(py);
@@ -726,7 +727,7 @@ fn get_2q_decomposers_from_target(
             }
             let mut embodiment =
                 xx_embodiments.get_item(op.clone().into_py(py).getattr(py, "base_class")?)?;
-
+                xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
             if embodiment.getattr("parameters")?.len()? == 1 {
                 embodiment = embodiment.call_method1("assign_parameters", (vec![strength],))?;
             }
@@ -1070,7 +1071,7 @@ fn reversed_synth_su4_dag(
             panic!("DAG node must be an instruction")
         };
         let qubits: Vec<Qubit> = synth_dag
-            .qargs_interner
+            .qargs_interner()
             .get(inst.qubits)
             .iter()
             .map(|x| flip_bits[x.0 as usize])
