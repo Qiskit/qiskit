@@ -195,7 +195,7 @@ def circuit_drawer(
             qc = QuantumCircuit(1, 1)
             qc.h(0)
             qc.measure(0, 0)
-            circuit_drawer(qc, output="mpl", style={"backgroundcolor":"#EEEEEE"})
+            circuit_drawer(qc, output="mpl", style={"backgroundcolor": "#EEEEEE"})
     """
     image = None
     expr_len = max(expr_len, 0)
