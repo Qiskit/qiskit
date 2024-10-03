@@ -18,7 +18,7 @@ import math
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
-from .generalized_gates.diagonal import Diagonal
+from .generalized_gates.diagonal import DiagonalGate
 
 
 class FourierChecking(QuantumCircuit):
@@ -85,11 +85,11 @@ class FourierChecking(QuantumCircuit):
 
         circuit.h(circuit.qubits)
 
-        circuit.compose(Diagonal(f), inplace=True)
+        circuit.append(DiagonalGate(f), circuit.qubits)
 
         circuit.h(circuit.qubits)
 
-        circuit.compose(Diagonal(g), inplace=True)
+        circuit.append(DiagonalGate(g), circuit.qubits)
 
         circuit.h(circuit.qubits)
 
