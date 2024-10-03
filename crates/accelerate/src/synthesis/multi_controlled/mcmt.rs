@@ -43,18 +43,18 @@ fn ccx_chain<'a>(
     controls: &'a [usize],
     auxiliaries: &'a [usize],
 ) -> impl DoubleEndedIterator<
-    Item = (
+    Item = PyResult<(
         PackedOperation,
         SmallVec<[Param; 3]>,
         Vec<Qubit>,
         Vec<Clbit>,
-    ),
+    )>,
 > + 'a {
     let n = controls.len() - 1; // number of chain elements
     std::iter::once((controls[0], controls[1], auxiliaries[0]))
         .chain((0..n - 1).map(|i| (controls[i + 2], auxiliaries[i], auxiliaries[i + 1])))
         .map(|(ctrl1, ctrl2, target)| {
-            (
+            Ok((
                 StandardGate::CCXGate.into(),
                 smallvec![],
                 vec![
@@ -63,7 +63,7 @@ fn ccx_chain<'a>(
                     Qubit(target as u32),
                 ],
                 vec![],
-            )
+            ))
         })
 }
 
@@ -120,12 +120,12 @@ pub fn mcmt_v_chain(
     let flip_control_state = (0..num_ctrl_qubits)
         .filter(|index| control_state & (1 << index) == 0)
         .map(|index| {
-            (
+            Ok((
                 PackedOperation::from_standard(StandardGate::XGate),
                 smallvec![] as SmallVec<[Param; 3]>,
                 vec![Qubit(index as u32)],
                 vec![] as Vec<Clbit>,
-            )
+            ))
         });
 
     // Then, we create the operations that apply the controlled base gate.
@@ -137,7 +137,7 @@ pub fn mcmt_v_chain(
         0
     };
     let targets = (0..num_target_qubits).map(|i| {
-        (
+        Ok((
             packed_controlled_gate.clone(),
             smallvec![] as SmallVec<[Param; 3]>,
             vec![
@@ -145,7 +145,7 @@ pub fn mcmt_v_chain(
                 Qubit((num_ctrl_qubits + i) as u32),
             ],
             vec![] as Vec<Clbit>,
-        )
+        ))
     });
 
     // Finally we add the V-chain (or return in case of 1 control).
