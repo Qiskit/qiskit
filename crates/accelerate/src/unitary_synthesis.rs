@@ -177,16 +177,15 @@ fn synth_error(
     let mut score_instruction = |inst_name: &str,
                                  inst_params: &Option<SmallVec<[Param; 3]>>,
                                  inst_qubits: &SmallVec<[PhysicalQubit; 2]>|
-     -> PyResult<()> {
-        match target.operation_names_for_qargs(Some(inst_qubits)) {
-            Ok(names) => {
-                for name in names {
-                    let target_op = target.operation_from_name(name).unwrap();
+     -> () {
+        if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
+            for name in names {
+                if let Ok(target_op) = target.operation_from_name(name){
                     let are_params_close = if let Some(params) = inst_params {
-                            params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
-                                p1.is_close(py, p2, 1e-10)
-                                    .expect("Unexpected parameter expression error.")
-                            })
+                        params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
+                            p1.is_close(py, p2, 1e-10)
+                                .expect("Unexpected parameter expression error.")
+                        })
                     } else {
                         false
                     };
@@ -206,18 +205,12 @@ fn synth_error(
                         break;
                     }
                 }
-                Ok(())
-            }
-            Err(_) => {
-                Err(QiskitError::new_err(
-                    format!("Encountered a bad synthesis. Target has no instruction {inst_name:?} on qubits {inst_qubits:?}.")
-                ))
             }
         }
     };
 
     for (inst_name, inst_params, inst_qubits) in synth_circuit {
-        let _ = score_instruction(&inst_name, &inst_params, &inst_qubits);
+        score_instruction(&inst_name, &inst_params, &inst_qubits);
     }
     1.0 - gate_fidelities.into_iter().product::<f64>()
 }
