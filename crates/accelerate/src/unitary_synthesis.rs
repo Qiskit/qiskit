@@ -741,8 +741,8 @@ fn get_2q_decomposers_from_target(
                 fidelity_value *= approx_degree;
             }
             let mut embodiment =
-                xx_embodiments.get_item(op.clone().into_py(py).getattr(py, "base_class")?)?;
-            xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
+                xx_embodiments.get_item(op.to_object(py).getattr(py, "base_class")?)?;
+
             if embodiment.getattr("parameters")?.len()? == 1 {
                 embodiment = embodiment.call_method1("assign_parameters", (vec![strength],))?;
             }
@@ -937,7 +937,11 @@ fn synth_su4_sequence(
                         _ => panic!(),
                     };
                     if synth_dir != preferred_dir {
-                        reversed_synth_su4_sequence(su4_mat, decomposer_2q, approximation_degree)
+                        reversed_synth_su4_sequence(
+                            su4_mat.clone(),
+                            decomposer_2q,
+                            approximation_degree,
+                        )
                     } else {
                         Ok(sequence)
                     }
@@ -948,22 +952,22 @@ fn synth_su4_sequence(
 }
 
 fn reversed_synth_su4_sequence(
-    su4_mat: Array2<Complex64>,
+    mut su4_mat: Array2<Complex64>,
     decomposer_2q: &DecomposerElement,
     approximation_degree: Option<f64>,
 ) -> PyResult<TwoQubitUnitarySequence> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
     // Swap rows 1 and 2
-    let (mut row_1, mut row_2) = su4_mat_mm.multi_slice_mut((s![1, ..], s![2, ..]));
+    let (mut row_1, mut row_2) = su4_mat.multi_slice_mut((s![1, ..], s![2, ..]));
     azip!((x in &mut row_1, y in &mut row_2) (*x, *y) = (*y, *x));
 
     // Swap columns 1 and 2
-    let (mut col_1, mut col_2) = su4_mat_mm.multi_slice_mut((s![.., 1], s![.., 2]));
+    let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
     let mut synth =
         if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
-            decomp.call_inner(su4_mat_mm.view(), None, is_approximate, None)?
+            decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
         } else {
             panic!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
         };
@@ -1027,7 +1031,12 @@ fn synth_su4_dag(
                         _ => panic!("There are no more than 2 possible synth directions."),
                     };
                     if synth_dir != preferred_dir {
-                        reversed_synth_su4_dag(py, su4_mat, decomposer_2q, approximation_degree)
+                        reversed_synth_su4_dag(
+                            py,
+                            su4_mat.clone(),
+                            decomposer_2q,
+                            approximation_degree,
+                        )
                     } else {
                         Ok(synth_dag)
                     }
@@ -1039,19 +1048,18 @@ fn synth_su4_dag(
 
 fn reversed_synth_su4_dag(
     py: Python<'_>,
-    su4_mat: &Array2<Complex64>,
+    mut su4_mat: Array2<Complex64>,
     decomposer_2q: &DecomposerElement,
     approximation_degree: Option<f64>,
 ) -> PyResult<DAGCircuit> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let mut su4_mat_mm = su4_mat.clone();
 
     // Swap rows 1 and 2
-    let (mut row_1, mut row_2) = su4_mat_mm.multi_slice_mut((s![1, ..], s![2, ..]));
+    let (mut row_1, mut row_2) = su4_mat.multi_slice_mut((s![1, ..], s![2, ..]));
     azip!((x in &mut row_1, y in &mut row_2) (*x, *y) = (*y, *x));
 
     // Swap columns 1 and 2
-    let (mut col_1, mut col_2) = su4_mat_mm.multi_slice_mut((s![.., 1], s![.., 2]));
+    let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
     let synth_dag = if let DecomposerType::XXDecomposer(decomposer) = &decomposer_2q.decomposer {
@@ -1061,7 +1069,7 @@ fn reversed_synth_su4_dag(
         decomposer
             .call_bound(
                 py,
-                (su4_mat_mm.clone().into_pyarray_bound(py),),
+                (su4_mat.clone().into_pyarray_bound(py),),
                 Some(&kwargs.into_py_dict_bound(py)),
             )?
             .extract::<DAGCircuit>(py)?
