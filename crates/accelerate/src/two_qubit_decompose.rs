@@ -2165,18 +2165,18 @@ impl TwoQubitBasisDecomposer {
                     .gates
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
-                        Some(gate) => (
+                        Some(gate) => Ok((
                             PackedOperation::from_standard(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
-                        ),
-                        None => (
+                        )),
+                        None => Ok((
                             kak_gate.operation.clone(),
                             kak_gate.params.clone(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
-                        ),
+                        )),
                     }),
                 Param::Float(sequence.global_phase),
             ),
