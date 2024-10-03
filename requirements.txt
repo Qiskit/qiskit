@@ -6,4 +6,4 @@ dill>=0.3
 python-dateutil>=2.8.0
 stevedore>=3.0.0
 typing-extensions
-symengine>=0.11
+symengine>=0.11,<0.14

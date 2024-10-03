@@ -20,9 +20,6 @@ from io import BytesIO
 
 import numpy as np
 import symengine as sym
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
@@ -106,7 +103,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
         return None
     expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        return load_basic(expr_bytes)
+        return common.load_symengine_payload(expr_bytes)
     else:
         from sympy import parse_expr
 
