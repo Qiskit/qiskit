@@ -594,30 +594,25 @@ fn get_2q_decomposers_from_target(
     }
 
     for (q_pair, gates) in qubit_gate_map {
-        for key in gates {
-            match target.operation_from_name(key) {
-                Ok(op) => {
-                    match op.operation.view() {
-                        OperationRef::Gate(_) => (),
-                        OperationRef::Standard(_) => (),
-                        _ => continue,
-                    }
-
-                    available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
-
-                    if target.qargs_for_operation_name(key).is_ok() {
-                        available_2q_props.insert(
-                            key,
-                            match &target[key].get(Some(q_pair)) {
-                                Some(Some(props)) => (props.duration, props.error),
-                                _ => (None, None),
-                            },
-                        );
-                    } else {
-                        continue;
-                    }
-                }
+        for op in gates.iter().map(|key|target.operation_from_name(*key)).flatten() {
+            match op.operation.view() {
+                OperationRef::Gate(_) => (),
+                OperationRef::Standard(_) => (),
                 _ => continue,
+            }
+
+            available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
+
+            if target.qargs_for_operation_name(key).is_ok() {
+                available_2q_props.insert(
+                    key,
+                    match &target[key].get(Some(q_pair)) {
+                        Some(Some(props)) => (props.duration, props.error),
+                        _ => (None, None),
+                    },
+                );
+            } else {
+                continue;
             }
         }
     }
