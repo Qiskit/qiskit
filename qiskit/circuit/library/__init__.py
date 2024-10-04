@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    GRX
    GRY
    GRZ
+   MCMTGate
    MCPhaseGate
    MCXGate
    MCXGrayCode
