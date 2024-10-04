@@ -22,6 +22,7 @@ from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
+from qiskit.utils import optionals as _optionals
 
 
 class SubstitutionConfig:
@@ -496,8 +497,17 @@ class TemplateSubstitution:
         import sympy as sym
         from sympy.parsing.sympy_parser import parse_expr
 
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
+            # Converts Sympy expressions to Symengine ones.
+            to_native_symbolic = symengine.sympify
+        else:
+            # Our native form is sympy, so we don't need to do anything.
+            to_native_symbolic = lambda x: x
+
         circuit_params, template_params = [], []
-        # Set of all parameter names that are present in the circuits to be optimised.
+        # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)
@@ -555,7 +565,7 @@ class TemplateSubstitution:
             node.op.params = sub_node_params
 
         # Create the fake binding dict and check
-        equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
+        equations, circ_dict, temp_symbols = [], {}, {}
         for circuit_param, template_param in zip(circuit_params, template_params):
             if isinstance(template_param, ParameterExpression):
                 if isinstance(circuit_param, ParameterExpression):
@@ -577,19 +587,18 @@ class TemplateSubstitution:
         if not temp_symbols:
             return template_dag_dep
 
-        # Check compatibility by solving the resulting equation
-        sym_sol = sym.solve(equations, set(temp_symbols.values()))
-        for key in sym_sol:
-            try:
-                sol[str(key)] = ParameterExpression(circ_dict, sym_sol[key])
-            except TypeError:
-                return None
-
-        if not sol:
+        # Check compatibility by solving the resulting equation.  `dict=True` (surprisingly) forces
+        # the output to always be a list, even if there's exactly one solution.
+        sym_sol = sym.solve(equations, set(temp_symbols.values()), dict=True)
+        if not sym_sol:
+            # No solutions.
             return None
-
-        for key in temp_symbols:
-            fake_bind[key] = sol[str(key)]
+        # If there's multiple solutions, arbitrarily pick the first one.
+        sol = {
+            param.name: ParameterExpression(circ_dict, to_native_symbolic(expr))
+            for param, expr in sym_sol[0].items()
+        }
+        fake_bind = {key: sol[key.name] for key in temp_symbols}
 
         for node in template_dag_dep.get_nodes():
             bound_params = []

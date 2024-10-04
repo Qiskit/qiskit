@@ -17,17 +17,17 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
+from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate
 from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import Target
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestConsolidateBlocks(QiskitTestCase):
@@ -517,7 +517,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         # The first two 'if' blocks here represent exactly the same operation as each other on the
         # outer bits, because in the second, the bit-order of the block is reversed, but so is the
         # order of the bits in the outer circuit that they're bound to, which makes them the same.
-        # The second two 'if' blocks also represnt the same operation as each other, but the 'first
+        # The second two 'if' blocks also represent the same operation as each other, but the 'first
         # two' and 'second two' pairs represent qubit-flipped operations.
         qc.if_test((0, False), body.copy(), qc.qubits, qc.clbits)
         qc.if_test((0, False), body.reverse_bits(), reversed(qc.qubits), qc.clbits)
@@ -552,6 +552,23 @@ class TestConsolidateBlocks(QiskitTestCase):
                 )
             )
         self.assertEqual(expected, actual)
+
+    def test_custom_no_target(self):
+        """Test pass doesn't fail with custom gate."""
+
+        class MyCustomGate(Gate):
+            """Custom gate."""
+
+            def __init__(self):
+                super().__init__(name="my_custom", num_qubits=2, params=[])
+
+        qc = QuantumCircuit(2)
+        qc.append(MyCustomGate(), [0, 1])
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        res = pm.run(qc)
+
+        self.assertEqual(res, qc)
 
 
 if __name__ == "__main__":

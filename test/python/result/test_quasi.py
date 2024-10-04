@@ -15,8 +15,8 @@ from math import sqrt
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.result import QuasiDistribution, marginal_distribution
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestQuasi(QiskitTestCase):

@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in :func:`.unitary_to_gate_sequence` which caused unitary
-    decomposition in RR basis to emit two R gates in some cases where the
-    matrix can be expressed as a single R gate. Previously, in those cases you
-    would get two R gates with the same phi parameter. Now, they are combined
-    into one.

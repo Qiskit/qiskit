@@ -123,8 +123,19 @@ class FloatType(ClassicalType, enum.Enum):
     OCT = 256
 
 
+class BoolType(ClassicalType):
+    """Type information for a Boolean."""
+
+
 class IntType(ClassicalType):
     """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class UintType(ClassicalType):
+    """Type information for an unsigned integer."""
 
     def __init__(self, size: Optional[int] = None):
         self.size = size
@@ -241,6 +252,8 @@ class Binary(Expression):
         GREATER_EQUAL = ">="
         EQUAL = "=="
         NOT_EQUAL = "!="
+        SHIFT_LEFT = "<<"
+        SHIFT_RIGHT = ">>"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -252,6 +265,12 @@ class Cast(Expression):
     def __init__(self, type: ClassicalType, operand: Expression):
         self.type = type
         self.operand = operand
+
+
+class Index(Expression):
+    def __init__(self, target: Expression, index: Expression):
+        self.target = target
+        self.index = index
 
 
 class IndexSet(ASTNode):
@@ -298,7 +317,7 @@ class Designator(ASTNode):
 
 
 class ClassicalDeclaration(Statement):
-    """Declaration of a classical type, optionally initialising it to a value."""
+    """Declaration of a classical type, optionally initializing it to a value."""
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_
@@ -437,39 +456,23 @@ class SubroutineBlock(ProgramBlock):
     pass
 
 
-class QuantumArgument(QuantumDeclaration):
-    """
-    quantumArgument
-        : 'qreg' Identifier designator? | 'qubit' designator? Identifier
-    """
-
-
-class QuantumGateSignature(ASTNode):
-    """
-    quantumGateSignature
-        : quantumGateName ( LPAREN identifierList? RPAREN )? identifierList
-    """
-
-    def __init__(
-        self,
-        name: Identifier,
-        qargList: List[Identifier],
-        params: Optional[List[Expression]] = None,
-    ):
-        self.name = name
-        self.qargList = qargList
-        self.params = params
-
-
 class QuantumGateDefinition(Statement):
     """
     quantumGateDefinition
         : 'gate' quantumGateSignature quantumBlock
     """
 
-    def __init__(self, quantumGateSignature: QuantumGateSignature, quantumBlock: QuantumBlock):
-        self.quantumGateSignature = quantumGateSignature
-        self.quantumBlock = quantumBlock
+    def __init__(
+        self,
+        name: Identifier,
+        params: Tuple[Identifier, ...],
+        qubits: Tuple[Identifier, ...],
+        body: QuantumBlock,
+    ):
+        self.name = name
+        self.params = params
+        self.qubits = qubits
+        self.body = body
 
 
 class SubroutineDefinition(Statement):
@@ -596,11 +599,32 @@ class DefaultCase(Expression):
     """An object representing the `default` special label in switch statements."""
 
 
-class SwitchStatement(Statement):
-    """AST node for the proposed 'switch-case' extension to OpenQASM 3."""
+class SwitchStatementPreview(Statement):
+    """AST node for the proposed 'switch-case' extension to OpenQASM 3, before the syntax was
+    stabilized.  This corresponds to the :attr:`.ExperimentalFeatures.SWITCH_CASE_V1` logic.
+
+    The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
 
     def __init__(
         self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
     ):
         self.target = target
         self.cases = [(tuple(values), case) for values, case in cases]
+
+
+class SwitchStatement(Statement):
+    """AST node for the stable 'switch' statement of OpenQASM 3.
+
+    The only real difference from an AST form is that the default is required to be separate; it
+    cannot be joined with other cases (even though that's meaningless, the V1 syntax permitted it).
+    """
+
+    def __init__(
+        self,
+        target: Expression,
+        cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]],
+        default: Optional[ProgramBlock] = None,
+    ):
+        self.target = target
+        self.cases = [(tuple(values), case) for values, case in cases]
+        self.default = default

@@ -18,8 +18,8 @@ from typing import List, Any
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -28,7 +28,8 @@ class BaseTestBlock(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
 
         self.test_waveform0 = pulse.Constant(100, 0.1)
         self.test_waveform1 = pulse.Constant(200, 0.1)
@@ -657,26 +658,6 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
         self.assertEqual(block.duration, 400)
 
-    def test_nested_parametrized_instructions(self):
-        """Test parameters of nested schedule can be assigned."""
-        test_waveform = pulse.Constant(100, self.amp0)
-
-        param_sched = pulse.Schedule(pulse.Play(test_waveform, self.d0))
-        with self.assertWarns(DeprecationWarning):
-            call_inst = pulse.instructions.Call(param_sched)
-
-        sub_block = pulse.ScheduleBlock()
-        sub_block += call_inst
-
-        block = pulse.ScheduleBlock()
-        block += sub_block
-
-        self.assertTrue(block.is_parameterized())
-
-        # assign durations
-        block = block.assign_parameters({self.amp0: 0.1})
-        self.assertFalse(block.is_parameterized())
-
     def test_equality_of_parametrized_channels(self):
         """Test check equality of blocks involving parametrized channels."""
         par_ch = circuit.Parameter("ch")
@@ -775,11 +756,11 @@ class TestBlockFilter(BaseTestBlock):
             with pulse.align_sequential():
                 pulse.play(self.test_waveform0, self.d0)
                 pulse.delay(5, self.d0)
-
-                with pulse.build(self.backend) as cx_blk:
-                    pulse.cx(0, 1)
-
-                pulse.call(cx_blk)
+                pulse.call(
+                    self.backend.defaults()
+                    .instruction_schedule_map._get_calibration_entry("cx", (0, 1))
+                    .get_schedule()
+                )
 
         for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
             filtered_blk = self._filter_and_test_consistency(blk, channels=[ch])

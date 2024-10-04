@@ -14,15 +14,12 @@
 """Test Qiskit's repeat instruction operation."""
 
 import unittest
-from numpy import pi
 
-from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import SGate, U3Gate, CXGate, UnitaryGate
+from qiskit.circuit.library import SGate, CXGate, UnitaryGate
 from qiskit.circuit import Instruction, Measure, Gate
-from qiskit.transpiler.passes import Unroller
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRepeatInt1Q(QiskitTestCase):
@@ -55,6 +52,18 @@ class TestRepeatInt1Q(QiskitTestCase):
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
+    def test_conditional(self):
+        """Test that repetition works with a condition."""
+        cr = ClassicalRegister(3, "cr")
+        gate = SGate().c_if(cr, 7).repeat(5)
+        self.assertEqual(gate.condition, (cr, 7))
+
+        defn = QuantumCircuit(1)
+        for _ in range(5):
+            # No conditions on the inner bit.
+            defn.s(0)
+        self.assertEqual(gate.definition, defn)
+
 
 class TestRepeatInt2Q(QiskitTestCase):
     """Test gate_q2.repeat() with integer"""
@@ -85,6 +94,18 @@ class TestRepeatInt2Q(QiskitTestCase):
         self.assertEqual(result.name, "cx*1")
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
+
+    def test_conditional(self):
+        """Test that repetition works with a condition."""
+        cr = ClassicalRegister(3, "cr")
+        gate = CXGate().c_if(cr, 7).repeat(5)
+        self.assertEqual(gate.condition, (cr, 7))
+
+        defn = QuantumCircuit(2)
+        for _ in range(5):
+            # No conditions on the inner bit.
+            defn.cx(0, 1)
+        self.assertEqual(gate.definition, defn)
 
 
 class TestRepeatIntMeasure(QiskitTestCase):
@@ -121,38 +142,17 @@ class TestRepeatIntMeasure(QiskitTestCase):
         self.assertIsInstance(result, Instruction)
         self.assertNotIsInstance(result, Gate)
 
+    def test_measure_conditional(self):
+        """Test conditional measure moves condition to the outside."""
+        cr = ClassicalRegister(3, "cr")
+        measure = Measure().c_if(cr, 7).repeat(5)
+        self.assertEqual(measure.condition, (cr, 7))
 
-class TestRepeatUnroller(QiskitTestCase):
-    """Test unrolling Gate.repeat"""
-
-    def test_unroller_two(self):
-        """Test unrolling gate.repeat(2)."""
-        qr = QuantumRegister(1, "qr")
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().repeat(2), [qr[0]])
-        with self.assertWarns(DeprecationWarning):
-            result = PassManager(Unroller("u3")).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_one(self):
-        """Test unrolling gate.repeat(1)."""
-        qr = QuantumRegister(1, "qr")
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().repeat(1), [qr[0]])
-        with self.assertWarns(DeprecationWarning):
-            result = PassManager(Unroller("u3")).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
+        defn = QuantumCircuit(1, 1)
+        for _ in range(5):
+            # No conditions on the inner bit.
+            defn.measure(0, 0)
+        self.assertEqual(measure.definition, defn)
 
 
 class TestRepeatErrors(QiskitTestCase):

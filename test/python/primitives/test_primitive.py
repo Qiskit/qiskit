@@ -21,8 +21,8 @@ from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _circuit_key
-from qiskit.providers.fake_provider import FakeAlmaden
-from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -142,7 +142,11 @@ class TestCircuitKey(QiskitTestCase):
                 qc = QuantumCircuit(1)
                 qc.x(0)
                 qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
-                return transpile(qc, FakeAlmaden(), scheduling_method="alap")
+
+                backend = GenericBackendV2(
+                    num_qubits=2, basis_gates=["id", "u1", "u2", "u3", "cx"], seed=42
+                )
+                return transpile(qc, backend, scheduling_method="alap", optimization_level=1)
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :class:`.Parameter` was updated so that instances that compare equal always
+    have the same hash. Previously, only the :attr:`.Parameter.uuid` was
+    compared, so :class:`.Paramemter` instances with different names could
+    compare equal if they had been constructed using a common value for the
+    ``uuid`` parameter (which is usually not passed explicitly).

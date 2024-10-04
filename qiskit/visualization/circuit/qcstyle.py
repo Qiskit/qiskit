@@ -10,369 +10,27 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""mpl circuit visualization style."""
+"""Matplotlib circuit visualization style."""
+
+from __future__ import annotations
 
 import json
 import os
+from typing import Any
+from pathlib import Path
 from warnings import warn
-
 
 from qiskit import user_config
 
 
-class DefaultStyle:
-    """Creates a Default Style dictionary
+class StyleDict(dict):
+    """A dictionary for matplotlib styles.
 
-    **Style Dict Details**
-
-    The style dict contains numerous options that define the style of the
-    output circuit visualization. The style dict is used by the `mpl` or
-    `latex` output. The options available in the style dict are defined below:
-
-    name (str): the name of the style. The name can be set to ``iqp``,
-        ``iqp-dark``, ``textbook``, ``bw``, ``clifford``, or the name of a
-        user-created json file. This overrides the setting in the user config
-        file (usually ``~/.qiskit/settings.conf``).
-
-    textcolor (str): the color code to use for all text not inside a gate.
-        Defaults to ``#000000``
-
-    subtextcolor (str): the color code to use for subtext. Defaults to
-        ``#000000``
-
-    linecolor (str): the color code to use for lines. Defaults to
-        ``#000000``
-
-    creglinecolor (str): the color code to use for classical register
-        lines. Defaults to ``#778899``
-
-    gatetextcolor (str): the color code to use for gate text. Defaults to
-        ``#000000``
-
-    gatefacecolor (str): the color code to use for a gate if no color
-        specified in the 'displaycolor' dict. Defaults to ``#BB8BFF``
-
-    barrierfacecolor (str): the color code to use for barriers. Defaults to
-        ``#BDBDBD``
-
-    backgroundcolor (str): the color code to use for the background.
-        Defaults to ``#FFFFFF``
-
-    edgecolor (str): the color code to use for gate edges when using the
-        `bw` style. Defaults to ``#000000``.
-
-    fontsize (int): the font size to use for text. Defaults to 13.
-
-    subfontsize (int): the font size to use for subtext. Defaults to 8.
-
-    showindex (bool): if set to True, show the index numbers at the top.
-        Defaults to False.
-
-    figwidth (int): the maximum width (in inches) for the output figure.
-        If set to -1, the maximum displayable width will be used.
-        Defaults to -1.
-
-    dpi (int): the DPI to use for the output image. Defaults to 150.
-
-    margin (list): a list of margin values to adjust spacing around output
-        image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
-        Defaults to [2.0, 0.1, 0.1, 0.3].
-
-    creglinestyle (str): The style of line to use for classical registers.
-        Choices are ``solid``, ``doublet``, or any valid matplotlib
-        `linestyle` kwarg value. Defaults to ``doublet``.
-
-    displaytext (dict): a dictionary of the text to use for certain element
-        types in the output visualization. These items allow the use of
-        LaTeX formatting for gate names. The 'displaytext' dict can contain
-        any number of elements. User created names and labels may be used as
-        keys, which allow these to have Latex formatting. The default
-        values are (`default.json`)::
-
-            {
-                'u1': 'U_1',
-                'u2': 'U_2',
-                'u3': 'U_3',
-                'sdg': 'S^\\dagger',
-                'sx': '\\sqrt{X}',
-                'sxdg': '\\sqrt{X}^\\dagger',
-                't': 'T',
-                'tdg': 'T^\\dagger',
-                'dcx': 'Dcx',
-                'iswap': 'Iswap',
-                'ms': 'MS',
-                'rx': 'R_X',
-                'ry': 'R_Y',
-                'rz': 'R_Z',
-                'rxx': 'R_{XX}',
-                'ryy': 'R_{YY}',
-                'rzx': 'R_{ZX}',
-                'rzz': 'ZZ',
-                'reset': '\\left|0\\right\\rangle',
-                'initialize': '|\\psi\\rangle'
-            }
-
-    displaycolor (dict): the color codes to use for each circuit element in
-        the form (gate_color, text_color). Colors can also be entered without
-        the text color, such as 'u1': '#FA74A6', in which case the text color
-        will always be `gatetextcolor`. The `displaycolor` dict can contain
-        any number of elements. User names and labels may be used as keys,
-        which allows for custom colors for user-created gates. The default
-        values are (`default.json`)::
-
-            {
-                'u1': ('#FA74A6', '#000000'),
-                'u2': ('#FA74A6', '#000000'),
-                'u3': ('#FA74A6', '#000000'),
-                'id': ('#05BAB6', '#000000'),
-                'u': ('#BB8BFF', '#000000'),
-                'p': ('#BB8BFF', '#000000'),
-                'x': ('#05BAB6', '#000000'),
-                'y': ('#05BAB6', '#000000'),
-                'z': ('#05BAB6', '#000000'),
-                'h': ('#6FA4FF', '#000000'),
-                'cx': ('#6FA4FF', '#000000'),
-                'ccx': ('#BB8BFF', '#000000'),
-                'mcx': ('#BB8BFF', '#000000'),
-                'mcx_gray': ('#BB8BFF', '#000000'),
-                'cy': ('#6FA4FF', '#000000'),
-                'cz': ('#6FA4FF', '#000000'),
-                'swap': ('#6FA4FF', '#000000'),
-                'cswap': ('#BB8BFF', '#000000'),
-                'ccswap': ('#BB8BFF', '#000000'),
-                'dcx': ('#6FA4FF', '#000000'),
-                'cdcx': ('#BB8BFF', '#000000'),
-                'ccdcx': ('#BB8BFF', '#000000'),
-                'iswap': ('#6FA4FF', '#000000'),
-                's': ('#6FA4FF', '#000000'),
-                'sdg': ('#6FA4FF', '#000000'),
-                't': ('#BB8BFF', '#000000'),
-                'tdg': ('#BB8BFF', '#000000'),
-                'sx': ('#6FA4FF', '#000000'),
-                'sxdg': ('#6FA4FF', '#000000')
-                'r': ('#BB8BFF', '#000000'),
-                'rx': ('#BB8BFF', '#000000'),
-                'ry': ('#BB8BFF', '#000000'),
-                'rz': ('#BB8BFF', '#000000'),
-                'rxx': ('#BB8BFF', '#000000'),
-                'ryy': ('#BB8BFF', '#000000'),
-                'rzx': ('#BB8BFF', '#000000'),
-                'reset': ('#000000', '#FFFFFF'),
-                'target': ('#FFFFFF', '#FFFFFF'),
-                'measure': ('#000000', '#FFFFFF'),
-            }
-
+    Defines additional abbreviations for key accesses, such as allowing
+    ``"ec"`` instead of writing ``"edgecolor"``.
     """
 
-    def __init__(self):
-        colors = {
-            "### Default Colors": "Default Colors",
-            "basis": "#FA74A6",  # Red
-            "clifford": "#6FA4FF",  # Light Blue
-            "pauli": "#05BAB6",  # Green
-            "def_other": "#BB8BFF",  # Purple
-            "### IQP Colors": "IQP Colors",
-            "classical": "#002D9C",  # Dark Blue
-            "phase": "#33B1FF",  # Cyan
-            "hadamard": "#FA4D56",  # Light Red
-            "non_unitary": "#A8A8A8",  # Medium Gray
-            "iqp_other": "#9F1853",  # Dark Red
-            "### B/W": "B/W",
-            "black": "#000000",
-            "white": "#FFFFFF",
-            "dark_gray": "#778899",
-            "light_gray": "#BDBDBD",
-        }
-        self.style = {
-            "name": "default",
-            "tc": colors["black"],  # Non-gate Text Color
-            "gt": colors["black"],  # Gate Text Color
-            "sc": colors["black"],  # Gate Subtext Color
-            "lc": colors["black"],  # Line Color
-            "cc": colors["dark_gray"],  # creg Line Color
-            "gc": colors["def_other"],  # Default Gate Color
-            "bc": colors["light_gray"],  # Barrier Color
-            "bg": colors["white"],  # Background Color
-            "ec": None,  # Edge Color (B/W only)
-            "fs": 13,  # Gate Font Size
-            "sfs": 8,  # Subtext Font Size
-            "index": False,
-            "figwidth": -1,
-            "dpi": 150,
-            "margin": [2.0, 0.1, 0.1, 0.3],
-            "cline": "doublet",
-            "disptex": {
-                "u1": "U_1",
-                "u2": "U_2",
-                "u3": "U_3",
-                "id": "I",
-                "sdg": "S^\\dagger",
-                "sx": "\\sqrt{X}",
-                "sxdg": "\\sqrt{X}^\\dagger",
-                "tdg": "T^\\dagger",
-                "ms": "MS",
-                "rx": "R_X",
-                "ry": "R_Y",
-                "rz": "R_Z",
-                "rxx": "R_{XX}",
-                "ryy": "R_{YY}",
-                "rzx": "R_{ZX}",
-                "rzz": "ZZ",
-                "reset": "\\left|0\\right\\rangle",
-                "initialize": "$|\\psi\\rangle$",
-            },
-            "dispcol": {
-                "u1": (colors["basis"], colors["black"]),
-                "u2": (colors["basis"], colors["black"]),
-                "u3": (colors["basis"], colors["black"]),
-                "u": (colors["def_other"], colors["black"]),
-                "p": (colors["def_other"], colors["black"]),
-                "id": (colors["pauli"], colors["black"]),
-                "x": (colors["pauli"], colors["black"]),
-                "y": (colors["pauli"], colors["black"]),
-                "z": (colors["pauli"], colors["black"]),
-                "h": (colors["clifford"], colors["black"]),
-                "cx": (colors["clifford"], colors["black"]),
-                "ccx": (colors["def_other"], colors["black"]),
-                "mcx": (colors["def_other"], colors["black"]),
-                "mcx_gray": (colors["def_other"], colors["black"]),
-                "cy": (colors["clifford"], colors["black"]),
-                "cz": (colors["clifford"], colors["black"]),
-                "swap": (colors["clifford"], colors["black"]),
-                "cswap": (colors["def_other"], colors["black"]),
-                "ccswap": (colors["def_other"], colors["black"]),
-                "dcx": (colors["clifford"], colors["black"]),
-                "cdcx": (colors["def_other"], colors["black"]),
-                "ccdcx": (colors["def_other"], colors["black"]),
-                "iswap": (colors["clifford"], colors["black"]),
-                "s": (colors["clifford"], colors["black"]),
-                "sdg": (colors["clifford"], colors["black"]),
-                "t": (colors["def_other"], colors["black"]),
-                "tdg": (colors["def_other"], colors["black"]),
-                "sx": (colors["clifford"], colors["black"]),
-                "sxdg": (colors["clifford"], colors["black"]),
-                "r": (colors["def_other"], colors["black"]),
-                "rx": (colors["def_other"], colors["black"]),
-                "ry": (colors["def_other"], colors["black"]),
-                "rz": (colors["def_other"], colors["black"]),
-                "rxx": (colors["def_other"], colors["black"]),
-                "ryy": (colors["def_other"], colors["black"]),
-                "rzx": (colors["def_other"], colors["black"]),
-                "reset": (colors["black"], colors["white"]),
-                "target": (colors["white"], colors["white"]),
-                "measure": (colors["black"], colors["white"]),
-            },
-        }
-
-
-def load_style(style):
-    """Utility function to load style from json files and call set_style."""
-    current_style = DefaultStyle().style
-    style_name = "default"
-    def_font_ratio = current_style["fs"] / current_style["sfs"]
-
-    config = user_config.get_config()
-    if style is None:
-        if config:
-            style = config.get("circuit_mpl_style", "default")
-        else:
-            style = "default"
-
-    if style == "default":
-        warn(
-            'The default matplotlib drawer scheme will be changed to "iqp" in a following release. '
-            'To silence this warning, specify the current default explicitly as style="clifford", '
-            'or the new default as style="iqp".',
-            category=FutureWarning,
-            stacklevel=2,
-        )
-
-    if style is False:
-        style_name = "bw"
-    elif isinstance(style, dict) and "name" in style:
-        style_name = style["name"]
-    elif isinstance(style, str):
-        style_name = style
-    elif not isinstance(style, (str, dict)):
-        warn(
-            f"style parameter '{style}' must be a str or a dictionary. Will use default style.",
-            UserWarning,
-            2,
-        )
-    if style_name.endswith(".json"):
-        style_name = style_name[:-5]
-
-    # Alias IQP<->IQX, where we hardcode both "iqx" and "iqx-dark" instead of only replacing the
-    # first three letters, in case users have a custom name starting with "iqx" too.
-    # Also replace "default" with the new name "clifford".
-    replacements = {"iqx": "iqp", "iqx-dark": "iqp-dark", "default": "clifford"}
-    if style_name in replacements.keys():
-        if style_name[:3] == "iqx":
-            warn(
-                'The "iqx" and "iqx-dark" matplotlib drawer schemes are pending deprecation and will '
-                'be deprecated in a future release. Instead, use "iqp" and "iqp-dark".',
-                category=PendingDeprecationWarning,
-                stacklevel=2,
-            )
-
-        style_name = replacements[style_name]
-
-    # Search for file in 'styles' dir, then config_path, and finally 'cwd'
-    style_path = []
-    if style_name != "clifford":
-        style_name = style_name + ".json"
-        spath = os.path.dirname(os.path.abspath(__file__))
-        style_path.append(os.path.join(spath, "styles", style_name))
-        if config:
-            config_path = config.get("circuit_mpl_style_path", "")
-            if config_path:
-                for path in config_path:
-                    style_path.append(os.path.normpath(os.path.join(path, style_name)))
-        style_path.append(os.path.normpath(os.path.join("", style_name)))
-
-        for path in style_path:
-            exp_user = os.path.expanduser(path)
-            if os.path.isfile(exp_user):
-                try:
-                    with open(exp_user) as infile:
-                        json_style = json.load(infile)
-                    set_style(current_style, json_style)
-                    break
-                except json.JSONDecodeError as err:
-                    warn(
-                        f"Could not decode JSON in file '{path}': {str(err)}. "
-                        "Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-                except (OSError, FileNotFoundError):
-                    warn(
-                        f"Error loading JSON file '{path}'. Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-        else:
-            warn(
-                f"Style JSON file '{style_name}' not found in any of these locations: "
-                f"{', '.join(style_path)}. "
-                "Will use default style.",
-                UserWarning,
-                2,
-            )
-
-    if isinstance(style, dict):
-        set_style(current_style, style)
-
-    return current_style, def_font_ratio
-
-
-def set_style(current_style, new_style):
-    """Utility function to take elements in new_style and
-    write them into current_style.
-    """
-    valid_fields = {
+    VALID_FIELDS = {
         "name",
         "textcolor",
         "gatetextcolor",
@@ -394,27 +52,227 @@ def set_style(current_style, new_style):
         "displaycolor",
     }
 
-    current_style.update(new_style)
-    current_style["tc"] = current_style.get("textcolor", current_style["tc"])
-    current_style["gt"] = current_style.get("gatetextcolor", current_style["gt"])
-    current_style["sc"] = current_style.get("subtextcolor", current_style["sc"])
-    current_style["lc"] = current_style.get("linecolor", current_style["lc"])
-    current_style["cc"] = current_style.get("creglinecolor", current_style["cc"])
-    current_style["gc"] = current_style.get("gatefacecolor", current_style["gc"])
-    current_style["bc"] = current_style.get("barrierfacecolor", current_style["bc"])
-    current_style["bg"] = current_style.get("backgroundcolor", current_style["bg"])
-    current_style["ec"] = current_style.get("edgecolor", current_style["ec"])
-    current_style["fs"] = current_style.get("fontsize", current_style["fs"])
-    current_style["sfs"] = current_style.get("subfontsize", current_style["sfs"])
-    current_style["index"] = current_style.get("showindex", current_style["index"])
-    current_style["cline"] = current_style.get("creglinestyle", current_style["cline"])
-    current_style["disptex"] = {**current_style["disptex"], **new_style.get("displaytext", {})}
-    current_style["dispcol"] = {**current_style["dispcol"], **new_style.get("displaycolor", {})}
+    ABBREVIATIONS = {
+        "tc": "textcolor",
+        "gt": "gatetextcolor",
+        "sc": "subtextcolor",
+        "lc": "linecolor",
+        "cc": "creglinecolor",
+        "gc": "gatefacecolor",
+        "bc": "barrierfacecolor",
+        "bg": "backgroundcolor",
+        "ec": "edgecolor",
+        "fs": "fontsize",
+        "sfs": "subfontsize",
+        "index": "showindex",
+        "cline": "creglinestyle",
+        "disptex": "displaytext",
+        "dispcol": "displaycolor",
+    }
 
-    unsupported_keys = set(new_style) - valid_fields
-    if unsupported_keys:
+    def __setitem__(self, key: Any, value: Any) -> None:
+        # allow using field abbreviations
+        if key in self.ABBREVIATIONS:
+            key = self.ABBREVIATIONS[key]
+
+        if key not in self.VALID_FIELDS:
+            warn(
+                f"style option ({key}) is not supported",
+                UserWarning,
+                2,
+            )
+        return super().__setitem__(key, value)
+
+    def __getitem__(self, key: Any) -> Any:
+        # allow using field abbreviations
+        if key in self.ABBREVIATIONS:
+            key = self.ABBREVIATIONS[key]
+
+        return super().__getitem__(key)
+
+    def update(self, other):
+        # the attributes "displaycolor" and "displaytext" are dictionaries
+        # themselves, therefore we need to propagate the update down to them
+        nested_attrs = {"displaycolor", "displaytext"}
+        for attr in nested_attrs.intersection(other.keys()):
+            if attr in self.keys():
+                self[attr].update(other[attr])
+            else:
+                self[attr] = other[attr]
+
+        super().update((key, value) for key, value in other.items() if key not in nested_attrs)
+
+
+class DefaultStyle:
+    """Creates a Default Style dictionary
+
+    The style dict contains numerous options that define the style of the
+    output circuit visualization. The style dict is used by the `mpl` or
+    `latex` output. The options available in the style dict are defined below:
+
+    Attributes:
+        name (str): The name of the style. The name can be set to ``iqp``,
+            ``iqp-dark``, ``textbook``, ``bw``, ``clifford``, or the name of a
+            user-created json file. This overrides the setting in the user config
+            file (usually ``~/.qiskit/settings.conf``).
+        textcolor (str): the color code to use for all text not inside a gate.
+        subtextcolor (str): the color code to use for subtext.
+        linecolor (str): the color code to use for lines.
+        creglinecolor (str): The color code to use for classical register lines.
+        gatetextcolor (str): The color code to use for gate text.
+        gatefacecolor (str): The color code to use for a gate if no color
+            specified in the 'displaycolor' dict.
+        barrierfacecolor (str): The color code to use for barriers.
+        backgroundcolor (str): The color code to use for the background.
+        edgecolor (str): The color code to use for gate edges when using the
+            `bw` style.
+        fontsize (int): The font size to use for text.
+        subfontsize (int): The font size to use for subtext.
+        showindex (bool): If set to True, show the index numbers at the top.
+        figwidth (int): The maximum width (in inches) for the output figure.
+            If set to -1, the maximum displayable width will be used.
+        dpi (int): The DPI to use for the output image.
+        margin (list): A list of margin values to adjust spacing around output
+            image. Takes a list of 4 ints: [x left, x right, y bottom, y top].
+        creglinestyle (str): The style of line to use for classical registers.
+            Choices are ``solid``, ``doublet``, or any valid matplotlib
+            `linestyle` kwarg value.
+        displaytext (dict): a dictionary of the text to use for certain element
+            types in the output visualization. These items allow the use of
+            LaTeX formatting for gate names. The 'displaytext' dict can contain
+            any number of elements. User created names and labels may be used as
+            keys, which allow these to have Latex formatting.
+        displaycolor (dict): the color codes to use for each circuit element in
+            the form (gate_color, text_color). Colors can also be entered without
+            the text color, such as 'u1': '#FA74A6', in which case the text color
+            will always be `gatetextcolor`. The `displaycolor` dict can contain
+            any number of elements. User names and labels may be used as keys,
+            which allows for custom colors for user-created gates.
+    """
+
+    def __init__(self):
+        default_style_dict = "iqp.json"
+        path = Path(__file__).parent / "styles" / default_style_dict
+
+        with open(path, "r") as infile:
+            default_style = json.load(infile)
+
+        # set shortcuts, such as "ec" for "edgecolor"
+        self.style = StyleDict(**default_style)
+
+
+def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
+    """Utility function to load style from json files.
+
+    Args:
+        style: Depending on the type, this acts differently:
+
+            * If a string, it can specify a supported style name (such
+              as "iqp" or "clifford"). It can also specify the name of
+              a custom color scheme stored as JSON file. This JSON file
+              _must_ specify a complete set of colors.
+            * If a dictionary, it may specify the style name via a
+              ``{"name": "<desired style>"}`` entry. If this is not given,
+              the default style will be used. The remaining entries in the
+              dictionary can be used to override certain specs.
+              E.g. ``{"name": "iqp", "ec": "#FF0000"}`` will use the ``"iqp"``
+              color scheme but set the edgecolor to red.
+
+    Returns:
+        A tuple containing the style as dictionary and the default font ratio.
+    """
+
+    # if the style is not given, try to load the configured default (if set),
+    # or use the default style
+    config = user_config.get_config()
+    if style is None:
+        if config:
+            style = config.get("circuit_mpl_style", "default")
+        else:
+            style = "default"
+
+    # determine the style name which could also be inside a dictionary, like
+    # style={"name": "clifford", <other settings...>}
+    if isinstance(style, dict):
+        style_name = style.get("name", "default")
+    elif isinstance(style, str):
+        if style.endswith(".json"):
+            style_name = style[:-5]
+        else:
+            style_name = style
+    else:
         warn(
-            f"style option/s ({', '.join(unsupported_keys)}) is/are not supported",
+            f'Unsupported style parameter "{style}" of type {type(style)}. '
+            "Will use the default style.",
             UserWarning,
             2,
         )
+        style_name = "default"
+
+    if style_name in ["iqp", "default"]:
+        current_style = DefaultStyle().style
+    else:
+        # Search for file in 'styles' dir, then config_path, and finally the current directory
+        style_name = style_name + ".json"
+        style_paths = []
+
+        default_path = Path(__file__).parent / "styles" / style_name
+        style_paths.append(default_path)
+
+        # check configured paths, if there are any
+        if config:
+            config_path = config.get("circuit_mpl_style_path", "")
+            if config_path:
+                for path in config_path:
+                    style_paths.append(Path(path) / style_name)
+
+        # check current directory
+        cwd_path = Path("") / style_name
+        style_paths.append(cwd_path)
+
+        for path in style_paths:
+            # expand ~ to the user directory and check if the file exists
+            exp_user = path.expanduser()
+            if os.path.isfile(exp_user):
+                try:
+                    with open(exp_user) as infile:
+                        json_style = json.load(infile)
+
+                    current_style = StyleDict(json_style)
+                    break
+                except json.JSONDecodeError as err:
+                    warn(
+                        f"Could not decode JSON in file '{path}': {str(err)}. "
+                        "Will use default style.",
+                        UserWarning,
+                        2,
+                    )
+                    break
+                except (OSError, FileNotFoundError):
+                    warn(
+                        f"Error loading JSON file '{path}'. Will use default style.",
+                        UserWarning,
+                        2,
+                    )
+                    break
+        else:
+            warn(
+                f"Style JSON file '{style_name}' not found in any of these locations: "
+                f"{', '.join(map(str, style_paths))}. "
+                "Will use default style.",
+                UserWarning,
+                2,
+            )
+            current_style = DefaultStyle().style
+
+    # if the style is a dictionary, update the defaults with the new values
+    # this _needs_ to happen after loading by name to cover cases like
+    #   style = {"name": "bw", "edgecolor": "#FF0000"}
+    if isinstance(style, dict):
+        current_style.update(style)
+
+    # this is the default font ratio
+    # if the font- or subfont-sizes are changed, the new size is based on this ratio
+    def_font_ratio = 13 / 8
+
+    return current_style, def_font_ratio

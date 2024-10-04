@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import cmath
+import math
 import numpy as np
 
 from qiskit.circuit.gate import Gate
@@ -87,7 +88,7 @@ class Diagonal(QuantumCircuit):
                 number of qubits.
         """
         self._check_input(diag)
-        num_qubits = int(np.log2(len(diag)))
+        num_qubits = int(math.log2(len(diag)))
 
         circuit = QuantumCircuit(num_qubits, name="Diagonal")
 
@@ -100,7 +101,7 @@ class Diagonal(QuantumCircuit):
             for i in range(0, n, 2):
                 diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
                 angles_rz.append(rz_angle)
-            num_act_qubits = int(np.log2(n))
+            num_act_qubits = int(math.log2(n))
             ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
             target_qubit = num_qubits - num_act_qubits
 
@@ -118,7 +119,7 @@ class Diagonal(QuantumCircuit):
         """Check if ``diag`` is in valid format."""
         if not isinstance(diag, (list, np.ndarray)):
             raise CircuitError("Diagonal entries must be in a list or numpy array.")
-        num_qubits = np.log2(len(diag))
+        num_qubits = math.log2(len(diag))
         if num_qubits < 1 or not num_qubits.is_integer():
             raise CircuitError("The number of diagonal entries is not a positive power of 2.")
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
@@ -134,7 +135,7 @@ class DiagonalGate(Gate):
             diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
         """
         Diagonal._check_input(diag)
-        num_qubits = int(np.log2(len(diag)))
+        num_qubits = int(math.log2(len(diag)))
 
         super().__init__("diagonal", num_qubits, diag)
 
@@ -149,7 +150,7 @@ class DiagonalGate(Gate):
         else:
             return complex(super().validate_parameter(parameter))
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the inverse of the diagonal gate."""
         return DiagonalGate([np.conj(entry) for entry in self.params])
 

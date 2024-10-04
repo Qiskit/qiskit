@@ -12,6 +12,8 @@
 
 """The S, Sdg, CS and CSdg gates."""
 
+from __future__ import annotations
+
 from math import pi
 from typing import Optional, Union
 
@@ -20,6 +22,7 @@ import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _S_ARRAY = numpy.array([[1, 0], [0, 1j]])
@@ -57,6 +60,8 @@ class SGate(SingletonGate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.SGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
         super().__init__("s", 1, [], label=label, duration=duration, unit=unit)
@@ -80,15 +85,60 @@ class SGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse of S (SdgGate)."""
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-S gate.
+
+        One control qubit returns a :class:`.CSGate`.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CSGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse of S (SdgGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SdgGate`.
+
+        Returns:
+            SdgGate: inverse of :class:`.SGate`
+        """
         return SdgGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import PhaseGate
 
         return PhaseGate(0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SGate)
 
 
 @with_gate_array(_SDG_ARRAY)
@@ -122,6 +172,8 @@ class SdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.SdgGate
+
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
         super().__init__("sdg", 1, [], label=label, duration=duration, unit=unit)
@@ -145,15 +197,60 @@ class SdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse of Sdg (SGate)."""
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a (multi-)controlled-Sdg gate.
+
+        One control qubit returns a :class:`.CSdgGate`.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CSdgGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse of Sdg (SGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SGate`.
+
+        Returns:
+            SGate: inverse of :class:`.SdgGate`
+        """
         return SGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import PhaseGate
 
         return PhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SdgGate)
 
 
 @with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
@@ -185,6 +282,8 @@ class CSGate(SingletonControlledGate):
                 0 & 0 & 0 & i
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CSGate
 
     def __init__(
         self,
@@ -219,15 +318,27 @@ class CSGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=pi / 2).definition
 
-    def inverse(self):
-        """Return inverse of CSGate (CSdgGate)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse of CSGate (CSdgGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSdgGate`.
+
+        Returns:
+            CSdgGate: inverse of :class:`.CSGate`
+        """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
         return CPhaseGate(0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
@@ -259,6 +370,8 @@ class CSdgGate(SingletonControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.CSdgGate
 
     def __init__(
         self,
@@ -292,12 +405,24 @@ class CSdgGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
-    def inverse(self):
-        """Return inverse of CSdgGate (CSGate)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse of CSdgGate (CSGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSGate`.
+
+        Returns:
+            CSGate: inverse of :class:`.CSdgGate`
+        """
         return CSGate(ctrl_state=self.ctrl_state)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
         return CPhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSdgGate) and self.ctrl_state == other.ctrl_state

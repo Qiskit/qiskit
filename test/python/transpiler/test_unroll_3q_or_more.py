@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test the Unroll3qOrMore pass"""
+
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -20,8 +21,8 @@ from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Target
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnroll3qOrMore(QiskitTestCase):

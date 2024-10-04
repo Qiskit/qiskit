@@ -30,8 +30,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -448,7 +447,9 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             representation to satisfy PadDynamicalDecoupling's check.
             """
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None, copy=None):
+                if copy is False:
+                    raise ValueError("cannot produce matrix without calculation")
                 return np.eye(2, dtype=dtype)
 
         # A gate with one unbound and one bound parameter to leave in the final
@@ -1049,6 +1050,23 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         )
 
         self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
+
+    def test_misalignment_at_boundaries(self):
+        """Test the correct error message is raised for misalignments at In/Out nodes."""
+        # a circuit where the previous node is DAGInNode, and the next DAGOutNode
+        circuit = QuantumCircuit(1)
+        circuit.delay(101)
+
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, pulse_alignment=2),
+            ]
+        )
+
+        with self.assertRaises(TranspilerError):
+            _ = pm.run(circuit)
 
 
 if __name__ == "__main__":

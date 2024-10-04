@@ -65,8 +65,6 @@ Exceptions
 from qiskit.pulse.builder import (
     # Construction methods.
     active_backend,
-    active_transpiler_settings,
-    active_circuit_scheduler_settings,
     build,
     num_qubits,
     qubit_channels,
@@ -95,21 +93,13 @@ from qiskit.pulse.builder import (
     align_left,
     align_right,
     align_sequential,
-    circuit_scheduler_settings,
     frequency_offset,
     phase_offset,
-    transpiler_settings,
     # Macros.
     macro,
     measure,
     measure_all,
     delay_qubits,
-    # Circuit instructions.
-    cx,
-    u1,
-    u2,
-    u3,
-    x,
 )
 from qiskit.pulse.channels import (
     AcquireChannel,
@@ -136,7 +126,6 @@ from qiskit.pulse.exceptions import (
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,
-    Call,
     Delay,
     Instruction,
     Play,
@@ -161,7 +150,6 @@ from qiskit.pulse.library import (
     GaussianDeriv,
     Sech,
     SechDeriv,
-    ParametricPulse,
     SymbolicPulse,
     ScalableSymbolicPulse,
     Waveform,

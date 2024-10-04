@@ -22,13 +22,14 @@ from qiskit.circuit import (
     WhileLoopOp,
     SwitchCaseOp,
     CASE_DEFAULT,
+    Store,
 )
 from qiskit.circuit.classical import expr, types
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGCircuitError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.test import QiskitTestCase
 from qiskit.pulse import Schedule
 from qiskit.circuit.gate import Gate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDagCompose(QiskitTestCase):
@@ -539,6 +540,91 @@ class TestDagCompose(QiskitTestCase):
         )
 
         self.assertEqual(dest, circuit_to_dag(expected))
+
+    def test_join_unrelated_dags(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_input_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source)
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_declared_var(b)
+        expected.add_input_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_join_unrelated_dags_captures(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        dest = DAGCircuit()
+        dest.add_captured_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_captured_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=False)
+
+        expected = DAGCircuit()
+        expected.add_captured_var(a)
+        expected.add_declared_var(b)
+        expected.add_captured_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_inline_capture_var(self):
+        """Should be able to append uses onto another DAG."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.add_input_var(b)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_captured_var(b)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=True)
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_reject_inline_to_nonexistent_var(self):
+        """Should not be able to inline a variable that doesn't exist."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_captured_var(b)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "Variable '.*' to be inlined is not in the base DAG"
+        ):
+            dest.compose(source, inline_captures=True)
 
     def test_compose_calibrations(self):
         """Test that compose carries over the calibrations."""

@@ -15,10 +15,12 @@
 import unittest
 from unittest.mock import patch
 import numpy as np
+import symengine as sym
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.library import (
     SymbolicPulse,
+    ScalableSymbolicPulse,
     Waveform,
     Constant,
     Gaussian,
@@ -35,15 +37,8 @@ from qiskit.pulse.library import (
     Sech,
     SechDeriv,
 )
-
 from qiskit.pulse import functional_pulse, PulseError
-from qiskit.test import QiskitTestCase
-from qiskit.utils import optionals as _optional
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestWaveform(QiskitTestCase):
@@ -127,11 +122,11 @@ class TestWaveform(QiskitTestCase):
             self.fail("Waveform incorrectly failed to approximately unit norm samples.")
 
 
-class TestParametricPulses(QiskitTestCase):
-    """Tests for all subclasses of ParametricPulse."""
+class TestSymbolicPulses(QiskitTestCase):
+    """Tests for all subclasses of SymbolicPulse."""
 
     def test_construction(self):
-        """Test that parametric pulses can be constructed without error."""
+        """Test that symbolic pulses can be constructed without error."""
         Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
         GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
         GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=2.5)
@@ -146,32 +141,6 @@ class TestParametricPulses(QiskitTestCase):
         Sech(duration=50, amp=0.5, sigma=10)
         Sech(duration=50, amp=0.5, sigma=10, zero_ends=False)
         SechDeriv(duration=50, amp=0.5, sigma=10)
-
-    # This test should be removed once deprecation of complex amp is completed.
-    def test_complex_amp_deprecation(self):
-        """Test that deprecation warnings and errors are raised for complex amp,
-        and that pulses are equivalent."""
-
-        # Test deprecation warnings and errors:
-        with self.assertWarns(DeprecationWarning):
-            Gaussian(duration=25, sigma=4, amp=0.5j)
-        with self.assertWarns(DeprecationWarning):
-            GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(PulseError):
-                Gaussian(duration=25, sigma=4, amp=0.5j, angle=1)
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(PulseError):
-                GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100, angle=0.1)
-
-        # Test that new and old API pulses are the same:
-        with self.assertWarns(DeprecationWarning):
-            gauss_pulse_complex_amp = Gaussian(duration=25, sigma=4, amp=0.5j)
-        gauss_pulse_amp_angle = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
-        np.testing.assert_almost_equal(
-            gauss_pulse_amp_angle.get_waveform().samples,
-            gauss_pulse_complex_amp.get_waveform().samples,
-        )
 
     def test_gauss_square_extremes(self):
         """Test that the gaussian square pulse can build a gaussian."""
@@ -493,12 +462,12 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(set(const.parameters.keys()), {"duration", "amp", "angle"})
 
     def test_repr(self):
-        """Test the repr methods for parametric pulses."""
+        """Test the repr methods for symbolic pulses."""
         gaus = Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)
         self.assertEqual(repr(gaus), "Gaussian(duration=25, sigma=4, amp=0.7, angle=0.3)")
         gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
         self.assertEqual(
-            repr(gaus_square), "GaussianSquare(duration=20, sigma=30, width=3, amp=1.0, angle=0)"
+            repr(gaus_square), "GaussianSquare(duration=20, sigma=30, width=3, amp=1.0, angle=0.0)"
         )
         gaus_square = GaussianSquare(
             duration=20, sigma=30, amp=1.0, angle=0.2, risefall_sigma_ratio=0.1
@@ -534,7 +503,7 @@ class TestParametricPulses(QiskitTestCase):
             ),
         )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
-        self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0)")
+        self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0.0)")
         const = Constant(duration=150, amp=0.1, angle=0.3)
         self.assertEqual(repr(const), "Constant(duration=150, amp=0.1, angle=0.3)")
         sin_pulse = Sin(duration=150, amp=0.1, angle=0.3, freq=0.2, phase=0)
@@ -565,7 +534,7 @@ class TestParametricPulses(QiskitTestCase):
         )
 
     def test_param_validation(self):
-        """Test that parametric pulse parameters are validated when initialized."""
+        """Test that symbolic pulse parameters are validated when initialized."""
         with self.assertRaises(PulseError):
             Gaussian(duration=25, sigma=0, amp=0.5, angle=np.pi / 2)
         with self.assertRaises(PulseError):
@@ -758,8 +727,7 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(drag_pulse.beta, 3)
 
         with self.assertRaises(AttributeError):
-            # pylint: disable=pointless-statement
-            drag_pulse.non_existing_parameter
+            _ = drag_pulse.non_existing_parameter
 
     def test_envelope_cache(self):
         """Test speed up of instantiation with lambdify envelope cache."""
@@ -919,6 +887,11 @@ class TestScalableSymbolicPulse(QiskitTestCase):
         # pulses with different parameters
         gaussian1._params["sigma"] = 10
         self.assertNotEqual(gaussian1, gaussian2)
+
+    def test_complex_amp_error(self):
+        """Test that initializing a pulse with complex amp raises an error"""
+        with self.assertRaises(PulseError):
+            ScalableSymbolicPulse("test", duration=100, amp=0.1j, angle=0.0)
 
 
 if __name__ == "__main__":

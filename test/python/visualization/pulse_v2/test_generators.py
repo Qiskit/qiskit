@@ -17,9 +17,9 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import barrier, chart, frame, snapshot, waveform
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):

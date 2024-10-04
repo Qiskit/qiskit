@@ -18,10 +18,13 @@ import os
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.qasm2 import dumps
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class LoadFromQasmTest(QiskitTestCase):
@@ -501,8 +504,9 @@ bell q[0], q[1];
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
-        with self.assertWarns(DeprecationWarning):
-            circuit_result = Unroller(basis).run(circuit_dag)
-            expected_result = Unroller(basis).run(expected_dag)
+        unroller = UnrollCustomDefinitions(std_eqlib, basis)
+        basis_translator = BasisTranslator(std_eqlib, basis)
+        circuit_result = basis_translator.run(unroller.run(circuit_dag))
+        expected_result = basis_translator.run(unroller.run(expected_dag))
 
         self.assertEqual(circuit_result, expected_result)

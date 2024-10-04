@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`circuit_drawer` or :meth:`QuantumCircuit.draw`
+    when using the ``mpl`` output option where the program would hang if the
+    circuit being drawn had a ControlFlow operation in it and the ``fold`` option
+    was set to -1 (meaning no fold).
+    Fixed `#12012 <https://github.com/Qiskit/qiskit/issues/12012>`__.

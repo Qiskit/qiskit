@@ -47,7 +47,7 @@ def _convert_tweedledum_operator(op):
         if op.kind() == "py_operator":
             return op.py_op()
         else:
-            raise RuntimeError("Unrecognized operator: %s" % op.kind())
+            raise RuntimeError(f"Unrecognized operator: {op.kind()}")
 
     # TODO: need to deal with cbits too!
     if op.num_controls() > 0:

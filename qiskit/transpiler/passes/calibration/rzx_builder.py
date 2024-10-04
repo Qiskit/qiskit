@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import enum
+import math
 import warnings
 from collections.abc import Sequence
 from math import pi, erf
@@ -135,7 +136,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         # The error function is used because the Gaussian may have chopped tails.
         # Area is normalized by amplitude.
         # This makes widths robust to the rounding error.
-        risefall_area = params["sigma"] * np.sqrt(2 * pi) * erf(risefall_sigma_ratio)
+        risefall_area = params["sigma"] * math.sqrt(2 * pi) * erf(risefall_sigma_ratio)
         full_area = params["width"] + risefall_area
 
         # Get estimate of target area. Assume this is pi/2 controlled rotation.
@@ -203,7 +204,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
             xgate = self._inst_map.get("x", qubits[0])
             with builder.build(
-                default_alignment="sequential", name="rzx(%.3f)" % theta
+                default_alignment="sequential", name=f"rzx({theta:.3f})"
             ) as rzx_theta_native:
                 for cr_tone, comp_tone in zip(cr_tones, comp_tones):
                     with builder.align_left():
@@ -229,7 +230,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             builder.call(szt, name="szt")
 
         with builder.build(
-            default_alignment="sequential", name="rzx(%.3f)" % theta
+            default_alignment="sequential", name=f"rzx({theta:.3f})"
         ) as rzx_theta_flip:
             builder.call(hadamard, name="hadamard")
             for cr_tone, comp_tone in zip(cr_tones, comp_tones):
@@ -296,7 +297,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         # RZXCalibrationNoEcho only good for forward CR direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
-            with builder.build(default_alignment="left", name="rzx(%.3f)" % theta) as rzx_theta:
+            with builder.build(default_alignment="left", name=f"rzx({theta:.3f})") as rzx_theta:
                 stretched_dur = self.rescale_cr_inst(cr_tones[0], 2 * theta)
                 self.rescale_cr_inst(comp_tones[0], 2 * theta)
                 # Placeholder to make pulse gate work

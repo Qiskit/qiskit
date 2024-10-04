@@ -16,7 +16,6 @@ import math
 
 from ddt import ddt, data, unpack, idata
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
@@ -32,6 +31,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 CONDITION_PARAMETRISATION = (

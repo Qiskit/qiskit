@@ -139,9 +139,9 @@ def dumps(circuit: QuantumCircuit, /) -> str:
 
     # Mapping of instruction name to a pair of the source for a definition, and an OQ2 string
     # that includes the `gate` or `opaque` statement that defines the gate.
-    gates_to_define: collections.OrderedDict[
-        str, tuple[Instruction, str]
-    ] = collections.OrderedDict()
+    gates_to_define: collections.OrderedDict[str, tuple[Instruction, str]] = (
+        collections.OrderedDict()
+    )
 
     regless_qubits = [bit for bit in circuit.qubits if not circuit.find_bit(bit).registers]
     regless_clbits = [bit for bit in circuit.clbits if not circuit.find_bit(bit).registers]
@@ -157,7 +157,7 @@ def dumps(circuit: QuantumCircuit, /) -> str:
                 _make_unique(_escape_name(reg.name, "reg_"), register_escaped_names)
             ] = reg
     bit_labels: dict[Qubit | Clbit, str] = {
-        bit: "%s[%d]" % (name, idx)
+        bit: f"{name}[{idx}]"
         for name, register in register_escaped_names.items()
         for (idx, bit) in enumerate(register)
     }
@@ -244,18 +244,14 @@ def _instruction_call_site(operation):
     else:
         qasm2_call = operation.name
     if operation.params:
-        qasm2_call = "{}({})".format(
-            qasm2_call,
-            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
-        )
+        params = ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params])
+        qasm2_call = f"{qasm2_call}({params})"
     if operation.condition is not None:
         if not isinstance(operation.condition[0], ClassicalRegister):
             raise QASM2ExportError(
                 "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
             )
-        qasm2_call = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
-        )
+        qasm2_call = f"if({operation.condition[0].name}=={operation.condition[1]:d}) " + qasm2_call
     return qasm2_call
 
 
@@ -312,7 +308,7 @@ def _define_custom_operation(operation, gates_to_define):
         lib.U3Gate,
     }
 
-    # In known-good situations we want to use a manually parametrised object as the source of the
+    # In known-good situations we want to use a manually parametrized object as the source of the
     # definition, but still continue to return the given object as the call-site object.
     if operation.base_class in known_good_parameterized:
         parameterized_operation = type(operation)(*_FIXED_PARAMETERS[: len(operation.params)])

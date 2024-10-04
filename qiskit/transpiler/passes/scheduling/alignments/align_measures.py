@@ -95,8 +95,7 @@ class AlignMeasures(TransformationPass):
             "Instead, use :class:`~.ConstrainedReschedule`, which performs the same function "
             "but also supports aligning to additional timing constraints."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(self, alignment: int = 1):
         """Create new pass.

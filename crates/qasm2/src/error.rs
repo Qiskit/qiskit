@@ -79,6 +79,4 @@ pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
     )
 }
 
-// We define the exception in Python space so it can inherit from QiskitError; it's easier to do
-// that from Python and wrap rather than also needing to import QiskitError to Rust to wrap.
 import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);

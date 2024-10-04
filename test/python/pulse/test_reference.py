@@ -15,9 +15,9 @@
 import numpy as np
 
 from qiskit import circuit, pulse
-from qiskit.pulse import builder
+from qiskit.pulse import ScheduleBlock, builder
 from qiskit.pulse.transforms import inline_subroutines
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestReference(QiskitTestCase):
@@ -39,31 +39,6 @@ class TestReference(QiskitTestCase):
             builder.append_schedule(sched_y1)
 
         self.assertEqual(len(sched_z1.references), 0)
-
-    def test_append_schedule_parameter_scope(self):
-        """Test appending schedule without calling.
-
-        Parameter in the appended schedule has the scope of outer schedule.
-        """
-        param = circuit.Parameter("name")
-
-        with pulse.build() as sched_x1:
-            pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
-
-        with pulse.build() as sched_y1:
-            builder.append_schedule(sched_x1)
-
-        with pulse.build() as sched_z1:
-            builder.append_schedule(sched_y1)
-
-        sched_param = next(iter(sched_z1.scoped_parameters()))
-        self.assertEqual(sched_param.name, "root::name")
-
-        # object equality
-        self.assertEqual(
-            sched_z1.search_parameters("root::name")[0],
-            param,
-        )
 
     def test_refer_schedule(self):
         """Test refer to schedule by name.
@@ -108,20 +83,47 @@ class TestReference(QiskitTestCase):
         sched_y1.assign_references({("x1", "d0"): sched_x1})
         sched_z1.assign_references({("y1", "d0"): sched_y1})
 
-        sched_param = next(iter(sched_z1.scoped_parameters()))
-        self.assertEqual(sched_param.name, "root::y1,d0::x1,d0::name")
+        self.assertEqual(sched_z1.parameters, sched_x1.parameters)
+        self.assertEqual(sched_z1.parameters, sched_y1.parameters)
 
-        # object equality
-        self.assertEqual(
-            sched_z1.search_parameters("root::y1,d0::x1,d0::name")[0],
-            param,
-        )
+    def test_refer_schedule_parameter_assignment(self):
+        """Test assigning to parameter in referenced schedule"""
+        param = circuit.Parameter("name")
 
-        # regex
-        self.assertEqual(
-            sched_z1.search_parameters(r"\S::x1,d0::name")[0],
-            param,
-        )
+        with pulse.build() as sched_x1:
+            pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_y1:
+            builder.reference("x1", "d0")
+
+        with pulse.build() as sched_z1:
+            builder.reference("y1", "d0")
+
+        sched_y1.assign_references({("x1", "d0"): sched_x1})
+        sched_z1.assign_references({("y1", "d0"): sched_y1})
+
+        assigned_z1 = sched_z1.assign_parameters({param: 0.5}, inplace=False)
+
+        assigned_x1 = sched_x1.assign_parameters({param: 0.5}, inplace=False)
+        ref_assigned_y1 = ScheduleBlock()
+        ref_assigned_y1.append(assigned_x1)
+        ref_assigned_z1 = ScheduleBlock()
+        ref_assigned_z1.append(ref_assigned_y1)
+
+        # Test that assignment was successful and resolved references
+        self.assertEqual(assigned_z1, ref_assigned_z1)
+
+        # Test that inplace=False for sched_z1 also did not modify sched_z1 or  subroutine sched_x1
+        self.assertEqual(sched_z1.parameters, {param})
+        self.assertEqual(sched_x1.parameters, {param})
+        self.assertEqual(assigned_z1.parameters, set())
+
+        # Now test inplace=True
+        sched_z1.assign_parameters({param: 0.5}, inplace=True)
+        self.assertEqual(sched_z1, assigned_z1)
+        # assign_references copies the subroutine, so the original subschedule
+        # is still not modified here:
+        self.assertNotEqual(sched_x1, assigned_x1)
 
     def test_call_schedule(self):
         """Test call schedule.
@@ -160,20 +162,8 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_z1:
             builder.call(sched_y1, name="y1")
 
-        sched_param = next(iter(sched_z1.scoped_parameters()))
-        self.assertEqual(sched_param.name, "root::y1::x1::name")
-
-        # object equality
-        self.assertEqual(
-            sched_z1.search_parameters("root::y1::x1::name")[0],
-            param,
-        )
-
-        # regex
-        self.assertEqual(
-            sched_z1.search_parameters(r"\S::x1::name")[0],
-            param,
-        )
+        self.assertEqual(sched_z1.parameters, sched_x1.parameters)
+        self.assertEqual(sched_z1.parameters, sched_y1.parameters)
 
     def test_append_and_call_schedule(self):
         """Test call and append schedule.
@@ -207,7 +197,7 @@ class TestReference(QiskitTestCase):
         """Test calling schedules with the same representation.
 
         sched_x1 and sched_y1 are the different subroutines, but same representation.
-        Two references shoud be created.
+        Two references should be created.
         """
         param1 = circuit.Parameter("param")
         param2 = circuit.Parameter("param")
@@ -353,32 +343,8 @@ class TestReference(QiskitTestCase):
         self.assertEqual(sched_z2.references[("r1",)], sched_r1)
         self.assertEqual(sched_z2.references[("y1",)], sched_y1)
 
-    def test_special_parameter_name(self):
-        """Testcase to guarantee usage of some special symbols in parameter name.
-
-        These symbols might be often used in user code.
-        No conflict should occur with the default scope delimiter.
-        """
-        param = circuit.Parameter("my.parameter_object")
-
-        with pulse.build() as sched_x1:
-            pulse.play(pulse.Constant(100, param, name="x1"), pulse.DriveChannel(0))
-
-        with pulse.build() as sched_y1:
-            pulse.reference("sub", "q0")
-        sched_y1.assign_references({("sub", "q0"): sched_x1})
-
-        ret_param = sched_y1.search_parameters(r"\Ssub,q0::my.parameter_object")[0]
-
-        self.assertEqual(param, ret_param)
-
     def test_parameter_in_multiple_scope(self):
-        """Testcase for scope-aware parameter getter.
-
-        When a single parameter object is used in multiple scopes,
-        the scoped_parameters method must return parameter objects associated to each scope,
-        while parameters property returns a single parameter object.
-        """
+        """Test that using parameter in multiple scopes causes no error"""
         param = circuit.Parameter("name")
 
         with pulse.build() as sched_x1:
@@ -392,10 +358,7 @@ class TestReference(QiskitTestCase):
             pulse.call(sched_y1, name="y1")
 
         self.assertEqual(len(sched_z1.parameters), 1)
-        self.assertEqual(len(sched_z1.scoped_parameters()), 2)
-
-        self.assertEqual(sched_z1.search_parameters("root::x1::name")[0], param)
-        self.assertEqual(sched_z1.search_parameters("root::y1::name")[0], param)
+        self.assertEqual(sched_z1.parameters, {param})
 
     def test_parallel_alignment_equality(self):
         """Testcase for potential edge case.
@@ -557,10 +520,6 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         params = {p.name for p in sched.parameters}
         self.assertSetEqual(params, {"cr"})
 
-        # Parameter names are scoepd
-        scoped_params = {p.name for p in sched.scoped_parameters()}
-        self.assertSetEqual(scoped_params, {"root::cr"})
-
         # Assign CR and XP schedule to the empty reference
         sched.assign_references({("cr", "q0", "q1"): self.cr_sched})
         sched.assign_references({("xp", "q0"): self.xp_sched})
@@ -571,35 +530,16 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(assigned_refs[("xp", "q0")], self.xp_sched)
 
         # Parameter added from subroutines
-        scoped_params = {p.name for p in sched.scoped_parameters()}
-        ref_params = {
-            # This is the cr parameter that belongs to phase_offset instruction in the root scope
-            "root::cr",
-            # This is the same cr parameter that belongs to the play instruction in a child scope
-            "root::cr,q0,q1::cr",
-            "root::cr,q0,q1::amp",
-            "root::cr,q0,q1::dur",
-            "root::cr,q0,q1::risefall",
-            "root::cr,q0,q1::sigma",
-            "root::xp,q0::ctrl",
-            "root::xp,q0::amp",
-            "root::xp,q0::beta",
-            "root::xp,q0::dur",
-            "root::xp,q0::sigma",
-        }
-        self.assertSetEqual(scoped_params, ref_params)
+        ref_params = {self.cr_ch} | self.cr_sched.parameters | self.xp_sched.parameters
+        self.assertSetEqual(sched.parameters, ref_params)
 
         # Get parameter without scope, cr amp and xp amp are hit.
         params = sched.get_parameters(parameter_name="amp")
         self.assertEqual(len(params), 2)
 
-        # Get parameter with scope, only xp amp
-        params = sched.search_parameters(parameter_regex="root::xp,q0::amp")
-        self.assertEqual(len(params), 1)
-
     def test_cnot(self):
         """Integration test with CNOT schedule construction."""
-        # echeod cross resonance
+        # echoed cross resonance
         with pulse.build(name="ecr", default_alignment="sequential") as ecr_sched:
             pulse.call(self.cr_sched, name="cr")
             pulse.call(self.xp_sched, name="xp")
@@ -612,14 +552,6 @@ class TestSubroutineWithCXGate(QiskitTestCase):
             pulse.shift_phase(np.pi / 2, pulse.DriveChannel(self.control_ch))
             pulse.call(self.sx_sched, name="sx")
             pulse.call(ecr_sched, name="ecr")
-
-        # get parameter with scope, full scope is not needed
-        xp_amp = cx_sched.search_parameters(r"\S:xp::amp")[0]
-        self.assertEqual(self.xp_amp, xp_amp)
-
-        # get parameter with scope, of course full scope can be specified
-        xp_amp_full_scoped = cx_sched.search_parameters("root::ecr::xp::amp")[0]
-        self.assertEqual(xp_amp_full_scoped, xp_amp)
 
         # assign parameters
         assigned_cx = cx_sched.assign_parameters(

@@ -30,31 +30,8 @@ class WhileLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit (``body``) until
     a condition (``condition``) evaluates as False.
 
-    Parameters:
-        condition: A condition to be checked prior to executing ``body``. Can be
-            specified as either a tuple of a ``ClassicalRegister`` to be tested
-            for equality with a given ``int``, or as a tuple of a ``Clbit`` to
-            be compared to either a ``bool`` or an ``int``.
-        body: The loop body to be repeatedly executed.
-        label: An optional label for identifying the instruction.
-
     The classical bits used in ``condition`` must be a subset of those attached
     to ``body``.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌─────────────┐
-        q_0: ┤0            ├
-             │             │
-        q_1: ┤1            ├
-             │  while_loop │
-        q_2: ┤2            ├
-             │             │
-        c_0: ╡0            ╞
-             └─────────────┘
-
     """
 
     def __init__(
@@ -63,6 +40,15 @@ class WhileLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: str | None = None,
     ):
+        """
+        Args:
+            condition: A condition to be checked prior to executing ``body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be tested
+                for equality with a given ``int``, or as a tuple of a ``Clbit`` to
+                be compared to either a ``bool`` or an ``int``.
+            body: The loop body to be repeatedly executed.
+            label: An optional label for identifying the instruction.
+        """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
 
@@ -168,7 +154,7 @@ class WhileLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         self._circuit.append(
             WhileLoopOp(self._condition, body, label=self._label),
             body.qubits,

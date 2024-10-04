@@ -145,9 +145,9 @@ def lower_gates(
         elif isinstance(instruction.operation, Measure):
             if len(inst_qubits) != 1 and len(instruction.clbits) != 1:
                 raise QiskitError(
-                    "Qubit '{}' or classical bit '{}' errored because the "
+                    f"Qubit '{inst_qubits}' or classical bit '{instruction.clbits}' errored because the "
                     "circuit Measure instruction only takes one of "
-                    "each.".format(inst_qubits, instruction.clbits)
+                    "each."
                 )
             qubit_mem_slots[inst_qubits[0]] = clbit_indices[instruction.clbits[0]]
         else:

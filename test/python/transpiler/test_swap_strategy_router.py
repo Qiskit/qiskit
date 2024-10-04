@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,22 +15,20 @@
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
-
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, CXGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler.passes import Decompose
-
-from qiskit.test import QiskitTestCase
-
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,
 )
@@ -39,6 +37,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -527,7 +526,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 Commuting2qGateRouter(swap_strat, edge_coloring=edge_coloring),
                 Decompose(),  # double decompose gets to CX
                 Decompose(),
-                CXCancellation(),
+                InverseCancellation([CXGate()]),
             ]
         )
 
@@ -565,9 +564,47 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(pm_.run(circ), expected)
 
+    def test_permutation_tracking(self):
+        """Test that circuit layout permutations are properly tracked in the pass property
+        set and returned with the output circuit."""
+
+        # We use the same scenario as the QAOA test above
+        mixer = QuantumCircuit(4)
+        for idx in range(4):
+            mixer.ry(-idx, idx)
+
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+
+        expected_swap_permutation = [3, 1, 2, 0]
+        expected_full_permutation = [1, 3, 2, 0]
+
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
+        swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
+
+        # test standalone
+        swap_pm = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+        swapped = swap_pm.run(circ.decompose())
+
+        # test as pre-routing step
+        backend = GenericBackendV2(num_qubits=4, coupling_map=[[0, 1], [0, 2], [0, 3]], seed=42)
+        pm = generate_preset_pass_manager(
+            optimization_level=3, target=backend.target, seed_transpiler=40
+        )
+        pm.pre_routing = swap_pm
+        full = pm.run(circ.decompose())
+
+        self.assertEqual(swapped.layout.routing_permutation(), expected_swap_permutation)
+        self.assertEqual(full.layout.routing_permutation(), expected_full_permutation)
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
-    """Test that exceptions are properly raises."""
+    """Test that exceptions are properly raised."""
 
     def setUp(self):
         """Setup useful variables."""

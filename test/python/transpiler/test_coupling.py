@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,11 +19,11 @@ import rustworkx as rx
 
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.providers.fake_provider import FakeRueschlikon
-from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
+from ..legacy_cmaps import RUESCHLIKON_CMAP
 
 
 class CouplingTest(QiskitTestCase):
@@ -104,8 +104,7 @@ class CouplingTest(QiskitTestCase):
 
     def test_successful_reduced_map(self):
         """Generate a reduced map"""
-        fake = FakeRueschlikon()
-        cmap = fake.configuration().coupling_map
+        cmap = RUESCHLIKON_CMAP
         coupling_map = CouplingMap(cmap)
         out = coupling_map.reduce([12, 11, 10, 9]).get_edges()
         ans = [(1, 2), (3, 2), (0, 1)]
@@ -113,16 +112,14 @@ class CouplingTest(QiskitTestCase):
 
     def test_bad_reduced_map(self):
         """Generate disconnected reduced map"""
-        fake = FakeRueschlikon()
-        cmap = fake.configuration().coupling_map
+        cmap = RUESCHLIKON_CMAP
         coupling_map = CouplingMap(cmap)
         with self.assertRaises(CouplingError):
             coupling_map.reduce([12, 11, 10, 3])
 
     def test_disconnected_reduced_map_allowed(self):
         """Generate disconnected reduced map but do not error"""
-        fake = FakeRueschlikon()
-        cmap = fake.configuration().coupling_map
+        cmap = RUESCHLIKON_CMAP
         coupling_map = CouplingMap(cmap)
         reduced_map = coupling_map.reduce([12, 11, 10, 3], check_if_connected=False)
         reduced_edges = reduced_map.get_edges()

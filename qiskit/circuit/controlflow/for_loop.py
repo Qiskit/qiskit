@@ -29,28 +29,6 @@ class ForLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit
     (``body``) parameterized by a parameter ``loop_parameter`` through
     the set of integer values provided in ``indexset``.
-
-    Parameters:
-        indexset: A collection of integers to loop over.
-        loop_parameter: The placeholder parameterizing ``body`` to which
-            the values from ``indexset`` will be assigned.
-        body: The loop body to be repeatedly executed.
-        label: An optional label for identifying the instruction.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌───────────┐
-        q_0: ┤0          ├
-             │           │
-        q_1: ┤1          ├
-             │  for_loop │
-        q_2: ┤2          ├
-             │           │
-        c_0: ╡0          ╞
-             └───────────┘
-
     """
 
     def __init__(
@@ -60,9 +38,16 @@ class ForLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: Optional[str] = None,
     ):
+        """
+        Args:
+            indexset: A collection of integers to loop over.
+            loop_parameter: The placeholder parameterizing ``body`` to which
+                the values from ``indexset`` will be assigned.
+            body: The loop body to be repeatedly executed.
+            label: An optional label for identifying the instruction.
+        """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
-
         super().__init__(
             "for_loop", num_qubits, num_clbits, [indexset, loop_parameter, body], label=label
         )
@@ -215,7 +200,7 @@ class ForLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         # We always bind the loop parameter if the user gave it to us, even if it isn't actually
         # used, because they requested we do that by giving us a parameter.  However, if they asked
         # us to auto-generate a parameter, then we only add it if they actually used it, to avoid

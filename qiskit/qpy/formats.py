@@ -42,6 +42,24 @@ FILE_HEADER = namedtuple(
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
+
+CIRCUIT_HEADER_V12 = namedtuple(
+    "HEADER",
+    [
+        "name_size",
+        "global_phase_type",
+        "global_phase_size",
+        "num_qubits",
+        "num_clbits",
+        "metadata_size",
+        "num_registers",
+        "num_instructions",
+        "num_vars",
+    ],
+)
+CIRCUIT_HEADER_V12_PACK = "!H1cHIIQIQI"
+CIRCUIT_HEADER_V12_SIZE = struct.calcsize(CIRCUIT_HEADER_V12_PACK)
+
 # CIRCUIT_HEADER_V2
 CIRCUIT_HEADER_V2 = namedtuple(
     "HEADER",
@@ -138,6 +156,11 @@ PAULI_EVOLUTION_DEF = namedtuple(
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+
+# Modifier
+MODIFIER_DEF = namedtuple("MODIFIER_DEF", ["type", "num_ctrl_qubits", "ctrl_state", "power"])
+MODIFIER_DEF_PACK = "!1cIId"
+MODIFIER_DEF_SIZE = struct.calcsize(MODIFIER_DEF_PACK)
 
 # CUSTOM_CIRCUIT_DEF_HEADER
 CUSTOM_CIRCUIT_DEF_HEADER = namedtuple("CUSTOM_CIRCUIT_DEF_HEADER", ["size"])
@@ -304,6 +327,13 @@ INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"]
 INITIAL_LAYOUT_BIT_PACK = "!ii"
 INITIAL_LAYOUT_BIT_SIZE = struct.calcsize(INITIAL_LAYOUT_BIT_PACK)
 
+# EXPR_VAR_DECLARATION
+
+EXPR_VAR_DECLARATION = namedtuple("EXPR_VAR_DECLARATION", ["uuid_bytes", "usage", "name_size"])
+EXPR_VAR_DECLARATION_PACK = "!16scH"
+EXPR_VAR_DECLARATION_SIZE = struct.calcsize(EXPR_VAR_DECLARATION_PACK)
+
+
 # EXPRESSION
 
 EXPRESSION_DISCRIMINATOR_SIZE = 1
@@ -345,6 +375,10 @@ EXPR_VAR_CLBIT_SIZE = struct.calcsize(EXPR_VAR_CLBIT_PACK)
 EXPR_VAR_REGISTER = namedtuple("EXPR_VAR_REGISTER", ["reg_name_size"])
 EXPR_VAR_REGISTER_PACK = "!H"
 EXPR_VAR_REGISTER_SIZE = struct.calcsize(EXPR_VAR_REGISTER_PACK)
+
+EXPR_VAR_UUID = namedtuple("EXPR_VAR_UUID", ["var_index"])
+EXPR_VAR_UUID_PACK = "!H"
+EXPR_VAR_UUID_SIZE = struct.calcsize(EXPR_VAR_UUID_PACK)
 
 
 # EXPR_VALUE

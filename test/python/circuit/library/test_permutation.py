@@ -19,13 +19,13 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation, PermutationGate
 from qiskit.quantum_info import Operator
 from qiskit.qpy import dump, load
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPermutationLibrary(QiskitTestCase):
@@ -103,6 +103,12 @@ class TestPermutationGate(QiskitTestCase):
         inverse_perm = perm.inverse()
         expected_inverse_perm = PermutationGate([3, 0, 5, 1, 4, 2])
         self.assertTrue(np.array_equal(inverse_perm.pattern, expected_inverse_perm.pattern))
+
+    def test_repeat(self):
+        """Test the ``repeat`` method."""
+        pattern = [2, 4, 1, 3, 0]
+        perm = PermutationGate(pattern)
+        self.assertTrue(np.allclose(Operator(perm.repeat(2)), Operator(perm) @ Operator(perm)))
 
 
 class TestPermutationGatesOnCircuit(QiskitTestCase):

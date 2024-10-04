@@ -41,7 +41,6 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    :toctree: ../stubs/
 
    Acquire
-   Call
    Reference
    Delay
    Play
@@ -60,7 +59,6 @@ These are all instances of the same base class:
 from .acquire import Acquire
 from .delay import Delay
 from .directives import Directive, RelativeBarrier, TimeBlockade
-from .call import Call
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase

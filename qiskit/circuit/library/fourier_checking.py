@@ -66,7 +66,7 @@ class FourierChecking(QuantumCircuit):
             .. plot::
 
                from qiskit.circuit.library import FourierChecking
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               from qiskit.visualization.library import _generate_circuit_library_visualization
                f = [1, -1, -1, -1]
                g = [1, 1, -1, -1]
                circuit = FourierChecking(f, g)

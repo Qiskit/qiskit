@@ -148,14 +148,15 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """Return settings."""
         return {"data": self.to_labels()}
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Convert to numpy array"""
-        # pylint: disable=unused-argument
+        if copy is False:
+            raise ValueError("cannot provide a matrix without calculation")
         shape = (len(self),) + 2 * (2**self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
-        return ret
+        return ret if dtype is None else ret.astype(dtype, copy=False)
 
     @staticmethod
     def _from_paulis(data):
@@ -381,8 +382,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if max(ind) >= len(self):
                 raise QiskitError(
-                    "Indices {} are not all less than the size"
-                    " of the PauliList ({})".format(ind, len(self))
+                    f"Indices {ind} are not all less than the size"
+                    f" of the PauliList ({len(self)})"
                 )
             z = np.delete(self._z, ind, axis=0)
             x = np.delete(self._x, ind, axis=0)
@@ -393,8 +394,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
             raise QiskitError(
-                "Indices {} are not all less than the number of"
-                " qubits in the PauliList ({})".format(ind, self.num_qubits)
+                f"Indices {ind} are not all less than the number of"
+                f" qubits in the PauliList ({self.num_qubits})"
             )
         z = np.delete(self._z, ind, axis=1)
         x = np.delete(self._x, ind, axis=1)
@@ -431,8 +432,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if ind > size:
                 raise QiskitError(
-                    "Index {} is larger than the number of rows in the"
-                    " PauliList ({}).".format(ind, size)
+                    f"Index {ind} is larger than the number of rows in the" f" PauliList ({size})."
                 )
             base_z = np.insert(self._z, ind, value._z, axis=0)
             base_x = np.insert(self._x, ind, value._x, axis=0)
@@ -442,8 +442,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column insertion
         if ind > self.num_qubits:
             raise QiskitError(
-                "Index {} is greater than number of qubits"
-                " in the PauliList ({})".format(ind, self.num_qubits)
+                f"Index {ind} is greater than number of qubits"
+                f" in the PauliList ({self.num_qubits})"
             )
         if len(value) == 1:
             # Pad blocks to correct size
@@ -460,7 +460,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             raise QiskitError(
                 "Input PauliList must have a single row, or"
                 " the same number of rows as the Pauli Table"
-                " ({}).".format(size)
+                f" ({size})."
             )
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
@@ -646,7 +646,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         index = index[sort_inds]
         unique = PauliList(BasePauli(self._z[index], self._x[index], self._phase[index]))
 
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique,)
         if return_index:
             ret += (index,)
@@ -1155,22 +1155,49 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # results from one triangle to avoid symmetric duplications.
         return list(zip(*np.where(np.triu(adjacency_mat, k=1))))
 
-    def _create_graph(self, qubit_wise):
-        """Transform measurement operator grouping problem into graph coloring problem
+    def noncommutation_graph(self, qubit_wise: bool) -> rx.PyGraph:
+        """Create the non-commutation graph of this PauliList.
+
+        This transforms the measurement operator grouping problem into graph coloring problem. The
+        constructed graph contains one node for each Pauli. The nodes will be connecting for any two
+        Pauli terms that do _not_ commute.
 
         Args:
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.
 
         Returns:
-            rustworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
+                indicating a non-commutation relation. Each node will hold the index of the Pauli
+                term it corresponds to in its data. The edges of the graph hold no data.
         """
-
         edges = self._noncommutation_graph(qubit_wise)
         graph = rx.PyGraph()
         graph.add_nodes_from(range(self.size))
         graph.add_edges_from_no_data(edges)
         return graph
+
+    def _commuting_groups(self, qubit_wise: bool) -> dict[int, list[int]]:
+        """Partition a PauliList into sets of commuting Pauli strings.
+
+        This is the internal logic of the public ``PauliList.group_commuting`` method which returns
+        a mapping of colors to Pauli indices. The same logic is re-used by
+        ``SparsePauliOp.group_commuting``.
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
+        Returns:
+            dict[int, list[int]]: Dictionary of color indices mapping to a list of Pauli indices.
+        """
+        graph = self.noncommutation_graph(qubit_wise)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return groups
 
     def group_qubit_wise_commuting(self) -> list[PauliList]:
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
@@ -1199,11 +1226,5 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             list[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
         """
-
-        graph = self._create_graph(qubit_wise)
-        # Keys in coloring_dict are nodes, values are colors
-        coloring_dict = rx.graph_greedy_color(graph)
-        groups = defaultdict(list)
-        for idx, color in coloring_dict.items():
-            groups[color].append(idx)
+        groups = self._commuting_groups(qubit_wise)
         return [self[group] for group in groups.values()]

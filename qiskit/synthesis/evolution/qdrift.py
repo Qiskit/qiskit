@@ -12,10 +12,15 @@
 
 """QDrift Class"""
 
-from typing import Union, Optional, Callable
+from __future__ import annotations
+
+import inspect
+import math
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.utils.deprecation import deprecate_arg
 
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
@@ -31,29 +36,55 @@ class QDrift(ProductFormula):
         `arXiv:quant-ph/1811.08017 <https://arxiv.org/abs/1811.08017>`_
     """
 
+    @deprecate_arg(
+        name="atomic_evolution",
+        since="1.2",
+        predicate=lambda callable: callable is not None
+        and len(inspect.signature(callable).parameters) == 2,
+        deprecation_description=(
+            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
+            "'atomic_evolution' argument"
+        ),
+        additional_msg=(
+            "Instead you should update your 'atomic_evolution' function to be of the following "
+            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
+        ),
+        pending=True,
+    )
     def __init__(
         self,
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
-        seed: Optional[int] = None,
+        atomic_evolution: (
+            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
+            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
+            | None
+        ) = None,
+        seed: int | None = None,
+        wrap: bool = False,
     ) -> None:
         r"""
         Args:
             reps: The number of times to repeat the Trotterization circuit.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                "chain", where next neighbor connections are used, or "fountain", where all
-                qubits are connected to one.
-            atomic_evolution: A function to construct the circuit for the evolution of single
-                Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
-                and a single qubit Z rotation.
+                ``"chain"``, where next neighbor connections are used, or ``"fountain"``, where all
+                qubits are connected to one. This only takes effect when
+                ``atomic_evolution is None``.
+            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
+                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
+                three arguments: the circuit to append the evolution to, the Pauli operator to
+                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
+                into a chain of ``CX`` gates and a single ``RZ`` gate.
+                Alternatively, the function can also take Pauli operator and evolution time as
+                inputs and returns the circuit that will be appended to the overall circuit being
+                built.
             seed: An optional seed for reproducibility of the random sampling process.
+            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
+                effect when ``atomic_evolution is None``.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
+        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)
 
@@ -73,7 +104,7 @@ class QDrift(ProductFormula):
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        num_gates = int(np.ceil(2 * (lambd**2) * (time**2) * self.reps))
+        num_gates = math.ceil(2 * (lambd**2) * (time**2) * self.reps)
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates
@@ -83,8 +114,6 @@ class QDrift(ProductFormula):
             size=(num_gates,),
             p=weights / lambd,
         )
-        # Update the coefficients of sampled_ops
-        self.sampled_ops = [(op, evolution_time) for op, coeff in self.sampled_ops]
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
@@ -94,7 +123,7 @@ class QDrift(ProductFormula):
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
         evolution_circuit = PauliEvolutionGate(
-            sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
+            sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
             time=evolution_time,
             synthesis=lie_trotter,
         ).definition

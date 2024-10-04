@@ -12,8 +12,9 @@
 
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, CircuitError, Clbit, ClassicalRegister
+from test import QiskitTestCase
+
+from qiskit.circuit import QuantumCircuit, CircuitError, Clbit, ClassicalRegister, Store
 from qiskit.circuit.classical import expr, types
 
 
@@ -75,7 +76,7 @@ class TestCircuitVars(QiskitTestCase):
         )
 
     def test_initialise_declarations_dependencies(self):
-        """Test that the cirucit initialiser can take in declarations with dependencies between
+        """Test that the circuit initializer can take in declarations with dependencies between
         them, provided they're specified in a suitable order."""
         a = expr.Var.new("a", types.Bool())
         vars_ = [
@@ -239,6 +240,30 @@ class TestCircuitVars(QiskitTestCase):
         qc_init = QuantumCircuit(declarations=[(a, a_init), (b, b_init)])
         self.assertEqual(list(qc_init.iter_vars()), list(qc_manual.iter_vars()))
         self.assertEqual(qc_init.data, qc_manual.data)
+
+    def test_declarations_widen_integer_literals(self):
+        a = expr.Var.new("a", types.Uint(8))
+        b = expr.Var.new("b", types.Uint(16))
+        qc = QuantumCircuit(declarations=[(a, 3)])
+        qc.add_var(b, 5)
+        actual_initializers = [
+            (op.lvalue, op.rvalue)
+            for instruction in qc
+            if isinstance((op := instruction.operation), Store)
+        ]
+        expected_initializers = [
+            (a, expr.Value(3, types.Uint(8))),
+            (b, expr.Value(5, types.Uint(16))),
+        ]
+        self.assertEqual(actual_initializers, expected_initializers)
+
+    def test_declaration_does_not_widen_bool_literal(self):
+        # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
+        # semantics...).  It's not in Qiskit's value type system, though.
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "explicit cast is required"):
+            qc.add_var(a, True)
 
     def test_cannot_shadow_vars(self):
         """Test that exact duplicate ``Var`` nodes within different combinations of the inputs are

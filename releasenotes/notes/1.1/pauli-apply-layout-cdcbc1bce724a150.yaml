@@ -1,0 +1,31 @@
+---
+features_quantum_info:
+  - |
+    Added a new :meth:`~.Pauli.apply_layout`  method that is equivalent to
+    :meth:`~.SparsePauliOp.apply_layout`. This method is used to apply
+    a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
+    observable that was built for an input circuit. This enables working with
+    :class:`~.BaseEstimator` / :class:`~.BaseEstimatorV2` implementations and 
+    local transpilation when the input is of type :class:`~.Pauli`. For example::
+    
+      from qiskit.circuit.library import RealAmplitudes
+      from qiskit.primitives import BackendEstimatorV2
+      from qiskit.providers.fake_provider import GenericBackendV2
+      from qiskit.quantum_info import Pauli
+      from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+  
+      psi = RealAmplitudes(num_qubits=2, reps=2)
+      H1 = Pauli("XI")
+      backend = GenericBackendV2(num_qubits=7)
+      estimator = BackendEstimatorV2(backend=backend)
+      thetas = [0, 1, 1, 2, 3, 5]
+      pm = generate_preset_pass_manager(optimization_level=3, backend=backend)
+      transpiled_psi = pm.run(psi)
+      permuted_op = H1.apply_layout(transpiled_psi.layout)
+      res = estimator.run([(transpiled_psi, permuted_op, thetas)]).result()
+    
+    where an input circuit is transpiled locally before it's passed to
+    :class:`~.BaseEstimator.run`. Transpilation expands the original
+    circuit from 2 to 7 qubits (the size of ``backend``) and permutes its layout,
+    which is then applied to ``H1`` using :meth:`~.Pauli.apply_layout`
+    to reflect the transformations performed by ``pm.run()``.

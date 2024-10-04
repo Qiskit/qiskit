@@ -1,0 +1,5 @@
+---
+upgrade_transpiler:
+  - |
+    Removed deprecated function ``qiskit.transpiler.preset_passmanagers.common.get_vf2_call_limit``.
+    Instead, use :func:`.get_vf2_limits`.

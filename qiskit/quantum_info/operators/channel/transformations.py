@@ -18,6 +18,7 @@ Transformations between QuantumChannel representations.
 """
 
 from __future__ import annotations
+import math
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -227,7 +228,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         # This should be a call to la.eigh, but there is an OpenBlas
         # threading issue that is causing segfaults.
         # Need schur here since la.eig does not
-        # guarentee orthogonality in degenerate subspaces
+        # guarantee orthogonality in degenerate subspaces
         w, v = la.schur(data, output="complex")
         w = w.diagonal().real
         # Check eigenvalues are non-negative
@@ -328,25 +329,25 @@ def _kraus_to_superop(data):
 
 def _chi_to_choi(data, input_dim):
     """Transform Chi representation to a Choi representation."""
-    num_qubits = int(np.log2(input_dim))
+    num_qubits = int(math.log2(input_dim))
     return _transform_from_pauli(data, num_qubits)
 
 
 def _choi_to_chi(data, input_dim):
     """Transform Choi representation to the Chi representation."""
-    num_qubits = int(np.log2(input_dim))
+    num_qubits = int(math.log2(input_dim))
     return _transform_to_pauli(data, num_qubits)
 
 
 def _ptm_to_superop(data, input_dim):
     """Transform PTM representation to SuperOp representation."""
-    num_qubits = int(np.log2(input_dim))
+    num_qubits = int(math.log2(input_dim))
     return _transform_from_pauli(data, num_qubits)
 
 
 def _superop_to_ptm(data, input_dim):
     """Transform SuperOp representation to PTM representation."""
-    num_qubits = int(np.log2(input_dim))
+    num_qubits = int(math.log2(input_dim))
     return _transform_to_pauli(data, num_qubits)
 
 
@@ -375,12 +376,12 @@ def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
     dim_a0, dim_a1 = mat1.shape
     dim_b0, dim_b1 = mat2.shape
     if shape1 is None:
-        sdim_a0 = int(np.sqrt(dim_a0))
-        sdim_a1 = int(np.sqrt(dim_a1))
+        sdim_a0 = int(math.sqrt(dim_a0))
+        sdim_a1 = int(math.sqrt(dim_a1))
         shape1 = (sdim_a0, sdim_a0, sdim_a1, sdim_a1)
     if shape2 is None:
-        sdim_b0 = int(np.sqrt(dim_b0))
-        sdim_b1 = int(np.sqrt(dim_b1))
+        sdim_b0 = int(math.sqrt(dim_b0))
+        sdim_b1 = int(math.sqrt(dim_b1))
         shape2 = (sdim_b0, sdim_b0, sdim_b1, sdim_b1)
     # Check dimensions
     if len(shape1) != 4 or shape1[0] * shape1[1] != dim_a0 or shape1[2] * shape1[3] != dim_a1:
@@ -416,7 +417,7 @@ def _transform_to_pauli(data, num_qubits):
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
     for _ in range(num_qubits - 1):
-        dim = int(np.sqrt(len(cob)))
+        dim = int(math.sqrt(len(cob)))
         cob = np.reshape(
             np.transpose(
                 np.reshape(np.kron(basis_mat, cob), (4, dim * dim, 2, 2, dim, dim)),
@@ -437,7 +438,7 @@ def _transform_from_pauli(data, num_qubits):
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
     for _ in range(num_qubits - 1):
-        dim = int(np.sqrt(len(cob)))
+        dim = int(math.sqrt(len(cob)))
         cob = np.reshape(
             np.transpose(
                 np.reshape(np.kron(basis_mat, cob), (2, 2, dim, dim, 4, dim * dim)),
@@ -462,6 +463,6 @@ def _check_nqubit_dim(input_dim, output_dim):
         raise QiskitError(
             f"Not an n-qubit channel: input_dim ({input_dim}) != output_dim ({output_dim})"
         )
-    num_qubits = int(np.log2(input_dim))
+    num_qubits = int(math.log2(input_dim))
     if 2**num_qubits != input_dim:
         raise QiskitError("Not an n-qubit channel: input_dim != 2 ** n")

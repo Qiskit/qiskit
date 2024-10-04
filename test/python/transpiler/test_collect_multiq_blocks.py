@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CollectMultiQBlocks
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCollect2qBlocks(QiskitTestCase):
@@ -93,6 +93,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
         dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
+
         pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]
 
         self.assertEqual(dag_nodes, pass_nodes)

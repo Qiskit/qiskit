@@ -16,6 +16,7 @@
 QPY Type keys for several namespace.
 """
 
+import uuid
 from abc import abstractmethod
 from enum import Enum, IntEnum
 
@@ -30,6 +31,7 @@ from qiskit.circuit import (
     Clbit,
     ClassicalRegister,
 )
+from qiskit.circuit.annotated_operation import AnnotatedOperation, Modifier
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
@@ -113,6 +115,7 @@ class Value(TypeKeyBase):
     STRING = b"s"
     NULL = b"z"
     EXPRESSION = b"x"
+    MODIFIER = b"m"
 
     @classmethod
     def assign(cls, obj):
@@ -140,6 +143,8 @@ class Value(TypeKeyBase):
             return cls.CASE_DEFAULT
         if isinstance(obj, expr.Expr):
             return cls.EXPRESSION
+        if isinstance(obj, Modifier):
+            return cls.MODIFIER
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -154,7 +159,7 @@ class Condition(IntEnum):
     """Type keys for the ``conditional_key`` field of the INSTRUCTION struct."""
 
     # This class is deliberately raw integers and not in terms of ASCII characters for backwards
-    # compatiblity in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
+    # compatibility in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
     # have the enumeration values 0 and 1.
 
     NONE = 0
@@ -191,6 +196,7 @@ class CircuitInstruction(TypeKeyBase):
     GATE = b"g"
     PAULI_EVOL_GATE = b"p"
     CONTROLLED_GATE = b"c"
+    ANNOTATED_OPERATION = b"a"
 
     @classmethod
     def assign(cls, obj):
@@ -198,6 +204,8 @@ class CircuitInstruction(TypeKeyBase):
             return cls.PAULI_EVOL_GATE
         if isinstance(obj, ControlledGate):
             return cls.CONTROLLED_GATE
+        if isinstance(obj, AnnotatedOperation):
+            return cls.ANNOTATED_OPERATION
         if isinstance(obj, Gate):
             return cls.GATE
         if isinstance(obj, Instruction):
@@ -268,7 +276,7 @@ class ScheduleInstruction(TypeKeyBase):
     REFERENCE = b"y"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
-    # Call instructon is not supported by QPY.
+    # Call instruction is not supported by QPY.
     # This instruction has been excluded from ScheduleBlock instructions with
     # qiskit-terra/#8005 and new instruction Reference will be added instead.
     # Call is only applied to Schedule which is not supported by QPY.
@@ -449,6 +457,7 @@ class Expression(TypeKeyBase):
     CAST = b"c"
     UNARY = b"u"
     BINARY = b"b"
+    INDEX = b"i"
 
     @classmethod
     def assign(cls, obj):
@@ -458,6 +467,22 @@ class Expression(TypeKeyBase):
         ):
             return key
         raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVarDeclaration(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR_DECLARATION`` QPY item."""
+
+    INPUT = b"I"
+    CAPTURE = b"C"
+    LOCAL = b"L"
+
+    @classmethod
+    def assign(cls, obj):
+        raise NotImplementedError
 
     @classmethod
     def retrieve(cls, type_key):
@@ -489,9 +514,12 @@ class ExprVar(TypeKeyBase):
 
     CLBIT = b"C"
     REGISTER = b"R"
+    UUID = b"U"
 
     @classmethod
     def assign(cls, obj):
+        if isinstance(obj, uuid.UUID):
+            return cls.UUID
         if isinstance(obj, Clbit):
             return cls.CLBIT
         if isinstance(obj, ClassicalRegister):
@@ -534,7 +562,7 @@ class SymExprEncoding(TypeKeyBase):
 
     @classmethod
     def assign(cls, obj):
-        if obj is True:
+        if obj:
             return cls.SYMENGINE
         else:
             return cls.SYMPY

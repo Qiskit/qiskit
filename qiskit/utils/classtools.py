@@ -31,7 +31,7 @@ class _lift_to_method:  # pylint: disable=invalid-name
     returned unchanged if so, otherwise it is turned into the default implementation for functions,
     which makes them bindable to instances.
 
-    Python-space functions and lambdas already have this behaviour, but builtins like ``print``
+    Python-space functions and lambdas already have this behavior, but builtins like ``print``
     don't; using this class allows us to do::
 
         wrap_method(MyClass, "maybe_mutates_arguments", before=print, after=print)
@@ -49,7 +49,7 @@ class _lift_to_method:  # pylint: disable=invalid-name
 
     def __init__(self, method):
         if method is self:
-            # Prevent double-initialisation if we are passed an instance of this object to lift.
+            # Prevent double-initialization if we are passed an instance of this object to lift.
             return
         self._method = method
 
@@ -118,7 +118,7 @@ class _WrappedMethod:
 
 
 def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callable = None):
-    """Wrap the functionality the instance- or class method ``cls.name`` with additional behaviour
+    """Wrap the functionality the instance- or class method ``cls.name`` with additional behavior
     ``before`` and ``after``.
 
     This mutates ``cls``, replacing the attribute ``name`` with the new functionality.  This is

@@ -29,6 +29,7 @@ def deprecate_func(
     package_name: str = "qiskit",
     removal_timeline: str = "no earlier than 3 months after the release date",
     is_property: bool = False,
+    stacklevel: int = 2,
 ):
     """Decorator to indicate a function has been deprecated.
 
@@ -50,7 +51,7 @@ def deprecate_func(
         is_property: If the deprecated function is a `@property`, set this to True so that the
             generated message correctly describes it as such. (This isn't necessary for
             property setters, as their docstring is ignored by Python.)
-
+        stacklevel: Stack level passed to :func:`warnings.warn`.
     Returns:
         Callable: The decorated callable.
     """
@@ -92,7 +93,7 @@ def deprecate_func(
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(msg, category=category, stacklevel=2)
+            warnings.warn(msg, category=category, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
         add_deprecation_to_docstring(wrapper, msg, since=since, pending=pending)
@@ -231,9 +232,9 @@ def deprecate_arguments(
             msg_suffix = (
                 "will in the future be removed." if new_arg is None else f"replaced with {new_arg}."
             )
-            old_kwarg_to_msg[
-                old_arg
-            ] = f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+            old_kwarg_to_msg[old_arg] = (
+                f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+            )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -356,9 +357,9 @@ def _write_deprecation_msg(
     removal_timeline: str,
 ) -> tuple[str, Type[DeprecationWarning] | Type[PendingDeprecationWarning]]:
     if pending:
-        category: Type[DeprecationWarning] | Type[
+        category: Type[DeprecationWarning] | Type[PendingDeprecationWarning] = (
             PendingDeprecationWarning
-        ] = PendingDeprecationWarning
+        )
         deprecation_status = "pending deprecation"
         removal_desc = f"marked deprecated in a future release, and then removed {removal_timeline}"
     else:

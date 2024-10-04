@@ -13,7 +13,6 @@
 """Testing legacy instruction alignment pass."""
 
 from qiskit import QuantumCircuit, pulse
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
@@ -22,6 +21,7 @@ from qiskit.transpiler.passes import (
     ALAPSchedule,
     TimeUnitConversion,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAlignMeasures(QiskitTestCase):
@@ -46,12 +46,13 @@ class TestAlignMeasures(QiskitTestCase):
         self.time_conversion_pass = TimeUnitConversion(inst_durations=instruction_durations)
         # reproduce old behavior of 0.20.0 before #7655
         # currently default write latency is 0
-        self.scheduling_pass = ALAPSchedule(
-            durations=instruction_durations,
-            clbit_write_latency=1600,
-            conditional_latency=0,
-        )
-        self.align_measure_pass = AlignMeasures(alignment=16)
+        with self.assertWarns(DeprecationWarning):
+            self.scheduling_pass = ALAPSchedule(
+                durations=instruction_durations,
+                clbit_write_latency=1600,
+                conditional_latency=0,
+            )
+            self.align_measure_pass = AlignMeasures(alignment=16)
 
     def test_t1_experiment_type(self):
         """Test T1 experiment type circuit.
@@ -405,7 +406,7 @@ class TestPulseGateValidation(QiskitTestCase):
         self.pulse_gate_validation_pass(circuit)
 
     def test_no_calibration(self):
-        """No error raises if no calibration is addedd."""
+        """No error raises if no calibration is added."""
 
         circuit = QuantumCircuit(1)
         circuit.x(0)

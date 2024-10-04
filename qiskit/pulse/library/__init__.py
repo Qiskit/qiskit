@@ -48,7 +48,6 @@ Pulse Models
 
    Waveform
    SymbolicPulse
-   ParametricPulse
 
 
 .. _symbolic_pulses:
@@ -76,7 +75,6 @@ Parametric Pulse Representation
 
 """
 
-from .parametric_pulses import ParametricPulse
 from .symbolic_pulses import (
     SymbolicPulse,
     ScalableSymbolicPulse,

@@ -87,7 +87,7 @@ class BasePass(GenericPass, metaclass=MetaPass):
         return hash(self) == hash(other)
 
     @abstractmethod
-    def run(self, dag: DAGCircuit):  # pylint: disable=arguments-differ
+    def run(self, dag: DAGCircuit):  # pylint:disable=arguments-renamed
         """Run a pass on the DAGCircuit. This is implemented by the pass developer.
 
         Args:

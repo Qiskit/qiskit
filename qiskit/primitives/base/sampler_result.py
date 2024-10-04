@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Sampler result class
+Sampler V1 result class
 """
 
 from __future__ import annotations
@@ -20,12 +20,12 @@ from typing import Any
 
 from qiskit.result import QuasiDistribution
 
-from .base_result import BasePrimitiveResult
+from .base_result import _BasePrimitiveResult
 
 
 @dataclass(frozen=True)
-class SamplerResult(BasePrimitiveResult):
-    """Result of Sampler.
+class SamplerResult(_BasePrimitiveResult):
+    """Result of Sampler V1.
 
     .. code-block:: python
 

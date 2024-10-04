@@ -2,5 +2,5 @@
 upgrade:
   - |
     The :meth:`~.ApproximateTokenSwapper.map` has been modified to use the new ``rustworkx`` version
-    of :func:`~graph_token_swapper` for performance reasons. Qiskit Terra 0.25 now requires versison
+    of :func:`~graph_token_swapper` for performance reasons. Qiskit Terra 0.25 now requires version
     0.13.0 of ``rustworkx``.

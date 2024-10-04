@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -36,6 +36,7 @@ from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 pi = np.pi
 
@@ -246,12 +247,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         # check for other barrier like commands
         circuit.h(q[1])
-
-        # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
-
-        with self.assertWarns(DeprecationWarning):
-            circuit.snapshot("sn 1")
 
         # check the barriers plot properly when plot_barriers= True
         circuit_drawer(circuit, filename=filename1, output="latex_source", plot_barriers=True)
@@ -486,11 +481,19 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         """Tests partial_layout
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         filename = self._get_resource_path("test_latex_partial_layout.tex")
+
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=YORKTOWN_CMAP,
+            basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+            seed=42,
+        )
+
         circuit = QuantumCircuit(3)
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=FakeTenerife(),
+            backend=backend,
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,

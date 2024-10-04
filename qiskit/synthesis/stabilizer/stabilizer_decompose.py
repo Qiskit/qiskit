@@ -14,6 +14,9 @@ Circuit synthesis for a stabilizer state preparation circuit.
 """
 # pylint: disable=invalid-name
 
+from __future__ import annotations
+
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -31,14 +34,14 @@ from qiskit.synthesis.clifford.clifford_decompose_layers import (
 
 
 def synth_stabilizer_layers(
-    stab,
-    cz_synth_func=_default_cz_synth_func,
-    cz_func_reverse_qubits=False,
-    validate=False,
-):
+    stab: StabilizerState,
+    cz_synth_func: Callable[[np.ndarray], QuantumCircuit] = _default_cz_synth_func,
+    cz_func_reverse_qubits: bool = False,
+    validate: bool = False,
+) -> QuantumCircuit:
     """Synthesis of a stabilizer state into layers.
 
-    It provides a similar decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov,
+    It provides a similar decomposition to the synthesis described in Lemma 8 of reference [1],
     without the initial Hadamard-free sub-circuit which do not affect the stabilizer state.
 
     For example, a 5-qubit stabilizer state is decomposed into the following layers:
@@ -57,20 +60,21 @@ def synth_stabilizer_layers(
              └─────┘└─────┘└─────┘└─────┘└────────┘
 
     Args:
-        stab (StabilizerState): a stabilizer state.
-        cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
-            It gets as input a boolean symmetric matrix, and outputs a QuantumCircuit.
-        validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
+        stab: A stabilizer state.
+        cz_synth_func: A function to decompose the CZ sub-circuit.
+            It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
+        cz_func_reverse_qubits: ``True`` only if ``cz_synth_func`` is
+            :func:`.synth_cz_depth_line_mr`,
             since this function returns a circuit that reverts the order of qubits.
+        validate: If ``True``, validates the synthesis process.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the stabilizer state.
+    Returns:
+        A circuit implementation of the stabilizer state.
 
     Raises:
-        QiskitError: if the input is not a StabilizerState.
+        QiskitError: if the input is not a :class:`.StabilizerState`.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
@@ -139,7 +143,7 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     phase.extend(phase_stab)
     phase = np.array(phase, dtype=int)
 
-    A = cliff.symplectic_matrix.astype(int)
+    A = cliff.symplectic_matrix.astype(bool, copy=False)
     Ainv = calc_inverse_matrix(A)
 
     # By carefully writing how X, Y, Z gates affect each qubit, all we need to compute
@@ -161,17 +165,18 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     return pauli_circ
 
 
-def synth_stabilizer_depth_lnn(stab):
-    """Synthesis of an n-qubit stabilizer state for linear-nearest neighbour connectivity,
-    in 2-qubit depth 2*n+2 and two distinct CX layers, using CX and phase gates (S, Sdg or Z).
+def synth_stabilizer_depth_lnn(stab: StabilizerState) -> QuantumCircuit:
+    """Synthesis of an n-qubit stabilizer state for linear-nearest neighbor connectivity,
+    in 2-qubit depth :math:`2n+2` and two distinct CX layers, using :class:`.CXGate`\\ s and phase gates
+    (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
     Args:
-        stab (StabilizerState): a stabilizer state.
+        stab: A stabilizer state.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the stabilizer state.
+    Returns:
+        A circuit implementation of the stabilizer state.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
