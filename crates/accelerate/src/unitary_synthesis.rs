@@ -180,7 +180,7 @@ fn synth_error(
      -> () {
         if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
             for name in names {
-                if let Ok(target_op) = target.operation_from_name(name){
+                if let Ok(target_op) = target.operation_from_name(name) {
                     let are_params_close = if let Some(params) = inst_params {
                         params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
                             p1.is_close(py, p2, 1e-10)
@@ -197,9 +197,9 @@ fn synth_error(
                         && (is_parametrized || are_params_close)
                     {
                         match target[name].get(Some(inst_qubits)) {
-                            Some(Some(props)) => gate_fidelities.push(
-                                1.0 - props.error.unwrap_or(0.0)
-                            ),
+                            Some(Some(props)) => {
+                                gate_fidelities.push(1.0 - props.error.unwrap_or(0.0))
+                            }
                             _ => gate_fidelities.push(1.0),
                         }
                         break;
@@ -599,28 +599,30 @@ fn get_2q_decomposers_from_target(
     }
 
     for (q_pair, gates) in qubit_gate_map {
-        for (key, op) in gates
-            .iter()
-            .zip(gates.iter().flat_map(|key| target.operation_from_name(key)))
-        {
-            match op.operation.view() {
-                OperationRef::Gate(_) => (),
-                OperationRef::Standard(_) => (),
+        for key in gates {
+            match target.operation_from_name(key) {
+                Ok(op) => {
+                    match op.operation.view() {
+                        OperationRef::Gate(_) => (),
+                        OperationRef::Standard(_) => (),
+                        _ => continue,
+                    }
+
+                    available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
+
+                    if target.qargs_for_operation_name(key).is_ok() {
+                        available_2q_props.insert(
+                            key,
+                            match &target[key].get(Some(q_pair)) {
+                                Some(Some(props)) => (props.duration, props.error),
+                                _ => (None, None),
+                            },
+                        );
+                    } else {
+                        continue;
+                    }
+                }
                 _ => continue,
-            }
-
-            available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
-
-            if target.qargs_for_operation_name(key).is_ok() {
-                available_2q_props.insert(
-                    key,
-                    match &target[key].get(Some(q_pair)) {
-                        Some(Some(props)) => (props.duration, props.error),
-                        _ => (None, None),
-                    },
-                );
-            } else {
-                continue;
             }
         }
     }
