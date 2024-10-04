@@ -192,6 +192,7 @@ def circuit_drawer(
             :include-source:
 
             from qiskit import QuantumCircuit
+            from qiskit.visualization import circuit_drawer
             qc = QuantumCircuit(1, 1)
             qc.h(0)
             qc.measure(0, 0)
