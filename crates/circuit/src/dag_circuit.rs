@@ -1981,7 +1981,7 @@ def _format(operand):
                     let wire_in_dag = dag.qubits.find(&m_wire);
 
                     if wire_in_dag.is_none()
-                        || (dag.qubit_io_map.len() - 1 < wire_in_dag.unwrap().0 as usize)
+                        || (dag.qubit_io_map.len() - 1 < wire_in_dag.unwrap().index())
                     {
                         return Err(DAGCircuitError::new_err(format!(
                             "wire {} not in self",
@@ -1995,7 +1995,7 @@ def _format(operand):
                     let m_wire = edge_map.get_item(bit)?.unwrap_or_else(|| bit.clone());
                     let wire_in_dag = dag.clbits.find(&m_wire);
                     if wire_in_dag.is_none()
-                        || dag.clbit_io_map.len() - 1 < wire_in_dag.unwrap().0 as usize
+                        || dag.clbit_io_map.len() - 1 < wire_in_dag.unwrap().index()
                     {
                         return Err(DAGCircuitError::new_err(format!(
                             "wire {} not in self",
@@ -3550,20 +3550,20 @@ def _format(operand):
                 match self.dag.node_weight(*node) {
                     Some(w) => match w {
                         NodeType::ClbitIn(b) => {
-                            let clbit_in = new_dag.clbit_io_map[b.0 as usize][0];
+                            let clbit_in = new_dag.clbit_io_map[b.index()][0];
                             node_map.insert(*node, clbit_in);
                         }
                         NodeType::ClbitOut(b) => {
-                            let clbit_out = new_dag.clbit_io_map[b.0 as usize][1];
+                            let clbit_out = new_dag.clbit_io_map[b.index()][1];
                             node_map.insert(*node, clbit_out);
                         }
                         NodeType::QubitIn(q) => {
-                            let qbit_in = new_dag.qubit_io_map[q.0 as usize][0];
+                            let qbit_in = new_dag.qubit_io_map[q.index()][0];
                             node_map.insert(*node, qbit_in);
                             non_classical = true;
                         }
                         NodeType::QubitOut(q) => {
-                            let qbit_out = new_dag.qubit_io_map[q.0 as usize][1];
+                            let qbit_out = new_dag.qubit_io_map[q.index()][1];
                             node_map.insert(*node, qbit_out);
                             non_classical = true;
                         }
@@ -4563,7 +4563,7 @@ def _format(operand):
         })?;
         let output_node_index = self
             .qubit_io_map
-            .get(output_qubit.0 as usize)
+            .get(output_qubit.index())
             .map(|x| x[1])
             .ok_or_else(|| {
                 DAGCircuitError::new_err(format!(
@@ -5021,7 +5021,7 @@ impl DAGCircuit {
         let color_fn = move |edge_index: EdgeIndex| -> Result<Option<usize>, Infallible> {
             let wire = self.dag.edge_weight(edge_index).unwrap();
             match wire {
-                Wire::Qubit(index) => Ok(Some(index.0 as usize)),
+                Wire::Qubit(index) => Ok(Some(index.index())),
                 _ => Ok(None),
             }
         };
@@ -5109,11 +5109,11 @@ impl DAGCircuit {
             .qargs_interner
             .get(qubits_id)
             .iter()
-            .map(|q| self.qubit_io_map.get(q.0 as usize).map(|x| x[1]).unwrap())
+            .map(|q| self.qubit_io_map.get(q.index()).map(|x| x[1]).unwrap())
             .chain(
                 all_cbits
                     .iter()
-                    .map(|c| self.clbit_io_map.get(c.0 as usize).map(|x| x[1]).unwrap()),
+                    .map(|c| self.clbit_io_map.get(c.index()).map(|x| x[1]).unwrap()),
             )
             .chain(
                 vars.iter()
@@ -5175,8 +5175,8 @@ impl DAGCircuit {
             .qargs_interner
             .get(qubits_id)
             .iter()
-            .map(|q| self.qubit_io_map[q.0 as usize][0])
-            .chain(all_cbits.iter().map(|c| self.clbit_io_map[c.0 as usize][0]))
+            .map(|q| self.qubit_io_map[q.index()][0])
+            .chain(all_cbits.iter().map(|c| self.clbit_io_map[c.index()][0]))
             .collect();
         if let Some(vars) = vars {
             for var in vars {
@@ -5263,7 +5263,7 @@ impl DAGCircuit {
     ) -> PyResult<NodeIndex> {
         // Check that all qargs are within an acceptable range
         qargs.iter().try_for_each(|qarg| {
-            if qarg.0 as usize >= self.num_qubits() {
+            if qarg.index() >= self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
                     "Qubit index {} is out of range. This DAGCircuit currently has only {} qubits.",
                     qarg.0,
@@ -5275,7 +5275,7 @@ impl DAGCircuit {
 
         // Check that all cargs are within an acceptable range
         cargs.iter().try_for_each(|carg| {
-            if carg.0 as usize >= self.num_clbits() {
+            if carg.index() >= self.num_clbits() {
                 return Err(PyValueError::new_err(format!(
                     "Clbit index {} is out of range. This DAGCircuit currently has only {} clbits.",
                     carg.0,
@@ -5379,12 +5379,12 @@ impl DAGCircuit {
     fn is_wire_idle(&self, py: Python, wire: &Wire) -> PyResult<bool> {
         let (input_node, output_node) = match wire {
             Wire::Qubit(qubit) => (
-                self.qubit_io_map[qubit.0 as usize][0],
-                self.qubit_io_map[qubit.0 as usize][1],
+                self.qubit_io_map[qubit.index()][0],
+                self.qubit_io_map[qubit.index()][1],
             ),
             Wire::Clbit(clbit) => (
-                self.clbit_io_map[clbit.0 as usize][0],
-                self.clbit_io_map[clbit.0 as usize][1],
+                self.clbit_io_map[clbit.index()][0],
+                self.clbit_io_map[clbit.index()][1],
             ),
             Wire::Var(var) => (
                 self.var_input_map.get(py, var).unwrap(),
@@ -5528,7 +5528,7 @@ impl DAGCircuit {
     fn add_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => {
-                if (qubit.0 as usize) >= self.qubit_io_map.len() {
+                if (qubit.index()) >= self.qubit_io_map.len() {
                     let input_node = self.dag.add_node(NodeType::QubitIn(qubit));
                     let output_node = self.dag.add_node(NodeType::QubitOut(qubit));
                     self.qubit_io_map.push([input_node, output_node]);
@@ -5538,7 +5538,7 @@ impl DAGCircuit {
                 }
             }
             Wire::Clbit(clbit) => {
-                if (clbit.0 as usize) >= self.clbit_io_map.len() {
+                if (clbit.index()) >= self.clbit_io_map.len() {
                     let input_node = self.dag.add_node(NodeType::ClbitIn(clbit));
                     let output_node = self.dag.add_node(NodeType::ClbitOut(clbit));
                     self.clbit_io_map.push([input_node, output_node]);
@@ -5571,8 +5571,8 @@ impl DAGCircuit {
     pub fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
-            Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.0 as usize).map(|x| x[0]),
-            Wire::Clbit(clbit) => self.clbit_io_map.get(clbit.0 as usize).map(|x| x[0]),
+            Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.index()).map(|x| x[0]),
+            Wire::Clbit(clbit) => self.clbit_io_map.get(clbit.index()).map(|x| x[0]),
             Wire::Var(var) => self.var_input_map.get(py, var),
         };
 
@@ -5600,8 +5600,8 @@ impl DAGCircuit {
 
     fn remove_idle_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
         let [in_node, out_node] = match wire {
-            Wire::Qubit(qubit) => self.qubit_io_map[qubit.0 as usize],
-            Wire::Clbit(clbit) => self.clbit_io_map[clbit.0 as usize],
+            Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()],
+            Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()],
             Wire::Var(var) => [
                 self.var_input_map.remove(py, &var).unwrap(),
                 self.var_output_map.remove(py, &var).unwrap(),
@@ -5930,7 +5930,7 @@ impl DAGCircuit {
 
         // Add wire from pred to succ if no ops on mapped wire on ``other``
         for (in_dag_wire, self_wire) in qubit_map.iter() {
-            let [input_node, out_node] = other.qubit_io_map[in_dag_wire.0 as usize];
+            let [input_node, out_node] = other.qubit_io_map[in_dag_wire.index()];
             if other.dag.find_edge(input_node, out_node).is_some() {
                 let pred = self
                     .dag
@@ -5959,7 +5959,7 @@ impl DAGCircuit {
             }
         }
         for (in_dag_wire, self_wire) in clbit_map.iter() {
-            let [input_node, out_node] = other.clbit_io_map[in_dag_wire.0 as usize];
+            let [input_node, out_node] = other.clbit_io_map[in_dag_wire.index()];
             if other.dag.find_edge(input_node, out_node).is_some() {
                 let pred = self
                     .dag
@@ -6075,11 +6075,11 @@ impl DAGCircuit {
             let wire_input_id = match weight {
                 Wire::Qubit(qubit) => other
                     .qubit_io_map
-                    .get(reverse_qubit_map[&qubit].0 as usize)
+                    .get(reverse_qubit_map[&qubit].index())
                     .map(|x| x[0]),
                 Wire::Clbit(clbit) => other
                     .clbit_io_map
-                    .get(reverse_clbit_map[&clbit].0 as usize)
+                    .get(reverse_clbit_map[&clbit].index())
                     .map(|x| x[0]),
                 Wire::Var(ref var) => {
                     let index = &reverse_var_map.get_item(var)?.unwrap().unbind();
@@ -6111,11 +6111,11 @@ impl DAGCircuit {
             let wire_output_id = match weight {
                 Wire::Qubit(qubit) => other
                     .qubit_io_map
-                    .get(reverse_qubit_map[&qubit].0 as usize)
+                    .get(reverse_qubit_map[&qubit].index())
                     .map(|x| x[1]),
                 Wire::Clbit(clbit) => other
                     .clbit_io_map
-                    .get(reverse_clbit_map[&clbit].0 as usize)
+                    .get(reverse_clbit_map[&clbit].index())
                     .map(|x| x[1]),
                 Wire::Var(ref var) => {
                     let index = &reverse_var_map.get_item(var)?.unwrap().unbind();
@@ -6195,7 +6195,7 @@ impl DAGCircuit {
         }
 
         for b in self.qargs_interner.get(inst.qubits) {
-            if self.qubit_io_map.len() - 1 < b.0 as usize {
+            if self.qubit_io_map.len() - 1 < b.index() {
                 return Err(DAGCircuitError::new_err(format!(
                     "qubit {} not found in output map",
                     self.qubits.get(*b).unwrap()
@@ -6204,7 +6204,7 @@ impl DAGCircuit {
         }
 
         for b in self.cargs_interner.get(inst.clbits) {
-            if !self.clbit_io_map.len() - 1 < b.0 as usize {
+            if !self.clbit_io_map.len() - 1 < b.index() {
                 return Err(DAGCircuitError::new_err(format!(
                     "clbit {} not found in output map",
                     self.clbits.get(*b).unwrap()
@@ -6215,7 +6215,7 @@ impl DAGCircuit {
         if self.may_have_additional_wires(py, inst) {
             let (clbits, vars) = self.additional_wires(py, inst.op.view(), inst.condition())?;
             for b in clbits {
-                if !self.clbit_io_map.len() - 1 < b.0 as usize {
+                if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGCircuitError::new_err(format!(
                         "clbit {} not found in output map",
                         self.clbits.get(b).unwrap()
@@ -6596,7 +6596,7 @@ impl DAGCircuit {
                 let qubit_last_node = *qubit_last_nodes.entry(*qubit).or_insert_with(|| {
                     // If the qubit is not in the last nodes collection, the edge between the output node and its predecessor.
                     // Then, store the predecessor's NodeIndex in the last nodes collection.
-                    let output_node = self.qubit_io_map[qubit.0 as usize][1];
+                    let output_node = self.qubit_io_map[qubit.index()][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
@@ -6618,7 +6618,7 @@ impl DAGCircuit {
                 let clbit_last_node = *clbit_last_nodes.entry(clbit).or_insert_with(|| {
                     // If the qubit is not in the last nodes collection, the edge between the output node and its predecessor.
                     // Then, store the predecessor's NodeIndex in the last nodes collection.
-                    let output_node = self.clbit_io_map[clbit.0 as usize][1];
+                    let output_node = self.clbit_io_map[clbit.index()][1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
@@ -6668,13 +6668,13 @@ impl DAGCircuit {
 
         // Add the output_nodes back to qargs
         for (qubit, node) in qubit_last_nodes {
-            let output_node = self.qubit_io_map[qubit.0 as usize][1];
+            let output_node = self.qubit_io_map[qubit.index()][1];
             self.dag.add_edge(node, output_node, Wire::Qubit(qubit));
         }
 
         // Add the output_nodes back to cargs
         for (clbit, node) in clbit_last_nodes {
-            let output_node = self.clbit_io_map[clbit.0 as usize][1];
+            let output_node = self.clbit_io_map[clbit.index()][1];
             self.dag.add_edge(node, output_node, Wire::Clbit(clbit));
         }
 
@@ -6743,8 +6743,7 @@ impl DAGCircuit {
                         )));
                     }
                     let qubit_index = qc_data.qubits().find(&qubit).unwrap();
-                    ordered_vec[qubit_index.0 as usize] =
-                        new_dag.add_qubit_unchecked(py, &qubit)?;
+                    ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(py, &qubit)?;
                     Ok(())
                 })?;
             Some(ordered_vec)
@@ -6773,8 +6772,7 @@ impl DAGCircuit {
                         )));
                     };
                     let clbit_index = qc_data.clbits().find(&clbit).unwrap();
-                    ordered_vec[clbit_index.0 as usize] =
-                        new_dag.add_clbit_unchecked(py, &clbit)?;
+                    ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(py, &clbit)?;
                     Ok(())
                 })?;
             Some(ordered_vec)
@@ -6825,7 +6823,7 @@ impl DAGCircuit {
                     let qargs = qc_data
                         .get_qargs(instr.qubits)
                         .iter()
-                        .map(|bit| qubit_mapping[bit.0 as usize])
+                        .map(|bit| qubit_mapping[bit.index()])
                         .collect();
                     new_dag.qargs_interner.insert_owned(qargs)
                 } else {
@@ -6838,7 +6836,7 @@ impl DAGCircuit {
                     let qargs = qc_data
                         .get_cargs(instr.clbits)
                         .iter()
-                        .map(|bit| clbit_mapping[bit.0 as usize])
+                        .map(|bit| clbit_mapping[bit.index()])
                         .collect();
                     new_dag.cargs_interner.insert_owned(qargs)
                 } else {
