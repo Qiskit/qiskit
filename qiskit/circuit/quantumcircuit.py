@@ -3237,10 +3237,12 @@ class QuantumCircuit:
 
         Args:
             gates_to_decompose (type or str or list(type, str)): Optional subset of gates
-                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
-                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
-                of these. If a gate name is entered, it will decompose all gates with that
-                name, whether the gates have labels or not. Defaults to all gates in circuit.
+                to decompose. Can be a gate type, such as ``HGate``, or a gate name pattern,
+                such as 'h', or a gate label pattern, such as 'My H Gate', or a list of any
+                combination of these. If a gate name pattern is entered, it will decompose
+                all gates matching that pattern, whether the gates have labels or not.
+                See :mod:`fnmatch` for the supported patterns. Pattern-matching is
+                case-sensitive. Defaults to all gates in circuit.
             reps (int): Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
                 can decompose specific gates specific time

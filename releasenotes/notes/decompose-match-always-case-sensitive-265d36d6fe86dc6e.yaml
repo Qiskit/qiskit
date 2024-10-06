@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix varying behavior between platforms in :meth:`QiskitCircuit.decompose` and the associated transpilation pass :class:`Decompose <qiskit.transpiler.passes.basis.decompose.Decompose>`.
+    Matching gate labels or names patterns to decompose is now always case-sensitive, instead of dependent on the platform standard for handling filesystem paths (e.g. case-sensitive on Unix but case-insensitive on Windows).
