@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    GRX
    GRY
    GRZ
+   MCMTGate
    MCPhaseGate
    MCXGate
    MCXGrayCode
@@ -501,6 +502,7 @@ from .generalized_gates import (
     Permutation,
     PermutationGate,
     GMS,
+    MCMTGate,
     MSGate,
     GR,
     GRX,

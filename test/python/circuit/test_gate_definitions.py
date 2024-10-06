@@ -294,6 +294,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "UCPauliRotGate",
         "SingleQubitUnitary",
         "MCXGate",
+        "MCMTGate",
         "VariadicZeroParamGate",
         "ClassicalFunction",
         "ClassicalElement",
