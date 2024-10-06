@@ -67,7 +67,6 @@ from qiskit.pulse.utils import (
     _validate_parameter_vector,
     _validate_parameter_value,
 )
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class NodeVisitor:
@@ -132,7 +131,6 @@ class ParameterSetter(NodeVisitor):
     and assign values to operands of nodes found.
     """
 
-    @deprecate_pulse_func
     def __init__(self, param_map: dict[ParameterExpression, ParameterValueType]):
         self._param_map = param_map
 
@@ -263,7 +261,6 @@ class ParameterGetter(NodeVisitor):
     and add parameters found to the array.
     """
 
-    @deprecate_pulse_func
     def __init__(self):
         self.parameters = set()
 
@@ -334,7 +331,6 @@ class ParameterManager:
     Instruction data and its location are not directly associated with this object.
     """
 
-    @deprecate_pulse_func
     def __init__(self):
         """Create new parameter table for pulse programs."""
         self._parameters = set()

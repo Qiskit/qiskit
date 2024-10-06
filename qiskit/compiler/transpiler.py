@@ -106,7 +106,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
+        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
             transpiler tries to get from the backend. If any user defined calibration
             is found in the map and this is used in a circuit, transpiler attaches
             the custom gate definition to the circuit. This enables one to flexibly

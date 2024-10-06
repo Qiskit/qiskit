@@ -49,7 +49,7 @@ def convert_to_target(
     Args:
         configuration: Backend configuration as ``BackendConfiguration``
         properties: Backend property dictionary or ``BackendProperties``
-        defaults: Backend pulse defaults dictionary or ``PulseDefaults``
+        defaults: DEPRECATED. Backend pulse defaults dictionary or ``PulseDefaults``
         custom_name_mapping: A name mapping must be supplied for the operation
             not included in Qiskit Standard Gate name mapping, otherwise the operation
             will be dropped in the resulting ``Target`` object.

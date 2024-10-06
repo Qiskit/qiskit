@@ -24,7 +24,6 @@ from typing import Any
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.circuit import ParameterExpression
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class PulseExpression(ast.NodeTransformer):
@@ -64,7 +63,6 @@ class PulseExpression(ast.NodeTransformer):
     _unary_ops = {ast.UAdd: operator.pos, ast.USub: operator.neg}
     """Valid unary operations."""
 
-    @deprecate_pulse_func
     def __init__(self, source: str | ast.Expression, partial_binding: bool = False):
         """Create new evaluator.
 

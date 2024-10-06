@@ -25,10 +25,8 @@ from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.providers.models.pulsedefaults import PulseDefaults
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
-@deprecate_pulse_arg("defs_dict")
 def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict = None) -> Target:
     """Uses configuration, properties and pulse defaults dicts
     to construct and return Target class.

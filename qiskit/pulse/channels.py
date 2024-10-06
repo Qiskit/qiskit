@@ -208,7 +208,6 @@ class SnapshotChannel(ClassicalIOChannel):
 
     prefix = "s"
 
-    @deprecate_pulse_func
     def __init__(self):
         """Create new snapshot channel."""
         super().__init__(0)

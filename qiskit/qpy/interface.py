@@ -76,7 +76,7 @@ VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 @deprecate_pulse_arg(
     "programs",
-    description="Passing 'ScheduleBlock'('s) to 'programs'",
+    deprecation_description="Passing `ScheduleBlock` to `programs`",
     predicate=lambda p: isinstance(p, ScheduleBlock),
 )
 def dump(
@@ -126,6 +126,7 @@ def dump(
         programs: QPY supported object(s) to store in the specified file like object.
             QPY supports :class:`.QuantumCircuit` and :class:`.ScheduleBlock`.
             Different data types must be separately serialized.
+            Support for :class:`.ScheduleBlock` is deprecated since Qiskit 1.3.0.
         file_obj: The file like object to write the QPY data too
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be

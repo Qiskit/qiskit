@@ -16,7 +16,6 @@ from __future__ import annotations
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 class Delay(Instruction):
@@ -35,7 +34,6 @@ class Delay(Instruction):
         The ``channel`` will output no signal from time=0 up until time=10.
     """
 
-    @deprecate_pulse_func
     def __init__(
         self,
         duration: int | ParameterExpression,

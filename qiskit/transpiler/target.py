@@ -101,7 +101,7 @@ class InstructionProperties(BaseInstructionProperties):
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            calibration: The pulse representation of the instruction.
+            calibration: DEPRECATED. The pulse representation of the instruction.
         """
         super().__init__()
         self._calibration: CalibrationEntry | None = None
@@ -974,7 +974,7 @@ class Target(BaseTarget):
             coupling_map: The coupling map representing connectivity constraints
                 on the backend. If specified all gates from ``basis_gates`` will
                 be supported on all qubits (or pairs of qubits).
-            inst_map: The instruction schedule map representing the pulse
+            inst_map: DEPRECATED. The instruction schedule map representing the pulse
                :class:`~.Schedule` definitions for each instruction. If this
                is specified ``coupling_map`` must be specified. The
                ``coupling_map`` is used as the source of truth for connectivity

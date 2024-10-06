@@ -523,7 +523,7 @@ class GenericBackendV2(BackendV2):
     """
 
     @deprecate_pulse_arg("pulse_channels")
-    @deprecate_pulse_arg("calibration_instructions")
+    @deprecate_pulse_arg("calibrate_instructions")
     def __init__(
         self,
         num_qubits: int,
@@ -566,7 +566,7 @@ class GenericBackendV2(BackendV2):
             control_flow: Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_instructions: Instruction calibration settings, this argument
+            calibrate_instructions: DEPRECATED. Instruction calibration settings, this argument
                 supports both boolean and :class:`.InstructionScheduleMap` as
                 input types, and is ``None`` by default:
 
@@ -584,7 +584,7 @@ class GenericBackendV2(BackendV2):
 
             seed: Optional seed for generation of default values.
 
-            pulse_channels: If true, sets default pulse channel information on the backend.
+            pulse_channels: DEPRECATED. If true, sets default pulse channel information on the backend.
 
             noise_info: If true, associates gates and qubits with default noise information.
         """

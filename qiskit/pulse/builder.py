@@ -478,7 +478,6 @@ class _PulseBuilder:
         "sequential": transforms.AlignSequential(),
     }
 
-    @deprecate_pulse_func
     def __init__(
         self,
         backend=None,
@@ -850,6 +849,7 @@ def _active_builder() -> _PulseBuilder:
         ) from ex
 
 
+@deprecate_pulse_func
 def active_backend():
     """Get the backend of the currently active builder context.
 
@@ -900,6 +900,7 @@ def append_instruction(instruction: instructions.Instruction):
     _active_builder().append_instruction(instruction)
 
 
+@deprecate_pulse_func
 def num_qubits() -> int:
     """Return number of qubits in the currently active backend.
 
@@ -926,6 +927,7 @@ def num_qubits() -> int:
     return active_backend().configuration().n_qubits
 
 
+@deprecate_pulse_func
 def seconds_to_samples(seconds: float | np.ndarray) -> int | np.ndarray:
     """Obtain the number of samples that will elapse in ``seconds`` on the
     active backend.
@@ -944,6 +946,7 @@ def seconds_to_samples(seconds: float | np.ndarray) -> int | np.ndarray:
     return int(seconds / dt)
 
 
+@deprecate_pulse_func
 def samples_to_seconds(samples: int | np.ndarray) -> float | np.ndarray:
     """Obtain the time in seconds that will elapse for the input number of
     samples on the active backend.
@@ -957,6 +960,7 @@ def samples_to_seconds(samples: int | np.ndarray) -> float | np.ndarray:
     return samples * _active_builder().get_dt()
 
 
+@deprecate_pulse_func
 def qubit_channels(qubit: int) -> set[chans.Channel]:
     """Returns the set of channels associated with a qubit.
 
@@ -1029,6 +1033,7 @@ def _qubits_to_channels(*channels_or_qubits: int | chans.Channel) -> set[chans.C
 
 
 @contextmanager
+@deprecate_pulse_func
 def align_left() -> Generator[None, None, None]:
     """Left alignment pulse scheduling context.
 
@@ -1067,6 +1072,7 @@ def align_left() -> Generator[None, None, None]:
 
 
 @contextmanager
+@deprecate_pulse_func
 def align_right() -> Generator[None, None, None]:
     """Right alignment pulse scheduling context.
 
@@ -1105,6 +1111,7 @@ def align_right() -> Generator[None, None, None]:
 
 
 @contextmanager
+@deprecate_pulse_func
 def align_sequential() -> Generator[None, None, None]:
     """Sequential alignment pulse scheduling context.
 
@@ -1143,6 +1150,7 @@ def align_sequential() -> Generator[None, None, None]:
 
 
 @contextmanager
+@deprecate_pulse_func
 def align_equispaced(duration: int | ParameterExpression) -> Generator[None, None, None]:
     """Equispaced alignment pulse scheduling context.
 
@@ -1195,6 +1203,7 @@ def align_equispaced(duration: int | ParameterExpression) -> Generator[None, Non
 
 
 @contextmanager
+@deprecate_pulse_func
 def align_func(
     duration: int | ParameterExpression, func: Callable[[int], float]
 ) -> Generator[None, None, None]:
@@ -1283,6 +1292,7 @@ def general_transforms(alignment_context: AlignmentKind) -> Generator[None, None
 
 
 @contextmanager
+@deprecate_pulse_func
 def phase_offset(phase: float, *channels: chans.PulseChannel) -> Generator[None, None, None]:
     """Shift the phase of input channels on entry into context and undo on exit.
 
@@ -1319,6 +1329,7 @@ def phase_offset(phase: float, *channels: chans.PulseChannel) -> Generator[None,
 
 
 @contextmanager
+@deprecate_pulse_func
 def frequency_offset(
     frequency: float, *channels: chans.PulseChannel, compensate_phase: bool = False
 ) -> Generator[None, None, None]:
@@ -1382,6 +1393,7 @@ def frequency_offset(
 
 
 # Channels
+@deprecate_pulse_func
 def drive_channel(qubit: int) -> chans.DriveChannel:
     """Return ``DriveChannel`` for ``qubit`` on the active builder backend.
 
@@ -1405,6 +1417,7 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
     return active_backend().configuration().drive(qubit)
 
 
+@deprecate_pulse_func
 def measure_channel(qubit: int) -> chans.MeasureChannel:
     """Return ``MeasureChannel`` for ``qubit`` on the active builder backend.
 
@@ -1428,6 +1441,7 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
     return active_backend().configuration().measure(qubit)
 
 
+@deprecate_pulse_func
 def acquire_channel(qubit: int) -> chans.AcquireChannel:
     """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
 
@@ -1451,6 +1465,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
     return active_backend().configuration().acquire(qubit)
 
 
+@deprecate_pulse_func
 def control_channels(*qubits: Iterable[int]) -> list[chans.ControlChannel]:
     """Return ``ControlChannel`` for ``qubit`` on the active builder backend.
 
@@ -1485,6 +1500,7 @@ def control_channels(*qubits: Iterable[int]) -> list[chans.ControlChannel]:
 
 
 # Base Instructions
+@deprecate_pulse_func
 def delay(duration: int, channel: chans.Channel, name: str | None = None):
     """Delay on a ``channel`` for a ``duration``.
 
@@ -1541,6 +1557,7 @@ class _MetaDataType(TypedDict, total=False):
     name: str
 
 
+@deprecate_pulse_func
 def acquire(
     duration: int,
     qubit_or_channel: int | chans.AcquireChannel,
@@ -1594,6 +1611,7 @@ def acquire(
         raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
 
 
+@deprecate_pulse_func
 def set_frequency(frequency: float, channel: chans.PulseChannel, name: str | None = None):
     """Set the ``frequency`` of a pulse ``channel``.
 
@@ -1616,6 +1634,7 @@ def set_frequency(frequency: float, channel: chans.PulseChannel, name: str | Non
     append_instruction(instructions.SetFrequency(frequency, channel, name=name))
 
 
+@deprecate_pulse_func
 def shift_frequency(frequency: float, channel: chans.PulseChannel, name: str | None = None):
     """Shift the ``frequency`` of a pulse ``channel``.
 
@@ -1639,6 +1658,7 @@ def shift_frequency(frequency: float, channel: chans.PulseChannel, name: str | N
     append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
 
 
+@deprecate_pulse_func
 def set_phase(phase: float, channel: chans.PulseChannel, name: str | None = None):
     """Set the ``phase`` of a pulse ``channel``.
 
@@ -1664,6 +1684,7 @@ def set_phase(phase: float, channel: chans.PulseChannel, name: str | None = None
     append_instruction(instructions.SetPhase(phase, channel, name=name))
 
 
+@deprecate_pulse_func
 def shift_phase(phase: float, channel: chans.PulseChannel, name: str | None = None):
     """Shift the ``phase`` of a pulse ``channel``.
 
@@ -1688,6 +1709,7 @@ def shift_phase(phase: float, channel: chans.PulseChannel, name: str | None = No
     append_instruction(instructions.ShiftPhase(phase, channel, name))
 
 
+@deprecate_pulse_func
 def snapshot(label: str, snapshot_type: str = "statevector"):
     """Simulator snapshot.
 
@@ -1707,6 +1729,7 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
     append_instruction(instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
+@deprecate_pulse_func
 def call(
     target: Schedule | ScheduleBlock | None,
     name: str | None = None,
@@ -1901,6 +1924,7 @@ def call(
     _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
 
+@deprecate_pulse_func
 def reference(name: str, *extra_keys: str):
     """Refer to undefined subroutine by string keys.
 
@@ -1927,6 +1951,7 @@ def reference(name: str, *extra_keys: str):
 
 
 # Directives
+@deprecate_pulse_func
 def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     """Barrier directive for a set of channels and qubits.
 
@@ -2000,6 +2025,7 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
 
 
 # Macros
+@deprecate_pulse_func
 def macro(func: Callable):
     """Wrap a Python function and activate the parent builder context at calling time.
 
@@ -2056,6 +2082,7 @@ def macro(func: Callable):
     return wrapper
 
 
+@deprecate_pulse_func
 def measure(
     qubits: list[int] | int,
     registers: list[StorageLocation] | StorageLocation = None,
@@ -2144,6 +2171,7 @@ def measure(
         return registers
 
 
+@deprecate_pulse_func
 def measure_all() -> list[chans.MemorySlot]:
     r"""Measure all qubits within the currently active builder context.
 
@@ -2187,6 +2215,7 @@ def measure_all() -> list[chans.MemorySlot]:
     return registers
 
 
+@deprecate_pulse_func
 def delay_qubits(duration: int, *qubits: int):
     r"""Insert delays on all the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.

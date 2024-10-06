@@ -31,7 +31,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 def _lifted_gaussian(
@@ -151,7 +150,6 @@ class LambdifiedExpression:
     _`Descriptor`: https://docs.python.org/3/reference/datamodel.html#descriptors
     """
 
-    @deprecate_pulse_func
     def __init__(self, attribute: str):
         """Create new descriptor.
 
@@ -405,7 +403,6 @@ class SymbolicPulse(Pulse):
     _constraints_lam = LambdifiedExpression("_constraints")
     _valid_amp_conditions_lam = LambdifiedExpression("_valid_amp_conditions")
 
-    @deprecate_pulse_func
     def __init__(
         self,
         pulse_type: str,
@@ -596,7 +593,6 @@ class ScalableSymbolicPulse(SymbolicPulse):
     :math:'\text{amp}\times\exp\left(i\times\text{angle}\right)' is compared.
     """
 
-    @deprecate_pulse_func
     def __init__(
         self,
         pulse_type: str,

@@ -124,7 +124,7 @@ def generate_preset_pass_manager(
             and ``backend_properties``.
         basis_gates (list): List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
-        inst_map (InstructionScheduleMap): Mapping object that maps gates to schedules.
+        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gates to schedules.
             If any user defined calibration is found in the map and this is used in a
             circuit, transpiler attaches the custom gate definition to the circuit.
             This enables one to flexibly override the low-level instruction

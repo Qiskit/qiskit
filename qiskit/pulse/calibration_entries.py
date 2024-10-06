@@ -303,7 +303,6 @@ class PulseQobjDef(ScheduleDef):
 
     """
 
-    @deprecate_pulse_func
     def __init__(
         self,
         arguments: Sequence[str] | None = None,
