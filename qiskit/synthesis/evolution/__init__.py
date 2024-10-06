@@ -12,6 +12,9 @@
 
 """Synthesis for operator evolution gates."""
 
+# pylint: disable=unused-import
+from qiskit._accelerate.synthesis.evolution import pauli_network_synthesis
+
 from .evolution_synthesis import EvolutionSynthesis
 from .matrix_synthesis import MatrixExponential
 from .product_formula import ProductFormula

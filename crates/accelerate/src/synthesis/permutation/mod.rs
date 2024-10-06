@@ -37,6 +37,7 @@ pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+    println!("I AM HERE YES");
     let view = pattern.as_array();
     let inverse_i64: Vec<i64> = utils::invert(&view).iter().map(|&x| x as i64).collect();
     Ok(inverse_i64.to_object(py))

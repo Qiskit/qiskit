@@ -1249,6 +1249,7 @@ dependencies = [
  "rand_distr",
  "rand_pcg",
  "rayon",
+ "rustiq-core",
  "rustworkx-core",
  "smallvec",
  "thiserror",
@@ -1492,6 +1493,16 @@ name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
+
+[[package]]
+name = "rustiq-core"
+version = "0.0.7"
+dependencies = [
+ "itertools 0.10.5",
+ "petgraph",
+ "pyo3",
+ "rand",
+]
 
 [[package]]
 name = "rustversion"
