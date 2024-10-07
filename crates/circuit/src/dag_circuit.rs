@@ -35,9 +35,12 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use itertools::Itertools;
 
-use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{
+    PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
+};
 use pyo3::intern;
 use pyo3::prelude::*;
+
 use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
 };
@@ -257,10 +260,10 @@ pub struct DAGCircuit {
     /// Global phase.
     global_phase: Param,
     /// Duration.
-    #[pyo3(get, set)]
+    #[pyo3(set)]
     duration: Option<PyObject>,
     /// Unit of duration.
-    #[pyo3(get, set)]
+    #[pyo3(set)]
     unit: String,
 
     // Note: these are tracked separately from `qubits` and `clbits`
@@ -453,6 +456,45 @@ impl DAGCircuit {
                 PySet::empty_bound(py)?.unbind(),
             ],
         })
+    }
+
+    /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
+    /// specified by :attr:`.unit`
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    #[getter]
+    fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
+        imports::WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
+                    "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            2,
+        ))?;
+        Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    /// The unit that duration is specified in.
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    #[getter]
+    fn get_unit(&self, py: Python) -> PyResult<String> {
+        imports::WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
+                    "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            2,
+        ))?;
+        Ok(self.unit.clone())
     }
 
     #[getter]
