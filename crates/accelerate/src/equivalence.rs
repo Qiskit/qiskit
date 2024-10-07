@@ -340,6 +340,8 @@ impl ToPyObject for CircuitFromPython {
 type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
 type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 
+/// A library providing a one-way mapping of Gates to their equivalent
+/// implementations as QuantumCircuits.
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
@@ -469,6 +471,16 @@ impl EquivalenceLibrary {
     }
 
     // TODO: Remove once BasisTranslator is in Rust.
+    /// Return graph representing the equivalence library data.
+    ///
+    /// This property should be treated as read-only as it provides
+    /// a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+    /// If the graph returned by this property is mutated it could corrupt the
+    /// the contents of the object. If you need to modify the output ``PyDiGraph``
+    /// be sure to make a copy prior to any modification.
+    ///
+    /// Returns:
+    ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
     fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
         if let Some(graph) = &self._graph {
@@ -492,6 +504,10 @@ impl EquivalenceLibrary {
         }
     }
 
+    /// Return list of keys to key to node index map.
+    ///
+    /// Returns:
+    ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
     fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
         let py_dict = PyDict::new_bound(slf.py());
@@ -501,6 +517,13 @@ impl EquivalenceLibrary {
         Ok(py_dict.as_any().call_method0("keys")?.into())
     }
 
+    /// Return node index for a given key.
+    ///
+    /// Args:
+    ///     key (Key): Key to an equivalence.
+    ///
+    /// Returns:
+    ///     Int: Index to the node in the graph for the given key.
     #[pyo3(name = "node_index")]
     fn py_node_index(&self, key: &Key) -> usize {
         self.node_index(key).index()
@@ -664,6 +687,7 @@ impl EquivalenceLibrary {
         self.key_to_node_index.contains_key(&key)
     }
 
+    /// Returns an iterator with all the Keys in the `EquivalenceLibrary`.
     pub fn keys(&self) -> impl Iterator<Item = &Key> {
         self.key_to_node_index.keys()
     }
@@ -782,6 +806,8 @@ impl Display for EquivalenceError {
         write!(f, "{}", self.message)
     }
 }
+
+// Conversion helpers
 
 fn to_pygraph<N, E>(py: Python, pet_graph: &StableDiGraph<N, E>) -> PyResult<PyObject>
 where
