@@ -20,14 +20,14 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 def rzx_yz(theta: ParameterValueType | None = None):
     """RZX-based template for CX - RYGate - CX.
-    
-     .. code-block:: text
 
-               ┌────────┐     ┌─────────┐┌─────────┐┌──────────┐
-     q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        ├┤ RX(-π/2) ├
-          ┌─┴─┐└────────┘┌─┴─┐└─────────┘│  RZX(ϴ) │└──────────┘
-     q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
-          └───┘          └───┘           └─────────┘
+    .. code-block:: text
+
+                  ┌────────┐     ┌─────────┐┌─────────┐┌──────────┐
+        q_0: ──■──┤ RY(-ϴ) ├──■──┤ RX(π/2) ├┤0        ├┤ RX(-π/2) ├
+             ┌─┴─┐└────────┘┌─┴─┐└─────────┘│  RZX(ϴ) │└──────────┘
+        q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
+             └───┘          └───┘           └─────────┘
     """
     if theta is None:
         theta = Parameter("ϴ")
