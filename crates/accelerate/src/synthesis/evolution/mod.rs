@@ -26,6 +26,10 @@ use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::Incoming;
 
+/// TODO:
+///   * make sure that qubit indexing is correct
+///   * should we allow all-I rotations?
+
 /// A Qiskit gate
 pub type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
@@ -263,41 +267,51 @@ fn inject_rotations_ordered(
 ///     of triples such as `[("XX", [0, 3], theta), ("ZZ", [0, 1], 0.1)]`.
 /// * preserve_order: whether the order of paulis should be preserved, up to
 ///     commutativity.
+/// * optimize_count: if true, Rustiq's synthesis algorithms aims to optimize
+///     the count; and if false, then the depth.
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true))]
+#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, optimize_count=true))]
 pub fn pauli_network_synthesis(
     py: Python,
     num_qubits: usize,
     pauli_network: &Bound<PyList>,
     preserve_order: bool,
+    optimize_count: bool,
 ) -> PyResult<CircuitData> {
-    let mut operator_sequence: Vec<String> = Vec::new();
-    let mut params: Vec<Param> = Vec::new();
+    let mut paulis: Vec<String> = Vec::new();
+    let mut angles: Vec<Param> = Vec::new();
 
+    // go over the input pauli network and extract a list of pauli rotations and
+    // the corresponding rotation angles
     for item in pauli_network {
-        let tuple = item.downcast::<PyTuple>()?;
-        let inner = tuple.borrow();
+        let tuple = item.downcast::<PyTuple>()?.borrow();
 
-        let ss: String = inner.get_item(0)?.downcast::<PyString>()?.extract()?;
-        let param: Param = inner.get_item(2)?.extract()?;
-        let vv = inner.get_item(1)?;
-        let ww: Vec<u32> = vv
+        let sparse_pauli: String = tuple.get_item(0)?.downcast::<PyString>()?.extract()?;
+        let angle: Param = tuple.get_item(2)?.extract()?;
+        let qubits = tuple.get_item(1)?;
+        let qubits: Vec<u32> = qubits
             .downcast::<PyList>()?
             .iter()
             .map(|v| v.extract())
             .collect::<PyResult<_>>()?;
 
-        operator_sequence.push(expand_pauli(ss, ww, num_qubits));
-        params.push(param);
+        paulis.push(expand_pauli(sparse_pauli, qubits, num_qubits));
+        angles.push(angle);
     }
 
-    // todo: maybe we can immediately create pauli set rather than operator_sequence first
-    let mut bucket = PauliSet::from_slice(&operator_sequence);
-    let circuit = greedy_pauli_network(&mut bucket, &Metric::COUNT, true, 0, false, false);
+    let mut paulis = PauliSet::from_slice(&paulis);
+    let metric = match optimize_count {
+        true => Metric::COUNT,
+        false => Metric::DEPTH,
+    };
 
+    // call Rustiq's pauli network synthesis algorithm
+    let circuit = greedy_pauli_network(&mut paulis, &metric, preserve_order, 0, false, true);
+
+    // post-process algorithm's output, translating to Qiskit's gates and inserting rotation gates
     let gates = match preserve_order {
-        false => inject_rotations_unordered(py, &circuit.gates, &bucket, &params),
-        true => inject_rotations_ordered(py, &circuit.gates, &bucket, &params),
+        false => inject_rotations_unordered(py, &circuit.gates, &paulis, &angles),
+        true => inject_rotations_ordered(py, &circuit.gates, &paulis, &angles),
     };
 
     CircuitData::from_standard_gates(py, num_qubits as u32, gates, Param::Float(0.0))
