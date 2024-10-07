@@ -141,7 +141,7 @@ class PermutationGate(Gate):
             raise CircuitError(
                 "Permutation pattern must be some ordering of 0..num_qubits-1 in a list."
             )
-        pattern = np.array(pattern)
+        pattern = np.array(pattern, dtype=np.int32)
 
         super().__init__(name="permutation", num_qubits=num_qubits, params=[pattern])
 
