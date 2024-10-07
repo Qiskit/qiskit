@@ -22,10 +22,10 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
-from .product_formula import ProductFormula
+from .suzuki_trotter import SuzukiTrotter
 
 
-class LieTrotter(ProductFormula):
+class LieTrotter(SuzukiTrotter):
     r"""The Lie-Trotter product formula.
 
     The Lie-Trotter formula approximates the exponential of two non-commuting operators
@@ -52,21 +52,6 @@ class LieTrotter(ProductFormula):
         `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
-    @deprecate_arg(
-        name="atomic_evolution",
-        since="1.2",
-        predicate=lambda callable: callable is not None
-        and len(inspect.signature(callable).parameters) == 2,
-        deprecation_description=(
-            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
-            "'atomic_evolution' argument"
-        ),
-        additional_msg=(
-            "Instead you should update your 'atomic_evolution' function to be of the following "
-            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
-        ),
-        pending=True,
-    )
     def __init__(
         self,
         reps: int = 1,
@@ -99,23 +84,6 @@ class LieTrotter(ProductFormula):
                 effect when ``atomic_evolution is None``.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
-
-    def expand(self, evolution):
-        operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
-
-        # construct the evolution circuit
-
-        if isinstance(operators, list):
-            # the expansion formula is the same for commuting and non-commuting bits, so
-            # we'll just concatenate all Paulis
-            non_commuting = list(chain.from_iterable([op.to_sparse_list() for op in operators]))
-        else:
-            # Assume no commutativity here. If we were to group commuting Paulis,
-            # here would be the location to do so.
-            non_commuting = operators.to_sparse_list()
-
-        # we're already done here since Lie Trotter does not do any operator repetition
-        return non_commuting
 
     @property
     def settings(self) -> dict[str, Any]:

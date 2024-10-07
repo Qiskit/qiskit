@@ -120,7 +120,7 @@ class ProductFormula(EvolutionSynthesis):
         Returns:
             A list of Pauli rotations in a sparse format, where each element is
             ``(paulistring, qubits, coefficient)``. For example, the Lie-Trotter expansion
-            of ``H = XI + ZZ`` would return ``[("X", [0], 1), ("ZZ", [0, 1], 1)]``.
+            of ``H = XI + ZZ`` would return ``[("X", [1], 1), ("ZZ", [0, 1], 1)]``.
         """
         raise NotImplementedError(
             f"The method ``expand`` is not implemented for {self.__class__}. Implement it to "
@@ -141,15 +141,17 @@ class ProductFormula(EvolutionSynthesis):
         time = evolution.time
         num_qubits = evolution.num_qubits
 
-        single_rep = QuantumCircuit(num_qubits)
+        circuit = QuantumCircuit(num_qubits)
+
+        # we could cache the circuit decomposition for the circuits we already saw
         for i, (pauli_string, qubits, coeff) in enumerate(pauli_rotations):
             op = SparsePauliOp.from_sparse_list([(pauli_string, qubits, 1)], num_qubits).paulis[0]
-            angle = np.real_if_close(coeff * time / self.reps)
-            self.atomic_evolution(single_rep, op, angle)
-            if self.insert_barriers and i != len(pauli_rotations) - 1:
-                single_rep.barrier()
 
-        return single_rep.repeat(self.reps, insert_barriers=self.insert_barriers).decompose()
+            self.atomic_evolution(circuit, op, np.real_if_close(coeff))
+            if self.insert_barriers and i != len(pauli_rotations) - 1:
+                circuit.barrier()
+
+        return circuit
 
     @property
     def settings(self) -> dict[str, typing.Any]:

@@ -94,7 +94,7 @@ class QDrift(ProductFormula):
 
     def expand(self, evolution: PauliEvolutionGate) -> list[tuple[str, tuple[int], float]]:
         operators = evolution.operator
-        time = evolution.time  # used to dtermine the number of gates
+        time = evolution.time  # used to determine the number of gates
 
         # QDrift is based on first-order Lie-Trotter, hence we can just concatenate all
         # Pauli terms and ignore commutations
@@ -117,7 +117,7 @@ class QDrift(ProductFormula):
             np.array(paulis, dtype=object), size=(num_gates,), p=weights / lambd
         )
 
-        rescaled_time = lambd / num_gates
+        rescaled_time = lambd * time / num_gates
         sampled_paulis = [
             (pauli[0], pauli[1], np.sign(pauli[2]) * rescaled_time) for pauli in sampled
         ]

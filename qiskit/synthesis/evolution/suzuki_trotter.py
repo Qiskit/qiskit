@@ -112,20 +112,27 @@ class SuzukiTrotter(ProductFormula):
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
     def expand(self, evolution):
+        """
+        H = ZZ + IX --> ("X", [0], 1/2), ("ZZ", [0, 1], 1), ("X", [0], 1/2)
+
+        ("X", [0], 1/2), ("ZZ", [0, 1], 1), ("X", [0], 1), ("ZZ", [0, 1], 1), ("X", [0], 1/2)
+        """
         operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
+        time = evolution.time
 
         # construct the evolution circuit
-
         if isinstance(operators, list):  # already sorted into commuting bits
-            non_commuting = [operator.to_sparse_list() for operator in operators]
+            non_commuting = [
+                (time / self.reps * operator).to_sparse_list() for operator in operators
+            ]
         else:
             # Assume no commutativity here. If we were to group commuting Paulis,
             # here would be the location to do so.
-            non_commuting = [[op] for op in operators.to_sparse_list()]
+            non_commuting = [[op] for op in (time / self.reps * operators).to_sparse_list()]
 
         # we're already done here since Lie Trotter does not do any operator repetition
         product_formula = self._recurse(self.order, non_commuting)
-        flattened = list(chain.from_iterable(product_formula))
+        flattened = self.reps * list(chain.from_iterable(product_formula))
         return flattened
 
     @staticmethod
