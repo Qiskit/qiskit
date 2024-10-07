@@ -23,8 +23,6 @@ use rustworkx_core::traversal::{dijkstra_search, DijkstraEvent};
 
 use super::compose_transforms::{BasisTransformIn, GateIdentifier};
 
-#[pyfunction]
-#[pyo3(name = "basis_search")]
 /// Search for a set of transformations from source_basis to target_basis.
 /// Args:
 ///     equiv_lib (EquivalenceLibrary): Source of valid translations
@@ -36,6 +34,8 @@ use super::compose_transforms::{BasisTransformIn, GateIdentifier};
 ///         equiv_params, equiv_circuit) tuples tuples which, if applied in order
 ///         will map from source_basis to target_basis. Returns None if no path
 ///         was found.
+#[pyfunction]
+#[pyo3(name = "basis_search")]
 pub(crate) fn py_basis_search(
     py: Python,
     equiv_lib: &mut EquivalenceLibrary,
