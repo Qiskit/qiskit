@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -27,6 +29,7 @@ pub fn split_2q_unitaries(
     requested_fidelity: f64,
 ) -> PyResult<()> {
     let nodes: Vec<NodeIndex> = dag.op_nodes(false).collect();
+
     for node in nodes {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
@@ -45,12 +48,14 @@ pub fn split_2q_unitaries(
             if matches!(decomp.specialization, Specialization::IdEquiv) {
                 let k1r_arr = decomp.K1r(py);
                 let k1l_arr = decomp.K1l(py);
+                let kwargs = PyDict::new_bound(py);
+                kwargs.set_item(intern!(py, "num_qubits"), 1)?;
                 let k1r_gate = UNITARY_GATE
                     .get_bound(py)
-                    .call1((k1r_arr, py.None(), false))?;
+                    .call((k1r_arr, py.None(), false), Some(&kwargs))?;
                 let k1l_gate = UNITARY_GATE
                     .get_bound(py)
-                    .call1((k1l_arr, py.None(), false))?;
+                    .call((k1l_arr, py.None(), false), Some(&kwargs))?;
                 let insert_fn = |edge: &Wire| -> PyResult<OperationFromPython> {
                     if let Wire::Qubit(qubit) = edge {
                         if *qubit == qubits[0] {
