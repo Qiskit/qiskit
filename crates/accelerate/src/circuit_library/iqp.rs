@@ -47,7 +47,7 @@ fn iqp(
             .map(move |(j, value)| {
                 (
                     StandardGate::CPhaseGate,
-                    smallvec![Param::Float(PI2 * value as f64)], // todo ignore if interactions is 0 mod 4
+                    smallvec![Param::Float(PI2 * value as f64)],
                     smallvec![Qubit(i as u32), Qubit(j as u32)],
                 )
             })
