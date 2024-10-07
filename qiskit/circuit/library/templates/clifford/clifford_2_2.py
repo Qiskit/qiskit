@@ -10,21 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Clifford template 2_2:
-.. code-block:: text
-
-        q_0: ──■────■──
-             ┌─┴─┐┌─┴─┐
-        q_1: ┤ X ├┤ X ├
-             └───┘└───┘
-"""
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def clifford_2_2():
     """
+    Clifford template 2_2:
+
+    .. code-block:: text
+
+        q_0: ──■────■──
+             ┌─┴─┐┌─┴─┐
+        q_1: ┤ X ├┤ X ├
+             └───┘└───┘
+
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """

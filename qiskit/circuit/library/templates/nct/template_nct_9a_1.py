@@ -10,23 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Template 9a_1:
-.. code-block:: text
-         ┌───┐     ┌───┐          ┌───┐
-    q_0: ┤ X ├──■──┤ X ├──■────■──┤ X ├──■──
-         └─┬─┘┌─┴─┐└─┬─┘┌─┴─┐┌─┴─┐└─┬─┘┌─┴─┐
-    q_1: ──■──┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├
-              └─┬─┘  │  ├───┤└─┬─┘┌───┐└─┬─┘
-    q_2: ───────■────■──┤ X ├──■──┤ X ├──■──
-                        └───┘     └───┘
-"""
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def template_nct_9a_1():
     """
+    Template 9a_1:
+
+    .. code-block:: text
+
+             ┌───┐     ┌───┐          ┌───┐
+        q_0: ┤ X ├──■──┤ X ├──■────■──┤ X ├──■──
+             └─┬─┘┌─┴─┐└─┬─┘┌─┴─┐┌─┴─┐└─┬─┘┌─┴─┐
+        q_1: ──■──┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├
+                  └─┬─┘  │  ├───┤└─┬─┘┌───┐└─┬─┘
+        q_2: ───────■────■──┤ X ├──■──┤ X ├──■──
+                            └───┘     └───┘
+
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """

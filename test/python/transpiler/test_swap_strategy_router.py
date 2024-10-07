@@ -63,6 +63,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         The expected circuit is:
 
         ..code-block:: text
+
                                                            ┌────────────────┐
             q_0: ───────────────────X──────────────────────┤0               ├
                  ┌────────────────┐ │ ┌────────────────┐   │  exp(-i ZZ)(3) │

@@ -10,22 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Clifford template 4_3:
-.. code-block:: text
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+
+def clifford_4_3():
+    """
+    Clifford template 4_3:
+
+    .. code-block:: text
 
              ┌───┐     ┌─────┐
         q_0: ┤ S ├──■──┤ SDG ├──■──
              └───┘┌─┴─┐└─────┘┌─┴─┐
         q_1: ─────┤ X ├───────┤ X ├
                   └───┘       └───┘
-"""
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-
-def clifford_4_3():
-    """
     Returns:
         QuantumCircuit: template as a quantum circuit.
     """
