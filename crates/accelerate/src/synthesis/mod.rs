@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 mod clifford;
+mod evolution;
 pub mod linear;
 pub mod linear_phase;
-mod evolution;
 mod multi_controlled;
 mod permutation;
 
