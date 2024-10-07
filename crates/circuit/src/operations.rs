@@ -450,16 +450,28 @@ impl StandardGate {
             extra_attrs.condition(),
         );
         if label.is_some() || unit.is_some() || duration.is_some() || condition.is_some() {
-            let kwargs = [
-                ("label", label.to_object(py)),
-                ("unit", extra_attrs.py_unit(py).into_any()),
-                ("duration", duration.to_object(py)),
-            ]
-            .into_py_dict_bound(py);
+            let kwargs = [("label", label.to_object(py))].into_py_dict_bound(py);
             let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
+            let mut mutable = false;
             if let Some(condition) = condition {
-                out = out.call_method0(py, "to_mutable")?;
+                if !mutable {
+                    out = out.call_method0(py, "to_mutable")?;
+                    mutable = true;
+                }
                 out.setattr(py, "condition", condition)?;
+            }
+            if let Some(duration) = duration {
+                if !mutable {
+                    out = out.call_method0(py, "to_mutable")?;
+                    mutable = true;
+                }
+                out.setattr(py, "_duration", duration)?;
+            }
+            if let Some(unit) = unit {
+                if !mutable {
+                    out = out.call_method0(py, "to_mutable")?;
+                }
+                out.setattr(py, "_unit", unit)?;
             }
             Ok(out)
         } else {
