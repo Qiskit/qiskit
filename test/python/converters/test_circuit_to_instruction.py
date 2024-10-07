@@ -72,10 +72,12 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[0].qubits, (q[0],))
         self.assertEqual(inst.definition[1].qubits, (q[3],))
         self.assertEqual(inst.definition[2].qubits, (q[1], q[4]))
-
-        self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
-        self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
-        self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
 
     def test_flatten_circuit_registerless(self):
         """Test that the conversion works when the given circuit has bits that are not contained in
@@ -212,7 +214,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         test_instruction = test.definition.data[0]
         expected_instruction = expected.data[0]
         self.assertIs(type(test_instruction.operation), type(expected_instruction.operation))
-        self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
 
     def test_zero_operands(self):
         """Test that an instruction can be created, even if it has zero operands."""

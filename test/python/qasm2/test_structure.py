@@ -760,17 +760,20 @@ class TestGateDefinition(QiskitTestCase):
         my_gate = parsed.data[0].operation
 
         self.assertEqual(my_gate.name, "my_gate")
-        self.assertEqual(my_gate.condition, (parsed.cregs[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(my_gate.condition, (parsed.cregs[0], 1))
 
         copied = copy.deepcopy(parsed)
         copied_gate = copied.data[0].operation
         self.assertEqual(copied_gate.name, "my_gate")
-        self.assertEqual(copied_gate.condition, (copied.cregs[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(copied_gate.condition, (copied.cregs[0], 1))
 
         pickled = pickle.loads(pickle.dumps(parsed))
         pickled_gate = pickled.data[0].operation
         self.assertEqual(pickled_gate.name, "my_gate")
-        self.assertEqual(pickled_gate.condition, (pickled.cregs[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(pickled_gate.condition, (pickled.cregs[0], 1))
 
 
 class TestOpaque(QiskitTestCase):

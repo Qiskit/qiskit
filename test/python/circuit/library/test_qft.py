@@ -274,7 +274,8 @@ class TestQFTGate(QiskitTestCase):
         qc = QuantumCircuit(5, 1)
         with self.assertWarns(DeprecationWarning):
             qc.append(QFTGate(4), [1, 2, 0, 4]).c_if(0, 1)
-        self.assertIsNotNone(qc.data[0].operation.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNotNone(qc.data[0].operation.condition)
 
     def test_qasm(self):
         """Test qasm for circuits with QFTGates."""

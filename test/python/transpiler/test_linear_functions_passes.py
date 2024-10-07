@@ -626,7 +626,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(qct.count_ops()["linear_function"], 2)
 
         # Make sure that the condition on the middle gate is not lost
-        self.assertIsNotNone(qct.data[1].operation.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNotNone(qct.data[1].operation.condition)
 
     @combine(do_commutative_analysis=[False, True])
     def test_split_layers(self, do_commutative_analysis):

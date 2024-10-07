@@ -180,7 +180,14 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings(
             "ignore",
             category=DeprecationWarning,
-            message=r".*The property.*Instruction\.condition.*is deprecated.*",
+            message=r".*The property.*condition.*is deprecated.*",
+            module="qiskit.visualization.circuit",
+        )
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message=r".*The property.*condition_bits.*is deprecated.*",
+            module="qiskit.transpiler.passes.scheduling",
         )
 
         allow_DeprecationWarning_message = [

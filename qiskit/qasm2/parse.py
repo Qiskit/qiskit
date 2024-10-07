@@ -371,7 +371,7 @@ class _DefinedGate(Gate):
     # to pickle ourselves, we just eagerly create the definition and pickle that.
 
     def __getstate__(self):
-        return (self.name, self.num_qubits, self.params, self.definition, self.condition)
+        return (self.name, self.num_qubits, self.params, self.definition, self._condition)
 
     def __setstate__(self, state):
         name, num_qubits, params, definition, condition = state

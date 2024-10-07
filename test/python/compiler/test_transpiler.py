@@ -2826,7 +2826,8 @@ class TestTranspileParallel(QiskitTestCase):
             [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
         )
         self.assertTrue(res[0].data[-1].operation.mutable)
-        self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
 
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):

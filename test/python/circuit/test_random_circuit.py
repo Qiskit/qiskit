@@ -62,7 +62,7 @@ class TestCircuitRandom(QiskitTestCase):
         # Test that at least one instruction had a condition generated.  It's possible that this
         # fails due to very bad luck with the random seed - if so, change the seed to ensure that a
         # condition _is_ generated, because we need to test that generation doesn't error.
-        conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
+        conditions = (getattr(instruction.operation, "_condition", None) for instruction in circ)
         conditions = [x for x in conditions if x is not None]
         self.assertNotEqual(conditions, [])
         for register, value in conditions:
@@ -82,7 +82,7 @@ class TestCircuitRandom(QiskitTestCase):
         self.assertEqual(4, len(op_names))
         self.assertEqual(["measure"] * num_qubits, op_names[1 : 1 + num_qubits])
         conditions = [
-            bool(getattr(instruction.operation, "condition", None)) for instruction in circ
+            bool(getattr(instruction.operation, "_condition", None)) for instruction in circ
         ]
         self.assertEqual([False, False, False, True], conditions)
 

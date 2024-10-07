@@ -371,7 +371,8 @@ class TestCircuitCompose(QiskitTestCase):
             conditional.append(Custom(), [0], []).c_if(conditional.clbits[0], True)
         test = base.compose(conditional, qubits=[0], clbits=[0], copy=False)
         self.assertIs(test.data[-1].operation, conditional.data[-1].operation)
-        self.assertEqual(test.data[-1].operation.condition, (test.clbits[0], True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(test.data[-1].operation.condition, (test.clbits[0], True))
 
     def test_compose_classical(self):
         """Composing on classical bits.
@@ -504,16 +505,26 @@ class TestCircuitCompose(QiskitTestCase):
         # The registers should have been mapped, including the bits inside them.  Unlike the
         # previous test, there are no matching registers in the destination circuit, so the
         # composition needs to add new registers (bit groupings) over the existing mapped bits.
-        self.assertIsNot(z.condition, None)
-        self.assertIsInstance(z.condition[0], ClassicalRegister)
-        self.assertEqual(len(z.condition[0]), len(right.cregs[0]))
-        self.assertIs(z.condition[0][0], test.clbits[0])
-        self.assertEqual(z.condition[1], 1)
-        self.assertIsNot(x.condition, None)
-        self.assertIsInstance(x.condition[0], ClassicalRegister)
-        self.assertEqual(len(x.condition[0]), len(right.cregs[1]))
-        self.assertEqual(z.condition[1], 1)
-        self.assertIs(x.condition[0][0], test.clbits[1])
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNot(z.condition, None)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsInstance(z.condition[0], ClassicalRegister)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(z.condition[0]), len(right.cregs[0]))
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(z.condition[0][0], test.clbits[0])
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(z.condition[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsNot(x.condition, None)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIsInstance(x.condition[0], ClassicalRegister)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(x.condition[0]), len(right.cregs[1]))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(z.condition[1], 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(x.condition[0][0], test.clbits[1])
 
     def test_compose_switch_match(self):
         """Test that composition containing a `switch` with a register that matches proceeds
@@ -736,7 +747,8 @@ class TestCircuitCompose(QiskitTestCase):
         test = QuantumCircuit(1, 1).compose(base)
         self.assertIsNot(base.clbits[0], test.clbits[0])
         self.assertEqual(base, test)
-        self.assertIs(test.data[0].operation.condition[0], test.clbits[0])
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(test.data[0].operation.condition[0], test.clbits[0])
 
     def test_condition_mapping_ifelseop(self):
         """Test that the condition in an `IfElseOp` is correctly mapped to a new set of bits and
@@ -757,10 +769,14 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        self.assertIs(bit_instruction.condition[0], test_loose)
-        self.assertEqual(bit_instruction.condition, (test_loose, True))
-        self.assertIs(reg_instruction.condition[0], test_creg)
-        self.assertEqual(reg_instruction.condition, (test_creg, 3))
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(bit_instruction.condition[0], test_loose)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(bit_instruction.condition, (test_loose, True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(reg_instruction.condition[0], test_creg)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_condition_mapping_whileloopop(self):
         """Test that the condition in a `WhileLoopOp` is correctly mapped to a new set of bits and
@@ -781,10 +797,14 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        self.assertIs(bit_instruction.condition[0], test_loose)
-        self.assertEqual(bit_instruction.condition, (test_loose, True))
-        self.assertIs(reg_instruction.condition[0], test_creg)
-        self.assertEqual(reg_instruction.condition, (test_creg, 3))
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(bit_instruction.condition[0], test_loose)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(bit_instruction.condition, (test_loose, True))
+        with self.assertWarns(DeprecationWarning):
+            self.assertIs(reg_instruction.condition[0], test_creg)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_compose_no_clbits_in_one(self):
         """Test combining a circuit with cregs to one without"""
@@ -852,7 +872,8 @@ class TestCircuitCompose(QiskitTestCase):
 
         # Check that the input conditions weren't mutated.
         for in_condition, instruction in zip((test_1, test_2, test_3), source.data):
-            self.assertEqual(in_condition(), instruction.operation.condition)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(in_condition(), instruction.operation.condition)
 
         # Should be `a_dest`, `b_dest` and an added one to account for `c_src`.
         self.assertEqual(len(dest.cregs), 3)

@@ -71,7 +71,8 @@ class TestUnroll3qOrMore(QiskitTestCase):
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
-            self.assertEqual(node.op.condition, (cr, 0))
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(node.op.condition, (cr, 0))
 
     def test_decompose_unitary(self):
         """Test unrolling of unitary gate over 4qubits."""

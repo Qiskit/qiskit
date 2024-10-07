@@ -453,13 +453,18 @@ class TestInstructions(QiskitTestCase):
             return body.find_bit(bit).index
 
         op = IfElseOp((bits[0], False), body)
-        self.assertEqual(op.condition_bits, [bits[0]])
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(op.condition_bits, [bits[0]])
 
         op = IfElseOp((cr1, 3), body)
-        self.assertEqual(op.condition_bits, list(cr1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(op.condition_bits, list(cr1))
 
         op = IfElseOp(expr.logic_and(bits[1], expr.equal(cr2, 3)), body)
-        self.assertEqual(sorted(op.condition_bits, key=key), sorted([bits[1]] + list(cr2), key=key))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sorted(op.condition_bits, key=key), sorted([bits[1]] + list(cr2), key=key)
+            )
 
     def test_instructionset_c_if_direct_resource(self):
         """Test that using :meth:`.InstructionSet.c_if` with an exact classical resource always
@@ -476,7 +481,8 @@ class TestInstructions(QiskitTestCase):
             qc = QuantumCircuit(cr1, qubits, loose_clbits, cr2, cr3)
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(resource, 0)
-            c_if_resource = qc.data[0].operation.condition[0]
+            with self.assertWarns(DeprecationWarning):
+                c_if_resource = qc.data[0].operation.condition[0]
             self.assertIs(c_if_resource, resource)
 
         with self.subTest("classical register"):
@@ -511,7 +517,8 @@ class TestInstructions(QiskitTestCase):
                 with self.assertWarns(DeprecationWarning):
                     qc.x(0).c_if(index, 0)
                 qc.measure(0, index)
-                from_c_if = qc.data[-2].operation.condition[0]
+                with self.assertWarns(DeprecationWarning):
+                    from_c_if = qc.data[-2].operation.condition[0]
                 from_measure = qc.data[-1].clbits[0]
                 self.assertIs(from_c_if, from_measure)
                 # Sanity check that the bit is also the one we expected.
@@ -527,15 +534,18 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("classical register"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(cr, 0)
-            self.assertIs(qc.data[-1].operation.condition[0], cr)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], cr)
         with self.subTest("classical bit by value"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(cr[0], 0)
-            self.assertIs(qc.data[-1].operation.condition[0], cr[0])
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], cr[0])
         with self.subTest("classical bit by index"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(0, 0)
-            self.assertIs(qc.data[-1].operation.condition[0], cr[0])
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], cr[0])
 
     def test_instructionset_c_if_no_classical_registers(self):
         """Test that using :meth:`.InstructionSet.c_if` works if there are no classical registers
@@ -547,11 +557,13 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("by value"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(bits[1], 0)
-            self.assertIs(qc.data[-1].operation.condition[0], bits[1])
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], bits[1])
         with self.subTest("by index"):
             with self.assertWarns(DeprecationWarning):
                 qc.x(0).c_if(0, 0)
-            self.assertIs(qc.data[-1].operation.condition[0], bits[1])
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(qc.data[-1].operation.condition[0], bits[1])
 
     def test_instructionset_c_if_rejects_invalid_specifiers(self):
         """Test that calling the :meth:`.InstructionSet.c_if` method on instructions added to a
@@ -591,7 +603,8 @@ class TestInstructions(QiskitTestCase):
             register = ClassicalRegister(2)
             with self.assertWarns(DeprecationWarning):
                 instructions.c_if(register, 0)
-            self.assertIs(instructions[0].operation.condition[0], register)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], register)
         with self.subTest("accepts arbitrary bit"):
             instruction = RZGate(0)
             instructions = InstructionSet()
@@ -599,7 +612,8 @@ class TestInstructions(QiskitTestCase):
             bit = Clbit()
             with self.assertWarns(DeprecationWarning):
                 instructions.c_if(bit, 0)
-            self.assertIs(instructions[0].operation.condition[0], bit)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], bit)
         with self.subTest("rejects index"):
             instruction = RZGate(0)
             instructions = InstructionSet()
@@ -634,7 +648,8 @@ class TestInstructions(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 instructions.c_if(bit, 0)
             dummy_requester.assert_called_once_with(bit)
-            self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
         with self.subTest("calls requester with index"):
             dummy_requester.reset_mock()
             instruction = RZGate(0)
@@ -644,7 +659,8 @@ class TestInstructions(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 instructions.c_if(index, 0)
             dummy_requester.assert_called_once_with(index)
-            self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], sentinel_bit)
         with self.subTest("calls requester with register"):
             dummy_requester.reset_mock()
             instruction = RZGate(0)
@@ -654,7 +670,8 @@ class TestInstructions(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 instructions.c_if(register, 0)
             dummy_requester.assert_called_once_with(register)
-            self.assertIs(instructions[0].operation.condition[0], sentinel_register)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIs(instructions[0].operation.condition[0], sentinel_register)
         with self.subTest("calls requester only once when broadcast"):
             dummy_requester.reset_mock()
             instruction_list = [RZGate(0), RZGate(0), RZGate(0)]
@@ -666,7 +683,8 @@ class TestInstructions(QiskitTestCase):
                 instructions.c_if(register, 0)
             dummy_requester.assert_called_once_with(register)
             for instruction in instruction_list:
-                self.assertIs(instructions[0].operation.condition[0], sentinel_register)
+                with self.assertWarns(DeprecationWarning):
+                    self.assertIs(instructions[0].operation.condition[0], sentinel_register)
 
     def test_label_type_enforcement(self):
         """Test instruction label type enforcement."""

@@ -264,11 +264,13 @@ class TestCollectBlocks(QiskitTestCase):
         # conditional gate (note that x(1) following the measure is collected into the first
         # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
-            split_blocks=False,
-            min_block_size=1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            blocks = block_collector.collect_all_matching_blocks(
+                lambda node: node.op.name in ["x", "cx"]
+                and not getattr(node.op, "condition", None),
+                split_blocks=False,
+                min_block_size=1,
+            )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)
@@ -302,11 +304,13 @@ class TestCollectBlocks(QiskitTestCase):
         # conditional gate (note that x(1) following the measure is collected into the first
         # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
-            split_blocks=False,
-            min_block_size=1,
-        )
+        with self.assertWarns(DeprecationWarning):
+            blocks = block_collector.collect_all_matching_blocks(
+                lambda node: node.op.name in ["x", "cx"]
+                and not getattr(node.op, "condition", None),
+                split_blocks=False,
+                min_block_size=1,
+            )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)

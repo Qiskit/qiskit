@@ -118,7 +118,7 @@ def raise_if_dagcircuit_invalid(dag):
         out_wires = set(dag._out_wires(node._node_id))
 
         node_cond_bits = set(
-            node.op.condition[0][:] if getattr(node.op, "condition", None) is not None else []
+            node.condition[0][:] if getattr(node, "condition", None) is not None else []
         )
         node_qubits = set(node.qargs)
         node_clbits = set(node.cargs)
@@ -598,7 +598,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(h_node.qargs, (self.qubit2,))
         self.assertEqual(h_node.cargs, ())
-        self.assertEqual(h_node.op.condition, h_gate.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(h_node.op.condition, h_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._in_edges(h_node._node_id)),
@@ -638,7 +639,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(meas_node.qargs, (self.qubit0,))
         self.assertEqual(meas_node.cargs, (self.clbit0,))
-        self.assertEqual(meas_node.op.condition, meas_gate.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(meas_node.op.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._in_edges(meas_node._node_id)),
@@ -683,7 +685,8 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertEqual(meas_node.qargs, (self.qubit1,))
         self.assertEqual(meas_node.cargs, (self.clbit1,))
-        self.assertEqual(meas_node.op.condition, meas_gate.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(meas_node.op.condition, meas_gate.condition)
 
         self.assertEqual(
             sorted(self.dag._in_edges(meas_node._node_id)),
@@ -2621,7 +2624,8 @@ class TestDagSubstitute(QiskitTestCase):
         sub.h(0)
 
         conditioned_cx = CXGate().to_mutable()
-        conditioned_cx.condition = conditioned_cz.condition
+        with self.assertWarns(DeprecationWarning):
+            conditioned_cx.condition = conditioned_cz.condition
 
         expected = DAGCircuit()
         expected.add_qubits(base_qubits)
@@ -2719,7 +2723,8 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(replacement_node.op.name, "cz")
         self.assertEqual(replacement_node.qargs, (qr[1], qr[0]))
         self.assertEqual(replacement_node.cargs, ())
-        self.assertEqual(replacement_node.op.condition, (cr, 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(replacement_node.op.condition, (cr, 1))
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 
     @data(True, False)
@@ -3228,7 +3233,8 @@ class TestConditional(QiskitTestCase):
         self.assertEqual(gate_node.op, HGate())
         self.assertEqual(gate_node.qargs, (self.qreg[0],))
         self.assertEqual(gate_node.cargs, ())
-        self.assertEqual(gate_node.op.condition, (self.creg, 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(gate_node.op.condition, (self.creg, 1))
 
         gate_node_preds = list(self.dag.predecessors(gate_node))
         gate_node_in_edges = [
@@ -3270,7 +3276,8 @@ class TestConditional(QiskitTestCase):
         self.assertEqual(gate_node.op, HGate())
         self.assertEqual(gate_node.qargs, (self.qreg[0],))
         self.assertEqual(gate_node.cargs, ())
-        self.assertEqual(gate_node.op.condition, (self.creg[0], 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(gate_node.op.condition, (self.creg[0], 1))
 
         gate_node_preds = list(self.dag.predecessors(gate_node))
         gate_node_in_edges = [

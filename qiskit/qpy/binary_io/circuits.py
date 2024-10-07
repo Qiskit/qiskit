@@ -774,13 +774,13 @@ def _write_instruction(
     condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
-    if (op_condition := getattr(instruction.operation, "condition", None)) is not None:
+    if (op_condition := getattr(instruction.operation, "_condition", None)) is not None:
         if isinstance(op_condition, expr.Expr):
             condition_type = type_keys.Condition.EXPRESSION
         else:
             condition_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation.condition[0], index_map)
-            condition_value = int(instruction.operation.condition[1])
+            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label", None)

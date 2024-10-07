@@ -228,7 +228,8 @@ class TestSingleton(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             circuit.h(qr[0]).c_if(cr, 1)
         self.assertIsNot(gate, circuit.data[0].operation)
-        self.assertEqual(circuit.data[0].operation.condition, (cr, 1))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circuit.data[0].operation.condition, (cr, 1))
 
     def test_is_mutable(self):
         gate = HGate()
@@ -258,7 +259,8 @@ class TestSingleton(QiskitTestCase):
         self.assertEqual(mutable_gate.label, "foo")
         self.assertEqual(mutable_gate.duration, 3)
         self.assertEqual(mutable_gate.unit, "s")
-        self.assertEqual(mutable_gate.condition, (clbit, 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(mutable_gate.condition, (clbit, 0))
 
     def test_to_mutable_of_mutable_instance(self):
         gate = HGate(label="foo")
@@ -299,7 +301,8 @@ class TestSingleton(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             condition_gate = gate.c_if(clbit, 0)
         self.assertIsNot(gate, condition_gate)
-        self.assertEqual(condition_gate.condition, (clbit, 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(condition_gate.condition, (clbit, 0))
         self.assertTrue(condition_gate.mutable)
         with io.BytesIO() as fd:
             pickle.dump(condition_gate, fd)
@@ -577,7 +580,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertIsNot(gate, copied)
         self.assertEqual(gate, copied)
         self.assertEqual(copied.label, "conditionally special")
-        self.assertEqual(copied.condition, (clbit, 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(copied.condition, (clbit, 0))
 
     def test_deepcopy(self):
         gate = CXGate()
@@ -611,7 +615,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertIsNot(gate, copied)
         self.assertEqual(gate, copied)
         self.assertEqual(copied.label, "conditionally special")
-        self.assertEqual(copied.condition, (clbit, 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(copied.condition, (clbit, 0))
 
     def test_label_deepcopy_new(self):
         gate = CHGate()
@@ -663,7 +668,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         out = dag_to_circuit(dag)
         self.assertIsNot(qc.data[0].operation, out.data[0].operation)
         self.assertEqual(qc.data[0].operation, out.data[0].operation)
-        self.assertEqual(out.data[0].operation.condition, (qc.cregs[0], 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.data[0].operation.condition, (qc.cregs[0], 0))
 
     def test_round_trip_dag_conversion_condition_label(self):
         qc = QuantumCircuit(2, 1)
@@ -674,7 +680,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         out = dag_to_circuit(dag)
         self.assertIsNot(qc.data[0].operation, out.data[0].operation)
         self.assertEqual(qc.data[0].operation, out.data[0].operation)
-        self.assertEqual(out.data[0].operation.condition, (qc.cregs[0], 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.data[0].operation.condition, (qc.cregs[0], 0))
         self.assertEqual(out.data[0].operation.label, "conditionally special")
 
     def test_condition_via_instructionset(self):
@@ -685,7 +692,7 @@ class TestSingletonControlledGate(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             circuit.h(qr[0]).c_if(cr, 1)
         self.assertIsNot(gate, circuit.data[0].operation)
-        self.assertEqual(circuit.data[0].operation.condition, (cr, 1))
+        self.assertEqual(circuit.data[0].operation._condition, (cr, 1))
 
     def test_is_mutable(self):
         gate = CXGate()
@@ -715,7 +722,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertEqual(mutable_gate.label, "foo")
         self.assertEqual(mutable_gate.duration, 3)
         self.assertEqual(mutable_gate.unit, "s")
-        self.assertEqual(mutable_gate.condition, (clbit, 0))
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(mutable_gate.condition, (clbit, 0))
 
     def test_to_mutable_of_mutable_instance(self):
         gate = CZGate(label="foo")
@@ -747,7 +755,8 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertTrue(conditonal_controlled_gate.mutable)
         self.assertEqual("my h gate", conditonal_controlled_gate.base_gate.label)
         self.assertEqual("foo", conditonal_controlled_gate.label)
-        self.assertEqual((clbit, 0), conditonal_controlled_gate.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual((clbit, 0), conditonal_controlled_gate.condition)
 
     def test_inner_outer_label_with_c_if_deepcopy(self):
         inner_gate = XGate(label="my h gate")
@@ -758,13 +767,15 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertTrue(conditonal_controlled_gate.mutable)
         self.assertEqual("my h gate", conditonal_controlled_gate.base_gate.label)
         self.assertEqual("foo", conditonal_controlled_gate.label)
-        self.assertEqual((clbit, 0), conditonal_controlled_gate.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual((clbit, 0), conditonal_controlled_gate.condition)
         copied = copy.deepcopy(conditonal_controlled_gate)
         self.assertIsNot(conditonal_controlled_gate, copied)
         self.assertTrue(copied.mutable)
         self.assertEqual("my h gate", copied.base_gate.label)
         self.assertEqual("foo", copied.label)
-        self.assertEqual((clbit, 0), copied.condition)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual((clbit, 0), copied.condition)
 
     def test_inner_outer_label_pickle(self):
         inner_gate = XGate(label="my h gate")

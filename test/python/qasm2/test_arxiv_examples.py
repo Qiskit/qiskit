@@ -122,8 +122,7 @@ cu1(pi/4) q[3],q[1];
 cu1(pi/2) q[3],q[2];
 h q[3];
 measure q -> c;"""
-        with self.assertWarns(DeprecationWarning):
-            parsed = parser(example)
+        parsed = parser(example)
 
         qc = QuantumCircuit(QuantumRegister(4, "q"), ClassicalRegister(4, "c"))
         qc.x(0)
@@ -315,8 +314,7 @@ measure b[1] -> ans[1];
 measure b[2] -> ans[2];
 measure b[3] -> ans[3];
 measure cout[0] -> ans[4];"""
-        with self.assertWarns(DeprecationWarning):
-            parsed = parser(example)
+        parsed = parser(example)
 
         majority_definition = QuantumCircuit([Qubit(), Qubit(), Qubit()])
         majority_definition.cx(2, 1)
