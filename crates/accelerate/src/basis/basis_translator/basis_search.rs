@@ -42,15 +42,7 @@ pub(crate) fn py_basis_search(
     source_basis: HashSet<GateIdentifier>,
     target_basis: HashSet<String>,
 ) -> PyObject {
-    basis_search(
-        equiv_lib,
-        source_basis
-            .iter()
-            .map(|(name, num_qubits)| (name.as_str(), *num_qubits))
-            .collect(),
-        target_basis.iter().map(|name| name.as_str()).collect(),
-    )
-    .into_py(py)
+    basis_search(equiv_lib, &source_basis, &target_basis).into_py(py)
 }
 
 type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
@@ -64,8 +56,8 @@ type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 /// basis` are reached.
 pub(crate) fn basis_search(
     equiv_lib: &mut EquivalenceLibrary,
-    source_basis: HashSet<(&str, u32)>,
-    target_basis: HashSet<&str>,
+    source_basis: &HashSet<GateIdentifier>,
+    target_basis: &HashSet<String>,
 ) -> Option<BasisTransforms> {
     // Build the visitor attributes:
     let mut num_gates_remaining_for_rule: HashMap<usize, usize> = HashMap::default();
@@ -77,7 +69,6 @@ pub(crate) fn basis_search(
     // Initialize visitor attributes:
     initialize_num_gates_remain_for_rule(equiv_lib.graph(), &mut num_gates_remaining_for_rule);
 
-    // TODO: Logs
     let mut source_basis_remain: HashSet<Key> = source_basis
         .iter()
         .filter_map(|(gate_name, gate_num_qubits)| {
@@ -106,11 +97,11 @@ pub(crate) fn basis_search(
         .collect();
 
     // Dummy node is inserted in the graph. Which is where the search will start
-    let dummy: NodeIndex = equiv_lib.mut_graph().add_node(NodeData {
+    let dummy: NodeIndex = equiv_lib.graph_mut().add_node(NodeData {
         equivs: vec![],
         key: Key {
             name: "key".to_string(),
-            num_qubits: 0,
+            num_qubits: u32::MAX,
         },
     });
 
@@ -121,9 +112,9 @@ pub(crate) fn basis_search(
         .collect();
 
     // Connect each edge in the target_basis to the dummy node.
-    target_basis_indices.iter().for_each(|node| {
-        equiv_lib.mut_graph().add_edge(dummy, *node, None);
-    });
+    for node in target_basis_indices {
+        equiv_lib.graph_mut().add_edge(dummy, node, None);
+    }
 
     // Edge cost function for Visitor
     let edge_weight = |edge: EdgeReference<Option<EdgeData>>| -> Result<u32, ()> {
@@ -164,7 +155,6 @@ pub(crate) fn basis_search(
                         borrowed_cost_map.insert(gate.clone(), score);
                     }
                     if let Some(rule) = predecessors.borrow().get(&gate) {
-                        // TODO: Logger
                         basis_transforms.push((
                             (gate_key.name.to_string(), gate_key.num_qubits),
                             (rule.params.clone(), rule.circuit.clone()),
@@ -207,9 +197,7 @@ pub(crate) fn basis_search(
         Ok(Control::Break(_)) => Some(basis_transforms),
         _ => None,
     };
-
-    // TODO: Values will have to be cloned in order for the dummy node to be removed.
-    equiv_lib.mut_graph().remove_node(dummy);
+    equiv_lib.graph_mut().remove_node(dummy);
     basis_transforms
 }
 
@@ -218,6 +206,7 @@ fn initialize_num_gates_remain_for_rule(
     source: &mut HashMap<usize, usize>,
 ) {
     let mut save_index = usize::MAX;
+    // When iterating over the edges, ignore any none-valued ones by calling `flatten`
     for edge_data in graph.edge_weights().flatten() {
         if save_index == edge_data.index {
             continue;
