@@ -185,7 +185,7 @@ def linkcode_resolve(domain, info):
         return None
     try:
         relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
-        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", relative_file_name.as_posix())
     except ValueError:
         return None
 
