@@ -174,40 +174,40 @@ fn synth_error(
     target: &Target,
 ) -> f64 {
     let mut gate_fidelities = Vec::new();
-    let mut score_instruction = |inst_name: &str,
-                                 inst_params: &Option<SmallVec<[Param; 3]>>,
-                                 inst_qubits: &SmallVec<[PhysicalQubit; 2]>|
-     -> () {
-        if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
-            for name in names {
-                if let Ok(target_op) = target.operation_from_name(name) {
-                    let are_params_close = if let Some(params) = inst_params {
-                        params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
-                            p1.is_close(py, p2, 1e-10)
-                                .expect("Unexpected parameter expression error.")
-                        })
-                    } else {
-                        false
-                    };
-                    let is_parametrized = target_op
-                        .params
-                        .iter()
-                        .any(|param| matches!(param, Param::ParameterExpression(_)));
-                    if target_op.operation.name() == inst_name
-                        && (is_parametrized || are_params_close)
-                    {
-                        match target[name].get(Some(inst_qubits)) {
-                            Some(Some(props)) => {
-                                gate_fidelities.push(1.0 - props.error.unwrap_or(0.0))
+    let mut score_instruction =
+        |inst_name: &str,
+         inst_params: &Option<SmallVec<[Param; 3]>>,
+         inst_qubits: &SmallVec<[PhysicalQubit; 2]>| {
+            if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
+                for name in names {
+                    if let Ok(target_op) = target.operation_from_name(name) {
+                        let are_params_close = if let Some(params) = inst_params {
+                            params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
+                                p1.is_close(py, p2, 1e-10)
+                                    .expect("Unexpected parameter expression error.")
+                            })
+                        } else {
+                            false
+                        };
+                        let is_parametrized = target_op
+                            .params
+                            .iter()
+                            .any(|param| matches!(param, Param::ParameterExpression(_)));
+                        if target_op.operation.name() == inst_name
+                            && (is_parametrized || are_params_close)
+                        {
+                            match target[name].get(Some(inst_qubits)) {
+                                Some(Some(props)) => {
+                                    gate_fidelities.push(1.0 - props.error.unwrap_or(0.0))
+                                }
+                                _ => gate_fidelities.push(1.0),
                             }
-                            _ => gate_fidelities.push(1.0),
+                            break;
                         }
-                        break;
                     }
                 }
             }
-        }
-    };
+        };
 
     for (inst_name, inst_params, inst_qubits) in synth_circuit {
         score_instruction(&inst_name, &inst_params, &inst_qubits);
