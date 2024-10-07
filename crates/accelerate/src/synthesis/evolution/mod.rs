@@ -11,34 +11,28 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::pyclass::boolean_struct::True;
 use pyo3::types::{PyList, PyString, PyTuple};
+use smallvec::{smallvec, SmallVec};
 use std::borrow::Borrow;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{multiply_param, Param, StandardGate};
 use qiskit_circuit::Qubit;
-use rustiq_core::structures::pauli_dag::get_front_layer;
-use rustiq_core::structures::CliffordGate::S;
-use rustiq_core::structures::{
-    CliffordCircuit, CliffordGate, GraphState, Metric, PauliDag, PauliLike, PauliSet,
-};
-use rustiq_core::synthesis::pauli_network::{check_circuit, greedy_pauli_network};
-use rustworkx_core::petgraph;
-use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
+
+use rustiq_core::structures::{CliffordGate, Metric, PauliLike, PauliSet};
+use rustiq_core::synthesis::pauli_network::greedy_pauli_network;
+
+use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
-use rustworkx_core::petgraph::prelude::UnGraph;
-use rustworkx_core::petgraph::{Incoming, Outgoing};
-use smallvec::{smallvec, SmallVec};
+use rustworkx_core::petgraph::Incoming;
 
-/// Represents the return type of synthesis algorithms.
+/// A Qiskit gate
 pub type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
-pub type QiskitGatesVec = Vec<QiskitGate>;
 
-// [('zz', [1, 3], 0.334), ... ]
-
-/// Expands the sparse pauli string representation to a full representation
-/// e.g. "XY" on "1, 3" with "num_qubits = 5" becomes "IXIYI"
+/// Expands the sparse pauli string representation to the full representation.
+///
+/// For example: for the input `sparse_pauli = "XY", qubits = [1, 3], num_qubits = 6`,
+/// the function returns `"IXIYII"`.
 fn expand_pauli(sparse_pauli: String, qubits: Vec<u32>, num_qubits: usize) -> String {
     let mut v: Vec<char> = vec!["I".parse().unwrap(); num_qubits];
     for (i, q) in qubits.iter().enumerate() {
@@ -47,8 +41,8 @@ fn expand_pauli(sparse_pauli: String, qubits: Vec<u32>, num_qubits: usize) -> St
     v.into_iter().collect()
 }
 
-/// Converts a Rustiq gate to a Qiskit gate
-fn to_qiskit_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
+/// Return the Qiskit's gate corresponding to the given Rustiq's Clifford gate.
+fn qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
     match rustiq_gate {
         CliffordGate::CNOT(i, j) => (
             StandardGate::CXGate,
@@ -85,17 +79,23 @@ fn to_qiskit_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
             smallvec![],
             smallvec![Qubit(*i as u32)],
         ),
-        _ => panic!("Unsupported rustiq gate {:?}", rustiq_gate),
     }
 }
 
-fn create_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) -> QiskitGate {
-    let (hit_phase, hit_str) = paulis.get(i);
-    for (q, c) in hit_str.chars().enumerate() {
+/// Return the Qiskit rotation gate corresponding to the single-qubit Pauli rotation.
+/// # Arguments
+///
+/// * py: a GIL handle, needed to negate rotation parameters in Python space.
+/// * paulis: Rustiq's data structure storing pauli rotations.
+/// * i: index of the single-qubit Pauli rotation.
+/// * angle: - Qiskit's rotation angle.
+fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) -> QiskitGate {
+    let (phase, pauli_str) = paulis.get(i);
+    for (q, c) in pauli_str.chars().enumerate() {
         if c != 'I' {
             println!(
                 "-- hit pauli {:?}, q = {:?}. c = {:?}, phase = {:?}",
-                i, q, c, hit_phase
+                i, q, c, phase
             );
             let standard_gate = match c {
                 'X' => StandardGate::RXGate,
@@ -103,7 +103,7 @@ fn create_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
                 'Z' => StandardGate::RZGate,
                 _ => panic!(),
             };
-            let param = match hit_phase {
+            let param = match phase {
                 false => angle.clone(),
                 true => multiply_param(angle, -1.0, py),
             };
@@ -113,52 +113,14 @@ fn create_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
     unreachable!()
 }
 
-/// FIX PHASE
-/// RENAME ME!
-/// Injects rotations into circuit, order-preserving
-/// Question: what to do about 0-size rotations?
-fn inject_rotations_unordered(
-    py: Python,
-    gates: &Vec<CliffordGate>,
-    paulis: &PauliSet,
-    angles: &Vec<Param>,
-) -> Vec<QiskitGate> {
-    let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
-
-    let mut cur_paulis = paulis.clone();
-    let mut hit_paulis: Vec<bool> = vec![false; cur_paulis.len()];
-
-    // check which paulis are hit at the very start
-    for i in 0..cur_paulis.len() {
-        if !hit_paulis[i] && cur_paulis.support_size(i) == 1 {
-            out_gates.push(create_rotation_gate(py, &cur_paulis, i, &angles[i]));
-            hit_paulis[i] = true;
-        }
-    }
-
-    for gate in gates {
-        out_gates.push(to_qiskit_gate(gate));
-
-        cur_paulis.conjugate_with_gate(&gate);
-
-        // check which paulis are hit now
-        for i in 0..cur_paulis.len() {
-            if !hit_paulis[i] && cur_paulis.support_size(i) == 1 {
-                out_gates.push(create_rotation_gate(py, &cur_paulis, i, &angles[i]));
-                hit_paulis[i] = true;
-            }
-        }
-    }
-
-    out_gates
-}
-
+/// A DAG that stores ordered Paulis, up to commutativity.
 struct CommutativityDag {
+    /// Rustworkx's DAG
     dag: StableDiGraph<usize, ()>,
 }
 
 impl CommutativityDag {
-    /// Constructs a DAG based on the commutativity relations among paulis
+    /// Construct a DAG based on the commutativity relations between paulis.
     pub fn from_paulis(paulis: &PauliSet) -> Self {
         let mut dag = StableDiGraph::<usize, ()>::new();
 
@@ -178,7 +140,7 @@ impl CommutativityDag {
         CommutativityDag { dag }
     }
 
-    /// Returns whether the node is a front node (i.e. no predecessors)
+    /// Return whether the given node is a front node (i.e. has no predecessors).
     pub fn is_front_node(&self, index: usize) -> bool {
         self.dag
             .neighbors_directed(NodeIndex::new(index), Incoming)
@@ -186,17 +148,75 @@ impl CommutativityDag {
             .is_none()
     }
 
-    /// Removes node
+    /// Remove node from the DAG.
     pub fn remove_node(&mut self, index: usize) {
         self.dag.remove_node(NodeIndex::new(index));
     }
 }
 
+/// Return a Qiskit circuit with Clifford gates and rotations.
+///
+/// The rotations are assumed to be unordered.
+///
+/// # Arguments
+///
+/// * py: a GIL handle, needed to negate rotation parameters in Python space.
+/// * gates: the sequence of Rustiq's Clifford gates returned by Rustiq's
+///     pauli network synthesis algorithm.
+/// * paulis: Rustiq's data structure storing the pauli rotations.
+/// * angles: Qiskit's rotation angles corresponding to the pauli rotations.
+fn inject_rotations_unordered(
+    py: Python,
+    gates: &Vec<CliffordGate>,
+    paulis: &PauliSet,
+    angles: &[Param],
+) -> Vec<QiskitGate> {
+    let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
+
+    let mut cur_paulis = paulis.clone();
+    let mut hit_paulis: Vec<bool> = vec![false; cur_paulis.len()];
+
+    // check which paulis are hit at the very start
+    for i in 0..cur_paulis.len() {
+        if !hit_paulis[i] && cur_paulis.support_size(i) == 1 {
+            out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
+            hit_paulis[i] = true;
+        }
+    }
+
+    for gate in gates {
+        out_gates.push(qiskit_clifford_gate(gate));
+
+        cur_paulis.conjugate_with_gate(gate);
+
+        // check which paulis are hit now
+        for i in 0..cur_paulis.len() {
+            if !hit_paulis[i] && cur_paulis.support_size(i) == 1 {
+                out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
+                hit_paulis[i] = true;
+            }
+        }
+    }
+
+    out_gates
+}
+
+/// Return a Qiskit circuit with Clifford gates and rotations.
+///
+/// The rotations are assumed to be ordered (up to commutativity).
+///
+/// # Arguments
+///
+/// * py: a GIL handle, needed to negate rotation parameters in Python space.
+/// * gates: the sequence of Rustiq's Clifford gates returned by Rustiq's
+///     pauli network synthesis algorithm.
+/// * paulis: Rustiq's data structure storing the pauli rotations.
+/// * angles: Qiskit's rotation angles corresponding to the pauli rotations.
 fn inject_rotations_ordered(
     py: Python,
     gates: &Vec<CliffordGate>,
     paulis: &PauliSet,
-    angles: &Vec<Param>,
+    angles: &[Param],
 ) -> Vec<QiskitGate> {
     let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
 
@@ -208,21 +228,21 @@ fn inject_rotations_ordered(
     // check which paulis are hit at the very start
     for i in 0..cur_paulis.len() {
         if !hit_paulis[i] && cur_paulis.support_size(i) == 1 && dag.is_front_node(i) {
-            out_gates.push(create_rotation_gate(py, &cur_paulis, i, &angles[i]));
+            out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
             hit_paulis[i] = true;
             dag.remove_node(i);
         }
     }
 
     for gate in gates {
-        out_gates.push(to_qiskit_gate(gate));
+        out_gates.push(qiskit_clifford_gate(gate));
 
-        cur_paulis.conjugate_with_gate(&gate);
+        cur_paulis.conjugate_with_gate(gate);
 
         // check which paulis are hit now
         for i in 0..cur_paulis.len() {
             if !hit_paulis[i] && cur_paulis.support_size(i) == 1 && dag.is_front_node(i) {
-                out_gates.push(create_rotation_gate(py, &cur_paulis, i, &angles[i]));
+                out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
                 hit_paulis[i] = true;
                 dag.remove_node(i);
             }
@@ -232,8 +252,19 @@ fn inject_rotations_ordered(
     out_gates
 }
 
+/// Calls Rustiq's pauli network synthesis algorithm and returns the
+/// Qiskit circuit data with Clifford gates and rotations.
+///
+/// # Arguments
+///
+/// * py: a GIL handle, needed to negate rotation parameters in Python space.
+/// * num_qubits: total number of qubits.
+/// * pauli_network: pauli network represented in sparse format. It's a list
+///     of triples such as `[("XX", [0, 3], theta), ("ZZ", [0, 1], 0.1)]`.
+/// * preserve_order: whether the order of paulis should be preserved, up to
+///     commutativity.
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli_network, preserve_order))]
+#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true))]
 pub fn pauli_network_synthesis(
     py: Python,
     num_qubits: usize,
@@ -243,14 +274,11 @@ pub fn pauli_network_synthesis(
     let mut operator_sequence: Vec<String> = Vec::new();
     let mut params: Vec<Param> = Vec::new();
 
-    println!("pauli_network = {:?}", pauli_network);
     for item in pauli_network {
         let tuple = item.downcast::<PyTuple>()?;
-        println!("-- item = {:?}", tuple);
         let inner = tuple.borrow();
 
         let ss: String = inner.get_item(0)?.downcast::<PyString>()?.extract()?;
-        // let ff: f64 =  inner.get_item(2)?.extract()?;
         let param: Param = inner.get_item(2)?.extract()?;
         let vv = inner.get_item(1)?;
         let ww: Vec<u32> = vv
@@ -258,18 +286,10 @@ pub fn pauli_network_synthesis(
             .iter()
             .map(|v| v.extract())
             .collect::<PyResult<_>>()?;
-        println!("  ss = {:?}, ww = {:?}, param = {:?}", ss, ww, param);
-
-        // todo: check endianness notation, maybe need to reverse something
 
         operator_sequence.push(expand_pauli(ss, ww, num_qubits));
         params.push(param);
     }
-
-    // todo: create full op seq
-
-    println!("HERE: operator_sequence = {:?}", operator_sequence);
-    println!("HERE: list of params = {:?}", params);
 
     // todo: maybe we can immediately create pauli set rather than operator_sequence first
     let mut bucket = PauliSet::from_slice(&operator_sequence);
