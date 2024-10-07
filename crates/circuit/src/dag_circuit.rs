@@ -35,9 +35,12 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use itertools::Itertools;
 
-use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{
+    PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
+};
 use pyo3::intern;
 use pyo3::prelude::*;
+
 use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySequence, PySet, PyString, PyTuple, PyType,
 };
@@ -79,6 +82,19 @@ pub enum NodeType {
     VarIn(PyObject),
     VarOut(PyObject),
     Operation(PackedInstruction),
+}
+
+impl NodeType {
+    /// Unwraps this node as an operation and returns a reference to
+    /// the contained [PackedInstruction].
+    ///
+    /// Panics if this is not an operation node.
+    pub fn unwrap_operation(&self) -> &PackedInstruction {
+        match self {
+            NodeType::Operation(instr) => instr,
+            _ => panic!("Node is not an operation!"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -244,10 +260,10 @@ pub struct DAGCircuit {
     /// Global phase.
     global_phase: Param,
     /// Duration.
-    #[pyo3(get, set)]
+    #[pyo3(set)]
     duration: Option<PyObject>,
     /// Unit of duration.
-    #[pyo3(get, set)]
+    #[pyo3(set)]
     unit: String,
 
     // Note: these are tracked separately from `qubits` and `clbits`
@@ -440,6 +456,45 @@ impl DAGCircuit {
                 PySet::empty_bound(py)?.unbind(),
             ],
         })
+    }
+
+    /// The total duration of the circuit, set by a scheduling transpiler pass. Its unit is
+    /// specified by :attr:`.unit`
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    #[getter]
+    fn get_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
+        imports::WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.duration`` is ",
+                    "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            2,
+        ))?;
+        Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
+    }
+
+    /// The unit that duration is specified in.
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
+    #[getter]
+    fn get_unit(&self, py: Python) -> PyResult<String> {
+        imports::WARNINGS_WARN.get_bound(py).call1((
+            intern!(
+                py,
+                concat!(
+                    "The property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.unit`` is ",
+                    "deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0.",
+                )
+            ),
+            py.get_type_bound::<PyDeprecationWarning>(),
+            2,
+        ))?;
+        Ok(self.unit.clone())
     }
 
     #[getter]
@@ -988,7 +1043,7 @@ def _format(operand):
     }
 
     /// Add all wires in a quantum register.
-    fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
+    pub fn add_qreg(&mut self, py: Python, qreg: &Bound<PyAny>) -> PyResult<()> {
         if !qreg.is_instance(imports::QUANTUM_REGISTER.get_bound(py))? {
             return Err(DAGCircuitError::new_err("not a QuantumRegister instance."));
         }
@@ -1558,7 +1613,7 @@ def _format(operand):
     /// Returns:
     ///     DAGCircuit: An empty copy of self.
     #[pyo3(signature = (*, vars_mode="alike"))]
-    fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
+    pub fn copy_empty_like(&self, py: Python, vars_mode: &str) -> PyResult<Self> {
         let mut target_dag = DAGCircuit::with_capacity(
             py,
             self.num_qubits(),
@@ -1671,7 +1726,7 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: if a leaf node is connected to multiple outputs
     #[pyo3(name = "apply_operation_back", signature = (op, qargs=None, cargs=None, *, check=true))]
-    fn py_apply_operation_back(
+    pub fn py_apply_operation_back(
         &mut self,
         py: Python,
         op: Bound<PyAny>,
@@ -2860,8 +2915,8 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: if met with unexpected predecessor/successors
-    #[pyo3(signature = (node, input_dag, wires=None, propagate_condition=true))]
-    fn substitute_node_with_dag(
+    #[pyo3(name = "substitute_node_with_dag", signature = (node, input_dag, wires=None, propagate_condition=true))]
+    pub fn py_substitute_node_with_dag(
         &mut self,
         py: Python,
         node: &Bound<PyAny>,
@@ -4375,27 +4430,18 @@ def _format(operand):
         for name in namelist.iter() {
             name_list_set.insert(name.extract::<String>()?);
         }
-        match self.collect_runs(name_list_set) {
-            Some(runs) => {
-                let run_iter = runs.map(|node_indices| {
-                    PyTuple::new_bound(
-                        py,
-                        node_indices
-                            .into_iter()
-                            .map(|node_index| self.get_node(py, node_index).unwrap()),
-                    )
-                    .unbind()
-                });
-                let out_set = PySet::empty_bound(py)?;
-                for run_tuple in run_iter {
-                    out_set.add(run_tuple)?;
-                }
-                Ok(out_set.unbind())
-            }
-            None => Err(PyRuntimeError::new_err(
-                "Invalid DAGCircuit, cycle encountered",
-            )),
+
+        let out_set = PySet::empty_bound(py)?;
+
+        for run in self.collect_runs(name_list_set) {
+            let run_tuple = PyTuple::new_bound(
+                py,
+                run.into_iter()
+                    .map(|node_index| self.get_node(py, node_index).unwrap()),
+            );
+            out_set.add(run_tuple)?;
         }
+        Ok(out_set.unbind())
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
@@ -4957,7 +5003,7 @@ impl DAGCircuit {
     pub fn collect_runs(
         &self,
         namelist: HashSet<String>,
-    ) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
@@ -4967,8 +5013,11 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
-        rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn)
-            .map(|node_iter| node_iter.map(|x| x.unwrap()))
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("invalid DAG: cycle(s) detected!"),
+        }
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
@@ -5074,7 +5123,7 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
-    fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
+    pub fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = instr.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<PyObject>>) = {
             if self.may_have_additional_wires(py, &instr) {
