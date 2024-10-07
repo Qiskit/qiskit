@@ -136,7 +136,7 @@ fn apply_synth_sequence(
     sequence: &TwoQubitUnitarySequence,
 ) -> PyResult<()> {
     let mut instructions = Vec::new();
-    for (gate, params, qubit_ids) in &sequence.gate_sequence.gates {
+    for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
         let gate_node = match gate {
             None => sequence.decomp_gate.operation.standard_gate(),
             Some(gate) => *gate,
@@ -158,7 +158,7 @@ fn apply_synth_sequence(
         instructions.push(instruction);
     }
     out_dag.extend(py, instructions.into_iter())?;
-    out_dag.add_global_phase(py, &Param::Float(sequence.gate_sequence.global_phase))?;
+    out_dag.add_global_phase(py, &Param::Float(sequence.gate_sequence.global_phase()))?;
     Ok(())
 }
 
@@ -448,7 +448,7 @@ fn run_2q_unitary_synthesis(
                     synth_su4_sequence(&unitary, decomposer, preferred_dir, approximation_degree)?;
                 let scoring_info = sequence
                     .gate_sequence
-                    .gates
+                    .gates()
                     .iter()
                     .map(|(gate, params, qubit_ids)| {
                         let inst_qubits =
@@ -917,7 +917,7 @@ fn synth_su4_sequence(
             // if the gates in synthesis are in the opposite direction of the preferred direction
             // resynthesize a new operator which is the original conjugated by swaps.
             // this new operator is doubly mirrored from the original and is locally equivalent.
-            for (gate, _, qubits) in &sequence.gate_sequence.gates {
+            for (gate, _, qubits) in sequence.gate_sequence.gates() {
                 if gate.is_none() || gate.unwrap().name() == "cx" {
                     synth_direction = Some(qubits.clone());
                 }
@@ -960,22 +960,26 @@ fn reversed_synth_su4_sequence(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let mut synth =
-        if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
-            decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
-        } else {
-            panic!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
-        };
+    let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
+    } else {
+        panic!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
+    };
 
     let flip_bits: [u8; 2] = [1, 0];
-    for (_, _, qubit_ids) in synth.gates.iter_mut() {
-        *qubit_ids = qubit_ids
+    let mut reversed_gates = Vec::with_capacity(synth.gates().len());
+    for (gate, params, qubit_ids) in synth.gates() {
+        let new_qubit_ids = qubit_ids
             .into_iter()
             .map(|x| flip_bits[*x as usize])
-            .collect::<SmallVec<[u8; 2]>>()
+            .collect::<SmallVec<[u8; 2]>>();
+        reversed_gates.push((*gate, params.clone(), new_qubit_ids.clone()));
     }
+
+    let mut reversed_synth: TwoQubitGateSequence = TwoQubitGateSequence::new();
+    reversed_synth.set_state((reversed_gates, synth.global_phase()));
     let sequence = TwoQubitUnitarySequence {
-        gate_sequence: synth,
+        gate_sequence: reversed_synth,
         decomp_gate: decomposer_2q.gate.clone(),
     };
     Ok(sequence)

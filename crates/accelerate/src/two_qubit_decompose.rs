@@ -1226,20 +1226,42 @@ type TwoQubitSequenceVec = Vec<(Option<StandardGate>, SmallVec<[f64; 3]>, SmallV
 #[derive(Clone, Debug)]
 #[pyclass(sequence)]
 pub struct TwoQubitGateSequence {
-    pub gates: TwoQubitSequenceVec,
+    gates: TwoQubitSequenceVec,
     #[pyo3(get)]
-    pub global_phase: f64,
+    global_phase: f64,
+}
+
+impl TwoQubitGateSequence {
+    pub fn gates(&self) -> &TwoQubitSequenceVec {
+        &self.gates
+    }
+
+    pub fn global_phase(&self) -> f64 {
+        self.global_phase
+    }
+
+    pub fn set_state(&mut self, state: (TwoQubitSequenceVec, f64)) {
+        self.gates = state.0;
+        self.global_phase = state.1;
+    }
+}
+
+impl Default for TwoQubitGateSequence {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[pymethods]
 impl TwoQubitGateSequence {
     #[new]
-    fn new() -> Self {
+    pub fn new() -> Self {
         TwoQubitGateSequence {
             gates: Vec::new(),
             global_phase: 0.,
         }
     }
+
     fn __getstate__(&self) -> (TwoQubitSequenceVec, f64) {
         (self.gates.clone(), self.global_phase)
     }
