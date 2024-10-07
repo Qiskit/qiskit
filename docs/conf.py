@@ -173,6 +173,10 @@ def linkcode_resolve(domain, info):
         except AttributeError:
             return None
 
+    # Unwrap decorators. This requires they used `functools.wrap()`.
+    while hasattr(obj, "__wrapped__"):
+        obj = getattr(obj, "__wrapped__")
+
     try:
         full_file_name = inspect.getsourcefile(obj)
     except TypeError:
