@@ -169,6 +169,7 @@ class BaseSchedulerTransform(TransformationPass):
         insertion of the delay yields unnecessary longer total execution time.
 
         .. code-block:: text
+
             : Quantum Circuit, first-xgate
             0 ░▒▒▒░░░░░░░░░░░░░░░
             1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -198,6 +199,7 @@ class BaseSchedulerTransform(TransformationPass):
         with the timing model:
 
         .. code-block:: text
+
             : Quantum Circuit, first-xgate
             0 ░░▒▒▒░░░░░░░░░░░░░░░
             1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
