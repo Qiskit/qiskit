@@ -2025,7 +2025,6 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
 
 
 # Macros
-@deprecate_pulse_func
 def macro(func: Callable):
     """Wrap a Python function and activate the parent builder context at calling time.
 

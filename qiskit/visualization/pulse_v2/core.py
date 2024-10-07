@@ -79,7 +79,6 @@ from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class DrawerCanvas:
@@ -94,7 +93,6 @@ class DrawerCanvas:
     the appearance of the `Chart` output.
     """
 
-    @deprecate_pulse_dependency
     def __init__(self, stylesheet: QiskitPulseStyle, device: device_info.DrawerBackendInfo):
         """Create new data container with backend system information.
 
@@ -439,7 +437,6 @@ class Chart:
         str(types.WaveformType.OPAQUE.value),
     ]
 
-    @deprecate_pulse_dependency
     def __init__(self, parent: DrawerCanvas, name: str | None = None):
         """Create new chart.
 

@@ -33,13 +33,11 @@ the appearance of the output image.
 
 from typing import Dict, Any, Mapping
 from qiskit.visualization.pulse_v2 import generators, layouts
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class QiskitPulseStyle(dict):
     """Stylesheet for pulse drawer."""
 
-    @deprecate_pulse_dependency
     def __init__(self):
         super().__init__()
         # to inform which stylesheet is applied. some plotter may not support specific style.
@@ -95,7 +93,6 @@ class IQXStandard(dict):
     - Channels are sorted by index and control channels are added to the end.
     """
 
-    @deprecate_pulse_dependency
     def __init__(self, **kwargs):
         super().__init__()
         style = {
@@ -140,7 +137,6 @@ class IQXSimple(dict):
     - Channels are sorted by qubit index.
     """
 
-    @deprecate_pulse_dependency
     def __init__(self, **kwargs):
         super().__init__()
         style = {
@@ -185,7 +181,6 @@ class IQXDebugging(dict):
     - Channels are sorted by index and control channels are added to the end.
     """
 
-    @deprecate_pulse_dependency
     def __init__(self, **kwargs):
         super().__init__()
         style = {

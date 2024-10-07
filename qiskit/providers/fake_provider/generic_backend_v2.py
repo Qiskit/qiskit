@@ -88,7 +88,6 @@ class PulseDefaults:
 
     _data = {}
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         qubit_freq_est: List[float],
@@ -244,7 +243,6 @@ class PulseLibraryItem:
     """INTERNAL - An item in a pulse library."""
 
     # Copy from the deprecated from qiskit.qobj.PulseLibraryItem
-    @deprecate_pulse_dependency
     def __init__(self, name, samples):
         """Instantiate a pulse library item.
 
@@ -313,7 +311,6 @@ class PulseQobjInstruction:
         "parameters",
     ]
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         name,

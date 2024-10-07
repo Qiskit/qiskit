@@ -15,7 +15,6 @@ Configurations for pulse experiments.
 """
 from __future__ import annotations
 import numpy as np
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 from .channels import DriveChannel, MeasureChannel
 from .exceptions import PulseError
@@ -45,7 +44,6 @@ class Kernel:
     into IQ points.
     """
 
-    @deprecate_pulse_func
     def __init__(self, name: str | None = None, **params):
         """Create new kernel.
 
@@ -72,7 +70,6 @@ class Discriminator:
     into 0/1 state results.
     """
 
-    @deprecate_pulse_func
     def __init__(self, name: str | None = None, **params):
         """Create new discriminator.
 
@@ -97,7 +94,6 @@ class Discriminator:
 class LoRange:
     """Range of LO frequency."""
 
-    @deprecate_pulse_func
     def __init__(self, lower_bound: float, upper_bound: float):
         self._lb = lower_bound
         self._ub = upper_bound
@@ -146,7 +142,6 @@ class LoRange:
 class LoConfig:
     """Pulse channel LO frequency container."""
 
-    @deprecate_pulse_func
     def __init__(
         self,
         channel_los: dict[DriveChannel | MeasureChannel, float] | None = None,

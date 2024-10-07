@@ -49,10 +49,8 @@ from qiskit import pulse, circuit
 from qiskit.pulse import instructions, library
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@deprecate_pulse_dependency
 def gen_filled_waveform_stepwise(
     data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
@@ -129,7 +127,6 @@ def gen_filled_waveform_stepwise(
         raise VisualizationError("Invalid data format is provided.")
 
 
-@deprecate_pulse_dependency
 def gen_ibmq_latex_waveform_name(
     data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> list[drawings.TextData]:
@@ -238,7 +235,6 @@ def gen_ibmq_latex_waveform_name(
     return [text]
 
 
-@deprecate_pulse_dependency
 def gen_waveform_max_value(
     data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> list[drawings.TextData]:

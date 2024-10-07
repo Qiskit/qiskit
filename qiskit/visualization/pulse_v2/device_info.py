@@ -41,13 +41,11 @@ from typing import Dict, List, Union, Optional
 from qiskit import pulse
 from qiskit.providers import BackendConfigurationError
 from qiskit.providers.backend import Backend, BackendV2
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class DrawerBackendInfo(ABC):
     """Backend information to be used for the drawing data generation."""
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         name: Optional[str] = None,
@@ -99,7 +97,6 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     @classmethod
-    @deprecate_pulse_dependency
     def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 

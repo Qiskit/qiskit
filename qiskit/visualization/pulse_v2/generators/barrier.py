@@ -40,10 +40,8 @@ the plotter API.
 from typing import Dict, Any, List
 
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@deprecate_pulse_dependency
 def gen_barrier(
     data: types.BarrierInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
 ) -> List[drawings.LineData]:

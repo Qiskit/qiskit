@@ -24,7 +24,6 @@ from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 IncompletePulseQobj = object()
@@ -123,7 +122,6 @@ class ScheduleDef(CalibrationEntry):
 
     """
 
-    @deprecate_pulse_func
     def __init__(self, arguments: Sequence[str] | None = None):
         """Define an empty entry.
 
@@ -240,7 +238,6 @@ class CallableDef(CalibrationEntry):
 
     """
 
-    @deprecate_pulse_func
     def __init__(self):
         """Define an empty entry."""
         self._definition = None

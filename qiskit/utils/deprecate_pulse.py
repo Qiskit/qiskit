@@ -53,7 +53,6 @@ def deprecate_pulse_arg(arg_name, **kwargs):
         since="1.3",
         removal_timeline="in Qiskit 2.0",
         additional_msg="The entire Qiskit Pulse package is being deprecated "
-        "and will be moved to the Qiskit Dynamics repository: "
-        "https://github.com/qiskit-community/qiskit-dynamics",
+        "and this argument uses a dependency on the package.",
         **kwargs,
     )

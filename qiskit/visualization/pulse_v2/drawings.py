@@ -66,7 +66,6 @@ import numpy as np
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse_v2 import types
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class ElementaryData(ABC):
@@ -74,7 +73,6 @@ class ElementaryData(ABC):
 
     __hash__ = None
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         data_type: str | Enum,
@@ -130,7 +128,6 @@ class LineData(ElementaryData):
     This is the counterpart of `matplotlib.pyplot.plot`.
     """
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         data_type: str | Enum,
@@ -173,7 +170,6 @@ class TextData(ElementaryData):
     This is the counterpart of `matplotlib.pyplot.text`.
     """
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         data_type: str | Enum,
@@ -219,7 +215,6 @@ class BoxData(ElementaryData):
     This is the counterpart of `matplotlib.patches.Rectangle`.
     """
 
-    @deprecate_pulse_dependency
     def __init__(
         self,
         data_type: str | Enum,
