@@ -697,6 +697,11 @@ impl EquivalenceLibrary {
     pub fn graph(&self) -> &GraphType {
         &self.graph
     }
+
+    /// Expose a mutable view of the inner graph.
+    pub(crate) fn graph_mut(&mut self) -> &mut GraphType {
+        &mut self.graph
+    }
 }
 
 fn raise_if_param_mismatch(
