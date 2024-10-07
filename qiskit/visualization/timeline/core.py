@@ -144,7 +144,7 @@ class DrawerCanvas:
 
         Args:
             program: Scheduled circuit object to draw.
-            target: The target the circuit is scheduled for. This contains backend information  
+            target: The target the circuit is scheduled for. This contains backend information
                 including the instruction durations used in scheduling.
 
         Raises:
