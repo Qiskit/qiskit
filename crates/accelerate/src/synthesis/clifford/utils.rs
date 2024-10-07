@@ -287,21 +287,21 @@ pub fn adjust_final_pauli_gates(
             gate_seq.push((
                 StandardGate::YGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32)],
+                smallvec![Qubit::new(qubit)],
             ));
         } else if delta_phase_pre[qubit] {
             // println!("=> Adding Z-gate on {}", qubit);
             gate_seq.push((
                 StandardGate::ZGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32)],
+                smallvec![Qubit::new(qubit)],
             ));
         } else if delta_phase_pre[qubit + num_qubits] {
             // println!("=> Adding X-gate on {}", qubit);
             gate_seq.push((
                 StandardGate::XGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32)],
+                smallvec![Qubit::new(qubit)],
             ));
         }
     }

@@ -462,7 +462,7 @@ impl DAGCircuit {
             .qubit_io_map
             .iter()
             .enumerate()
-            .map(|(idx, indices)| (Qubit(idx as u32), indices))
+            .map(|(idx, indices)| (Qubit::new(idx), indices))
         {
             out_dict.set_item(
                 self.qubits.get(qubit).unwrap().clone_ref(py),
@@ -473,7 +473,7 @@ impl DAGCircuit {
             .clbit_io_map
             .iter()
             .enumerate()
-            .map(|(idx, indices)| (Clbit(idx as u32), indices))
+            .map(|(idx, indices)| (Clbit::new(idx), indices))
         {
             out_dict.set_item(
                 self.clbits.get(clbit).unwrap().clone_ref(py),
@@ -496,7 +496,7 @@ impl DAGCircuit {
             .qubit_io_map
             .iter()
             .enumerate()
-            .map(|(idx, indices)| (Qubit(idx as u32), indices))
+            .map(|(idx, indices)| (Qubit::new(idx), indices))
         {
             out_dict.set_item(
                 self.qubits.get(qubit).unwrap().clone_ref(py),
@@ -507,7 +507,7 @@ impl DAGCircuit {
             .clbit_io_map
             .iter()
             .enumerate()
-            .map(|(idx, indices)| (Clbit(idx as u32), indices))
+            .map(|(idx, indices)| (Clbit::new(idx), indices))
         {
             out_dict.set_item(
                 self.clbits.get(clbit).unwrap().clone_ref(py),
@@ -1191,13 +1191,13 @@ def _format(operand):
             .drain(..)
             .enumerate()
             .filter_map(|(k, v)| {
-                let clbit = Clbit(k as u32);
+                let clbit = Clbit::new(k);
                 if clbits.contains(&clbit) {
                     None
                 } else {
                     Some((
                         self.clbits
-                            .find(old_clbits.get(Clbit(k as u32)).unwrap().bind(py))
+                            .find(old_clbits.get(Clbit::new(k)).unwrap().bind(py))
                             .unwrap(),
                         v,
                     ))
@@ -1207,7 +1207,7 @@ def _format(operand):
 
         self.clbit_io_map = (0..io_mapping.len())
             .map(|idx| {
-                let clbit = Clbit(idx as u32);
+                let clbit = Clbit::new(idx);
                 io_mapping[&clbit]
             })
             .collect();
@@ -1399,7 +1399,7 @@ def _format(operand):
             .drain(..)
             .enumerate()
             .filter_map(|(k, v)| {
-                let qubit = Qubit(k as u32);
+                let qubit = Qubit::new(k);
                 if qubits.contains(&qubit) {
                     None
                 } else {
@@ -1415,7 +1415,7 @@ def _format(operand):
 
         self.qubit_io_map = (0..io_mapping.len())
             .map(|idx| {
-                let qubit = Qubit(idx as u32);
+                let qubit = Qubit::new(idx);
                 io_mapping[&qubit]
             })
             .collect();
@@ -2105,8 +2105,8 @@ def _format(operand):
     fn idle_wires(&self, py: Python, ignore: Option<&Bound<PyList>>) -> PyResult<Py<PyIterator>> {
         let mut result: Vec<PyObject> = Vec::new();
         let wires = (0..self.qubit_io_map.len())
-            .map(|idx| Wire::Qubit(Qubit(idx as u32)))
-            .chain((0..self.clbit_io_map.len()).map(|idx| Wire::Clbit(Clbit(idx as u32))))
+            .map(|idx| Wire::Qubit(Qubit::new(idx)))
+            .chain((0..self.clbit_io_map.len()).map(|idx| Wire::Clbit(Clbit::new(idx))))
             .chain(self.var_input_map.keys(py).map(Wire::Var));
         match ignore {
             Some(ignore) => {
@@ -3606,7 +3606,7 @@ def _format(operand):
                 .qubit_io_map
                 .iter()
                 .enumerate()
-                .map(|(idx, indices)| (Qubit(idx as u32), indices))
+                .map(|(idx, indices)| (Qubit::new(idx), indices))
             {
                 if new_dag.dag.edges(*in_node).next().is_none() {
                     new_dag
@@ -3618,7 +3618,7 @@ def _format(operand):
                 .clbit_io_map
                 .iter()
                 .enumerate()
-                .map(|(idx, indices)| (Clbit(idx as u32), indices))
+                .map(|(idx, indices)| (Clbit::new(idx), indices))
             {
                 if new_dag.dag.edges(*in_node).next().is_none() {
                     new_dag

@@ -79,9 +79,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                     let cargs = dag.get_cargs(inst.clbits);
                     let mapped_qargs: Vec<Qubit> = qargs
                         .iter()
-                        .map(|q| q.index())
-                        .map(|q| mapping[q])
-                        .map(|q| Qubit(q.try_into().unwrap()))
+                        .map(|q| Qubit::new(mapping[q.index()]))
                         .collect();
 
                     new_dag.apply_operation_back(
@@ -92,7 +90,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         inst.params.as_deref().cloned(),
                         inst.extra_attrs.clone(),
                         #[cfg(feature = "cache_pygates")]
-                        None,
+                        inst.py_op.get().map(|x| x.clone_ref(py)),
                     )?;
                 }
             }

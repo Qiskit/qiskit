@@ -37,7 +37,8 @@ pub type BitType = u32;
 pub struct Qubit(pub BitType);
 
 impl Qubit {
-    /// Construct a new Qubit object from a usize
+    /// Construct a new Qubit object from a usize, if you have a u32 you can
+    /// create a `Qubit` object directly with `Qubit(0u32)`.
     #[inline(always)]
     pub fn new(index: usize) -> Self {
         Qubit(index as BitType)
@@ -54,7 +55,8 @@ impl Qubit {
 pub struct Clbit(pub BitType);
 
 impl Clbit {
-    /// Construct a new Clbit object from a usize
+    /// Construct a new Clbit object from a usize. if you have a u32 you can
+    /// create a `Clbit` object directly with `Clbit(0u32)`.
     #[inline(always)]
     pub fn new(index: usize) -> Self {
         Clbit(index as BitType)
