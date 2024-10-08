@@ -31,7 +31,7 @@ class DraperQFTAdder(Adder):
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
          a_0:   ─────────■──────■────────────────────────■────────────────
                          │      │                        │

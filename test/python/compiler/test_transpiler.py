@@ -200,7 +200,7 @@ class TestTranspile(QiskitTestCase):
 
         circuit:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                   ┌───┐
             qr_0: ┤ H ├──■──────────── -> 1
@@ -354,7 +354,7 @@ class TestTranspile(QiskitTestCase):
 
         circuit:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                   ┌───┐                  ┌───┐ ░ ┌─┐
             qn_0: ┤ H ├──■────────────■──┤ H ├─░─┤M├─── -> 9

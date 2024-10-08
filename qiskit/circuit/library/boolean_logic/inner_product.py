@@ -32,7 +32,7 @@ class InnerProduct(QuantumCircuit):
     where the inner product of the top and bottom registers is 1. Otherwise it keeps
     the input intact.
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q0_0: ─■──────────

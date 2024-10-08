@@ -62,7 +62,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     def _echo_rzx_dag(theta):
         """Return the following circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐┌───┐┌────────────────┐┌───┐
             q_0: ┤0              ├┤ X ├┤0               ├┤ X ├
@@ -83,7 +83,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     def _reverse_echo_rzx_dag(theta):
         """Return the following circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌───────────────┐     ┌────────────────┐┌───┐
             q_0: ┤ H ├┤1              ├─────┤1               ├┤ H ├─────

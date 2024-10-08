@@ -133,7 +133,7 @@ new numbers that don't contain five.
 
 Output:
 
-.. parsed-literal::
+.. code-block:: text
 
     [12346789, 464, 36784]
 
@@ -178,7 +178,7 @@ As before, we schedule these passes with the pass manager and run.
 
 Output:
 
-.. parsed-literal::
+.. code-block:: text
 
     [12346789, 45654, 36784]
 

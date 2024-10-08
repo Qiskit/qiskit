@@ -53,7 +53,7 @@ class AlignmentKind(abc.ABC):
         When the context has two pulses in different channels,
         a sequential context subtype intends to return following scheduling outcome.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 ┌────────┐
             D0: ┤ pulse1 ├────────────
@@ -63,7 +63,7 @@ class AlignmentKind(abc.ABC):
 
         On the other hand, parallel context with ``is_sequential=False`` returns
 
-        .. parsed-literal::
+        .. code-block:: text
 
                 ┌────────┐
             D0: ┤ pulse1 ├

@@ -258,7 +258,7 @@ descriptions of the instructions it supports:
     )
     print(target)
 
-.. parsed-literal::
+.. code-block:: text
 
     Target
     Number of qubits: 3
@@ -583,7 +583,7 @@ original.  This can be verified by checking the depth of both circuits:
 
    print('Original depth:', qc.depth(), 'Decomposed Depth:', qc_basis.depth())
 
-.. parsed-literal::
+.. code-block:: text
 
     Original depth: 4 Decomposed Depth: 10
 
@@ -603,7 +603,7 @@ It is important to highlight two special cases:
 
       print(backend.operation_names)
 
-   .. parsed-literal::
+   .. code-block:: text
 
       ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
@@ -1022,7 +1022,7 @@ classical register wires, though theoretically two conditional instructions
 conditioned on the same register could commute, i.e. read-access to the
 classical register doesn't change its state.
 
-.. parsed-literal::
+.. code-block:: text
 
     qc = QuantumCircuit(2, 1)
     qc.delay(100, 0)
@@ -1033,7 +1033,7 @@ The scheduler SHOULD comply with the above topological ordering policy of the
 DAG circuit.
 Accordingly, the `asap`-scheduled circuit will become
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌────────────────┐   ┌───┐
     q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
@@ -1060,7 +1060,7 @@ then a discriminated (D) binary value is moved to the classical register (C).
 A sequence from t0 to t1 of the measure instruction interval could be
 modeled as follows:
 
-.. parsed-literal::
+.. code-block:: text
 
     Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
     B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
@@ -1075,7 +1075,7 @@ and the :class:`.Clbit` is only occupied at the very end of the interval.
 The lack of precision representing the physical model may induce
 edge cases in the scheduling:
 
-.. parsed-literal::
+.. code-block:: text
 
             ┌───┐
     q_0: ───┤ X ├──────
@@ -1094,7 +1094,7 @@ is unchanged during the application of the stimulus, so two nodes are
 simultaneously operated.
 If one tries to `alap`-schedule this circuit, it may return following circuit:
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌────────────────┐   ┌───┐
     q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
@@ -1110,7 +1110,7 @@ It looks like the topological ordering between the nodes is flipped in the
 scheduled view.
 This behavior can be understood by considering the control flow model described above,
 
-.. parsed-literal::
+.. code-block:: text
 
     : Quantum Circuit, first-measure
     0 ░░░░░░░░░░░░▒▒▒▒▒▒░
@@ -1142,7 +1142,7 @@ be copied to the pass manager property set before the pass is called.
 
 Due to default latencies, the `alap`-scheduled circuit of above example may become
 
-.. parsed-literal::
+.. code-block:: text
 
             ┌───┐
     q_0: ───┤ X ├──────
@@ -1156,7 +1156,8 @@ If the backend microarchitecture supports smart scheduling of the control flow
 instructions, such as separately scheduling qubits and classical registers,
 the insertion of the delay yields an unnecessarily longer total execution time.
 
-.. parsed-literal::
+.. code-block:: text
+
     : Quantum Circuit, first-XGate
     0 ░▒▒▒░░░░░░░░░░░░░░░
     1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
@@ -1173,7 +1174,7 @@ However, this result is much more intuitive in the topological ordering view.
 If a finite conditional latency value is provided, for example, 30 dt, the circuit
 is scheduled as follows:
 
-.. parsed-literal::
+.. code-block:: text
 
          ┌───────────────┐   ┌───┐
     q_0: ┤ Delay(30[dt]) ├───┤ X ├──────
@@ -1185,7 +1186,8 @@ is scheduled as follows:
 
 with the timing model:
 
-.. parsed-literal::
+.. code-block:: text
+
     : Quantum Circuit, first-xgate
     0 ░░▒▒▒░░░░░░░░░░░░░░░
     1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░

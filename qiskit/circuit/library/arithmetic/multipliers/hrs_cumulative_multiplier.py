@@ -26,7 +26,7 @@ class HRSCumulativeMultiplier(Multiplier):
     the default adder is as follows (where ``Adder`` denotes the
     ``CDKMRippleCarryAdder``):
 
-    .. parsed-literal::
+    .. code-block:: text
 
           a_0: ────■─────────────────────────
                    │

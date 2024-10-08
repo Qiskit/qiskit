@@ -29,7 +29,7 @@ class GMS(QuantumCircuit):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤0          ├

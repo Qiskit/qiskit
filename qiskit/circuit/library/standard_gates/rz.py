@@ -34,7 +34,7 @@ class RZGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ Rz(λ) ├
@@ -174,7 +174,7 @@ class CRZGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ────■────
              ┌───┴───┐
@@ -202,7 +202,8 @@ class CRZGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Rz(λ) ├
                  └───┬───┘

@@ -29,7 +29,7 @@ class MCMT(QuantumCircuit):
 
     For example, the H gate controlled on 3 qubits and acting on 2 target qubit is represented as:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ───■────
            │

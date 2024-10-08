@@ -54,7 +54,7 @@ class StabilizerState(QuantumState):
         # Calculate expectation value of the StabilizerState
         print (stab.expectation_value(Pauli('ZZ')))
 
-    .. parsed-literal::
+    .. code-block:: text
 
         StabilizerState(StabilizerTable: ['+XX', '+ZZ'])
         {'00': 0.5, '11': 0.5}

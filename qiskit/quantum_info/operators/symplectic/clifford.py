@@ -92,7 +92,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Print the Clifford stabilizer rows
         print(cliff.to_labels(mode="S"))
 
-    .. parsed-literal::
+    .. code-block:: text
 
         Clifford: Stabilizer = ['+XX', '+ZZ'], Destabilizer = ['+IZ', '+XI']
         ['+IZ', '+XI']

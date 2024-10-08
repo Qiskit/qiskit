@@ -26,7 +26,7 @@ class VBERippleCarryAdder(Adder):
     As an example, a classical adder circuit that performs full addition (i.e. including
     a carry-in bit) on two 2-qubit sized registers is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
                   ┌────────┐                       ┌───────────┐┌──────┐
            cin_0: ┤0       ├───────────────────────┤0          ├┤0     ├

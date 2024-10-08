@@ -41,7 +41,7 @@ class Commuting2qGateRouter(TransformationPass):
     qubit :class:`.PauliEvolutionGate` to qubits 0, 1, 3, and 4 of the five qubit device with
     the coupling map
 
-    .. parsed-literal::
+    .. code-block:: text
 
         0 -- 1 -- 2
              |

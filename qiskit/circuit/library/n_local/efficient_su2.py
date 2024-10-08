@@ -39,7 +39,7 @@ class EfficientSU2(TwoLocal):
     On 3 qubits and using the Pauli :math:`Y` and :math:`Z` su2_gates as single qubit gates, the
     hardware efficient SU(2) circuit is represented by:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌──────────┐┌──────────┐ ░            ░       ░ ┌───────────┐┌───────────┐
         ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├─░────────■───░─ ... ─░─┤ RY(θ[12]) ├┤ RZ(θ[15]) ├

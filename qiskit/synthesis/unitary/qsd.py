@@ -47,7 +47,8 @@ def qs_decomposition(
 
     This decomposition is described in Shende et al. [1].
 
-    .. parsed-literal::
+    .. code-block:: text
+
           ┌───┐               ┌───┐     ┌───┐     ┌───┐
          ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
           │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
