@@ -97,7 +97,8 @@ class QuantumVolume(QuantumCircuit):
         )
         if classical_permutation:
             if seed is not None:
-                seed = rng.integers(0, dtype=np.int64)
+                max_value = np.iinfo(np.int64).max
+                seed = rng.integers(max_value, dtype=np.int64)
             qv_circ = quantum_volume(num_qubits, depth, seed)
             qv_circ.name = self.name
             if flatten:
