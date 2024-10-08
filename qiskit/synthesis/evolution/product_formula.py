@@ -138,7 +138,6 @@ class ProductFormula(EvolutionSynthesis):
         """
         pauli_rotations = self.expand(evolution)
 
-        time = evolution.time
         num_qubits = evolution.num_qubits
 
         circuit = QuantumCircuit(num_qubits)
