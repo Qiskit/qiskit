@@ -84,7 +84,7 @@ class QuantumVolume(QuantumCircuit):
         width = num_qubits // 2  # how many SU(4)s fit in each layer
         rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
         seed_name = seed
-        if seed is None:
+        if seed_name is None:
             # Get the internal entropy used to seed the default RNG, if no seed was given.  This
             # stays in the output name, so effectively stores a way of regenerating the circuit.
             # This is just best-effort only, for backwards compatibility, and isn't critical (if
