@@ -1,4 +1,0 @@
-fixes:
-  - |
-    Fixes a typo where QuantumCircuit variable was incorrectly called as c instead of qc on the Qiskit Providers page.
-    Refer to `#13211 <hhttps://github.com/Qiskit/qiskit/issues/13211>` for more details.
