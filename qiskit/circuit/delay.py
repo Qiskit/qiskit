@@ -33,8 +33,12 @@ class Delay(Instruction):
         """
         if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
             raise CircuitError(f"Unknown unit {unit} is specified.")
-
-        super().__init__("delay", 1, 0, params=[duration], unit=unit)
+        # Double underscore to differentiate from the private attribute in
+        # `Instruction`. This can be changed to `_unit` in 2.0 after we
+        # remove `unit` and `duration` from the standard instruction model
+        # as it only will exist in `Delay` after that point.
+        self.__unit = unit
+        super().__init__("delay", 1, 0, params=[duration])
 
     broadcast_arguments = Gate.broadcast_arguments
 
@@ -44,6 +48,17 @@ class Delay(Instruction):
 
     def c_if(self, classical, val):
         raise CircuitError("Conditional Delay is not yet implemented.")
+
+    @property
+    def unit(self):
+
+        return self.__unit
+
+    @unit.setter
+    def unit(self, value):
+        if value not in {"s", "ms", "us", "ns", "ps", "dt"}:
+            raise CircuitError(f"Unknown unit {value} is specified.")
+        self.__unit = value
 
     @property
     def duration(self):
@@ -81,7 +96,7 @@ class Delay(Instruction):
                 raise CircuitError(
                     f"Duration for Delay instruction must be positive. Found {parameter}"
                 )
-            if self.unit == "dt":
+            if self.__unit == "dt":
                 parameter_int = int(parameter)
                 if parameter != parameter_int:
                     raise CircuitError("Integer duration is expected for 'dt' unit.")
