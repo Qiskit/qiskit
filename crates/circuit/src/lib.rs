@@ -38,10 +38,15 @@ pub struct Qubit(pub BitType);
 
 impl Qubit {
     /// Construct a new Qubit object from a usize, if you have a u32 you can
-    /// create a `Qubit` object directly with `Qubit(0u32)`.
+    /// create a `Qubit` object directly with `Qubit(0u32)`. This will panic
+    /// if the `usize` index exceeds `u32::MAX`.
     #[inline(always)]
     pub fn new(index: usize) -> Self {
-        Qubit(index as BitType)
+        Qubit(
+            index.try_into().unwrap_or_else(|_| {
+                panic!("Index value '{}' exceeds the maximum bit width!", index)
+            }),
+        )
     }
 
     /// Convert a Qubit to a usize
@@ -56,10 +61,15 @@ pub struct Clbit(pub BitType);
 
 impl Clbit {
     /// Construct a new Clbit object from a usize. if you have a u32 you can
-    /// create a `Clbit` object directly with `Clbit(0u32)`.
+    /// create a `Clbit` object directly with `Clbit(0u32)`. This will panic
+    /// if the `usize` index exceeds `u32::MAX`.
     #[inline(always)]
     pub fn new(index: usize) -> Self {
-        Clbit(index as BitType)
+        Clbit(
+            index.try_into().unwrap_or_else(|_| {
+                panic!("Index value '{}' exceeds the maximum bit width!", index)
+            }),
+        )
     }
 
     /// Convert a Clbit to a usize
@@ -137,11 +147,25 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
+    fn test_qubit_index_too_large() {
+        let val = u32::MAX as usize + 42;
+        Qubit::new(val);
+    }
+
+    #[test]
     fn test_clbit_create() {
         let expected = Clbit(12345);
         let val = 12345_usize;
         let result = Clbit::new(val);
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_clbit_index_too_large() {
+        let val = u32::MAX as usize + 42;
+        Clbit::new(val);
     }
 
     #[test]
