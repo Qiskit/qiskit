@@ -414,10 +414,6 @@ impl Operation for PackedOperation {
     fn directive(&self) -> bool {
         self.view().directive()
     }
-    #[inline]
-    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
-        self.view().inverse(params)
-    }
 }
 
 impl From<StandardGate> for PackedOperation {
