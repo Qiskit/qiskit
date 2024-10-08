@@ -169,7 +169,7 @@ pub trait Operation {
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
-    fn try_inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)>;
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)>;
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -276,12 +276,12 @@ impl<'a> Operation for OperationRef<'a> {
         }
     }
     #[inline]
-    fn try_inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
-            Self::Standard(standard) => standard.try_inverse(params),
-            Self::Gate(gate) => gate.try_inverse(params),
-            Self::Instruction(instruction) => instruction.try_inverse(params),
-            Self::Operation(operation) => operation.try_inverse(params),
+            Self::Standard(standard) => standard.inverse(params),
+            Self::Gate(gate) => gate.inverse(params),
+            Self::Instruction(instruction) => instruction.inverse(params),
+            Self::Operation(operation) => operation.inverse(params),
         }
     }
 }
@@ -503,7 +503,7 @@ impl StandardGate {
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
-        self.try_inverse(&params)
+        self.inverse(&params)
     }
 
     #[getter]
@@ -2069,7 +2069,7 @@ impl Operation for StandardGate {
         Some(*self)
     }
 
-    fn try_inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+    fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
             Self::GlobalPhaseGate => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
                 (
@@ -2422,7 +2422,7 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn try_inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         None
     }
 }
@@ -2504,7 +2504,7 @@ impl Operation for PyGate {
     fn directive(&self) -> bool {
         false
     }
-    fn try_inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         None
     }
 }
@@ -2561,7 +2561,7 @@ impl Operation for PyOperation {
             }
         })
     }
-    fn try_inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+    fn inverse(&self, _params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         None
     }
 }
