@@ -14,13 +14,10 @@
 
 from __future__ import annotations
 
-import inspect
 from collections.abc import Callable
-from itertools import chain
 from typing import Any
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils.deprecation import deprecate_arg
 
 from .suzuki_trotter import SuzukiTrotter
 
@@ -40,7 +37,7 @@ class LieTrotter(SuzukiTrotter):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it XX}e^{-it ZZ} + \mathcal{O}(t^2).
+        e^{-it(XI + ZZ)} = e^{-it XI}e^{-it ZZ} + \mathcal{O}(t^2).
 
     References:
 

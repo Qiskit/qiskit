@@ -43,7 +43,7 @@ class SuzukiTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^3).
+        e^{-it(XI + ZZ)} = e^{-it/2 XI}e^{-it ZZ}e^{-it/2 XI} + \mathcal{O}(t^3).
 
     References:
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
