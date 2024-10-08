@@ -598,6 +598,23 @@ class TestCliffordDecomposition(QiskitTestCase):
             # Convert back to clifford and check it is the same
             self.assertEqual(Clifford(decomp), target)
 
+    def test_to_circuit_manual(self):
+        """Test a manual comparison to a known circuit.
+
+        This also tests whether the resulting Clifford circuit has quantum registers, thereby
+        regression testing #13041.
+        """
+        # this is set to a circuit that remains the same under Clifford reconstruction
+        circuit = QuantumCircuit(2)
+        circuit.z(0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        cliff = Clifford(circuit)
+        reconstructed = cliff.to_circuit()
+
+        self.assertEqual(circuit, reconstructed)
+
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_to_instruction(self, num_qubits):
         """Test to_instruction method"""

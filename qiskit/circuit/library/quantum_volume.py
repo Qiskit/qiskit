@@ -12,11 +12,14 @@
 
 """Quantum Volume model circuit."""
 
+from __future__ import annotations
+
 from typing import Optional, Union
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
+from qiskit._accelerate.circuit_library import quantum_volume as qv_rs
 
 
 class QuantumVolume(QuantumCircuit):
@@ -113,3 +116,42 @@ class QuantumVolume(QuantumCircuit):
                     base._append(CircuitInstruction(gate, qubits[qubit : qubit + 2]))
         if not flatten:
             self._append(CircuitInstruction(base.to_instruction(), tuple(self.qubits)))
+
+
+def quantum_volume(
+    num_qubits: int,
+    depth: int | None = None,
+    seed: int | np.random.Generator | None = None,
+) -> QuantumCircuit:
+    """A quantum volume model circuit.
+
+    The model circuits are random instances of circuits used to measure
+    the Quantum Volume metric, as introduced in [1].
+
+    The model circuits consist of layers of Haar random
+    elements of SU(4) applied between corresponding pairs
+    of qubits in a random bipartition.
+
+    This function is multithreaded and will launch a thread pool with threads equal to the number
+    of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
+    environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
+
+    **Reference Circuit:**
+
+    .. plot::
+
+       from qiskit.circuit.library import quantum_volume
+       circuit = quantum_volume(5, 6, seed=10)
+       circuit.draw('mpl')
+
+    **References:**
+
+    [1] A. Cross et al. Validating quantum computers using
+    randomized model circuits, Phys. Rev. A 100, 032328 (2019).
+    `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
+    """
+    if isinstance(seed, np.random.Generator):
+        seed = seed.integers(0, dtype=np.uint64)
+    depth = depth or num_qubits
+    return QuantumCircuit._from_circuit_data(qv_rs(num_qubits, depth, seed))

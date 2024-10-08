@@ -924,7 +924,7 @@ pub fn det_one_qubit(mat: ArrayView2<Complex64>) -> Complex64 {
 
 /// Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π
 #[inline]
-fn mod_2pi(angle: f64, atol: f64) -> f64 {
+pub(crate) fn mod_2pi(angle: f64, atol: f64) -> f64 {
     // f64::rem_euclid() isn't exactly the same as Python's % operator, but because
     // the RHS here is a constant and positive it is effectively equivalent for
     // this case
@@ -1086,7 +1086,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
             Some(_) => 1.,
             None => raw_run.len() as f64,
         };
-        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag[raw_run[0]] {
+        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag()[raw_run[0]] {
             PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
         } else {
             unreachable!("nodes in runs will always be op nodes")
@@ -1172,7 +1172,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let operator = raw_run
             .iter()
             .map(|node_index| {
-                let node = &dag.dag[*node_index];
+                let node = &dag.dag()[*node_index];
                 if let NodeType::Operation(inst) = node {
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
@@ -1215,7 +1215,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let mut outside_basis = false;
         if let Some(basis) = basis_gates {
             for node in &raw_run {
-                if let NodeType::Operation(inst) = &dag.dag[*node] {
+                if let NodeType::Operation(inst) = &dag.dag()[*node] {
                     if !basis.contains(inst.op.name()) {
                         outside_basis = true;
                         break;
