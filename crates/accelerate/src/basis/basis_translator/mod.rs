@@ -234,18 +234,6 @@ impl BasisTranslator {
     fn __getstate__(slf: PyRef<Self>) -> PyResult<Bound<PyDict>> {
         let state = PyDict::new_bound(slf.py());
         state.set_item(
-            intern!(slf.py(), "equiv_lib"),
-            slf.equiv_lib.clone().into_py(slf.py()),
-        )?;
-        state.set_item(
-            intern!(slf.py(), "target_basis"),
-            slf.target_basis.clone().into_py(slf.py()),
-        )?;
-        state.set_item(
-            intern!(slf.py(), "target"),
-            slf.target.clone().into_py(slf.py()),
-        )?;
-        state.set_item(
             intern!(slf.py(), "non_global_operations"),
             slf.non_global_operations.clone().into_py(slf.py()),
         )?;
@@ -255,33 +243,16 @@ impl BasisTranslator {
                 .clone()
                 .into_py(slf.py()),
         )?;
-        state.set_item(intern!(slf.py(), "min_qubits"), slf.min_qubits)?;
         Ok(state)
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: Bound<PyDict>) -> PyResult<()> {
-        slf.equiv_lib = state
-            .get_item(intern!(slf.py(), "equiv_lib"))?
-            .unwrap()
-            .extract()?;
-        slf.target_basis = state
-            .get_item(intern!(slf.py(), "target_basis"))?
-            .unwrap()
-            .extract()?;
-        slf.target = state
-            .get_item(intern!(slf.py(), "target"))?
-            .unwrap()
-            .extract()?;
         slf.non_global_operations = state
             .get_item(intern!(slf.py(), "non_global_operations"))?
             .unwrap()
             .extract()?;
         slf.qargs_with_non_global_operation = state
             .get_item(intern!(slf.py(), "qargs_with_non_global_operation"))?
-            .unwrap()
-            .extract()?;
-        slf.min_qubits = state
-            .get_item(intern!(slf.py(), "min_qubits"))?
             .unwrap()
             .extract()?;
         Ok(())
@@ -525,7 +496,7 @@ impl BasisTranslator {
     }
 
     fn apply_translation(
-        &mut self,
+        &self,
         py: Python,
         dag: &DAGCircuit,
         target_basis: &HashSet<String>,
@@ -694,7 +665,7 @@ impl BasisTranslator {
     }
 
     fn replace_node(
-        &mut self,
+        &self,
         py: Python,
         dag: &mut DAGCircuit,
         node: PackedInstruction,
