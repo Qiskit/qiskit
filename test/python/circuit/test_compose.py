@@ -769,14 +769,10 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        with self.assertWarns(DeprecationWarning):
-            self.assertIs(bit_instruction.condition[0], test_loose)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(bit_instruction.condition, (test_loose, True))
-        with self.assertWarns(DeprecationWarning):
-            self.assertIs(reg_instruction.condition[0], test_creg)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(reg_instruction.condition, (test_creg, 3))
+        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition, (test_loose, True))
+        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_condition_mapping_whileloopop(self):
         """Test that the condition in a `WhileLoopOp` is correctly mapped to a new set of bits and
@@ -797,14 +793,10 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        with self.assertWarns(DeprecationWarning):
-            self.assertIs(bit_instruction.condition[0], test_loose)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(bit_instruction.condition, (test_loose, True))
-        with self.assertWarns(DeprecationWarning):
-            self.assertIs(reg_instruction.condition[0], test_creg)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(reg_instruction.condition, (test_creg, 3))
+        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition, (test_loose, True))
+        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_compose_no_clbits_in_one(self):
         """Test combining a circuit with cregs to one without"""
@@ -872,8 +864,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         # Check that the input conditions weren't mutated.
         for in_condition, instruction in zip((test_1, test_2, test_3), source.data):
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(in_condition(), instruction.operation.condition)
+            self.assertEqual(in_condition(), instruction.operation.condition)
 
         # Should be `a_dest`, `b_dest` and an added one to account for `c_src`.
         self.assertEqual(len(dest.cregs), 3)
