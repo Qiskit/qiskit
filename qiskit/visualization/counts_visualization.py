@@ -61,6 +61,7 @@ def plot_histogram(
     figsize=None,
     color=None,
     number_to_keep=None,
+    ignore_under=None,
     sort="asc",
     target_string=None,
     legend=None,
@@ -137,6 +138,8 @@ def plot_histogram(
             # one bitstring to the other) from a target string.
             hist2 = plot_histogram(counts, sort='hamming', target_string='001')
     """
+    if ignore_under is not None:
+        data = {key: count for key, count in data.items() if count > (ignore_under-1)}
     if not isinstance(data, list):
         data = [data]
 
