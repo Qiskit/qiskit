@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    GRX
    GRY
    GRZ
+   MCMTGate
    MCPhaseGate
    MCXGate
    MCXGrayCode
@@ -318,6 +319,7 @@ Particular Quantum Circuits
    HiddenLinearFunction
    IQP
    QuantumVolume
+   quantum_volume
    PhaseEstimation
    GroverOperator
    PhaseOracle
@@ -500,6 +502,7 @@ from .generalized_gates import (
     Permutation,
     PermutationGate,
     GMS,
+    MCMTGate,
     MSGate,
     GR,
     GRX,
@@ -555,13 +558,16 @@ from .n_local import (
     QAOAAnsatz,
 )
 from .data_preparation import (
+    z_feature_map,
+    zz_feature_map,
+    pauli_feature_map,
     PauliFeatureMap,
     ZFeatureMap,
     ZZFeatureMap,
     StatePreparation,
     Initialize,
 )
-from .quantum_volume import QuantumVolume
+from .quantum_volume import QuantumVolume, quantum_volume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction

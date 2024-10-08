@@ -50,7 +50,7 @@ mod exceptions {
 }
 
 // Custom types
-type Qargs = SmallVec<[PhysicalQubit; 2]>;
+pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
 type GateMap = IndexMap<String, PropsMap, RandomState>;
 type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;

@@ -1145,24 +1145,66 @@ class QuantumCircuit:
         for var, initial in declarations:
             self.add_var(var, initial)
 
-        self.duration: int | float | None = None
-        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
-        specified by :attr:`unit`."""
-        self.unit = "dt"
-        """The unit that :attr:`duration` is specified in."""
+        self._duration = None
+        self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
         """Arbitrary user-defined metadata for the circuit.
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
 
+    @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    def duration(self):
+        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
+        specified by :attr:`unit`."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, value: int | float | None):
+        self._duration = value
+
+    @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    def unit(self):
+        """The unit that :attr:`duration` is specified in."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, value):
+        self._unit = value
+
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
+    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit()
+
+        if data.num_qubits > 0:
+            if add_regs:
+                qr = QuantumRegister(name="q", bits=data.qubits)
+                out.qregs = [qr]
+                out._qubit_indices = {
+                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
+                }
+            else:
+                out._qubit_indices = {
+                    bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)
+                }
+
+        if data.num_clbits > 0:
+            if add_regs:
+                cr = ClassicalRegister(name="c", bits=data.clbits)
+                out.cregs = [cr]
+                out._clbit_indices = {
+                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
+                }
+            else:
+                out._clbit_indices = {
+                    bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)
+                }
+
         out._data = data
-        out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
-        out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
+
         return out
 
     @staticmethod
@@ -2084,7 +2126,7 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <https://docs.quantum.ibm.com/build/circuit-construction>`__
+        `the docs <https://docs.quantum.ibm.com/guides/construct-circuits>`__
         for more information.
 
         .. parsed-literal::
@@ -3013,16 +3055,7 @@ class QuantumCircuit:
                         self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
-                self.qregs.append(register)
-
-                for idx, bit in enumerate(register):
-                    if bit in self._qubit_indices:
-                        self._qubit_indices[bit].registers.append((register, idx))
-                    else:
-                        self._data.add_qubit(bit)
-                        self._qubit_indices[bit] = BitLocations(
-                            self._data.num_qubits - 1, [(register, idx)]
-                        )
+                self._add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
@@ -3040,6 +3073,16 @@ class QuantumCircuit:
                 self.add_bits(register)
             else:
                 raise CircuitError("expected a register")
+
+    def _add_qreg(self, qreg: QuantumRegister) -> None:
+        self.qregs.append(qreg)
+
+        for idx, bit in enumerate(qreg):
+            if bit in self._qubit_indices:
+                self._qubit_indices[bit].registers.append((qreg, idx))
+            else:
+                self._data.add_qubit(bit)
+                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
