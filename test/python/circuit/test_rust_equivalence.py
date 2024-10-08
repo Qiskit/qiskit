@@ -159,7 +159,7 @@ class TestRustGateEquivalence(QiskitTestCase):
                 py_def = gate_class.base_class(*params).inverse()
                 rs_def = standard_gate._inverse(params)
                 if rs_def is not None:
-                    np.testing.assert_equal(py_def.name, rs_def[0].name)
+                    self.assertEqual(py_def.name, rs_def[0].name)
                     np.testing.assert_allclose(py_def.params, rs_def[1])
 
     def test_name(self):
