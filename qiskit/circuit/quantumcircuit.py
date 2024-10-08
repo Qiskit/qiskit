@@ -124,6 +124,34 @@ class QuantumCircuit:
         structures that go with it, how it fits into the rest of the :mod:`qiskit` package, and the
         different regimes of quantum-circuit descriptions in Qiskit, see the module-level
         documentation of :mod:`qiskit.circuit`.
+    
+    Example:
+    
+    .. plot::
+       :include-source:
+       :nofigs:
+    
+       from qiskit import QuantumCircuit
+       
+       # Create a new circuit with two qubits
+       qc = QuantumCircuit(2)
+       
+       # Add a Hadamard gate to qubit 0
+       qc.h(0)
+       
+       # Perform a controlled-X gate on qubit 1, controlled by qubit 0
+       qc.cx(0, 1)
+       
+       # Return a text drawing of the circuit.
+       qc.draw()
+       
+    .. code-block:: text
+
+            ┌───┐     
+       q_0: ┤ H ├──■──
+            └───┘┌─┴─┐
+       q_1: ─────┤ X ├
+                 └───┘
 
     Circuit attributes
     ==================
