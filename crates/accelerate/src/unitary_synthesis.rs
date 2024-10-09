@@ -165,7 +165,7 @@ fn synth_error(
     synth_circuit: impl Iterator<
         Item = (
             String,
-            Option<SmallVec<[qiskit_circuit::operations::Param; 3]>>,
+            Option<SmallVec<[Param; 3]>>,
             SmallVec<[PhysicalQubit; 2]>,
         ),
     >,
@@ -440,38 +440,34 @@ fn run_2q_unitary_synthesis(
             DecomposerType::TwoQubitBasisDecomposer(_) => {
                 let sequence =
                     synth_su4_sequence(&unitary, decomposer, preferred_dir, approximation_degree)?;
-                let scoring_info = sequence
-                    .gate_sequence
-                    .gates()
-                    .iter()
-                    .map(|(gate, params, qubit_ids)| {
-                        let inst_qubits =
-                            qubit_ids.iter().map(|q| ref_qubits[*q as usize]).collect();
-                        match gate {
-                            Some(gate) => (
-                                gate.name().to_string(),
-                                Some(params.iter().map(|p| Param::Float(*p)).collect()),
-                                inst_qubits,
-                            ),
-                            None => (
-                                sequence
-                                    .decomp_gate
-                                    .operation
-                                    .standard_gate()
-                                    .name()
-                                    .to_string(),
-                                Some(params.iter().map(|p| Param::Float(*p)).collect()),
-                                inst_qubits,
-                            ),
-                        }
-                    })
-                    .collect::<Vec<(
-                        String,
-                        Option<SmallVec<[Param; 3]>>,
-                        SmallVec<[PhysicalQubit; 2]>,
-                    )>>()
-                    .into_iter();
-                synth_errors_sequence.push((sequence, synth_error(py, scoring_info, target)));
+                let scoring_info =
+                    sequence
+                        .gate_sequence
+                        .gates()
+                        .iter()
+                        .map(|(gate, params, qubit_ids)| {
+                            let inst_qubits =
+                                qubit_ids.iter().map(|q| ref_qubits[*q as usize]).collect();
+                            match gate {
+                                Some(gate) => (
+                                    gate.name().to_string(),
+                                    Some(params.iter().map(|p| Param::Float(*p)).collect()),
+                                    inst_qubits,
+                                ),
+                                None => (
+                                    sequence
+                                        .decomp_gate
+                                        .operation
+                                        .standard_gate()
+                                        .name()
+                                        .to_string(),
+                                    Some(params.iter().map(|p| Param::Float(*p)).collect()),
+                                    inst_qubits,
+                                ),
+                            }
+                        });
+                let synth_error_from_target = synth_error(py, scoring_info, target);
+                synth_errors_sequence.push((sequence, synth_error_from_target));
             }
             DecomposerType::XXDecomposer(_) => {
                 let synth_dag = synth_su4_dag(
@@ -498,14 +494,9 @@ fn run_2q_unitary_synthesis(
                             inst.params.clone().map(|boxed| *boxed),
                             inst_qubits,
                         )
-                    })
-                    .collect::<Vec<(
-                        String,
-                        Option<SmallVec<[Param; 3]>>,
-                        SmallVec<[PhysicalQubit; 2]>,
-                    )>>()
-                    .into_iter();
-                synth_errors_dag.push((synth_dag, synth_error(py, scoring_info, target)));
+                    });
+                let synth_error_from_target = synth_error(py, scoring_info, target);
+                synth_errors_dag.push((synth_dag, synth_error_from_target));
             }
         }
     }
@@ -723,7 +714,7 @@ fn get_2q_decomposers_from_target(
                 .unwrap()
                 .a();
             let mut fidelity_value = match available_2q_props.get(name) {
-                Some(&(_, error)) => 1.0 - error.unwrap_or(0.0),
+                Some(&(_, error)) => 1.0 - error.unwrap_or_default(), // default is 0.0
                 None => 1.0,
             };
             if let Some(approx_degree) = approximation_degree {
