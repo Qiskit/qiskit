@@ -253,11 +253,20 @@ MCMT Synthesis
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate, C3XGate, C4XGate
+from qiskit.circuit.library import (
+    LinearFunction,
+    QFTGate,
+    MCXGate,
+    C3XGate,
+    C4XGate,
+    PauliEvolutionGate,
+)
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
@@ -292,6 +301,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
     synth_mcmt_vchain,
 )
+from qiskit.synthesis.evolution import pauli_network_synthesis
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1034,8 +1044,65 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
 
 
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
-    """The default implementation calling the attached synthesis algorithm."""
+    """Synthesize a PauliEvolutionGate using the default synthesis algorithm.
+
+    This plugin name is :``evolution.rustiq`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The default synthesis simply calls the synthesis algorithm attached to a
+    PauliEvolutionGate.
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            # Don't do anything if a gate is called "evolution" but is not an
+            # actual PauliEvolutionGate
+            return None
+
         algo = high_level_object.synthesis
         return algo.synthesize(high_level_object)
+
+
+class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
+    """Synthesize a PauliEvolutionGate using Rustiq.
+
+    This plugin name is :``evolution.rustiq`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The Rustiq synthesis calls the Rust-based quantum circuit synthesis library
+    https://github.com/smartiel/rustiq-core.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            # Don't do anything if a gate is called "evolution" but is not an
+            # actual PauliEvolutionGate
+            return None
+
+        algo = high_level_object.synthesis
+
+        if not hasattr(algo, "expand"):
+            warnings.warn(
+                "Cannot apply Rustiq if the evolution synthesis does not implement ``expand``. ",
+                stacklevel=2,
+                category=RuntimeWarning,
+            )
+            return None
+
+        num_qubits = high_level_object.num_qubits
+        pauli_rotations = algo.expand(high_level_object)
+
+        # todo: check if this can be made a part of the expand method
+        pauli_rotations = [
+            (pauli_string, qubits, np.real_if_close(coeff))
+            for (pauli_string, qubits, coeff) in pauli_rotations
+        ]
+
+        preserve_order = options.get("preserve_order", True)
+        optimize_count = options.get("optimize_count", True)
+
+        out = pauli_network_synthesis(num_qubits, pauli_rotations, preserve_order, optimize_count)
+        if out is None:
+            return out
+
+        return QuantumCircuit._from_circuit_data(out)

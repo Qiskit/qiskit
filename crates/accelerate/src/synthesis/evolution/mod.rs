@@ -103,9 +103,11 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
                 'Z' => StandardGate::RZGate,
                 _ => panic!(),
             };
+            // we need to multiply the angle by 2
+            // we also need to negate it when there is a phase
             let param = match phase {
-                false => angle.clone(),
-                true => multiply_param(angle, -1.0, py),
+                false => multiply_param(angle, 2.0, py),
+                true => multiply_param(angle, -2.0, py),
             };
             return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
         }
@@ -181,10 +183,11 @@ fn inject_rotations_unordered(
     for i in 0..cur_paulis.len() {
         let pauli_support_size = cur_paulis.support_size(i);
         if pauli_support_size == 0 {
-            global_phase = radd_param(global_phase, angles[i].clone(), py);
+            // in case of an all-identity rotation, update global phase by subtracting
+            // the angle
+            global_phase = radd_param(global_phase, multiply_param(&angles[i], -1.0, py), py);
             hit_paulis[i] = true;
-        }
-        else if pauli_support_size == 1 {
+        } else if pauli_support_size == 1 {
             out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
             hit_paulis[i] = true;
         }
@@ -236,11 +239,12 @@ fn inject_rotations_ordered(
     for i in 0..cur_paulis.len() {
         let pauli_support_size = cur_paulis.support_size(i);
         if pauli_support_size == 0 {
-            global_phase = radd_param(global_phase, angles[i].clone(), py);
+            // in case of an all-identity rotation, update global phase by subtracting
+            // the angle
+            global_phase = radd_param(global_phase, multiply_param(&angles[i], -1.0, py), py);
             hit_paulis[i] = true;
             dag.remove_node(i);
-        }
-        else if pauli_support_size == 1 && dag.is_front_node(i) {
+        } else if pauli_support_size == 1 && dag.is_front_node(i) {
             out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
             hit_paulis[i] = true;
             dag.remove_node(i);
