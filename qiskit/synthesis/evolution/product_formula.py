@@ -6,7 +6,7 @@
 # obtain a copy of this license in the LICENSE.txt file in the root directory
 # of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Any modifications or derivative works of this code must retain this
+# typing.Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-from typing import Any
 from functools import partial
+import typing
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -25,6 +25,9 @@ from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
 from .evolution_synthesis import EvolutionSynthesis
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.library import PauliEvolutionGate
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -108,8 +111,49 @@ class ProductFormula(EvolutionSynthesis):
         else:
             self.atomic_evolution = atomic_evolution
 
+    def expand(self, evolution: PauliEvolutionGate) -> list[tuple[str, tuple[int], float]]:
+        """Apply the product formula to expand the Hamiltonian in the evolution gate.
+
+        Args:
+            evolution: The :class:`.PauliEvolutionGate`, whose Hamiltonian we expand.
+
+        Returns:
+            A list of Pauli rotations in a sparse format, where each element is
+            ``(paulistring, qubits, coefficient)``. For example, the Lie-Trotter expansion
+            of ``H = XI + ZZ`` would return ``[("X", [1], 1), ("ZZ", [0, 1], 1)]``.
+        """
+        raise NotImplementedError(
+            f"The method ``expand`` is not implemented for {self.__class__}. Implement it to "
+            f"automatically enable the call to {self.__class__}.synthesize."
+        )
+
+    def synthesize(self, evolution: PauliEvolutionGate) -> QuantumCircuit:
+        """Synthesize a :class:`.PauliEvolutionGate`.
+
+        Args:
+            evolution: The evolution gate to synthesize.
+
+        Returns:
+            QuantumCircuit: A circuit implementing the evolution.
+        """
+        pauli_rotations = self.expand(evolution)
+
+        num_qubits = evolution.num_qubits
+
+        circuit = QuantumCircuit(num_qubits)
+
+        # we could cache the circuit decomposition for the circuits we already saw
+        for i, (pauli_string, qubits, coeff) in enumerate(pauli_rotations):
+            op = SparsePauliOp.from_sparse_list([(pauli_string, qubits, 1)], num_qubits).paulis[0]
+
+            self.atomic_evolution(circuit, op, np.real_if_close(coeff))
+            if self.insert_barriers and i != len(pauli_rotations) - 1:
+                circuit.barrier()
+
+        return circuit
+
     @property
-    def settings(self) -> dict[str, Any]:
+    def settings(self) -> dict[str, typing.Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:
