@@ -13,14 +13,11 @@
 
 """Translates gates to a target basis using a given equivalence library."""
 
-import random
 import time
 import logging
 
 from functools import singledispatchmethod
 from collections import defaultdict
-
-import rustworkx
 
 from qiskit.circuit import (
     ControlFlowOp,
@@ -29,11 +26,10 @@ from qiskit.circuit import (
 )
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.circuit.equivalence import Key, NodeData, Equivalence
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit._accelerate.basis.basis_translator import compose_transforms
+from qiskit._accelerate.basis.basis_translator import basis_search, compose_transforms
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +168,7 @@ class BasisTranslator(TransformationPass):
 
         # Search for a path from source to target basis.
         search_start_time = time.time()
-        basis_transforms = _basis_search(self._equiv_lib, source_basis, target_basis)
+        basis_transforms = basis_search(self._equiv_lib, source_basis, target_basis)
 
         qarg_local_basis_transforms = {}
         for qarg, local_source_basis in qargs_local_source_basis.items():
@@ -195,7 +191,7 @@ class BasisTranslator(TransformationPass):
                 expanded_target,
                 qarg,
             )
-            local_basis_transforms = _basis_search(
+            local_basis_transforms = basis_search(
                 self._equiv_lib, local_source_basis, expanded_target
             )
 
@@ -446,159 +442,3 @@ class BasisTranslator(TransformationPass):
                         qargs_local_source_basis=qargs_local_source_basis,
                     )
         return source_basis, qargs_local_source_basis
-
-
-class StopIfBasisRewritable(Exception):
-    """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
-
-
-class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
-    """Handles events emitted during `rustworkx.dijkstra_search`."""
-
-    def __init__(self, graph, source_basis, target_basis):
-        self.graph = graph
-        self.target_basis = set(target_basis)
-        self._source_gates_remain = set(source_basis)
-        self._num_gates_remain_for_rule = {}
-        save_index = -1
-        for edata in self.graph.edges():
-            if save_index == edata.index:
-                continue
-            self._num_gates_remain_for_rule[edata.index] = edata.num_gates
-            save_index = edata.index
-
-        self._basis_transforms = []
-        self._predecessors = {}
-        self._opt_cost_map = {}
-
-    def discover_vertex(self, v, score):
-        gate = self.graph[v].key
-        self._source_gates_remain.discard(gate)
-        self._opt_cost_map[gate] = score
-        rule = self._predecessors.get(gate, None)
-        if rule is not None:
-            logger.debug(
-                "Gate %s generated using rule \n%s\n with total cost of %s.",
-                gate.name,
-                rule.circuit,
-                score,
-            )
-            self._basis_transforms.append(
-                ((gate.name, gate.num_qubits), (rule.params, rule.circuit))
-            )
-        # we can stop the search if we have found all gates in the original circuit.
-        if not self._source_gates_remain:
-            # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
-            # up with gates in the target basis. Note though that `basis_transforms` may include
-            # additional transformations that are not required to map our source gates to the given
-            # target basis.
-            self._basis_transforms.reverse()
-            raise StopIfBasisRewritable
-
-    def examine_edge(self, edge):
-        _, target, edata = edge
-        if edata is None:
-            return
-
-        self._num_gates_remain_for_rule[edata.index] -= 1
-
-        target = self.graph[target].key
-        # if there are gates in this `rule` that we have not yet generated, we can't apply
-        # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
-        if self._num_gates_remain_for_rule[edata.index] > 0 or target in self.target_basis:
-            raise rustworkx.visit.PruneSearch
-
-    def edge_relaxed(self, edge):
-        _, target, edata = edge
-        if edata is not None:
-            gate = self.graph[target].key
-            self._predecessors[gate] = edata.rule
-
-    def edge_cost(self, edge_data):
-        """Returns the cost of an edge.
-
-        This function computes the cost of this edge rule by summing
-        the costs of all gates in the rule equivalence circuit. In the
-        end, we need to subtract the cost of the source since `dijkstra`
-        will later add it.
-        """
-
-        if edge_data is None:
-            # the target of the edge is a gate in the target basis,
-            # so we return a default value of 1.
-            return 1
-
-        cost_tot = 0
-        for instruction in edge_data.rule.circuit:
-            key = Key(name=instruction.name, num_qubits=len(instruction.qubits))
-            cost_tot += self._opt_cost_map[key]
-
-        return cost_tot - self._opt_cost_map[edge_data.source]
-
-    @property
-    def basis_transforms(self):
-        """Returns the gate basis transforms."""
-        return self._basis_transforms
-
-
-def _basis_search(equiv_lib, source_basis, target_basis):
-    """Search for a set of transformations from source_basis to target_basis.
-
-    Args:
-        equiv_lib (EquivalenceLibrary): Source of valid translations
-        source_basis (Set[Tuple[gate_name: str, gate_num_qubits: int]]): Starting basis.
-        target_basis (Set[gate_name: str]): Target basis.
-
-    Returns:
-        Optional[List[Tuple[gate, equiv_params, equiv_circuit]]]: List of (gate,
-            equiv_params, equiv_circuit) tuples tuples which, if applied in order
-            will map from source_basis to target_basis. Returns None if no path
-            was found.
-    """
-
-    logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
-
-    source_basis = {
-        Key(gate_name, gate_num_qubits)
-        for gate_name, gate_num_qubits in source_basis
-        if gate_name not in target_basis
-    }
-
-    # if source basis is empty, no work to be done.
-    if not source_basis:
-        return []
-
-    # This is only necessary since gates in target basis are currently reported by
-    # their names and we need to have in addition the number of qubits they act on.
-    target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
-
-    graph = equiv_lib.graph
-    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys)
-
-    # we add a dummy node and connect it with gates in the target basis.
-    # we'll start the search from this dummy node.
-    dummy = graph.add_node(
-        NodeData(
-            key=Key("".join(chr(random.randint(0, 26) + 97) for _ in range(10)), 0),
-            equivs=[Equivalence([], QuantumCircuit(0, name="dummy starting node"))],
-        )
-    )
-
-    try:
-        graph.add_edges_from_no_data(
-            [(dummy, equiv_lib.node_index(key)) for key in target_basis_keys]
-        )
-        rtn = None
-        try:
-            rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
-        except StopIfBasisRewritable:
-            rtn = vis.basis_transforms
-
-            logger.debug("Transformation path:")
-            for (gate_name, gate_num_qubits), (params, equiv) in rtn:
-                logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
-    finally:
-        # Remove dummy node in order to return graph to original state
-        graph.remove_node(dummy)
-
-    return rtn
