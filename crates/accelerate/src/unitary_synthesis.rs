@@ -149,7 +149,7 @@ fn apply_synth_sequence(
             qubits: out_dag.qargs_interner.insert(&mapped_qargs),
             clbits: out_dag.cargs_interner.get_default(),
             params: new_params,
-            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            extra_attrs: ExtraInstructionAttributes::default(),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceCell::new(),
         };
@@ -316,7 +316,7 @@ fn py_run_main_loop(
                                 &[qubit],
                                 &[],
                                 Some(new_params),
-                                ExtraInstructionAttributes::new(None, None, None, None),
+                                ExtraInstructionAttributes::default(),
                                 #[cfg(feature = "cache_pygates")]
                                 None,
                             )?;
