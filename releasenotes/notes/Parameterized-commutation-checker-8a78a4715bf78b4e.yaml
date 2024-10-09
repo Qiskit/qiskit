@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    Improved the functionality of :class:`.CommutationChecker` to include support for
+    the following parameterized gates ... with free parameters. Before these were only
+    supported with bound parameters.
+
+
+
