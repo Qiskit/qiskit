@@ -749,7 +749,7 @@ fn get_2q_decomposers_from_target(
                     let fidelity = match approximation_degree {
                         Some(approx_degree) => approx_degree,
                         None => match &target["cx"][Some(&qubits)] {
-                            Some(props) => 1.0 - props.error.unwrap_or(0.0),
+                            Some(props) => 1.0 - props.error.unwrap_or_default(),
                             None => 1.0,
                         },
                     };
