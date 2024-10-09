@@ -48,6 +48,7 @@ use crate::target_transpiler::{Qargs, Target};
 type InstMap = HashMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = HashMap<&'a Option<Qargs>, InstMap>;
 
+#[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run")]
 fn run(
     py: Python<'_>,
