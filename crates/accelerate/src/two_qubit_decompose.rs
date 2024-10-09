@@ -2348,7 +2348,7 @@ fn invert_1q_gate(gate: (StandardGate, SmallVec<[f64; 3]>)) -> (StandardGate, Sm
     let gate_params = gate.1.into_iter().map(Param::Float).collect::<Vec<_>>();
     let Some(inv_gate) = gate
         .0
-        .try_inverse(&gate_params) else {panic!()};
+        .inverse(&gate_params) else {panic!()};
     let inv_gate_params = inv_gate
         .1
         .into_iter()
@@ -2366,7 +2366,7 @@ fn invert_2q_gate(
     let Some(inv_gate) = gate
                     .0
                     .unwrap()
-                    .try_inverse(&gate.1.into_iter().map(Param::Float).collect::<Vec<_>>()) else {panic!()};
+                    .inverse(&gate.1.into_iter().map(Param::Float).collect::<Vec<_>>()) else {panic!()};
     let inv_gate_params = inv_gate
         .1
         .into_iter()
