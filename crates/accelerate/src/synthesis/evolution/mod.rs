@@ -26,10 +26,6 @@ use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::Incoming;
 
-/// TODO:
-///   * make sure that qubit indexing is correct
-///   * should we allow all-I rotations?
-
 /// A Qiskit gate
 pub type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
@@ -87,6 +83,7 @@ fn qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
 }
 
 /// Return the Qiskit rotation gate corresponding to the single-qubit Pauli rotation.
+///
 /// # Arguments
 ///
 /// * py: a GIL handle, needed to negate rotation parameters in Python space.
