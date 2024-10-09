@@ -1046,7 +1046,7 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a PauliEvolutionGate using the default synthesis algorithm.
 
-    This plugin name is :``evolution.rustiq`` which can be used as the key on
+    This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     The default synthesis simply calls the synthesis algorithm attached to a
@@ -1066,7 +1066,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
     """Synthesize a PauliEvolutionGate using Rustiq.
 
-    This plugin name is :``evolution.rustiq`` which can be used as the key on
+    This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     The Rustiq synthesis calls the Rust-based quantum circuit synthesis library
@@ -1102,6 +1102,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         optimize_count = options.get("optimize_count", True)
 
         out = pauli_network_synthesis(num_qubits, pauli_rotations, preserve_order, optimize_count)
+
         if out is None:
             return out
 
