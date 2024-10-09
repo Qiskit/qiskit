@@ -795,7 +795,7 @@ fn preferred_direction(
 ) -> PyResult<Option<bool>> {
     // Returns:
     // * true if gate qubits are in the hardware-native direction
-    // * false if gate qubits must be flipped to match hardware-native direction∂
+    // * false if gate qubits must be flipped to match hardware-native direction
     let qubits: [PhysicalQubit; 2] = *ref_qubits;
     let mut reverse_qubits: [PhysicalQubit; 2] = qubits;
     reverse_qubits.reverse();
