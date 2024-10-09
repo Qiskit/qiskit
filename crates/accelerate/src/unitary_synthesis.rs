@@ -595,7 +595,7 @@ fn get_2q_decomposers_from_target(
 
                     available_2q_basis.insert(key, replace_parametrized_gate(op.clone()));
 
-                    if target.qargs_for_operation_name(key).is_ok() {
+                    if target.contains_key(key) {
                         available_2q_props.insert(
                             key,
                             match &target[key].get(Some(q_pair)) {
