@@ -2344,6 +2344,7 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
     Ok([g0_equiv + 0., g1_equiv + 0., g2_equiv + 0.])
 }
 
+/// invert 1q gate sequence
 fn invert_1q_gate(gate: (StandardGate, SmallVec<[f64; 3]>)) -> (StandardGate, SmallVec<[f64; 3]>) {
     let gate_params = gate.1.into_iter().map(Param::Float).collect::<Vec<_>>();
     let Some(inv_gate) = gate
@@ -2360,6 +2361,7 @@ fn invert_1q_gate(gate: (StandardGate, SmallVec<[f64; 3]>)) -> (StandardGate, Sm
     (inv_gate.0, inv_gate_params)
 }
 
+/// invert 2q gate sequence
 fn invert_2q_gate(
     gate: (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>),
 ) -> (StandardGate, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>) {
@@ -2380,13 +2382,26 @@ fn invert_2q_gate(
 
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitControlledUDecomposer {
+    #[pyo3(get)]
     rxx_equivalent_gate: StandardGate,
+    #[pyo3(get)]
     scale: f64,
 }
 
 const DEFAULT_ATOL: f64 = 1e-12;
 
+///  Decompose two-qubit unitary in terms of a desired
+///  :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
+///  gate that is locally equivalent to an :class:`.RXXGate`.
 impl TwoQubitControlledUDecomposer {
+    ///  Takes an angle and returns the circuit equivalent to an RXXGate with the
+    ///  RXX equivalent gate as the two-qubit unitary.
+    ///  Args:
+    ///      angle: Rotation angle (in this case one of the Weyl parameters a, b, or c)
+    ///  Returns:
+    ///      Circuit: Circuit equivalent to an RXXGate.
+    ///  Raises:
+    ///      QiskitError: If the circuit is not equivalent to an RXXGate.
     fn to_rxx_gate(&self, angle: f64) -> PyResult<TwoQubitGateSequence> {
         let mat = self
             .rxx_equivalent_gate
@@ -2425,12 +2440,12 @@ impl TwoQubitControlledUDecomposer {
         if let Some(unitary_k2l) = unitary_k2l {
             for gate in unitary_k2l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
-                gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
+                gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
             }
         }
         gates.push((
             Some(self.rxx_equivalent_gate),
-            smallvec![angle],
+            smallvec![self.scale * angle],
             smallvec![0, 1],
         ));
 
@@ -2443,7 +2458,7 @@ impl TwoQubitControlledUDecomposer {
         if let Some(unitary_k1l) = unitary_k1l {
             for gate in unitary_k1l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
-                gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
+                gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
             }
         }
 
@@ -2453,6 +2468,7 @@ impl TwoQubitControlledUDecomposer {
         })
     }
 
+    /// Appends U_d(a, b, c) to the circuit.
     fn weyl_gate(
         &self,
         circ: &mut TwoQubitGateSequence,
@@ -2514,6 +2530,8 @@ impl TwoQubitControlledUDecomposer {
         Ok(())
     }
 
+    ///  Returns the Weyl decomposition in circuit form.
+    ///  Note: atol is passed to OneQubitEulerDecomposer.
     fn call_inner(
         &self,
         unitary: ArrayView2<Complex64>,
@@ -2573,6 +2591,12 @@ impl TwoQubitControlledUDecomposer {
         Ok(gates1)
     }
 
+    ///  Initialize the KAK decomposition.
+    ///  Args:
+    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
+    ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+    ///  Raises:
+    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
     fn new_inner(rxx_equivalent_gate: StandardGate) -> PyResult<Self> {
         let atol = DEFAULT_ATOL;
         let mut scales = Vec::new();
@@ -2581,7 +2605,7 @@ impl TwoQubitControlledUDecomposer {
         for test_angle in test_angles {
             if rxx_equivalent_gate.num_params() != 1 {
                 return Err(QiskitError::new_err(
-                    "Equivalent gate needs to take exactly 1 angle parameter",
+                    "Equivalent gate needs to take exactly 1 angle parameter.",
                 ));
             }
             let mat = rxx_equivalent_gate
@@ -2603,29 +2627,29 @@ impl TwoQubitControlledUDecomposer {
                 None,
                 Some(Specialization::ControlledEquiv),
             )?;
-            let scale = decomposer_rxx.a / decomposer_equiv.a;
+            let scale_a = decomposer_rxx.a / decomposer_equiv.a;
 
-            if (decomp.a * 2.0 - test_angle / scale).abs() > atol {
+            if (decomp.a * 2.0 - test_angle / scale_a).abs() > atol {
                 return Err(QiskitError::new_err(format!(
                     "The gate {}
-                  is not equivalent to an RXXGate",
+                  is not equivalent to an RXXGate.",
                     rxx_equivalent_gate.name()
                 )));
             }
 
-            // error handling - TBD
-            scales.push(scale);
-
-            for scale_val in scales.clone().into_iter() {
-                if !abs_diff_eq!(scale_val, scale) {
-                    return Err(QiskitError::new_err(
-                        "Inconsistent scaling parameters in check",
-                    ));
-                }
-            }
+            scales.push(scale_a);
         }
 
         let scale = scales[0];
+
+        // Check that all three tested angles give the same scale
+        for scale_val in scales.clone().into_iter() {
+            if !abs_diff_eq!(scale_val, scale, epsilon = atol) {
+                return Err(QiskitError::new_err(
+                    "Inconsistent scaling parameters in check.",
+                ));
+            }
+        }
 
         Ok(TwoQubitControlledUDecomposer {
             scale,
