@@ -286,12 +286,15 @@ class TwoQubitControlledUDecomposer:
         self.rxx_equivalent_gate = self._inner_decomposition.rxx_equivalent_gate
         self.scale = self._inner_decomposition.scale
 
-    def __call__(self, unitary, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
+    def __call__(self, unitary: Operator | np.ndarray, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.
-
+        Args:
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+        Returns:
+            QuantumCircuit: Synthesized quantum circuit.
         Note: atol is passed to OneQubitEulerDecomposer.
         """
-        sequence = self._inner_decomposition(np.asarray(unitary.to_matrix(), dtype=complex), atol)
+        sequence = self._inner_decomposition(np.asarray(unitary, dtype=complex), atol)
 
         q = QuantumRegister(2)
         circ = QuantumCircuit(q, global_phase=sequence.global_phase)
