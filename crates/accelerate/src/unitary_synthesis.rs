@@ -654,7 +654,7 @@ fn get_2q_decomposers_from_target(
         .collect();
 
     for basis_1q in &available_1q_basis {
-        for basis_2q in supercontrolled_basis.keys() {
+        for (basis_2q, gate) in supercontrolled_basis.iter() {
             let mut basis_2q_fidelity: f64 = match available_2q_props.get(basis_2q) {
                 Some(&(_, Some(e))) => 1.0 - e,
                 _ => 1.0,
@@ -662,7 +662,6 @@ fn get_2q_decomposers_from_target(
             if let Some(approx_degree) = approximation_degree {
                 basis_2q_fidelity *= approx_degree;
             }
-            let gate = &supercontrolled_basis[basis_2q];
             let decomposer = TwoQubitBasisDecomposer::new_inner(
                 gate.operation.name().to_owned(),
                 gate.operation.matrix(&gate.params).unwrap().view(),
