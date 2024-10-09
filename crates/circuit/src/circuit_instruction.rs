@@ -637,15 +637,23 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         let extract_extra = || -> PyResult<_> {
             let unit = {
                 // We accept Python-space `None` or `"dt"` as both meaning the default `"dt"`.
-                let raw_unit = ob.getattr(intern!(py, "unit"))?;
+                let raw_unit = ob.getattr(intern!(py, "_unit"))?;
                 (!(raw_unit.is_none()
                     || raw_unit.eq(ExtraInstructionAttributes::default_unit(py))?))
                 .then(|| raw_unit.extract::<String>())
                 .transpose()?
             };
+            // Delay uses the `duration` attr as an alias for param[0] which isn't deprecated
+            // while all other instructions have deprecated `duration` so we want to access
+            // the inner _duration to avoid the deprecation warning's run time overhead.
+            let duration = if ob.getattr(intern!(py, "name"))?.extract::<String>()? != "delay" {
+                ob.getattr(intern!(py, "_duration"))?.extract()?
+            } else {
+                ob.getattr(intern!(py, "duration"))?.extract()?
+            };
             Ok(ExtraInstructionAttributes::new(
                 ob.getattr(intern!(py, "label"))?.extract()?,
-                ob.getattr(intern!(py, "duration"))?.extract()?,
+                duration,
                 unit,
                 ob.getattr(intern!(py, "condition"))?.extract()?,
             ))
