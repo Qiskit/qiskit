@@ -204,13 +204,23 @@ def dump(
     file_obj.write(header)
     common.write_type_key(file_obj, type_key)
 
+    pulse_gates = False
     for program in programs:
+        if type_key == type_keys.Program.CIRCUIT and program.calibrations:
+            pulse_gates = True
         writer(
             file_obj,
             program,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+        )
+
+    if pulse_gates:
+        warnings.warn(
+            category=DeprecationWarning,
+            message="Pulse gates serialization is deprecated as of Qiskit 1.3. "
+            "It will be removed in Qiskit 2.0.",
         )
 
 
