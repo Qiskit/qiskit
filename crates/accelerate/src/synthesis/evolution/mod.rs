@@ -16,7 +16,7 @@ use smallvec::{smallvec, SmallVec};
 use std::borrow::Borrow;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{multiply_param, Param, StandardGate};
+use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use rustiq_core::structures::{CliffordGate, Metric, PauliLike, PauliSet};
@@ -97,10 +97,6 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
     let (phase, pauli_str) = paulis.get(i);
     for (q, c) in pauli_str.chars().enumerate() {
         if c != 'I' {
-            println!(
-                "-- hit pauli {:?}, q = {:?}. c = {:?}, phase = {:?}",
-                i, q, c, phase
-            );
             let standard_gate = match c {
                 'X' => StandardGate::RXGate,
                 'Y' => StandardGate::RYGate,
@@ -174,15 +170,21 @@ fn inject_rotations_unordered(
     gates: &Vec<CliffordGate>,
     paulis: &PauliSet,
     angles: &[Param],
-) -> Vec<QiskitGate> {
+) -> (Vec<QiskitGate>, Param) {
     let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
+    let mut global_phase = Param::Float(0.0);
 
     let mut cur_paulis = paulis.clone();
     let mut hit_paulis: Vec<bool> = vec![false; cur_paulis.len()];
 
     // check which paulis are hit at the very start
     for i in 0..cur_paulis.len() {
-        if !hit_paulis[i] && cur_paulis.support_size(i) == 1 {
+        let pauli_support_size = cur_paulis.support_size(i);
+        if pauli_support_size == 0 {
+            global_phase = radd_param(global_phase, angles[i].clone(), py);
+            hit_paulis[i] = true;
+        }
+        else if pauli_support_size == 1 {
             out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
             hit_paulis[i] = true;
         }
@@ -202,7 +204,7 @@ fn inject_rotations_unordered(
         }
     }
 
-    out_gates
+    (out_gates, global_phase)
 }
 
 /// Return a Qiskit circuit with Clifford gates and rotations.
@@ -221,8 +223,9 @@ fn inject_rotations_ordered(
     gates: &Vec<CliffordGate>,
     paulis: &PauliSet,
     angles: &[Param],
-) -> Vec<QiskitGate> {
+) -> (Vec<QiskitGate>, Param) {
     let mut out_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len() + paulis.len());
+    let mut global_phase = Param::Float(0.0);
 
     let mut cur_paulis = paulis.clone();
     let mut hit_paulis: Vec<bool> = vec![false; cur_paulis.len()];
@@ -231,7 +234,13 @@ fn inject_rotations_ordered(
 
     // check which paulis are hit at the very start
     for i in 0..cur_paulis.len() {
-        if !hit_paulis[i] && cur_paulis.support_size(i) == 1 && dag.is_front_node(i) {
+        let pauli_support_size = cur_paulis.support_size(i);
+        if pauli_support_size == 0 {
+            global_phase = radd_param(global_phase, angles[i].clone(), py);
+            hit_paulis[i] = true;
+            dag.remove_node(i);
+        }
+        else if pauli_support_size == 1 && dag.is_front_node(i) {
             out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
             hit_paulis[i] = true;
             dag.remove_node(i);
@@ -253,7 +262,7 @@ fn inject_rotations_ordered(
         }
     }
 
-    out_gates
+    (out_gates, global_phase)
 }
 
 /// Calls Rustiq's pauli network synthesis algorithm and returns the
@@ -309,12 +318,12 @@ pub fn pauli_network_synthesis(
     let circuit = greedy_pauli_network(&mut paulis, &metric, preserve_order, 0, false, true);
 
     // post-process algorithm's output, translating to Qiskit's gates and inserting rotation gates
-    let gates = match preserve_order {
+    let (gates, global_phase) = match preserve_order {
         false => inject_rotations_unordered(py, &circuit.gates, &paulis, &angles),
         true => inject_rotations_ordered(py, &circuit.gates, &paulis, &angles),
     };
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, gates, Param::Float(0.0))
+    CircuitData::from_standard_gates(py, num_qubits as u32, gates, global_phase)
 }
 
 pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {
