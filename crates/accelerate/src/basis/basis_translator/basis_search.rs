@@ -13,7 +13,6 @@
 use std::cell::RefCell;
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::prelude::*;
 
 use crate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
 use qiskit_circuit::operations::Operation;
@@ -22,28 +21,6 @@ use rustworkx_core::petgraph::visit::Control;
 use rustworkx_core::traversal::{dijkstra_search, DijkstraEvent};
 
 use super::compose_transforms::{BasisTransformIn, GateIdentifier};
-
-/// Search for a set of transformations from source_basis to target_basis.
-/// Args:
-///     equiv_lib (EquivalenceLibrary): Source of valid translations
-///     source_basis (Set[Tuple[gate_name: str, gate_num_qubits: int]]): Starting basis.
-///     target_basis (Set[gate_name: str]): Target basis.
-///
-/// Returns:
-///     Optional[List[Tuple[gate, equiv_params, equiv_circuit]]]: List of (gate,
-///         equiv_params, equiv_circuit) tuples tuples which, if applied in order
-///         will map from source_basis to target_basis. Returns None if no path
-///         was found.
-#[pyfunction]
-#[pyo3(name = "basis_search")]
-pub(crate) fn py_basis_search(
-    py: Python,
-    equiv_lib: &mut EquivalenceLibrary,
-    source_basis: HashSet<GateIdentifier>,
-    target_basis: HashSet<String>,
-) -> PyObject {
-    basis_search(equiv_lib, &source_basis, &target_basis).into_py(py)
-}
 
 type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 /// Search for a set of transformations from source_basis to target_basis.
