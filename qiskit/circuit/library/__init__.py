@@ -126,6 +126,13 @@ For example:
    ZGate
    GlobalPhaseGate
 
+
+Utility functions (section TBD)
+================================
+
+.. autofunction:: get_standard_gate_name_mapping
+
+
 Standard Directives
 ===================
 
@@ -576,3 +583,4 @@ from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
 from .overlap import UnitaryOverlap
+from .standard_gates import get_standard_gate_name_mapping
