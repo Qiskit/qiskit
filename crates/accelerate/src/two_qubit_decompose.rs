@@ -2415,7 +2415,7 @@ impl TwoQubitControlledUDecomposer {
         target_1q_basis_list.add_basis(euler_basis);
 
         let mut gates = Vec::new();
-        let global_phase = -decomposer_inv.global_phase;
+        let mut global_phase = -decomposer_inv.global_phase;
 
         let decomp_k1r = decomposer_inv.K1r.view();
         let decomp_k2r = decomposer_inv.K2r.view();
@@ -2432,12 +2432,14 @@ impl TwoQubitControlledUDecomposer {
             unitary_to_gate_sequence_inner(decomp_k2l, &target_1q_basis_list, 0, None, true, None);
 
         if let Some(unitary_k2r) = unitary_k2r {
+            global_phase -= unitary_k2r.global_phase;
             for gate in unitary_k2r.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
             }
         }
         if let Some(unitary_k2l) = unitary_k2l {
+            global_phase -= unitary_k2l.global_phase;
             for gate in unitary_k2l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
@@ -2450,12 +2452,14 @@ impl TwoQubitControlledUDecomposer {
         ));
 
         if let Some(unitary_k1r) = unitary_k1r {
+            global_phase += unitary_k1r.global_phase;
             for gate in unitary_k1r.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
             }
         }
         if let Some(unitary_k1l) = unitary_k1l {
+            global_phase += unitary_k1l.global_phase;
             for gate in unitary_k1l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
@@ -2477,9 +2481,11 @@ impl TwoQubitControlledUDecomposer {
     ) -> PyResult<()> {
         let circ_a = self.to_rxx_gate(-2.0 * target_decomposed.a)?;
         circ.gates.extend(circ_a.gates);
+        let mut global_phase = circ_a.global_phase;
 
         if (target_decomposed.b).abs() > atol {
             let circ_b = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
+            global_phase += circ_b.global_phase;
             circ.gates
                 .push((Some(StandardGate::SdgGate), smallvec![], smallvec![0]));
             circ.gates
@@ -2500,6 +2506,7 @@ impl TwoQubitControlledUDecomposer {
             }
             let circ_c = self.to_rxx_gate(gamma)?;
             if !invert {
+                global_phase += circ_c.global_phase;
                 circ.gates
                     .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
                 circ.gates
@@ -2511,6 +2518,7 @@ impl TwoQubitControlledUDecomposer {
                     .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
             } else {
                 // invert the circuit above
+                global_phase -= circ_c.global_phase;
                 circ.gates
                     .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
                 circ.gates
@@ -2527,6 +2535,7 @@ impl TwoQubitControlledUDecomposer {
             }
         }
 
+        circ.global_phase = global_phase;
         Ok(())
     }
 
@@ -2559,14 +2568,16 @@ impl TwoQubitControlledUDecomposer {
             unitary_to_gate_sequence_inner(c2l, &target_1q_basis_list, 0, None, true, None);
 
         let mut gates = Vec::new();
-        let global_phase = target_decomposed.global_phase;
+        let mut global_phase = target_decomposed.global_phase;
 
         if let Some(unitary_c2r) = unitary_c2r {
+            global_phase += unitary_c2r.global_phase;
             for gate in unitary_c2r.gates.into_iter() {
                 gates.push((Some(gate.0), gate.1, smallvec![0]));
             }
         }
         if let Some(unitary_c2l) = unitary_c2l {
+            global_phase += unitary_c2l.global_phase;
             for gate in unitary_c2l.gates.into_iter() {
                 gates.push((Some(gate.0), gate.1, smallvec![1]));
             }
@@ -2575,19 +2586,23 @@ impl TwoQubitControlledUDecomposer {
             gates,
             global_phase,
         };
-        let _ = self.weyl_gate(&mut gates1, target_decomposed, atol);
+        let _ = self.weyl_gate(&mut gates1, target_decomposed, atol)?;
+        global_phase += gates1.global_phase;
 
         if let Some(unitary_c1r) = unitary_c1r {
+            global_phase -= unitary_c1r.global_phase;
             for gate in unitary_c1r.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![0]));
             }
         }
         if let Some(unitary_c1l) = unitary_c1l {
+            global_phase -= unitary_c1l.global_phase;
             for gate in unitary_c1l.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![1]));
             }
         }
 
+        gates1.global_phase = global_phase;
         Ok(gates1)
     }
 
