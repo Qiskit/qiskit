@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod clifford;
+mod evolution;
 pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
@@ -38,6 +39,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let mc_mod = PyModule::new_bound(m.py(), "multi_controlled")?;
     multi_controlled::multi_controlled(&mc_mod)?;
     m.add_submodule(&mc_mod)?;
+
+    let evolution_mod = PyModule::new_bound(m.py(), "evolution")?;
+    evolution::evolution(&evolution_mod)?;
+    m.add_submodule(&evolution_mod)?;
 
     Ok(())
 }
