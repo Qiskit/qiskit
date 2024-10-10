@@ -63,6 +63,7 @@ class QDrift(ProductFormula):
         ) = None,
         seed: int | None = None,
         wrap: bool = False,
+        reorder: bool = False,
     ) -> None:
         r"""
         Args:
@@ -83,10 +84,15 @@ class QDrift(ProductFormula):
             seed: An optional seed for reproducibility of the random sampling process.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            reorder: Whether to allow reordering the terms of the sampled
+                operator before synthesizing the evolution circuit. Setting this
+                to ``True`` can potentially yield a shallower evolution circuit.
+                Defaults to ``False``.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)
+        self.reorder = reorder
 
     def synthesize(self, evolution):
         # get operators and time to evolve
@@ -120,7 +126,9 @@ class QDrift(ProductFormula):
 
         # Build the evolution circuit using the LieTrotter synthesis with the sampled operators
         lie_trotter = LieTrotter(
-            insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
+            insert_barriers=self.insert_barriers,
+            atomic_evolution=self.atomic_evolution,
+            reorder=self.reorder,
         )
         evolution_circuit = PauliEvolutionGate(
             sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
