@@ -579,7 +579,7 @@ pub fn generate_circuit(
 
 const EULER_BASIS_SIZE: usize = 12;
 
-static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
+pub static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
     &["u3"],
     &["u3", "u2", "u1"],
     &["u"],
@@ -593,7 +593,7 @@ static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
     &["rz", "sx", "x"],
     &["rz", "sx"],
 ];
-static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
+pub static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
     EulerBasis::U3,
     EulerBasis::U321,
     EulerBasis::U,

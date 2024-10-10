@@ -494,6 +494,15 @@ pub struct TwoQubitWeylDecomposition {
 }
 
 impl TwoQubitWeylDecomposition {
+    pub fn a(&self) -> f64 {
+        self.a
+    }
+    pub fn b(&self) -> f64 {
+        self.b
+    }
+    pub fn c(&self) -> f64 {
+        self.c
+    }
     fn weyl_gate(
         &self,
         simplify: bool,
@@ -1214,6 +1223,7 @@ impl TwoQubitWeylDecomposition {
 
 type TwoQubitSequenceVec = Vec<(Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>)>;
 
+#[derive(Clone, Debug)]
 #[pyclass(sequence)]
 pub struct TwoQubitGateSequence {
     gates: TwoQubitSequenceVec,
@@ -1221,10 +1231,31 @@ pub struct TwoQubitGateSequence {
     global_phase: f64,
 }
 
+impl TwoQubitGateSequence {
+    pub fn gates(&self) -> &TwoQubitSequenceVec {
+        &self.gates
+    }
+
+    pub fn global_phase(&self) -> f64 {
+        self.global_phase
+    }
+
+    pub fn set_state(&mut self, state: (TwoQubitSequenceVec, f64)) {
+        self.gates = state.0;
+        self.global_phase = state.1;
+    }
+}
+
+impl Default for TwoQubitGateSequence {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl TwoQubitGateSequence {
     #[new]
-    fn new() -> Self {
+    pub fn new() -> Self {
         TwoQubitGateSequence {
             gates: Vec::new(),
             global_phase: 0.,
@@ -1256,6 +1287,8 @@ impl TwoQubitGateSequence {
         }
     }
 }
+
+#[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitBasisDecomposer {
@@ -1643,7 +1676,7 @@ impl TwoQubitBasisDecomposer {
         Ok(res)
     }
 
-    fn new_inner(
+    pub fn new_inner(
         gate: String,
         gate_matrix: ArrayView2<Complex64>,
         basis_fidelity: f64,
@@ -1781,7 +1814,7 @@ impl TwoQubitBasisDecomposer {
         })
     }
 
-    fn call_inner(
+    pub fn call_inner(
         &self,
         unitary: ArrayView2<Complex64>,
         basis_fidelity: Option<f64>,

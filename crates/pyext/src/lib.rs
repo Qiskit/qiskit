@@ -60,6 +60,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_accelerate::target_transpiler::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
+    add_submodule(m, ::qiskit_accelerate::unitary_synthesis::unitary_synthesis, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
     add_submodule(m, ::qiskit_accelerate::utils::utils, "utils")?;
     add_submodule(m, ::qiskit_accelerate::vf2_layout::vf2_layout, "vf2_layout")?;
