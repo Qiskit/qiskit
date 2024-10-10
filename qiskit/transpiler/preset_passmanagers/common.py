@@ -576,6 +576,9 @@ def generate_scheduling(
                 TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
             )
         )
+
+    if timing_constraints is None:
+        timing_constraints = target.timing_constraints()
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1

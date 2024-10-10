@@ -94,6 +94,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
         elif target is None:
             self._global_decomposers = _possible_decomposers(None)
             self._basis_gates = None
+        else:
+            self._global_decomposers = _possible_decomposers(set(target.operation_names))
+            self._basis_gates = None
 
         self.error_map = self._build_error_map()
 

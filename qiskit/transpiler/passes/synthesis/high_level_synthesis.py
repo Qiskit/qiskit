@@ -253,7 +253,11 @@ class HighLevelSynthesis(TransformationPass):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
         if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
-            self._device_insts = basic_insts | set(self._basis_gates)
+            self._device_insts = (
+                basic_insts | set(self._basis_gates)
+                if self._basis_gates is not None
+                else basic_insts
+            )
         else:
             self._device_insts = set()
 

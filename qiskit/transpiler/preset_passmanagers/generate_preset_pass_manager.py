@@ -18,6 +18,12 @@ import copy
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.controlflow import (
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+)
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.providers.backend import Backend
@@ -34,6 +40,13 @@ from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
+
+CONTROL_FLOW_MAPPING = {
+    "if_else": IfElseOp,
+    "while_loop": WhileLoopOp,
+    "for_loop": ForLoopOp,
+    "switch_case": SwitchCaseOp,
+}
 
 
 def generate_preset_pass_manager(
@@ -268,6 +281,30 @@ def generate_preset_pass_manager(
         )
         backend = BackendV2Converter(backend)
 
+    if target is None and backend is None and basis_gates is None or basis_gates is []:
+        warnings.warn(
+            "Calling `generate_preset_pass_manager` with no `basis_gates` definition is deprecated "
+            "as of Qiskit 1.3 and will be removed in a future release no earlier than 2.0. "
+            "A valid set of target basis gates must be defined through the `target` or "
+            "`basis_gates` input parameters.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
+    if (
+        target is None
+        and backend is None
+        and scheduling_method is not None
+        and coupling_map is None
+    ):
+        warnings.warn(
+            "A coupling map is required for the scheduling stage. "
+            "It must be defined through the `target` or "
+            "`coupling_map` input parameters.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     # Check if a custom inst_map was specified before overwriting inst_map
     _given_inst_map = bool(inst_map)
     # If there are no loose constraints => use backend target if available
@@ -303,14 +340,19 @@ def generate_preset_pass_manager(
         if backend is not None and _no_loose_constraints:
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
-        elif not _skip_target:
+        else:
             # Only parse backend properties when the target isn't skipped to
             # preserve the former behavior of transpile.
             backend_properties = _parse_backend_properties(backend_properties, backend)
             # Build target from constraints.
+            # try:
             target = Target.from_configuration(
                 basis_gates=basis_gates,
-                num_qubits=backend.num_qubits if backend is not None else None,
+                num_qubits=(
+                    backend.num_qubits
+                    if backend is not None
+                    else coupling_map.size() if coupling_map is not None else None
+                ),
                 coupling_map=coupling_map,
                 # If the instruction map has custom gates, do not give as config, the information
                 # will be added to the target with update_from_instruction_schedule_map
@@ -324,6 +366,11 @@ def generate_preset_pass_manager(
                 timing_constraints=timing_constraints,
                 custom_name_mapping=name_mapping,
             )
+            # except:
+            #     raise TranspilerError("Failed to build target from configuration.")
+
+    if target is None:
+        raise TranspilerError("Information not sufficient to build target.")
 
     # Update target with custom gate information. Note that this is an exception to the priority
     # order (target > loose constraints), added to handle custom gates for scheduling passes.
@@ -331,29 +378,29 @@ def generate_preset_pass_manager(
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
 
-    if target is not None:
-        if coupling_map is None:
-            coupling_map = target.build_coupling_map()
-        if basis_gates is None:
-            basis_gates = target.operation_names
-        if instruction_durations is None:
-            instruction_durations = target.durations()
-        if inst_map is None:
-            inst_map = target.instruction_schedule_map()
-        if timing_constraints is None:
-            timing_constraints = target.timing_constraints()
-        if backend_properties is None:
-            with warnings.catch_warnings():
-                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
-                #   of backend-to-target approach
-                #   https://github.com/Qiskit/qiskit/pull/12850
-                warnings.filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    message=r".+qiskit\.transpiler\.target\.target_to_backend_properties.+",
-                    module="qiskit",
-                )
-                backend_properties = target_to_backend_properties(target)
+    # if target is not None:
+    #     if coupling_map is None:
+    #         coupling_map = target.build_coupling_map()
+    #     if basis_gates is None:
+    #         basis_gates = target.operation_names
+    #     if instruction_durations is None:
+    #         instruction_durations = target.durations()
+    #     if inst_map is None:
+    #         inst_map = target.instruction_schedule_map()
+    #     if timing_constraints is None:
+    #         timing_constraints = target.timing_constraints()
+    #     if backend_properties is None:
+    #         with warnings.catch_warnings():
+    #             # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
+    #             #   of backend-to-target approach
+    #             #   https://github.com/Qiskit/qiskit/pull/12850
+    #             warnings.filterwarnings(
+    #                 "ignore",
+    #                 category=DeprecationWarning,
+    #                 message=r".+qiskit\.transpiler\.target\.target_to_backend_properties.+",
+    #                 module="qiskit",
+    #             )
+    #             backend_properties = target_to_backend_properties(target)
 
     # Parse non-target dependent pm options
     initial_layout = _parse_initial_layout(initial_layout)
@@ -362,12 +409,12 @@ def generate_preset_pass_manager(
 
     pm_options = {
         "target": target,
-        "basis_gates": basis_gates,
-        "inst_map": inst_map,
-        "coupling_map": coupling_map,
-        "instruction_durations": instruction_durations,
-        "backend_properties": backend_properties,
-        "timing_constraints": timing_constraints,
+        # "basis_gates": basis_gates,
+        # "inst_map": inst_map,
+        # "coupling_map": coupling_map,
+        # "instruction_durations": instruction_durations,
+        # "backend_properties": backend_properties,
+        # "timing_constraints": timing_constraints,
         "layout_method": layout_method,
         "routing_method": routing_method,
         "translation_method": translation_method,
@@ -398,6 +445,7 @@ def generate_preset_pass_manager(
         pm = level_3_pass_manager(pm_config)
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
+
     return pm
 
 
@@ -412,6 +460,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
         for name in default_gates:
             if name not in instructions:
                 instructions.add(name)
+        name_mapping.update({name: CONTROL_FLOW_MAPPING[name] for name in CONTROL_FLOW_OP_NAMES})
     except TypeError:
         instructions = None
 

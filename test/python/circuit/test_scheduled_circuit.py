@@ -196,6 +196,7 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled = transpile(
             qc,
             scheduling_method="alap",
+            coupling_map=[[0, 1]],
             basis_gates=["h", "cx"],
             instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
         )
@@ -210,7 +211,11 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(500, 1)
         qc.append(bell.to_instruction(), [0, 1])
         scheduled = transpile(
-            qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
+            qc,
+            scheduling_method="alap",
+            coupling_map=[[0, 1]],
+            basis_gates=["h", "cx"],
+            instruction_durations=[("bell", [0, 1], 1000)],
         )
         self.assertEqual(scheduled.duration, 1500)
 
@@ -231,7 +236,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        not_scheduled = transpile(qc)
+        not_scheduled = transpile(qc, basis_gates=["h", "cx"])
         self.assertEqual(not_scheduled.duration, None)
 
     def test_raise_error_if_transpile_with_scheduling_method_but_without_durations(self):
@@ -240,7 +245,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
         with self.assertRaises(TranspilerError):
-            transpile(qc, scheduling_method="alap")
+            transpile(qc, coupling_map=[[0, 1]], basis_gates=["h", "cx"], scheduling_method="alap")
 
     def test_invalidate_schedule_circuit_if_new_instruction_is_appended(self):
         qc = QuantumCircuit(2)
@@ -266,6 +271,7 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled = transpile(
             qc,
             basis_gates=["h", "cx", "delay"],
+            coupling_map=[[0, 1]],
             scheduling_method="alap",
             instruction_durations=[("h", 0, 200), ("cx", None, 900)],
         )
@@ -274,6 +280,7 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled = transpile(
             qc,
             basis_gates=["h", "cx", "delay"],
+            coupling_map=[[0, 1]],
             scheduling_method="alap",
             instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
         )
@@ -314,7 +321,7 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def test_per_qubit_durations(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5109"""
-        qc = QuantumCircuit(3)
+        qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
@@ -322,6 +329,7 @@ class TestScheduledCircuit(QiskitTestCase):
         sc = transpile(
             qc,
             scheduling_method="alap",
+            coupling_map=[[0, 1]],
             basis_gates=["h", "cx"],
             instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
         )
