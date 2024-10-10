@@ -83,39 +83,49 @@ class QuantumVolume(QuantumCircuit):
         depth = depth or num_qubits  # how many layers of SU(4)
         width = num_qubits // 2  # how many SU(4)s fit in each layer
         rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
-        if seed is None:
+        seed_name = seed
+        if seed_name is None:
             # Get the internal entropy used to seed the default RNG, if no seed was given.  This
             # stays in the output name, so effectively stores a way of regenerating the circuit.
             # This is just best-effort only, for backwards compatibility, and isn't critical (if
             # someone needs full reproducibility, they should be manually controlling the seeding).
-            seed = getattr(getattr(rng.bit_generator, "seed_seq", None), "entropy", None)
+            seed_name = getattr(getattr(rng.bit_generator, "seed_seq", None), "entropy", None)
 
         super().__init__(
-            num_qubits, name="quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
+            num_qubits,
+            name="quantum_volume_" + str([num_qubits, depth, seed_name]).replace(" ", ""),
         )
-        base = self if flatten else QuantumCircuit(num_qubits, name=self.name)
-
-        # For each layer, generate a permutation of qubits
-        # Then generate and apply a Haar-random SU(4) to each pair
-        unitaries = scipy.stats.unitary_group.rvs(4, depth * width, rng).reshape(depth, width, 4, 4)
-        qubits = tuple(base.qubits)
-        for row in unitaries:
-            perm = rng.permutation(num_qubits)
-            if classical_permutation:
-                for w, unitary in enumerate(row):
-                    gate = UnitaryGate(unitary, check_input=False, num_qubits=2)
-                    qubit = 2 * w
-                    base._append(
-                        CircuitInstruction(gate, (qubits[perm[qubit]], qubits[perm[qubit + 1]]))
-                    )
+        if classical_permutation:
+            if seed is not None:
+                max_value = np.iinfo(np.int64).max
+                seed = rng.integers(max_value, dtype=np.int64)
+            qv_circ = quantum_volume(num_qubits, depth, seed)
+            qv_circ.name = self.name
+            if flatten:
+                self.compose(qv_circ, inplace=True)
             else:
+                self._append(CircuitInstruction(qv_circ.to_instruction(), tuple(self.qubits)))
+        else:
+            if seed is None:
+                seed = seed_name
+
+            base = self if flatten else QuantumCircuit(num_qubits, name=self.name)
+
+            # For each layer, generate a permutation of qubits
+            # Then generate and apply a Haar-random SU(4) to each pair
+            unitaries = scipy.stats.unitary_group.rvs(4, depth * width, rng).reshape(
+                depth, width, 4, 4
+            )
+            qubits = tuple(base.qubits)
+            for row in unitaries:
+                perm = rng.permutation(num_qubits)
                 base._append(CircuitInstruction(PermutationGate(perm), qubits))
                 for w, unitary in enumerate(row):
                     gate = UnitaryGate(unitary, check_input=False, num_qubits=2)
                     qubit = 2 * w
                     base._append(CircuitInstruction(gate, qubits[qubit : qubit + 2]))
-        if not flatten:
-            self._append(CircuitInstruction(base.to_instruction(), tuple(self.qubits)))
+            if not flatten:
+                self._append(CircuitInstruction(base.to_instruction(), tuple(self.qubits)))
 
 
 def quantum_volume(
