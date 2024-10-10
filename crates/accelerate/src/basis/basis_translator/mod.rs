@@ -99,7 +99,7 @@ fn run(
             .map(|x| x.to_string())
             .collect();
         source_basis = extract_basis(py, &dag, min_qubits)?;
-        new_target_basis = target_basis.clone().unwrap();
+        new_target_basis = target_basis.unwrap();
     }
     new_target_basis = new_target_basis
         .union(&basic_instrs)
