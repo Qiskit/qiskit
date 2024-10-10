@@ -22,6 +22,7 @@ from ddt import ddt, data, unpack
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.library import (
+    n_local,
     NLocal,
     TwoLocal,
     RealAmplitudes,
@@ -468,6 +469,85 @@ class TestNLocal(QiskitTestCase):
         )
 
         self.assertCircuitEqual(ref, expected)
+
+
+class TestNLocalFunction(QiskitTestCase):
+    """Test the n_local circuit library function."""
+
+    def test_skip_unentangled_qubits(self):
+        """Test skipping the unentangled qubits."""
+        num_qubits = 6
+        entanglement_1 = [[0, 1, 3], [1, 3, 5], [0, 1, 5]]
+        skipped_1 = [2, 4]
+
+        def entanglement_2(layer):
+            return entanglement_1 if layer % 2 == 0 else [[0, 1, 2], [2, 3, 5]]
+
+        skipped_2 = [4]
+
+        for entanglement, skipped in zip([entanglement_1, entanglement_2], [skipped_1, skipped_2]):
+            with self.subTest(entanglement=entanglement, skipped=skipped):
+                nlocal = n_local(
+                    num_qubits,
+                    rotation_blocks=XGate(),
+                    entanglement_blocks=CCXGate(),
+                    entanglement=entanglement,
+                    reps=3,
+                    skip_unentangled_qubits=True,
+                )
+
+                skipped_set = {nlocal.qubits[i] for i in skipped}
+                dag = circuit_to_dag(nlocal)
+                idle = set(dag.idle_wires())
+                self.assertEqual(skipped_set, idle)
+
+    def test_entanglement_by_callable(self):
+        """Test setting the entanglement by callable.
+
+        This is the circuit we test (times 2, with final X layer)
+                ┌───┐           ┌───┐┌───┐          ┌───┐
+        q_0: |0>┤ X ├──■────■───┤ X ├┤ X ├──■─── .. ┤ X ├
+                ├───┤  │    │   ├───┤└─┬─┘  │       ├───┤
+        q_1: |0>┤ X ├──■────┼───┤ X ├──■────┼─── .. ┤ X ├
+                ├───┤┌─┴─┐  │   ├───┤  │    │    x2 ├───┤
+        q_2: |0>┤ X ├┤ X ├──■───┤ X ├──■────■─── .. ┤ X ├
+                ├───┤└───┘┌─┴─┐ ├───┤     ┌─┴─┐     ├───┤
+        q_3: |0>┤ X ├─────┤ X ├─┤ X ├─────┤ X ├─ .. ┤ X ├
+                └───┘     └───┘ └───┘     └───┘     └───┘
+        """
+        circuit = QuantumCircuit(4)
+        for _ in range(2):
+            circuit.x([0, 1, 2, 3])
+            circuit.barrier()
+            circuit.ccx(0, 1, 2)
+            circuit.ccx(0, 2, 3)
+            circuit.barrier()
+            circuit.x([0, 1, 2, 3])
+            circuit.barrier()
+            circuit.ccx(2, 1, 0)
+            circuit.ccx(0, 2, 3)
+            circuit.barrier()
+        circuit.x([0, 1, 2, 3])
+
+        layer_1 = [(0, 1, 2), (0, 2, 3)]
+        layer_2 = [(2, 1, 0), (0, 2, 3)]
+
+        entanglement = lambda offset: layer_1 if offset % 2 == 0 else layer_2
+
+        nlocal = QuantumCircuit(4)
+        nlocal.compose(
+            n_local(
+                4,
+                rotation_blocks=XGate(),
+                entanglement_blocks=CCXGate(),
+                reps=4,
+                entanglement=entanglement,
+                insert_barriers=True,
+            ),
+            inplace=True,
+        )
+
+        self.assertEqual(nlocal, circuit)
 
 
 @ddt

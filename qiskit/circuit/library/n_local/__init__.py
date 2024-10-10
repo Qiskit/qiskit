@@ -12,7 +12,7 @@
 
 """The circuit library module containing N-local circuits."""
 
-from .n_local import NLocal
+from .n_local import NLocal, n_local
 from .two_local import TwoLocal
 from .pauli_two_design import PauliTwoDesign
 from .real_amplitudes import RealAmplitudes

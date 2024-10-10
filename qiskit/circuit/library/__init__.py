@@ -548,6 +548,7 @@ from .arithmetic import (
 )
 
 from .n_local import (
+    n_local,
     NLocal,
     TwoLocal,
     PauliTwoDesign,
