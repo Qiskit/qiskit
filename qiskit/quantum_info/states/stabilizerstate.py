@@ -34,7 +34,9 @@ class StabilizerState(QuantumState):
     Stabilizer simulator using the convention from reference [1].
     Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import StabilizerState, Pauli
@@ -63,7 +65,9 @@ class StabilizerState(QuantumState):
     Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
     returns a state stabilized by the list
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.quantum_info import StabilizerState
 

@@ -59,7 +59,11 @@ are:
 If you want to enable multiple experimental features, you should combine the flags using the ``|``
 operator, such as ``flag1 | flag2``.
 
-For example, to perform an export using the early semantics of ``switch`` support::
+For example, to perform an export using the early semantics of ``switch`` support:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit import qasm3, QuantumCircuit, QuantumRegister, ClassicalRegister
 

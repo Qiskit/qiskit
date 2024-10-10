@@ -54,7 +54,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     For example,
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         import numpy as np
 
@@ -93,7 +96,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     operator which accepts integer, lists, or slices for selecting subsets
     of PauliList. If integer is given, it returns Pauli not PauliList.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         pauli_list = PauliList(["XX", "ZZ", "IZ"])
         print("Integer: ", repr(pauli_list[1]))
@@ -544,7 +550,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import PauliList
@@ -595,7 +603,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         **Example**
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info.operators import PauliList
 
@@ -1214,7 +1224,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.  For example:
 
-                .. code-block:: python
+                .. plot::
+                   :include-source:
+                   :nofigs:
 
                     >>> from qiskit.quantum_info import PauliList
                     >>> op = PauliList(["XX", "YY", "IZ", "ZZ"])

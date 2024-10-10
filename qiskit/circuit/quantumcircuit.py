@@ -3872,7 +3872,10 @@ class QuantumCircuit:
             In this example, a qubit is measured and the result of that measurement is stored in the
             classical bit (usually expressed in diagrams as a double line):
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context: reset
 
                from qiskit import QuantumCircuit
                circuit = QuantumCircuit(1, 1)
@@ -3892,12 +3895,18 @@ class QuantumCircuit:
             It is possible to call ``measure`` with lists of ``qubits`` and ``cbits`` as a shortcut
             for one-to-one measurement. These two forms produce identical results:
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context:
 
                circuit = QuantumCircuit(2, 2)
                circuit.measure([0,1], [0,1])
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context:
 
                circuit = QuantumCircuit(2, 2)
                circuit.measure(0, 0)
@@ -3906,7 +3915,10 @@ class QuantumCircuit:
             Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
             :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context: reset
 
                 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
                 qreg = QuantumRegister(2, "qreg")
@@ -3916,7 +3928,10 @@ class QuantumCircuit:
 
             This is equivalent to:
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
+               :context:
 
                 circuit = QuantumCircuit(qreg, creg)
                 circuit.measure(qreg[0], creg[0])
@@ -4165,7 +4180,9 @@ class QuantumCircuit:
 
             The snippet below shows that insertion order of parameters does not matter.
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 >>> from qiskit.circuit import QuantumCircuit, Parameter
                 >>> a, b, elephant = Parameter("a"), Parameter("b"), Parameter("elephant")
@@ -4179,7 +4196,9 @@ class QuantumCircuit:
             Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
             The literal "10" comes before "2" in strict alphabetical sorting.
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 >>> from qiskit.circuit import QuantumCircuit, Parameter
                 >>> angles = [Parameter("angle_1"), Parameter("angle_2"), Parameter("angle_10")]
@@ -4194,7 +4213,9 @@ class QuantumCircuit:
 
             To respect numerical sorting, a :class:`.ParameterVector` can be used.
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
                 >>> x = ParameterVector("x", 12)
@@ -5698,7 +5719,9 @@ class QuantumCircuit:
         Examples:
             Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5721,7 +5744,9 @@ class QuantumCircuit:
             More information about labels for basis states are in
             :meth:`.Statevector.from_label`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5742,7 +5767,10 @@ class QuantumCircuit:
 
 
             Initialize two qubits from an array of complex amplitudes
-            .. code-block::
+
+            .. plot::
+                :include-source:
+                :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5813,7 +5841,9 @@ class QuantumCircuit:
         Examples:
             Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5836,7 +5866,9 @@ class QuantumCircuit:
             More information about labels for basis states are in
             :meth:`.Statevector.from_label`.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5857,7 +5889,9 @@ class QuantumCircuit:
 
             Initialize two qubits from an array of complex amplitudes.
 
-            .. code-block::
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 import numpy as np
                 from qiskit import QuantumCircuit
@@ -5908,7 +5942,9 @@ class QuantumCircuit:
 
             Apply a gate specified by a unitary matrix to a quantum circuit
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit import QuantumCircuit
                 matrix = [[0, 0, 0, 1],

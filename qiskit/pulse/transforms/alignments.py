@@ -336,7 +336,9 @@ class AlignFunc(AlignmentKind):
 
     For example, UDD sequence with 10 pulses can be specified with following function.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         import numpy as np
 

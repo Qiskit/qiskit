@@ -60,7 +60,9 @@ class Operator(LinearOp):
     :math:`|\psi\rangle=|0\rangle (\rho = |0\rangle\langle 0|)` changes it to the
     one state :math:`|\psi\rangle=|1\rangle (\rho = |1\rangle\langle 1|)`:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         >>> import numpy as np
         >>> from qiskit.quantum_info import Operator

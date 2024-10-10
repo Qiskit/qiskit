@@ -363,7 +363,9 @@ def draw(
 
         You can partially customize a preset stylesheet when initializing it.
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
 
             my_style = {
                 'formatter.channel_scaling.drive': 5,
