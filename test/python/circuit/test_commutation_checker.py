@@ -19,14 +19,40 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import ClassicalRegister
-from qiskit.circuit import (AnnotatedOperation, ControlModifier, Gate,
-                            InverseModifier, Parameter, QuantumRegister, Qubit)
+from qiskit.circuit import (
+    AnnotatedOperation,
+    ControlModifier,
+    Gate,
+    InverseModifier,
+    Parameter,
+    QuantumRegister,
+    Qubit,
+)
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-from qiskit.circuit.library import (Barrier, CCXGate, CPhaseGate, CRXGate,
-                                    CRYGate, CRZGate, CXGate, LinearFunction,
-                                    MCXGate, Measure, PhaseGate, Reset, RXGate,
-                                    RXXGate, RYGate, RYYGate, RZGate, RZXGate,
-                                    RZZGate, SGate, XGate, ZGate)
+from qiskit.circuit.library import (
+    Barrier,
+    CCXGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CXGate,
+    LinearFunction,
+    MCXGate,
+    Measure,
+    PhaseGate,
+    Reset,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZXGate,
+    RZZGate,
+    SGate,
+    XGate,
+    ZGate,
+)
 from qiskit.dagcircuit import DAGOpNode
 
 
