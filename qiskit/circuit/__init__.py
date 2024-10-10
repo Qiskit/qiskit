@@ -780,6 +780,28 @@ information on how to build circuits with control flow.
 
 .. _circuit-custom-gates:
 
+
+Investigating commutation relations
+-----------------------------------
+
+If two operations in a circuit commute, we can swap the order in which they are applied.
+This can allow for optimizations and simplifications, for example, if it allows to merge
+or cancel gates::
+
+         ┌─────────┐     ┌─────────┐               ┌─────────┐
+    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├  
+         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘ 
+    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├─── 
+                    └───┘   └───┘   └───┘             └───┘     
+
+Performing these optimizations are part of the transpiler, but the tools to investigate commutations
+are available in the :class:`CommutationChecker`.
+
+.. autosummary::
+   :toctree: ../stubs/
+   CommutationChecker
+
+
 Creating custom instructions
 ============================
 
