@@ -13,48 +13,21 @@
 """Test commutation checker class ."""
 
 import unittest
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import data, ddt
 
-from qiskit import ClassicalRegister, transpile
-from qiskit.circuit import (
-    QuantumRegister,
-    Parameter,
-    Qubit,
-    AnnotatedOperation,
-    InverseModifier,
-    ControlModifier,
-    Gate,
-    QuantumCircuit,
-)
+from qiskit import ClassicalRegister
+from qiskit.circuit import (AnnotatedOperation, ControlModifier, Gate,
+                            InverseModifier, Parameter, QuantumRegister, Qubit)
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit.circuit.library import (Barrier, CCXGate, CPhaseGate, CRXGate,
+                                    CRYGate, CRZGate, CXGate, LinearFunction,
+                                    MCXGate, Measure, PhaseGate, Reset, RXGate,
+                                    RXXGate, RYGate, RYYGate, RZGate, RZXGate,
+                                    RZZGate, SGate, XGate, ZGate)
 from qiskit.dagcircuit import DAGOpNode
-from qiskit.circuit.library import (
-    ZGate,
-    XGate,
-    CXGate,
-    CCXGate,
-    MCXGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    PhaseGate,
-    Measure,
-    Barrier,
-    Reset,
-    LinearFunction,
-    SGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CPhaseGate,
-    RXXGate,
-    RYYGate,
-    RZZGate,
-    RZXGate,
-)
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class NewGateCX(Gate):
