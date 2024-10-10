@@ -2586,7 +2586,7 @@ impl TwoQubitControlledUDecomposer {
             gates,
             global_phase,
         };
-        let _ = self.weyl_gate(&mut gates1, target_decomposed, atol)?;
+        self.weyl_gate(&mut gates1, target_decomposed, atol)?;
         global_phase += gates1.global_phase;
 
         if let Some(unitary_c1r) = unitary_c1r {
