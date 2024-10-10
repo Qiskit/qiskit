@@ -57,6 +57,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ class InstructionProperties(BaseInstructionProperties):
             cls, duration, error
         )
 
+    @deprecate_pulse_arg("calibration")
     def __init__(
         self,
         duration: float | None = None,  # pylint: disable=unused-argument
@@ -99,13 +101,14 @@ class InstructionProperties(BaseInstructionProperties):
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            calibration: The pulse representation of the instruction.
+            calibration: DEPRECATED. The pulse representation of the instruction.
         """
         super().__init__()
         self._calibration: CalibrationEntry | None = None
         self.calibration = calibration
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def calibration(self):
         """The pulse representation of the instruction.
 
@@ -138,6 +141,7 @@ class InstructionProperties(BaseInstructionProperties):
         return self._calibration.get_schedule()
 
     @calibration.setter
+    @deprecate_pulse_dependency(is_property=True)
     def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
@@ -447,6 +451,7 @@ class Target(BaseTarget):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
+    @deprecate_pulse_dependency
     def update_from_instruction_schedule_map(self, inst_map, inst_name_map=None, error_dict=None):
         """Update the target from an instruction schedule map.
 
@@ -604,6 +609,7 @@ class Target(BaseTarget):
             self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
+    @deprecate_pulse_dependency
     def instruction_schedule_map(self):
         """Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions in the target with a pulse schedule defined.
@@ -626,6 +632,7 @@ class Target(BaseTarget):
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
+    @deprecate_pulse_dependency
     def has_calibration(
         self,
         operation_name: str,
@@ -647,6 +654,7 @@ class Target(BaseTarget):
             return False
         return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
+    @deprecate_pulse_dependency
     def get_calibration(
         self,
         operation_name: str,
@@ -927,6 +935,7 @@ class Target(BaseTarget):
         super().__setstate__(state["base"])
 
     @classmethod
+    @deprecate_pulse_arg("inst_map")
     def from_configuration(
         cls,
         basis_gates: list[str],
@@ -965,7 +974,7 @@ class Target(BaseTarget):
             coupling_map: The coupling map representing connectivity constraints
                 on the backend. If specified all gates from ``basis_gates`` will
                 be supported on all qubits (or pairs of qubits).
-            inst_map: The instruction schedule map representing the pulse
+            inst_map: DEPRECATED. The instruction schedule map representing the pulse
                :class:`~.Schedule` definitions for each instruction. If this
                is specified ``coupling_map`` must be specified. The
                ``coupling_map`` is used as the source of truth for connectivity

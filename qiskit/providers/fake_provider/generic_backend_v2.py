@@ -42,6 +42,7 @@ from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
 from qiskit.pulse.calibration_entries import PulseQobjDef
 from qiskit.providers.models.pulsedefaults import MeasurementKernel, Discriminator
 from qiskit.qobj.pulse_qobj import QobjMeasurementOption
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency, deprecate_pulse_arg
 
 # Noise default values/ranges for duration and error of supported
 # instructions. There are two possible formats:
@@ -518,6 +519,8 @@ class GenericBackendV2(BackendV2):
     transpilation.
     """
 
+    @deprecate_pulse_arg("pulse_channels")
+    @deprecate_pulse_arg("calibrate_instructions")
     def __init__(
         self,
         num_qubits: int,
@@ -560,7 +563,7 @@ class GenericBackendV2(BackendV2):
             control_flow: Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_instructions: Instruction calibration settings, this argument
+            calibrate_instructions: DEPRECATED. Instruction calibration settings, this argument
                 supports both boolean and :class:`.InstructionScheduleMap` as
                 input types, and is ``None`` by default:
 
@@ -578,7 +581,7 @@ class GenericBackendV2(BackendV2):
 
             seed: Optional seed for generation of default values.
 
-            pulse_channels: If true, sets default pulse channel information on the backend.
+            pulse_channels: DEPRECATED. If true, sets default pulse channel information on the backend.
 
             noise_info: If true, associates gates and qubits with default noise information.
         """
@@ -990,6 +993,7 @@ class GenericBackendV2(BackendV2):
         else:
             return BasicSimulator._default_options()
 
+    @deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
         qubits = (qubit,)
@@ -997,6 +1001,7 @@ class GenericBackendV2(BackendV2):
             return drive_channels_map[qubits][0]
         return None
 
+    @deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
         qubits = (qubit,)
@@ -1004,6 +1009,7 @@ class GenericBackendV2(BackendV2):
             return measure_channels_map[qubits][0]
         return None
 
+    @deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
         qubits = (qubit,)
@@ -1011,6 +1017,7 @@ class GenericBackendV2(BackendV2):
             return acquire_channels_map[qubits][0]
         return None
 
+    @deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         control_channels_map = getattr(self, "channels_map", {}).get("control", {})
         qubits = tuple(qubits)

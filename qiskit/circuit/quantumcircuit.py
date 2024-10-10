@@ -47,6 +47,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -69,6 +70,7 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
+
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -1339,6 +1341,7 @@ class QuantumCircuit:
         return self._op_start_times
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self) -> dict:
         """Return calibration dictionary.
 
@@ -1348,6 +1351,7 @@ class QuantumCircuit:
         return dict(self._calibrations)
 
     @calibrations.setter
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self, calibrations: dict):
         """Set the circuit calibration data from a dictionary of calibration definition.
 
@@ -1357,6 +1361,7 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
+    @deprecate_pulse_dependency
     def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
@@ -6484,6 +6489,7 @@ class QuantumCircuit:
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits, copy=False
         )
 
+    @deprecate_pulse_dependency
     def add_calibration(
         self,
         gate: Union[Gate, str],
