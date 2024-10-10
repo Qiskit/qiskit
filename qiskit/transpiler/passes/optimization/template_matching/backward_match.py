@@ -242,7 +242,7 @@ class BackwardMatch:
         Returns:
             bool: True if the same, False otherwise.
         """
-        return node_circuit.op == node_template.op
+        return node_circuit.op.soft_compare(node_template.op)
 
     def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
         """
