@@ -46,7 +46,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
        from qiskit.circuit.library import QuantumVolume
        from qiskit.circuit.library.standard_gates import RXGate
 
-       from calibration.rx_builder import RXCalibrationBuilder
+       from qiskit.transpiler.passes import RXCalibrationBuilder
 
        qv = QuantumVolume(4, 4, seed=1004)
 

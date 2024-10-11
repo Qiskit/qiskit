@@ -873,6 +873,33 @@ class TestTranspile(QiskitTestCase):
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
 
+    def test_do_not_run_elide_permutations_no_routing(self):
+        """Test the ElidePermutations pass doesn't run if we disable routing
+
+        See https://github.com/Qiskit/qiskit/issues/13144 for the details and
+        reproduce in this test
+        """
+        circuit_routed = QuantumCircuit(4)
+        circuit_routed.cx(0, 1)
+        circuit_routed.h(1)
+        circuit_routed.swap(1, 2)
+        circuit_routed.cx(2, 3)
+        pm = generate_preset_pass_manager(
+            basis_gates=["cx", "sx", "rz"], routing_method="none", optimization_level=2
+        )
+        circuit_basis = pm.run(circuit_routed)
+        cx_gate_qubits = []
+        for instruction in circuit_basis.data:
+            if instruction.name == "cx":
+                cx_gate_qubits.append(instruction.qubits)
+        # If we did not Elide the existing swaps then the swap should be
+        # decomposed into 3 cx between 1 and 2 and there are no gates between
+        # 1 and 3
+        self.assertIn((circuit_basis.qubits[1], circuit_basis.qubits[2]), cx_gate_qubits)
+        self.assertIn((circuit_basis.qubits[2], circuit_basis.qubits[1]), cx_gate_qubits)
+        self.assertNotIn((circuit_basis.qubits[1], circuit_basis.qubits[3]), cx_gate_qubits)
+        self.assertNotIn((circuit_basis.qubits[3], circuit_basis.qubits[1]), cx_gate_qubits)
+
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035

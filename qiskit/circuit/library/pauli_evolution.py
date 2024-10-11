@@ -56,6 +56,7 @@ class PauliEvolutionGate(Gate):
 
         X = SparsePauliOp("X")
         Z = SparsePauliOp("Z")
+        I = SparsePauliOp("I")
 
         # build the evolution gate
         operator = (Z ^ Z) - 0.1 * (X ^ I)

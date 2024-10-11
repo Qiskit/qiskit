@@ -395,6 +395,10 @@ impl Operation for PackedOperation {
         self.view().control_flow()
     }
     #[inline]
+    fn blocks(&self) -> Vec<CircuitData> {
+        self.view().blocks()
+    }
+    #[inline]
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         self.view().matrix(params)
     }
