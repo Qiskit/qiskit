@@ -3229,40 +3229,33 @@ class QuantumCircuit:
 
     def decompose(
         self,
-        gates_to_decompose: Type[Gate] | Sequence[Type[Gate]] | Sequence[str] | str | None = None,
+        gates_to_decompose: (
+            str | Type[Instruction] | Sequence[str | Type[Instruction]] | None
+        ) = None,
         reps: int = 1,
-    ) -> "QuantumCircuit":
-        """Call a decomposition pass on this circuit,
-        to decompose one level (shallow decompose).
+    ) -> typing.Self:
+        """Call a decomposition pass on this circuit, to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
-                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
-                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
-                of these. If a gate name is entered, it will decompose all gates with that
-                name, whether the gates have labels or not. Defaults to all gates in circuit.
-            reps (int): Optional number of times the circuit should be decomposed.
+            gates_to_decompose: Optional subset of gates to decompose. Can be a gate type, such as
+                ``HGate``, or a gate name, such as "h", or a gate label, such as "My H Gate", or a
+                list of any combination of these. If a gate name is entered, it will decompose all
+                gates with that name, whether the gates have labels or not. Defaults to all gates in
+                the circuit.
+            reps: Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
-                can decompose specific gates specific time
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
-        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         dag = circuit_to_dag(self, copy_operations=True)
 
-        if gates_to_decompose is None:
-            # We should not rewrite the circuit using HLS when we have gates_to_decompose,
-            # or else HLS will rewrite all objects with available plugins (e.g., Cliffords,
-            # PermutationGates, and now also MCXGates)
-            dag = HighLevelSynthesis().run(dag)
-
-        pass_ = Decompose(gates_to_decompose)
+        pass_ = Decompose(gates_to_decompose, apply_synthesis=True)
         for _ in range(reps):
             dag = pass_.run(dag)
 
