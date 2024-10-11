@@ -124,8 +124,6 @@ class Decompose(TransformationPass):
 
 def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
     dag = DAGCircuit()
-    # dag.add_qubits([Qubit() for _ in range(node.op.num_qubits)])
-    # dag.add_clbits([Clbit() for _ in range(node.op.num_clbits)])
     dag.add_qubits(node.qargs)
     dag.add_clbits(node.cargs)
 
