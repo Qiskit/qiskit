@@ -14,7 +14,7 @@ use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -91,8 +91,8 @@ fn single_qubit_evolution(
 
     std::iter::once(match pauli {
         'x' => (StandardGate::RXGate, param, qubit),
-        'y' => (StandardGate::RXGate, param, qubit),
-        'z' => (StandardGate::RXGate, param, qubit),
+        'y' => (StandardGate::RYGate, param, qubit),
+        'z' => (StandardGate::RZGate, param, qubit),
         _ => unreachable!("Unsupported Pauli, at this point we expected one of x, y, z."),
     })
 }
@@ -121,18 +121,6 @@ fn multi_qubit_evolution(
     time: Param,
     phase_gate: bool,
 ) -> impl Iterator<Item = StandardInstruction> {
-    // Get pairs of (pauli, qubit) that are active, i.e. that are not the identity. Note that
-    // the rest of the code also works if there are only identities, in which case we will
-    // effectively return an empty iterator.
-    // let qubits: Vec<Qubit> = indices.iter().map(|i| Qubit(*i)).collect();
-    // let binding = pauli.to_lowercase(); // lowercase for convenience
-    // let active_paulis = binding
-    //     .as_str()
-    //     .chars()
-    //     .rev() // reverse due to Qiskit's bit ordering convention
-    //     .zip(qubits)
-    //     .filter(|(p, _)| *p != 'i')
-    //     .collect_vec();
     let active_paulis: Vec<(char, Qubit)> = pauli
         .into_iter()
         .zip(indices.into_iter().map(Qubit))
@@ -222,7 +210,7 @@ pub fn py_pauli_evolution(
         }
 
         paulis.push(pauli);
-        times.push(time);
+        times.push(multiply_param(&time, 2.0, py));
         indices.push(
             tuple
                 .get_item(1)?
@@ -251,5 +239,7 @@ pub fn py_pauli_evolution(
             as_packed.chain(utils::maybe_barrier(py, num_qubits as u32, insert_barriers))
         });
 
+    // apply factor -1 for global phase
+    global_phase = multiply_param(&global_phase, -1.0, py);
     CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
 }
