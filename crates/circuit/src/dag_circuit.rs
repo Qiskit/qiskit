@@ -889,6 +889,7 @@ impl DAGCircuit {
     ///
     /// Raises:
     ///     Exception: if the gate is of type string and params is None.
+    #[pyo3(signature=(gate, qubits, schedule, params=None))]
     fn add_calibration<'py>(
         &mut self,
         py: Python<'py>,
@@ -2144,6 +2145,7 @@ def _format(operand):
     ///
     /// Raises:
     ///     DAGCircuitError: If the DAG is invalid
+    #[pyo3(signature=(ignore=None))]
     fn idle_wires(&self, py: Python, ignore: Option<&Bound<PyList>>) -> PyResult<Py<PyIterator>> {
         let mut result: Vec<PyObject> = Vec::new();
         let wires = (0..self.qubit_io_map.len())
@@ -2650,7 +2652,7 @@ def _format(operand):
     ///
     /// Returns:
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
-    #[pyo3(name = "topological_nodes")]
+    #[pyo3(name = "topological_nodes", signature=(key=None))]
     fn py_topological_nodes(
         &self,
         py: Python,
@@ -2686,7 +2688,7 @@ def _format(operand):
     ///
     /// Returns:
     ///     generator(DAGOpNode): op node in topological order
-    #[pyo3(name = "topological_op_nodes")]
+    #[pyo3(name = "topological_op_nodes", signature=(key=None))]
     fn py_topological_op_nodes(
         &self,
         py: Python,
@@ -3813,7 +3815,8 @@ def _format(operand):
     /// Yield:
     ///     edge: the edge as a tuple with the format
     ///         (source node, destination node, edge wire)
-    fn edges(&self, nodes: Option<Bound<PyAny>>, py: Python) -> PyResult<Py<PyIterator>> {
+    #[pyo3(signature=(nodes=None))]
+    fn edges(&self, py: Python, nodes: Option<Bound<PyAny>>) -> PyResult<Py<PyIterator>> {
         let get_node_index = |obj: &Bound<PyAny>| -> PyResult<NodeIndex> {
             Ok(obj.downcast::<DAGNode>()?.borrow().node.unwrap())
         };
@@ -4717,6 +4720,7 @@ def _format(operand):
         module.call_method1("dag_drawer", (slf, scale, filename, style))
     }
 
+    #[pyo3(signature=(graph_attrs=None, node_attrs=None, edge_attrs=None))]
     fn _to_dot<'py>(
         &self,
         py: Python<'py>,
