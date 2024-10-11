@@ -23,6 +23,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
+from qiskit.exceptions import QiskitError
 
 from .product_formula import ProductFormula
 
@@ -103,7 +104,10 @@ class QDrift(ProductFormula):
         else:
             paulis = operators.to_sparse_list()
 
-        coeffs = [np.real(coeff) for _, _, coeff in paulis]
+        try:
+            coeffs = [float(np.real_if_close(coeff)) for _, _, coeff in paulis]
+        except TypeError as exc:
+            raise QiskitError("QDrift requires bound, real coefficients.") from exc
 
         # We artificially make the weights positive
         weights = np.abs(coeffs)
@@ -119,6 +123,6 @@ class QDrift(ProductFormula):
 
         rescaled_time = lambd * time / num_gates
         sampled_paulis = [
-            (pauli[0], pauli[1], np.sign(pauli[2]) * rescaled_time) for pauli in sampled
+            (pauli[0], pauli[1], np.real(np.sign(pauli[2])) * rescaled_time) for pauli in sampled
         ]
         return sampled_paulis

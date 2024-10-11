@@ -22,7 +22,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
-
 from .product_formula import ProductFormula
 
 
@@ -129,6 +128,9 @@ class SuzukiTrotter(ProductFormula):
             # Assume no commutativity here. If we were to group commuting Paulis,
             # here would be the location to do so.
             non_commuting = [[op] for op in (time / self.reps * operators).to_sparse_list()]
+
+        # normalize coefficients, i.e. ensure they are float or ParameterExpression
+        non_commuting = self._normalize_coefficients(non_commuting)
 
         # we're already done here since Lie Trotter does not do any operator repetition
         product_formula = self._recurse(self.order, non_commuting)

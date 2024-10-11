@@ -20,7 +20,7 @@ from functools import partial
 import typing
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
@@ -111,7 +111,9 @@ class ProductFormula(EvolutionSynthesis):
         else:
             self.atomic_evolution = atomic_evolution
 
-    def expand(self, evolution: PauliEvolutionGate) -> list[tuple[str, tuple[int], float]]:
+    def expand(
+        self, evolution: PauliEvolutionGate
+    ) -> list[tuple[str, tuple[int], ParameterValueType]]:
         """Apply the product formula to expand the Hamiltonian in the evolution gate.
 
         Args:
@@ -146,7 +148,7 @@ class ProductFormula(EvolutionSynthesis):
         for i, (pauli_string, qubits, coeff) in enumerate(pauli_rotations):
             op = SparsePauliOp.from_sparse_list([(pauli_string, qubits, 1)], num_qubits).paulis[0]
 
-            self.atomic_evolution(circuit, op, np.real_if_close(coeff))
+            self.atomic_evolution(circuit, op, coeff)
             if self.insert_barriers and i != len(pauli_rotations) - 1:
                 circuit.barrier()
 
@@ -174,6 +176,12 @@ class ProductFormula(EvolutionSynthesis):
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
         }
+
+    def _normalize_coefficients(
+        self, paulis: list[str | list[int], float | complex | ParameterExpression]
+    ) -> list[str | list[int] | ParameterValueType]:
+        """Ensure the coefficients are real (or parameter expressions)."""
+        return [[(op, qubits, real_or_fail(coeff)) for op, qubits, coeff in ops] for ops in paulis]
 
 
 def evolve_pauli(
@@ -426,3 +434,18 @@ def _default_atomic_evolution(output, operator, time, cx_structure, wrap):
         pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
         for pauli, coeff in pauli_list:
             evolve_pauli(output, pauli, coeff * time, cx_structure, wrap)
+
+
+def real_or_fail(value, tol=100):
+    """Return real if close, otherwise fail. Unbound parameters are left unchanged.
+
+    Based on NumPy's ``real_if_close``, i.e. ``tol`` is in terms of machine precision for float.
+    """
+    if isinstance(value, ParameterExpression):
+        return value
+
+    abstol = tol * np.finfo(float).eps
+    if abs(np.imag(value)) < abstol:
+        return np.real(value)
+
+    raise ValueError(f"Encountered complex value {value}, but expected real.")
