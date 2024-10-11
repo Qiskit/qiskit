@@ -92,7 +92,6 @@ def _get_relative_placement(first_qargs, second_qargs) -> tuple:
     return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
 
 
-@lru_cache(None)
 def _get_unparameterizable_gates() -> List[Gate]:
     """Retrieve a list of non-parmaterized gates with up to 3 qubits, using the python inspection module
     Return:
@@ -104,15 +103,13 @@ def _get_unparameterizable_gates() -> List[Gate]:
     return [g for g in gates if len(g.params) == 0]
 
 
-@lru_cache(None)
 def _get_rotation_gates() -> List[Gate]:
     """Retrieve a list of parmaterized gates we know the commutation relations of with up
     to 3 qubits, using the python inspection module
     Return:
-        A list of non-parameterized gates to be considered in the commutation library
+        A list of parameterized gates(that we know how to commute) to also be considered
+        in the commutation library
     """
-    # These two gates may require a large runtime in later processing steps
-    # blocked_types = [C3SXGate, C4XGate]
     gates = list(stdg.get_standard_gate_name_mapping().values())
     return [g for g in gates if g.name in SUPPORTED_ROTATIONS]
 
