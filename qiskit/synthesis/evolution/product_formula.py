@@ -23,6 +23,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
+from qiskit._accelerate.circuit_library import py_pauli_evolution
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -142,15 +143,18 @@ class ProductFormula(EvolutionSynthesis):
 
         num_qubits = evolution.num_qubits
 
-        circuit = QuantumCircuit(num_qubits)
+        data = py_pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers)
+        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
 
-        # we could cache the circuit decomposition for the circuits we already saw
-        for i, (pauli_string, qubits, coeff) in enumerate(pauli_rotations):
-            op = SparsePauliOp.from_sparse_list([(pauli_string, qubits, 1)], num_qubits).paulis[0]
+        # circuit = QuantumCircuit(num_qubits)
 
-            self.atomic_evolution(circuit, op, coeff)
-            if self.insert_barriers and i != len(pauli_rotations) - 1:
-                circuit.barrier()
+        # # we could cache the circuit decomposition for the circuits we already saw
+        # for i, (pauli_string, qubits, coeff) in enumerate(pauli_rotations):
+        #     op = SparsePauliOp.from_sparse_list([(pauli_string, qubits, 1)], num_qubits).paulis[0]
+
+        #     self.atomic_evolution(circuit, op, coeff)
+        #     if self.insert_barriers and i != len(pauli_rotations) - 1:
+        #         circuit.barrier()
 
         return circuit
 

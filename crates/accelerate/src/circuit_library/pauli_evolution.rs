@@ -15,13 +15,22 @@ use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{radd_param, Param, StandardGate};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
+
+use crate::circuit_library::utils;
 
 // custom math and types for a more readable code
 const PI2: f64 = PI / 2.;
 type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
+type Instruction = (
+    PackedOperation,
+    SmallVec<[Param; 3]>,
+    Vec<Qubit>,
+    Vec<Clbit>,
+);
 
 /// Return instructions (using only StandardGate operations) to implement a Pauli evolution
 /// of a given Pauli string over a given time (as Param).
@@ -189,11 +198,12 @@ fn multi_qubit_evolution(
 }
 
 #[pyfunction]
-#[pyo3(signature = (num_qubits, sparse_paulis))]
+#[pyo3(signature = (num_qubits, sparse_paulis, insert_barriers=false))]
 pub fn py_pauli_evolution(
     py: Python,
     num_qubits: i64,
     sparse_paulis: &Bound<PyList>,
+    insert_barriers: bool,
 ) -> PyResult<CircuitData> {
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
@@ -227,7 +237,19 @@ pub fn py_pauli_evolution(
         .iter()
         .zip(indices)
         .zip(times)
-        .flat_map(|((pauli, qubits), time)| pauli_evolution(pauli, qubits, time, false));
+        .flat_map(|((pauli, qubits), time)| {
+            let as_packed = pauli_evolution(pauli, qubits, time, false).map(
+                |(gate, params, qubits)| -> PyResult<Instruction> {
+                    Ok((
+                        gate.into(),
+                        params.clone(),
+                        Vec::from_iter(qubits.into_iter()),
+                        Vec::new(),
+                    ))
+                },
+            );
+            as_packed.chain(utils::maybe_barrier(py, num_qubits as u32, insert_barriers))
+        });
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, evos, global_phase)
+    CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
 }
