@@ -898,6 +898,7 @@ impl CircuitData {
         Ok(())
     }
 
+    #[pyo3(signature = (index=None))]
     pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<PyObject> {
         let index = index.unwrap_or(PySequenceIndex::Int(-1));
         let native_index = index.with_len(self.data.len())?;
