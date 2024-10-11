@@ -13,6 +13,7 @@
 use pyo3::prelude::*;
 
 mod entanglement;
+mod pauli_evolution;
 mod pauli_feature_map;
 mod quantum_volume;
 
