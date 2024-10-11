@@ -207,7 +207,6 @@ impl BlockOperation {
                 SmallVec::from_iter(params.iter().map(|&p| p.clone())),
             )),
             Self::Custom { builder } => {
-                println!("Using custom.");
                 // the builder returns a Python operation plus the bound parameters
                 let py_params =
                     PyList::new_bound(py, params.iter().map(|&p| p.clone().into_py(py))).into_any();

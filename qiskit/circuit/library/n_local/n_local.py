@@ -152,7 +152,7 @@ def _normalize_blocks(
                 raise ValueError(f"Unsupported gate: {block}")
             block = supported_gates[block]
             is_standard = True
-        elif isinstance(block, Gate) and hasattr(block, "_standard_gate"):
+        elif isinstance(block, Gate) and getattr(block, "_standard_gate", None) is not None:
             if len(block.params) == 0:
                 is_standard = True
             # the fast path will always overwrite block parameters
