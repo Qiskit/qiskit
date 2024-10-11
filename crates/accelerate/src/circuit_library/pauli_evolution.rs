@@ -12,8 +12,9 @@
 
 use itertools::Itertools;
 use pyo3::prelude::*;
+use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::operations::{radd_param, Param, StandardGate};
 use qiskit_circuit::Qubit;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
@@ -59,7 +60,7 @@ pub fn pauli_evolution<'a>(
     let (paulis, indices): (Vec<char>, Vec<u32>) = active.unzip();
 
     match (phase_gate, indices.len()) {
-        (false, 0) => Box::new(std::iter::empty()),
+        (_, 0) => Box::new(std::iter::empty()),
         (false, 1) => Box::new(single_qubit_evolution(paulis[0], indices[0], time)),
         (false, 2) => two_qubit_evolution(paulis.clone(), indices.clone(), time),
         _ => Box::new(multi_qubit_evolution(
@@ -188,22 +189,45 @@ fn multi_qubit_evolution(
 }
 
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli, qubits, time))]
+#[pyo3(signature = (num_qubits, sparse_paulis))]
 pub fn py_pauli_evolution(
     py: Python,
     num_qubits: i64,
-    pauli: &Bound<PyString>,
-    qubits: &Bound<PyList>,
-    time: &Bound<PyAny>,
+    sparse_paulis: &Bound<PyList>,
 ) -> PyResult<CircuitData> {
-    let pauli = pauli.to_string();
-    let indices = qubits
+    let num_paulis = sparse_paulis.len();
+    let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
+    let mut indices: Vec<Vec<u32>> = Vec::with_capacity(num_paulis);
+    let mut times: Vec<Param> = Vec::with_capacity(num_paulis);
+    let mut global_phase = Param::Float(0.0);
+
+    for el in sparse_paulis.iter() {
+        let tuple = el.downcast::<PyTuple>()?;
+        let pauli = tuple.get_item(0)?.downcast::<PyString>()?.to_string();
+        let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
+
+        if pauli.as_str().chars().all(|p| p == 'i') {
+            global_phase = radd_param(global_phase, time, py); // apply factor -1 at the end
+            continue;
+        }
+
+        paulis.push(pauli);
+        times.push(time);
+        indices.push(
+            tuple
+                .get_item(1)?
+                .downcast::<PyList>()?
+                .iter()
+                .map(|index| index.extract::<u32>())
+                .collect::<PyResult<_>>()?,
+        );
+    }
+
+    let evos = paulis
         .iter()
-        .map(|el| el.extract::<u32>())
-        .collect::<PyResult<_>>()?;
-    let time = Param::extract_no_coerce(time)?;
-    let instructions = pauli_evolution(pauli.as_str(), indices, time, false);
-    let data =
-        CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0));
-    Ok(data)
+        .zip(indices)
+        .zip(times)
+        .flat_map(|((pauli, qubits), time)| pauli_evolution(pauli, qubits, time, false));
+
+    CircuitData::from_standard_gates(py, num_qubits as u32, evos, global_phase)
 }
