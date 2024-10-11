@@ -33,7 +33,7 @@ features = ["union"]
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
 
 [dependencies.ndarray]
 workspace = true
