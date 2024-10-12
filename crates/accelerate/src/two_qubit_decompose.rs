@@ -407,8 +407,8 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
 
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
-#[derive(Clone, Debug, Copy)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", eq)]
 pub enum Specialization {
     General,
     IdEquiv,
@@ -1030,6 +1030,7 @@ static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
 #[pymethods]
 impl TwoQubitWeylDecomposition {
     #[staticmethod]
+    #[pyo3(signature=(angles, matrices, specialization, default_euler_basis, calculated_fidelity, requested_fidelity=None))]
     fn _from_state(
         angles: [f64; 4],
         matrices: [PyReadonlyArray2<Complex64>; 5],

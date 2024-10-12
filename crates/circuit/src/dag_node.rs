@@ -85,6 +85,7 @@ impl DAGNode {
         self.node.map(|node| node.index())
     }
 
+    #[pyo3(signature=(index=None))]
     fn __setstate__(&mut self, index: Option<usize>) {
         self.node = index.map(NodeIndex::new);
     }

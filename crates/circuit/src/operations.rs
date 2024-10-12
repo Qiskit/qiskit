@@ -278,7 +278,7 @@ impl<'a> Operation for OperationRef<'a> {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 pub enum StandardGate {
     GlobalPhaseGate = 0,
     HGate = 1,
@@ -718,14 +718,6 @@ impl StandardGate {
     #[getter]
     pub fn get_name(&self) -> &str {
         self.name()
-    }
-
-    pub fn __eq__(&self, other: &Bound<PyAny>) -> Py<PyAny> {
-        let py = other.py();
-        let Ok(other) = other.extract::<Self>() else {
-            return py.NotImplemented();
-        };
-        (*self == other).into_py(py)
     }
 
     pub fn __hash__(&self) -> isize {
