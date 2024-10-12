@@ -227,6 +227,24 @@ impl Clifford {
                     clifford.append_s(qubits[0].0 as usize);
                     Ok(())
                 }
+                StandardGate::SdgGate => {
+                    clifford.append_sdg(qubits[0].0 as usize);
+                    Ok(())
+                }
+                StandardGate::SXGate => {
+                    // todo: replace by a single update
+                    clifford.append_sdg(qubits[0].0 as usize);
+                    clifford.append_h(qubits[0].0 as usize);
+                    clifford.append_sdg(qubits[0].0 as usize);
+                    Ok(())
+                }
+                StandardGate::SXdgGate => {
+                    // todo: replace by a single update
+                    clifford.append_s(qubits[0].0 as usize);
+                    clifford.append_h(qubits[0].0 as usize);
+                    clifford.append_s(qubits[0].0 as usize);
+                    Ok(())
+                }
                 StandardGate::HGate => {
                     clifford.append_h(qubits[0].0 as usize);
                     Ok(())

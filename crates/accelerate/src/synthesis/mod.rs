@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod clifford;
+pub mod clifford;
 mod evolution;
 pub mod linear;
 pub mod linear_phase;

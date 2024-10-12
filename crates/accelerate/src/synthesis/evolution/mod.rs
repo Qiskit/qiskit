@@ -10,6 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#![allow(clippy::too_many_arguments)]
+
+use crate::synthesis::clifford::greedy_synthesis::resynthesize_clifford_circuit;
+
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use smallvec::{smallvec, SmallVec};
@@ -19,15 +23,19 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
-use rustiq_core::structures::{CliffordGate, Metric, PauliLike, PauliSet};
+use rustiq_core::structures::{
+    CliffordCircuit, CliffordGate, IsometryTableau, Metric, PauliLike, PauliSet,
+};
+use rustiq_core::synthesis::clifford::isometry::isometry_synthesis;
 use rustiq_core::synthesis::pauli_network::greedy_pauli_network;
 
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::Incoming;
 
-/// A Qiskit gate
-pub type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
+/// A Qiskit gate. The quantum circuit data returned by the pauli network
+/// synthesis algorithm will consist of clifford and rotation gates.
+type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
 /// Expands the sparse pauli string representation to the full representation.
 ///
@@ -100,8 +108,8 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
                 'Z' => StandardGate::RZGate,
                 _ => panic!(),
             };
-            // we need to multiply the angle by 2
-            // we also need to negate it when there is a phase
+            // Due to Rustiq's inner workings, we need to multiply the angle by 2.
+            // We also need to negate the angle when there is a phase.
             let param = match phase {
                 false => multiply_param(angle, 2.0, py),
                 true => multiply_param(angle, -2.0, py),
@@ -112,6 +120,14 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
     unreachable!()
 }
 
+// Note: The pauli network synthesis algorithm in rustiq-core 0.0.8 only returns
+// the list of Clifford gates that, when simulated, turn every pauli rotation at
+// some point to a single-qubit rotation, in the given order, but up to commutativity.
+// Following the code in Simon's private rustiq-plugin repository, we simulate the
+// clifford gates to find where pauli rotations need to be inserted. If the future
+// the synthesis algorithm will explicitly return where the rotations need to be
+// inserted, a lot of the following code could be removed.
+
 /// A DAG that stores ordered Paulis, up to commutativity.
 struct CommutativityDag {
     /// Rustworkx's DAG
@@ -119,7 +135,7 @@ struct CommutativityDag {
 }
 
 impl CommutativityDag {
-    /// Construct a DAG based on the commutativity relations between paulis.
+    /// Construct a DAG based on commutativity relations between paulis.
     pub fn from_paulis(paulis: &PauliSet) -> Self {
         let mut dag = StableDiGraph::<usize, ()>::new();
 
@@ -266,27 +282,92 @@ fn inject_rotations_ordered(
     (out_gates, global_phase)
 }
 
+/// Return the vector of Qiskit's gate corresponding to the given vector
+/// of Rustiq's Clifford gate.
+fn qiskit_clifford_gates(gates: &Vec<CliffordGate>) -> Vec<QiskitGate> {
+    let mut qiskit_gates: Vec<QiskitGate> = Vec::with_capacity(gates.len());
+    for gate in gates {
+        qiskit_gates.push(qiskit_clifford_gate(gate));
+    }
+    qiskit_gates
+}
+
+/// Returns the number of CNOTs.
+fn cnot_count(qgates: &[QiskitGate]) -> usize {
+    qgates.iter().filter(|&gate| gate.2.len() == 2).count()
+}
+
+/// Given the Clifford circuit returned by Rustiq's pauli network synthesis algorithm,
+/// generates a sequence of Qiskit gates that implements this circuit.
+/// If `fix_clifford_method` is `0`, the original circuit is inverted; if `1`, it is
+/// resynthesized using Qiskit; and if `2` it is resynthesized using Rustiq.
+fn synthesize_final_clifford(
+    rcircuit: &CliffordCircuit,
+    resynth_clifford_method: usize,
+) -> Vec<QiskitGate> {
+    match resynth_clifford_method {
+        0 => qiskit_clifford_gates(&rcircuit.gates),
+        1 => {
+            // Qiskit-based resynthesis
+            let qcircuit = qiskit_clifford_gates(&rcircuit.gates);
+            let new_qcircuit = resynthesize_clifford_circuit(rcircuit.nqbits, &qcircuit).unwrap();
+            if cnot_count(&qcircuit) < cnot_count(&new_qcircuit) {
+                qcircuit
+            } else {
+                new_qcircuit
+            }
+        }
+        _ => {
+            // Rustiq-based resynthesis
+            let tableau = IsometryTableau::new(rcircuit.nqbits, 0);
+            let new_rcircuit = isometry_synthesis(&tableau, &Metric::COUNT, 1);
+            if new_rcircuit.cnot_count() < rcircuit.cnot_count() {
+                qiskit_clifford_gates(&new_rcircuit.gates)
+            } else {
+                qiskit_clifford_gates(&rcircuit.gates)
+            }
+        }
+    }
+}
+
 /// Calls Rustiq's pauli network synthesis algorithm and returns the
 /// Qiskit circuit data with Clifford gates and rotations.
 ///
 /// # Arguments
 ///
-/// * py: a GIL handle, needed to negate rotation parameters in Python space.
+/// * py: a GIL handle, needed to add and negate rotation parameters in Python space.
 /// * num_qubits: total number of qubits.
 /// * pauli_network: pauli network represented in sparse format. It's a list
 ///     of triples such as `[("XX", [0, 3], theta), ("ZZ", [0, 1], 0.1)]`.
+/// * optimize_count: if `true`, Rustiq's synthesis algorithms aims to optimize
+///     the 2-qubit gate count; and if `false`, then the 2-qubit depth.
 /// * preserve_order: whether the order of paulis should be preserved, up to
-///     commutativity.
-/// * optimize_count: if true, Rustiq's synthesis algorithms aims to optimize
-///     the count; and if false, then the depth.
+///     commutativity. If the order is not preserved, the returned circuit will
+///     generally not be equivalent to the given pauli network.
+/// * upto_clifford: if `true`, the final Clifford operator is not synthesized
+///     and the returned circuit will generally not be equivalent to the given
+///     pauli network. In addition, the argument `pauli_phase` would be ignored.
+/// * upto_phase: if `true`, the global phase of the returned circuit may differ
+///     from the global phase of the given pauli network. The argument is ignored
+///     when `upto_clifford` is `true`.
+/// * resynth_clifford_method: describes the strategy to resynthesize the Clifford
+///     circuit returned by Rustiq's pauli network synthesis algorithm.
+///     If `0` the circuit is not resynthesized, if `1` it is resynthesized using
+///     Qiskit, and if `2` it is resynthesized using Rustiq.
+///
+/// If `preserve_order` is `true` and both `upto_clifford` and `upto_phase` are `false`,
+/// the returned circuit is equivalent to the given pauli network.
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, optimize_count=true))]
+#[pyo3(signature = (num_qubits, pauli_network, optimize_count=true, preserve_order=true, upto_clifford=false, upto_phase=false, resynth_clifford_method=1))]
 pub fn pauli_network_synthesis(
     py: Python,
     num_qubits: usize,
     pauli_network: &Bound<PyList>,
-    preserve_order: bool,
     optimize_count: bool,
+    preserve_order: bool,
+    upto_clifford: bool,
+    upto_phase: bool,
+    resynth_clifford_method: usize,
 ) -> PyResult<CircuitData> {
     let mut paulis: Vec<String> = Vec::new();
     let mut angles: Vec<Param> = Vec::new();
@@ -315,14 +396,30 @@ pub fn pauli_network_synthesis(
         false => Metric::DEPTH,
     };
 
-    // call Rustiq's pauli network synthesis algorithm
-    let circuit = greedy_pauli_network(&mut paulis, &metric, preserve_order, 0, false, true);
+    // Call Rustiq's synthesis algorithm
+    let circuit = greedy_pauli_network(&mut paulis, &metric, preserve_order, 0, false, false);
 
     // post-process algorithm's output, translating to Qiskit's gates and inserting rotation gates
-    let (gates, global_phase) = match preserve_order {
+    let (mut gates, global_phase) = match preserve_order {
         false => inject_rotations_unordered(py, &circuit.gates, &paulis, &angles),
         true => inject_rotations_ordered(py, &circuit.gates, &paulis, &angles),
     };
+
+    // if the circuit needs to be synthesized exactly, we cannot use either Rustiq's
+    // or Qiskit's synthesis methods for Cliffords, since they do not necessarily preserve
+    // the global phase.
+    let resynth_clifford_method = match upto_phase {
+        true => resynth_clifford_method,
+        false => 0,
+    };
+
+    // synthesize the final Clifford
+    if !upto_clifford {
+        let final_clifford = synthesize_final_clifford(&circuit.dagger(), resynth_clifford_method);
+        for gate in final_clifford {
+            gates.push(gate);
+        }
+    }
 
     CircuitData::from_standard_gates(py, num_qubits as u32, gates, global_phase)
 }
