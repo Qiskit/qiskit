@@ -301,7 +301,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
     synth_mcmt_vchain,
 )
-from qiskit.synthesis.evolution import pauli_network_synthesis
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1069,8 +1069,30 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
     This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    The Rustiq synthesis calls the Rust-based quantum circuit synthesis library
+    The Rustiq synthesis algorithm is described in [1], and is implemented in
+    Rust-based quantum circuit synthesis library available at
     https://github.com/smartiel/rustiq-core.
+
+    On large circuits the plugin may take a significant runtime.
+
+    The plugin supports the following additional options:
+
+    * optimize_count (bool): if `True` the synthesis algorithm will try to optimize
+        the 2-qubit gate count; and if `False` then the 2-qubit depth.
+    * preserve_order (bool): whether the order of paulis should be preserved, up to
+        commutativity.
+    * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
+    * upto_phase (bool): if `True`, the global phase of the returned circuit may
+        differ from the global phase of the given pauli network.
+    * resynth_clifford_method (int): describes the strategy to synthesize the final
+        Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
+        greedy synthesis), `2` (rustiq isometry synthesis).
+
+    References:
+        1. Timothée Goubault de Brugière and Simon Martiel,
+           *Faster and shorter synthesis of Hamiltonian simulation circuits*,
+           `arXiv:2404.03280 [quant-ph] <https://arxiv.org/abs/2404.03280>`_
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1093,17 +1115,23 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         pauli_rotations = algo.expand(high_level_object)
 
         # todo: check if this can be made a part of the expand method
-        pauli_rotations = [
+        pauli_network = [
             (pauli_string, qubits, np.real_if_close(coeff))
             for (pauli_string, qubits, coeff) in pauli_rotations
         ]
 
-        preserve_order = options.get("preserve_order", True)
         optimize_count = options.get("optimize_count", True)
+        preserve_order = options.get("preserve_order", True)
+        upto_clifford = options.get("upto_clifford", False)
+        upto_phase = options.get("upto_phase", False)
+        resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
-        out = pauli_network_synthesis(num_qubits, pauli_rotations, preserve_order, optimize_count)
-
-        if out is None:
-            return out
-
-        return QuantumCircuit._from_circuit_data(out)
+        return synth_pauli_network_rustiq(
+            num_qubits=num_qubits,
+            pauli_network=pauli_network,
+            optimize_count=optimize_count,
+            preserve_order=preserve_order,
+            upto_clifford=upto_clifford,
+            upto_phase=upto_phase,
+            resynth_clifford_method=resynth_clifford_method,
+        )

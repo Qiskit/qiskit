@@ -42,7 +42,7 @@ type QiskitGate = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 /// For example: for the input `sparse_pauli = "XY", qubits = [1, 3], num_qubits = 6`,
 /// the function returns `"IXIYII"`.
 fn expand_pauli(sparse_pauli: String, qubits: Vec<u32>, num_qubits: usize) -> String {
-    let mut v: Vec<char> = vec!["I".parse().unwrap(); num_qubits];
+    let mut v: Vec<char> = vec!['I'; num_qubits];
     for (i, q) in qubits.iter().enumerate() {
         v[*q as usize] = sparse_pauli.chars().nth(i).unwrap();
     }
@@ -117,7 +117,7 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
             return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
         }
     }
-    unreachable!()
+    unreachable!("The pauli rotation is guaranteed to be a sinle-qubit rotation.")
 }
 
 // Note: The pauli network synthesis algorithm in rustiq-core 0.0.8 only returns
@@ -136,7 +136,7 @@ struct CommutativityDag {
 
 impl CommutativityDag {
     /// Construct a DAG based on commutativity relations between paulis.
-    pub fn from_paulis(paulis: &PauliSet) -> Self {
+    fn from_paulis(paulis: &PauliSet) -> Self {
         let mut dag = StableDiGraph::<usize, ()>::new();
 
         let node_indices: Vec<NodeIndex> = (0..paulis.len()).map(|i| dag.add_node(i)).collect();
@@ -156,7 +156,7 @@ impl CommutativityDag {
     }
 
     /// Return whether the given node is a front node (i.e. has no predecessors).
-    pub fn is_front_node(&self, index: usize) -> bool {
+    fn is_front_node(&self, index: usize) -> bool {
         self.dag
             .neighbors_directed(NodeIndex::new(index), Incoming)
             .next()
@@ -164,7 +164,7 @@ impl CommutativityDag {
     }
 
     /// Remove node from the DAG.
-    pub fn remove_node(&mut self, index: usize) {
+    fn remove_node(&mut self, index: usize) {
         self.dag.remove_node(NodeIndex::new(index));
     }
 }
@@ -346,14 +346,16 @@ fn synthesize_final_clifford(
 ///     generally not be equivalent to the given pauli network.
 /// * upto_clifford: if `true`, the final Clifford operator is not synthesized
 ///     and the returned circuit will generally not be equivalent to the given
-///     pauli network. In addition, the argument `pauli_phase` would be ignored.
+///     pauli network. In addition, the argument `upto_phase` would be ignored.
 /// * upto_phase: if `true`, the global phase of the returned circuit may differ
 ///     from the global phase of the given pauli network. The argument is ignored
 ///     when `upto_clifford` is `true`.
-/// * resynth_clifford_method: describes the strategy to resynthesize the Clifford
-///     circuit returned by Rustiq's pauli network synthesis algorithm.
-///     If `0` the circuit is not resynthesized, if `1` it is resynthesized using
-///     Qiskit, and if `2` it is resynthesized using Rustiq.
+/// * resynth_clifford_method: describes the strategy to synthesize the final
+///     Clifford operator. If `0` a naive approach is used, which doubles the number
+///     of gates but preserves the global phase of the circuit. If `1`, the Clifford is
+///     resynthesized using Qiskit's greedy Clifford synthesis algorithm. If `2`, it
+///     is resynthesized by Rustiq itself. If `upto_phase` is `false`, the naive
+///     approach is used, as neither synthesis method preserves the global phase.
 ///
 /// If `preserve_order` is `true` and both `upto_clifford` and `upto_phase` are `false`,
 /// the returned circuit is equivalent to the given pauli network.
