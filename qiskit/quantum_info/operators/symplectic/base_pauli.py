@@ -184,7 +184,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return BasePauli(self._z, self._x, np.mod(self._phase + phase, 4))
 
     def conjugate(self):
-        """Return the conjugate of each Pauli in the list."""
+        """Return the complex conjugate of the Pauli with respect to the Z basis."""
         complex_phase = np.mod(self._phase, 2)
         if np.all(complex_phase == 0):
             return self
