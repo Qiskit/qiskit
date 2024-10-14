@@ -169,14 +169,12 @@ class DAGDependency:
 
     @property
     def _calibrations_prop(self) -> dict[str, dict[tuple, Schedule]]:
-        """An alternative path to be used internally to avoid deprecation warnings
-        """
+        """An alternative path to be used internally to avoid deprecation warnings"""
         return dict(self._calibrations)
 
     @_calibrations_prop.setter
     def _calibrations_prop(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """An alternative path to be used internally to avoid deprecation warnings
-        """
+        """An alternative path to be used internally to avoid deprecation warnings"""
         self._calibrations = defaultdict(dict, calibrations)
 
     def to_retworkx(self):

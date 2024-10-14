@@ -1363,14 +1363,14 @@ class QuantumCircuit:
 
     @property
     def _calibrations_prop(self) -> dict:
-        """An alternative private path to the `calibrations` property for avoiding deprecation warnings.
-        """
+        """An alternative private path to the `calibrations` property for
+        avoiding deprecation warnings."""
         return dict(self._calibrations)
 
     @_calibrations_prop.setter
     def _calibrations_prop(self, calibrations: dict):
-        """An alternative private path to the `calibrations` property for avoiding deprecation warnings.
-        """
+        """An alternative private path to the `calibrations` property for
+        avoiding deprecation warnings."""
         self._calibrations = defaultdict(dict, calibrations)
 
     @deprecate_pulse_dependency
@@ -1382,8 +1382,8 @@ class QuantumCircuit:
         return self._has_calibration_for(instruction)
 
     def _has_calibration_for(self, instruction: CircuitInstruction | tuple):
-        """An alternative private path to the `has_calibration_for` method for avoiding deprecation warnings.
-        """
+        """An alternative private path to the `has_calibration_for` method for
+        avoiding deprecation warnings."""
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
             qubits = instruction.qubits

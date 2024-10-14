@@ -70,8 +70,7 @@ def ignore_pulse_deprecation_warnings(func):
     def wrapper(*args, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings(
-                "ignore", category=DeprecationWarning,
-                message="The (.*) ``qiskit.pulse"
+                "ignore", category=DeprecationWarning, message="The (.*) ``qiskit.pulse"
             )
             return func(*args, **kwargs)
 

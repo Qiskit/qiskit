@@ -521,7 +521,9 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         with builder.build() as square_sx_cal:
             builder.play(Square(amp=0.1, duration=160, phase=0), DriveChannel(0))
         with self.assertWarns(DeprecationWarning):
-            target.add_instruction(SXGate(), {(0,): InstructionProperties(calibration=square_sx_cal)})
+            target.add_instruction(
+                SXGate(), {(0,): InstructionProperties(calibration=square_sx_cal)}
+            )
             tp = RXCalibrationBuilder(target)
         qubits = (0,)
         node_op = DAGOpNode(RXGate(0.5), qubits, [])

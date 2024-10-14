@@ -651,7 +651,7 @@ class GenericBackendV2(BackendV2):
         return self._target.concurrent_measurements
 
     def _build_default_channels(self) -> None:
-        with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
             # Prevent pulse deprecation warnings from being emitted
             channels_map = {
                 "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
@@ -877,7 +877,7 @@ class GenericBackendV2(BackendV2):
                     self._rng.uniform(*noise_params[2:]),
                 )
             )
-            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
                 # Prevent pulse deprecations from being emitted
                 if (
                     calibration_inst_map is not None

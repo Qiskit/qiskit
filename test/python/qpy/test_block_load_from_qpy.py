@@ -14,6 +14,7 @@
 
 import io
 import unittest
+import warnings
 from ddt import ddt, data, unpack
 import numpy as np
 import symengine as sym
@@ -38,6 +39,7 @@ from qiskit.pulse.channels import (
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.qpy import dump, load
+from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning
 from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -78,6 +80,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                     envelope(*params),
                     channel(0),
                 )
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_playing_custom_symbolic_pulse(self):
@@ -96,6 +99,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             )
             with builder.build() as test_sched:
                 builder.play(my_pulse, DriveChannel(0))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_symbolic_amplitude_limit(self):
@@ -106,6 +110,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                     Gaussian(160, 20, 40, limit_amplitude=False),
                     DriveChannel(0),
                 )
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_waveform_amplitude_limit(self):
@@ -116,6 +121,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                     Waveform([1, 2, 3, 4, 5], limit_amplitude=False),
                     DriveChannel(0),
                 )
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_playing_waveform(self):
@@ -126,6 +132,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             with builder.build() as test_sched:
                 builder.play(waveform, DriveChannel(0))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_phases(self):
@@ -134,6 +141,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             with builder.build() as test_sched:
                 builder.shift_phase(0.1, DriveChannel(0))
                 builder.set_phase(0.4, DriveChannel(1))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_frequencies(self):
@@ -142,6 +150,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             with builder.build() as test_sched:
                 builder.shift_frequency(10e6, DriveChannel(0))
                 builder.set_frequency(5e9, DriveChannel(1))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_delay(self):
@@ -149,6 +158,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             with builder.build() as test_sched:
                 builder.delay(100, DriveChannel(0))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_barrier(self):
@@ -156,6 +166,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             with builder.build() as test_sched:
                 builder.barrier(DriveChannel(0), DriveChannel(1), ControlChannel(2))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_time_blockade(self):
@@ -163,6 +174,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             with builder.build() as test_sched:
                 builder.append_instruction(TimeBlockade(10, DriveChannel(0)))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_measure(self):
@@ -171,6 +183,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             with builder.build() as test_sched:
                 builder.acquire(100, AcquireChannel(0), MemorySlot(0))
                 builder.acquire(100, AcquireChannel(1), RegisterSlot(1))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     @data(
@@ -185,6 +198,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             with builder.build() as test_sched:
                 builder.play(Gaussian(*params), DriveChannel(channel))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_nested_blocks(self):
@@ -201,6 +215,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                     with builder.align_sequential():
                         builder.delay(100, DriveChannel(0))
                         builder.delay(200, DriveChannel(1))
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_called_schedule(self):
@@ -216,6 +231,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
 
             with builder.build() as test_sched:
                 builder.call(refsched, name="test_ref")
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_unassigned_reference(self):
@@ -225,7 +241,9 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                 builder.reference("custom1", "q0")
                 builder.reference("custom1", "q1")
 
-            self.assert_roundtrip_equal(test_sched)
+        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
+                self.assert_roundtrip_equal(test_sched)
 
     def test_partly_assigned_reference(self):
         """Test schedule with partly assigned reference."""
@@ -242,8 +260,9 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             inplace=True,
         )
 
-        with self.assertWarns(DeprecationWarning):
-            self.assert_roundtrip_equal(test_sched)
+        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
+                self.assert_roundtrip_equal(test_sched)
 
     def test_nested_assigned_reference(self):
         """Test schedule with assigned reference for nested schedule."""
@@ -264,7 +283,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             inplace=True,
         )
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_bell_schedule(self):
@@ -290,6 +309,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                         builder.play(GaussianSquare(8000, 0.2, 64, 7744), MeasureChannel(0))
                         builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
 
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     @unittest.skipUnless(_optional.HAS_SYMENGINE, "Symengine required for this test")
@@ -316,6 +336,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                         builder.play(GaussianSquare(8000, 0.2, 64, 7744), MeasureChannel(0))
                         builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
 
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched, True)
 
     def test_with_acquire_instruction_with_kernel(self):
@@ -327,6 +348,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             with builder.build() as test_sched:
                 builder.acquire(100, AcquireChannel(0), MemorySlot(0), kernel=kernel)
 
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
     def test_with_acquire_instruction_with_discriminator(self):
@@ -338,6 +360,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             with builder.build() as test_sched:
                 builder.acquire(100, AcquireChannel(0), MemorySlot(0), discriminator=discriminator)
 
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             self.assert_roundtrip_equal(test_sched)
 
 
@@ -357,7 +380,7 @@ class TestPulseGate(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             qc.add_calibration(mygate, (0,), caldef)
 
-            self.assert_roundtrip_equal(qc)
+        self.assert_roundtrip_equal(qc)
 
     def test_2q_gate(self):
         """Test for two qubit pulse gate."""
@@ -372,7 +395,7 @@ class TestPulseGate(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             qc.add_calibration(mygate, (0, 1), caldef)
 
-            self.assert_roundtrip_equal(qc)
+        self.assert_roundtrip_equal(qc)
 
     def test_parameterized_gate(self):
         """Test for parameterized pulse gate."""
@@ -389,7 +412,7 @@ class TestPulseGate(QpyScheduleTestCase):
         with self.assertWarns(DeprecationWarning):
             qc.add_calibration(mygate, (0, 1), caldef)
 
-            self.assert_roundtrip_equal(qc)
+        self.assert_roundtrip_equal(qc)
 
     def test_override(self):
         """Test for overriding standard gate with pulse gate."""
@@ -491,6 +514,6 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             dump(self.test_sched, qpy_file, use_symengine=True)
         qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
             new_sched = load(qpy_file)[0]
         self.assertEqual(self.test_sched, new_sched)

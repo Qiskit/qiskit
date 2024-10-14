@@ -421,7 +421,7 @@ class TestPulseGate(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             backend_pulse = Fake27QPulseV1()
-        # This doesn't have custom schedule definition
+            # This doesn't have custom schedule definition
             target = GenericBackendV2(
                 num_qubits=5,
                 coupling_map=BOGOTA_CMAP,

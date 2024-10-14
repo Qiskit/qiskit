@@ -1307,8 +1307,7 @@ class TestPulseAssembler(QiskitTestCase):
         """Test two pulses with the same name in different schedule can be resolved."""
         with self.assertWarns(DeprecationWarning):
             backend = Fake27QPulseV1()
-        with self.assertWarns(DeprecationWarning):
-            defaults = backend.defaults()
+        defaults = backend.defaults()
 
         schedules = []
         with self.assertWarns(DeprecationWarning):

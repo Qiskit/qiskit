@@ -204,7 +204,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         # The CR instruction is in the forward (native) direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
-            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
                 # `InstructionScheduleMap.get` and the pulse builder emit deprecation warnings
                 # as they use classes and methods which are deprecated in Qiskit 1.3 as part of the
                 # Qiskit Pulse deprecation
@@ -303,7 +303,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         # RZXCalibrationNoEcho only good for forward CR direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
-            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
                 # Pulse builder emits deprecation warnings as part of the
                 # Qiskit Pulse deprecation
                 with builder.build(default_alignment="left", name=f"rzx({theta:.3f})") as rzx_theta:
@@ -356,7 +356,7 @@ def _check_calibration_type(
         QiskitError: Unknown calibration type is detected.
     """
     cal_type = None
-    with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+    with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
         # `InstructionScheduleMap.get` and `filter_instructions` emit deprecation warnings
         # as they use classes and methods which are deprecated in Qiskit 1.3 as part of the
         # Qiskit Pulse deprecation

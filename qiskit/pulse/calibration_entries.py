@@ -321,7 +321,7 @@ class PulseQobjDef(ScheduleDef):
 
     def _build_schedule(self):
         """Build pulse schedule from cmd-def sequence."""
-        with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
             # `Schedule` is being deprecated in Qiskit 1.3
             schedule = Schedule(name=self._name)
         try:

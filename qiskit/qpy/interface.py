@@ -353,7 +353,7 @@ def load(
             message="Pulse gates deserialization is deprecated as of Qiskit 1.3 and "
             "will be removed in Qiskit 2.0. This is part of the deprecation plan for "
             "the entire Qiskit Pulse package. Once Pulse is removed, `ScheduleBlock` "
-            "sections will be ignored when loading QPY files with pulse data."
+            "sections will be ignored when loading QPY files with pulse data.",
         )
 
     else:

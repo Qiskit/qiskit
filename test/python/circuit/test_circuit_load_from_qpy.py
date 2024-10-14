@@ -56,6 +56,7 @@ from qiskit.circuit.annotated_operation import (
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
+from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.qpy import dump, load, UnsupportedFeatureForVersion, QPY_COMPATIBILITY_VERSION
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
@@ -355,8 +356,7 @@ class TestLoadFromQPY(QiskitTestCase):
             # qpy.dump warns for deprecations of pulse gate serialization
             dump(qc, qpy_file)
         qpy_file.seek(0)
-        with self.assertWarns(DeprecationWarning):
-            new_circ = load(qpy_file)[0]
+        new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         instruction = new_circ.data[0]
         cal_key = (

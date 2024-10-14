@@ -2001,8 +2001,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
             fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
-        with self.assertWarns(DeprecationWarning):
-            defaults = fake_backend.defaults()
+        defaults = fake_backend.defaults()
         constraints = TimingConstraints(**config.timing_constraints)
         with self.assertWarns(DeprecationWarning):
             target = Target.from_configuration(

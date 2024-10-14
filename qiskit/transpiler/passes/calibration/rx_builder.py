@@ -107,7 +107,9 @@ class RXCalibrationBuilder(CalibrationBuilder):
                 self.target._get_calibration("sx", tuple(qubits)).instructions[0][1].pulse,
                 ScalableSymbolicPulse,
             )
-            and self.target._get_calibration("sx", tuple(qubits)).instructions[0][1].pulse.pulse_type
+            and self.target._get_calibration("sx", tuple(qubits))
+            .instructions[0][1]
+            .pulse.pulse_type
             == "Drag"
         )
 
