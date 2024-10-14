@@ -1,10 +1,10 @@
 ---
-deprecations_pulse:
+deprecations:
   - |
     The Qiskit Pulse package is being deprecated and will be removed in Qiskit version 2.0.0. Pulse-level
-    access is currently supported on a subset of Eagle devices but not on the latest Heron architecture
-    ones. Going forward, newer IBM Quantum architectures will not support pulse-level access as well. As a
-    consequence, supporting Pulse as a first-class citizen frontend in the Qiskit SDK itself makes little
+    access is currently supported only on a subset of Eagle devices and not supported on the Heron architecture
+    ones. Furthermore, newer IBM Quantum architectures will not support pulse-level access as well.
+    As a consequence, supporting Pulse as a first-class citizen frontend in the Qiskit SDK itself makes little
     sense going forward. The deprecation includes all pulse code in :mod:`qiskit.pulse` as well as functionality
     dependant or related to pulse such as pulse visualization, serialization and custom calibration support. For
     more details see the deprecation sections.

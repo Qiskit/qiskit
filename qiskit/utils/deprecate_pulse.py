@@ -14,6 +14,9 @@
 Deprecation functions for Qiskit Pulse. To be removed in Qiskit 2.0.
 """
 
+import warnings
+import functools
+
 from qiskit.utils.deprecation import deprecate_func, deprecate_arg
 
 
@@ -31,7 +34,6 @@ def deprecate_pulse_func(func):
 
 def deprecate_pulse_dependency(*args, **kwargs):
     """Deprecation message for functions and classes which use or depend on Pulse"""
-
     decorator = deprecate_func(
         since="1.3",
         package_name="Qiskit",
@@ -59,3 +61,31 @@ def deprecate_pulse_arg(arg_name, **kwargs):
         "and this argument uses a dependency on the package.",
         **kwargs,
     )
+
+
+def ignore_pulse_deprecation_warnings(func):
+    """Ignore deprecation warnings emitted from the pulse package"""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=DeprecationWarning,
+                message="The (.*) ``qiskit.pulse"
+            )
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+def decorate_test_methods(decorator):
+    """Put a given decorator on all the decorated class methods whose name starts with `test_`"""
+
+    def cls_wrapper(cls):
+        for attr in dir(cls):
+            if attr.startswith("test_") and callable(object.__getattribute__(cls, attr)):
+                setattr(cls, attr, decorator(object.__getattribute__(cls, attr)))
+
+        return cls
+
+    return cls_wrapper
