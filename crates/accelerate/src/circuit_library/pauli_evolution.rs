@@ -221,11 +221,8 @@ pub fn py_pauli_evolution(
         );
     }
 
-    let evos = paulis
-        .iter()
-        .zip(indices)
-        .zip(times)
-        .flat_map(|((pauli, qubits), time)| {
+    let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
+        |(((i, pauli), qubits), time)| {
             let as_packed = pauli_evolution(pauli, qubits, time, false).map(
                 |(gate, params, qubits)| -> PyResult<Instruction> {
                     Ok((
@@ -236,8 +233,13 @@ pub fn py_pauli_evolution(
                     ))
                 },
             );
-            as_packed.chain(utils::maybe_barrier(py, num_qubits as u32, insert_barriers))
-        });
+            as_packed.chain(utils::maybe_barrier(
+                py,
+                num_qubits as u32,
+                insert_barriers && i < num_paulis, // do not add barrier on final block
+            ))
+        },
+    );
 
     // apply factor -1 for global phase
     global_phase = multiply_param(&global_phase, -1.0, py);

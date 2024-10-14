@@ -146,16 +146,6 @@ class ProductFormula(EvolutionSynthesis):
         data = py_pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers)
         circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
 
-        # circuit = QuantumCircuit(num_qubits)
-
-        # # we could cache the circuit decomposition for the circuits we already saw
-        # for i, (pauli_string, qubits, coeff) in enumerate(pauli_rotations):
-        #     op = SparsePauliOp.from_sparse_list([(pauli_string, qubits, 1)], num_qubits).paulis[0]
-
-        #     self.atomic_evolution(circuit, op, coeff)
-        #     if self.insert_barriers and i != len(pauli_rotations) - 1:
-        #         circuit.barrier()
-
         return circuit
 
     @property
