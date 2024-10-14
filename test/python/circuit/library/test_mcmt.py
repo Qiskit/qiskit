@@ -265,6 +265,13 @@ class TestMCMT(QiskitTestCase):
                 with self.assertRaises(ValueError):
                     _ = MCMTGate(gate, 10, 2)
 
+    def test_invalid_base_gate_width_synthfun(self):
+        """Test only 1-qubit base gates are accepted."""
+        for gate in [GlobalPhaseGate(0.2), SwapGate()]:
+            with self.subTest(gate=gate):
+                with self.assertRaises(ValueError):
+                    _ = synth_mcmt_vchain(gate, 10, 2)
+
     def test_gate_with_parameters_vchain(self):
         """Test a gate with parameters as base gate."""
         theta = Parameter("th")
