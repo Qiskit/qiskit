@@ -22,7 +22,6 @@ from numbers import Number
 from typing import TYPE_CHECKING
 
 import numpy as np
-import scipy.linalg
 
 from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
@@ -589,6 +588,9 @@ class Operator(LinearOp):
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
+
+        import scipy.linalg
+
         ret = _copy.copy(self)
         ret._data = scipy.linalg.fractional_matrix_power(self.data, n)
         return ret
