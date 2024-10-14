@@ -651,14 +651,16 @@ class GenericBackendV2(BackendV2):
         return self._target.concurrent_measurements
 
     def _build_default_channels(self) -> None:
-        channels_map = {
-            "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
-            "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
-            "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
-            "control": {
-                (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self._coupling_map)
-            },
-        }
+        with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+            # Prevent pulse deprecation warnings from being emitted
+            channels_map = {
+                "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
+                "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
+                "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
+                "control": {
+                    (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self._coupling_map)
+                },
+            }
         setattr(self, "channels_map", channels_map)
 
     def _get_noise_defaults(self, name: str, num_qubits: int) -> tuple:
@@ -870,27 +872,32 @@ class GenericBackendV2(BackendV2):
             duration, error = (
                 noise_params
                 if len(noise_params) == 2
-                else (self._rng.uniform(*noise_params[:2]), self._rng.uniform(*noise_params[2:]))
-            )
-            if (
-                calibration_inst_map is not None
-                and instruction.name not in ["reset", "delay"]
-                and qarg in calibration_inst_map.qubits_with_instruction(instruction.name)
-            ):
-                # Do NOT call .get method. This parses Qobj immediately.
-                # This operation is computationally expensive and should be bypassed.
-                calibration_entry = calibration_inst_map._get_calibration_entry(
-                    instruction.name, qargs
+                else (
+                    self._rng.uniform(*noise_params[:2]),
+                    self._rng.uniform(*noise_params[2:]),
                 )
-            else:
-                calibration_entry = None
-            if duration is not None and len(noise_params) > 2:
-                # Ensure exact conversion of duration from seconds to dt
-                dt = _QUBIT_PROPERTIES["dt"]
-                rounded_duration = round(duration / dt) * dt
-                # Clamp rounded duration to be between min and max values
-                duration = max(noise_params[0], min(rounded_duration, noise_params[1]))
-            props.update({qargs: InstructionProperties(duration, error, calibration_entry)})
+            )
+            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+                # Prevent pulse deprecations from being emitted
+                if (
+                    calibration_inst_map is not None
+                    and instruction.name not in ["reset", "delay"]
+                    and qarg in calibration_inst_map.qubits_with_instruction(instruction.name)
+                ):
+                    # Do NOT call .get method. This parses Qobj immediately.
+                    # This operation is computationally expensive and should be bypassed.
+                    calibration_entry = calibration_inst_map._get_calibration_entry(
+                        instruction.name, qargs
+                    )
+                else:
+                    calibration_entry = None
+                if duration is not None and len(noise_params) > 2:
+                    # Ensure exact conversion of duration from seconds to dt
+                    dt = _QUBIT_PROPERTIES["dt"]
+                    rounded_duration = round(duration / dt) * dt
+                    # Clamp rounded duration to be between min and max values
+                    duration = max(noise_params[0], min(rounded_duration, noise_params[1]))
+                props.update({qargs: InstructionProperties(duration, error, calibration_entry)})
         self._target.add_instruction(instruction, props)
 
         # The "measure" instruction calibrations need to be added qubit by qubit, once the

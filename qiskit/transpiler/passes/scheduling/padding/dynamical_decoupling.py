@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 import numpy as np
 
 from qiskit.circuit import Gate, ParameterExpression, Qubit
@@ -189,9 +190,12 @@ class PadDynamicalDecoupling(BasePadding):
 
         if dag._calibrations_prop:
             cal_durations = []
-            for gate, gate_cals in dag.calibrations.items():
-                for (qubits, parameters), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+                # `schedule.duration` emits pulse deprecation warnings which we don't want
+                # to see here
+                for gate, gate_cals in dag._calibrations_prop.items():
+                    for (qubits, parameters), schedule in gate_cals.items():
+                        cal_durations.append((gate, qubits, parameters, schedule.duration))
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if self._durations is not None:
@@ -252,7 +256,12 @@ class PadDynamicalDecoupling(BasePadding):
                 try:
                     # Check calibration.
                     params = self._resolve_params(gate)
-                    gate_length = dag.calibrations[gate.name][((physical_index,), params)].duration
+                    with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+                        # `schedule.duration` emits pulse deprecation warnings which we don't want
+                        # to see here
+                        gate_length = dag._calibrations_prop[gate.name][
+                            ((physical_index,), params)
+                        ].duration
                     if gate_length % self._alignment != 0:
                         # This is necessary to implement lightweight scheduling logic for this pass.
                         # Usually the pulse alignment constraint and pulse data chunk size take

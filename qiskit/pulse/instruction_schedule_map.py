@@ -356,7 +356,9 @@ class InstructionScheduleMap:
         instruction = _get_instruction_string(instruction)
 
         self.assert_has(instruction, qubits)
-        signature = self._map[instruction][_to_tuple(qubits)].get_signature()
+        with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+            # Prevent `get_signature` from emitting pulse package deprecation warnings
+            signature = self._map[instruction][_to_tuple(qubits)].get_signature()
         return tuple(signature.parameters.keys())
 
     def __str__(self):
