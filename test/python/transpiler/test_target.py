@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=missing-docstring
+from pickle import loads, dumps
 
 import math
 import numpy as np
@@ -30,6 +31,7 @@ from qiskit.circuit.library import (
     CCXGate,
     RZXGate,
     CZGate,
+    UnitaryGate,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
@@ -1168,21 +1170,20 @@ Instructions:
 
     def test_target_serialization_preserve_variadic(self):
         """Checks that variadics are still seen as variadic after serialization"""
-        from pickle import loads, dumps
 
-        target = Target("test", 1)
+        target = Target("test", 2)
         # Add variadic example gate with no properties.
-        target.add_instruction(XGate, None, "x_var")
+        target.add_instruction(UnitaryGate, None, "u_var")
 
         # Check that this this instruction is compatible with qargs (0,). Should be
         # true since variadic operation can be used with any valid qargs.
-        self.assertTrue(target.instruction_supported("x_var", (0,)))
+        self.assertTrue(target.instruction_supported("u_var", (0, 1)))
 
         # Rebuild the target using serialization
         deserialized_target = loads(dumps(target))
 
         # Perform check again, should not throw exception
-        self.assertTrue(deserialized_target.instruction_supported("x_var", (0,)))
+        self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
 
 
 class TestPulseTarget(QiskitTestCase):
