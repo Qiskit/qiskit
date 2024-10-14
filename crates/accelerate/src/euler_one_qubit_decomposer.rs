@@ -52,6 +52,7 @@ pub struct OneQubitGateErrorMap {
 #[pymethods]
 impl OneQubitGateErrorMap {
     #[new]
+    #[pyo3(signature=(num_qubits=None))]
     fn new(num_qubits: Option<usize>) -> Self {
         OneQubitGateErrorMap {
             error_map: match num_qubits {
@@ -392,6 +393,7 @@ fn circuit_rr(
 }
 
 #[pyfunction]
+#[pyo3(signature=(target_basis, theta, phi, lam, phase, simplify, atol=None))]
 pub fn generate_circuit(
     target_basis: &EulerBasis,
     theta: f64,
@@ -673,7 +675,7 @@ impl Default for EulerBasisSet {
 }
 
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
-#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
+#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer", eq, eq_int)]
 pub enum EulerBasis {
     U3 = 0,
     U321 = 1,
@@ -808,6 +810,7 @@ fn compute_error_str(
 }
 
 #[pyfunction]
+#[pyo3(signature=(circuit, qubit, error_map=None))]
 pub fn compute_error_list(
     circuit: Vec<PyRef<DAGOpNode>>,
     qubit: usize,
@@ -1103,7 +1106,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
                 continue;
             }
         }
-        if basis_gates_per_qubit[qubit.0 as usize].is_none() {
+        if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
                 Some(target) => Some(
                     target
@@ -1115,11 +1118,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
                 }
             };
-            basis_gates_per_qubit[qubit.0 as usize] = basis_gates;
+            basis_gates_per_qubit[qubit.index()] = basis_gates;
         }
-        let basis_gates = &basis_gates_per_qubit[qubit.0 as usize].as_ref();
+        let basis_gates = &basis_gates_per_qubit[qubit.index()].as_ref();
 
-        let target_basis_set = &mut target_basis_per_qubit[qubit.0 as usize];
+        let target_basis_set = &mut target_basis_per_qubit[qubit.index()];
         if !target_basis_set.initialized() {
             match target {
                 Some(_target) => EULER_BASES
@@ -1168,7 +1171,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
                 target_basis_set.remove(EulerBasis::ZSX);
             }
         }
-        let target_basis_set = &target_basis_per_qubit[qubit.0 as usize];
+        let target_basis_set = &target_basis_per_qubit[qubit.index()];
         let operator = raw_run
             .iter()
             .map(|node_index| {
@@ -1201,7 +1204,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let sequence = unitary_to_gate_sequence_inner(
             aview2(&operator),
             target_basis_set,
-            qubit.0 as usize,
+            qubit.index(),
             None,
             true,
             None,

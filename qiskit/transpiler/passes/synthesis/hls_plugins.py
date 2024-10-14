@@ -214,6 +214,41 @@ not sufficient, the corresponding synthesis method will return `None`.
    MCXSynthesisNDirtyI15
    MCXSynthesis1CleanB95
    MCXSynthesisDefault
+
+MCMT Synthesis
+''''''''''''''
+
+.. list-table:: Plugins for :class:`.MCMTGate` (key = ``"mcmt"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Number of clean ancillas
+      - Number of dirty ancillas
+      - Description
+    * - ``"vchain"``
+      - :class:`.MCMTSynthesisVChain`
+      - `k-1`
+      - `0`
+      - uses a linear number of Toffoli gates
+    * - ``"noaux"``
+      - :class:`~.MCMTSynthesisNoAux`
+      - `0`
+      - `0`
+      - uses Qiskit's standard control mechanism
+    * - ``"default"``
+      - :class:`~.MCMTSynthesisDefault`
+      - any
+      - any
+      - chooses the best algorithm based on the ancillas available
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MCMTSynthesisVChain
+   MCMTSynthesisNoAux
+   MCMTSynthesisDefault
+
 """
 
 import numpy as np
@@ -254,6 +289,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
 )
+from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -935,4 +971,61 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
         return MCXSynthesisNoAuxV24().run(
             high_level_object, coupling_map, target, qubits, **options
+        )
+
+
+class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
+    """A default decomposition for MCMT gates."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        # first try to use the V-chain synthesis if enough auxiliary qubits are available
+        if (
+            decomposition := MCMTSynthesisVChain().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
+
+        return MCMTSynthesisNoAux().run(high_level_object, coupling_map, target, qubits, **options)
+
+
+class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
+    """A V-chain based synthesis for ``MCMTGate``."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        base_gate = high_level_object.base_gate
+        ctrl_state = options.get("ctrl_state", None)
+
+        if high_level_object.num_target_qubits == 1:
+            # no broadcasting needed (makes for better circuit diagrams)
+            circuit = QuantumCircuit(high_level_object.num_qubits)
+            circuit.append(
+                base_gate.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state),
+                circuit.qubits,
+            )
+
+        else:
+            base = QuantumCircuit(high_level_object.num_target_qubits, name=high_level_object.label)
+            for i in range(high_level_object.num_target_qubits):
+                base.append(base_gate, [i], [])
+
+            circuit = base.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state)
+
+        return circuit.decompose()
+
+
+class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
+    """A V-chain based synthesis for ``MCMTGate``."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if options.get("num_clean_ancillas", 0) < high_level_object.num_ctrl_qubits - 1:
+            return None  # insufficient number of auxiliary qubits
+
+        ctrl_state = options.get("ctrl_state", None)
+
+        return synth_mcmt_vchain(
+            high_level_object.base_gate,
+            high_level_object.num_ctrl_qubits,
+            high_level_object.num_target_qubits,
+            ctrl_state,
         )
