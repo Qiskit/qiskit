@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.MCMTGate` when using the `"vchain"` synthesis, and
+    in :class:`.MCMTVChain`, where gates with parameters were not treated correctly.
+    Before, passing, e.g., `RYGate(0.2)` as base gate lead to inconsistent
+    circuit data where the controlled rotations did not have the correct parameters attached.
+    This now works correctly, also for the case of free parameters.
