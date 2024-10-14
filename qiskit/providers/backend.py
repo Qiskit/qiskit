@@ -490,7 +490,12 @@ class BackendV2(Backend, ABC):
     def instruction_schedule_map(self):
         """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions defined in this backend's target."""
-        return self.target.instruction_schedule_map()
+        return self._instruction_schedule_map
+
+    @property
+    def _instruction_schedule_map(self):
+        """An alternative private path to be used internally to avoid pulse deprecation warnings."""
+        return self.target._get_instruction_schedule_map()
 
     def qubit_properties(
         self, qubit: Union[int, List[int]]

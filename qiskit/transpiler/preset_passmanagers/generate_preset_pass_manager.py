@@ -37,7 +37,7 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
 
-@deprecate_pulse_arg("inst_map")
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,
@@ -341,7 +341,7 @@ def generate_preset_pass_manager(
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:
-            inst_map = target.instruction_schedule_map()
+            inst_map = target._get_instruction_schedule_map()
         if timing_constraints is None:
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
@@ -454,7 +454,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
 def _parse_inst_map(inst_map, backend):
     # try getting inst_map from user, else backend
     if inst_map is None and backend is not None:
-        inst_map = backend.target.instruction_schedule_map()
+        inst_map = backend.target._get_instruction_schedule_map()
     return inst_map
 
 

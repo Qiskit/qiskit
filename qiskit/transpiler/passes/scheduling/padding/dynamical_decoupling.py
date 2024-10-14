@@ -187,7 +187,7 @@ class PadDynamicalDecoupling(BasePadding):
         """
         circ_durations = InstructionDurations()
 
-        if dag.calibrations:
+        if dag._calibrations_prop:
             cal_durations = []
             for gate, gate_cals in dag.calibrations.items():
                 for (qubits, parameters), schedule in gate_cals.items():

@@ -1348,7 +1348,7 @@ class QuantumCircuit:
         The custom pulse definition of a given gate is of the form
         ``{'gate_name': {(qubits, params): schedule}}``
         """
-        return dict(self._calibrations)
+        return self._calibrations_prop
 
     @calibrations.setter
     @deprecate_pulse_dependency(is_property=True)
@@ -1359,6 +1359,18 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                ``{'gate_name': {(qubits, gate_params): schedule}}``
         """
+        self._calibrations_prop = calibrations
+
+    @property
+    def _calibrations_prop(self) -> dict:
+        """An alternative private path to the `calibrations` property for avoiding deprecation warnings.
+        """
+        return dict(self._calibrations)
+
+    @_calibrations_prop.setter
+    def _calibrations_prop(self, calibrations: dict):
+        """An alternative private path to the `calibrations` property for avoiding deprecation warnings.
+        """
         self._calibrations = defaultdict(dict, calibrations)
 
     @deprecate_pulse_dependency
@@ -1366,12 +1378,18 @@ class QuantumCircuit:
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
+
+        return self._has_calibration_for(instruction)
+
+    def _has_calibration_for(self, instruction: CircuitInstruction | tuple):
+        """An alternative private path to the `has_calibration_for` method for avoiding deprecation warnings.
+        """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
             qubits = instruction.qubits
         else:
             operation, qubits, _ = instruction
-        if not self.calibrations or operation.name not in self.calibrations:
+        if not self._calibrations_prop or operation.name not in self._calibrations_prop:
             return False
         qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
         params = []
@@ -1381,7 +1399,7 @@ class QuantumCircuit:
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[operation.name]
+        return (qubits, params) in self._calibrations_prop[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -2022,7 +2040,7 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
 
-        for gate, cals in other.calibrations.items():
+        for gate, cals in other._calibrations_prop.items():
             dest._calibrations[gate].update(cals)
 
         dest.duration = None

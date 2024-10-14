@@ -82,7 +82,7 @@ class PulseGates(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return self.target.has_calibration(node_op.name, tuple(qubits))
+        return self.target._has_calibration(node_op.name, tuple(qubits))
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Gets the calibrated schedule for the given instruction and qubits.
@@ -97,4 +97,4 @@ class PulseGates(CalibrationBuilder):
         Raises:
             TranspilerError: When node is parameterized and calibration is raw schedule object.
         """
-        return self.target.get_calibration(node_op.name, tuple(qubits), *node_op.params)
+        return self.target._get_calibration(node_op.name, tuple(qubits), *node_op.params)

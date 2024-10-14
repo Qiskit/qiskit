@@ -87,7 +87,7 @@ class InstructionProperties(BaseInstructionProperties):
             cls, duration, error
         )
 
-    @deprecate_pulse_arg("calibration")
+    @deprecate_pulse_arg("calibration", predicate=lambda cals: cals is not None)
     def __init__(
         self,
         duration: float | None = None,  # pylint: disable=unused-argument
@@ -105,7 +105,7 @@ class InstructionProperties(BaseInstructionProperties):
         """
         super().__init__()
         self._calibration: CalibrationEntry | None = None
-        self.calibration = calibration
+        self._calibration_prop = calibration
 
     @property
     @deprecate_pulse_dependency(is_property=True)
@@ -136,13 +136,23 @@ class InstructionProperties(BaseInstructionProperties):
             use own definition to compile the circuit down to the execution format.
 
         """
-        if self._calibration is None:
-            return None
-        return self._calibration.get_schedule()
+        return self._calibration_prop
 
     @calibration.setter
     @deprecate_pulse_dependency(is_property=True)
     def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
+        self._calibration_prop = calibration
+
+    @property
+    def _calibration_prop(self):
+        if self._calibration is None:
+            return None
+        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            # Clean this alternative path from deprecation warning emitted by `get_schedule`
+            return self._calibration.get_schedule()
+
+    @_calibration_prop.setter
+    def _calibration_prop(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
             new_entry.define(calibration, user_provided=True)
@@ -157,11 +167,11 @@ class InstructionProperties(BaseInstructionProperties):
         )
 
     def __getstate__(self) -> tuple:
-        return (super().__getstate__(), self.calibration, self._calibration)
+        return (super().__getstate__(), self._calibration_prop, self._calibration)
 
     def __setstate__(self, state: tuple):
         super().__setstate__(state[0])
-        self.calibration = state[1]
+        self._calibration_prop = state[1]
         self._calibration = state[2]
 
 
@@ -618,9 +628,16 @@ class Target(BaseTarget):
             InstructionScheduleMap: The instruction schedule map for the
             instructions in this target with a pulse schedule defined.
         """
+        return self._get_instruction_schedule_map()
+
+    def _get_instruction_schedule_map(self):
         if self._instruction_schedule_map is not None:
             return self._instruction_schedule_map
-        out_inst_schedule_map = InstructionScheduleMap()
+        with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
+            # `InstructionScheduleMap` is deprecated in Qiskit 1.3 but we want this alternative
+            # path to be clean of deprecation warnings
+            out_inst_schedule_map = InstructionScheduleMap()
+
         for instruction, qargs in self._gate_map.items():
             for qarg, properties in qargs.items():
                 # Directly getting CalibrationEntry not to invoke .get_schedule().
@@ -647,6 +664,13 @@ class Target(BaseTarget):
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
+        return self._has_calibration(operation_name, qargs)
+
+    def _has_calibration(
+        self,
+        operation_name: str,
+        qargs: tuple[int, ...],
+    ) -> bool:
         qargs = tuple(qargs)
         if operation_name not in self._gate_map:
             return False
@@ -676,7 +700,16 @@ class Target(BaseTarget):
         Returns:
             Calibrated pulse schedule of corresponding instruction.
         """
-        if not self.has_calibration(operation_name, qargs):
+        return self._get_calibration(operation_name, qargs, *args, *kwargs)
+
+    def _get_calibration(
+        self,
+        operation_name: str,
+        qargs: tuple[int, ...],
+        *args: ParameterValueType,
+        **kwargs: ParameterValueType,
+    ) -> Schedule | ScheduleBlock:
+        if not self._has_calibration(operation_name, qargs):
             raise KeyError(
                 f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
             )

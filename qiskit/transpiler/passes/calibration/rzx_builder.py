@@ -91,7 +91,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         self._inst_map = instruction_schedule_map
         self._verbose = verbose
         if target:
-            self._inst_map = target.instruction_schedule_map()
+            self._inst_map = target._instruction_schedule_map()
         if self._inst_map is None:
             raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 

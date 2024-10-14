@@ -154,7 +154,7 @@ class DAGDependency:
         The custom pulse definition of a given gate is of the form
         ``{'gate_name': {(qubits, params): schedule}}``.
         """
-        return dict(self._calibrations)
+        return self._calibrations_prop
 
     @calibrations.setter
     @deprecate_pulse_dependency(is_property=True)
@@ -164,6 +164,18 @@ class DAGDependency:
         Args:
             calibrations (dict): A dictionary of input in the format
                 {'gate_name': {(qubits, gate_params): schedule}}
+        """
+        self._calibrations_prop = calibrations
+
+    @property
+    def _calibrations_prop(self) -> dict[str, dict[tuple, Schedule]]:
+        """An alternative path to be used internally to avoid deprecation warnings
+        """
+        return dict(self._calibrations)
+
+    @_calibrations_prop.setter
+    def _calibrations_prop(self, calibrations: dict[str, dict[tuple, Schedule]]):
+        """An alternative path to be used internally to avoid deprecation warnings
         """
         self._calibrations = defaultdict(dict, calibrations)
 

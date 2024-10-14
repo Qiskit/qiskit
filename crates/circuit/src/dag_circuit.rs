@@ -569,7 +569,7 @@ impl DAGCircuit {
         let out_dict = PyDict::new_bound(py);
         out_dict.set_item("name", self.name.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("metadata", self.metadata.as_ref().map(|x| x.clone_ref(py)))?;
-        out_dict.set_item("calibrations", self.calibrations.clone())?;
+        out_dict.set_item("_calibrations_prop", self.calibrations.clone())?;
         out_dict.set_item("qregs", self.qregs.clone_ref(py))?;
         out_dict.set_item("cregs", self.cregs.clone_ref(py))?;
         out_dict.set_item("global_phase", self.global_phase.clone())?;
@@ -648,7 +648,10 @@ impl DAGCircuit {
         let dict_state = state.downcast_bound::<PyDict>(py)?;
         self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
-        self.calibrations = dict_state.get_item("calibrations")?.unwrap().extract()?;
+        self.calibrations = dict_state
+            .get_item("_calibrations_prop")?
+            .unwrap()
+            .extract()?;
         self.qregs = dict_state.get_item("qregs")?.unwrap().extract()?;
         self.cregs = dict_state.get_item("cregs")?.unwrap().extract()?;
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
@@ -893,6 +896,20 @@ impl DAGCircuit {
         self.calibrations = calibrations;
     }
 
+    // This is an alternative and Python-private path to 'get_calibration' to avoid
+    // deprecation warnings
+    #[getter(_calibrations_prop)]
+    fn get_calibrations_prop(&self) -> HashMap<String, Py<PyDict>> {
+        self.calibrations.clone()
+    }
+
+    // This is an alternative and Python-private path to 'set_calibration' to avoid
+    // deprecation warnings
+    #[setter(_calibrations_prop)]
+    fn set_calibrations_prop(&mut self, calibrations: HashMap<String, Py<PyDict>>) {
+        self.calibrations = calibrations;
+    }
+
     /// Register a low-level, custom pulse definition for the given gate.
     ///
     /// Args:
@@ -982,6 +999,10 @@ def _format(operand):
             "method ``qiskit.dagcircuit.dagcircuit.DAGCircuit.has_calibration_for``",
         );
 
+        self._has_calibration_for(py, node)
+    }
+
+    fn _has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
         if !self
             .calibrations
             .contains_key(node.instruction.operation.name())

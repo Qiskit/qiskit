@@ -64,7 +64,7 @@ class BaseScheduler(AnalysisPass):
         """A helper method to get duration from node or calibration."""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag.has_calibration_for(node):
+        if dag._has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             duration = dag.calibrations[node.op.name][cal_key].duration

@@ -530,7 +530,7 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
-@deprecate_pulse_arg("inst_map")
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_scheduling(
     instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
 ):
