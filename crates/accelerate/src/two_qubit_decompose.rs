@@ -2403,6 +2403,12 @@ impl TwoQubitControlledUDecomposer {
     ///  Raises:
     ///      QiskitError: If the circuit is not equivalent to an RXXGate.
     fn to_rxx_gate(&self, angle: f64) -> PyResult<TwoQubitGateSequence> {
+        // The user-provided RXXGate equivalent gate may be locally equivalent to the RXXGate
+        // but with some scaling in the rotation angle. For example, RXXGate(angle) has Weyl
+        // parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
+        // :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
+        // (scale * angle, 0, 0) where scale != 1. This is the case for the CPhaseGate.
+
         let mat = self
             .rxx_equivalent_gate
             .matrix(&[Param::Float(self.scale * angle)])
@@ -2414,6 +2420,7 @@ impl TwoQubitControlledUDecomposer {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(euler_basis);
 
+        // Express the RXXGate in terms of the user-provided RXXGate equivalent gate.
         let mut gates = Vec::with_capacity(13);
         let mut global_phase = -decomposer_inv.global_phase;
 
@@ -2483,6 +2490,7 @@ impl TwoQubitControlledUDecomposer {
         circ.gates.extend(circ_a.gates);
         let mut global_phase = circ_a.global_phase;
 
+        // translate the RYYGate(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
             let circ_b = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
             global_phase += circ_b.global_phase;
@@ -2497,7 +2505,13 @@ impl TwoQubitControlledUDecomposer {
                 .push((Some(StandardGate::SGate), smallvec![], smallvec![1]));
         }
 
+        // # translate the RZZGate(c) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.c).abs() > atol {
+            // Since the Weyl chamber is here defined as a > b > |c| we may have
+            // negative c. This will cause issues in _to_rxx_gate
+            // as TwoQubitWeylControlledEquiv will map (c, 0, 0) to (|c|, 0, 0).
+            // We therefore produce RZZGate(|c|) and append its inverse to the
+            // circuit if c < 0.
             let mut gamma = -2.0 * target_decomposed.c;
             if gamma <= 0.0 {
                 let circ_c = self.to_rxx_gate(gamma)?;
