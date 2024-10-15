@@ -175,6 +175,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_ARCHS_LINUX: aarch64
+          CIBW_TEST_COMMAND: cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate -n test.python.compiler.test_transpiler
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}-aarch64

@@ -138,7 +138,7 @@ fn pauli_evolution(
 ///     insert_barriers: Whether to insert barriers in between the Hadamard and evolution layers.
 ///     data_map_func: An accumulation function that takes as input a vector of parameters the
 ///         current gate acts on and returns a scalar.
-///     
+///
 /// Returns:
 ///     The ``CircuitData`` to construct the Pauli feature map.
 #[pyfunction]
@@ -207,7 +207,13 @@ pub fn pauli_feature_map(
         }
     }
 
-    CircuitData::from_packed_operations(py, feature_dimension, 0, packed_insts, Param::Float(0.0))
+    CircuitData::from_packed_operations(
+        py,
+        feature_dimension,
+        0,
+        packed_insts.into_iter().map(Ok),
+        Param::Float(0.0),
+    )
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
