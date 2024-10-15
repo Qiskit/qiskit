@@ -2616,14 +2616,19 @@ impl TwoQubitControlledUDecomposer {
         gates1.global_phase = global_phase;
         Ok(gates1)
     }
+}
 
+#[pymethods]
+impl TwoQubitControlledUDecomposer {
     ///  Initialize the KAK decomposition.
     ///  Args:
     ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
     ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
     ///  Raises:
     ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
-    fn new_inner(rxx_equivalent_gate: StandardGate) -> PyResult<Self> {
+    #[new]
+    #[pyo3(signature=(rxx_equivalent_gate))]
+    pub fn new(rxx_equivalent_gate: StandardGate) -> PyResult<Self> {
         let atol = DEFAULT_ATOL;
         let test_angles = [0.2, 0.3, PI2];
 
@@ -2682,15 +2687,7 @@ impl TwoQubitControlledUDecomposer {
             rxx_equivalent_gate,
         })
     }
-}
 
-#[pymethods]
-impl TwoQubitControlledUDecomposer {
-    #[new]
-    #[pyo3(signature=(rxx_equivalent_gate))]
-    fn new(rxx_equivalent_gate: StandardGate) -> PyResult<Self> {
-        TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate)
-    }
     #[pyo3(signature=(unitary, atol))]
     fn __call__(
         &self,
