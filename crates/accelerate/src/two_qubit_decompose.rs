@@ -2499,13 +2499,8 @@ impl TwoQubitControlledUDecomposer {
 
         if (target_decomposed.c).abs() > atol {
             let mut gamma = -2.0 * target_decomposed.c;
-            let mut invert = false;
-            if gamma > 0.0 {
-                gamma *= -1.0;
-                invert = true;
-            }
-            let circ_c = self.to_rxx_gate(gamma)?;
-            if !invert {
+            if gamma <= 0.0 {
+                let circ_c = self.to_rxx_gate(gamma)?;
                 global_phase += circ_c.global_phase;
                 circ.gates
                     .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
@@ -2518,6 +2513,8 @@ impl TwoQubitControlledUDecomposer {
                     .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
             } else {
                 // invert the circuit above
+                gamma *= -1.0;
+                let circ_c = self.to_rxx_gate(gamma)?;
                 global_phase -= circ_c.global_phase;
                 circ.gates
                     .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
