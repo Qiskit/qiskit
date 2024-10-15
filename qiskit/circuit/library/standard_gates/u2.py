@@ -144,3 +144,6 @@ class U2Gate(Gate):
             ],
             dtype=dtype or complex,
         )
+
+    def __eq__(self, other):
+        return isinstance(other, U2Gate) and self._compare_parameters(other)

@@ -178,6 +178,9 @@ class U3Gate(Gate):
             dtype=dtype or complex,
         )
 
+    def __eq__(self, other):
+        return isinstance(other, U3Gate) and self._compare_parameters(other)
+
 
 class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
@@ -367,6 +370,13 @@ class CU3Gate(ControlledGate):
                 ],
                 dtype=dtype or complex,
             )
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU3Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
 
 
 def _generate_gray_code(num_bits):
