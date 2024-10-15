@@ -387,7 +387,8 @@ class TestCliffordGates(QiskitTestCase):
     def test_from_circuit_with_conditional_gate(self):
         """Test initialization from circuit with conditional gate."""
         qc = QuantumCircuit(2, 1)
-        qc.h(0).c_if(0, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(0, 0)
         qc.cx(0, 1)
 
         with self.assertRaises(QiskitError):

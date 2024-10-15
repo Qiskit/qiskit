@@ -1588,9 +1588,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.rz(0.3, qr)
         circuit.rx(0.1, qr)
         circuit.measure(qr, cr)
-        circuit.x(qr).c_if(cr, 1)
-        circuit.y(qr).c_if(cr, 1)
-        circuit.z(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.y(qr).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
         pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u1", "u2", "u3"])
         dag = pass_.run(dag)
@@ -1621,9 +1624,12 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U1Gate(0.3), [qr[0]])
         ref_circuit.append(U3Gate(0.1, -np.pi / 2, np.pi / 2), [qr[0]])
         ref_circuit.measure(qr[0], cr[0])
-        ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
-        ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(np.pi, 0, np.pi), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U3Gate(np.pi, np.pi / 2, np.pi / 2), [qr[0]]).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.append(U1Gate(np.pi), [qr[0]]).c_if(cr, 1)
         ref_dag = circuit_to_dag(ref_circuit)
 
         self.assertEqual(unrolled_dag, ref_dag)
