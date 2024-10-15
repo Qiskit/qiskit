@@ -22,3 +22,11 @@ features_synthesis:
     :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before (but faster as it
     internally uses Rust).
 
+upgrade:
+  - | 
+    The following classes now use the :math:`\sqrt{X}` operation to diagonalize the Pauli-Y
+    operator: :class:`.PauliEvolutionGate`, :class:`.EvolvedOperatorAnsatz`, 
+    :class:`.PauliFeatureMap`. Previously, these classes used either :math:`H S` or
+    :math:`R_X(-\pi/2)` as basis transformation. Using the :math:`\sqrt{X}` operation, 
+    represented by the :class:`.SXGate` is more efficient as it uses only a single gate
+    implemented as singleton.

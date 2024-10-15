@@ -376,8 +376,8 @@ def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
     cliff = QuantumCircuit(pauli.num_qubits)
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i == "Y":
-            cliff.sdg(i)
-        if pauli_i in ["X", "Y"]:
+            cliff.sxdg(i)
+        elif pauli_i == "X":
             cliff.h(i)
 
     return cliff

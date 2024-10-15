@@ -17,12 +17,10 @@ use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
-use std::f64::consts::PI;
 
 use crate::circuit_library::utils;
 
-// custom math and types for a more readable code
-const PI2: f64 = PI / 2.;
+// custom types for a more readable code
 type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 type Instruction = (
     PackedOperation,
@@ -136,25 +134,21 @@ fn multi_qubit_evolution(
         .zip(indices.into_iter().map(Qubit))
         .collect();
 
-    // get the basis change: x -> HGate, y -> RXGate(pi/2), z -> nothing
+    // get the basis change: x -> HGate, y -> SXdgGate, z -> nothing
     let basis_change = active_paulis
         .clone()
         .into_iter()
         .filter(|(p, _)| *p != 'z')
         .map(|(p, q)| match p {
             'x' => (StandardGate::HGate, smallvec![], smallvec![q]),
-            'y' => (
-                StandardGate::RXGate,
-                smallvec![Param::Float(PI2)],
-                smallvec![q],
-            ),
+            'y' => (StandardGate::SXdgGate, smallvec![], smallvec![q]),
             _ => unreachable!("Invalid Pauli string."), // "z" and "i" have been filtered out
         });
 
     // get the inverse basis change
     let inverse_basis_change = basis_change.clone().map(|(gate, _, qubit)| match gate {
         StandardGate::HGate => (gate, smallvec![], qubit),
-        StandardGate::RXGate => (gate, smallvec![Param::Float(-PI2)], qubit),
+        StandardGate::SXdgGate => (StandardGate::SXGate, smallvec![], qubit),
         _ => unreachable!("Invalid basis-changing Clifford."),
     });
 
@@ -182,8 +176,6 @@ fn multi_qubit_evolution(
         smallvec![first_qubit],
     ));
 
-    println!("first qubit {:?}", first_qubit);
-
     // and finally chain everything together
     basis_change
         .chain(chain_down)
@@ -198,15 +190,15 @@ fn multi_qubit_evolution(
 /// followed by a CX-chain and then a single Pauli-Z rotation on the last qubit. Then the CX-chain
 /// is uncomputed and the inverse basis transformation applied. E.g. for the evolution under the
 /// Pauli string XIYZ we have the circuit
-///                     ┌───┐┌───────┐┌───┐
-/// 0: ─────────────────┤ X ├┤ Rz(2) ├┤ X ├──────────────────
-///    ┌──────────┐┌───┐└─┬─┘└───────┘└─┬─┘┌───┐┌───────────┐
-/// 1: ┤ Rx(pi/2) ├┤ X ├──■─────────────■──┤ X ├┤ Rx(-pi/2) ├
-///    └──────────┘└─┬─┘                   └─┬─┘└───────────┘
-/// 2: ──────────────┼───────────────────────┼───────────────
-///     ┌───┐        │                       │  ┌───┐
-/// 3: ─┤ H ├────────■───────────────────────■──┤ H ├────────
-///     └───┘                                   └───┘
+///                 ┌───┐┌───────┐┌───┐
+/// 0: ─────────────┤ X ├┤ Rz(2) ├┤ X ├───────────
+///    ┌──────┐┌───┐└─┬─┘└───────┘└─┬─┘┌───┐┌────┐
+/// 1: ┤ √Xdg ├┤ X ├──■─────────────■──┤ X ├┤ √X ├
+///    └──────┘└─┬─┘                   └─┬─┘└────┘
+/// 2: ──────────┼───────────────────────┼────────
+///     ┌───┐    │                       │  ┌───┐
+/// 3: ─┤ H ├────■───────────────────────■──┤ H ├─
+///     └───┘                               └───┘
 ///
 /// Args:
 ///     num_qubits: The number of qubits in the Hamiltonian.
