@@ -2614,52 +2614,52 @@ impl TwoQubitControlledUDecomposer {
     ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
     fn new_inner(rxx_equivalent_gate: StandardGate) -> PyResult<Self> {
         let atol = DEFAULT_ATOL;
-        let mut scales = Vec::new();
         let test_angles = [0.2, 0.3, PI2];
 
-        for test_angle in test_angles {
-            if rxx_equivalent_gate.num_params() != 1 {
-                return Err(QiskitError::new_err(
-                    "Equivalent gate needs to take exactly 1 angle parameter.",
-                ));
-            }
-            let mat = rxx_equivalent_gate
-                .matrix(&[Param::Float(test_angle)])
-                .unwrap();
-            let decomp =
-                TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
-
-            let mat_rxx = StandardGate::RXXGate
-                .matrix(&[Param::Float(test_angle)])
-                .unwrap();
-            let decomposer_rxx = TwoQubitWeylDecomposition::new_inner(
-                mat_rxx.view(),
-                None,
-                Some(Specialization::ControlledEquiv),
-            )?;
-            let decomposer_equiv = TwoQubitWeylDecomposition::new_inner(
-                mat.view(),
-                None,
-                Some(Specialization::ControlledEquiv),
-            )?;
-            let scale_a = decomposer_rxx.a / decomposer_equiv.a;
-
-            if (decomp.a * 2.0 - test_angle / scale_a).abs() > atol {
-                return Err(QiskitError::new_err(format!(
-                    "The gate {}
+        let scales: PyResult<Vec<f64>> = test_angles
+            .into_iter()
+            .map(|test_angle| {
+                if rxx_equivalent_gate.num_params() != 1 {
+                    return Err(QiskitError::new_err(
+                        "Equivalent gate needs to take exactly 1 angle parameter.",
+                    ));
+                }
+                let mat = rxx_equivalent_gate
+                    .matrix(&[Param::Float(test_angle)])
+                    .unwrap();
+                let decomp =
+                    TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
+                let mat_rxx = StandardGate::RXXGate
+                    .matrix(&[Param::Float(test_angle)])
+                    .unwrap();
+                let decomposer_rxx = TwoQubitWeylDecomposition::new_inner(
+                    mat_rxx.view(),
+                    None,
+                    Some(Specialization::ControlledEquiv),
+                )?;
+                let decomposer_equiv = TwoQubitWeylDecomposition::new_inner(
+                    mat.view(),
+                    None,
+                    Some(Specialization::ControlledEquiv),
+                )?;
+                let scale_a = decomposer_rxx.a / decomposer_equiv.a;
+                if (decomp.a * 2.0 - test_angle / scale_a).abs() > atol {
+                    return Err(QiskitError::new_err(format!(
+                        "The gate {}
                   is not equivalent to an RXXGate.",
-                    rxx_equivalent_gate.name()
-                )));
-            }
-
-            scales.push(scale_a);
-        }
+                        rxx_equivalent_gate.name()
+                    )));
+                }
+                Ok(scale_a)
+            })
+            .collect();
+        let scales = scales?;
 
         let scale = scales[0];
 
         // Check that all three tested angles give the same scale
-        for scale_val in scales.clone().into_iter() {
-            if !abs_diff_eq!(scale_val, scale, epsilon = atol) {
+        for scale_val in &scales {
+            if !abs_diff_eq!(scale_val, &scale, epsilon = atol) {
                 return Err(QiskitError::new_err(
                     "Inconsistent scaling parameters in check.",
                 ));
