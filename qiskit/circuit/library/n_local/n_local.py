@@ -34,8 +34,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 
-from qiskit._accelerate.circuit_library import n_local as rust_local
-from qiskit._accelerate.circuit_library import Block
+from qiskit._accelerate.circuit_library.n_local import Block
+from qiskit._accelerate.circuit_library.n_local import n_local as rust_local
 
 from ..blueprintcircuit import BlueprintCircuit
 
