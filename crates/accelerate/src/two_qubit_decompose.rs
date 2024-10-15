@@ -2414,7 +2414,7 @@ impl TwoQubitControlledUDecomposer {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(euler_basis);
 
-        let mut gates = Vec::new();
+        let mut gates = Vec::with_capacity(13);
         let mut global_phase = -decomposer_inv.global_phase;
 
         let decomp_k1r = decomposer_inv.K1r.view();
@@ -2567,7 +2567,7 @@ impl TwoQubitControlledUDecomposer {
         let unitary_c2l =
             unitary_to_gate_sequence_inner(c2l, &target_1q_basis_list, 0, None, true, None);
 
-        let mut gates = Vec::new();
+        let mut gates = Vec::with_capacity(59);
         let mut global_phase = target_decomposed.global_phase;
 
         if let Some(unitary_c2r) = unitary_c2r {
