@@ -104,6 +104,7 @@ pub fn mcmt_v_chain(
     }
 
     let packed_controlled_gate = controlled_gate.operation;
+    let gate_params = controlled_gate.params;
     let num_qubits = if num_ctrl_qubits > 1 {
         2 * num_ctrl_qubits - 1 + num_target_qubits
     } else {
@@ -135,7 +136,7 @@ pub fn mcmt_v_chain(
     let targets = (0..num_target_qubits).map(|i| {
         Ok((
             packed_controlled_gate.clone(),
-            smallvec![] as SmallVec<[Param; 3]>,
+            gate_params.clone(),
             vec![Qubit::new(master_control), Qubit::new(num_ctrl_qubits + i)],
             vec![] as Vec<Clbit>,
         ))
