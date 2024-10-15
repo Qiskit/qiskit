@@ -20,7 +20,6 @@ from ddt import ddt, data, unpack
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
-from qiskit.synthesis.evolution.product_formula import cnot_chain, diagonalizing_clifford
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -337,6 +336,12 @@ class TestEvolutionGate(QiskitTestCase):
         """Test a custom atomic_evolution."""
 
         def atomic_evolution(pauli, time):
+            if isinstance(pauli, SparsePauliOp):
+                if len(pauli.paulis) != 1:
+                    raise ValueError("Unsupported input.")
+                time *= np.real(pauli.coeffs[0])
+                pauli = pauli.paulis[0]
+
             cliff = diagonalizing_clifford(pauli)
             chain = cnot_chain(pauli)
 
@@ -364,6 +369,58 @@ class TestEvolutionGate(QiskitTestCase):
             )
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+
+def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
+    """Get the clifford circuit to diagonalize the Pauli operator."""
+    cliff = QuantumCircuit(pauli.num_qubits)
+    for i, pauli_i in enumerate(reversed(pauli.to_label())):
+        if pauli_i == "Y":
+            cliff.sdg(i)
+        if pauli_i in ["X", "Y"]:
+            cliff.h(i)
+
+    return cliff
+
+
+def cnot_chain(pauli: Pauli) -> QuantumCircuit:
+    """CX chain.
+
+    For example, for the Pauli with the label 'XYZIX'.
+
+    .. parsed-literal::
+
+                       ┌───┐
+        q_0: ──────────┤ X ├
+                       └─┬─┘
+        q_1: ────────────┼──
+                  ┌───┐  │
+        q_2: ─────┤ X ├──■──
+             ┌───┐└─┬─┘
+        q_3: ┤ X ├──■───────
+             └─┬─┘
+        q_4: ──■────────────
+
+    """
+
+    chain = QuantumCircuit(pauli.num_qubits)
+    control, target = None, None
+
+    # iterate over the Pauli's and add CNOTs
+    for i, pauli_i in enumerate(pauli.to_label()):
+        i = pauli.num_qubits - i - 1
+        if pauli_i != "I":
+            if control is None:
+                control = i
+            else:
+                target = i
+
+        if control is not None and target is not None:
+            chain.cx(control, target)
+            control = i
+            target = None
+
+    return chain
 
 
 if __name__ == "__main__":

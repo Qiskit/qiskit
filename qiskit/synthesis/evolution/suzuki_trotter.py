@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import inspect
+import typing
 from collections.abc import Callable
 from itertools import chain
 
@@ -23,6 +24,10 @@ from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
 
 from .product_formula import ProductFormula
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuit import ParameterValueType
+    from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 
 
 class SuzukiTrotter(ProductFormula):
@@ -110,11 +115,26 @@ class SuzukiTrotter(ProductFormula):
             )
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
 
-    def expand(self, evolution):
-        """
-        H = ZZ + IX --> ("X", [0], 1/2), ("ZZ", [0, 1], 1), ("X", [0], 1/2)
+    def expand(
+        self, evolution: PauliEvolutionGate
+    ) -> list[tuple[str, list[int], ParameterValueType]]:
+        """Expand the Hamiltonian into a Suzuki-Trotter sequence of sparse gates.
 
-        ("X", [0], 1/2), ("ZZ", [0, 1], 1), ("X", [0], 1), ("ZZ", [0, 1], 1), ("X", [0], 1/2)
+        For example, the Hamiltonian ``H = IX + ZZ`` for an evolution time ``t`` and
+        1 repetition for an order 2 formula would get decomposed into
+
+        .. code-block:: text
+
+            ("X", [0], t/2), ("ZZ", [0, 1], t), ("X", [0], t/2)
+
+        For ``N`` repetitions, this sequence would be repeated ``N`` times and the coefficients
+        divided by ``N``.
+
+        Args:
+            evolution: The evolution gate to expand.
+
+        Returns:
+            The Pauli network implementing the Trotter expansion.
         """
         operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
         time = evolution.time
@@ -135,6 +155,7 @@ class SuzukiTrotter(ProductFormula):
         # we're already done here since Lie Trotter does not do any operator repetition
         product_formula = self._recurse(self.order, non_commuting)
         flattened = self.reps * list(chain.from_iterable(product_formula))
+
         return flattened
 
     @staticmethod
