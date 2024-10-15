@@ -136,12 +136,12 @@ impl CircuitData {
     ) -> PyResult<Self>
     where
         I: IntoIterator<
-            Item = (
+            Item = PyResult<(
                 PackedOperation,
                 SmallVec<[Param; 3]>,
                 Vec<Qubit>,
                 Vec<Clbit>,
-            ),
+            )>,
         >,
     {
         let instruction_iter = instructions.into_iter();
@@ -152,7 +152,8 @@ impl CircuitData {
             instruction_iter.size_hint().0,
             global_phase,
         )?;
-        for (operation, params, qargs, cargs) in instruction_iter {
+        for item in instruction_iter {
+            let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
@@ -899,6 +900,7 @@ impl CircuitData {
         Ok(())
     }
 
+    #[pyo3(signature = (index=None))]
     pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<PyObject> {
         let index = index.unwrap_or(PySequenceIndex::Int(-1));
         let native_index = index.with_len(self.data.len())?;

@@ -63,7 +63,7 @@ class RYYGate(Gate):
 
         .. math::
 
-            R_{YY}(\theta = \pi) = i Y \otimes Y
+            R_{YY}(\theta = \pi) = -i Y \otimes Y
 
         .. math::
 

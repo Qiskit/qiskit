@@ -522,6 +522,11 @@ class PauliFeatureMap(NLocal):
 
     @property
     def entanglement_blocks(self):
+        """The blocks in the entanglement layers.
+
+        Returns:
+            The blocks in the entanglement layers.
+        """
         return [self.pauli_block(pauli) for pauli in self._paulis]
 
     @entanglement_blocks.setter
