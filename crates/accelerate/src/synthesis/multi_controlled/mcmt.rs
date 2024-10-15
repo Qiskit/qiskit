@@ -26,15 +26,15 @@ use crate::QiskitError;
 /// For example, for 4 controls we require 3 auxiliaries and create the circuit
 ///
 ///     control_0: ──■──────────────
-///                  │              
+///                  │
 ///     control_1: ──■──────────────
-///                  │              
+///                  │
 ///     control_2: ──┼────■─────────
-///                  │    │         
+///                  │    │
 ///     control_3: ──┼────┼────■────
-///                ┌─┴─┐  │    │    
+///                ┌─┴─┐  │    │
 ///         aux_0: ┤ X ├──■────┼────
-///                └───┘┌─┴─┐  │    
+///                └───┘┌─┴─┐  │
 ///         aux_1: ─────┤ X ├──■────
 ///                     └───┘┌─┴─┐         "master control" qubit: controlling on this
 ///         aux_2: ──────────┤ X ├──  <--  implements a controlled operation on all qubits
@@ -57,11 +57,7 @@ fn ccx_chain<'a>(
             Ok((
                 StandardGate::CCXGate.into(),
                 smallvec![],
-                vec![
-                    Qubit(ctrl1 as u32),
-                    Qubit(ctrl2 as u32),
-                    Qubit(target as u32),
-                ],
+                vec![Qubit::new(ctrl1), Qubit::new(ctrl2), Qubit::new(target)],
                 vec![],
             ))
         })
@@ -123,7 +119,7 @@ pub fn mcmt_v_chain(
             Ok((
                 PackedOperation::from_standard(StandardGate::XGate),
                 smallvec![] as SmallVec<[Param; 3]>,
-                vec![Qubit(index as u32)],
+                vec![Qubit::new(index)],
                 vec![] as Vec<Clbit>,
             ))
         });
@@ -140,10 +136,7 @@ pub fn mcmt_v_chain(
         Ok((
             packed_controlled_gate.clone(),
             smallvec![] as SmallVec<[Param; 3]>,
-            vec![
-                Qubit(master_control as u32),
-                Qubit((num_ctrl_qubits + i) as u32),
-            ],
+            vec![Qubit::new(master_control), Qubit::new(num_ctrl_qubits + i)],
             vec![] as Vec<Clbit>,
         ))
     });
