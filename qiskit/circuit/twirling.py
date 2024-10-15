@@ -22,7 +22,10 @@ from qiskit.exceptions import QiskitError
 
 
 def twirl_circuit(
-    circuit: QuantumCircuit, twirling_gate: Gate = CXGate, seed: int = None, num_twirls: int = 1,
+    circuit: QuantumCircuit,
+    twirling_gate: Gate = CXGate,
+    seed: int = None,
+    num_twirls: int = 1,
 ) -> QuantumCircuit | list[QuantumCircuit]:
     """Create a copy of a given circuit with Pauli twirling applied around a specified two qubit
     gate.
