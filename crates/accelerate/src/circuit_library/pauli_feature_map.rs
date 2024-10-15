@@ -173,7 +173,7 @@ fn _get_evolution_layer<'a>(
             // from using CircuitData::from_standard_gates.
             let evo = pauli_evolution::pauli_evolution(
                 pauli,
-                indices.clone(),
+                indices.into_iter().rev().collect(),
                 multiply_param(&angle, alpha, py),
                 true,
                 false,

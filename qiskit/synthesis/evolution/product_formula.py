@@ -92,14 +92,12 @@ class ProductFormula(EvolutionSynthesis):
 
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
-        self._wrap = wrap
 
-        if cx_structure == "chain":
-            self._cx_fountain = False
-        elif cx_structure == "fountain":
-            self._cx_fountain = True
-        else:
+        if cx_structure not in ["chain", "fountain"]:
             raise ValueError(f"Unsupported CX structure: {cx_structure}")
+
+        self._cx_structure = cx_structure
+        self._wrap = wrap
 
         # if atomic evolution is not provided, set a default
         if atomic_evolution is None:
@@ -152,8 +150,9 @@ class ProductFormula(EvolutionSynthesis):
             circuit = self._custom_evolution(num_qubits, pauli_rotations)
         else:
             # this is the fast path, where the whole evolution is constructed Rust-side
+            cx_fountain = self._cx_structure == "fountain"
             data = py_pauli_evolution(
-                num_qubits, pauli_rotations, self.insert_barriers, self._cx_fountain
+                num_qubits, pauli_rotations, self.insert_barriers, cx_fountain
             )
             circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
 
@@ -195,6 +194,7 @@ class ProductFormula(EvolutionSynthesis):
         of individual Paulis needs to be wrapped in gates.
         """
         circuit = QuantumCircuit(num_qubits)
+        cx_fountain = self._cx_structure == "fountain"
 
         num_paulis = len(pauli_rotations)
         for i, pauli_rotation in enumerate(pauli_rotations):
@@ -214,7 +214,7 @@ class ProductFormula(EvolutionSynthesis):
                     len(qubits),
                     [local_pauli],
                     False,
-                    self._cx_fountain,
+                    cx_fountain,
                 )
                 evo = QuantumCircuit._from_circuit_data(data)
 
