@@ -939,7 +939,8 @@ class SparsePauliOp(LinearOp):
         """Convert to a sparse Pauli list format with elements (pauli, qubits, coefficient)."""
         pauli_labels = self.paulis.to_labels()
         sparse_list = [
-            (*sparsify_label(label), coeff) for label, coeff in zip(pauli_labels, self.coeffs)
+            (*sparsify_label(label), np.real_if_close(coeff))
+            for label, coeff in zip(pauli_labels, self.coeffs)
         ]
         return sparse_list
 

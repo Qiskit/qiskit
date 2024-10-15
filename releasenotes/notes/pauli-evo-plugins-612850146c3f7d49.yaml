@@ -1,0 +1,24 @@
+---
+features_quantum_info:
+  - |
+    Added :meth:`.SparsePauliOperator.to_sparse_list` to convert an operator into
+    a sparse list format. This works analogous to :meth:`.SparsePauliOperator.from_sparse_list`.
+    For example::
+
+      from qiskit.quantum_info import SparsePauliOp
+
+      op = SparsePauliOp(["XIII", "IZZI"], coeffs=[1, 2])
+      sparse = op.to_sparse_list()  # [("X", [3], 1), ("ZZ", [1, 2], 2)]
+
+      other = SparsePauliOp.from_sparse_list(sparse, op.num_qubits)
+      print(other == op)  # True
+
+features_synthesis:
+  - |
+    Added :meth:`.ProductFormula.expand` which allows to view the expansion of a product formula
+    in a sparse Pauli format.
+  - |
+    Added the plugin structure for the :class:`.PauliEvolutionGate`. The default plugin,
+    :class:`.PauliEvolutionSynthesisDefault`, constructs circuit as before (but faster as it
+    internally uses Rust).
+

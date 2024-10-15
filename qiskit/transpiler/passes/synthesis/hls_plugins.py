@@ -92,6 +92,19 @@ Linear Function Synthesis
    PMHSynthesisLinearFunction
    DefaultSynthesisLinearFunction
 
+   
+Pauli Evolution Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.PauliEvolutionGate` (key = ``"PauliEvolution"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+    * - ``"default"``
+      - :class:`.PauliEvolutionSynthesisDefault`
+      - use a diagonalizing Clifford per Pauli term
 
 Permutation Synthesis
 '''''''''''''''''''''
