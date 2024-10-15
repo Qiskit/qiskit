@@ -32,7 +32,8 @@ class FakePulseBackend(FakeQasmBackend):
     def defaults(self):
         """Returns a snapshot of device defaults"""
         if not self._defaults:
-            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
                 # Filter deprecation warnings emitted from Qiskit Pulse
                 self._set_defaults_from_json()
         return self._defaults

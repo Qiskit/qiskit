@@ -241,7 +241,8 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                 builder.reference("custom1", "q0")
                 builder.reference("custom1", "q1")
 
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
                 self.assert_roundtrip_equal(test_sched)
 
@@ -260,7 +261,8 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             inplace=True,
         )
 
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             with self.assertWarns(QPYLoadingDeprecatedFeatureWarning):
                 self.assert_roundtrip_equal(test_sched)
 

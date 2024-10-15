@@ -677,7 +677,8 @@ class AlapSchedulingPassManager(PassManagerStagePlugin):
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
             # so filtering these warning when building pass managers
             return common.generate_scheduling(
@@ -697,7 +698,8 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
             # so filtering these warning when building pass managers
             return common.generate_scheduling(
@@ -717,7 +719,8 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             # Passing `inst_map` to `generate_scheduling` is deprecated in Qiskit 1.3
             # so filtering these warning when building pass managers
             return common.generate_scheduling(

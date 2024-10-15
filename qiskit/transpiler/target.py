@@ -147,7 +147,8 @@ class InstructionProperties(BaseInstructionProperties):
     def _calibration_prop(self):
         if self._calibration is None:
             return None
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             # Clean this alternative path from deprecation warning emitted by `get_schedule`
             return self._calibration.get_schedule()
 
@@ -633,7 +634,8 @@ class Target(BaseTarget):
     def _get_instruction_schedule_map(self):
         if self._instruction_schedule_map is not None:
             return self._instruction_schedule_map
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=DeprecationWarning)
             # `InstructionScheduleMap` is deprecated in Qiskit 1.3 but we want this alternative
             # path to be clean of deprecation warnings
             out_inst_schedule_map = InstructionScheduleMap()

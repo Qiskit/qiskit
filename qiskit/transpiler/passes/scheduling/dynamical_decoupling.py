@@ -291,7 +291,8 @@ class DynamicalDecoupling(TransformationPass):
 
         if dag._calibrations_prop:
             cal_durations = []
-            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=DeprecationWarning)
                 # `schedule.duration` emits pulse deprecation warnings which we don't want
                 # to see here
                 for gate, gate_cals in dag._calibrations_prop.items():
