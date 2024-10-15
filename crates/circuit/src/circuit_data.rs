@@ -17,6 +17,7 @@ use crate::bit_data::BitData;
 use crate::circuit_instruction::{
     CircuitInstruction, ExtraInstructionAttributes, OperationFromPython,
 };
+use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, CLBIT, QUANTUM_CIRCUIT, QUBIT};
 use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
@@ -395,6 +396,46 @@ impl CircuitData {
                 .track(&param_ob?, Some(ParameterUse::GlobalPhase))?;
         }
         Ok(())
+    }
+
+    /// Get an immutable view of the instructions in the circuit data
+    pub fn data(&self) -> &[PackedInstruction] {
+        &self.data
+    }
+
+    /// Clone an empty CircuitData from a given reference.
+    ///
+    /// The new copy will have the global properties from the provided `CircuitData`.
+    /// The the bit data fields and interners, global phase, etc will be copied to
+    /// the new returned `CircuitData`, but the `data` field's instruction list will
+    /// be empty. This can be useful for scenarios where you want to rebuild a copy
+    /// of the circuit from a reference but insert new gates in the middle.
+    pub fn clone_empty_from(other: &Self) -> Self {
+        CircuitData {
+            data: Vec::with_capacity(other.data.len()),
+            qargs_interner: other.qargs_interner.clone(),
+            cargs_interner: other.cargs_interner.clone(),
+            qubits: other.qubits.clone(),
+            clbits: other.clbits.clone(),
+            param_table: ParameterTable::new(),
+            global_phase: other.global_phase.clone(),
+        }
+    }
+
+    /// Append a PackedInstruction to the circuit data.
+    pub fn push(&mut self, py: Python, packed: PackedInstruction) -> PyResult<()> {
+        let new_index = self.data.len();
+        self.data.push(packed);
+        self.track_instruction_parameters(py, new_index)
+    }
+
+    pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
+        match value {
+            Param::Obj(_) => Err(PyTypeError::new_err(
+                "Invalid parameter type, only float and parameter expression are supported",
+            )),
+            _ => self.set_global_phase(py, add_global_phase(py, &self.global_phase, value)?),
+        }
     }
 }
 
