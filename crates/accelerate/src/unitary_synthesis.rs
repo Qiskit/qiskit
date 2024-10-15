@@ -16,7 +16,6 @@ use std::cell::OnceCell;
 use std::f64::consts::PI;
 
 use approx::relative_eq;
-use core::panic;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use ndarray::prelude::*;
@@ -237,7 +236,7 @@ fn py_run_main_loop(
             continue;
         }
         let OperationRef::Instruction(py_inst) = inst.op.view() else {
-            panic!("Control flow op must be an instruction")
+            unreachable!("Control flow op must be an instruction")
         };
         let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_inst
             .instruction
@@ -482,7 +481,7 @@ fn run_2q_unitary_synthesis(
                     .expect("Unexpected error in dag.topological_op_nodes()")
                     .map(|node| {
                         let NodeType::Operation(inst) = &synth_dag.dag()[node] else {
-                            panic!("DAG node must be an instruction")
+                            unreachable!("DAG node must be an instruction")
                         };
                         let inst_qubits = synth_dag
                             .get_qargs(inst.qubits)
@@ -887,7 +886,7 @@ fn synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else {
-        panic!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
+        unreachable!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
     };
     let sequence = TwoQubitUnitarySequence {
         gate_sequence: synth,
@@ -913,7 +912,7 @@ fn synth_su4_sequence(
                     let synth_dir = match synth_direction.as_slice() {
                         [0, 1] => true,
                         [1, 0] => false,
-                        _ => panic!(),
+                        _ => unreachable!(),
                     };
                     if synth_dir != preferred_dir {
                         reversed_synth_su4_sequence(
@@ -947,7 +946,7 @@ fn reversed_synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else {
-        panic!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
+        unreachable!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
     };
 
     let flip_bits: [u8; 2] = [1, 0];
@@ -989,7 +988,7 @@ fn synth_su4_dag(
             )?
             .extract::<DAGCircuit>(py)?
     } else {
-        panic!("synth_su4_dag should only be called for XXDecomposer.")
+        unreachable!("synth_su4_dag should only be called for XXDecomposer.")
     };
 
     match preferred_direction {
@@ -1009,7 +1008,7 @@ fn synth_su4_dag(
                     let synth_dir = match synth_direction.as_slice() {
                         [0, 1] => true,
                         [1, 0] => false,
-                        _ => panic!("There are no more than 2 possible synth directions."),
+                        _ => unreachable!("There are no more than 2 possible synth directions."),
                     };
                     if synth_dir != preferred_dir {
                         reversed_synth_su4_dag(
@@ -1055,7 +1054,7 @@ fn reversed_synth_su4_dag(
             )?
             .extract::<DAGCircuit>(py)?
     } else {
-        panic!("reversed_synth_su4_dag should only be called for XXDecomposer")
+        unreachable!("reversed_synth_su4_dag should only be called for XXDecomposer")
     };
 
     let mut target_dag = synth_dag.copy_empty_like(py, "alike")?;
