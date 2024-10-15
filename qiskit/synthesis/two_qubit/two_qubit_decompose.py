@@ -282,7 +282,7 @@ class TwoQubitControlledUDecomposer:
         self._inner_decomposition = two_qubit_decompose.TwoQubitControlledUDecomposer(
             rxx_equivalent_gate._standard_gate
         )
-        self.rxx_equivalent_gate = self._inner_decomposition.rxx_equivalent_gate
+        self.rxx_equivalent_gate = rxx_equivalent_gate
         self.scale = self._inner_decomposition.scale
 
     def __call__(self, unitary: Operator | np.ndarray, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
