@@ -155,9 +155,8 @@ fn multi_qubit_evolution(
     let inverse_basis_change = basis_change.clone().map(|(gate, _, qubit)| match gate {
         StandardGate::HGate => (gate, smallvec![], qubit),
         StandardGate::RXGate => (gate, smallvec![Param::Float(-PI2)], qubit),
-        _ => unreachable!(),
+        _ => unreachable!("Invalid basis-changing Clifford."),
     });
-    println!("Fountain: {}", do_fountain);
 
     // get the CX propagation up to the first qubit, and down
     let (chain_up, chain_down) = match do_fountain {
