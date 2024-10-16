@@ -10,18 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
-use pyo3::Python;
 use std::f64::consts::PI;
 
+use pyo3::intern;
+use pyo3::prelude::*;
+use pyo3::types::PyList;
+use pyo3::wrap_pyfunction;
+use pyo3::Python;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
+use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::QiskitError;
 
@@ -113,6 +117,133 @@ const CZ_MASK: u8 = 4;
 const ECR_MASK: u8 = 2;
 const ISWAP_MASK: u8 = 1;
 
+fn twirl_gate(
+    py: Python,
+    circ: &CircuitData,
+    rng: &mut Pcg64Mcg,
+    out_circ: &mut CircuitData,
+    twirl_set: &[([StandardGate; 4], f64); 16],
+    inst: &PackedInstruction,
+) -> PyResult<()> {
+    let qubits = circ.get_qargs(inst.qubits);
+    let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
+    out_circ.push_standard_gate(twirl[0], &[], &[qubits[0]])?;
+    out_circ.push_standard_gate(twirl[1], &[], &[qubits[1]])?;
+    out_circ.push(py, inst.clone())?;
+    out_circ.push_standard_gate(twirl[2], &[], &[qubits[0]])?;
+    out_circ.push_standard_gate(twirl[3], &[], &[qubits[1]])?;
+    if *twirl_phase != 0. {
+        out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
+    }
+    Ok(())
+}
+
+fn generate_twirled_circuit(
+    py: Python,
+    circ: &CircuitData,
+    rng: &mut Pcg64Mcg,
+    twirling_mask: u8,
+) -> PyResult<CircuitData> {
+    let mut out_circ = CircuitData::clone_empty_from(circ, None);
+
+    for inst in circ.data() {
+        match inst.op.view() {
+            OperationRef::Standard(gate) => match gate {
+                StandardGate::CXGate => {
+                    if twirling_mask & CX_MASK != 0 {
+                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
+                    } else {
+                        out_circ.push(py, inst.clone())?;
+                    }
+                }
+                StandardGate::CZGate => {
+                    if twirling_mask & CZ_MASK != 0 {
+                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
+                    } else {
+                        out_circ.push(py, inst.clone())?;
+                    }
+                }
+                StandardGate::ECRGate => {
+                    if twirling_mask & ECR_MASK != 0 {
+                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
+                    } else {
+                        out_circ.push(py, inst.clone())?;
+                    }
+                }
+                StandardGate::ISwapGate => {
+                    if twirling_mask & ISWAP_MASK != 0 {
+                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
+                    } else {
+                        out_circ.push(py, inst.clone())?;
+                    }
+                }
+                _ => out_circ.push(py, inst.clone())?,
+            },
+            OperationRef::Instruction(py_inst) => {
+                if py_inst.control_flow() {
+                    let new_blocks: PyResult<Vec<PyObject>> = py_inst
+                        .blocks()
+                        .iter()
+                        .map(|block| -> PyResult<PyObject> {
+                            let new_block =
+                                generate_twirled_circuit(py, block, rng, twirling_mask)?;
+                            Ok(new_block.into_py(py))
+                        })
+                        .collect();
+                    let new_blocks = new_blocks?;
+                    let blocks_list = PyList::new_bound(
+                        py,
+                        new_blocks.iter().map(|block| {
+                            QUANTUM_CIRCUIT
+                                .get_bound(py)
+                                .call_method1(intern!(py, "_from_circuit_data"), (block,))
+                                .unwrap()
+                        }),
+                    );
+
+                    let new_inst_obj = py_inst
+                        .instruction
+                        .bind(py)
+                        .call_method1(intern!(py, "replace_blocks"), (blocks_list,))?
+                        .unbind();
+                    let new_inst = PyInstruction {
+                        qubits: py_inst.qubits,
+                        clbits: py_inst.clbits,
+                        params: py_inst.params,
+                        op_name: py_inst.op_name.clone(),
+                        control_flow: true,
+                        instruction: new_inst_obj.clone_ref(py),
+                    };
+                    let new_inst = PackedInstruction {
+                        op: PackedOperation::from_instruction(Box::new(new_inst)),
+                        qubits: inst.qubits,
+                        clbits: inst.clbits,
+                        params: Some(Box::new(
+                            new_blocks
+                                .iter()
+                                .map(|x| Param::Obj(x.into_py(py)))
+                                .collect::<SmallVec<[Param; 3]>>(),
+                        )),
+                        extra_attrs: inst.extra_attrs.clone(),
+                        #[cfg(feature = "cache_pygates")]
+                        py_op: std::cell::OnceCell::new(),
+                    };
+                    #[cfg(feature = "cache_pygates")]
+                    new_inst.py_op.set(new_inst_obj).unwrap();
+                    out_circ.push(py, new_inst)?;
+                } else {
+                    out_circ.push(py, inst.clone())?;
+                }
+            }
+            _ => {
+                out_circ.push(py, inst.clone())?;
+            }
+        }
+    }
+
+    Ok(out_circ)
+}
+
 #[pyfunction]
 #[pyo3(signature=(circ, twirled_gate, seed=None, num_twirls=1))]
 pub fn twirl_circuit(
@@ -148,71 +279,9 @@ pub fn twirl_circuit(
         None => 15,
     };
 
-    let twirl_gate = |rng: &mut Pcg64Mcg,
-                      out_circ: &mut CircuitData,
-                      twirl_set: &[([StandardGate; 4], f64); 16],
-                      inst: &PackedInstruction|
-     -> PyResult<()> {
-        let qubits = circ.get_qargs(inst.qubits);
-        let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
-        out_circ.push_standard_gate(twirl[0], &[], &[qubits[0]])?;
-        out_circ.push_standard_gate(twirl[1], &[], &[qubits[1]])?;
-        out_circ.push(py, inst.clone())?;
-        out_circ.push_standard_gate(twirl[2], &[], &[qubits[0]])?;
-        out_circ.push_standard_gate(twirl[3], &[], &[qubits[1]])?;
-        if *twirl_phase != 0. {
-            out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
-        }
-        Ok(())
-    };
-
-    let generate_twirled_circuit = |rng: &mut Pcg64Mcg| {
-        let mut out_circ = CircuitData::clone_empty_from(circ, None);
-
-        for inst in circ.data() {
-            match inst.op.view() {
-                OperationRef::Standard(gate) => match gate {
-                    StandardGate::CXGate => {
-                        if twirling_mask & CX_MASK != 0 {
-                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
-                        } else {
-                            out_circ.push(py, inst.clone())?;
-                        }
-                    }
-                    StandardGate::CZGate => {
-                        if twirling_mask & CZ_MASK != 0 {
-                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
-                        } else {
-                            out_circ.push(py, inst.clone())?;
-                        }
-                    }
-                    StandardGate::ECRGate => {
-                        if twirling_mask & ECR_MASK != 0 {
-                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
-                        } else {
-                            out_circ.push(py, inst.clone())?;
-                        }
-                    }
-                    StandardGate::ISwapGate => {
-                        if twirling_mask & ISWAP_MASK != 0 {
-                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
-                        } else {
-                            out_circ.push(py, inst.clone())?;
-                        }
-                    }
-                    _ => out_circ.push(py, inst.clone())?,
-                },
-                _ => {
-                    out_circ.push(py, inst.clone())?;
-                }
-            }
-        }
-
-        Ok(out_circ)
-    };
     if num_twirls <= 4 {
         (0..num_twirls)
-            .map(|_| generate_twirled_circuit(&mut rng))
+            .map(|_| generate_twirled_circuit(py, circ, &mut rng, twirling_mask))
             .collect()
     } else {
         let seed_vec: Vec<u64> = rand::distributions::Standard
@@ -225,7 +294,7 @@ pub fn twirl_circuit(
             .into_iter()
             .map(|seed| {
                 let mut inner_rng = Pcg64Mcg::seed_from_u64(seed);
-                generate_twirled_circuit(&mut inner_rng)
+                generate_twirled_circuit(py, circ, &mut inner_rng, twirling_mask)
             })
             .collect()
     }

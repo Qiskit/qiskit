@@ -134,3 +134,16 @@ class TestTwirling(QiskitTestCase):
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"gate: {gate} not equiv to\n{res}"
         )
+
+    @ddt.data(CXGate, ECRGate, CZGate, iSwapGate)
+    def test_control_flow(self, gate):
+        """Test we twirl inside control flow blocks."""
+        qc = QuantumCircuit(2, 1)
+        with qc.if_test((qc.clbits[0], 0)):
+            qc.append(gate(), [0, 1])
+        res = twirl_circuit(qc)
+        np.testing.assert_allclose(
+            Operator(res.data[0].operation.blocks[0]),
+            Operator(gate()),
+            err_msg=f"gate: {gate} not equiv to\n{res}"
+        )
