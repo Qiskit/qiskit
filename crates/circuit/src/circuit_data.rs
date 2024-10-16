@@ -430,12 +430,19 @@ impl CircuitData {
     }
 
     /// Append a PackedInstruction to the circuit data.
+    ///
+    /// # Arguments
+    ///
+    /// * packed: The new packed instruction to insert to the end of the CircuitData
+    ///     The qubits and clbits **must** already be present in the interner for this
+    ///     function to work. If they are not this will corrupt the circuit.
     pub fn push(&mut self, py: Python, packed: PackedInstruction) -> PyResult<()> {
         let new_index = self.data.len();
         self.data.push(packed);
         self.track_instruction_parameters(py, new_index)
     }
 
+    /// Add a param to the current global phase of the circuit
     pub fn add_global_phase(&mut self, py: Python, value: &Param) -> PyResult<()> {
         match value {
             Param::Obj(_) => Err(PyTypeError::new_err(
