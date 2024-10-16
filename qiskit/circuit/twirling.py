@@ -45,7 +45,7 @@ def twirl_circuit(
             or it's string name. Currently only :class:`.CXGate` (`"cx"`), :class:`.CZGate` (`"cz"`),
             :class:`.ECRGate` (`"ecr"`), and :class:`.iSwapGate` (`"iswap"`) are supported.
         seed: An integer seed for the random number generator used internally.
-            If specified this must be between 0 and 8,446,744,073,709,551,615.
+            If specified this must be between 0 and 18,446,744,073,709,551,615.
         num_twirls: The number of twirling circuits to build. This defaults to None and will return
             a single circuit. If it is an integer a list of circuits with `num_twirls` circuits
             will be returned.
