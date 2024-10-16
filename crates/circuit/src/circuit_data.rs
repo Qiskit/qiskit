@@ -417,7 +417,7 @@ impl CircuitData {
     /// * capacity - The capacity for instructions to use in the output `CircuitData`
     ///     If `None` the length of `other` will be used, if `Some` the integer
     ///     value will be used as the capacity.
-    pub fn clone_empty_from(other: &Self, capacity: Option<usize>) -> Self {
+    pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> Self {
         CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
             qargs_interner: other.qargs_interner.clone(),

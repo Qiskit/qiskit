@@ -193,7 +193,7 @@ fn generate_twirled_circuit(
     rng: &mut Pcg64Mcg,
     twirling_mask: u8,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::clone_empty_from(circ, None);
+    let mut out_circ = CircuitData::clone_empty_like(circ, None);
 
     for inst in circ.data() {
         match inst.op.view() {
