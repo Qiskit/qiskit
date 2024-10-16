@@ -53,7 +53,7 @@ class OR(QuantumCircuit):
 
     @deprecate_func(
         since="1.3",
-        additional_msg="Use qiskit.circuit.library.AndGate instead.",
+        additional_msg="Use qiskit.circuit.library.OrGate instead.",
         pending=True,
     )
     def __init__(
