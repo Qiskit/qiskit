@@ -20,7 +20,8 @@ use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
-use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
 use crate::QiskitError;
@@ -101,12 +102,24 @@ static ISWAP_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
     ([YGate, YGate, YGate, YGate], 0.),
 ];
 
+static TWIRLING_SETS: [&[([StandardGate; 4], f64); 16]; 4] = [
+    &CX_TWIRL_SET,
+    &CZ_TWIRL_SET,
+    &ECR_TWIRL_SET,
+    &ISWAP_TWIRL_SET,
+];
+
+const CX_MASK: u8 = 8;
+const CZ_MASK: u8 = 4;
+const ECR_MASK: u8 = 2;
+const ISWAP_MASK: u8 = 1;
+
 #[pyfunction]
 #[pyo3(signature=(circ, twirled_gate, seed=None, num_twirls=1))]
 pub fn twirl_circuit(
     py: Python,
     circ: &CircuitData,
-    twirled_gate: StandardGate,
+    twirled_gate: Option<Vec<StandardGate>>,
     seed: Option<u64>,
     num_twirls: usize,
 ) -> PyResult<Vec<CircuitData>> {
@@ -114,38 +127,82 @@ pub fn twirl_circuit(
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
     };
-    let twirl_set: &[([StandardGate; 4], f64)] = match twirled_gate {
-        StandardGate::CXGate => &CX_TWIRL_SET,
-        StandardGate::CZGate => &CZ_TWIRL_SET,
-        StandardGate::ECRGate => &ECR_TWIRL_SET,
-        StandardGate::ISwapGate => &ISWAP_TWIRL_SET,
-        _ => {
-            return Err(QiskitError::new_err(
-                "Provided gate to twirl is not currently supported you can only use CX, CZ, ECR or iSwap.",
-            ))
+    let twirling_mask: u8 = match twirled_gate {
+        Some(gates) => {
+            let mut out_mask = 0;
+            for gate in gates {
+                let new_mask = match gate {
+                    StandardGate::CXGate => CX_MASK,
+                    StandardGate::CZGate => CZ_MASK,
+                    StandardGate::ECRGate => ECR_MASK,
+                    StandardGate::ISwapGate => ISWAP_MASK,
+                    _ => {
+                        return Err(QiskitError::new_err(
+                          format!("Provided gate to twirl, {}, is not currently supported you can only use cx, cz, ecr or iswap.", gate.name())
+                        ))
+                    }
+                };
+                out_mask |= new_mask;
+            }
+            out_mask
         }
+        None => 15,
     };
+
+    let twirl_gate = |rng: &mut Pcg64Mcg,
+                      out_circ: &mut CircuitData,
+                      twirl_set: &[([StandardGate; 4], f64); 16],
+                      inst: &PackedInstruction|
+     -> PyResult<()> {
+        let qubits: Vec<Qubit> = out_circ.get_qargs(inst.qubits).to_vec();
+        let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
+        out_circ.push_standard_gate(twirl[0], &[], &[qubits[0]])?;
+        out_circ.push_standard_gate(twirl[1], &[], &[qubits[1]])?;
+        out_circ.push(py, inst.clone())?;
+        out_circ.push_standard_gate(twirl[2], &[], &[qubits[0]])?;
+        out_circ.push_standard_gate(twirl[3], &[], &[qubits[1]])?;
+        if *twirl_phase != 0. {
+            out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
+        }
+        Ok(())
+    };
+
     let generate_twirled_circuit = |rng: &mut Pcg64Mcg| {
         let mut out_circ = CircuitData::clone_empty_from(circ, None);
 
         for inst in circ.data() {
             match inst.op.view() {
-                OperationRef::Standard(gate) => {
-                    if gate == twirled_gate {
-                        let qubits: Vec<Qubit> = out_circ.get_qargs(inst.qubits).to_vec();
-                        let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
-                        out_circ.push_standard_gate(twirl[0], &[], &[qubits[0]])?;
-                        out_circ.push_standard_gate(twirl[1], &[], &[qubits[1]])?;
-                        out_circ.push(py, inst.clone())?;
-                        out_circ.push_standard_gate(twirl[2], &[], &[qubits[0]])?;
-                        out_circ.push_standard_gate(twirl[3], &[], &[qubits[1]])?;
-                        if *twirl_phase != 0. {
-                            out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
+                OperationRef::Standard(gate) => match gate {
+                    StandardGate::CXGate => {
+                        if twirling_mask & CX_MASK != 0 {
+                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
+                        } else {
+                            out_circ.push(py, inst.clone())?;
                         }
-                    } else {
-                        out_circ.push(py, inst.clone())?;
                     }
-                }
+                    StandardGate::CZGate => {
+                        if twirling_mask & CZ_MASK != 0 {
+                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
+                        } else {
+                            out_circ.push(py, inst.clone())?;
+                        }
+                    }
+                    StandardGate::ECRGate => {
+                        if twirling_mask & ECR_MASK != 0 {
+                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
+                        } else {
+                            out_circ.push(py, inst.clone())?;
+                        }
+                    }
+                    StandardGate::ISwapGate => {
+                        if twirling_mask & ISWAP_MASK != 0 {
+                            twirl_gate(rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
+                        } else {
+                            out_circ.push(py, inst.clone())?;
+                        }
+                    }
+                    _ => out_circ.push(py, inst.clone())?,
+                },
                 _ => {
                     out_circ.push(py, inst.clone())?;
                 }

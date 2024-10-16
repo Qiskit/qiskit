@@ -38,8 +38,37 @@ class TestTwirling(QiskitTestCase):
                 np.testing.assert_allclose(
                     Operator(qc), Operator(res), err_msg=f"gate: {gate} not equiv to\n{res}"
                 )
+                self.assertNotEqual(res, qc)
                 # Assert we have more than just a 2q gate in the circuit
                 self.assertGreater(len(res.count_ops()), 1)
+
+    def test_twirl_circuit_None(self):
+        """Test the default twirl all gates."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cz(0, 1)
+        qc.ecr(0, 1)
+        qc.iswap(0, 1)
+        res = twirl_circuit(qc, seed=12345)
+        np.testing.assert_allclose(
+            Operator(qc), Operator(res), err_msg=f"{qc}\nnot equiv to\n{res}"
+        )
+        self.assertNotEqual(res, qc)
+        self.assertEqual(sum(res.count_ops().values()), 20)
+
+    def test_twirl_circuit_list(self):
+        """Test twirling for a circuit list of gates to twirl."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cz(0, 1)
+        qc.ecr(0, 1)
+        qc.iswap(0, 1)
+        res = twirl_circuit(qc, twirling_gate=["cx", iSwapGate], seed=12345)
+        np.testing.assert_allclose(
+            Operator(qc), Operator(res), err_msg=f"{qc}\nnot equiv to\n{res}"
+        )
+        self.assertNotEqual(res, qc)
+        self.assertEqual(sum(res.count_ops().values()), 12)
 
     @ddt.data(CXGate, ECRGate, CZGate, iSwapGate)
     def test_many_twirls_equiv(self, gate):
@@ -51,6 +80,7 @@ class TestTwirling(QiskitTestCase):
             np.testing.assert_allclose(
                 Operator(qc), Operator(twirled_circuit), err_msg=f"gate: {gate} not equiv to\n{res}"
             )
+            self.assertNotEqual(twirled_circuit, qc)
 
     def test_invalid_gate(self):
         """Test an error is raised with a non-standard gate."""
@@ -73,6 +103,27 @@ class TestTwirling(QiskitTestCase):
         qc.swap(0, 1)
         with self.assertRaises(QiskitError):
             twirl_circuit(qc, twirling_gate=SwapGate)
+
+    def test_invalid_string(self):
+        """Test an error is raised with an unsupported standard gate."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, twirling_gate="swap")
+
+    def test_invalid_str_entry_in_list(self):
+        """Test an error is raised with an unsupported string gate in list."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, twirling_gate=[CXGate, "swap"])
+
+    def test_invalid_class_entry_in_list(self):
+        """Test an error is raised with an unsupported string gate in list."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, twirling_gate=[SwapGate, "cx"])
 
     @ddt.data(CXGate, ECRGate, CZGate, iSwapGate)
     def test_full_circuit(self, gate):
