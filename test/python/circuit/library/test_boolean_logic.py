@@ -16,8 +16,8 @@ import unittest
 from ddt import ddt, data, unpack
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import XOR, InnerProduct, AND, OR, AndGate
+from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.library import XOR, InnerProduct, AND, OR, AndGate, OrGate
 from qiskit.quantum_info import Statevector, Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -31,7 +31,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         circuit = QuantumCircuit(boolean_object.num_qubits)
         circuit.h(list(range(boolean_object.num_variable_qubits)))
 
-        if isinstance(boolean_object, AndGate):
+        if isinstance(boolean_object, Gate):
             circuit.append(boolean_object, list(range(boolean_object.num_qubits)))
         else:
             circuit.append(boolean_object.to_instruction(), list(range(boolean_object.num_qubits)))
@@ -105,6 +105,57 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         self.assertBooleanFunctionIsCorrect(or_circuit, reference)
 
     @data(
+        (2, None),
+        (2, [-1, 1]),
+        (5, [0, 0, -1, 1, -1]),
+        (5, [-1, 0, 0, 1, 1]),
+    )
+    @unpack
+    def test_or_gate(self, num_variables, flags):
+        """Test correctness of the OrGate."""
+        or_gate = OrGate(num_variables, flags)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.any(flagged)
+
+        self.assertBooleanFunctionIsCorrect(or_gate, reference)
+
+    @data(
+        (2, None),
+        (2, [-1, 1]),
+        (5, [0, 0, -1, 1, -1]),
+        (5, [-1, 0, 0, 1, 1]),
+    )
+    @unpack
+    def test_or_gate_inverse(self, num_variables, flags):
+        """Test correctness of the OrGate's inverse."""
+        or_gate = OrGate(num_variables, flags)
+        or_gate_inverse = or_gate.inverse()
+        self.assertEqual(Operator(or_gate), Operator(or_gate_inverse).adjoint())
+
+    @data(
+        (2, None),
+        (2, [-1, 1]),
+        (5, [0, 0, -1, 1, -1]),
+        (5, [-1, 0, 0, 1, 1]),
+    )
+    @unpack
+    def test_or_equivalence(self, num_variables, flags):
+        """Test that OR-circuit and OrGate yield equal operators
+        (when not using ancilla qubits).
+        """
+        or_gate = OrGate(num_variables, flags)
+        or_circuit = OR(num_variables, flags)
+        self.assertEqual(Operator(or_gate), Operator(or_circuit))
+
+    @data(
         (2, None, "noancilla"),
         (2, [-1, 1], "v-chain"),
         (5, [0, 0, -1, 1, -1], "noancilla"),
@@ -112,7 +163,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     )
     @unpack
     def test_and(self, num_variables, flags, mcx_mode):
-        """Test the and circuit."""
+        """Test the AND-circuit."""
         and_circuit = AND(num_variables, flags, mcx_mode=mcx_mode)
         flags = flags or [1] * num_variables
 
@@ -135,7 +186,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     )
     @unpack
     def test_and_gate(self, num_variables, flags):
-        """Test correctness of the AND gate."""
+        """Test correctness of the AndGate."""
         and_gate = AndGate(num_variables, flags)
         flags = flags or [1] * num_variables
 

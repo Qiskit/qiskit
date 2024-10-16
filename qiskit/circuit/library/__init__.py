@@ -213,6 +213,7 @@ or of a set of qubit states.
    AND
    AndGate
    OR
+   OrGate
    XOR
    InnerProduct
 
@@ -526,6 +527,7 @@ from .boolean_logic import (
     AND,
     AndGate,
     OR,
+    OrGate,
     XOR,
     InnerProduct,
 )
