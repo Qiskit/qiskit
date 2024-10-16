@@ -632,7 +632,7 @@ pub fn twirl_circuit(
         StandardGate::ISwapGate => &ISWAP_TWIRL_SET,
         _ => {
             return Err(QiskitError::new_err(
-                "Provided gate to twirl is not currently supported you can only use CX or CZ",
+                "Provided gate to twirl is not currently supported you can only use CX, CZ, ECR or iSwap.",
             ))
         }
     };
