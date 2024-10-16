@@ -393,3 +393,10 @@ class CUGate(ControlledGate):
         out = super().__deepcopy__(memo)
         out._params = _copy.deepcopy(out._params, memo)
         return out
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CUGate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
