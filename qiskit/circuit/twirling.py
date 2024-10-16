@@ -25,7 +25,7 @@ def twirl_circuit(
     circuit: QuantumCircuit,
     twirling_gate: type[Gate] = CXGate,
     seed: int | None = None,
-    num_twirls: int = 1,
+    num_twirls: int | None = None,
 ) -> QuantumCircuit | list[QuantumCircuit]:
     """Create a copy of a given circuit with Pauli twirling applied around a specified two qubit
     gate.
@@ -36,8 +36,9 @@ def twirl_circuit(
             :class:`.ECRGate`, and :class:`.iSwapGate` are supported.
         seed: An integer seed for the random number generator used internally.
             If specified this must be between 0 and 8,446,744,073,709,551,615.
-        num_twirls: The number of twirling circuits to build. This defaults to 1 and will return
-            a single circuit. If it is > 1 a list of circuits will be returned.
+        num_twirls: The number of twirling circuits to build. This defaults to None and will return
+            a single circuit. If it is an integer a list of circuits with `num_twirls` circuits
+            will be returned.
 
     Returns:
         A copy of the given circuit with Pauli twirling applied to each
@@ -46,8 +47,11 @@ def twirl_circuit(
     twirling_std_gate = getattr(twirling_gate, "_standard_gate", None)
     if twirling_std_gate is None:
         raise QiskitError("This function can only be used with standard gates")
+    out_twirls = num_twirls
+    if out_twirls is None:
+        out_twirls = 1
     new_data = twirl_rs(circuit._data, twirling_std_gate, seed, num_twirls)
-    if num_twirls > 1:
+    if num_twirls is not None:
         return [QuantumCircuit._from_circuit_data(x) for x in new_data]
     else:
         return QuantumCircuit._from_circuit_data(new_data[0])
