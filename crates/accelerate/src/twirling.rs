@@ -22,7 +22,6 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::Qubit;
 
 use crate::QiskitError;
 
@@ -154,7 +153,7 @@ pub fn twirl_circuit(
                       twirl_set: &[([StandardGate; 4], f64); 16],
                       inst: &PackedInstruction|
      -> PyResult<()> {
-        let qubits: Vec<Qubit> = out_circ.get_qargs(inst.qubits).to_vec();
+        let qubits = circ.get_qargs(inst.qubits);
         let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
         out_circ.push_standard_gate(twirl[0], &[], &[qubits[0]])?;
         out_circ.push_standard_gate(twirl[1], &[], &[qubits[1]])?;
