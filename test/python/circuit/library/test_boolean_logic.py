@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import XOR, InnerProduct, AND, OR, AndGate
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -149,6 +149,21 @@ class TestBooleanLogicLibrary(QiskitTestCase):
             return np.all(flagged)
 
         self.assertBooleanFunctionIsCorrect(and_gate, reference)
+
+    @data(
+        (2, None),
+        (2, [-1, 1]),
+        (5, [0, 0, -1, 1, -1]),
+        (5, [-1, 0, 0, 1, 1]),
+    )
+    @unpack
+    def test_and_equivalence(self, num_variables, flags):
+        """Test that AND-circuit and AND-gate yield equal operators
+        (when not using ancilla qubits).
+        """
+        and_gate = AndGate(num_variables, flags)
+        and_circuit = AND(num_variables, flags)
+        self.assertEqual(Operator(and_gate), Operator(and_circuit))
 
 
 if __name__ == "__main__":

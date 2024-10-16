@@ -130,7 +130,7 @@ class AndGate(Gate):
     .. plot::
 
        from qiskit.circuit import QuantumCircuit
-       from qiskit.circuit.library import AND
+       from qiskit.circuit.library import AndGate
        from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QuantumCircuit(6)
        circuit.append(AndGate(5, flags=[-1, 0, 0, 1, 1]), [0, 1, 2, 3, 4, 5])
