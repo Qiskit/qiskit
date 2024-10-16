@@ -19,597 +19,86 @@ use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use crate::QiskitError;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-        ],
-        PI,
-    ),
+    ([IGate, ZGate, ZGate, YGate], 0.),
+    ([IGate, XGate, IGate, XGate], 0.),
+    ([IGate, YGate, ZGate, ZGate], PI),
+    ([IGate, IGate, IGate, IGate], 0.),
+    ([ZGate, XGate, ZGate, XGate], PI),
+    ([ZGate, YGate, IGate, ZGate], 0.),
+    ([ZGate, IGate, ZGate, IGate], PI),
+    ([ZGate, ZGate, IGate, YGate], PI),
+    ([XGate, YGate, XGate, YGate], 0.),
+    ([XGate, IGate, YGate, XGate], PI),
+    ([XGate, ZGate, XGate, ZGate], 0.),
+    ([XGate, XGate, YGate, IGate], PI),
+    ([YGate, IGate, XGate, XGate], PI),
+    ([YGate, ZGate, YGate, ZGate], PI),
+    ([YGate, XGate, XGate, IGate], PI),
+    ([YGate, YGate, YGate, YGate], PI),
 ];
 
 static CX_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-        ],
-        PI,
-    ),
+    ([IGate, ZGate, ZGate, ZGate], 0.),
+    ([IGate, XGate, IGate, XGate], 0.),
+    ([IGate, YGate, ZGate, YGate], 0.),
+    ([IGate, IGate, IGate, IGate], 0.),
+    ([ZGate, XGate, ZGate, XGate], 0.),
+    ([ZGate, YGate, IGate, YGate], 0.),
+    ([ZGate, IGate, ZGate, IGate], 0.),
+    ([ZGate, ZGate, IGate, ZGate], 0.),
+    ([XGate, YGate, YGate, ZGate], 0.),
+    ([XGate, IGate, XGate, XGate], 0.),
+    ([XGate, ZGate, YGate, YGate], PI),
+    ([XGate, XGate, XGate, IGate], 0.),
+    ([YGate, IGate, YGate, XGate], 0.),
+    ([YGate, ZGate, XGate, YGate], 0.),
+    ([YGate, XGate, YGate, IGate], 0.),
+    ([YGate, YGate, XGate, ZGate], PI),
 ];
 
 static CZ_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
+    ([IGate, ZGate, IGate, ZGate], 0.),
+    ([IGate, XGate, ZGate, XGate], 0.),
+    ([IGate, YGate, ZGate, YGate], 0.),
+    ([IGate, IGate, IGate, IGate], 0.),
+    ([ZGate, XGate, IGate, XGate], 0.),
+    ([ZGate, YGate, IGate, YGate], 0.),
+    ([ZGate, IGate, ZGate, IGate], 0.),
+    ([ZGate, ZGate, ZGate, ZGate], 0.),
+    ([XGate, YGate, YGate, XGate], PI),
+    ([XGate, IGate, XGate, ZGate], 0.),
+    ([XGate, ZGate, XGate, IGate], 0.),
+    ([XGate, XGate, YGate, YGate], 0.),
+    ([YGate, IGate, YGate, ZGate], 0.),
+    ([YGate, ZGate, YGate, IGate], 0.),
+    ([YGate, XGate, XGate, YGate], PI),
+    ([YGate, YGate, XGate, XGate], 0.),
 ];
 
 static ISWAP_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::ZGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::IGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::IGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-            StandardGate::ZGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::IGate,
-            StandardGate::ZGate,
-            StandardGate::XGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::ZGate,
-            StandardGate::IGate,
-            StandardGate::XGate,
-        ],
-        PI,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::XGate,
-            StandardGate::XGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
-    (
-        [
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-            StandardGate::YGate,
-        ],
-        0.,
-    ),
+    ([IGate, ZGate, ZGate, IGate], 0.),
+    ([IGate, XGate, YGate, ZGate], 0.),
+    ([IGate, YGate, XGate, ZGate], PI),
+    ([IGate, IGate, IGate, IGate], 0.),
+    ([ZGate, XGate, YGate, IGate], 0.),
+    ([ZGate, YGate, XGate, IGate], PI),
+    ([ZGate, IGate, IGate, ZGate], 0.),
+    ([ZGate, ZGate, ZGate, ZGate], 0.),
+    ([XGate, YGate, YGate, XGate], 0.),
+    ([XGate, IGate, ZGate, YGate], 0.),
+    ([XGate, ZGate, IGate, YGate], 0.),
+    ([XGate, XGate, XGate, XGate], 0.),
+    ([YGate, IGate, ZGate, XGate], PI),
+    ([YGate, ZGate, IGate, XGate], PI),
+    ([YGate, XGate, XGate, YGate], 0.),
+    ([YGate, YGate, YGate, YGate], 0.),
 ];
 
 #[pyfunction]
