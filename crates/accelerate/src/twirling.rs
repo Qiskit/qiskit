@@ -12,6 +12,7 @@
 
 use std::f64::consts::PI;
 
+use hashbrown::HashSet;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
@@ -23,11 +24,15 @@ use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
+use qiskit_circuit::converters::dag_to_circuit;
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
+use crate::euler_one_qubit_decomposer::optimize_1q_gates_decomposition;
+use crate::target_transpiler::Target;
 use crate::QiskitError;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
@@ -187,11 +192,16 @@ fn twirl_gate(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn generate_twirled_circuit(
     py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     twirling_mask: u8,
+    run_pass: bool,
+    optimizer_target: Option<&Target>,
+    optimizer_global_decomposer: Option<&HashSet<String>>,
+    optimizer_basis_gates: Option<&Vec<String>>,
 ) -> PyResult<CircuitData> {
     let mut out_circ = CircuitData::clone_empty_like(circ, None);
 
@@ -234,8 +244,16 @@ fn generate_twirled_circuit(
                         .blocks()
                         .iter()
                         .map(|block| -> PyResult<PyObject> {
-                            let new_block =
-                                generate_twirled_circuit(py, block, rng, twirling_mask)?;
+                            let new_block = generate_twirled_circuit(
+                                py,
+                                block,
+                                rng,
+                                twirling_mask,
+                                run_pass,
+                                optimizer_target,
+                                optimizer_global_decomposer,
+                                optimizer_basis_gates,
+                            )?;
                             Ok(new_block.into_py(py))
                         })
                         .collect();
@@ -289,18 +307,34 @@ fn generate_twirled_circuit(
             }
         }
     }
-
-    Ok(out_circ)
+    if run_pass {
+        let mut dag = DAGCircuit::from_circuit_data(py, out_circ, false)?;
+        optimize_1q_gates_decomposition(
+            py,
+            &mut dag,
+            optimizer_target,
+            optimizer_global_decomposer.cloned(),
+            optimizer_basis_gates.cloned(),
+        )?;
+        dag_to_circuit(py, &dag, false)
+    } else {
+        Ok(out_circ)
+    }
 }
 
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature=(circ, twirled_gate, seed=None, num_twirls=1))]
-pub fn twirl_circuit(
+#[pyo3(signature=(circ, twirled_gate, seed=None, num_twirls=1, run_pass=false, optimizer_target=None, optimizer_global_decomposer=None, optimizer_basis_gates=None))]
+pub(crate) fn twirl_circuit(
     py: Python,
     circ: &CircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
     seed: Option<u64>,
     num_twirls: usize,
+    run_pass: bool,
+    optimizer_target: Option<&Target>,
+    optimizer_global_decomposer: Option<HashSet<String>>,
+    optimizer_basis_gates: Option<Vec<String>>,
 ) -> PyResult<Vec<CircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -329,7 +363,18 @@ pub fn twirl_circuit(
     };
 
     (0..num_twirls)
-        .map(|_| generate_twirled_circuit(py, circ, &mut rng, twirling_mask))
+        .map(|_| {
+            generate_twirled_circuit(
+                py,
+                circ,
+                &mut rng,
+                twirling_mask,
+                run_pass,
+                optimizer_target,
+                optimizer_global_decomposer.as_ref(),
+                optimizer_basis_gates.as_ref(),
+            )
+        })
         .collect()
 }
 

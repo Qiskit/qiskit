@@ -13,12 +13,16 @@
 """The twirling module."""
 
 from __future__ import annotations
+import typing
 
 from qiskit._accelerate.twirling import twirl_circuit as twirl_rs
 from qiskit.circuit.quantumcircuit import QuantumCircuit, _copy_metadata
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import CXGate, ECRGate, CZGate, iSwapGate
 from qiskit.exceptions import QiskitError
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.passes.optimization import Optimize1qGatesDecomposition
 
 
 NAME_TO_CLASS = {
@@ -34,6 +38,7 @@ def twirl_circuit(
     twirling_gate: None | str | type[Gate] | list[str] | list[type[Gate]] = None,
     seed: int | None = None,
     num_twirls: int | None = None,
+    optimize_pass: Optimize1qGatesDecomposition | None = None,
 ) -> QuantumCircuit | list[QuantumCircuit]:
     """Create a copy of a given circuit with Pauli twirling applied around a specified two qubit
     gate.
@@ -49,6 +54,9 @@ def twirl_circuit(
         num_twirls: The number of twirling circuits to build. This defaults to None and will return
             a single circuit. If it is an integer a list of circuits with `num_twirls` circuits
             will be returned.
+        optimize_pass: If specified an :class:`.Optimize1qGatesDecomposition` pass instance to run
+            as part of the Pauli twirling to optimize and map the pauli gates added to the circuit
+            to the target.
 
     Returns:
         A copy of the given circuit with Pauli twirling applied to each
@@ -82,7 +90,24 @@ def twirl_circuit(
     out_twirls = num_twirls
     if out_twirls is None:
         out_twirls = 1
-    new_data = twirl_rs(circuit._data, twirling_std_gate, seed, out_twirls)
+    target = None
+    decomposers = None
+    basis_gates = None
+    run_pass = optimize_pass is not None
+    if run_pass:
+        target = optimize_pass._target
+        decomposers = optimize_pass._global_decomposers
+        basis_gates = optimize_pass._basis_gates
+    new_data = twirl_rs(
+        circuit._data,
+        twirling_std_gate,
+        seed,
+        out_twirls,
+        run_pass,
+        target,
+        decomposers,
+        basis_gates,
+    )
     if num_twirls is not None:
         out_list = []
         for circ in new_data:
