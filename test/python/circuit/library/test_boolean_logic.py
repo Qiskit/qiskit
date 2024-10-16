@@ -135,7 +135,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     )
     @unpack
     def test_and_gate(self, num_variables, flags):
-        """Test the and circuit."""
+        """Test correctness of the AND gate."""
         and_gate = AndGate(num_variables, flags)
         flags = flags or [1] * num_variables
 
@@ -149,6 +149,19 @@ class TestBooleanLogicLibrary(QiskitTestCase):
             return np.all(flagged)
 
         self.assertBooleanFunctionIsCorrect(and_gate, reference)
+
+    @data(
+        (2, None),
+        (2, [-1, 1]),
+        (5, [0, 0, -1, 1, -1]),
+        (5, [-1, 0, 0, 1, 1]),
+    )
+    @unpack
+    def test_and_gate_inverse(self, num_variables, flags):
+        """Test correctness of the AND-gate inverse."""
+        and_gate = AndGate(num_variables, flags)
+        and_gate_inverse = and_gate.inverse()
+        self.assertEqual(Operator(and_gate), Operator(and_gate_inverse).adjoint())
 
     @data(
         (2, None),

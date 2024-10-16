@@ -161,8 +161,6 @@ class AndGate(Gate):
         qr_variable = QuantumRegister(self.num_variable_qubits, name="variable")
         qr_result = QuantumRegister(1, name="result")
 
-        circuit = QuantumCircuit(qr_variable, qr_result, name="and")
-
         # determine the control qubits: all that have a nonzero flag
         flags = self.flags or [1] * self.num_variable_qubits
         control_qubits = [q for q, flag in zip(qr_variable, flags) if flag != 0]
@@ -170,7 +168,9 @@ class AndGate(Gate):
         # determine the qubits that need to be flipped (if a flag is < 0)
         flip_qubits = [q for q, flag in zip(qr_variable, flags) if flag < 0]
 
-        # determine the number of ancillas
+        # create the definition circuit
+        circuit = QuantumCircuit(qr_variable, qr_result, name="and")
+
         if len(flip_qubits) > 0:
             circuit.x(flip_qubits)
         circuit.mcx(control_qubits, qr_result[:])
