@@ -88,7 +88,10 @@ def dump(
 
     For example:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         from qiskit.circuit import QuantumCircuit
         from qiskit import qpy

@@ -92,7 +92,9 @@ class InstructionToQobjConverter:
     Extention to the OpenPulse can be achieved by subclassing this this with
     extra methods corresponding to each augmented instruction. For example,
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         class MyConverter(InstructionToQobjConverter):
 
@@ -514,7 +516,9 @@ class QobjToInstructionConverter:
     Extention to the OpenPulse can be achieved by subclassing this this with
     extra methods corresponding to each augmented instruction. For example,
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         class MyConverter(QobjToInstructionConverter):
 

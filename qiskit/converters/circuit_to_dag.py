@@ -41,7 +41,9 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             the circuit.
 
     Example:
-        .. code-block::
+        .. plot::
+            :include-source:
+            :nofigs:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
