@@ -1,0 +1,6 @@
+[requires]
+symengine/0.12.0
+
+[options]
+symengine/*:integer_class=boostmp
+symengine/*:shared=False
