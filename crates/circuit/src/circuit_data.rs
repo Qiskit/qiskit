@@ -1024,13 +1024,19 @@ impl CircuitData {
     }
 
     /// Assign all uses of the circuit parameters as keys `mapping` to their corresponding values.
+    ///
+    /// Any items in the mapping that are not present in the circuit are skipped; it's up to Python
+    /// space to turn extra bindings into an error, if they choose to do it.
     fn assign_parameters_mapping(&mut self, mapping: Bound<PyAny>) -> PyResult<()> {
         let py = mapping.py();
         let mut items = Vec::new();
         for item in mapping.call_method0("items")?.iter()? {
             let (param_ob, value) = item?.extract::<(Py<PyAny>, AssignParam)>()?;
             let uuid = ParameterUuid::from_parameter(param_ob.bind(py))?;
-            items.push((param_ob, value.0, self.param_table.pop(uuid)?));
+            // It's fine if the mapping contains parameters that we don't have - just skip those.
+            if let Ok(uses) = self.param_table.pop(uuid) {
+                items.push((param_ob, value.0, uses));
+            }
         }
         self.assign_parameters_inner(py, items)
     }
