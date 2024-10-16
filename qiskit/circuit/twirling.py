@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from qiskit._accelerate.twirling import twirl_circuit as twirl_rs
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, _copy_metadata
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import CXGate, ECRGate, CZGate, iSwapGate
 from qiskit.exceptions import QiskitError
@@ -84,6 +84,13 @@ def twirl_circuit(
         out_twirls = 1
     new_data = twirl_rs(circuit._data, twirling_std_gate, seed, out_twirls)
     if num_twirls is not None:
-        return [QuantumCircuit._from_circuit_data(x) for x in new_data]
+        out_list = []
+        for circ in new_data:
+            new_circ = QuantumCircuit._from_circuit_data(circ)
+            _copy_metadata(circuit, new_circ, "alike")
+            out_list.append(new_circ)
+        return out_list
     else:
-        return QuantumCircuit._from_circuit_data(new_data[0])
+        out_circ = QuantumCircuit._from_circuit_data(new_data[0])
+        _copy_metadata(circuit, out_circ, "alike")
+        return out_circ

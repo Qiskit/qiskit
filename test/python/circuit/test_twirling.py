@@ -147,3 +147,15 @@ class TestTwirling(QiskitTestCase):
             Operator(gate()),
             err_msg=f"gate: {gate} not equiv to\n{res}",
         )
+
+    def test_metadata_is_preserved(self):
+        """Test we preserve circuit metadata after twirling."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.ecr(0, 1)
+        qc.iswap(0, 1)
+        qc.cz(0, 1)
+        qc.metadata = {"is_this_circuit_twirled?": True}
+        res = twirl_circuit(qc, twirling_gate=CZGate, num_twirls=5)
+        for out_circ in res:
+            self.assertEqual(out_circ.metadata, qc.metadata)
