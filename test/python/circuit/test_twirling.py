@@ -15,8 +15,10 @@
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, twirl_circuit
-from qiskit.circuit.library import CXGate, ECRGate, CZGate, iSwapGate
+from qiskit.circuit import QuantumCircuit, twirl_circuit, Gate
+from qiskit.circuit.library import CXGate, ECRGate, CZGate, iSwapGate, SwapGate, PermutationGate
+from qiskit.circuit.random import random_circuit
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -36,6 +38,8 @@ class TestTwirling(QiskitTestCase):
                 np.testing.assert_allclose(
                     Operator(qc), Operator(res), err_msg=f"gate: {gate} not equiv to\n{res}"
                 )
+                # Assert we have more than just a 2q gate in the circuit
+                self.assertGreater(len(res.count_ops()), 1)
 
     @ddt.data(CXGate, ECRGate, CZGate, iSwapGate)
     def test_many_twirls_equiv(self, gate):
@@ -47,3 +51,35 @@ class TestTwirling(QiskitTestCase):
             np.testing.assert_allclose(
                 Operator(qc), Operator(twirled_circuit), err_msg=f"gate: {gate} not equiv to\n{res}"
             )
+
+    def test_invalid_gate(self):
+        """Test an error is raised with a non-standard gate."""
+
+        class MyGate(Gate):
+            """Custom gate."""
+
+            def __init__(self):
+                super().__init__("custom", num_qubits=2, params=[])
+
+        qc = QuantumCircuit(2)
+        qc.append(MyGate(), (0, 1))
+
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, twirling_gate=MyGate)
+
+    def test_invalid_standard_gate(self):
+        """Test an error is raised with an unsupported standard gate."""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, twirling_gate=SwapGate)
+
+    @ddt.data(CXGate, ECRGate, CZGate, iSwapGate)
+    def test_full_circuit(self, gate):
+        """Test a circuit with a random assortment of gates."""
+        qc = random_circuit(5, 25, seed=12345678942)
+        qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
+        res = twirl_circuit(qc)
+        np.testing.assert_allclose(
+            Operator(qc), Operator(res), err_msg=f"gate: {gate} not equiv to\n{res}"
+        )
