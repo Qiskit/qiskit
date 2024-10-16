@@ -410,9 +410,16 @@ impl CircuitData {
     /// the new returned `CircuitData`, but the `data` field's instruction list will
     /// be empty. This can be useful for scenarios where you want to rebuild a copy
     /// of the circuit from a reference but insert new gates in the middle.
-    pub fn clone_empty_from(other: &Self) -> Self {
+    ///
+    /// # Arguments
+    ///
+    /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
+    /// * capacity - The capacity for instructions to use in the output `CircuitData`
+    ///     If `None` the length of `other` will be used, if `Some` the integer
+    ///     value will be used as the capacity.
+    pub fn clone_empty_from(other: &Self, capacity: Option<usize>) -> Self {
         CircuitData {
-            data: Vec::with_capacity(other.data.len()),
+            data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
             qargs_interner: other.qargs_interner.clone(),
             cargs_interner: other.cargs_interner.clone(),
             qubits: other.qubits.clone(),

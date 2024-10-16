@@ -619,7 +619,7 @@ pub fn twirl_circuit(
     circ: &CircuitData,
     twirled_gate: StandardGate,
     seed: Option<u64>,
-    num_twirls: usize
+    num_twirls: usize,
 ) -> PyResult<Vec<CircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -637,7 +637,7 @@ pub fn twirl_circuit(
         }
     };
     let generate_twirled_circuit = |rng: &mut Pcg64Mcg| {
-        let mut out_circ = CircuitData::clone_empty_from(circ);
+        let mut out_circ = CircuitData::clone_empty_from(circ, None);
 
         for inst in circ.data() {
             match inst.op.view() {
@@ -666,7 +666,9 @@ pub fn twirl_circuit(
         Ok(out_circ)
     };
     if num_twirls <= 4 {
-        (0..num_twirls).map(|_| generate_twirled_circuit(&mut rng)).collect()
+        (0..num_twirls)
+            .map(|_| generate_twirled_circuit(&mut rng))
+            .collect()
     } else {
         let seed_vec: Vec<u64> = rand::distributions::Standard
             .sample_iter(&mut rng)
@@ -674,13 +676,14 @@ pub fn twirl_circuit(
             .collect();
         // TODO: Use into_par_iter() after CircuitData is made threadsafe
         // (see https://github.com/Qiskit/qiskit/issues/13219)
-        seed_vec.into_iter().map(|seed| {
-            let mut inner_rng = Pcg64Mcg::seed_from_u64(seed);
-            generate_twirled_circuit(&mut inner_rng)
-        })
-        .collect()
+        seed_vec
+            .into_iter()
+            .map(|seed| {
+                let mut inner_rng = Pcg64Mcg::seed_from_u64(seed);
+                generate_twirled_circuit(&mut inner_rng)
+            })
+            .collect()
     }
-
 }
 
 pub fn twirling(m: &Bound<PyModule>) -> PyResult<()> {
