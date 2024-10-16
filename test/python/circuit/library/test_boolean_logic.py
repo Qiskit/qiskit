@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import XOR, InnerProduct, AND, OR
+from qiskit.circuit.library import XOR, InnerProduct, AND, OR, AndGate
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -26,11 +26,15 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestBooleanLogicLibrary(QiskitTestCase):
     """Test library of boolean logic quantum circuits."""
 
-    def assertBooleanFunctionIsCorrect(self, boolean_circuit, reference):
-        """Assert that ``boolean_circuit`` implements the reference boolean function correctly."""
-        circuit = QuantumCircuit(boolean_circuit.num_qubits)
-        circuit.h(list(range(boolean_circuit.num_variable_qubits)))
-        circuit.append(boolean_circuit.to_instruction(), list(range(boolean_circuit.num_qubits)))
+    def assertBooleanFunctionIsCorrect(self, boolean_object, reference):
+        """Assert that ``boolean_object`` implements the reference boolean function correctly."""
+        circuit = QuantumCircuit(boolean_object.num_qubits)
+        circuit.h(list(range(boolean_object.num_variable_qubits)))
+
+        if isinstance(boolean_object, AndGate):
+            circuit.append(boolean_object, list(range(boolean_object.num_qubits)))
+        else:
+            circuit.append(boolean_object.to_instruction(), list(range(boolean_object.num_qubits)))
 
         # compute the statevector of the circuit
         statevector = Statevector.from_label("0" * circuit.num_qubits)
@@ -38,18 +42,18 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
         # trace out ancillas
         probabilities = statevector.probabilities(
-            qargs=list(range(boolean_circuit.num_variable_qubits + 1))
+            qargs=list(range(boolean_object.num_variable_qubits + 1))
         )
 
         # compute the expected outcome by computing the entries of the statevector that should
         # have a 1 / sqrt(2**n) factor
         expectations = np.zeros_like(probabilities)
-        for x in range(2**boolean_circuit.num_variable_qubits):
-            bits = np.array(list(bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)), dtype=int)
+        for x in range(2**boolean_object.num_variable_qubits):
+            bits = np.array(list(bin(x)[2:].zfill(boolean_object.num_variable_qubits)), dtype=int)
             result = reference(bits[::-1])
 
-            entry = int(str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits), 2)
-            expectations[entry] = 1 / 2**boolean_circuit.num_variable_qubits
+            entry = int(str(int(result)) + bin(x)[2:].zfill(boolean_object.num_variable_qubits), 2)
+            expectations[entry] = 1 / 2**boolean_object.num_variable_qubits
 
         np.testing.assert_array_almost_equal(probabilities, expectations)
 
@@ -122,6 +126,29 @@ class TestBooleanLogicLibrary(QiskitTestCase):
             return np.all(flagged)
 
         self.assertBooleanFunctionIsCorrect(and_circuit, reference)
+
+    @data(
+        (2, None),
+        (2, [-1, 1]),
+        (5, [0, 0, -1, 1, -1]),
+        (5, [-1, 0, 0, 1, 1]),
+    )
+    @unpack
+    def test_and_gate(self, num_variables, flags):
+        """Test the and circuit."""
+        and_gate = AndGate(num_variables, flags)
+        flags = flags or [1] * num_variables
+
+        def reference(bits):
+            flagged = []
+            for flag, bit in zip(flags, bits):
+                if flag < 0:
+                    flagged += [1 - bit]
+                elif flag > 0:
+                    flagged += [bit]
+            return np.all(flagged)
+
+        self.assertBooleanFunctionIsCorrect(and_gate, reference)
 
 
 if __name__ == "__main__":

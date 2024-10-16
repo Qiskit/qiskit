@@ -12,7 +12,7 @@
 
 """The Boolean logic circuit library."""
 
-from .quantum_and import AND
+from .quantum_and import AND, AndGate
 from .quantum_or import OR
 from .quantum_xor import XOR
 from .inner_product import InnerProduct

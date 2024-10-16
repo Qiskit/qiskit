@@ -211,6 +211,7 @@ or of a set of qubit states.
    :template: autosummary/class_no_inherited_members.rst
 
    AND
+   AndGate
    OR
    XOR
    InnerProduct
@@ -523,6 +524,7 @@ from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
+    AndGate,
     OR,
     XOR,
     InnerProduct,
