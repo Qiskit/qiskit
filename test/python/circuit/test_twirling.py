@@ -145,5 +145,5 @@ class TestTwirling(QiskitTestCase):
         np.testing.assert_allclose(
             Operator(res.data[0].operation.blocks[0]),
             Operator(gate()),
-            err_msg=f"gate: {gate} not equiv to\n{res}"
+            err_msg=f"gate: {gate} not equiv to\n{res}",
         )
