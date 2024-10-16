@@ -1318,6 +1318,11 @@ impl CircuitData {
         self.qargs_interner().get(index)
     }
 
+    /// Insert qargs into the interner and return the interned value
+    pub fn set_qargs(&mut self, qubits: &[Qubit]) -> Interned<[Qubit]> {
+        self.qargs_interner.insert(qubits)
+    }
+
     /// Unpacks from InternerIndex to `[Clbit]`
     pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
         self.cargs_interner().get(index)

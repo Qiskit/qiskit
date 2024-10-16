@@ -22,6 +22,7 @@ use rand_pcg::Pcg64Mcg;
 use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
@@ -127,11 +128,59 @@ fn twirl_gate(
 ) -> PyResult<()> {
     let qubits = circ.get_qargs(inst.qubits);
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
-    out_circ.push_standard_gate(twirl[0], &[], &[qubits[0]])?;
-    out_circ.push_standard_gate(twirl[1], &[], &[qubits[1]])?;
+    let bit_zero = out_circ.set_qargs(std::slice::from_ref(&qubits[0]));
+    let bit_one = out_circ.set_qargs(std::slice::from_ref(&qubits[1]));
+    out_circ.push(
+        py,
+        PackedInstruction {
+            op: PackedOperation::from_standard(twirl[0]),
+            qubits: bit_zero,
+            clbits: circ.cargs_interner().get_default(),
+            params: None,
+            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::cell::OnceCell::new(),
+        },
+    )?;
+    out_circ.push(
+        py,
+        PackedInstruction {
+            op: PackedOperation::from_standard(twirl[1]),
+            qubits: bit_one,
+            clbits: circ.cargs_interner().get_default(),
+            params: None,
+            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::cell::OnceCell::new(),
+        },
+    )?;
+
     out_circ.push(py, inst.clone())?;
-    out_circ.push_standard_gate(twirl[2], &[], &[qubits[0]])?;
-    out_circ.push_standard_gate(twirl[3], &[], &[qubits[1]])?;
+    out_circ.push(
+        py,
+        PackedInstruction {
+            op: PackedOperation::from_standard(twirl[2]),
+            qubits: bit_zero,
+            clbits: circ.cargs_interner().get_default(),
+            params: None,
+            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::cell::OnceCell::new(),
+        },
+    )?;
+    out_circ.push(
+        py,
+        PackedInstruction {
+            op: PackedOperation::from_standard(twirl[3]),
+            qubits: bit_one,
+            clbits: circ.cargs_interner().get_default(),
+            params: None,
+            extra_attrs: ExtraInstructionAttributes::new(None, None, None, None),
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::cell::OnceCell::new(),
+        },
+    )?;
+
     if *twirl_phase != 0. {
         out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
     }
