@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 
-"""Implementations of boolean logic quantum circuits."""
+"""Boolean OR circuit and gate."""
+
 from __future__ import annotations
 from typing import List, Optional
 

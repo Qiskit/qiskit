@@ -17,7 +17,16 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.circuit.library import XOR, InnerProduct, AND, OR, AndGate, OrGate, BitwiseXorGate
+from qiskit.circuit.library import (
+    XOR,
+    InnerProduct,
+    AND,
+    OR,
+    AndGate,
+    OrGate,
+    BitwiseXorGate,
+    InnerProductGate,
+)
 from qiskit.quantum_info import Statevector, Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -80,7 +89,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     )
     @unpack
     def test_xor_equivalence(self, num_qubits, amount):
-        """Test that XR-circuit and BitwiseXorGate yield equal operators."""
+        """Test that XOR-circuit and BitwiseXorGate yield equal operators."""
         xor_gate = BitwiseXorGate(num_qubits, amount)
         xor_circuit = XOR(num_qubits, amount)
         self.assertEqual(Operator(xor_gate), Operator(xor_circuit))
@@ -96,6 +105,22 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         expected.cz(1, 4)
         expected.cz(2, 5)
         self.assertEqual(circuit.decompose(), expected)
+
+    def test_inner_product_gate(self):
+        """Test inner product gate."""
+        inner_product = InnerProductGate(num_qubits=3)
+        expected = QuantumCircuit(6)
+        expected.cz(0, 3)
+        expected.cz(1, 4)
+        expected.cz(2, 5)
+        self.assertEqual(Operator(inner_product), Operator(expected))
+
+    @data(4, 5, 6)
+    def test_inner_product_equivalence(self, num_qubits):
+        """Test that XOR-circuit and BitwiseXorGate yield equal operators."""
+        inner_product_gate = InnerProductGate(num_qubits)
+        inner_product_circuit = InnerProduct(num_qubits)
+        self.assertEqual(Operator(inner_product_gate), Operator(inner_product_circuit))
 
     @data(
         (2, None, "noancilla"),
