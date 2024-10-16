@@ -35,7 +35,7 @@ from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 
 from qiskit._accelerate.circuit_library.n_local import Block
-from qiskit._accelerate.circuit_library.n_local import n_local as rust_local
+from qiskit._accelerate.circuit_library.n_local import py_n_local
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -65,6 +65,71 @@ def n_local(
     skip_unentangled_qubits: bool = False,
     name: str | None = "nlocal",
 ) -> QuantumCircuit:
+    """Construct an n-local variational circuit.
+
+    The structure of the n-local circuit are alternating rotation and entanglement layers.
+    In both layers, parameterized circuit-blocks act on the circuit in a defined way.
+    In the rotation layer, the blocks are applied stacked on top of each other, while in the
+    entanglement layer according to the ``entanglement`` strategy.
+    The circuit blocks can have arbitrary sizes (smaller equal to the number of qubits in the
+    circuit). Each layer is repeated ``reps`` times, and by default a final rotation layer is
+    appended.
+
+    For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
+    ``"linear"`` entanglement yields the following circuit.
+
+    .. parsed-literal::
+
+        ┌──────┐ ░ ┌──────┐                      ░ ┌──────┐
+        ┤0     ├─░─┤0     ├──────────────── ... ─░─┤0     ├
+        │  Rot │ ░ │      │┌──────┐              ░ │  Rot │
+        ┤1     ├─░─┤1     ├┤0     ├──────── ... ─░─┤1     ├
+        ├──────┤ ░ │  Ent ││      │┌──────┐      ░ ├──────┤
+        ┤0     ├─░─┤2     ├┤1     ├┤0     ├ ... ─░─┤0     ├
+        │  Rot │ ░ │      ││  Ent ││      │      ░ │  Rot │
+        ┤1     ├─░─┤3     ├┤2     ├┤1     ├ ... ─░─┤1     ├
+        ├──────┤ ░ └──────┘│      ││  Ent │      ░ ├──────┤
+        ┤0     ├─░─────────┤3     ├┤2     ├ ... ─░─┤0     ├
+        │  Rot │ ░         └──────┘│      │      ░ │  Rot │
+        ┤1     ├─░─────────────────┤3     ├ ... ─░─┤1     ├
+        └──────┘ ░                 └──────┘      ░ └──────┘
+
+        |                                 |
+        +---------------------------------+
+               repeated reps times
+
+    If specified, barriers can be inserted in between every layer.
+
+    Args:
+        num_qubits: The number of qubits of the circuit.
+        rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
+            these will be applied one after another (like new sub-layers).
+        entanglement_blocks: The blocks used in the entanglement layers. If multiple are passed,
+            these will be applied one after another.
+        entanglement: The indices specifying on which qubits the input blocks act. This is
+            specified by string describing an entanglement strategy (see the additional info)
+            or a list of qubit connections.
+
+            If a list of entanglement blocks is passed, different entanglement for each block can
+            be specified by passing a list of entanglements. To specify varying entanglement for
+            each repetition, pass a callable that takes as input the layer and returns the
+            entanglement for that layer.
+
+            Defaults to ``"full"``, meaning an all-to-all entanglement structure.
+        reps: Specifies how often the rotation blocks and entanglement blocks are repeated.
+        insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
+            no barriers are inserted.
+        parameter_prefix: The prefix used if default parameters are generated.
+        overwrite_block_parameters: If the parameters in the added blocks should be overwritten.
+            If ``False``, the parameters in the blocks are not changed.
+        skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
+        skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
+            are entangled. If ``False``, the rotation gates act on all qubits.
+        name: The name of the circuit.
+
+    Returns:
+        An n-local circuit.
+    """
     supported_gates = get_standard_gate_name_mapping()
     rotation_blocks = _normalize_blocks(
         rotation_blocks, supported_gates, overwrite_block_parameters
@@ -75,7 +140,7 @@ def n_local(
 
     entanglement = _normalize_entanglement(entanglement, len(entanglement_blocks))
 
-    data = rust_local(
+    data = py_n_local(
         num_qubits=num_qubits,
         reps=reps,
         rotation_blocks=rotation_blocks,
@@ -179,7 +244,12 @@ def _normalize_blocks(
 def _trivial_builder(
     gate: Gate,
 ) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
-    return 0, gate.copy()
+
+    def builder(_):
+        copied = gate.copy()
+        return copied, copied.params
+
+    return 0, builder
 
 
 def _get_gate_builder(
@@ -1274,7 +1344,3 @@ def _stdlib_gate_from_simple_block(block: QuantumCircuit) -> _StdlibGateResult |
     ):
         return None
     return _StdlibGateResult(instruction.operation.base_class, len(instruction.operation.params))
-
-
-# def n_local(num_qubits, entanglement):
-#     return QuantumCircuit._from_circuit_data(fast_local(num_qubits, entanglement))

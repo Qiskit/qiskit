@@ -17,7 +17,7 @@ mod multi_local;
 mod parameter_ledger;
 
 pub fn n_local(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(multi_local::n_local))?;
+    m.add_wrapped(wrap_pyfunction!(multi_local::py_n_local))?;
     m.add_class::<blocks::Block>()?;
     Ok(())
 }

@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ops::Deref;
+
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
@@ -22,8 +24,8 @@ use qiskit_circuit::{imports, Clbit, Qubit};
 
 use itertools::izip;
 
-use super::blocks::{Block, Entanglement};
-use super::parameter_ledger::{LayerType, ParameterLedger};
+use super::blocks::{Block, Entanglement, LayerEntanglement};
+use super::parameter_ledger::{LayerParameters, LayerType, ParameterLedger};
 
 type Instruction = (
     PackedOperation,
@@ -36,7 +38,7 @@ type Instruction = (
 ///
 /// Args:
 ///     num_qubits: The number of qubits in the circuit.
-///     packed_rotations: A reference to a vector containing the instructions to insert.
+///     rotation_blocks: A reference to a vector containing the instructions to insert.
 ///         This is a vector (sind we can have multiple rotations  operations per layer), with
 ///         3-tuple elements containing (packed_operation, num_qubits, num_params).
 ///     parameters: The set of parameter objects to use for the operations. This is a 3x nested
@@ -49,11 +51,11 @@ type Instruction = (
 fn rotation_layer<'a>(
     py: Python<'a>,
     num_qubits: u32,
-    packed_rotations: &'a [PyRef<Block>],
+    rotation_blocks: &'a [&'a Block],
     parameters: Vec<Vec<Vec<&'a Param>>>,
     skipped_qubits: &'a HashSet<u32>,
 ) -> impl Iterator<Item = PyResult<Instruction>> + 'a {
-    packed_rotations
+    rotation_blocks
         .iter()
         .zip(parameters)
         .flat_map(move |(block, block_params)| {
@@ -88,7 +90,7 @@ fn rotation_layer<'a>(
 ///     entanglement: The entanglement structure in this layer. Given as 3x nested vector, which
 ///         for each entanglement block contains a vector of connections, where each connection
 ///         is a vector of indices.
-///     packed_entanglings: A reference to a vector containing the instructions to insert.
+///     entanglement_blocks: A reference to a vector containing the instructions to insert.
 ///         This is a vector (sind we can have multiple entanglement operations per layer), with
 ///         3-tuple elements containing (packed_operation, num_qubits, num_params).
 ///     parameters: The set of parameter objects to use for the operations. This is a 3x nested
@@ -99,11 +101,11 @@ fn rotation_layer<'a>(
 ///     An iterator for the entanglement instructions.
 fn entanglement_layer<'a>(
     py: Python<'a>,
-    entanglement: &'a Vec<Vec<Vec<u32>>>,
-    packend_entanglings: &'a [PyRef<Block>],
-    parameters: Vec<Vec<Vec<&'a Param>>>,
+    entanglement: &'a LayerEntanglement,
+    entanglement_blocks: &'a [&'a Block],
+    parameters: LayerParameters<'a>,
 ) -> impl Iterator<Item = PyResult<Instruction>> + 'a {
-    let zipped = izip!(packend_entanglings, parameters, entanglement);
+    let zipped = izip!(entanglement_blocks, parameters, entanglement);
     zipped.flat_map(move |(block, block_params, block_entanglement)| {
         block_entanglement
             .iter()
@@ -123,48 +125,28 @@ fn entanglement_layer<'a>(
     })
 }
 
-#[pyfunction]
-#[pyo3(signature = (num_qubits, reps, rotation_blocks, entanglement_blocks, entanglement, insert_barriers, skip_final_rotation_layer, skip_unentangled_qubits, parameter_prefix))]
 #[allow(clippy::too_many_arguments)]
 pub fn n_local(
     py: Python,
-    num_qubits: i64,
-    reps: i64,
-    rotation_blocks: Vec<PyRef<Block>>,
-    entanglement_blocks: Vec<PyRef<Block>>,
-    entanglement: &Bound<PyAny>,
+    num_qubits: u32,
+    reps: usize,
+    rotation_blocks: &[&Block],
+    entanglement_blocks: &[&Block],
+    entanglement: &Entanglement,
     insert_barriers: bool,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
-    parameter_prefix: &Bound<PyString>,
+    parameter_prefix: &String,
 ) -> PyResult<CircuitData> {
-    // normalize the Python input data
-    let num_qubits = num_qubits as u32;
-    let reps = reps as usize;
-
-    // map the input gate blocks to Rust objects
-    // maybe the deref and clone is redundant and we can just deal with PyRef<Block> throughout
-    // let packed_rotations: Vec<Block> = rotation_blocks.iter().map(|b| b.deref().clone()).collect();
-    // let packed_entanglings: Vec<Block> = entanglement_blocks
-    //     .iter()
-    //     .map(|b| b.deref().clone())
-    //     .collect();
-    let packed_rotations = rotation_blocks;
-    let packed_entanglings = entanglement_blocks;
-
-    // Expand the entanglement. This will (currently) eagerly expand the entanglement for each
-    // circuit layer.
-    let entanglement = Entanglement::from_py(num_qubits, reps, entanglement, &packed_entanglings)?;
-
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
     let ledger = ParameterLedger::from_nlocal(
         py,
         num_qubits,
         reps,
-        &entanglement,
-        &packed_rotations,
-        &packed_entanglings,
+        entanglement,
+        rotation_blocks,
+        entanglement_blocks,
         skip_final_rotation_layer,
         parameter_prefix,
     )?;
@@ -188,7 +170,7 @@ pub fn n_local(
             rotation_layer(
                 py,
                 num_qubits,
-                &packed_rotations,
+                &rotation_blocks,
                 ledger.get_parameters(LayerType::Rotation, layer),
                 &skipped_qubits,
             )
@@ -196,7 +178,7 @@ pub fn n_local(
             .chain(entanglement_layer(
                 py,
                 entanglement.get_layer(layer),
-                &packed_entanglings,
+                entanglement_blocks,
                 ledger.get_parameters(LayerType::Entangle, layer),
             ))
             .chain(maybe_barrier.get())
@@ -205,13 +187,59 @@ pub fn n_local(
         packed_insts = Box::new(packed_insts.chain(rotation_layer(
             py,
             num_qubits,
-            &packed_rotations,
+            &rotation_blocks,
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         )))
     }
 
     CircuitData::from_packed_operations(py, num_qubits, 0, packed_insts, Param::Float(0.0))
+}
+
+#[pyfunction]
+#[pyo3(signature = (num_qubits, reps, rotation_blocks, entanglement_blocks, entanglement, insert_barriers, skip_final_rotation_layer, skip_unentangled_qubits, parameter_prefix))]
+#[allow(clippy::too_many_arguments)]
+pub fn py_n_local(
+    py: Python,
+    num_qubits: i64,
+    reps: i64,
+    rotation_blocks: Vec<PyRef<Block>>,
+    entanglement_blocks: Vec<PyRef<Block>>,
+    entanglement: &Bound<PyAny>,
+    insert_barriers: bool,
+    skip_final_rotation_layer: bool,
+    skip_unentangled_qubits: bool,
+    parameter_prefix: &Bound<PyString>,
+) -> PyResult<CircuitData> {
+    // Normalize the Python data.
+    let num_qubits = num_qubits as u32;
+    let reps = reps as usize;
+    let parameter_prefix = parameter_prefix.to_string();
+    let rotation_blocks: Vec<&Block> = rotation_blocks
+        .iter()
+        .map(|py_block| py_block.deref())
+        .collect();
+    let entanglement_blocks: Vec<&Block> = entanglement_blocks
+        .iter()
+        .map(|py_block| py_block.deref())
+        .collect();
+
+    // Expand the entanglement. This will (currently) eagerly expand the entanglement for each
+    // circuit layer.
+    let entanglement = Entanglement::from_py(num_qubits, reps, entanglement, &entanglement_blocks)?;
+
+    n_local(
+        py,
+        num_qubits,
+        reps,
+        &rotation_blocks,
+        &entanglement_blocks,
+        &entanglement,
+        insert_barriers,
+        skip_final_rotation_layer,
+        skip_unentangled_qubits,
+        &parameter_prefix,
+    )
 }
 
 /// A convenient struct to optionally yield barriers to inject in-between circuit layers.

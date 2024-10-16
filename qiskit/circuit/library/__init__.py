@@ -339,6 +339,11 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+   n_local
+   efficient_su2
+   real_amplitudes
+   pauli_two_design
+   excitation_preserving
    NLocal
    TwoLocal
    PauliTwoDesign
@@ -551,10 +556,14 @@ from .n_local import (
     n_local,
     NLocal,
     TwoLocal,
+    pauli_two_design,
     PauliTwoDesign,
+    real_amplitudes,
     RealAmplitudes,
+    efficient_su2,
     EfficientSU2,
     EvolvedOperatorAnsatz,
+    excitation_preserving,
     ExcitationPreserving,
     QAOAAnsatz,
 )

@@ -24,10 +24,9 @@ use smallvec::SmallVec;
 use crate::{circuit_library::entanglement::get_entanglement, QiskitError};
 
 #[derive(Debug, Clone)]
-#[pyclass]
 pub enum BlockOperation {
     Standard { gate: StandardGate },
-    Custom { builder: Py<PyAny> },
+    PyCustom { builder: Py<PyAny> },
 }
 
 impl BlockOperation {
@@ -41,7 +40,7 @@ impl BlockOperation {
                 (*gate).into(),
                 SmallVec::from_iter(params.iter().map(|&p| p.clone())),
             )),
-            Self::Custom { builder } => {
+            Self::PyCustom { builder } => {
                 // the builder returns a Python operation plus the bound parameters
                 let py_params =
                     PyList::new_bound(py, params.iter().map(|&p| p.clone().into_py(py))).into_any();
@@ -99,7 +98,7 @@ impl Block {
             ));
         }
         let block = Block {
-            operation: BlockOperation::Custom {
+            operation: BlockOperation::PyCustom {
                 builder: builder.to_object(py),
             },
             num_qubits: num_qubits as u32,
@@ -119,27 +118,27 @@ pub(super) type LayerEntanglement = Vec<BlockEntanglement>; // entanglement of a
 /// This could be done more efficiently, e.g., by creating entanglement objects that store
 /// their underlying representation (e.g. a string or a list of connections) and returning
 /// these when given a layer-index.
-pub(super) struct Entanglement {
+pub struct Entanglement {
     entanglement_vec: Vec<LayerEntanglement>,
 }
 
 impl Entanglement {
     /// Create an entanglement from the input of an n_local circuit.
-    pub(super) fn from_py(
+    pub fn from_py(
         num_qubits: u32,
         reps: usize,
         entanglement: &Bound<PyAny>,
-        packed_entanglings: &[PyRef<Block>],
+        entanglement_blocks: &[&Block],
     ) -> PyResult<Self> {
         let entanglement_vec = (0..reps)
             .map(|layer| -> PyResult<LayerEntanglement> {
                 if entanglement.is_callable() {
                     let as_any = entanglement.call1((layer,))?;
                     let as_list = as_any.downcast::<PyList>()?;
-                    unpack_entanglement(num_qubits, layer, as_list, packed_entanglings)
+                    unpack_entanglement(num_qubits, layer, as_list, entanglement_blocks)
                 } else {
                     let as_list = entanglement.downcast::<PyList>()?;
-                    unpack_entanglement(num_qubits, layer, as_list, packed_entanglings)
+                    unpack_entanglement(num_qubits, layer, as_list, entanglement_blocks)
                 }
             })
             .collect::<PyResult<_>>()?;
@@ -147,11 +146,11 @@ impl Entanglement {
         Ok(Self { entanglement_vec })
     }
 
-    pub(super) fn get_layer(&self, layer: usize) -> &LayerEntanglement {
+    pub fn get_layer(&self, layer: usize) -> &LayerEntanglement {
         &self.entanglement_vec[layer]
     }
 
-    pub(super) fn iter(&self) -> impl Iterator<Item = &LayerEntanglement> {
+    pub fn iter(&self) -> impl Iterator<Item = &LayerEntanglement> {
         self.entanglement_vec.iter()
     }
 }
@@ -160,9 +159,9 @@ fn unpack_entanglement(
     num_qubits: u32,
     layer: usize,
     entanglement: &Bound<PyList>,
-    packed_entanglings: &[PyRef<Block>],
+    entanglement_blocks: &[&Block],
 ) -> PyResult<LayerEntanglement> {
-    packed_entanglings
+    entanglement_blocks
         .iter()
         .zip(entanglement.iter())
         .map(|(block, ent)| -> PyResult<Vec<Vec<u32>>> {

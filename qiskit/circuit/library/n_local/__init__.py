@@ -14,20 +14,25 @@
 
 from .n_local import NLocal, n_local
 from .two_local import TwoLocal
-from .pauli_two_design import PauliTwoDesign
-from .real_amplitudes import RealAmplitudes
-from .efficient_su2 import EfficientSU2
+from .pauli_two_design import PauliTwoDesign, pauli_two_design
+from .real_amplitudes import RealAmplitudes, real_amplitudes
+from .efficient_su2 import EfficientSU2, efficient_su2
 from .evolved_operator_ansatz import EvolvedOperatorAnsatz
-from .excitation_preserving import ExcitationPreserving
+from .excitation_preserving import ExcitationPreserving, excitation_preserving
 from .qaoa_ansatz import QAOAAnsatz
 
 __all__ = [
+    "n_local",
     "NLocal",
     "TwoLocal",
+    "real_amplitudes",
     "RealAmplitudes",
+    "pauli_two_design",
     "PauliTwoDesign",
+    "efficient_su2",
     "EfficientSU2",
     "EvolvedOperatorAnsatz",
+    "excitation_preserving",
     "ExcitationPreserving",
     "QAOAAnsatz",
 ]
