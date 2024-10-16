@@ -215,6 +215,7 @@ or of a set of qubit states.
    OR
    OrGate
    XOR
+   BitwiseXorGate
    InnerProduct
 
 Basis Change Circuits
@@ -529,6 +530,7 @@ from .boolean_logic import (
     OR,
     OrGate,
     XOR,
+    BitwiseXorGate,
     InnerProduct,
 )
 from .basis_change import QFT, QFTGate

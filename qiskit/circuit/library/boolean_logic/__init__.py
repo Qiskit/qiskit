@@ -14,5 +14,5 @@
 
 from .quantum_and import AND, AndGate
 from .quantum_or import OR, OrGate
-from .quantum_xor import XOR
+from .quantum_xor import XOR, BitwiseXorGate, random_bitwise_xor
 from .inner_product import InnerProduct
