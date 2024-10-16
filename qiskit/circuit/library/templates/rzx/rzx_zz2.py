@@ -21,7 +21,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def rzx_zz2(theta: ParameterValueType | None = None):
-    """RZX-based template for CX - RZGate - CX.
+    """RZX-based template for CX - PhaseGate - CX.
 
     .. code-block:: text
 
