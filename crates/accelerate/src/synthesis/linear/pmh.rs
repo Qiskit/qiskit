@@ -13,7 +13,7 @@
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayViewMut2, Axis};
 use numpy::PyReadonlyArray2;
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 use std::cmp;
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -159,7 +159,16 @@ pub fn synth_cnot_count_full_pmh(
     section_size: Option<i64>,
 ) -> PyResult<CircuitData> {
     let arrayview = matrix.as_array();
-    let mut mat: Array2<bool> = arrayview.to_owned();
+    let mat: Array2<bool> = arrayview.to_owned();
+    let num_qubits = mat.nrows();
+
+    let instructions = synth_pmh(mat, section_size);
+    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+}
+
+type Instructions = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
+pub fn synth_pmh(mat: Array2<bool>, section_size: Option<i64>) -> Vec<Instructions> {
+    let mut mat = mat;
     let num_qubits = mat.nrows(); // is a quadratic matrix
 
     // If given, use the user-specified input size. If None, we default to
@@ -190,6 +199,5 @@ pub fn synth_cnot_count_full_pmh(
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
         });
-
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    instructions.collect()
 }
