@@ -946,7 +946,9 @@ fn reversed_synth_su4_sequence(
     let synth = if let DecomposerType::TwoQubitBasisDecomposer(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
     } else {
-        unreachable!("reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
+        unreachable!(
+            "reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer."
+        )
     };
 
     let flip_bits: [u8; 2] = [1, 0];
