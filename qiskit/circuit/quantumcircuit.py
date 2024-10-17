@@ -878,7 +878,7 @@ class QuantumCircuit:
 
        qc.count_ops()
 
-    .. parsed-literal::
+    .. code-block:: text
 
        OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
 
@@ -1535,7 +1535,7 @@ class QuantumCircuit:
 
             input:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───┐
                 q_0: ┤ H ├─────■──────
@@ -1545,7 +1545,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                                  ┌───┐
                 q_0: ─────■──────┤ H ├
@@ -1579,7 +1579,7 @@ class QuantumCircuit:
 
             input:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───┐
                 a_0: ┤ H ├──■─────────────────
@@ -1595,7 +1595,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                                          ┌───┐
                 b_0: ────────────────────┤ X ├
@@ -1649,7 +1649,7 @@ class QuantumCircuit:
 
             input:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───┐
                 q_0: ┤ H ├─────■──────
@@ -1659,7 +1659,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                                   ┌───┐
                 q_0: ──────■──────┤ H ├
@@ -1901,7 +1901,7 @@ class QuantumCircuit:
 
                 >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
-            .. parsed-literal::
+            .. code-block:: text
 
                             ┌───┐                   ┌─────┐                ┌───┐
                 lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
@@ -2152,7 +2152,7 @@ class QuantumCircuit:
         `the docs <https://docs.quantum.ibm.com/guides/construct-circuits>`__
         for more information.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌────────┐        ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
@@ -3897,7 +3897,7 @@ class QuantumCircuit:
                circuit.draw()
 
 
-            .. parsed-literal::
+            .. code-block:: text
 
                       ┌───┐┌─┐
                    q: ┤ H ├┤M├
@@ -5725,7 +5725,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌─────────────────────────────────────┐
                 q_0: ┤ State Preparation(0.70711,-0.70711) ├
@@ -5748,7 +5748,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌─────────────────────────┐
                 q_0: ┤0                        ├
@@ -5769,7 +5769,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───────────────────────────────────────────┐
                 q_0: ┤0                                          ├
@@ -5840,7 +5840,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌──────────────────────────────┐
                 q_0: ┤ Initialize(0.70711,-0.70711) ├
@@ -5863,7 +5863,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌──────────────────┐
                 q_0: ┤0                 ├
@@ -5884,7 +5884,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌────────────────────────────────────┐
                 q_0: ┤0                                   ├
