@@ -223,6 +223,10 @@ def n_local(
     Returns:
         An n-local circuit.
     """
+    if reps < 0:
+        # this is an important check, since we cast this to an unsigned integer Rust-side
+        raise ValueError(f"reps must be non-negative, but is {reps}")
+
     supported_gates = get_standard_gate_name_mapping()
     rotation_blocks = _normalize_blocks(
         rotation_blocks, supported_gates, overwrite_block_parameters
@@ -1295,7 +1299,8 @@ def _normalize_entanglement(
 ) -> list[str | list[tuple[int]]] | Callable[[int], list[str | list[tuple[int]]]]:
     """If the entanglement is Iterable[Iterable], normalize to list[tuple]."""
     if isinstance(entanglement, str):
-        return [entanglement]
+        return [entanglement] * num_entanglement_blocks
+
     elif isinstance(entanglement, Iterable):
         # handle edge cases when entanglement is set to an empty list
         if len(entanglement) == 0:
@@ -1335,11 +1340,20 @@ def _normalize_blocks(
     supported_gates: dict[str, Gate],
     overwrite_block_parameters: bool,
 ) -> list[Block]:
-    if not isinstance(blocks, Iterable):
+    if not isinstance(blocks, Iterable) or isinstance(blocks, str):
         blocks = [blocks]
 
     normalized = []
     for block in blocks:
+        # since the NLocal circuit accepted circuits as inputs, we raise a warning here
+        # to simplify the transition (even though, strictly speaking, quantum circuits are
+        # not a supported input type)
+        if isinstance(block, QuantumCircuit):
+            raise ValueError(
+                "The blocks should be of type Gate or str, but you passed a QuantumCircuit. "
+                "You can call .to_gate() on the circuit to turn it into a Gate object."
+            )
+
         is_standard = False
         if isinstance(block, str):
             if block not in supported_gates:
