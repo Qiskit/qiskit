@@ -1715,13 +1715,17 @@ class TestTranspile(QiskitTestCase):
             )
 
         self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
-        result = transpile(
-            qc,
-            backend=backend_v2,
-            backend_properties=custom_backend_properties,
-            optimization_level=2,
-            seed_transpiler=42,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            result = transpile(
+                qc,
+                backend=backend_v2,
+                backend_properties=custom_backend_properties,
+                optimization_level=2,
+                seed_transpiler=42,
+            )
 
         self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
 
