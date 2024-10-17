@@ -43,17 +43,17 @@ def efficient_su2(
     insert_barriers: bool = False,
     name: str = "EfficientSU2",
 ):
-    r"""The hardware efficient SU(2) 2-local circuit.
+    r"""The hardware-efficient :math:`SU(2)` 2-local circuit.
 
-    The ``efficient_su2`` circuit consists of layers of single qubit operations spanned by SU(2)
-    and CX entanglements. This is a heuristic pattern that can be used to prepare trial wave
-    functions for variational quantum algorithms or classification circuit for machine learning.
+    The ``efficient_su2`` circuit consists of layers of single qubit operations spanned by
+    :math:`SU(2)` and CX entanglements. This is a heuristic pattern that can be used to prepare trial
+    wave functions for variational quantum algorithms or classification circuit for machine learning.
 
-    SU(2) stands for special unitary group of degree 2, its elements are :math:`2 \times 2`
+    :math:`SU(2)` is the special unitary group of degree 2, its elements are :math:`2 \times 2`
     unitary matrices with determinant 1, such as the Pauli rotation gates.
 
-    On 3 qubits and using the Pauli :math:`Y` and :math:`Z` su2_gates as single qubit gates, the
-    hardware efficient SU(2) circuit is represented by:
+    On 3 qubits and using the Pauli :math:`Y` and :math:`Z` rotations as single qubit gates, the
+    this circuit is represented by:
 
     .. parsed-literal::
 
@@ -67,29 +67,24 @@ def efficient_su2(
 
     Examples:
 
-        >>> circuit = efficient_su2(3, reps=1)
-        >>> print(circuit)
-             ┌──────────┐┌──────────┐          ┌──────────┐┌──────────┐
-        q_0: ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├──■────■──┤ RY(θ[6]) ├┤ RZ(θ[9]) ├─────────────
-             ├──────────┤├──────────┤┌─┴─┐  │  └──────────┘├──────────┤┌───────────┐
-        q_1: ┤ RY(θ[1]) ├┤ RZ(θ[4]) ├┤ X ├──┼───────■──────┤ RY(θ[7]) ├┤ RZ(θ[10]) ├
-             ├──────────┤├──────────┤└───┘┌─┴─┐   ┌─┴─┐    ├──────────┤├───────────┤
-        q_2: ┤ RY(θ[2]) ├┤ RZ(θ[5]) ├─────┤ X ├───┤ X ├────┤ RY(θ[8]) ├┤ RZ(θ[11]) ├
-             └──────────┘└──────────┘     └───┘   └───┘    └──────────┘└───────────┘
+        Per default, the ``"reverse_linear"`` entanglement is used, which, in the case of
+        CX gates, is equivalent to an all-to-all entanglement:
 
-        >>> ansatz = efficient_su2(4, su2_gates=['rx', 'y'], entanglement='circular', reps=1)
-        >>> qc = QuantumCircuit(4)  # create a circuit and append the RY variational form
-        >>> qc.compose(ansatz, inplace=True)
-        >>> qc.draw()
-             ┌──────────┐┌───┐┌───┐     ┌──────────┐   ┌───┐
-        q_0: ┤ RX(θ[0]) ├┤ Y ├┤ X ├──■──┤ RX(θ[4]) ├───┤ Y ├─────────────────────
-             ├──────────┤├───┤└─┬─┘┌─┴─┐└──────────┘┌──┴───┴───┐   ┌───┐
-        q_1: ┤ RX(θ[1]) ├┤ Y ├──┼──┤ X ├─────■──────┤ RX(θ[5]) ├───┤ Y ├─────────
-             ├──────────┤├───┤  │  └───┘   ┌─┴─┐    └──────────┘┌──┴───┴───┐┌───┐
-        q_2: ┤ RX(θ[2]) ├┤ Y ├──┼──────────┤ X ├─────────■──────┤ RX(θ[6]) ├┤ Y ├
-             ├──────────┤├───┤  │          └───┘       ┌─┴─┐    ├──────────┤├───┤
-        q_3: ┤ RX(θ[3]) ├┤ Y ├──■──────────────────────┤ X ├────┤ RX(θ[7]) ├┤ Y ├
-             └──────────┘└───┘                         └───┘    └──────────┘└───┘
+        .. plot::
+            :include-source:
+
+            circuit = efficient_su2(3, reps=1)
+            circuit.draw("mpl")
+
+        To specify which SU(2) gates should be used in the rotation layer, we can set the
+        ``su2_gates`` argument. In addition, we can change the entanglement structure.
+        For example::
+
+        .. plot::
+            :include-source:
+
+            circuit = efficient_su2(4, su2_gates=["rx", "y"], entanglement="circular", reps=1)
+            circuit.draw("mpl")
 
     Args:
         num_qubits: The number of qubits.
