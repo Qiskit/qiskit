@@ -251,11 +251,22 @@ MCMT Synthesis
 
 """
 
+from __future__ import annotations
+
+import warnings
+
 import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate, C3XGate, C4XGate
+from qiskit.circuit.library import (
+    LinearFunction,
+    QFTGate,
+    MCXGate,
+    C3XGate,
+    C4XGate,
+    PauliEvolutionGate,
+)
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
@@ -288,8 +299,9 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcmt_vchain,
 )
-from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1028,4 +1040,98 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
             ctrl_state,
+        )
+
+
+class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize a PauliEvolutionGate using the default synthesis algorithm.
+
+    This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The default synthesis simply calls the synthesis algorithm attached to a
+    PauliEvolutionGate.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            # Don't do anything if a gate is called "evolution" but is not an
+            # actual PauliEvolutionGate
+            return None
+
+        algo = high_level_object.synthesis
+        return algo.synthesize(high_level_object)
+
+
+class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
+    """Synthesize a PauliEvolutionGate using Rustiq.
+
+    This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The Rustiq synthesis algorithm is described in [1], and is implemented in
+    Rust-based quantum circuit synthesis library available at
+    https://github.com/smartiel/rustiq-core.
+
+    On large circuits the plugin may take a significant runtime.
+
+    The plugin supports the following additional options:
+
+    * optimize_count (bool): if `True` the synthesis algorithm will try to optimize
+        the 2-qubit gate count; and if `False` then the 2-qubit depth.
+    * preserve_order (bool): whether the order of paulis should be preserved, up to
+        commutativity.
+    * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
+    * upto_phase (bool): if `True`, the global phase of the returned circuit may
+        differ from the global phase of the given pauli network.
+    * resynth_clifford_method (int): describes the strategy to synthesize the final
+        Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
+        greedy synthesis), `2` (rustiq isometry synthesis).
+
+    References:
+        1. Timothée Goubault de Brugière and Simon Martiel,
+           *Faster and shorter synthesis of Hamiltonian simulation circuits*,
+           `arXiv:2404.03280 [quant-ph] <https://arxiv.org/abs/2404.03280>`_
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            # Don't do anything if a gate is called "evolution" but is not an
+            # actual PauliEvolutionGate
+            return None
+
+        algo = high_level_object.synthesis
+
+        if not hasattr(algo, "expand"):
+            warnings.warn(
+                "Cannot apply Rustiq if the evolution synthesis does not implement ``expand``. ",
+                stacklevel=2,
+                category=RuntimeWarning,
+            )
+            return None
+
+        num_qubits = high_level_object.num_qubits
+        pauli_rotations = algo.expand(high_level_object)
+
+        # todo: check if this can be made a part of the expand method
+        pauli_network = [
+            (pauli_string, qubits, np.real_if_close(coeff))
+            for (pauli_string, qubits, coeff) in pauli_rotations
+        ]
+
+        optimize_count = options.get("optimize_count", True)
+        preserve_order = options.get("preserve_order", True)
+        upto_clifford = options.get("upto_clifford", False)
+        upto_phase = options.get("upto_phase", False)
+        resynth_clifford_method = options.get("resynth_clifford_method", 1)
+
+        return synth_pauli_network_rustiq(
+            num_qubits=num_qubits,
+            pauli_network=pauli_network,
+            optimize_count=optimize_count,
+            preserve_order=preserve_order,
+            upto_clifford=upto_clifford,
+            upto_phase=upto_phase,
+            resynth_clifford_method=resynth_clifford_method,
         )

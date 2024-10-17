@@ -185,6 +185,7 @@ class TestEvolutionGate(QiskitTestCase):
             decomposed = evo_gate.definition.decompose()
         else:
             decomposed = evo_gate.definition
+
         self.assertEqual(decomposed.count_ops()["rz"], 4)
         self.assertEqual(decomposed.count_ops()["rzz"], 1)
         self.assertEqual(decomposed.count_ops()["rxx"], 1)
