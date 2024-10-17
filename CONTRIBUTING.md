@@ -570,7 +570,7 @@ The bulk of this code is exercised heavily by our Python-based unit testing,
 but this coverage really only provides integration-level testing from the
 perspective of Rust.
 
-To provide proper Rust unit testing, we use `cargo test`. Rust tests are
+To provide Rust unit testing, we use `cargo test`. Rust tests are
 integrated directly into the Rust file being tested within a `tests` module.
 Functions decorated with `#[test]` within these modules are built and run
 as tests.
@@ -589,28 +589,31 @@ For more detailed guidance on how to write Rust tests, you can refer to the Rust
 documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
 
 Rust tests are run separately from the Python tests. The easiest way to run
-them is via ``tox``, which creates an isolated venv and pre-installs ``qiskit``
-prior to running ``cargo test``:
+them is via `tox`, which creates an isolated venv and pre-installs `qiskit`
+prior to running `cargo test`:
 
 ```bash
 tox -erust
 ```
 
-You can also execute them directly in your own virtual environment with these
-commands (which is what the ``tox`` env is doing under the hood):
+You can also execute them directly in your own virtual environment. If you haven't
+done so already, [create a Python virtual environment](#set-up-a-python-venv) and
+**_activate it_**.
+
+Then, run the following commands:
 
 ```bash
-python setup.py build_rust --release --inplace
+python setup.py build_rust --inplace
 PYTHONUSERBASE="$VIRTUAL_ENV" cargo test --no-default-features
 ```
 
-The first command builds Qiskit (in release, but --debug is fine too) in editable mode,
+The first command builds Qiskit in editable mode,
 which ensures that Rust tests that interact with Qiskit's Python code actually
 use the latest Python code from your working directory.
 
-The second command actually invokes the tests via Cargo. The ``PYTHONUSERBASE``
+The second command actually invokes the tests via Cargo. The `PYTHONUSERBASE`
 environment variable tells the embedded Python interpreter to look for packages
-in your active virtual environment. The ``-no-default-features``
+in your active virtual environment. The `-no-default-features`
 flag is used to compile an isolated test runner without building a linked CPython
 extension module (which would otherwise cause linker failures).
 
