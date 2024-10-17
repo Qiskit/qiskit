@@ -501,6 +501,14 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
         self.assertEqual(op.power(8), Operator(np.eye(2)))
 
+    def test_power_if_unitary(self):
+        """Test power_if_unitary method."""
+        X90 = la.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
+        op = Operator(X90)
+        self.assertEqual(op.power_if_unitary(2), Operator([[0, -1j], [-1j, 0]]))
+        self.assertEqual(op.power_if_unitary(4), Operator(-1 * np.eye(2)))
+        self.assertEqual(op.power_if_unitary(8), Operator(np.eye(2)))
+
     def test_floating_point_power(self):
         """Test handling floating-point powers."""
         circuit = QuantumCircuit(2)
@@ -512,6 +520,25 @@ class TestOperator(OperatorTestCase):
         expected_op = Operator(expected_circuit)
 
         self.assertEqual(op.power(0.25), expected_op)
+
+    def test_floating_point_power_if_unitary(self):
+        """Test handling floating-point powers."""
+        circuit = QuantumCircuit(2)
+        circuit.crz(np.pi, 0, 1)
+        op = Operator(circuit)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.crz(np.pi / 4, 0, 1)
+        expected_op = Operator(expected_circuit)
+
+        self.assertEqual(op.power_if_unitary(0.25), expected_op)
+
+    def test_power_of_nonunitary(self):
+        """Test power method for a non-unitary matrix."""
+        data = [[1, 1], [0, -1]]
+        powered = Operator(data).power(0.5)
+        expected = Operator([[1.0 + 0.0j, 0.5 - 0.5j], [0.0 + 0.0j, 0.0 + 1.0j]])
+        assert_allclose(powered.data, expected.data)
 
     def test_expand(self):
         """Test expand method."""

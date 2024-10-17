@@ -83,7 +83,7 @@ class Operator(LinearOp):
 
     def __init__(
         self,
-        data: QuantumCircuit | Operation | BaseOperator | np.ndarray,
+        data: QuantumCircuit | Operation | BaseOperator | np.ndarray | list,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
@@ -540,6 +540,39 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
+    def power_if_unitary(self, exponent: float) -> Operator:
+        """Return the matrix power of the operator, provided that operator is
+        unitary.
+
+        This is faster than the ``power`` method.
+
+        Args:
+            exponent (float): the power to raise the matrix to.
+
+        Returns:
+            Operator: the resulting operator ``O ** exponent``.
+
+        Raises:
+            QiskitError: if the input and output dimensions of the operator
+                         are not equal.
+        """
+        if self.input_dims() != self.output_dims():
+            raise QiskitError("Can only power with input_dims = output_dims.")
+        ret = _copy.copy(self)
+        if isinstance(exponent, int):
+            ret._data = np.linalg.matrix_power(self.data, exponent)
+        else:
+            import scipy.linalg
+
+            # Experimentally, for fractional powers this seems to be 3x faster than
+            # calling scipy.linalg.fractional_matrix_power(self.data, exponent)
+            decomposition, unitary = scipy.linalg.schur(self.data, output="complex")
+            decomposition_diagonal = decomposition.diagonal()
+            decomposition_power = [pow(element, exponent) for element in decomposition_diagonal]
+            unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
+            ret._data = unitary_power
+        return ret
+
     def power(self, n: float) -> Operator:
         """Return the matrix power of the operator.
 
@@ -555,19 +588,11 @@ class Operator(LinearOp):
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
-        ret = _copy.copy(self)
-        if isinstance(n, int):
-            ret._data = np.linalg.matrix_power(self.data, n)
-        else:
-            import scipy.linalg
 
-            # Experimentally, for fractional powers this seems to be 3x faster than
-            # calling scipy.linalg.fractional_matrix_power(self.data, n)
-            decomposition, unitary = scipy.linalg.schur(self.data, output="complex")
-            decomposition_diagonal = decomposition.diagonal()
-            decomposition_power = [pow(element, n) for element in decomposition_diagonal]
-            unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-            ret._data = unitary_power
+        import scipy.linalg
+
+        ret = _copy.copy(self)
+        ret._data = scipy.linalg.fractional_matrix_power(self.data, n)
         return ret
 
     def tensor(self, other: Operator) -> Operator:
