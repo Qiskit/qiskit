@@ -170,6 +170,9 @@ class U1Gate(Gate):
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
 
+    def __eq__(self, other):
+        return isinstance(other, U1Gate) and self._compare_parameters(other)
+
 
 class CU1Gate(ControlledGate):
     r"""Controlled-U1 gate.
@@ -341,6 +344,13 @@ class CU1Gate(ControlledGate):
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype
             )
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU1Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
+
 
 class MCU1Gate(ControlledGate):
     r"""Multi-controlled-U1 gate.
@@ -481,3 +491,11 @@ class MCU1Gate(ControlledGate):
             MCU1Gate: inverse gate.
         """
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, MCU1Gate)
+            and self.num_ctrl_qubits == other.num_ctrl_qubits
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

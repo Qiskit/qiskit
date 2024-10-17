@@ -52,6 +52,7 @@ pub struct OneQubitGateErrorMap {
 #[pymethods]
 impl OneQubitGateErrorMap {
     #[new]
+    #[pyo3(signature=(num_qubits=None))]
     fn new(num_qubits: Option<usize>) -> Self {
         OneQubitGateErrorMap {
             error_map: match num_qubits {
@@ -392,6 +393,7 @@ fn circuit_rr(
 }
 
 #[pyfunction]
+#[pyo3(signature=(target_basis, theta, phi, lam, phase, simplify, atol=None))]
 pub fn generate_circuit(
     target_basis: &EulerBasis,
     theta: f64,
@@ -673,7 +675,7 @@ impl Default for EulerBasisSet {
 }
 
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
-#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
+#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer", eq, eq_int)]
 pub enum EulerBasis {
     U3 = 0,
     U321 = 1,
@@ -808,6 +810,7 @@ fn compute_error_str(
 }
 
 #[pyfunction]
+#[pyo3(signature=(circuit, qubit, error_map=None))]
 pub fn compute_error_list(
     circuit: Vec<PyRef<DAGOpNode>>,
     qubit: usize,

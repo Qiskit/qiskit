@@ -613,6 +613,7 @@ impl CommutationLibrary {
 #[pymethods]
 impl CommutationLibrary {
     #[new]
+    #[pyo3(signature=(py_any=None))]
     fn new(py_any: Option<Bound<PyAny>>) -> Self {
         match py_any {
             Some(pyob) => CommutationLibrary {
