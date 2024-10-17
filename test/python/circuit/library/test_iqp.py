@@ -62,7 +62,7 @@ class TestIQPLibrary(QiskitTestCase):
 
     @data(True, False)
     def test_iqp_bad(self, use_function):
-        """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
+        """Test an error is raised if the interactions matrix is not symmetric."""
         self.assertRaises(CircuitError, iqp if use_function else IQP, [[6, 5], [2, 4]])
 
     def test_random_iqp(self):
