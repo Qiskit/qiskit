@@ -32,25 +32,52 @@ def deprecate_pulse_func(func):
     )(func)
 
 
-def deprecate_pulse_dependency(*args, **kwargs):
-    """Deprecation message for functions and classes which use or depend on Pulse"""
-    decorator = deprecate_func(
-        since="1.3",
-        package_name="Qiskit",
-        removal_timeline="in Qiskit 2.0",
-        additional_msg="The entire Qiskit Pulse package is being deprecated "
-        "and this is a dependency on the package.",
-        **kwargs,
-    )
+def deprecate_pulse_dependency(*args, moving_to_dynamics: bool = False, **kwargs):
+    """Deprecation message for functions and classes which use or depend on Pulse
 
-    # Taken when `deprecate_pulse_dependency` is used with no arguments and with empty parentheses,
-    # in which case the decorated function is passed
+    moving_to_dynamics: set to True if the dependency is moving to Qiskit Dynamics. This affects
+    the deprecation message being printed, namely saying explicitly whether the dependency will
+    be moved to Qiskit Dynamics or whether it will just be removed without an alternative.
+    """
+
+    def msg_handler(func):
+        fully_qual_name = format(f"{func.__module__}.{func.__qualname__}")
+        if ".__init__" in fully_qual_name:  # Deprecating a class' vis it __init__ method
+            fully_qual_name = fully_qual_name[:-9]
+        elif "is_property" not in kwargs:  # Deprecating either a function or a method
+            fully_qual_name += "()"
+
+        message = (
+            "The entire Qiskit Pulse package is being deprecated and will be moved to the Qiskit "
+            "Dynamics repository: https://github.com/qiskit-community/qiskit-dynamics."
+            + (
+                format(f" Note that ``{fully_qual_name}`` will be moved as well.")
+                if moving_to_dynamics
+                else format(
+                    f" Note that once removed, ``{fully_qual_name}`` will have no alternative in Qiskit."
+                )
+            )
+        )
+
+        decorator = deprecate_func(
+            since="1.3",
+            package_name="Qiskit",
+            removal_timeline="in Qiskit 2.0",
+            additional_msg=message,
+            **kwargs,
+        )(func)
+
+        # Taken when `deprecate_pulse_dependency` is used with no arguments and with empty parentheses,
+        # in which case the decorated function is passed
+
+        return decorator
+
     if args:
-        return decorator(args[0])
-    return decorator
+        return msg_handler(args[0])
+    return msg_handler
 
 
-def deprecate_pulse_arg(arg_name, **kwargs):
+def deprecate_pulse_arg(arg_name: str, **kwargs):
     """Deprecation message for arguments related to Pulse"""
     return deprecate_arg(
         name=arg_name,

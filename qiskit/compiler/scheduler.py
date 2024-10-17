@@ -36,7 +36,7 @@ def _log_schedule_time(start_time, end_time):
     logger.info(log_msg)
 
 
-@deprecate_pulse_dependency
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,

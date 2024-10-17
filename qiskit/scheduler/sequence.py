@@ -28,7 +28,7 @@ from qiskit.providers import BackendV1, BackendV2
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@deprecate_pulse_dependency
+@deprecate_pulse_dependency(moving_to_dynamics=True)
 def sequence(
     scheduled_circuit: QuantumCircuit,
     schedule_config: ScheduleConfig,
