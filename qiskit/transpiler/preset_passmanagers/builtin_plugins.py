@@ -185,7 +185,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.basis_gates is not None
                 and len(pass_manager_config.basis_gates) > 0
             ):
-                print("HERE??", pass_manager_config.basis_gates)
                 init.append(ConsolidateBlocks())
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -709,8 +708,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
-            print("opt", optimization._tasks)
-
             return optimization
         else:
             return None

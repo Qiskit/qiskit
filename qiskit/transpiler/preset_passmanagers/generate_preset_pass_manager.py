@@ -361,7 +361,6 @@ def generate_preset_pass_manager(
     approximation_degree = _parse_approximation_degree(approximation_degree)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler)
 
-    print("target", target)
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,
@@ -401,7 +400,6 @@ def generate_preset_pass_manager(
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
 
-    # print("all", pm._tasks)
     return pm
 
 
@@ -485,7 +483,6 @@ def _parse_coupling_map(coupling_map, backend):
     if isinstance(coupling_map, list) and all(
         isinstance(i, list) and len(i) == 2 for i in coupling_map
     ):
-        print("here")
         return CouplingMap(coupling_map)
     else:
         raise TranspilerError(
