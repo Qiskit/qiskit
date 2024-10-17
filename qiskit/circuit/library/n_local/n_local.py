@@ -32,6 +32,7 @@ from qiskit.circuit import (
 )
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 
 from qiskit._accelerate.circuit_library.n_local import Block
@@ -156,165 +157,6 @@ def n_local(
     return circuit
 
 
-def _normalize_entanglement(
-    entanglement: (
-        BlockEntanglement
-        | Iterable[BlockEntanglement]
-        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
-    ),
-    num_entanglement_blocks: int,
-) -> list[str | list[tuple[int]]] | Callable[[int], list[str | list[tuple[int]]]]:
-    """If the entanglement is Iterable[Iterable], normalize to list[tuple]."""
-    if isinstance(entanglement, str):
-        return [entanglement]
-    elif isinstance(entanglement, Iterable):
-        # handle edge cases when entanglement is set to an empty list
-        if len(entanglement) == 0:
-            return [[()]]
-
-        if isinstance(entanglement[0], str):
-            # if the entanglement is given as iterable we must make sure it matches
-            # the number of entanglement blocks
-            if len(entanglement) != num_entanglement_blocks:
-                print(entanglement)
-                raise QiskitError(
-                    f"Number of block-entanglements ({len(entanglement)}) must match number of "
-                    f"entanglement blocks ({num_entanglement_blocks})!"
-                )
-
-            return entanglement
-
-        # normalize to list[BlockEntanglement]
-        if not isinstance(entanglement[0][0], Iterable):
-            entanglement = [entanglement]
-
-        if len(entanglement) != num_entanglement_blocks:
-            print(entanglement)
-            raise QiskitError(
-                f"Number of block-entanglements ({len(entanglement)}) must match number of "
-                f"entanglement blocks ({num_entanglement_blocks})!"
-            )
-
-        return [[tuple(connections) for connections in block] for block in entanglement]
-
-    # here, entanglement is a callable
-    return lambda offset: _normalize_entanglement(entanglement(offset), num_entanglement_blocks)
-
-
-def _normalize_blocks(
-    blocks: str | Gate | Iterable[str | Gate],
-    supported_gates: dict[str, Gate],
-    overwrite_block_parameters: bool,
-) -> list[Block]:
-    if not isinstance(blocks, Iterable):
-        blocks = [blocks]
-
-    normalized = []
-    for block in blocks:
-        is_standard = False
-        if isinstance(block, str):
-            if block not in supported_gates:
-                raise ValueError(f"Unsupported gate: {block}")
-            block = supported_gates[block]
-            is_standard = True
-        elif isinstance(block, Gate) and getattr(block, "_standard_gate", None) is not None:
-            if len(block.params) == 0:
-                is_standard = True
-            # the fast path will always overwrite block parameters
-            elif overwrite_block_parameters:
-                # if all parameters are plain Parameter objects, this is a plain
-                # standard gate we do not need to propagate parameterizations for
-                is_standard = all(isinstance(p, Parameter) for p in block.params)
-
-        if is_standard:
-            block = Block.from_standard_gate(block._standard_gate)
-        else:
-            if overwrite_block_parameters:
-                num_parameters, builder = _get_gate_builder(block)
-            else:
-                num_parameters, builder = _trivial_builder(block)
-
-            block = Block.from_callable(block.num_qubits, num_parameters, builder)
-
-        normalized.append(block)
-
-    return normalized
-
-
-def _trivial_builder(
-    gate: Gate,
-) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
-
-    def builder(_):
-        copied = gate.copy()
-        return copied, copied.params
-
-    return 0, builder
-
-
-def _get_gate_builder(
-    gate: Gate,
-) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
-    """Construct a callable that handles parameter-rebinding.
-
-    For a given gate, this return the number of free parameters and a callable that can be
-    used to obtain a re-parameterized version of the gate. For example::
-
-        x, y = Parameter("x"), Parameter("y")
-        gate = CUGate(x, 2 * y, 0.5, 0.)
-
-        num_parameters, builder = _build_gate(gate)
-        print(num_parameters)  # prints 2
-
-        a, b = Parameter("a"), Parameter("b")
-        new_gate, new_params = builder([a, b])
-        print(new_gate)  # CUGate(a, 2 * b, 0.5, 0)
-        print(new_params)  # [a, 2 * b, 0.5, 0]
-
-    """
-    free_parameters = set()
-    for p in gate.params:
-        if isinstance(p, ParameterExpression):
-            free_parameters |= set(p.parameters)
-
-    num_parameters = len(free_parameters)
-
-    sorted_parameters = _sort_parameters(free_parameters)
-
-    def builder(new_parameters):
-        out = gate.copy()
-
-        # re-bind the ``Gate.params`` attribute
-        param_dict = dict(zip(sorted_parameters, new_parameters))
-        bound_params = gate.params.copy()
-        for i, expr in enumerate(gate.params):
-            if isinstance(expr, ParameterExpression):
-                for parameter in expr.parameters:
-                    expr = expr.assign(parameter, param_dict[parameter])
-                bound_params[i] = expr
-
-        out.params = bound_params
-
-        # if the definition exists, rebind it
-        if out._definition is not None:
-            out._definition.assign_parameters(param_dict, inplace=True)
-
-        return out, bound_params
-
-    return num_parameters, builder
-
-
-def _sort_parameters(parameters):
-    """Sort a list of Parameter objects."""
-
-    def key(parameter):
-        if isinstance(parameter, ParameterVectorElement):
-            return (parameter.vector.name, parameter.index)
-        return (parameter.name,)
-
-    return sorted(parameters, key=key)
-
-
 class NLocal(BlueprintCircuit):
     """The n-local circuit class.
 
@@ -353,6 +195,11 @@ class NLocal(BlueprintCircuit):
     If an initial state object is provided, it is added in front of the NLocal.
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.n_local instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,
@@ -1344,3 +1191,162 @@ def _stdlib_gate_from_simple_block(block: QuantumCircuit) -> _StdlibGateResult |
     ):
         return None
     return _StdlibGateResult(instruction.operation.base_class, len(instruction.operation.params))
+
+
+def _normalize_entanglement(
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ),
+    num_entanglement_blocks: int,
+) -> list[str | list[tuple[int]]] | Callable[[int], list[str | list[tuple[int]]]]:
+    """If the entanglement is Iterable[Iterable], normalize to list[tuple]."""
+    if isinstance(entanglement, str):
+        return [entanglement]
+    elif isinstance(entanglement, Iterable):
+        # handle edge cases when entanglement is set to an empty list
+        if len(entanglement) == 0:
+            return [[()]]
+
+        if isinstance(entanglement[0], str):
+            # if the entanglement is given as iterable we must make sure it matches
+            # the number of entanglement blocks
+            if len(entanglement) != num_entanglement_blocks:
+                print(entanglement)
+                raise QiskitError(
+                    f"Number of block-entanglements ({len(entanglement)}) must match number of "
+                    f"entanglement blocks ({num_entanglement_blocks})!"
+                )
+
+            return entanglement
+
+        # normalize to list[BlockEntanglement]
+        if not isinstance(entanglement[0][0], Iterable):
+            entanglement = [entanglement]
+
+        if len(entanglement) != num_entanglement_blocks:
+            print(entanglement)
+            raise QiskitError(
+                f"Number of block-entanglements ({len(entanglement)}) must match number of "
+                f"entanglement blocks ({num_entanglement_blocks})!"
+            )
+
+        return [[tuple(connections) for connections in block] for block in entanglement]
+
+    # here, entanglement is a callable
+    return lambda offset: _normalize_entanglement(entanglement(offset), num_entanglement_blocks)
+
+
+def _normalize_blocks(
+    blocks: str | Gate | Iterable[str | Gate],
+    supported_gates: dict[str, Gate],
+    overwrite_block_parameters: bool,
+) -> list[Block]:
+    if not isinstance(blocks, Iterable):
+        blocks = [blocks]
+
+    normalized = []
+    for block in blocks:
+        is_standard = False
+        if isinstance(block, str):
+            if block not in supported_gates:
+                raise ValueError(f"Unsupported gate: {block}")
+            block = supported_gates[block]
+            is_standard = True
+        elif isinstance(block, Gate) and getattr(block, "_standard_gate", None) is not None:
+            if len(block.params) == 0:
+                is_standard = True
+            # the fast path will always overwrite block parameters
+            elif overwrite_block_parameters:
+                # if all parameters are plain Parameter objects, this is a plain
+                # standard gate we do not need to propagate parameterizations for
+                is_standard = all(isinstance(p, Parameter) for p in block.params)
+
+        if is_standard:
+            block = Block.from_standard_gate(block._standard_gate)
+        else:
+            if overwrite_block_parameters:
+                num_parameters, builder = _get_gate_builder(block)
+            else:
+                num_parameters, builder = _trivial_builder(block)
+
+            block = Block.from_callable(block.num_qubits, num_parameters, builder)
+
+        normalized.append(block)
+
+    return normalized
+
+
+def _trivial_builder(
+    gate: Gate,
+) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
+
+    def builder(_):
+        copied = gate.copy()
+        return copied, copied.params
+
+    return 0, builder
+
+
+def _get_gate_builder(
+    gate: Gate,
+) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
+    """Construct a callable that handles parameter-rebinding.
+
+    For a given gate, this return the number of free parameters and a callable that can be
+    used to obtain a re-parameterized version of the gate. For example::
+
+        x, y = Parameter("x"), Parameter("y")
+        gate = CUGate(x, 2 * y, 0.5, 0.)
+
+        num_parameters, builder = _build_gate(gate)
+        print(num_parameters)  # prints 2
+
+        a, b = Parameter("a"), Parameter("b")
+        new_gate, new_params = builder([a, b])
+        print(new_gate)  # CUGate(a, 2 * b, 0.5, 0)
+        print(new_params)  # [a, 2 * b, 0.5, 0]
+
+    """
+    free_parameters = set()
+    for p in gate.params:
+        if isinstance(p, ParameterExpression):
+            free_parameters |= set(p.parameters)
+
+    num_parameters = len(free_parameters)
+
+    sorted_parameters = _sort_parameters(free_parameters)
+
+    def builder(new_parameters):
+        out = gate.copy()
+
+        # re-bind the ``Gate.params`` attribute
+        param_dict = dict(zip(sorted_parameters, new_parameters))
+        bound_params = gate.params.copy()
+        for i, expr in enumerate(gate.params):
+            if isinstance(expr, ParameterExpression):
+                for parameter in expr.parameters:
+                    expr = expr.assign(parameter, param_dict[parameter])
+                bound_params[i] = expr
+
+        out.params = bound_params
+
+        # if the definition exists, rebind it
+        if out._definition is not None:
+            out._definition.assign_parameters(param_dict, inplace=True)
+
+        return out, bound_params
+
+    return num_parameters, builder
+
+
+def _sort_parameters(parameters):
+    """Sort a list of Parameter objects."""
+
+    def key(parameter):
+        if isinstance(parameter, ParameterVectorElement):
+            return (parameter.vector.name, parameter.index)
+        return (parameter.name,)
+
+    return sorted(parameters, key=key)

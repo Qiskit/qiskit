@@ -17,6 +17,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate, CZGate
+from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate.circuit_library.n_local import Block, py_n_local
 from .two_local import TwoLocal
 
@@ -161,6 +162,11 @@ class PauliTwoDesign(TwoLocal):
              `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.pauli_two_design instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

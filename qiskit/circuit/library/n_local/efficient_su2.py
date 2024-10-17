@@ -20,7 +20,8 @@ from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
-from .n_local import n_local
+from qiskit.utils.deprecation import deprecate_func
+from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
 
 if typing.TYPE_CHECKING:
@@ -30,7 +31,11 @@ if typing.TYPE_CHECKING:
 def efficient_su2(
     num_qubits: int,
     su2_gates: str | Gate | Iterable[str | Gate] | None = None,
-    entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ) = "reverse_linear",
     reps: int = 3,
     skip_unentangled_qubits: bool = False,
     skip_final_rotation_layer: bool = False,
@@ -179,6 +184,11 @@ class EfficientSU2(TwoLocal):
 
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.efficient_su2 instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

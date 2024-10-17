@@ -13,19 +13,24 @@
 """The ExcitationPreserving 2-local circuit."""
 
 from __future__ import annotations
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library.standard_gates import RZGate
-from .n_local import n_local
+from qiskit.utils.deprecation import deprecate_func
+from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
 
 
 def excitation_preserving(
     num_qubits: int,
     mode: str = "iswap",
-    entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ) = "full",
     reps: int = 3,
     skip_unentangled_qubits: bool = False,
     skip_final_rotation_layer: bool = False,
@@ -207,6 +212,11 @@ class ExcitationPreserving(TwoLocal):
              └──────────┘ ░ └────────────┘└────────────┘        ░ └──────────┘
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.excitation_preserving instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

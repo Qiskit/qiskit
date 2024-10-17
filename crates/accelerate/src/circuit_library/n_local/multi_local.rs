@@ -170,7 +170,7 @@ pub fn n_local(
             rotation_layer(
                 py,
                 num_qubits,
-                &rotation_blocks,
+                rotation_blocks,
                 ledger.get_parameters(LayerType::Rotation, layer),
                 &skipped_qubits,
             )
@@ -187,7 +187,7 @@ pub fn n_local(
         packed_insts = Box::new(packed_insts.chain(rotation_layer(
             py,
             num_qubits,
-            &rotation_blocks,
+            rotation_blocks,
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         )))
