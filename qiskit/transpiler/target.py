@@ -823,6 +823,7 @@ class Target(BaseTarget):
             return cmap
         if self._coupling_graph is None:
             self._build_coupling_graph()
+
         # if there is no connectivity constraints in the coupling graph treat it as not
         # existing and return
         if self._coupling_graph is not None:
@@ -929,7 +930,7 @@ class Target(BaseTarget):
     @classmethod
     def from_configuration(
         cls,
-        basis_gates: list[str],
+        basis_gates: list[str] | None,
         num_qubits: int | None = None,
         coupling_map: CouplingMap | None = None,
         inst_map: InstructionScheduleMap | None = None,
@@ -1022,20 +1023,34 @@ class Target(BaseTarget):
 
             qubit_properties = qubit_props_list_from_props(properties=backend_properties)
 
-        target = cls(
-            num_qubits=num_qubits,
-            dt=dt,
-            granularity=granularity,
-            min_length=min_length,
-            pulse_alignment=pulse_alignment,
-            acquire_alignment=acquire_alignment,
-            qubit_properties=qubit_properties,
-            concurrent_measurements=concurrent_measurements,
-        )
-        name_mapping = get_standard_gate_name_mapping()
-        if custom_name_mapping is not None:
-            name_mapping.update(custom_name_mapping)
-
+        if basis_gates is None:
+            if num_qubits is None and coupling_map is not None:
+                num_qubits = len(coupling_map.graph)
+            target = FakeTarget(
+                coupling_map=coupling_map,
+                num_qubits=num_qubits,
+                dt=dt,
+                granularity=granularity,
+                min_length=min_length,
+                pulse_alignment=pulse_alignment,
+                acquire_alignment=acquire_alignment,
+                qubit_properties=qubit_properties,
+                concurrent_measurements=concurrent_measurements,
+            )
+        else:
+            target = cls(
+                num_qubits=num_qubits,
+                dt=dt,
+                granularity=granularity,
+                min_length=min_length,
+                pulse_alignment=pulse_alignment,
+                acquire_alignment=acquire_alignment,
+                qubit_properties=qubit_properties,
+                concurrent_measurements=concurrent_measurements,
+            )
+            name_mapping = get_standard_gate_name_mapping()
+            if custom_name_mapping is not None:
+                name_mapping.update(custom_name_mapping)
         # While BackendProperties can also contain coupling information we
         # rely solely on CouplingMap to determine connectivity. This is because
         # in legacy transpiler usage (and implicitly in the BackendV1 data model)
@@ -1043,38 +1058,40 @@ class Target(BaseTarget):
         # the properties is only used for error rate and duration population.
         # If coupling map is not specified we ignore the backend_properties
         if coupling_map is None:
-            for gate in basis_gates:
-                if gate not in name_mapping:
-                    raise KeyError(
-                        f"The specified basis gate: {gate} is not present in the standard gate "
-                        "names or a provided custom_name_mapping"
-                    )
-                target.add_instruction(name_mapping[gate], name=gate)
+            if basis_gates is not None:
+                for gate in basis_gates:
+                    if gate not in name_mapping:
+                        raise KeyError(
+                            f"The specified basis gate: {gate} is not present in the standard gate "
+                            "names or a provided custom_name_mapping"
+                        )
+                    target.add_instruction(name_mapping[gate], name=gate)
         else:
             one_qubit_gates = []
             two_qubit_gates = []
             global_ideal_variable_width_gates = []  # pylint: disable=invalid-name
             if num_qubits is None:
                 num_qubits = len(coupling_map.graph)
-            for gate in basis_gates:
-                if gate not in name_mapping:
-                    raise KeyError(
-                        f"The specified basis gate: {gate} is not present in the standard gate "
-                        "names or a provided custom_name_mapping"
-                    )
-                gate_obj = name_mapping[gate]
-                if gate_obj.num_qubits == 1:
-                    one_qubit_gates.append(gate)
-                elif gate_obj.num_qubits == 2:
-                    two_qubit_gates.append(gate)
-                elif inspect.isclass(gate_obj):
-                    global_ideal_variable_width_gates.append(gate)
-                else:
-                    raise TranspilerError(
-                        f"The specified basis gate: {gate} has {gate_obj.num_qubits} "
-                        "qubits. This constructor method only supports fixed width operations "
-                        "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
-                    )
+            if basis_gates is not None:
+                for gate in basis_gates:
+                    if gate not in name_mapping:
+                        raise KeyError(
+                            f"The specified basis gate: {gate} is not present in the standard gate "
+                            "names or a provided custom_name_mapping"
+                        )
+                    gate_obj = name_mapping[gate]
+                    if gate_obj.num_qubits == 1:
+                        one_qubit_gates.append(gate)
+                    elif gate_obj.num_qubits == 2:
+                        two_qubit_gates.append(gate)
+                    elif inspect.isclass(gate_obj):
+                        global_ideal_variable_width_gates.append(gate)
+                    else:
+                        raise TranspilerError(
+                            f"The specified basis gate: {gate} has {gate_obj.num_qubits} "
+                            "qubits. This constructor method only supports fixed width operations "
+                            "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
+                        )
             for gate in one_qubit_gates:
                 gate_properties: dict[tuple, InstructionProperties] = {}
                 for qubit in range(num_qubits):
@@ -1259,3 +1276,14 @@ def target_to_backend_properties(target: Target):
             return BackendProperties.from_dict(properties_dict)
     else:
         return None
+
+
+class FakeTarget(Target):
+    """Fake target that only contains a connectivity constraint."""
+
+    def __init__(self, coupling_map=None, **kwargs):
+        super().__init__(**kwargs)
+        self._coupling_map = coupling_map
+
+    def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
+        return self._coupling_map

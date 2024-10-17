@@ -453,6 +453,11 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    if basis_gates is None and (
+        target is None or (target is not None and len(target.operation_names) == 0)
+    ):
+        return PassManager([])
+
     if method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of

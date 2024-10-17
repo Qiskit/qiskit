@@ -283,7 +283,8 @@ def generate_preset_pass_manager(
     _skip_target = (
         target is None
         and backend is None
-        and (basis_gates is None or coupling_map is None or instruction_durations is not None)
+        # and (basis_gates is None or coupling_map is None or instruction_durations is not None)
+        and (instruction_durations is not None)
     )
 
     # Resolve loose constraints case-by-case against backend constraints.
@@ -344,7 +345,7 @@ def generate_preset_pass_manager(
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
             with warnings.catch_warnings():
-                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
+                # TODO: this approach (target-to-properties) is going to be removed soon (1.3) in favor
                 #   of backend-to-target approach
                 #   https://github.com/Qiskit/qiskit/pull/12850
                 warnings.filterwarnings(
@@ -360,6 +361,7 @@ def generate_preset_pass_manager(
     approximation_degree = _parse_approximation_degree(approximation_degree)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler)
 
+    print("target", target)
     pm_options = {
         "target": target,
         "basis_gates": basis_gates,
@@ -398,6 +400,8 @@ def generate_preset_pass_manager(
         pm = level_3_pass_manager(pm_config)
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
+
+    # print("all", pm._tasks)
     return pm
 
 
@@ -481,6 +485,7 @@ def _parse_coupling_map(coupling_map, backend):
     if isinstance(coupling_map, list) and all(
         isinstance(i, list) and len(i) == 2 for i in coupling_map
     ):
+        print("here")
         return CouplingMap(coupling_map)
     else:
         raise TranspilerError(

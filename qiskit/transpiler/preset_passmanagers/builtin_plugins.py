@@ -14,6 +14,7 @@
 
 import os
 
+from qiskit.transpiler.target import FakeTarget
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -94,6 +95,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 or (
                     pass_manager_config.target is not None
                     and pass_manager_config.target.build_coupling_map() is not None
+                    and not isinstance(pass_manager_config.target, FakeTarget)
                 )
             ):
                 init = common.generate_unroll_3q(
@@ -113,6 +115,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 or (
                     pass_manager_config.target is not None
                     and pass_manager_config.target.build_coupling_map() is not None
+                    and not isinstance(pass_manager_config.target, FakeTarget)
                 )
             ):
                 init += common.generate_unroll_3q(
@@ -144,15 +147,17 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
 
         elif optimization_level in {2, 3}:
-            init = common.generate_unroll_3q(
-                pass_manager_config.target,
-                pass_manager_config.basis_gates,
-                pass_manager_config.approximation_degree,
-                pass_manager_config.unitary_synthesis_method,
-                pass_manager_config.unitary_synthesis_plugin_config,
-                pass_manager_config.hls_config,
-                pass_manager_config.qubits_initially_zero,
-            )
+            init = PassManager()
+            if not isinstance(pass_manager_config.target, FakeTarget):
+                init = common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
+                )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
@@ -176,7 +181,12 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             init.append(CommutativeCancellation())
             init.append(Collect2qBlocks())
-            init.append(ConsolidateBlocks())
+            if (
+                pass_manager_config.basis_gates is not None
+                and len(pass_manager_config.basis_gates) > 0
+            ):
+                print("HERE??", pass_manager_config.basis_gates)
+                init.append(ConsolidateBlocks())
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
@@ -209,7 +219,7 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
 
 
 class UnitarySynthesisPassManager(PassManagerStagePlugin):
-    """Plugin class for translation stage with :class:`~.BasisTranslator`"""
+    """Plugin class for translation stage with :class:`~.UnitarySynthesis`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         return common.generate_translation_passmanager(
@@ -557,10 +567,18 @@ class OptimizationPassManager(PassManagerStagePlugin):
             )
             if optimization_level == 1:
                 # Steps for optimization level 1
-                _opt = [
-                    Optimize1qGatesDecomposition(
-                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
+                if (
+                    pass_manager_config.basis_gates is not None
+                    and len(pass_manager_config.basis_gates) > 0
+                ):
+                    _opt = [
+                        Optimize1qGatesDecomposition(
+                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                        )
+                    ]
+                else:
+                    _opt = []
+                _opt += [
                     InverseCancellation(
                         [
                             CXGate(),
@@ -580,60 +598,29 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 ]
 
             elif optimization_level == 2:
-                _opt = [
-                    Optimize1qGatesDecomposition(
-                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
+                if (
+                    pass_manager_config.basis_gates is not None
+                    and len(pass_manager_config.basis_gates) > 0
+                ):
+                    _opt = [
+                        Optimize1qGatesDecomposition(
+                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                        )
+                    ]
+                else:
+                    _opt = []
+                _opt += [
                     CommutativeCancellation(target=pass_manager_config.target),
                 ]
             elif optimization_level == 3:
                 # Steps for optimization level 3
-                _opt = [
-                    Collect2qBlocks(),
-                    ConsolidateBlocks(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                    ),
-                    UnitarySynthesis(
-                        pass_manager_config.basis_gates,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        coupling_map=pass_manager_config.coupling_map,
-                        backend_props=pass_manager_config.backend_properties,
-                        method=pass_manager_config.unitary_synthesis_method,
-                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                        target=pass_manager_config.target,
-                    ),
-                    Optimize1qGatesDecomposition(
-                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
-                    CommutativeCancellation(target=pass_manager_config.target),
-                ]
+                _opt = [Collect2qBlocks()]
 
-                def _opt_control(property_set):
-                    return not property_set["optimization_loop_minimum_point"]
-
-            else:
-                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
-
-            unroll = translation.to_flow_controller()
-
-            # Build nested Flow controllers
-            def _unroll_condition(property_set):
-                return not property_set["all_gates_in_basis"]
-
-            # Check if any gate is not in the basis, and if so, run unroll passes
-            _unroll_if_out_of_basis = [
-                GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
-                ConditionalController(unroll, condition=_unroll_condition),
-            ]
-
-            if optimization_level == 3:
-                optimization.append(_minimum_point_check)
-            elif optimization_level == 2:
-                optimization.append(
-                    [
-                        Collect2qBlocks(),
+                if (
+                    pass_manager_config.basis_gates is not None
+                    and len(pass_manager_config.basis_gates) > 0
+                ):
+                    _opt += [
                         ConsolidateBlocks(
                             basis_gates=pass_manager_config.basis_gates,
                             target=pass_manager_config.target,
@@ -648,8 +635,71 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
                             target=pass_manager_config.target,
                         ),
+                        Optimize1qGatesDecomposition(
+                            basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                        ),
                     ]
-                )
+
+                _opt += [CommutativeCancellation(target=pass_manager_config.target)]
+
+                def _opt_control(property_set):
+                    return not property_set["optimization_loop_minimum_point"]
+
+            else:
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            if (
+                pass_manager_config.basis_gates is not None
+                and len(pass_manager_config.basis_gates) > 0
+            ):
+                unroll = translation.to_flow_controller()
+
+                # Build nested Flow controllers
+                def _unroll_condition(property_set):
+                    return not property_set["all_gates_in_basis"]
+
+                # Check if any gate is not in the basis, and if so, run unroll passes
+                _unroll_if_out_of_basis = [
+                    GatesInBasis(
+                        pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    ConditionalController(unroll, condition=_unroll_condition),
+                ]
+            else:
+                _unroll_if_out_of_basis = []
+
+            if optimization_level == 3:
+                optimization.append(_minimum_point_check)
+            elif optimization_level == 2:
+                if (
+                    pass_manager_config.basis_gates is not None
+                    and len(pass_manager_config.basis_gates) > 0
+                ):
+                    optimization.append(
+                        [
+                            Collect2qBlocks(),
+                            ConsolidateBlocks(
+                                basis_gates=pass_manager_config.basis_gates,
+                                target=pass_manager_config.target,
+                                approximation_degree=pass_manager_config.approximation_degree,
+                            ),
+                            UnitarySynthesis(
+                                pass_manager_config.basis_gates,
+                                approximation_degree=pass_manager_config.approximation_degree,
+                                coupling_map=pass_manager_config.coupling_map,
+                                backend_props=pass_manager_config.backend_properties,
+                                method=pass_manager_config.unitary_synthesis_method,
+                                plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                                target=pass_manager_config.target,
+                            ),
+                        ]
+                    )
+                else:
+                    optimization.append(
+                        [
+                            Collect2qBlocks(),
+                        ]
+                    )
                 optimization.append(_depth_check + _size_check)
             else:
                 optimization.append(_depth_check + _size_check)
@@ -659,6 +709,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
+            print("opt", optimization._tasks)
+
             return optimization
         else:
             return None

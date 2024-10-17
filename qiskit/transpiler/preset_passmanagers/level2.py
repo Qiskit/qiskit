@@ -73,9 +73,13 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         layout = None
         routing = None
-    translation = plugin_manager.get_passmanager_stage(
-        "translation", translation_method, pass_manager_config, optimization_level=2
-    )
+
+    if basis_gates:
+        translation = plugin_manager.get_passmanager_stage(
+            "translation", translation_method, pass_manager_config, optimization_level=2
+        )
+    else:
+        translation = None
 
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -86,9 +90,12 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=False)
 
-    optimization = plugin_manager.get_passmanager_stage(
-        "optimization", optimization_method, pass_manager_config, optimization_level=2
-    )
+    if basis_gates:
+        optimization = plugin_manager.get_passmanager_stage(
+            "optimization", optimization_method, pass_manager_config, optimization_level=2
+        )
+    else:
+        optimization = None
 
     sched = plugin_manager.get_passmanager_stage(
         "scheduling", scheduling_method, pass_manager_config, optimization_level=2
