@@ -1648,6 +1648,47 @@ class TestCustomInstructions(QiskitTestCase):
         qc.append(MyGate(0.5), [0])
         self.assertEqual(parsed, qc)
 
+    def test_compatible_definition_of_builtin_is_ignored(self):
+        program = """
+            qreg q[1];
+            gate my_gate a { U(0, 0, 0) a; }
+            my_gate q[0];
+        """
+
+        class MyGate(Gate):
+            def __init__(self):
+                super().__init__("my_gate", 1, [])
+
+            def _define(self):
+                self._definition = QuantumCircuit(1)
+                self._definition.z(0)
+
+        parsed = qiskit.qasm2.loads(
+            program, custom_instructions=[qiskit.qasm2.CustomInstruction("my_gate", 0, 1, MyGate)]
+        )
+        self.assertEqual(parsed.data[0].operation.definition, MyGate().definition)
+
+    def test_gates_defined_after_a_builtin_align(self):
+        """It's easy to get out of sync between the Rust-space and Python-space components when
+        ``builtin=True``. See https://github.com/Qiskit/qiskit/issues/13339."""
+        program = """
+        OPENQASM 2.0;
+        gate first a { U(0, 0, 0) a; }
+        gate second a { U(pi, pi, pi) a; }
+
+        qreg q[1];
+        first q[0];
+        second q[0];
+        """
+        custom = qiskit.qasm2.CustomInstruction("first", 0, 1, lib.XGate, builtin=True)
+        parsed = qiskit.qasm2.loads(program, custom_instructions=[custom])
+        # Provided definitions for built-in gates are ignored, so it should be an XGate directly.
+        self.assertEqual(parsed.data[0].operation, lib.XGate())
+        self.assertEqual(parsed.data[1].operation.name, "second")
+        defn = parsed.data[1].operation.definition.copy_empty_like()
+        defn.u(math.pi, math.pi, math.pi, 0)
+        self.assertEqual(parsed.data[1].operation.definition, defn)
+
 
 class TestCustomClassical(QiskitTestCase):
     def test_qiskit_extensions(self):
