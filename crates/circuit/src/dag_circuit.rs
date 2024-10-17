@@ -569,7 +569,7 @@ impl DAGCircuit {
         let out_dict = PyDict::new_bound(py);
         out_dict.set_item("name", self.name.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("metadata", self.metadata.as_ref().map(|x| x.clone_ref(py)))?;
-        out_dict.set_item("calibrations", self.calibrations.clone())?;
+        out_dict.set_item("_calibrations_prop", self.calibrations.clone())?;
         out_dict.set_item("qregs", self.qregs.clone_ref(py))?;
         out_dict.set_item("cregs", self.cregs.clone_ref(py))?;
         out_dict.set_item("global_phase", self.global_phase.clone())?;
@@ -648,7 +648,10 @@ impl DAGCircuit {
         let dict_state = state.downcast_bound::<PyDict>(py)?;
         self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
-        self.calibrations = dict_state.get_item("calibrations")?.unwrap().extract()?;
+        self.calibrations = dict_state
+            .get_item("_calibrations_prop")?
+            .unwrap()
+            .extract()?;
         self.qregs = dict_state.get_item("qregs")?.unwrap().extract()?;
         self.cregs = dict_state.get_item("cregs")?.unwrap().extract()?;
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
@@ -864,8 +867,15 @@ impl DAGCircuit {
     ///
     /// The custom pulse definition of a given gate is of the form
     ///    {'gate_name': {(qubits, params): schedule}}
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
     #[getter]
-    fn get_calibrations(&self) -> HashMap<String, Py<PyDict>> {
+    fn get_calibrations(&self, py: Python) -> HashMap<String, Py<PyDict>> {
+        emit_pulse_dependency_deprecation(
+            py,
+            "property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.calibrations``",
+        );
+
         self.calibrations.clone()
     }
 
@@ -874,8 +884,29 @@ impl DAGCircuit {
     ///  Args:
     ///      calibrations (dict): A dictionary of input in the format
     ///          {'gate_name': {(qubits, gate_params): schedule}}
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
     #[setter]
-    fn set_calibrations(&mut self, calibrations: HashMap<String, Py<PyDict>>) {
+    fn set_calibrations(&mut self, py: Python, calibrations: HashMap<String, Py<PyDict>>) {
+        emit_pulse_dependency_deprecation(
+            py,
+            "property ``qiskit.dagcircuit.dagcircuit.DAGCircuit.calibrations``",
+        );
+
+        self.calibrations = calibrations;
+    }
+
+    // This is an alternative and Python-private path to 'get_calibration' to avoid
+    // deprecation warnings
+    #[getter(_calibrations_prop)]
+    fn get_calibrations_prop(&self) -> HashMap<String, Py<PyDict>> {
+        self.calibrations.clone()
+    }
+
+    // This is an alternative and Python-private path to 'set_calibration' to avoid
+    // deprecation warnings
+    #[setter(_calibrations_prop)]
+    fn set_calibrations_prop(&mut self, calibrations: HashMap<String, Py<PyDict>>) {
         self.calibrations = calibrations;
     }
 
@@ -898,6 +929,11 @@ impl DAGCircuit {
         schedule: Py<PyAny>,
         mut params: Option<Bound<'py, PyAny>>,
     ) -> PyResult<()> {
+        emit_pulse_dependency_deprecation(
+            py,
+            "method ``qiskit.dagcircuit.dagcircuit.DAGCircuit.add_calibration``",
+        );
+
         if gate.is_instance(imports::GATE.get_bound(py))? {
             params = Some(gate.getattr(intern!(py, "params"))?);
             gate = gate.getattr(intern!(py, "name"))?;
@@ -955,7 +991,18 @@ def _format(operand):
 
     /// Return True if the dag has a calibration defined for the node operation. In this
     /// case, the operation does not need to be translated to the device basis.
+    ///
+    /// DEPRECATED since Qiskit 1.3.0 and will be removed in Qiskit 2.0.0
     fn has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
+        emit_pulse_dependency_deprecation(
+            py,
+            "method ``qiskit.dagcircuit.dagcircuit.DAGCircuit.has_calibration_for``",
+        );
+
+        self._has_calibration_for(py, node)
+    }
+
+    fn _has_calibration_for(&self, py: Python, node: PyRef<DAGOpNode>) -> PyResult<bool> {
         if !self
             .calibrations
             .contains_key(node.instruction.operation.name())
@@ -6960,3 +7007,20 @@ fn add_global_phase(py: Python, phase: &Param, other: &Param) -> PyResult<Param>
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
+
+/// Emit a Python `DeprecationWarning` for pulse-related dependencies.
+fn emit_pulse_dependency_deprecation(py: Python, msg: &str) {
+    let _ = imports::WARNINGS_WARN.get_bound(py).call1((
+        PyString::new_bound(
+            py,
+            &format!(
+                "The {} is deprecated as of qiskit 1.3.0. It will be removed in Qiskit 2.0.0. \
+                The entire Qiskit Pulse package is being deprecated \
+                and this is a dependency on the package.",
+                msg
+            ),
+        ),
+        py.get_type_bound::<PyDeprecationWarning>(),
+        1,
+    ));
+}

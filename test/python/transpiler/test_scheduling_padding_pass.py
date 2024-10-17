@@ -794,8 +794,9 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(1)
         qc.cx(0, 1)
 
-        xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
-        qc.add_calibration("x", (0,), xsched)
+        with self.assertWarns(DeprecationWarning):
+            xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
+            qc.add_calibration("x", (0,), xsched)
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 600)])
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
@@ -808,7 +809,8 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.x(1)
         expected.delay(160, 0)
         expected.cx(0, 1)
-        expected.add_calibration("x", (0,), xsched)
+        with self.assertWarns(DeprecationWarning):
+            expected.add_calibration("x", (0,), xsched)
 
         self.assertEqual(expected, scheduled)
 

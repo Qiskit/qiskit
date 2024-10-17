@@ -53,8 +53,9 @@ class LayoutTestCase(QiskitTestCase):
 
         def run(dag, wire_map):
             for gate in dag.two_qubit_ops():
-                if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
-                    continue
+                with self.assertWarns(DeprecationWarning):
+                    if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
+                        continue
                 physical_q0 = wire_map[gate.qargs[0]]
                 physical_q1 = wire_map[gate.qargs[1]]
 
@@ -711,7 +712,8 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_reasonable_limits_for_simple_layouts(self):
         """Test that the default trials is set to a reasonable number."""
-        backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(27, calibrate_instructions=True, seed=42)
         qc = QuantumCircuit(5)
         qc.cx(2, 3)
         qc.cx(0, 1)

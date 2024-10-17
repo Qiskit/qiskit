@@ -25,8 +25,9 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import ScheduleBlock
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
-from qiskit.qpy.exceptions import QpyError
+from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
 from qiskit.version import __version__
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 # pylint: disable=invalid-name
@@ -73,6 +74,11 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
+@deprecate_pulse_arg(
+    "programs",
+    deprecation_description="Passing `ScheduleBlock` to `programs`",
+    predicate=lambda p: isinstance(p, ScheduleBlock),
+)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
@@ -120,6 +126,7 @@ def dump(
         programs: QPY supported object(s) to store in the specified file like object.
             QPY supports :class:`.QuantumCircuit` and :class:`.ScheduleBlock`.
             Different data types must be separately serialized.
+            Support for :class:`.ScheduleBlock` is deprecated since Qiskit 1.3.0.
         file_obj: The file like object to write the QPY data too
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
@@ -208,13 +215,23 @@ def dump(
     file_obj.write(header)
     common.write_type_key(file_obj, type_key)
 
+    pulse_gates = False
     for program in programs:
+        if type_key == type_keys.Program.CIRCUIT and program._calibrations_prop:
+            pulse_gates = True
         writer(
             file_obj,
             program,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+        )
+
+    if pulse_gates:
+        warnings.warn(
+            category=DeprecationWarning,
+            message="Pulse gates serialization is deprecated as of Qiskit 1.3. "
+            "It will be removed in Qiskit 2.0.",
         )
 
 
@@ -331,6 +348,14 @@ def load(
         loader = binary_io.read_circuit
     elif type_key == type_keys.Program.SCHEDULE_BLOCK:
         loader = binary_io.read_schedule_block
+        warnings.warn(
+            category=QPYLoadingDeprecatedFeatureWarning,
+            message="Pulse gates deserialization is deprecated as of Qiskit 1.3 and "
+            "will be removed in Qiskit 2.0. This is part of the deprecation plan for "
+            "the entire Qiskit Pulse package. Once Pulse is removed, `ScheduleBlock` "
+            "sections will be ignored when loading QPY files with pulse data.",
+        )
+
     else:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 

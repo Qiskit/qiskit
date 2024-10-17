@@ -400,8 +400,10 @@ class TestCircuitOperations(QiskitTestCase):
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
-        qc.add_calibration("h", [0, 1], sched)
+
+        with self.assertWarns(DeprecationWarning):
+            sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
+            qc.add_calibration("h", [0, 1], sched)
         copied = qc.copy_empty_like()
         qc.clear()
 
@@ -409,7 +411,8 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.global_phase, copied.global_phase)
         self.assertEqual(qc.name, copied.name)
         self.assertEqual(qc.metadata, copied.metadata)
-        self.assertEqual(qc.calibrations, copied.calibrations)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.calibrations, copied.calibrations)
 
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")

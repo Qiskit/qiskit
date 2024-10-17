@@ -70,7 +70,7 @@ def dag_to_circuit(dag, copy_operations=True):
     for var in dag.iter_declared_vars():
         circuit.add_uninitialized_var(var)
     circuit.metadata = dag.metadata
-    circuit.calibrations = dag.calibrations
+    circuit._calibrations_prop = dag._calibrations_prop
 
     circuit._data = circuit_data
 

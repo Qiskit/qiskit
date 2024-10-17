@@ -276,7 +276,7 @@ class BasisTranslator(TransformationPass):
                     out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
                     continue
 
-                if dag.has_calibration_for(node):
+                if dag._has_calibration_for(node):
                     out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
                     continue
                 if qubit_set in extra_instr_map:
@@ -383,7 +383,7 @@ class BasisTranslator(TransformationPass):
     @_extract_basis.register
     def _(self, dag: DAGCircuit):
         for node in dag.op_nodes():
-            if not dag.has_calibration_for(node) and len(node.qargs) >= self._min_qubits:
+            if not dag._has_calibration_for(node) and len(node.qargs) >= self._min_qubits:
                 yield (node.name, node.num_qubits)
             if node.name in CONTROL_FLOW_OP_NAMES:
                 for block in node.op.blocks:
@@ -394,7 +394,7 @@ class BasisTranslator(TransformationPass):
         for instruction in circ.data:
             operation = instruction.operation
             if (
-                not circ.has_calibration_for(instruction)
+                not circ._has_calibration_for(instruction)
                 and len(instruction.qubits) >= self._min_qubits
             ):
                 yield (operation.name, operation.num_qubits)
@@ -411,7 +411,7 @@ class BasisTranslator(TransformationPass):
             qargs_local_source_basis = defaultdict(set)
         for node in dag.op_nodes():
             qargs = tuple(qarg_indices[bit] for bit in node.qargs)
-            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
+            if dag._has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 continue
             # Treat the instruction as on an incomplete basis if the qargs are in the
             # qargs_with_non_global_operation dictionary or if any of the qubits in qargs
