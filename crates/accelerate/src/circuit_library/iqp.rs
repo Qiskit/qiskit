@@ -20,7 +20,8 @@ use qiskit_circuit::{
     operations::{Param, StandardGate},
     Qubit,
 };
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand_pcg::Pcg64Mcg;
 use smallvec::{smallvec, SmallVec};
 
 use crate::CircuitError;
@@ -75,29 +76,21 @@ fn iqp(
 }
 
 /// This generates a random symmetric integer matrix with values in [0,7].
-fn generate_random_interactions(num_qubits: u32) -> Array2<i64> {
-    // We first generate all unique values, which can be thought of generating the upper
-    // triangular matrix. This contains N(N+1)/2 unique random values, stored as
-    //    [v_0 v_1 ... v_{N-1}]
-    //    [    v_N ... v_{2N-2}]
-    //             ...
-    //    [            v_{-1}]
+fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i64> {
     let num_qubits = num_qubits as usize;
-    let num_values = num_qubits * (num_qubits + 1) / 2;
-    let values: Vec<i64> = (0..num_values)
-        .map(|_| rand::thread_rng().gen_range(0..8) as i64)
-        .collect();
+    let mut rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
 
-    // We then build the matrix of dimension NxN by reading from the ``values`` vector.
-    // * since the matrix is symmetric, we treat (i, j) and (j, i) equally, which we implement
-    //   here by sorting the indices before accessing the value vector
-    // * in each row, the offset with which we access ``values`` changes: in row K, we need to
-    //   start reading from index: \sum_{k=0}^K N-k
-    Array2::from_shape_fn((num_qubits, num_qubits), |(i, j)| {
-        let (low, high) = if i < j { (i, j) } else { (j, i) };
-        let offset = low * (2 * num_qubits - low + 1) / 2;
-        values[offset + high - low]
-    })
+    let mut mat = Array2::zeros((num_qubits, num_qubits));
+    for i in 0..num_qubits {
+        for j in 0..i {
+            mat[[i, j]] = rng.gen_range(0..8) as i64;
+            mat[[j, i]] = mat[[i, j]];
+        }
+    }
+    mat
 }
 
 /// Returns true if the input matrix is symmetric, otherwise false.
@@ -131,6 +124,7 @@ fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 ///         determining the operations in the IQP circuit. The diagonal represents the power
 ///         of single-qubit T gates and the upper triangular part the power of CS gates
 ///         in between qubit pairs. If None, a random interactions matrix will be sampled.
+///     seed: A random seed to generate the random interactions.
 ///
 /// References:
 ///
@@ -138,11 +132,12 @@ fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 ///     commuting quantum computations, Phys. Rev. Lett. 117, 080501 (2016).
 ///     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
 #[pyfunction]
-#[pyo3(signature = (num_qubits, interactions=None))]
+#[pyo3(signature = (num_qubits, interactions=None, seed=None))]
 pub fn py_iqp(
     py: Python,
     num_qubits: u32,
     interactions: Option<PyReadonlyArray2<i64>>,
+    seed: Option<u64>,
 ) -> PyResult<CircuitData> {
     let array = match interactions {
         Some(matrix) => {
@@ -152,7 +147,7 @@ pub fn py_iqp(
             }
             view.to_owned()
         }
-        None => generate_random_interactions(num_qubits),
+        None => generate_random_interactions(num_qubits, seed),
     };
     let instructions = iqp(array.view());
     CircuitData::from_standard_gates(py, num_qubits, instructions, Param::Float(0.0))

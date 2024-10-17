@@ -82,7 +82,9 @@ class IQP(QuantumCircuit):
 
 
 def iqp(
-    interactions: Sequence[Sequence[int]] | None = None, num_qubits: int | None = None
+    interactions: Sequence[Sequence[int]] | None = None,
+    num_qubits: int | None = None,
+    seed: int | None = None,
 ) -> QuantumCircuit:
     r"""Instantaneous quantum polynomial time (IQP) circuit.
 
@@ -125,6 +127,8 @@ def iqp(
             ``num_qubits`` argument must be set and a random IQP circuit will be generated.
         num_qubits: If no interactions are given, construct a random IQP circuit with this
             number of qubits. This argument cannot be passed at the same time as ``interactions``.
+        seed: A seed for the random number generator, in case the interactions matrix is
+            randomly generated.
 
     Returns:
         An IQP circuit.
@@ -149,6 +153,8 @@ def iqp(
     else:
         name = "iqp"
 
-    circuit = QuantumCircuit._from_circuit_data(py_iqp(num_qubits, interactions), add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(
+        py_iqp(num_qubits, interactions, seed), add_regs=True
+    )
     circuit.name = name
     return circuit
