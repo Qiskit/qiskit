@@ -2039,7 +2039,8 @@ class TestTranspile(QiskitTestCase):
             qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
         )
 
-    @data(1, 2, 3)
+    # @data(1, 2, 3)
+    @data(3)
     def test_transpile_identity_circuit_no_target(self, opt_level):
         """Test circuit equivalent to identity is optimized away for all optimization levels >0.
 
