@@ -46,7 +46,7 @@ class U1Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ U1(λ) ├
@@ -198,7 +198,7 @@ class CU1Gate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
 
         q_0: ─■──
@@ -376,7 +376,7 @@ class MCU1Gate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ────■────
                      │
