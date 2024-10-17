@@ -2691,10 +2691,33 @@ impl TwoQubitControlledUDecomposer {
     #[pyo3(signature=(unitary, atol))]
     fn __call__(
         &self,
+        py: Python,
         unitary: PyReadonlyArray2<Complex64>,
         atol: f64,
-    ) -> PyResult<TwoQubitGateSequence> {
-        self.call_inner(unitary.as_array(), atol)
+    ) -> PyResult<CircuitData> {
+        let mut gate_sequence = CircuitData::with_capacity(py, 2, 0, 59, Param::Float(0.))?;
+        let gates_list = self.call_inner(unitary.as_array(), atol)?;
+        let global_phase: f64 = gates_list.global_phase;
+        for gate in gates_list.gates {
+            if let Some(gate_name) = gate.0 {
+                let qubits = gate.2;
+                if qubits.len() == 1 {
+                    gate_sequence.push_standard_gate(
+                        gate_name,
+                        &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
+                        &[Qubit(qubits[0] as u32)],
+                    )?
+                } else {
+                    gate_sequence.push_standard_gate(
+                        gate_name,
+                        &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
+                        &[Qubit(qubits[0] as u32), Qubit(qubits[1] as u32)],
+                    )?
+                }
+            }
+        }
+        gate_sequence.set_global_phase(py, Param::Float(global_phase))?;
+        Ok(gate_sequence)
     }
 }
 

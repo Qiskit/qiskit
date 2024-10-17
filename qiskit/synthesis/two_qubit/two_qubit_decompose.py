@@ -296,17 +296,8 @@ class TwoQubitControlledUDecomposer:
             QuantumCircuit: Synthesized quantum circuit.
         Note: atol is passed to OneQubitEulerDecomposer.
         """
-        sequence = self._inner_decomposition(np.asarray(unitary, dtype=complex), atol)
-
-        q = QuantumRegister(2)
-        circ = QuantumCircuit(q, global_phase=sequence.global_phase)
-        for gate, params, qubits in sequence:
-            inst = CircuitInstruction.from_standard(
-                gate, qubits=tuple(q[x] for x in qubits), params=params
-            )
-            circ._append(inst)
-
-        return circ
+        circ_data = self._inner_decomposition(np.asarray(unitary, dtype=complex), atol)
+        return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
 
 
 class TwoQubitBasisDecomposer:
