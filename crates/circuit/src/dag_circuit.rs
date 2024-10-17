@@ -250,9 +250,9 @@ pub struct DAGCircuit {
     cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
-    qargs_interner: Interner<[Qubit]>,
+    pub qargs_interner: Interner<[Qubit]>,
     /// The cache used to intern instruction cargs.
-    cargs_interner: Interner<[Clbit]>,
+    pub cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
     qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
@@ -3406,8 +3406,8 @@ def _format(operand):
     /// Raises:
     ///     DAGCircuitError: If replacement operation was incompatible with
     ///     location of target node.
-    #[pyo3(signature = (node, op, inplace=false, propagate_condition=true))]
-    fn substitute_node(
+    #[pyo3(name = "substitute_node", signature = (node, op, inplace=false, propagate_condition=true))]
+    pub fn py_substitute_node(
         &mut self,
         node: &Bound<PyAny>,
         op: &Bound<PyAny>,
