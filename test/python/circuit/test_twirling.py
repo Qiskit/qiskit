@@ -67,7 +67,7 @@ class TestTwirling(QiskitTestCase):
         qc.cz(0, 1)
         qc.ecr(0, 1)
         qc.iswap(0, 1)
-        res = twirl_circuit(qc, twirling_gate=["cx", iSwapGate], seed=12345)
+        res = twirl_circuit(qc, twirling_gate=["cx", iSwapGate()], seed=12345)
         np.testing.assert_allclose(
             Operator(qc), Operator(res), err_msg=f"{qc}\nnot equiv to\n{res}"
         )
@@ -99,14 +99,17 @@ class TestTwirling(QiskitTestCase):
         qc.append(MyGate(), (0, 1))
 
         with self.assertRaises(QiskitError):
-            twirl_circuit(qc, twirling_gate=MyGate)
+            twirl_circuit(qc, twirling_gate=MyGate())
 
-    def test_invalid_standard_gate(self):
+    def test_custom_standard_gate(self):
         """Test an error is raised with an unsupported standard gate."""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
-        with self.assertRaises(QiskitError):
-            twirl_circuit(qc, twirling_gate=SwapGate)
+        res = twirl_circuit(qc, twirling_gate=SwapGate())
+        np.testing.assert_allclose(
+            Operator(qc), Operator(res), err_msg=f"gate: {qc} not equiv to\n{res}"
+        )
+        self.assertNotEqual(qc, res)
 
     def test_invalid_string(self):
         """Test an error is raised with an unsupported standard gate."""
@@ -126,8 +129,11 @@ class TestTwirling(QiskitTestCase):
         """Test an error is raised with an unsupported string gate in list."""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
-        with self.assertRaises(QiskitError):
-            twirl_circuit(qc, twirling_gate=[SwapGate, "cx"])
+        res = twirl_circuit(qc, twirling_gate=[SwapGate(), "cx"])
+        np.testing.assert_allclose(
+            Operator(qc), Operator(res), err_msg=f"gate: {qc} not equiv to\n{res}"
+        )
+        self.assertNotEqual(qc, res)
 
     @ddt.data(CXGate, ECRGate, CZGate, iSwapGate)
     def test_full_circuit(self, gate):

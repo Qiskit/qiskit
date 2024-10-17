@@ -35,7 +35,7 @@ NAME_TO_CLASS = {
 
 def twirl_circuit(
     circuit: QuantumCircuit,
-    twirling_gate: None | str | type[Gate] | list[str] | list[type[Gate]] = None,
+    twirling_gate: None | str | Gate | list[str] | list[Gate] = None,
     seed: int | None = None,
     num_twirls: int | None = None,
     optimize_pass: Optimize1qGatesDecomposition | None = None,
@@ -45,10 +45,14 @@ def twirl_circuit(
 
     Args:
         circuit: The circuit to twirl
-        twirling_gate: The gate to twirl, defaults to `None` which means twirl all supported gates.
-            If supplied it can either be a single gate or a list of gates either as a gate class
-            or it's string name. Currently only :class:`.CXGate` (`"cx"`), :class:`.CZGate` (`"cz"`),
-            :class:`.ECRGate` (`"ecr"`), and :class:`.iSwapGate` (`"iswap"`) are supported.
+        twirling_gate: The gate to twirl, defaults to `None` which means twirl all default gates:
+            :class:`.CXGate`, :class:`.CZGate`, :class:`.ECRGate`, and :class:`.iSwapGate`.
+            If supplied it can either be a single gate or a list of gates either as either a gate
+            object or it's string name. Currently only the names `"cx"`, `"cz"`, `"ecr"`,  and
+            `"iswap"` are supported. If a gate object is provided outside the default gates it must
+            have a matrix defined from it's :class:`~.Gate.to_matrix` method for the gate to potentially
+            be twirled. If a valid twirling configuration can't be computed that particular gate will
+            be silently ignored and not twirled.
         seed: An integer seed for the random number generator used internally.
             If specified this must be between 0 and 18,446,744,073,709,551,615.
         num_twirls: The number of twirling circuits to build. This defaults to None and will return
@@ -62,12 +66,14 @@ def twirl_circuit(
         A copy of the given circuit with Pauli twirling applied to each
         instance of the specified twirling gate.
     """
+    custom_gates = None
     if isinstance(twirling_gate, str):
         gate = NAME_TO_CLASS.get(twirling_gate, None)
         if gate is None:
             raise QiskitError(f"The specified gate name {twirling_gate} is not supported")
         twirling_std_gate = [gate]
     elif isinstance(twirling_gate, list):
+        custom_gates = []
         twirling_std_gate = []
         for gate in twirling_gate:
             if isinstance(gate, str):
@@ -77,14 +83,29 @@ def twirl_circuit(
                 twirling_std_gate.append(gate)
             else:
                 twirling_gate = getattr(gate, "_standard_gate", None)
+
                 if twirling_gate is None:
-                    raise QiskitError("This function can only be used with standard gates")
-                twirling_std_gate.append(twirling_gate)
+                    custom_gates.append(gate)
+                else:
+                    if twirling_gate in NAME_TO_CLASS.values():
+                        twirling_std_gate.append(twirling_gate)
+                    else:
+                        custom_gates.append(gate)
+        if not custom_gates:
+            custom_gates = None
+        if not twirling_std_gate:
+            twirling_std_gate = None
     elif twirling_gate is not None:
-        twirling_std_gate = getattr(twirling_gate, "_standard_gate", None)
-        if twirling_std_gate is None:
-            raise QiskitError("This function can only be used with standard gates")
-        twirling_std_gate = [twirling_std_gate]
+        std_gate = getattr(twirling_gate, "_standard_gate", None)
+        if std_gate is None:
+            twirling_std_gate = None
+            custom_gates = [twirling_gate]
+        else:
+            if std_gate in NAME_TO_CLASS.values():
+                twirling_std_gate = [std_gate]
+            else:
+                twirling_std_gate = None
+                custom_gates = [twirling_gate]
     else:
         twirling_std_gate = twirling_gate
     out_twirls = num_twirls
@@ -101,6 +122,7 @@ def twirl_circuit(
     new_data = twirl_rs(
         circuit._data,
         twirling_std_gate,
+        custom_gates,
         seed,
         out_twirls,
         run_pass,

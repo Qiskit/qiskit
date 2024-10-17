@@ -12,7 +12,11 @@
 
 use std::f64::consts::PI;
 
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
+use ndarray::linalg::kron;
+use ndarray::prelude::*;
+use ndarray::ArrayView2;
+use num_complex::Complex64;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
@@ -23,9 +27,10 @@ use rand_pcg::Pcg64Mcg;
 use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
+use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
@@ -123,12 +128,59 @@ const CZ_MASK: u8 = 4;
 const ECR_MASK: u8 = 2;
 const ISWAP_MASK: u8 = 1;
 
+#[inline(always)]
+fn diff_frob_norm(array: ArrayView2<Complex64>, gate_matrix: ArrayView2<Complex64>) -> f64 {
+    let mut res: f64 = 0.;
+    for i in 0..4 {
+        for j in 0..4 {
+            let gate = gate_matrix[[i, j]];
+            let twirled = array[[i, j]];
+            let diff = twirled - gate;
+            res += (diff.conj() * diff).re;
+        }
+    }
+    res.sqrt()
+}
+
+fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGate; 4], f64)> {
+    let mut out_vec = Vec::with_capacity(16);
+    let i_matrix = aview2(&ONE_QUBIT_IDENTITY);
+    let x_matrix = aview2(&qiskit_circuit::gate_matrix::X_GATE);
+    let y_matrix = aview2(&qiskit_circuit::gate_matrix::Y_GATE);
+    let z_matrix = aview2(&qiskit_circuit::gate_matrix::Z_GATE);
+    let iter_set = [
+        (IGate, i_matrix),
+        (XGate, x_matrix),
+        (YGate, y_matrix),
+        (ZGate, z_matrix),
+    ];
+    for (i, i_mat) in &iter_set {
+        for (j, j_mat) in &iter_set {
+            let before_matrix = kron(j_mat, i_mat);
+            let half_twirled_matrix = gate_matrix.dot(&before_matrix);
+            for (k, k_mat) in &iter_set {
+                for (l, l_mat) in &iter_set {
+                    let after_matrix = kron(l_mat, k_mat);
+                    let twirled_matrix = after_matrix.dot(&half_twirled_matrix);
+                    let norm: f64 = diff_frob_norm(twirled_matrix.view(), gate_matrix);
+                    if norm.abs() < 1e-15 {
+                        out_vec.push(([*i, *j, *k, *l], 0.));
+                    } else if (norm - 4.).abs() < 1e-15 {
+                        out_vec.push(([*i, *j, *k, *l], PI));
+                    }
+                }
+            }
+        }
+    }
+    out_vec
+}
+
 fn twirl_gate(
     py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     out_circ: &mut CircuitData,
-    twirl_set: &[([StandardGate; 4], f64); 16],
+    twirl_set: &[([StandardGate; 4], f64)],
     inst: &PackedInstruction,
 ) -> PyResult<()> {
     let qubits = circ.get_qargs(inst.qubits);
@@ -198,6 +250,7 @@ fn generate_twirled_circuit(
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     twirling_mask: u8,
+    custom_gate_map: Option<&HashMap<String, Vec<([StandardGate; 4], f64)>>>,
     run_pass: bool,
     optimizer_target: Option<&Target>,
     optimizer_global_decomposer: Option<&HashSet<String>>,
@@ -206,6 +259,12 @@ fn generate_twirled_circuit(
     let mut out_circ = CircuitData::clone_empty_like(circ, None);
 
     for inst in circ.data() {
+        if let Some(custom_gate_map) = custom_gate_map {
+            if let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
+                twirl_gate(py, circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
+                continue;
+            }
+        }
         match inst.op.view() {
             OperationRef::Standard(gate) => match gate {
                 StandardGate::CXGate => {
@@ -249,6 +308,7 @@ fn generate_twirled_circuit(
                                 block,
                                 rng,
                                 twirling_mask,
+                                custom_gate_map,
                                 run_pass,
                                 optimizer_target,
                                 optimizer_global_decomposer,
@@ -324,11 +384,12 @@ fn generate_twirled_circuit(
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature=(circ, twirled_gate, seed=None, num_twirls=1, run_pass=false, optimizer_target=None, optimizer_global_decomposer=None, optimizer_basis_gates=None))]
+#[pyo3(signature=(circ, twirled_gate=None, custom_twirled_gates=None, seed=None, num_twirls=1, run_pass=false, optimizer_target=None, optimizer_global_decomposer=None, optimizer_basis_gates=None))]
 pub(crate) fn twirl_circuit(
     py: Python,
     circ: &CircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
+    custom_twirled_gates: Option<Vec<OperationFromPython>>,
     seed: Option<u64>,
     num_twirls: usize,
     run_pass: bool,
@@ -359,9 +420,35 @@ pub(crate) fn twirl_circuit(
             }
             out_mask
         }
-        None => 15,
+        None => {
+            if custom_twirled_gates.is_none() {
+                15
+            } else {
+                0
+            }
+        }
     };
-
+    let custom_gate_twirling_sets: Option<HashMap<String, Vec<([StandardGate; 4], f64)>>> =
+        custom_twirled_gates.map(|gates| {
+            gates
+                .into_iter()
+                .filter_map(|gate| {
+                    let matrix = gate.operation.matrix(&gate.params);
+                    if let Some(matrix) = matrix {
+                        let twirl_set = generate_twirling_set(matrix.view());
+                        if twirl_set.is_empty() {
+                            None
+                        } else {
+                            Some(Ok((gate.operation.name().to_string(), twirl_set)))
+                        }
+                    } else {
+                        return Some(Err(QiskitError::new_err(
+                            format!("Provided gate to twirl, {}, does not have a matrix defined and can't be twirled", gate.operation.name())
+                        )));
+                    }
+                })
+                .collect()
+        }).transpose()?;
     (0..num_twirls)
         .map(|_| {
             generate_twirled_circuit(
@@ -369,6 +456,7 @@ pub(crate) fn twirl_circuit(
                 circ,
                 &mut rng,
                 twirling_mask,
+                custom_gate_twirling_sets.as_ref(),
                 run_pass,
                 optimizer_target,
                 optimizer_global_decomposer.as_ref(),
