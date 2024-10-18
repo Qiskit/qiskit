@@ -132,7 +132,7 @@ fn apply_synth_sequence(
     out_qargs: &[Qubit],
     sequence: &TwoQubitUnitarySequence,
 ) -> PyResult<()> {
-    let mut instructions = Vec::new();
+    let mut instructions = Vec::with_capacity(sequence.gate_sequence.gates().len());
     for (gate, params, qubit_ids) in sequence.gate_sequence.gates() {
         let gate_node = match gate {
             None => sequence.decomp_gate.operation.standard_gate(),
@@ -170,7 +170,11 @@ fn synth_error(
     >,
     target: &Target,
 ) -> f64 {
-    let mut gate_fidelities = Vec::new();
+    let (lower_bound, upper_bound) = synth_circuit.size_hint();
+    let mut gate_fidelities = match upper_bound {
+        Some(bound) => Vec::with_capacity(bound),
+        None => Vec::with_capacity(lower_bound),
+    };
     let mut score_instruction =
         |inst_name: &str,
          inst_params: &Option<SmallVec<[Param; 3]>>,
@@ -215,7 +219,7 @@ fn synth_error(
 // This is the outer-most run function. It is meant to be called from Python
 // in `UnitarySynthesis.run()`.
 #[pyfunction]
-#[pyo3(name = "run_default_main_loop")]
+#[pyo3(name = "run_default_main_loop", signature=(dag, qubit_indices, min_qubits, target, coupling_edges, approximation_degree=None, natural_direction=None)]
 fn py_run_main_loop(
     py: Python,
     dag: &mut DAGCircuit,
