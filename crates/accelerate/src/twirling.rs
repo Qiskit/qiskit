@@ -433,6 +433,23 @@ pub(crate) fn twirl_circuit(
             gates
                 .into_iter()
                 .filter_map(|gate| {
+                    if gate.operation.num_qubits() != 2 {
+                        return Some(Err(QiskitError::new_err(
+                            format!(
+                                "The provided gate to twirl {} operates on an invalid number of qubits {}, it can only be a two qubit gate",
+                                gate.operation.name(),
+                                gate.operation.num_qubits(),
+                            )
+                        )))
+                    }
+                    if gate.operation.num_params() != 0 {
+                        return Some(Err(QiskitError::new_err(
+                            format!(
+                                "The provided gate to twirl {} takes a parameter, it can only be an unparameterized gate",
+                                gate.operation.name(),
+                            )
+                        )))
+                    }
                     let matrix = gate.operation.matrix(&gate.params);
                     if let Some(matrix) = matrix {
                         let twirl_set = generate_twirling_set(matrix.view());

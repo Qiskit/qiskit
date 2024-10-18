@@ -16,7 +16,17 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, twirl_circuit, Gate
-from qiskit.circuit.library import CXGate, ECRGate, CZGate, iSwapGate, SwapGate, PermutationGate
+from qiskit.circuit.library import (
+    CXGate,
+    ECRGate,
+    CZGate,
+    iSwapGate,
+    SwapGate,
+    PermutationGate,
+    XGate,
+    CCXGate,
+    RZXGate,
+)
 from qiskit.circuit.random import random_circuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
@@ -190,3 +200,17 @@ class TestTwirling(QiskitTestCase):
             self.assertNotIn("z", count_ops)
             self.assertNotIn("id", count_ops)
             self.assertIn("r", count_ops)
+
+    def test_error_on_invalid_qubit_count(self):
+        """Test an error is raised on non-2q gates."""
+        qc = QuantumCircuit(5)
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, [CCXGate()])
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, [XGate()])
+
+    def test_error_on_parameterized_gate(self):
+        """Test an error is raised on parameterized 2q gates."""
+        qc = QuantumCircuit(5)
+        with self.assertRaises(QiskitError):
+            twirl_circuit(qc, [RZXGate(3.24)])
