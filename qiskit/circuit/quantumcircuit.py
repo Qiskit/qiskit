@@ -124,6 +124,34 @@ class QuantumCircuit:
         structures that go with it, how it fits into the rest of the :mod:`qiskit` package, and the
         different regimes of quantum-circuit descriptions in Qiskit, see the module-level
         documentation of :mod:`qiskit.circuit`.
+    
+    Example:
+    
+    .. plot::
+       :include-source:
+       :nofigs:
+    
+       from qiskit import QuantumCircuit
+       
+       # Create a new circuit with two qubits
+       qc = QuantumCircuit(2)
+       
+       # Add a Hadamard gate to qubit 0
+       qc.h(0)
+       
+       # Perform a controlled-X gate on qubit 1, controlled by qubit 0
+       qc.cx(0, 1)
+       
+       # Return a text drawing of the circuit.
+       qc.draw()
+       
+    .. code-block:: text
+
+            ┌───┐     
+       q_0: ┤ H ├──■──
+            └───┘┌─┴─┐
+       q_1: ─────┤ X ├
+                 └───┘
 
     Circuit attributes
     ==================
@@ -186,11 +214,68 @@ class QuantumCircuit:
 
     .. autoattribute:: data
 
+    Example:
+    
+    .. plot::
+       :include-source:
+       :nofigs:
+       
+       from qiskit import QuantumCircuit
+
+       qc = QuantumCircuit(2, 2)
+       qc.measure([0], [1])
+       print(qc.data)
+
+    .. code-block:: text
+
+       [CircuitInstruction(operation=Instruction(name='measure', num_qubits=1, num_clbits=1, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),), clbits=(Clbit(ClassicalRegister(2, 'c'), 1),))]
+
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
     measured in radians and is directly settable.
 
     .. autoattribute:: global_phase
+
+    Example:
+    
+    .. plot::
+       :include-source:
+       :nofigs:
+       
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qreg_q = QuantumRegister(2, 'q')
+       creg_c = ClassicalRegister(2, 'c')
+       circuit = QuantumCircuit(qreg_q, creg_c)
+
+       circuit.reset(qreg_q[0])
+       circuit.h(qreg_q[0])
+       circuit.reset(qreg_q[1])
+       circuit.cx(qreg_q[0], qreg_q[1])
+       
+       print(circuit.global_phase) # find the global phase of the current circuit
+       
+    .. code-block:: text
+    
+       0.0
+    
+    .. plot::
+       :include-source:
+       :nofigs:
+       
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qreg_q = QuantumRegister(2, 'q')
+       creg_c = ClassicalRegister(2, 'c')
+       circuit = QuantumCircuit(qreg_q, creg_c)
+       from numpy import pi
+       
+       circuit.global_phase = pi/4 # set the global phase of the circuit to pi/4
+       print(circuit.global_phase)
+       
+    .. code-block:: text
+    
+       0.7853981633974483
 
     The :attr:`name` of a circuit becomes the name of the :class:`~.circuit.Instruction` or
     :class:`.Gate` resulting from :meth:`to_instruction` and :meth:`to_gate` calls, which can be
