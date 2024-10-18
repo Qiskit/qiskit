@@ -2710,7 +2710,10 @@ class QuantumCircuit:
         """
         if isinstance(name_or_param, str):
             return self.get_parameter(name_or_param, None) is not None
-        return self.get_parameter(name_or_param.name) == name_or_param
+        return (
+            isinstance(name_or_param, Parameter)
+            and self.get_parameter(name_or_param.name, None) == name_or_param
+        )
 
     @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]: ...
@@ -4348,30 +4351,49 @@ class QuantumCircuit:
 
         if isinstance(parameters, collections.abc.Mapping):
             raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
-            our_parameters = self._data.unsorted_parameters()
-            if strict and (extras := raw_mapping.keys() - our_parameters):
+            if strict and (
+                extras := [
+                    parameter for parameter in raw_mapping if not self.has_parameter(parameter)
+                ]
+            ):
                 raise CircuitError(
                     f"Cannot bind parameters ({', '.join(str(x) for x in extras)}) not present in"
                     " the circuit."
                 )
-            parameter_binds = _ParameterBindsDict(raw_mapping, our_parameters)
-            target._data.assign_parameters_mapping(parameter_binds)
+
+            def create_mapping_view():
+                return raw_mapping
+
+            target._data.assign_parameters_mapping(raw_mapping)
         else:
-            parameter_binds = _ParameterBindsSequence(target._data.parameters, parameters)
+            # This should be cause a cache retrieval, since we warmed the cache.  We need to keep
+            # hold of this so that if/when we lazily construct this mapping within the calibration
+            # assignments, we don't query the newly-bound version of the inner parameters.
+            initial_parameters = target._data.parameters
+
+            def create_mapping_view():
+                return dict(zip(initial_parameters, parameters))
+
             target._data.assign_parameters_iterable(parameters)
 
         # Finally, assign the parameters inside any of the calibrations.  We don't track these in
-        # the `ParameterTable`, so we manually reconstruct things.
+        # the `ParameterTable`, so we manually reconstruct things.  We only construct the mapping
+        # view on the first actual call, and cache the result.
+        mapping_view = None
+
         def map_calibration(qubits, parameters, schedule):
+            nonlocal mapping_view
+            if mapping_view is None:
+                mapping_view = create_mapping_view()
             modified = False
             new_parameters = list(parameters)
             for i, parameter in enumerate(new_parameters):
                 if not isinstance(parameter, ParameterExpression):
                     continue
-                if not (contained := parameter.parameters & parameter_binds.mapping.keys()):
+                if not (contained := parameter.parameters & mapping_view.keys()):
                     continue
                 for to_bind in contained:
-                    parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
+                    parameter = parameter.assign(to_bind, mapping_view[to_bind])
                 if not parameter.parameters:
                     parameter = parameter.numeric()
                     if isinstance(parameter, complex):
@@ -4379,7 +4401,7 @@ class QuantumCircuit:
                 new_parameters[i] = parameter
                 modified = True
             if modified:
-                schedule.assign_parameters(parameter_binds.mapping)
+                schedule.assign_parameters(mapping_view)
             return (qubits, tuple(new_parameters)), schedule
 
         target._calibrations = defaultdict(
@@ -6700,42 +6722,6 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
         else:
             circuit_scope.resolve_classical_resource(var.var)
     return node
-
-
-class _ParameterBindsDict:
-    __slots__ = ("mapping", "allowed_keys")
-
-    def __init__(self, mapping, allowed_keys):
-        self.mapping = mapping
-        self.allowed_keys = allowed_keys
-
-    def items(self):
-        """Iterator through all the keys in the mapping that we care about.  Wrapping the main
-        mapping allows us to avoid reconstructing a new 'dict', but just use the given 'mapping'
-        without any copy / reconstruction."""
-        for parameter, value in self.mapping.items():
-            if parameter in self.allowed_keys:
-                yield parameter, value
-
-
-class _ParameterBindsSequence:
-    __slots__ = ("parameters", "values", "mapping_cache")
-
-    def __init__(self, parameters, values):
-        self.parameters = parameters
-        self.values = values
-        self.mapping_cache = None
-
-    def items(self):
-        """Iterator through all the keys in the mapping that we care about."""
-        return zip(self.parameters, self.values)
-
-    @property
-    def mapping(self):
-        """Cached version of a mapping.  This is only generated on demand."""
-        if self.mapping_cache is None:
-            self.mapping_cache = dict(zip(self.parameters, self.values))
-        return self.mapping_cache
 
 
 def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:
