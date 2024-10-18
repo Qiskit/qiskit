@@ -214,6 +214,22 @@ class QuantumCircuit:
 
     .. autoattribute:: data
 
+    Example:
+    
+    .. plot::
+       :include-source:
+       :nofigs:
+       
+       from qiskit import QuantumCircuit
+
+       qc = QuantumCircuit(2, 2)
+       qc.measure([0], [1])
+       print(qc.data)
+
+    .. code-block:: text
+
+       [CircuitInstruction(operation=Instruction(name='measure', num_qubits=1, num_clbits=1, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),), clbits=(Clbit(ClassicalRegister(2, 'c'), 1),))]
+
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
     measured in radians and is directly settable.
