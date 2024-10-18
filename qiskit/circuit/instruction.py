@@ -176,6 +176,7 @@ class Instruction(Operation):
         return self.copy()
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition(self):
         """The classical condition on the instruction."""
         return self._condition
@@ -410,8 +411,8 @@ class Instruction(Operation):
         # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
-        if self.condition:
-            instruction._condition = self.condition
+        if self._condition:
+            instruction._condition = self._condition
         return instruction
 
     @property
@@ -517,6 +518,7 @@ class Instruction(Operation):
         inverse_gate.definition = inverse_definition
         return inverse_gate
 
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
     def c_if(self, classical, val):
         """Set a classical equality condition on this instruction between the register or cbit
         ``classical`` and value ``val``.
@@ -632,7 +634,7 @@ class Instruction(Operation):
             qargs = tuple(qc.qubits)
             cargs = tuple(qc.clbits)
             base = self.copy()
-            if self.condition:
+            if self._condition:
                 # Condition is handled on the outer instruction.
                 base = base.to_mutable()
                 base.condition = None
@@ -640,18 +642,19 @@ class Instruction(Operation):
                 qc._append(CircuitInstruction(base, qargs, cargs))
 
             instruction.definition = qc
-        if self.condition:
-            instruction = instruction.c_if(*self.condition)
+        if self._condition:
+            instruction = instruction.c_if(*self._condition)
         return instruction
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0", is_property=True)
     def condition_bits(self) -> List[Clbit]:
         """Get Clbits in condition."""
         from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
 
-        if self.condition is None:
+        if self._condition is None:
             return []
-        return list(condition_resources(self.condition).clbits)
+        return list(condition_resources(self._condition).clbits)
 
     @property
     def name(self):
