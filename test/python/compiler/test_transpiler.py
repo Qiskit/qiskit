@@ -1508,14 +1508,18 @@ class TestTranspile(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
 
-        out = transpile(
-            qc,
-            scheduling_method="alap",
-            basis_gates=["h", "cx"],
-            instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-            optimization_level=optimization_level,
-            seed_transpiler=42,
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            out = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+                optimization_level=optimization_level,
+                seed_transpiler=42,
+            )
 
         self.assertEqual(out.duration, 1200)
 
@@ -3747,14 +3751,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 28)
         qc.cy(20, 29)
         qc.measure_all()
+
         with self.assertRaises(TranspilerError):
-            transpile(
-                qc,
-                self.backend,
-                layout_method="trivial",
-                routing_method=routing_method,
-                seed_transpiler=42,
-            )
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="The `target` parameter should be used instead",
+            ):
+                transpile(
+                    qc,
+                    self.backend,
+                    layout_method="trivial",
+                    routing_method=routing_method,
+                    seed_transpiler=42,
+                )
 
     @data("stochastic")
     def test_triple_circuit_invalid_layout_stochastic(self, routing_method):
@@ -3792,15 +3801,14 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 28)
         qc.cy(20, 29)
         qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(TranspilerError):
-                transpile(
-                    qc,
-                    self.backend,
-                    layout_method="trivial",
-                    routing_method=routing_method,
-                    seed_transpiler=42,
-                )
+        with self.assertRaises(TranspilerError):
+            transpile(
+                qc,
+                self.backend,
+                layout_method="trivial",
+                routing_method=routing_method,
+                seed_transpiler=42,
+            )
 
     # Lookahead swap skipped for performance reasons, stochastic moved to new test due to deprecation
     @data("sabre", "basic")
