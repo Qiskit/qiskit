@@ -29,6 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, target_to_backend_properties
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils import deprecate_arg
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -36,6 +37,32 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
 
+@deprecate_arg(
+    name="instruction_durations",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined instruction duration with "
+    "`Target.from_configuration(..., instruction_durations=...)`",
+)
+@deprecate_arg(
+    name="timing_constraints",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined timing constraints with "
+    "`Target.from_configuration(..., timing_constraints=...)`",
+)
+@deprecate_arg(
+    name="backend_properties",
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
+    "with defined properties with Target.from_configuration(..., backend_properties=...)",
+)
 def generate_preset_pass_manager(
     optimization_level=2,
     backend=None,
