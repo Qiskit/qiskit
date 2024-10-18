@@ -267,9 +267,9 @@ pub struct DAGCircuit {
     cregs: Py<PyDict>,
 
     /// The cache used to intern instruction qargs.
-    pub qargs_interner: Interner<[Qubit]>,
+    qargs_interner: Interner<[Qubit]>,
     /// The cache used to intern instruction cargs.
-    pub cargs_interner: Interner<[Clbit]>,
+    cargs_interner: Interner<[Clbit]>,
     /// Qubits registered in the circuit.
     qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
@@ -6793,8 +6793,8 @@ impl DAGCircuit {
                 } else {
                     instr.op.clone()
                 },
-                new_qargs,
-                new_cargs,
+                Some(new_qargs),
+                Some(new_cargs),
                 new_params,
                 instr.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
@@ -6896,8 +6896,8 @@ impl<'a> DAGCircuitConcat<'a> {
         &mut self,
         py: Python,
         op: PackedOperation,
-        qubits: OwnedOrSlice<Qubit>,
-        clbits: OwnedOrSlice<Clbit>,
+        qubits: Option<OwnedOrSlice<Qubit>>,
+        clbits: Option<OwnedOrSlice<Clbit>>,
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
@@ -7028,8 +7028,8 @@ impl<'a> DAGCircuitConcat<'a> {
     fn pack_instruction(
         &mut self,
         op: PackedOperation,
-        qubits: OwnedOrSlice<Qubit>,
-        clbits: OwnedOrSlice<Clbit>,
+        qubits: Option<OwnedOrSlice<Qubit>>,
+        clbits: Option<OwnedOrSlice<Clbit>>,
         params: Option<SmallVec<[Param; 3]>>,
         extra_attrs: ExtraInstructionAttributes,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
@@ -7040,13 +7040,21 @@ impl<'a> DAGCircuitConcat<'a> {
         } else {
             OnceCell::new()
         };
-        let qubits = match qubits {
-            OwnedOrSlice::Owned(owned) => self.dag.qargs_interner.insert_owned(owned),
-            OwnedOrSlice::Slice(slice) => self.dag.qargs_interner.insert(slice),
+        let qubits = if let Some(qubits) = qubits {
+            match qubits {
+                OwnedOrSlice::Owned(owned) => self.dag.qargs_interner.insert_owned(owned),
+                OwnedOrSlice::Slice(slice) => self.dag.qargs_interner.insert(slice),
+            }
+        } else {
+            self.dag.qargs_interner.get_default()
         };
-        let clbits = match clbits {
-            OwnedOrSlice::Owned(owned) => self.dag.cargs_interner.insert_owned(owned),
-            OwnedOrSlice::Slice(slice) => self.dag.cargs_interner.insert(slice),
+        let clbits = if let Some(clbits) = clbits {
+            match clbits {
+                OwnedOrSlice::Owned(owned) => self.dag.cargs_interner.insert_owned(owned),
+                OwnedOrSlice::Slice(slice) => self.dag.cargs_interner.insert(slice),
+            }
+        } else {
+            self.dag.cargs_interner.get_default()
         };
         PackedInstruction {
             op,
