@@ -229,6 +229,8 @@ fn py_run_main_loop(
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
 ) -> PyResult<DAGCircuit> {
+    // We need to use the python converter because the currently available Rust conversion
+    // is lossy. We need `QuantumCircuit` instances to be used in `replace_blocks`.
     let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
 
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
@@ -239,7 +241,7 @@ fn py_run_main_loop(
 
         if packed_instr.op.control_flow() {
             let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
-            unreachable!("Control flow op must be an instruction")
+                unreachable!("Control flow op must be an instruction")
             };
             let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_instr
                 .instruction
@@ -668,7 +670,7 @@ fn get_2q_decomposers_from_target(
                 basis_2q_fidelity *= approx_degree;
             }
             let decomposer = TwoQubitBasisDecomposer::new_inner(
-                gate.operation.name().to_owned(),
+                gate.operation.name().to_string(),
                 gate.operation.matrix(&gate.params).unwrap().view(),
                 basis_2q_fidelity,
                 basis_1q,
