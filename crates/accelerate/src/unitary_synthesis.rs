@@ -18,10 +18,11 @@ use std::f64::consts::PI;
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
+use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
 use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
@@ -29,8 +30,6 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyString};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
-
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
@@ -223,7 +222,7 @@ fn synth_error(
 fn py_run_main_loop(
     py: Python,
     dag: &mut DAGCircuit,
-    qubit_indices: &Bound<'_, PyList>,
+    qubit_indices: Vec<usize>,
     min_qubits: usize,
     target: &Target,
     coupling_edges: &Bound<'_, PyList>,
@@ -232,63 +231,66 @@ fn py_run_main_loop(
 ) -> PyResult<DAGCircuit> {
     let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
 
-    // Run synthesis recursively over control flow ops, mapping qubit indices
-    let node_ids: Vec<NodeIndex> = dag.op_nodes(false).collect();
-    for node in node_ids {
-        let inst = &dag.dag()[node].unwrap_operation();
-        if !inst.op.control_flow() {
-            continue;
-        }
-        let OperationRef::Instruction(py_inst) = inst.op.view() else {
-            unreachable!("Control flow op must be an instruction")
-        };
-        let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_inst
-            .instruction
-            .getattr(py, "blocks")?
-            .bind(py)
-            .iter()?
-            .collect();
-        let mut new_blocks = Vec::with_capacity(raw_blocks.len());
-        for raw_block in raw_blocks {
-            let new_ids = dag.get_qargs(inst.qubits).iter().map(|qarg| {
-                qubit_indices
-                    .get_item(qarg.0 as usize)
-                    .expect("Unexpected index error in DAG")
-            });
-            let res = py_run_main_loop(
-                py,
-                &mut circuit_to_dag(
-                    py,
-                    QuantumCircuitData::extract_bound(&raw_block?)?,
-                    false,
-                    None,
-                    None,
-                )?,
-                &PyList::new_bound(py, new_ids),
-                min_qubits,
-                target,
-                coupling_edges,
-                approximation_degree,
-                natural_direction,
-            )?;
-            new_blocks.push(dag_to_circuit.call1((res,))?);
-        }
-        let old_node = dag.get_node(py, node)?.clone();
-        let new_node = py_inst
-            .instruction
-            .bind(py)
-            .call_method1("replace_blocks", (new_blocks,))?;
-        dag.py_substitute_node(old_node.bind(py), &new_node, true, false)?;
-    }
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
-        let packed_instr = dag.dag()[node].unwrap_operation();
+        let mut packed_instr = dag.dag()[node].unwrap_operation().clone();
+
+        if packed_instr.op.control_flow() {
+            let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
+            unreachable!("Control flow op must be an instruction")
+            };
+            let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_instr
+                .instruction
+                .getattr(py, "blocks")?
+                .bind(py)
+                .iter()?
+                .collect();
+            let mut new_blocks = Vec::with_capacity(raw_blocks.len());
+            for raw_block in raw_blocks {
+                let new_ids = dag
+                    .get_qargs(packed_instr.qubits)
+                    .iter()
+                    .map(|qarg| qubit_indices[qarg.0 as usize])
+                    .collect_vec();
+                let res = py_run_main_loop(
+                    py,
+                    &mut circuit_to_dag(
+                        py,
+                        QuantumCircuitData::extract_bound(&raw_block?)?,
+                        false,
+                        None,
+                        None,
+                    )?,
+                    new_ids,
+                    min_qubits,
+                    target,
+                    coupling_edges,
+                    approximation_degree,
+                    natural_direction,
+                )?;
+                new_blocks.push(dag_to_circuit.call1((res,))?);
+            }
+            let new_node = py_instr
+                .instruction
+                .bind(py)
+                .call_method1("replace_blocks", (new_blocks,))?;
+            let new_node_op: OperationFromPython = new_node.extract()?;
+            packed_instr = PackedInstruction {
+                op: new_node_op.operation,
+                qubits: packed_instr.qubits,
+                clbits: packed_instr.clbits,
+                params: (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
+                extra_attrs: new_node_op.extra_attrs,
+                #[cfg(feature = "cache_pygates")]
+                py_op: new_node.unbind().into(),
+            };
+        }
         if !(packed_instr.op.name() == "unitary"
             && packed_instr.op.num_qubits() >= min_qubits as u32)
         {
-            out_dag.push_back(py, packed_instr.clone())?;
+            out_dag.push_back(py, packed_instr)?;
             continue;
         }
         let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match packed_instr.op.matrix(&[]) {
@@ -327,7 +329,7 @@ fn py_run_main_loop(
                         out_dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;
                     }
                     None => {
-                        out_dag.push_back(py, packed_instr.clone())?;
+                        out_dag.push_back(py, packed_instr)?;
                     }
                 }
             }
@@ -337,8 +339,8 @@ fn py_run_main_loop(
                 let out_qargs = dag.get_qargs(packed_instr.qubits);
                 // "ref_qubits" is used to access properties in the target. It accounts for control flow mapping.
                 let ref_qubits: &[PhysicalQubit; 2] = &[
-                    PhysicalQubit::new(qubit_indices.get_item(out_qargs[0].0 as usize)?.extract()?),
-                    PhysicalQubit::new(qubit_indices.get_item(out_qargs[1].0 as usize)?.extract()?),
+                    PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
+                    PhysicalQubit::new(qubit_indices[out_qargs[1].0 as usize] as u32),
                 ];
                 let apply_original_op = |out_dag: &mut DAGCircuit| -> PyResult<()> {
                     out_dag.push_back(py, packed_instr.clone())?;
