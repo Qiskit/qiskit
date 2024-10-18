@@ -1592,7 +1592,7 @@ class TestTranspile(QiskitTestCase):
                             timing_constraints=timing_constraints,
                         )
 
-    def test_scheduling_instruction_constraints(self):
+    def test_scheduling_instruction_constraints_backend(self):
         """Test that scheduling-related loose transpile constraints
         work with both BackendV1 and BackendV2."""
 
@@ -1620,14 +1620,43 @@ class TestTranspile(QiskitTestCase):
             )
         self.assertEqual(scheduled.duration, 1500)
 
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            scheduled = transpile(
+                qc,
+                backend=backend_v2,
+                scheduling_method="alap",
+                instruction_durations=durations,
+                layout_method="trivial",
+            )
+        self.assertEqual(scheduled.duration, 1500)
+
+    def test_scheduling_instruction_constraints(self):
+        """Test that scheduling-related loose transpile constraints work with target."""
+        target = GenericBackendV2(
+            2,
+            calibrate_instructions=True,
+            coupling_map=[[0, 1]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        ).target
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(0.000001, 1, "s")
+        qc.cx(0, 1)
+
+        # update cx to 2 seconds
+        target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.000001))
+
         scheduled = transpile(
             qc,
-            backend=backend_v2,
+            target=target,
             scheduling_method="alap",
-            instruction_durations=durations,
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 1500)
+        self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
