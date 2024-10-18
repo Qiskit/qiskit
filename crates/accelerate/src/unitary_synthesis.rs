@@ -394,10 +394,7 @@ fn run_2q_unitary_synthesis(
     let decomposers = {
         let decomposers_2q =
             get_2q_decomposers_from_target(py, target, ref_qubits, approximation_degree)?;
-        match decomposers_2q {
-            Some(decomp) => decomp,
-            None => Vec::new(),
-        }
+        decomposers_2q.unwrap_or_default()
     };
     // If there's a single decomposer, avoid computing synthesis score
     if decomposers.len() == 1 {
