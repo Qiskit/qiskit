@@ -104,6 +104,7 @@ sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
+sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
