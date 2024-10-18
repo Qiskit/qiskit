@@ -219,7 +219,7 @@ fn synth_error(
 // This is the outer-most run function. It is meant to be called from Python
 // in `UnitarySynthesis.run()`.
 #[pyfunction]
-#[pyo3(name = "run_default_main_loop", signature=(dag, qubit_indices, min_qubits, target, coupling_edges, approximation_degree=None, natural_direction=None)]
+#[pyo3(name = "run_default_main_loop", signature=(dag, qubit_indices, min_qubits, target, coupling_edges, approximation_degree=None, natural_direction=None))]
 fn py_run_main_loop(
     py: Python,
     dag: &mut DAGCircuit,
