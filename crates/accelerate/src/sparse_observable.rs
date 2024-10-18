@@ -803,7 +803,7 @@ impl SparseObservable {
     /// The number of terms in the sum this operator is tracking.
     #[getter]
     #[inline]
-    pub fn num_ops(&self) -> usize {
+    pub fn num_terms(&self) -> usize {
         self.coeffs.len()
     }
 
@@ -909,15 +909,15 @@ impl SparseObservable {
     fn __repr__(&self) -> String {
         let num_terms = format!(
             "{} term{}",
-            self.num_ops(),
-            if self.num_ops() == 1 { "" } else { "s" }
+            self.num_terms(),
+            if self.num_terms() == 1 { "" } else { "s" }
         );
         let qubits = format!(
             "{} qubit{}",
             self.num_qubits(),
             if self.num_qubits() == 1 { "" } else { "s" }
         );
-        let terms = if self.num_ops() == 0 {
+        let terms = if self.num_terms() == 0 {
             "0.0".to_owned()
         } else {
             self.iter()
@@ -1297,27 +1297,27 @@ impl SparseObservable {
         // We don't extract the `phase`, because that's supposed to be 0 for all `SparsePauliOp`
         // instances - they use the symplectic convention in the representation with any phase term
         // absorbed into the coefficients (like us).
-        let [num_ops, num_qubits] = *op_z.shape() else {
+        let [num_terms, num_qubits] = *op_z.shape() else {
             unreachable!("shape is statically known to be 2D")
         };
-        if op_x.shape() != [num_ops, num_qubits] {
+        if op_x.shape() != [num_terms, num_qubits] {
             return Err(PyValueError::new_err(format!(
                 "'x' and 'z' have different shapes ({:?} and {:?})",
                 op_x.shape(),
                 op_z.shape()
             )));
         }
-        if num_ops != coeffs.len() {
+        if num_terms != coeffs.len() {
             return Err(PyValueError::new_err(format!(
                 "'x' and 'z' have a different number of operators to 'coeffs' ({} and {})",
-                num_ops,
+                num_terms,
                 coeffs.len(),
             )));
         }
 
         let mut bit_terms = Vec::new();
         let mut indices = Vec::new();
-        let mut boundaries = Vec::with_capacity(num_ops + 1);
+        let mut boundaries = Vec::with_capacity(num_terms + 1);
         boundaries.push(0);
         for (term_x, term_z) in op_x
             .as_array()
