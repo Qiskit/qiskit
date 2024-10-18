@@ -15,8 +15,8 @@ use indexmap::IndexSet;
 use ndarray::{s, ArrayView2};
 use smallvec::smallvec;
 
-use crate::synthesis::clifford::utils::CliffordGatesVec;
 use crate::synthesis::clifford::utils::{adjust_final_pauli_gates, SymplecticMatrix};
+use crate::synthesis::clifford::utils::{Clifford, CliffordGatesVec};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
 
@@ -436,4 +436,15 @@ impl GreedyCliffordSynthesis<'_> {
 
         Ok((self.num_qubits, clifford_gates))
     }
+}
+
+/// Resynthesizes a clifford circuit using the greedy Clifford synthesis algorithm.
+pub fn resynthesize_clifford_circuit(
+    num_qubits: usize,
+    gates: &CliffordGatesVec,
+) -> Result<CliffordGatesVec, String> {
+    let sim_clifford = Clifford::from_gate_sequence(gates, num_qubits)?;
+    let mut synthesis = GreedyCliffordSynthesis::new(sim_clifford.tableau.view())?;
+    let (_, new_gates) = synthesis.run()?;
+    Ok(new_gates)
 }
