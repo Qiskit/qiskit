@@ -446,6 +446,7 @@ impl CircuitData {
                 self_.clbits.cached().clone_ref(py),
                 None::<()>,
                 self_.data.len(),
+                self_.global_phase.clone(),
             )
         };
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
