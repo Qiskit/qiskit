@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from qiskit.circuit import Gate, Parameter, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
     CPhaseGate,
     RXGate,
@@ -27,7 +27,7 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
 )
 from qiskit.quantum_info import Operator
-from qiskit.transpiler.passes import DropNegligible
+from qiskit.transpiler.passes import RemoveIdentityEquivalent
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -58,7 +58,7 @@ class TestDropNegligible(QiskitTestCase):
         circuit.append(XXPlusYYGate(1e-8, 1e-8), [a, b])
         circuit.append(XXMinusYYGate(1e-5, 1e-8), [a, b])
         circuit.append(XXMinusYYGate(1e-8, 1e-8), [a, b])
-        transpiled = DropNegligible()(circuit)
+        transpiled = RemoveIdentityEquivalent()(circuit)
         self.assertEqual(circuit.count_ops()["cp"], 2)
         self.assertEqual(transpiled.count_ops()["cp"], 1)
         self.assertEqual(circuit.count_ops()["rx"], 2)
@@ -90,7 +90,7 @@ class TestDropNegligible(QiskitTestCase):
         circuit.append(CPhaseGate(theta), [a, b])
         circuit.append(CPhaseGate(1e-5), [a, b])
         circuit.append(CPhaseGate(1e-8), [a, b])
-        transpiled = DropNegligible()(circuit)
+        transpiled = RemoveIdentityEquivalent()(circuit)
         self.assertEqual(circuit.count_ops()["cp"], 3)
         self.assertEqual(transpiled.count_ops()["cp"], 2)
 
@@ -102,34 +102,6 @@ class TestDropNegligible(QiskitTestCase):
         circuit.append(CPhaseGate(np.float32(1e-6)), [a, b])
         circuit.append(CPhaseGate(1e-3), [a, b])
         circuit.append(CPhaseGate(1e-8), [a, b])
-        transpiled = DropNegligible(atol=1e-5)(circuit)
+        transpiled = RemoveIdentityEquivalent(approximation_degree=1e-7)(circuit)
         self.assertEqual(circuit.count_ops()["cp"], 3)
         self.assertEqual(transpiled.count_ops()["cp"], 1)
-
-    def test_additional_gate_types(self):
-        """Test passing additional gate types."""
-
-        class TestGateA(Gate):
-            """A gate class."""
-            pass
-
-        class TestGateB(Gate):
-            """Another gate class."""
-            pass
-
-        qubits = QuantumRegister(2)
-        circuit = QuantumCircuit(qubits)
-        a, b = qubits
-        circuit.append(CPhaseGate(1e-5), [a, b])
-        circuit.append(CPhaseGate(1e-8), [a, b])
-        circuit.append(TestGateA("test_gate_a", 1, [1e-5, 1e-5]), [a])
-        circuit.append(TestGateA("test_gate_a", 1, [1e-8, 1e-8]), [a])
-        circuit.append(TestGateB("test_gate_b", 1, [1e-5, 1e-5]), [a])
-        circuit.append(TestGateB("test_gate_b", 1, [1e-8, 1e-8]), [a])
-        transpiled = DropNegligible(additional_gate_types=[TestGateA])(circuit)
-        self.assertEqual(circuit.count_ops()["cp"], 2)
-        self.assertEqual(transpiled.count_ops()["cp"], 1)
-        self.assertEqual(circuit.count_ops()["test_gate_a"], 2)
-        self.assertEqual(transpiled.count_ops()["test_gate_a"], 1)
-        self.assertEqual(circuit.count_ops()["test_gate_b"], 2)
-        self.assertEqual(transpiled.count_ops()["test_gate_b"], 2)
