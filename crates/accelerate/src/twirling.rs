@@ -244,13 +244,15 @@ fn twirl_gate(
     Ok(())
 }
 
+type CustomGateTwirlingMap = HashMap<String, Vec<([StandardGate; 4], f64)>>;
+
 #[allow(clippy::too_many_arguments)]
 fn generate_twirled_circuit(
     py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     twirling_mask: u8,
-    custom_gate_map: Option<&HashMap<String, Vec<([StandardGate; 4], f64)>>>,
+    custom_gate_map: Option<&CustomGateTwirlingMap>,
     run_pass: bool,
     optimizer_target: Option<&Target>,
     optimizer_global_decomposer: Option<&HashSet<String>>,
@@ -428,7 +430,7 @@ pub(crate) fn twirl_circuit(
             }
         }
     };
-    let custom_gate_twirling_sets: Option<HashMap<String, Vec<([StandardGate; 4], f64)>>> =
+    let custom_gate_twirling_sets: Option<CustomGateTwirlingMap> =
         custom_twirled_gates.map(|gates| {
             gates
                 .into_iter()
@@ -459,9 +461,9 @@ pub(crate) fn twirl_circuit(
                             Some(Ok((gate.operation.name().to_string(), twirl_set)))
                         }
                     } else {
-                        return Some(Err(QiskitError::new_err(
+                        Some(Err(QiskitError::new_err(
                             format!("Provided gate to twirl, {}, does not have a matrix defined and can't be twirled", gate.operation.name())
-                        )));
+                        )))
                     }
                 })
                 .collect()
