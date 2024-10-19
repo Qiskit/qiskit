@@ -32,7 +32,12 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = Fake27QPulseV1()
+        # TODO once https://github.com/Qiskit/qiskit/issues/12759 is fixed, replace with
+        # backend = GenericBackendV2(num_qubits=27, calibrate_instructions=True,
+        # control_flow=True, seed=42)
+        # self.inst_map = backend.instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            self.backend = Fake27QPulseV1()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def assertRZXgates(self, unitary_circuit, after):

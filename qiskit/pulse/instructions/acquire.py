@@ -138,12 +138,11 @@ class Acquire(Instruction):
         return isinstance(self.duration, ParameterExpression) or super().is_parameterized()
 
     def __repr__(self) -> str:
-        return "{}({}{}{}{}{}{})".format(
-            self.__class__.__name__,
-            self.duration,
-            ", " + str(self.channel),
-            ", " + str(self.mem_slot) if self.mem_slot else "",
-            ", " + str(self.reg_slot) if self.reg_slot else "",
-            ", " + str(self.kernel) if self.kernel else "",
-            ", " + str(self.discriminator) if self.discriminator else "",
+        mem_slot_repr = str(self.mem_slot) if self.mem_slot else ""
+        reg_slot_repr = str(self.reg_slot) if self.reg_slot else ""
+        kernel_repr = str(self.kernel) if self.kernel else ""
+        discriminator_repr = str(self.discriminator) if self.discriminator else ""
+        return (
+            f"{self.__class__.__name__}({self.duration}, {str(self.channel)}, "
+            f"{mem_slot_repr}, {reg_slot_repr}, {kernel_repr}, {discriminator_repr})"
         )

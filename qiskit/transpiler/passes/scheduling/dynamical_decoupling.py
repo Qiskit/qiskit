@@ -20,10 +20,10 @@ from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.utils.deprecation import deprecate_func
 
 
@@ -130,7 +130,7 @@ class DynamicalDecoupling(TransformationPass):
                 will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits (bool): if True, does not insert DD on idle
                 periods that immediately follow initialized/reset qubits (as
-                qubits in the ground state are less susceptile to decoherence).
+                qubits in the ground state are less susceptible to decoherence).
             target (Target): The :class:`~.Target` representing the target backend, if both
                   ``durations`` and this are specified then this argument will take
                   precedence and ``durations`` will be ignored.

@@ -43,7 +43,7 @@ from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
 from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
@@ -208,7 +208,7 @@ class BasicSimulator(BackendV2):
                 target.add_instruction(UnitaryGate, name="unitary")
             else:
                 raise BasicProviderError(
-                    "Gate is not a valid basis gate for this simulator: %s" % name
+                    f"Gate is not a valid basis gate for this simulator: {name}"
                 )
         return target
 
@@ -236,24 +236,32 @@ class BasicSimulator(BackendV2):
             for name in self.target.operation_names
         ]
 
-        self._configuration = BackendConfiguration(
-            backend_name=self.name,
-            backend_version=self.backend_version,
-            n_qubits=self.num_qubits,
-            basis_gates=self.target.operation_names,
-            gates=gates,
-            local=True,
-            simulator=True,
-            conditional=True,
-            open_pulse=False,
-            memory=True,
-            # This max_shots is used by the assembler, setting it to 0
-            # to maintain the behavior from the previous implementation.
-            # Not related to the actual shots set in the backend options
-            max_shots=0,
-            coupling_map=None,
-            description="A python simulator for quantum experiments",
-        )
+        with warnings.catch_warnings():
+            # TODO Provider models are deprecated
+            #   https://github.com/Qiskit/qiskit/issues/12843
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.models\.backendconfiguration\..+",
+            )
+            self._configuration = BackendConfiguration(
+                backend_name=self.name,
+                backend_version=self.backend_version,
+                n_qubits=self.num_qubits,
+                basis_gates=self.target.operation_names,
+                gates=gates,
+                local=True,
+                simulator=True,
+                conditional=True,
+                open_pulse=False,
+                memory=True,
+                # This max_shots is used by the assembler, setting it to 0
+                # to maintain the behavior from the previous implementation.
+                # Not related to the actual shots set in the backend options
+                max_shots=0,
+                coupling_map=None,
+                description="A python simulator for quantum experiments",
+            )
         return self._configuration
 
     @classmethod
@@ -525,17 +533,17 @@ class BasicSimulator(BackendV2):
                 }
         """
         # TODO: replace assemble with new run flow
-        from qiskit.compiler import assemble
+        from qiskit.compiler.assembler import _assemble
 
         out_options = {}
-        for key in backend_options:
+        for key, value in backend_options.items():
             if not hasattr(self.options, key):
                 warnings.warn(
-                    "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
+                    f"Option {key} is not used by this backend", UserWarning, stacklevel=2
                 )
             else:
-                out_options[key] = backend_options[key]
-        qobj = assemble(run_input, self, **out_options)
+                out_options[key] = value
+        qobj = _assemble(run_input, self, **out_options)
         qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())

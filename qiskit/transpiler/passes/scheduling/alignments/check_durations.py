@@ -14,7 +14,7 @@
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import Target
+from qiskit.transpiler.target import Target
 
 
 class InstructionDurationCheck(AnalysisPass):

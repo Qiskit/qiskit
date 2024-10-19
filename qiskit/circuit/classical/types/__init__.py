@@ -40,7 +40,7 @@ literals ``True`` and ``False``), and unsigned integers (corresponding to
 .. autoclass:: Bool
 .. autoclass:: Uint
 
-Note that :class:`Uint` defines a family of types parametrised by their width; it is not one single
+Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
 type, which may be slightly different to the 'classical' programming languages you are used to.
 
 

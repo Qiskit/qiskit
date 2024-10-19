@@ -87,7 +87,7 @@ class TwoLocal(NLocal):
 
         >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
         >>> qc = QuantumCircuit(3)
-        >>> qc += two
+        >>> qc &= two
         >>> print(qc.decompose().draw())
              ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
@@ -110,7 +110,7 @@ class TwoLocal(NLocal):
 
         >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
         >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        >>> circuit = two + two
+        >>> circuit = two.compose(two)
         >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
         q_0: ─────■───────────■───────────■───────────■──────
                   │           │           │           │

@@ -16,6 +16,8 @@ import dataclasses
 import math
 from typing import Iterable, Callable
 
+import numpy as np
+
 from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
@@ -30,6 +32,7 @@ from qiskit.circuit import (
     Reset,
     library as lib,
 )
+from qiskit.quantum_info import Operator
 from qiskit._accelerate.qasm2 import (
     OpCode,
     UnaryOpCode,
@@ -86,6 +89,35 @@ class CustomInstruction:
     There is a final ``builtin`` field.  This is optional, and if set true will cause the
     instruction to be defined and available within the parsing, even if there is no definition in
     any included OpenQASM 2 file.
+
+    Examples:
+
+        Instruct the importer to use Qiskit's :class:`.ECRGate` and :class:`.RZXGate` objects to
+        interpret ``gate`` statements that are known to have been created from those same objects
+        during OpenQASM 2 export::
+
+            from qiskit import qasm2
+            from qiskit.circuit import QuantumCircuit, library
+
+            qc = QuantumCircuit(2)
+            qc.ecr(0, 1)
+            qc.rzx(0.3, 0, 1)
+            qc.rzx(0.7, 1, 0)
+            qc.rzx(1.5, 0, 1)
+            qc.ecr(1, 0)
+
+            # This output string includes `gate ecr q0, q1 { ... }` and `gate rzx(p) q0, q1 { ... }`
+            # statements, since `ecr` and `rzx` are neither built-in gates nor in ``qelib1.inc``.
+            dumped = qasm2.dumps(qc)
+
+            # Tell the importer how to interpret the `gate` statements, which we know are safe
+            # because we controlled the input OpenQASM 2 source.
+            custom = [
+                qasm2.CustomInstruction("ecr", 0, 2, library.ECRGate),
+                qasm2.CustomInstruction("rzx", 1, 2, library.RZXGate),
+            ]
+
+            loaded = qasm2.loads(dumped, custom_instructions=custom)
     """
 
     name: str
@@ -284,7 +316,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
 
 class _DefinedGate(Gate):
     """A gate object defined by a `gate` statement in an OpenQASM 2 program.  This object lazily
-    binds its parameters to its definition, so it is only synthesised when required."""
+    binds its parameters to its definition, so it is only synthesized when required."""
 
     def __init__(self, name, num_qubits, params, gates, bytecode):
         self._gates = gates
@@ -314,6 +346,11 @@ class _DefinedGate(Gate):
             else:
                 raise ValueError(f"received invalid bytecode to build gate: {op}")
         self._definition = qc
+
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        return np.asarray(Operator(self.definition), dtype=dtype)
 
     # It's fiddly to implement pickling for PyO3 types (the bytecode stream), so instead if we need
     # to pickle ourselves, we just eagerly create the definition and pickle that.

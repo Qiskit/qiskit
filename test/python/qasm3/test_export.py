@@ -18,23 +18,19 @@
 from io import StringIO
 from math import pi
 import re
-import unittest
 
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate, Delay, Barrier, ParameterVector
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
+from qiskit.quantum_info import Pauli
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-
-
-# Tests marked with this decorator should be restored after gate definition with parameters is fixed
-# properly, and the dummy tests after them should be deleted.  See gh-7335.
-requires_fixed_parameterisation = unittest.expectedFailure
 
 
 class TestQASM3Functions(QiskitTestCase):
@@ -307,9 +303,7 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit = QuantumCircuit(qr, name="circuit")
         circuit.append(my_gate_inst1, [qr[0]])
         circuit.append(my_gate_inst2, [qr[0]])
-        my_gate_inst2_id = id(circuit.data[-1].operation)
         circuit.append(my_gate_inst3, [qr[0]])
-        my_gate_inst3_id = id(circuit.data[-1].operation)
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
@@ -317,16 +311,16 @@ class TestCircuitQASM3(QiskitTestCase):
                 "gate my_gate _gate_q_0 {",
                 "  h _gate_q_0;",
                 "}",
-                f"gate my_gate_{my_gate_inst2_id} _gate_q_0 {{",
+                "gate my_gate_0 _gate_q_0 {",
                 "  x _gate_q_0;",
                 "}",
-                f"gate my_gate_{my_gate_inst3_id} _gate_q_0 {{",
+                "gate my_gate_1 _gate_q_0 {",
                 "  x _gate_q_0;",
                 "}",
                 "qubit[1] qr;",
                 "my_gate qr[0];",
-                f"my_gate_{my_gate_inst2_id} qr[0];",
-                f"my_gate_{my_gate_inst3_id} qr[0];",
+                "my_gate_0 qr[0];",
+                "my_gate_1 qr[0];",
                 "",
             ]
         )
@@ -412,7 +406,6 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(Exporter().dumps(circuit), expected_qasm)
 
-    @requires_fixed_parameterisation
     def test_custom_gate_with_params_bound_main_call(self):
         """Custom gate with unbound parameters that are bound in the main circuit"""
         parameter0 = Parameter("p0")
@@ -429,11 +422,14 @@ class TestCircuitQASM3(QiskitTestCase):
 
         circuit.assign_parameters({parameter0: pi, parameter1: pi / 2}, inplace=True)
 
+        # NOTE: this isn't exactly what we want; note that the parameters in the signature are not
+        # actually used.  It would be fine to change the output of the exporter to make `custom` non
+        # parametric in this case.
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
-                "gate custom(_gate_p_0, _gate_p_0) _gate_q_0, _gate_q_1 {",
+                "gate custom(_gate_p_0, _gate_p_1) _gate_q_0, _gate_q_1 {",
                 "  rz(pi) _gate_q_0;",
                 "  rz(pi/4) _gate_q_1;",
                 "}",
@@ -444,6 +440,58 @@ class TestCircuitQASM3(QiskitTestCase):
             ]
         )
         self.assertEqual(Exporter().dumps(circuit), expected_qasm)
+
+    def test_multiple_pauli_evolution_gates(self):
+        """Pauli evolution gates should be detected as distinct."""
+        vec = ParameterVector("t", 3)
+        qc = QuantumCircuit(2)
+        qc.append(PauliEvolutionGate(Pauli("XX"), vec[0]), [0, 1])
+        qc.append(PauliEvolutionGate(Pauli("YY"), vec[1]), [0, 1])
+        qc.append(PauliEvolutionGate(Pauli("ZZ"), vec[2]), [0, 1])
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input float[64] _t_0_;
+input float[64] _t_1_;
+input float[64] _t_2_;
+gate rxx(p0) _gate_q_0, _gate_q_1 {
+  h _gate_q_0;
+  h _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  h _gate_q_1;
+  h _gate_q_0;
+}
+gate PauliEvolution(_t_0_) _gate_q_0, _gate_q_1 {
+  rxx(2.0*_t_0_) _gate_q_0, _gate_q_1;
+}
+gate ryy(p0) _gate_q_0, _gate_q_1 {
+  rx(pi/2) _gate_q_0;
+  rx(pi/2) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  rx(-pi/2) _gate_q_0;
+  rx(-pi/2) _gate_q_1;
+}
+gate PauliEvolution_0(_t_1_) _gate_q_0, _gate_q_1 {
+  ryy(2.0*_t_1_) _gate_q_0, _gate_q_1;
+}
+gate rzz(p0) _gate_q_0, _gate_q_1 {
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+}
+gate PauliEvolution_1(_t_2_) _gate_q_0, _gate_q_1 {
+  rzz(2.0*_t_2_) _gate_q_0, _gate_q_1;
+}
+qubit[2] q;
+PauliEvolution(_t_0_) q[0], q[1];
+PauliEvolution_0(_t_1_) q[0], q[1];
+PauliEvolution_1(_t_2_) q[0], q[1];
+"""
+        self.assertEqual(dumps(qc), expected)
 
     def test_reused_custom_parameter(self):
         """Test reused custom gate with parameter."""
@@ -456,8 +504,8 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit.append(custom.assign_parameters({parameter_a: 0.5}).to_gate(), [0])
         circuit.append(custom.assign_parameters({parameter_a: 1}).to_gate(), [0])
 
-        circuit_name_0 = circuit.data[0].operation.definition.name
-        circuit_name_1 = circuit.data[1].operation.definition.name
+        circuit_name_0 = "_" + circuit.data[0].operation.definition.name.replace("-", "_")
+        circuit_name_1 = "_" + circuit.data[1].operation.definition.name.replace("-", "_")
 
         expected_qasm = "\n".join(
             [
@@ -494,8 +542,8 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
-    def test_unknown_parameterized_gate_called_multiple_times(self):
-        """Test that a parameterised gate is called correctly if the first instance of it is
+    def test_standard_parameterized_gate_called_multiple_times(self):
+        """Test that a parameterized gate is called correctly if the first instance of it is
         generic."""
         x, y = Parameter("x"), Parameter("y")
         qc = QuantumCircuit(2)
@@ -508,10 +556,10 @@ class TestCircuitQASM3(QiskitTestCase):
                 "OPENQASM 3.0;",
                 "input float[64] x;",
                 "input float[64] y;",
-                "gate rzx(x) _gate_q_0, _gate_q_1 {",
+                "gate rzx(p0) _gate_q_0, _gate_q_1 {",
                 "  h _gate_q_1;",
                 "  cx _gate_q_0, _gate_q_1;",
-                "  rz(x) _gate_q_1;",
+                "  rz(p0) _gate_q_1;",
                 "  cx _gate_q_0, _gate_q_1;",
                 "  h _gate_q_1;",
                 "}",
@@ -519,6 +567,39 @@ class TestCircuitQASM3(QiskitTestCase):
                 "rzx(x) q[0], q[1];",
                 "rzx(y) q[0], q[1];",
                 "rzx(0.5) q[0], q[1];",
+                "",
+            ]
+        )
+
+        # Set the includes and basis gates to ensure that this gate is unknown.
+        exporter = Exporter(includes=[], basis_gates=("rz", "h", "cx"))
+        self.assertEqual(exporter.dumps(qc), expected_qasm)
+
+    def test_standard_parameterized_gate_called_multiple_times_first_instance_float(self):
+        """Test that a parameterized gate is called correctly even if the first instance of it is
+        not generic."""
+        x, y = Parameter("x"), Parameter("y")
+        qc = QuantumCircuit(2)
+        qc.rzx(0.5, 0, 1)
+        qc.rzx(x, 0, 1)
+        qc.rzx(y, 0, 1)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                "input float[64] x;",
+                "input float[64] y;",
+                "gate rzx(p0) _gate_q_0, _gate_q_1 {",
+                "  h _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "  rz(p0) _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "  h _gate_q_1;",
+                "}",
+                "qubit[2] q;",
+                "rzx(0.5) q[0], q[1];",
+                "rzx(x) q[0], q[1];",
+                "rzx(y) q[0], q[1];",
                 "",
             ]
         )
@@ -556,22 +637,20 @@ class TestCircuitQASM3(QiskitTestCase):
 
         qc = QuantumCircuit(2)
         qc.append(custom_gate, [0, 1])
-        custom_gate_id = id(qc.data[-1].operation)
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
-                f"gate cx_{custom_gate_id} _gate_q_0, _gate_q_1 {{",
+                "gate cx_0 _gate_q_0, _gate_q_1 {",
                 "  cx _gate_q_0, _gate_q_1;",
                 "}",
                 "qubit[2] q;",
-                f"cx_{custom_gate_id} q[0], q[1];",
+                "cx_0 q[0], q[1];",
                 "",
             ]
         )
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
-    @requires_fixed_parameterisation
     def test_no_include(self):
         """Test explicit gate declaration (no include)"""
         q = QuantumRegister(2, "q")
@@ -579,45 +658,60 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit.rz(pi / 2, 0)
         circuit.sx(0)
         circuit.cx(0, 1)
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
-                "  U(0, 0, pi/2) _gate_q_0;",
-                "}",
-                "gate u1(_gate_p_0) _gate_q_0 {",
-                "  u3(0, 0, pi/2) _gate_q_0;",
-                "}",
-                "gate rz(_gate_p_0) _gate_q_0 {",
-                "  u1(pi/2) _gate_q_0;",
-                "}",
-                "gate sdg _gate_q_0 {",
-                "  u1(-pi/2) _gate_q_0;",
-                "}",
-                "gate u2(_gate_p_0, _gate_p_1) _gate_q_0 {",
-                "  u3(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                "  u2(0, pi) _gate_q_0;",
-                "}",
-                "gate sx _gate_q_0 {",
-                "  sdg _gate_q_0;",
-                "  h _gate_q_0;",
-                "  sdg _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                "qubit[2] q;",
-                "rz(pi/2) q[0];",
-                "sx q[0];",
-                "cx q[0], q[1];",
-                "",
-            ]
-        )
+        expected_qasm = """\
+OPENQASM 3.0;
+gate u3(p0, p1, p2) _gate_q_0 {
+  U(p0, p1, p2) _gate_q_0;
+}
+gate u1(p0) _gate_q_0 {
+  u3(0, 0, p0) _gate_q_0;
+}
+gate rz(p0) _gate_q_0 {
+  u1(p0) _gate_q_0;
+}
+gate sdg _gate_q_0 {
+  u1(-pi/2) _gate_q_0;
+}
+gate u2(p0, p1) _gate_q_0 {
+  u3(pi/2, p0, p1) _gate_q_0;
+}
+gate h _gate_q_0 {
+  u2(0, pi) _gate_q_0;
+}
+gate sx _gate_q_0 {
+  sdg _gate_q_0;
+  h _gate_q_0;
+  sdg _gate_q_0;
+}
+gate cx c, t {
+  ctrl @ U(pi, 0, pi) c, t;
+}
+qubit[2] q;
+rz(pi/2) q[0];
+sx q[0];
+cx q[0], q[1];
+"""
         self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
 
-    @requires_fixed_parameterisation
+    def test_include_unknown_file(self):
+        """Test export can target a non-standard include without complaints."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        expected = """\
+OPENQASM 3.0;
+include "mygates.inc";
+bit[2] c;
+qubit[2] q;
+h q[0];
+cx q[0], q[1];
+c[0] = measure q[0];
+c[1] = measure q[1];
+"""
+        self.assertEqual(dumps(qc, includes=["mygates.inc"], basis_gates=["h", "cx"]), expected)
+
     def test_teleportation(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)
@@ -633,52 +727,48 @@ class TestCircuitQASM3(QiskitTestCase):
         qc.z(2).c_if(qc.clbits[0], 1)
 
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate u2(_gate_p_0, _gate_p_1) _gate_q_0 {",
-                "  u3(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                "  u2(0, pi) _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                "gate x _gate_q_0 {",
-                "  u3(pi, 0, pi) _gate_q_0;",
-                "}",
-                "gate u1(_gate_p_0) _gate_q_0 {",
-                "  u3(0, 0, pi) _gate_q_0;",
-                "}",
-                "gate z _gate_q_0 {",
-                "  u1(pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "h $1;",
-                "cx $1, $2;",
-                "barrier $0, $1, $2;",
-                "cx $0, $1;",
-                "h $0;",
-                "barrier $0, $1, $2;",
-                "c[0] = measure $0;",
-                "c[1] = measure $1;",
-                "barrier $0, $1, $2;",
-                "if (c[1]) {",
-                "  x $2;",
-                "}",
-                "if (c[0]) {",
-                "  z $2;",
-                "}",
-                "",
-            ]
-        )
+        expected_qasm = """\
+OPENQASM 3.0;
+gate u3(p0, p1, p2) _gate_q_0 {
+  U(p0, p1, p2) _gate_q_0;
+}
+gate u2(p0, p1) _gate_q_0 {
+  u3(pi/2, p0, p1) _gate_q_0;
+}
+gate h _gate_q_0 {
+  u2(0, pi) _gate_q_0;
+}
+gate cx c, t {
+  ctrl @ U(pi, 0, pi) c, t;
+}
+gate x _gate_q_0 {
+  u3(pi, 0, pi) _gate_q_0;
+}
+gate u1(p0) _gate_q_0 {
+  u3(0, 0, p0) _gate_q_0;
+}
+gate z _gate_q_0 {
+  u1(pi) _gate_q_0;
+}
+bit[2] c;
+h $1;
+cx $1, $2;
+barrier $0, $1, $2;
+cx $0, $1;
+h $0;
+barrier $0, $1, $2;
+c[0] = measure $0;
+c[1] = measure $1;
+barrier $0, $1, $2;
+if (c[1]) {
+  x $2;
+}
+if (c[0]) {
+  z $2;
+}
+"""
         self.assertEqual(Exporter(includes=[]).dumps(transpiled), expected_qasm)
 
-    @requires_fixed_parameterisation
     def test_basis_gates(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)
@@ -694,40 +784,37 @@ class TestCircuitQASM3(QiskitTestCase):
         qc.z(2).c_if(qc.clbits[0], 1)
 
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate u2(_gate_p_0, _gate_p_1) _gate_q_0 {",
-                "  u3(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                "  u2(0, pi) _gate_q_0;",
-                "}",
-                "gate x _gate_q_0 {",
-                "  u3(pi, 0, pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "h $1;",
-                "cx $1, $2;",
-                "barrier $0, $1, $2;",
-                "cx $0, $1;",
-                "h $0;",
-                "barrier $0, $1, $2;",
-                "c[0] = measure $0;",
-                "c[1] = measure $1;",
-                "barrier $0, $1, $2;",
-                "if (c[1]) {",
-                "  x $2;",
-                "}",
-                "if (c[0]) {",
-                "  z $2;",
-                "}",
-                "",
-            ]
-        )
+        expected_qasm = """\
+OPENQASM 3.0;
+gate u3(p0, p1, p2) _gate_q_0 {
+  U(p0, p1, p2) _gate_q_0;
+}
+gate u2(p0, p1) _gate_q_0 {
+  u3(pi/2, p0, p1) _gate_q_0;
+}
+gate h _gate_q_0 {
+  u2(0, pi) _gate_q_0;
+}
+gate x _gate_q_0 {
+  u3(pi, 0, pi) _gate_q_0;
+}
+bit[2] c;
+h $1;
+cx $1, $2;
+barrier $0, $1, $2;
+cx $0, $1;
+h $0;
+barrier $0, $1, $2;
+c[0] = measure $0;
+c[1] = measure $1;
+barrier $0, $1, $2;
+if (c[1]) {
+  x $2;
+}
+if (c[0]) {
+  z $2;
+}
+"""
         self.assertEqual(
             Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(transpiled),
             expected_qasm,
@@ -1310,7 +1397,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "",
             ]
         )
-        # This is not the default behaviour, and it's pretty buried how you'd access it.
+        # This is not the default behavior, and it's pretty buried how you'd access it.
         builder = QASM3Builder(
             qc,
             includeslist=("stdgates.inc",),
@@ -1370,7 +1457,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "",
             ]
         )
-        # This is not the default behaviour, and it's pretty buried how you'd access it.
+        # This is not the default behavior, and it's pretty buried how you'd access it.
         builder = QASM3Builder(
             qc,
             includeslist=("stdgates.inc",),
@@ -1398,7 +1485,6 @@ class TestCircuitQASM3(QiskitTestCase):
 
         qc = QuantumCircuit(1)
         qc.for_loop(range(2), parameter_b, loop_body, [0], [])
-
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
@@ -1410,6 +1496,28 @@ class TestCircuitQASM3(QiskitTestCase):
                 "for b in [0:1] {",
                 "  custom q[0];",
                 "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_custom_gate_with_hw_qubit_name(self):
+        """Test that the name of a custom gate that is an OQ3 hardware qubit identifer is properly
+        escaped when translated to OQ3."""
+        mygate_circ = QuantumCircuit(1, name="$1")
+        mygate_circ.x(0)
+        mygate = mygate_circ.to_gate()
+        qc = QuantumCircuit(1)
+        qc.append(mygate, [0])
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate __1 _gate_q_0 {",
+                "  x _gate_q_0;",
+                "}",
+                "qubit[1] q;",
+                "__1 q[0];",
                 "",
             ]
         )
@@ -1446,9 +1554,9 @@ class TestCircuitQASM3(QiskitTestCase):
             [
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
-                "input float[64] _measure;",
+                "input float[64] measure_0;",
                 "qubit[1] q;",
-                "U(2*_measure, 0, 0) q[0];",
+                "U(2*measure_0, 0, 0) q[0];",
                 "",
             ]
         )
@@ -1885,8 +1993,8 @@ OPENQASM 3.0;
 include "stdgates.inc";
 input float[64] a;
 qubit[1] q;
-bool a__generated0;
-a__generated0 = false;
+bool a_0;
+a_0 = false;
 rx(a) q[0];
 """
         self.assertEqual(dumps(qc), expected)
@@ -1900,11 +2008,11 @@ rx(a) q[0];
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
-input bool c__generated0;
+input bool c_0;
 bit[2] c;
 qubit[2] q;
-bool q__generated1;
-q__generated1 = false;
+bool q_1;
+q_1 = false;
 """
         self.assertEqual(dumps(qc), expected)
 
@@ -1922,260 +2030,15 @@ q__generated1 = false;
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
-input bool cx__generated0;
-input bool U__generated1;
+input bool cx_0;
+input bool U_1;
 qubit[2] q;
-uint[8] rx__generated2;
-rx__generated2 = 5;
+uint[8] rx_2;
+rx_2 = 5;
 cx q[0], q[1];
 U(0.5, 0.125, 0.25) q[0];
 """
         self.assertEqual(dumps(qc), expected)
-
-
-class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCase):
-    """Test functionality that is not what we _want_, but is what we need to do while the definition
-    of custom gates with parameterisation does not work correctly.
-
-    These tests are modified versions of those marked with the `requires_fixed_parameterisation`
-    decorator, and this whole class can be deleted once those are fixed.  See gh-7335.
-    """
-
-    maxDiff = 1_000_000
-
-    def test_basis_gates(self):
-        """Teleportation with physical qubits"""
-        qc = QuantumCircuit(3, 2)
-        first_h = qc.h(1)[0].operation
-        qc.cx(1, 2)
-        qc.barrier()
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.barrier()
-        qc.measure([0, 1], [0, 1])
-        qc.barrier()
-        first_x = qc.x(2).c_if(qc.clbits[1], 1)[0].operation
-        qc.z(2).c_if(qc.clbits[0], 1)
-
-        u2 = first_h.definition.data[0].operation
-        u3_1 = u2.definition.data[0].operation
-        u3_2 = first_x.definition.data[0].operation
-
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2)}(0, pi) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi, 0, pi) _gate_q_0;",
-                "}",
-                "gate x _gate_q_0 {",
-                f"  u3_{id(u3_2)}(pi, 0, pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "qubit[3] q;",
-                "h q[1];",
-                "cx q[1], q[2];",
-                "barrier q[0], q[1], q[2];",
-                "cx q[0], q[1];",
-                "h q[0];",
-                "barrier q[0], q[1], q[2];",
-                "c[0] = measure q[0];",
-                "c[1] = measure q[1];",
-                "barrier q[0], q[1], q[2];",
-                "if (c[1]) {",
-                "  x q[2];",
-                "}",
-                "if (c[0]) {",
-                "  z q[2];",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(
-            Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc),
-            expected_qasm,
-        )
-
-    def test_teleportation(self):
-        """Teleportation with physical qubits"""
-        qc = QuantumCircuit(3, 2)
-        qc.h(1)
-        qc.cx(1, 2)
-        qc.barrier()
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.barrier()
-        qc.measure([0, 1], [0, 1])
-        qc.barrier()
-        qc.x(2).c_if(qc.clbits[1], 1)
-        qc.z(2).c_if(qc.clbits[0], 1)
-
-        transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        first_h = transpiled.data[0].operation
-        u2 = first_h.definition.data[0].operation
-        u3_1 = u2.definition.data[0].operation
-        first_x = transpiled.data[-2].operation
-        u3_2 = first_x.definition.data[0].operation
-        first_z = transpiled.data[-1].operation
-        u1 = first_z.definition.data[0].operation
-        u3_3 = u1.definition.data[0].operation
-
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2)}(0, pi) _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi, 0, pi) _gate_q_0;",
-                "}",
-                "gate x _gate_q_0 {",
-                f"  u3_{id(u3_2)}(pi, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_3)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_3)}(0, 0, pi) _gate_q_0;",
-                "}",
-                "gate z _gate_q_0 {",
-                f"  u1_{id(u1)}(pi) _gate_q_0;",
-                "}",
-                "bit[2] c;",
-                "h $1;",
-                "cx $1, $2;",
-                "barrier $0, $1, $2;",
-                "cx $0, $1;",
-                "h $0;",
-                "barrier $0, $1, $2;",
-                "c[0] = measure $0;",
-                "c[1] = measure $1;",
-                "barrier $0, $1, $2;",
-                "if (c[1]) {",
-                "  x $2;",
-                "}",
-                "if (c[0]) {",
-                "  z $2;",
-                "}",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter(includes=[]).dumps(transpiled), expected_qasm)
-
-    def test_custom_gate_with_params_bound_main_call(self):
-        """Custom gate with unbound parameters that are bound in the main circuit"""
-        parameter0 = Parameter("p0")
-        parameter1 = Parameter("p1")
-
-        custom = QuantumCircuit(2, name="custom")
-        custom.rz(parameter0, 0)
-        custom.rz(parameter1 / 2, 1)
-
-        qr_all_qubits = QuantumRegister(3, "q")
-        qr_r = QuantumRegister(3, "r")
-        circuit = QuantumCircuit(qr_all_qubits, qr_r)
-        circuit.append(custom.to_gate(), [qr_all_qubits[0], qr_r[0]])
-
-        circuit.assign_parameters({parameter0: pi, parameter1: pi / 2}, inplace=True)
-        custom_id = id(circuit.data[0].operation)
-
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                'include "stdgates.inc";',
-                f"gate custom_{custom_id}(_gate_p_0, _gate_p_1) _gate_q_0, _gate_q_1 {{",
-                "  rz(pi) _gate_q_0;",
-                "  rz(pi/4) _gate_q_1;",
-                "}",
-                "qubit[3] q;",
-                "qubit[3] r;",
-                f"custom_{custom_id}(pi, pi/2) q[0], r[0];",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter().dumps(circuit), expected_qasm)
-
-    def test_no_include(self):
-        """Test explicit gate declaration (no include)"""
-        q = QuantumRegister(2, "q")
-        circuit = QuantumCircuit(q)
-        circuit.rz(pi / 2, 0)
-        circuit.sx(0)
-        circuit.cx(0, 1)
-
-        rz = circuit.data[0].operation
-        u1_1 = rz.definition.data[0].operation
-        u3_1 = u1_1.definition.data[0].operation
-        sx = circuit.data[1].operation
-        sdg = sx.definition.data[0].operation
-        u1_2 = sdg.definition.data[0].operation
-        u3_2 = u1_2.definition.data[0].operation
-        h_ = sx.definition.data[1].operation
-        u2_1 = h_.definition.data[0].operation
-        u3_3 = u2_1.definition.data[0].operation
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_1)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate rz_{id(rz)}(_gate_p_0) _gate_q_0 {{",
-                f"  u1_{id(u1_1)}(pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_2)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_2)}(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                "gate sdg _gate_q_0 {",
-                f"  u1_{id(u1_2)}(-pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_3)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2_1)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_3)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2_1)}(0, pi) _gate_q_0;",
-                "}",
-                "gate sx _gate_q_0 {",
-                "  sdg _gate_q_0;",
-                "  h _gate_q_0;",
-                "  sdg _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                "qubit[2] q;",
-                f"rz_{id(rz)}(pi/2) q[0];",
-                "sx q[0];",
-                "cx q[0], q[1];",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
 
     def test_unusual_conditions(self):
         """Test that special QASM constructs such as ``measure`` are correctly handled when the
@@ -2385,11 +2248,11 @@ switch (switch_dummy) {
 OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] switch_dummy;
-int switch_dummy__generated0;
-int switch_dummy__generated1;
+int switch_dummy_0;
+int switch_dummy_1;
 qubit _qubit0;
-switch_dummy__generated0 = switch_dummy;
-switch (switch_dummy__generated0) {
+switch_dummy_0 = switch_dummy;
+switch (switch_dummy_0) {
   case 0 {
     x _qubit0;
   }
@@ -2397,8 +2260,8 @@ switch (switch_dummy__generated0) {
     y _qubit0;
   }
 }
-switch_dummy__generated1 = switch_dummy;
-switch (switch_dummy__generated1) {
+switch_dummy_1 = switch_dummy;
+switch (switch_dummy_1) {
   case 0 {
     x _qubit0;
   }
@@ -2433,7 +2296,7 @@ OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
-int switch_dummy__generated0;
+int switch_dummy_0;
 qubit _qubit0;
 if (c == 1) {
   switch_dummy = c;
@@ -2446,8 +2309,8 @@ if (c == 1) {
     }
   }
 } else {
-  switch_dummy__generated0 = c;
-  switch (switch_dummy__generated0) {
+  switch_dummy_0 = c;
+  switch (switch_dummy_0) {
     case 0 {
       x _qubit0;
     }
@@ -2477,7 +2340,7 @@ include "stdgates.inc";
 bit _bit0;
 bit[2] cr;
 int switch_dummy;
-int switch_dummy__generated0;
+int switch_dummy_0;
 qubit _qubit0;
 switch_dummy = !_bit0;
 switch (switch_dummy) {
@@ -2485,8 +2348,8 @@ switch (switch_dummy) {
     x _qubit0;
   }
 }
-switch_dummy__generated0 = cr & 3;
-switch (switch_dummy__generated0) {
+switch_dummy_0 = cr & 3;
+switch (switch_dummy_0) {
   case 3 {
     x _qubit0;
   }
@@ -2667,11 +2530,11 @@ switch (switch_dummy) {
 OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] switch_dummy;
-int switch_dummy__generated0;
-int switch_dummy__generated1;
+int switch_dummy_0;
+int switch_dummy_1;
 qubit _qubit0;
-switch_dummy__generated0 = switch_dummy;
-switch (switch_dummy__generated0) {
+switch_dummy_0 = switch_dummy;
+switch (switch_dummy_0) {
   case 0: {
     x _qubit0;
   }
@@ -2682,8 +2545,8 @@ switch (switch_dummy__generated0) {
   }
   break;
 }
-switch_dummy__generated1 = switch_dummy;
-switch (switch_dummy__generated1) {
+switch_dummy_1 = switch_dummy;
+switch (switch_dummy_1) {
   case 0: {
     x _qubit0;
   }
@@ -2721,7 +2584,7 @@ OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
-int switch_dummy__generated0;
+int switch_dummy_0;
 qubit _qubit0;
 if (c == 1) {
   switch_dummy = c;
@@ -2737,8 +2600,8 @@ if (c == 1) {
     break;
   }
 } else {
-  switch_dummy__generated0 = c;
-  switch (switch_dummy__generated0) {
+  switch_dummy_0 = c;
+  switch (switch_dummy_0) {
     case 0: {
       x _qubit0;
     }
@@ -2771,7 +2634,7 @@ include "stdgates.inc";
 bit _bit0;
 bit[2] cr;
 int switch_dummy;
-int switch_dummy__generated0;
+int switch_dummy_0;
 qubit _qubit0;
 switch_dummy = !_bit0;
 switch (switch_dummy) {
@@ -2780,8 +2643,8 @@ switch (switch_dummy) {
   }
   break;
 }
-switch_dummy__generated0 = cr & 3;
-switch (switch_dummy__generated0) {
+switch_dummy_0 = cr & 3;
+switch (switch_dummy_0) {
   case 3: {
     x _qubit0;
   }
@@ -2831,7 +2694,7 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
 
         exporter = Exporter()
         with self.assertRaisesRegex(
-            QASM3ExporterError, "Exporting non-unitary instructions is not yet supported"
+            QASM3ExporterError, "non-unitary subroutine calls are not yet supported"
         ):
             exporter.dumps(qc)
 
@@ -2840,11 +2703,11 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         ``defcal`` block, while this is not supported."""
 
         qc = QuantumCircuit(1)
-        qc.append(Instruction("opaque", 1, 0, []), [0], [])
+        qc.append(Gate("opaque", 1, []), [0], [])
 
         exporter = Exporter()
         with self.assertRaisesRegex(
-            QASM3ExporterError, "Exporting opaque instructions .* is not yet supported"
+            QASM3ExporterError, "failed to export .* that has no definition"
         ):
             exporter.dumps(qc)
 
@@ -2855,3 +2718,11 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             QASM3ExporterError, "cannot export an inner scope.*as a top-level program"
         ):
             dumps(qc)
+
+    def test_no_basis_gate_with_keyword(self):
+        """Test that keyword cannot be used as a basis gate."""
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(QASM3ExporterError, "Cannot use 'reset' as a basis gate") as cm:
+            dumps(qc, basis_gates=["U", "reset"])
+        self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
+        self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")

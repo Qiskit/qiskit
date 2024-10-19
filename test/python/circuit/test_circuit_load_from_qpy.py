@@ -1163,7 +1163,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_clbit_switch(self):
-        """Test QPY serialisation for a switch statement with a Clbit target."""
+        """Test QPY serialization for a switch statement with a Clbit target."""
         case_t = QuantumCircuit(2, 1)
         case_t.x(0)
         case_f = QuantumCircuit(2, 1)
@@ -1180,7 +1180,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_register_switch(self):
-        """Test QPY serialisation for a switch statement with a ClassicalRegister target."""
+        """Test QPY serialization for a switch statement with a ClassicalRegister target."""
         qreg = QuantumRegister(2, "q")
         creg = ClassicalRegister(3, "c")
 
@@ -1948,8 +1948,11 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that dumping to older QPY versions rejects standalone vars."""
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit(inputs=[a])
-        with io.BytesIO() as fptr, self.assertRaisesRegex(
-            UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+            ),
         ):
             dump(qc, fptr, version=version)
 
@@ -1959,8 +1962,9 @@ class TestLoadFromQPY(QiskitTestCase):
         # Be sure to use a register, since standalone vars would be rejected for other reasons.
         qc = QuantumCircuit(ClassicalRegister(2, "cr"))
         qc.store(expr.index(qc.cregs[0], 0), False)
-        with io.BytesIO() as fptr, self.assertRaisesRegex(
-            UnsupportedFeatureForVersion, "version 12 is required.*Index"
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 12 is required.*Index"),
         ):
             dump(qc, fptr, version=version)
 

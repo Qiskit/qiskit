@@ -185,6 +185,7 @@ class TestTextDrawerElement(QiskitTestCase):
 
 
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Gate by gate checks in different settings."""
 
     def test_text_measure_cregbundle(self):
@@ -495,6 +496,58 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 test_reverse = str(circuit_drawer(circuit, output="text"))
         self.assertEqual(test_reverse, expected_reverse)
 
+    def test_text_idle_wires_read_from_config(self):
+        """Swap drawing with idle_wires set in the configuration file."""
+        expected_with = "\n".join(
+            [
+                "      ┌───┐",
+                "q1_0: ┤ H ├",
+                "      └───┘",
+                "q1_1: ─────",
+                "      ┌───┐",
+                "q2_0: ┤ H ├",
+                "      └───┘",
+                "q2_1: ─────",
+                "           ",
+            ]
+        )
+        expected_without = "\n".join(
+            [
+                "      ┌───┐",
+                "q1_0: ┤ H ├",
+                "      ├───┤",
+                "q2_0: ┤ H ├",
+                "      └───┘",
+            ]
+        )
+        qr1 = QuantumRegister(2, "q1")
+        qr2 = QuantumRegister(2, "q2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.h(qr1[0])
+        circuit.h(qr2[0])
+
+        self.assertEqual(
+            str(
+                circuit_drawer(
+                    circuit,
+                    output="text",
+                )
+            ),
+            expected_with,
+        )
+
+        config_content = """
+            [default]
+            circuit_idle_wires = false
+        """
+        with tempfile.TemporaryDirectory() as dir_path:
+            file_path = pathlib.Path(dir_path) / "qiskit.conf"
+            with open(file_path, "w") as fptr:
+                fptr.write(config_content)
+            with unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": str(file_path)}):
+                test_without = str(circuit_drawer(circuit, output="text"))
+        self.assertEqual(test_without, expected_without)
+
     def test_text_cswap(self):
         """CSwap drawing."""
         expected = "\n".join(
@@ -514,6 +567,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.cswap(qr[0], qr[1], qr[2])
         circuit.cswap(qr[1], qr[0], qr[2])
         circuit.cswap(qr[2], qr[1], qr[0])
+
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_cswap_reverse_bits(self):
@@ -4223,7 +4277,6 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         cr6 = ClassicalRegister(6, "c")
         circuit = QuantumCircuit(qr6, cr6)
         circuit.append(inst, qr6[1:5], cr6[1:3])
-
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_2q_1c(self):
@@ -5573,7 +5626,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_draw_hamiltonian_multi(self):
-        """Text Hamiltonian gate with mutiple qubits."""
+        """Text Hamiltonian gate with multiple qubits."""
         expected = "\n".join(
             [
                 "      ┌──────────────┐",
@@ -5594,7 +5647,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
 
 
 class TestTextPhase(QiskitTestCase):
-    """Testing the draweing a circuit with phase"""
+    """Testing the drawing a circuit with phase"""
 
     def test_bell(self):
         """Text Bell state with phase."""
@@ -5668,7 +5721,6 @@ class TestTextPhase(QiskitTestCase):
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
-
         self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 

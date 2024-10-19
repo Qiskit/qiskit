@@ -144,6 +144,17 @@ def dump(
                 from the QPY format at that version will persist. This should only be used if
                 compatibility with loading the payload with an older version of Qiskit is necessary.
 
+            .. note::
+
+                If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
+                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
+                load the payload using a historical release of Qiskit, it is safest to set the
+                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
+                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
+                unless the version of ``symengine`` used between the loading and generating
+                environments matches.
+
+
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
@@ -304,10 +315,11 @@ def load(
     ):
         warnings.warn(
             "The qiskit version used to generate the provided QPY "
-            "file, %s, is newer than the current qiskit version %s. "
+            f"file, {'.'.join([str(x) for x in qiskit_version])}, "
+            f"is newer than the current qiskit version {__version__}. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join([str(x) for x in qiskit_version]), __version__)
+            "version"
         )
 
     if data.qpy_version < 5:

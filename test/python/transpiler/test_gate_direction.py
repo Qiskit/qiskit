@@ -342,7 +342,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(pass_(circuit), expected)
 
     def test_target_parameter_any(self):
-        """Test that a parametrised 2q gate is replaced correctly both if available and not
+        """Test that a parametrized 2q gate is replaced correctly both if available and not
         available."""
         circuit = QuantumCircuit(2)
         circuit.rzx(1.5, 0, 1)
@@ -356,7 +356,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
     def test_target_parameter_exact(self):
-        """Test that a parametrised 2q gate is detected correctly both if available and not
+        """Test that a parametrized 2q gate is detected correctly both if available and not
         available."""
         circuit = QuantumCircuit(2)
         circuit.rzx(1.5, 0, 1)

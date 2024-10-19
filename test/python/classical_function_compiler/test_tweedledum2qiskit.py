@@ -29,6 +29,7 @@ if HAS_TWEEDLEDUM:
 
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestTweedledum2Qiskit(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests qiskit.transpiler.classicalfunction.utils.tweedledum2qiskit function."""
 
     def test_x(self):

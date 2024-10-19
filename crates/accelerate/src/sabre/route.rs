@@ -27,26 +27,18 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::EdgeRef;
 use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
+use smallvec::{smallvec, SmallVec};
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::{NLayout, PhysicalQubit};
 
+use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
 use super::neighbor_table::NeighborTable;
 use super::sabre_dag::SabreDAG;
 use super::swap_map::SwapMap;
-use super::{BlockResult, Heuristic, NodeBlockResults, SabreResult};
+use super::{BlockResult, NodeBlockResults, SabreResult};
 
-/// Epsilon used in minimum-score calculations.
-const BEST_EPSILON: f64 = 1e-10;
-/// Size of lookahead window.
-const EXTENDED_SET_SIZE: usize = 20;
-/// Decay coefficient for penalizing serial swaps.
-const DECAY_RATE: f64 = 0.001;
-/// How often to reset all decay rates to 1.
-const DECAY_RESET_INTERVAL: u8 = 5;
-/// Weight of lookahead window compared to front_layer.
-const EXTENDED_SET_WEIGHT: f64 = 0.5;
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
 
@@ -67,7 +59,7 @@ pub struct RoutingTargetView<'a> {
 struct RoutingState<'a, 'b> {
     target: &'a RoutingTargetView<'b>,
     dag: &'a SabreDAG,
-    heuristic: Heuristic,
+    heuristic: &'a Heuristic,
     /// Mapping of instructions (node indices) to swaps that precede them.
     out_map: HashMap<usize, Vec<[PhysicalQubit; 2]>>,
     /// Order of the instructions (node indices) in the problem DAG in the output.
@@ -76,16 +68,17 @@ struct RoutingState<'a, 'b> {
     node_block_results: HashMap<usize, Vec<BlockResult>>,
     front_layer: FrontLayer,
     extended_set: ExtendedSet,
+    decay: &'a mut [f64],
     /// How many predecessors still need to be satisfied for each node index before it is at the
     /// front of the topological iteration through the nodes as they're routed.
     required_predecessors: &'a mut [u32],
     layout: NLayout,
-    /// Tracking for the 'decay' heuristic on each qubit.
-    qubits_decay: &'a mut [f64],
-    /// Reusable allocated storage space for choosing the best swap.  This is owned outside of the
-    /// `choose_best_swap` function so that we don't need to reallocate and then re-grow the
-    /// collection on every entry.
-    swap_scratch: Vec<[PhysicalQubit; 2]>,
+    /// Reusable allocated storage space for accumulating and scoring swaps.  This is owned as part
+    /// of the general state to avoid reallocation costs.
+    swap_scores: Vec<([PhysicalQubit; 2], f64)>,
+    /// Reusable allocated storage space for tracking the current best swaps.  This is owned as
+    /// part of the general state to avoid reallocation costs.
+    best_swaps: Vec<[PhysicalQubit; 2]>,
     rng: Pcg64Mcg,
     seed: u64,
 }
@@ -241,13 +234,19 @@ impl<'a, 'b> RoutingState<'a, 'b> {
     /// layer (and themselves).  This uses `required_predecessors` as scratch space for efficiency,
     /// but returns it to the same state as the input on return.
     fn populate_extended_set(&mut self) {
+        let extended_set_size =
+            if let Some(LookaheadHeuristic { size, .. }) = self.heuristic.lookahead {
+                size
+            } else {
+                return;
+            };
         let mut to_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
         let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
             IndexMap::with_hasher(ahash::RandomState::default());
         let mut i = 0;
         let mut visit_now: Vec<NodeIndex> = Vec::new();
         let dag = &self.dag;
-        while i < to_visit.len() && self.extended_set.len() < EXTENDED_SET_SIZE {
+        while i < to_visit.len() && self.extended_set.len() < extended_set_size {
             // Visit runs of non-2Q gates fully before moving on to children of 2Q gates. This way,
             // traversal order is a BFS of 2Q gates rather than of all gates.
             visit_now.push(to_visit[i]);
@@ -288,7 +287,7 @@ impl<'a, 'b> RoutingState<'a, 'b> {
     fn force_enable_closest_node(
         &mut self,
         current_swaps: &mut Vec<[PhysicalQubit; 2]>,
-    ) -> NodeIndex {
+    ) -> SmallVec<[NodeIndex; 2]> {
         let (&closest_node, &qubits) = {
             let dist = &self.target.distance;
             self.front_layer
@@ -330,66 +329,106 @@ impl<'a, 'b> RoutingState<'a, 'b> {
             current_swaps.push([shortest_path[end], shortest_path[end - 1]]);
         }
         current_swaps.iter().for_each(|&swap| self.apply_swap(swap));
-        closest_node
+
+        // If we apply a single swap it could be that we route 2 nodes; that is a setup like
+        //  A - B - A - B
+        // and we swap the middle two qubits. This cannot happen if we apply 2 or more swaps.
+        if current_swaps.len() > 1 {
+            smallvec![closest_node]
+        } else {
+            // check if the closest node has neighbors that are now routable -- for that we get
+            // the other physical qubit that was swapped and check whether the node on it
+            // is now routable
+            let mut possible_other_qubit = current_swaps[0]
+                .iter()
+                // check if other nodes are in the front layer that are connected by this swap
+                .filter_map(|&swap_qubit| self.front_layer.qubits()[swap_qubit.index()])
+                // remove the closest_node, which we know we already routed
+                .filter(|(node_index, _other_qubit)| *node_index != closest_node)
+                .map(|(_node_index, other_qubit)| other_qubit);
+
+            // if there is indeed another candidate, check if that gate is routable
+            if let Some(other_qubit) = possible_other_qubit.next() {
+                if let Some(also_routed) = self.routable_node_on_qubit(other_qubit) {
+                    return smallvec![closest_node, also_routed];
+                }
+            }
+            smallvec![closest_node]
+        }
     }
 
     /// Return the swap of two virtual qubits that produces the best score of all possible swaps.
     fn choose_best_swap(&mut self) -> [PhysicalQubit; 2] {
-        self.swap_scratch.clear();
-        let mut min_score = f64::MAX;
-        // The decay heuristic is the only one that actually needs the absolute score.
-        let dist = &self.target.distance;
-        let absolute_score = match self.heuristic {
-            Heuristic::Decay => {
-                self.front_layer.total_score(dist)
-                    + EXTENDED_SET_WEIGHT * self.extended_set.total_score(dist)
-            }
-            _ => 0.0,
-        };
-        for swap in obtain_swaps(&self.front_layer, self.target.neighbors) {
-            let score = match self.heuristic {
-                Heuristic::Basic => self.front_layer.score(swap, dist),
-                Heuristic::Lookahead => {
-                    self.front_layer.score(swap, dist)
-                        + EXTENDED_SET_WEIGHT * self.extended_set.score(swap, dist)
+        // Obtain all candidate swaps from the front layer.  A coupling-map edge is a candidate
+        // swap if it involves at least one active qubit (i.e. it must affect the "basic"
+        // heuristic), and if it involves two active qubits, we choose the `swap[0] < swap[1]` form
+        // to make a canonical choice.
+        self.swap_scores.clear();
+        for &phys in self.front_layer.iter_active() {
+            for &neighbor in self.target.neighbors[phys].iter() {
+                if neighbor > phys || !self.front_layer.is_active(neighbor) {
+                    self.swap_scores.push(([phys, neighbor], 0.0));
                 }
-                Heuristic::Decay => {
-                    self.qubits_decay[swap[0].index()].max(self.qubits_decay[swap[1].index()])
-                        * (absolute_score
-                            + self.front_layer.score(swap, dist)
-                            + EXTENDED_SET_WEIGHT * self.extended_set.score(swap, dist))
-                }
-            };
-            if score < min_score - BEST_EPSILON {
-                min_score = score;
-                self.swap_scratch.clear();
-                self.swap_scratch.push(swap);
-            } else if (score - min_score).abs() < BEST_EPSILON {
-                self.swap_scratch.push(swap);
             }
         }
-        *self.swap_scratch.choose(&mut self.rng).unwrap()
-    }
-}
 
-/// Return a set of candidate swaps that affect qubits in front_layer.
-///
-/// For each virtual qubit in `front_layer`, find its current location on hardware and the physical
-/// qubits in that neighborhood. Every swap on virtual qubits that corresponds to one of those
-/// physical couplings is a candidate swap.
-fn obtain_swaps<'a>(
-    front_layer: &'a FrontLayer,
-    neighbors: &'a NeighborTable,
-) -> impl Iterator<Item = [PhysicalQubit; 2]> + 'a {
-    front_layer.iter_active().flat_map(move |&p| {
-        neighbors[p].iter().filter_map(move |&neighbor| {
-            if neighbor > p || !front_layer.is_active(neighbor) {
-                Some([p, neighbor])
-            } else {
-                None
+        let dist = &self.target.distance;
+        let mut absolute_score = 0.0;
+
+        if let Some(BasicHeuristic { weight, scale }) = self.heuristic.basic {
+            let weight = match scale {
+                SetScaling::Constant => weight,
+                SetScaling::Size => {
+                    if self.front_layer.is_empty() {
+                        0.0
+                    } else {
+                        weight / (self.front_layer.len() as f64)
+                    }
+                }
+            };
+            absolute_score += weight * self.front_layer.total_score(dist);
+            for (swap, score) in self.swap_scores.iter_mut() {
+                *score += weight * self.front_layer.score(*swap, dist);
             }
-        })
-    })
+        }
+
+        if let Some(LookaheadHeuristic { weight, scale, .. }) = self.heuristic.lookahead {
+            let weight = match scale {
+                SetScaling::Constant => weight,
+                SetScaling::Size => {
+                    if self.extended_set.is_empty() {
+                        0.0
+                    } else {
+                        weight / (self.extended_set.len() as f64)
+                    }
+                }
+            };
+            absolute_score += weight * self.extended_set.total_score(dist);
+            for (swap, score) in self.swap_scores.iter_mut() {
+                *score += weight * self.extended_set.score(*swap, dist);
+            }
+        }
+
+        if let Some(DecayHeuristic { .. }) = self.heuristic.decay {
+            for (swap, score) in self.swap_scores.iter_mut() {
+                *score = (absolute_score + *score)
+                    * self.decay[swap[0].index()].max(self.decay[swap[1].index()]);
+            }
+        }
+
+        let mut min_score = f64::INFINITY;
+        let epsilon = self.heuristic.best_epsilon;
+        for &(swap, score) in self.swap_scores.iter() {
+            if score - min_score < -epsilon {
+                min_score = score;
+                self.best_swaps.clear();
+                self.best_swaps.push(swap);
+            } else if (score - min_score).abs() <= epsilon {
+                self.best_swaps.push(swap);
+            }
+        }
+        *self.best_swaps.choose(&mut self.rng).unwrap()
+    }
 }
 
 /// Run sabre swap on a circuit
@@ -403,12 +442,13 @@ fn obtain_swaps<'a>(
 ///     logical position of the qubit that began in position `i`.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(signature=(dag, neighbor_table, distance_matrix, heuristic, initial_layout, num_trials, seed=None, run_in_parallel=None))]
 pub fn sabre_routing(
     py: Python,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
-    heuristic: Heuristic,
+    heuristic: &Heuristic,
     initial_layout: &NLayout,
     num_trials: usize,
     seed: Option<u64>,
@@ -449,7 +489,7 @@ pub fn sabre_routing(
 pub fn swap_map(
     target: &RoutingTargetView,
     dag: &SabreDAG,
-    heuristic: Heuristic,
+    heuristic: &Heuristic,
     initial_layout: &NLayout,
     seed: Option<u64>,
     num_trials: usize,
@@ -498,7 +538,7 @@ pub fn swap_map(
 pub fn swap_map_trial(
     target: &RoutingTargetView,
     dag: &SabreDAG,
-    heuristic: Heuristic,
+    heuristic: &Heuristic,
     initial_layout: &NLayout,
     seed: u64,
 ) -> (SabreResult, NLayout) {
@@ -512,10 +552,11 @@ pub fn swap_map_trial(
         node_block_results: HashMap::with_capacity(dag.node_blocks.len()),
         front_layer: FrontLayer::new(num_qubits),
         extended_set: ExtendedSet::new(num_qubits),
+        decay: &mut vec![1.; num_qubits as usize],
         required_predecessors: &mut vec![0; dag.dag.node_count()],
         layout: initial_layout.clone(),
-        qubits_decay: &mut vec![1.; num_qubits as usize],
-        swap_scratch: Vec::new(),
+        swap_scores: Vec::with_capacity(target.coupling.edge_count()),
+        best_swaps: Vec::new(),
         rng: Pcg64Mcg::seed_from_u64(seed),
         seed,
     };
@@ -529,15 +570,14 @@ pub fn swap_map_trial(
 
     // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
     // each iteration of this loop, we route either one or two gates.
-    let max_iterations_without_progress = 10 * num_qubits as usize;
-    let mut num_search_steps: u8 = 0;
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
+    let mut num_search_steps = 0;
 
     while !state.front_layer.is_empty() {
         let mut current_swaps: Vec<[PhysicalQubit; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
         // either successfully route a node, or exceed the maximum number of attempts.
-        while routable_nodes.is_empty() && current_swaps.len() <= max_iterations_without_progress {
+        while routable_nodes.is_empty() && current_swaps.len() <= state.heuristic.attempt_limit {
             let best_swap = state.choose_best_swap();
             state.apply_swap(best_swap);
             current_swaps.push(best_swap);
@@ -547,28 +587,32 @@ pub fn swap_map_trial(
             if let Some(node) = state.routable_node_on_qubit(best_swap[0]) {
                 routable_nodes.push(node);
             }
-            num_search_steps += 1;
-            if num_search_steps >= DECAY_RESET_INTERVAL {
-                state.qubits_decay.fill(1.);
-                num_search_steps = 0;
-            } else {
-                state.qubits_decay[best_swap[0].index()] += DECAY_RATE;
-                state.qubits_decay[best_swap[1].index()] += DECAY_RATE;
+            if let Some(DecayHeuristic { increment, reset }) = state.heuristic.decay {
+                num_search_steps += 1;
+                if num_search_steps >= reset {
+                    state.decay.fill(1.);
+                    num_search_steps = 0;
+                } else {
+                    state.decay[best_swap[0].index()] += increment;
+                    state.decay[best_swap[1].index()] += increment;
+                }
             }
         }
         if routable_nodes.is_empty() {
             // If we exceeded the max number of heuristic-chosen swaps without making progress,
-            // unwind to the last progress point and greedily swap to bring a ndoe together.
+            // unwind to the last progress point and greedily swap to bring a node together.
             // Efficiency doesn't matter much; this path never gets taken unless we're unlucky.
             current_swaps
                 .drain(..)
                 .rev()
                 .for_each(|swap| state.apply_swap(swap));
             let force_routed = state.force_enable_closest_node(&mut current_swaps);
-            routable_nodes.push(force_routed);
+            routable_nodes.extend(force_routed);
         }
         state.update_route(&routable_nodes, current_swaps);
-        state.qubits_decay.fill(1.);
+        if state.heuristic.decay.is_some() {
+            state.decay.fill(1.);
+        }
         routable_nodes.clear();
     }
     (

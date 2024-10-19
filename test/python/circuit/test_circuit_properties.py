@@ -17,7 +17,8 @@ import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Clbit
-from qiskit.circuit.library import RXGate, RYGate
+from qiskit.circuit.classical import expr, types
+from qiskit.circuit.library import RXGate, RYGate, GlobalPhaseGate
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -637,6 +638,58 @@ class TestCircuitProperties(QiskitTestCase):
         circ.cz(1, 3)
         circ.measure(1, 0)
         self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x.qubits), 3)
+
+    def test_circuit_depth_0_operands(self):
+        """Test that the depth can be found even with zero-bit operands."""
+        qc = QuantumCircuit(2, 2)
+        qc.append(GlobalPhaseGate(0.0), [], [])
+        qc.append(GlobalPhaseGate(0.0), [], [])
+        qc.append(GlobalPhaseGate(0.0), [], [])
+        self.assertEqual(qc.depth(), 0)
+        qc.measure([0, 1], [0, 1])
+        self.assertEqual(qc.depth(), 1)
+
+    def test_circuit_depth_expr_condition(self):
+        """Test that circuit depth respects `Expr` conditions in `IfElseOp`."""
+        # Note that the "depth" of control-flow operations is not well defined, so the assertions
+        # here are quite weak.  We're mostly aiming to match legacy behaviour of `c_if` for cases
+        # where there's a single instruction within the conditional.
+        qc = QuantumCircuit(2, 2)
+        a = qc.add_input("a", types.Bool())
+        with qc.if_test(a):
+            qc.x(0)
+        with qc.if_test(expr.logic_and(a, qc.clbits[0])):
+            qc.x(1)
+        self.assertEqual(qc.depth(), 2)
+        qc.measure([0, 1], [0, 1])
+        self.assertEqual(qc.depth(), 3)
+
+    def test_circuit_depth_expr_store(self):
+        """Test that circuit depth respects `Store`."""
+        qc = QuantumCircuit(3, 3)
+        a = qc.add_input("a", types.Bool())
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        # Note that `Store` is a "directive", so doesn't increase the depth by default, but does
+        # cause qubits 0,1; clbits 0,1 and 'a' to all be depth 3 at this point.
+        qc.store(a, qc.clbits[0])
+        qc.store(a, expr.logic_and(a, qc.clbits[1]))
+        # ... so this use of 'a' should make it depth 4.
+        with qc.if_test(a):
+            qc.x(2)
+        self.assertEqual(qc.depth(), 4)
+
+    def test_circuit_depth_switch(self):
+        """Test that circuit depth respects the `target` of `SwitchCaseOp`."""
+        qc = QuantumCircuit(QuantumRegister(3, "q"), ClassicalRegister(3, "c"))
+        a = qc.add_input("a", types.Uint(3))
+
+        with qc.switch(expr.bit_and(a, qc.cregs[0])) as case:
+            with case(case.DEFAULT):
+                qc.x(0)
+        qc.measure(1, 0)
+        self.assertEqual(qc.depth(), 2)
 
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""

@@ -20,9 +20,6 @@ from io import BytesIO
 
 import numpy as np
 import symengine as sym
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
@@ -106,7 +103,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
         return None
     expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        return load_basic(expr_bytes)
+        return common.load_symengine_payload(expr_bytes)
     else:
         from sympy import parse_expr
 
@@ -522,7 +519,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
         metadata_deserializer (JSONDecoder): An optional JSONDecoder class
             that will be used for the ``cls`` kwarg on the internal
             ``json.load`` call used to deserialize the JSON payload used for
-            the :attr:`.ScheduleBlock.metadata` attribute for a schdule block
+            the :attr:`.ScheduleBlock.metadata` attribute for a schedule block
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.

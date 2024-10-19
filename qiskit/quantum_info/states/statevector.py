@@ -117,11 +117,9 @@ class Statevector(QuantumState, TolerancesMixin):
     def __repr__(self):
         prefix = "Statevector("
         pad = len(prefix) * " "
-        return "{}{},\n{}dims={})".format(
-            prefix,
-            np.array2string(self._data, separator=", ", prefix=prefix),
-            pad,
-            self._op_shape.dims_l(),
+        return (
+            f"{prefix}{np.array2string(self._data, separator=', ', prefix=prefix)},\n{pad}"
+            f"dims={self._op_shape.dims_l()})"
         )
 
     @property
@@ -556,7 +554,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_qubit_1 = psi.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Qubit-0 probs: [1. 0.]
@@ -580,7 +578,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_swapped = psi.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Swapped probs: [0.5 0.5 0.  0. ]
@@ -796,7 +794,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector.from_label('-0')
                 print(psi.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '10': (-0.7071067811865475+0j)}
 
@@ -814,7 +812,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '22': (0.7071067811865475+0j)}
 
@@ -833,7 +831,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00': (0.7071067811865475+0j), '91': (0.7071067811865475+0j)}
 
@@ -940,9 +938,7 @@ class Statevector(QuantumState, TolerancesMixin):
             raise QiskitError(f"Cannot apply Instruction: {obj.name}")
         if not isinstance(obj.definition, QuantumCircuit):
             raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    obj.name, type(obj.definition)
-                )
+                f"{obj.name} instruction definition is {type(obj.definition)}; expected QuantumCircuit"
             )
 
         if obj.definition.global_phase:

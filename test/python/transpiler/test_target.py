@@ -1366,6 +1366,31 @@ Instructions:
 
         self.assertIsNone(target["x"][(0,)].calibration)
 
+    def test_has_calibration(self):
+        target = Target()
+        properties = {
+            (0,): InstructionProperties(duration=100, error=0.1),
+            (1,): None,
+        }
+        target.add_instruction(XGate(), properties)
+
+        # Test false for properties with no calibration
+        self.assertFalse(target.has_calibration("x", (0,)))
+        # Test false for no properties
+        self.assertFalse(target.has_calibration("x", (1,)))
+
+        properties = {
+            (0,): InstructionProperties(
+                duration=self.custom_sx_q0.duration,
+                error=None,
+                calibration=self.custom_sx_q0,
+            )
+        }
+        target.add_instruction(SXGate(), properties)
+
+        # Test true for properties with calibration
+        self.assertTrue(target.has_calibration("sx", (0,)))
+
     def test_loading_legacy_ugate_instmap(self):
         # This is typical IBM backend situation.
         # IBM provider used to have u1, u2, u3 in the basis gates and
@@ -1912,7 +1937,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
     def test_properties(self):
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         target = Target.from_configuration(
@@ -1925,7 +1951,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(0, target["rz"][(0,)].duration)
 
     def test_properties_with_durations(self):
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
@@ -1940,7 +1967,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(0.5, target["rz"][(0,)].duration)
 
     def test_inst_map(self):
-        fake_backend = Fake7QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake7QPulseV1()
         config = fake_backend.configuration()
         properties = fake_backend.properties()
         defaults = fake_backend.defaults()
@@ -1961,7 +1989,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
 
     def test_concurrent_measurements(self):
-        fake_backend = Fake5QV1()
+        with self.assertWarns(DeprecationWarning):
+            fake_backend = Fake5QV1()
         config = fake_backend.configuration()
         target = Target.from_configuration(
             basis_gates=config.basis_gates,

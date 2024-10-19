@@ -26,6 +26,7 @@ if HAS_TWEEDLEDUM:
 
 @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestSynthesis(QiskitTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Tests ClassicalFunction.synth method."""
 
     def test_grover_oracle(self):

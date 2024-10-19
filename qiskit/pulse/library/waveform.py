@@ -130,8 +130,5 @@ class Waveform(Pulse):
         opt = np.get_printoptions()
         np.set_printoptions(threshold=50)
         np.set_printoptions(**opt)
-        return "{}({}{})".format(
-            self.__class__.__name__,
-            repr(self.samples),
-            f", name='{self.name}'" if self.name is not None else "",
-        )
+        name_repr = f", name='{self.name}'" if self.name is not None else ""
+        return f"{self.__class__.__name__}({repr(self.samples)}{name_repr})"

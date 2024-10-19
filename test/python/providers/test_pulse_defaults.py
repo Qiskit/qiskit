@@ -17,7 +17,7 @@ import warnings
 
 import numpy as np
 
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -26,8 +26,13 @@ class TestPulseDefaults(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.defs = FakeOpenPulse2Q().defaults()
-        self.inst_map = self.defs.instruction_schedule_map
+        with self.assertWarns(DeprecationWarning):
+            # BackendV2 does not have defaults
+            self.defs = FakeOpenPulse2Q().defaults()
+        backend = GenericBackendV2(
+            2, calibrate_instructions=True, basis_gates=["cx", "u1", "u2", "u3"], seed=42
+        )
+        self.inst_map = backend.instruction_schedule_map
 
     def test_buffer(self):
         """Test getting the buffer value."""

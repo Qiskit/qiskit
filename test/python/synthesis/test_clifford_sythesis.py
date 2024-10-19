@@ -10,12 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """Tests for Clifford synthesis functions."""
 
-import numpy as np
 from ddt import ddt
-from qiskit.circuit.random import random_clifford_circuit
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -69,26 +67,22 @@ class TestCliffordSynthesis(QiskitTestCase):
                 value = Clifford(cliff.to_circuit())
                 self.assertEqual(target, value)
 
-    @combine(num_qubits=[2, 3])
+    @combine(num_qubits=[1, 2, 3])
     def test_synth_bm(self, num_qubits):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
+        for seed in range(samples):
+            target = random_clifford(num_qubits, seed=seed)
             synth_circ = synth_clifford_bm(target)
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
 
-    @combine(num_qubits=[2, 3, 4, 5])
+    @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
-        samples = 1
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
+        samples = 50
+        for seed in range(samples):
+            target = random_clifford(num_qubits, seed)
             synth_circ = synth_clifford_ag(target)
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
@@ -96,11 +90,9 @@ class TestCliffordSynthesis(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_greedy(self, num_qubits):
         """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
+        for seed in range(samples):
+            target = random_clifford(num_qubits, seed)
             synth_circ = synth_clifford_greedy(target)
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
@@ -108,11 +100,9 @@ class TestCliffordSynthesis(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_full(self, num_qubits):
         """Test synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
+        for seed in range(samples):
+            target = random_clifford(num_qubits, seed)
             synth_circ = synth_clifford_full(target)
             value = Clifford(synth_circ)
             self.assertEqual(value, target)

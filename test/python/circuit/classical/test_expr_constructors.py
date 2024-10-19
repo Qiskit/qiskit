@@ -224,7 +224,7 @@ class TestExprConstructors(QiskitTestCase):
     )
     @ddt.unpack
     def test_binary_bitwise_uint_inference(self, function, opcode):
-        """The binary bitwise functions have specialised inference for the widths of integer
+        """The binary bitwise functions have specialized inference for the widths of integer
         literals, since the bitwise functions require the operands to already be of exactly the same
         width without promotion."""
         cr = ClassicalRegister(8, "c")
@@ -247,7 +247,7 @@ class TestExprConstructors(QiskitTestCase):
             ),
         )
 
-        # Inference between two integer literals is "best effort".  This behaviour isn't super
+        # Inference between two integer literals is "best effort".  This behavior isn't super
         # important to maintain if we want to change the expression system.
         self.assertEqual(
             function(5, 255),

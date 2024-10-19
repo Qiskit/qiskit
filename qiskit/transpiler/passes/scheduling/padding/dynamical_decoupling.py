@@ -20,15 +20,15 @@ from qiskit.circuit import Gate, ParameterExpression, Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode, DAGOutNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
+from qiskit.transpiler.passes.scheduling.padding.base_padding import BasePadding
 from qiskit.transpiler.target import Target
 
-from .base_padding import BasePadding
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ class PadDynamicalDecoupling(BasePadding):
                 will be used [d/2, d, d, ..., d, d, d/2].
             skip_reset_qubits: If True, does not insert DD on idle periods that
                 immediately follow initialized/reset qubits
-                (as qubits in the ground state are less susceptile to decoherence).
+                (as qubits in the ground state are less susceptible to decoherence).
             pulse_alignment: The hardware constraints for gate timing allocation.
                 This is usually provided from ``backend.configuration().timing_constraints``.
                 If provided, the delay length, i.e. ``spacing``, is implicitly adjusted to
@@ -311,7 +311,7 @@ class PadDynamicalDecoupling(BasePadding):
         # slack = 992 dt - 4 x 160 dt = 352 dt
         #
         # unconstraind sequence: 44dt-X1-88dt-Y2-88dt-X3-88dt-Y4-44dt
-        # constraind sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
+        # constrained sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
         #
         # Now we evenly split extra slack into start and end of the sequence.
         # The distributed slack should be multiple of 16.
@@ -331,8 +331,7 @@ class PadDynamicalDecoupling(BasePadding):
         if time_interval % self._alignment != 0:
             raise TranspilerError(
                 f"Time interval {time_interval} is not divisible by alignment {self._alignment} "
-                f"between DAGNode {prev_node.name} on qargs {prev_node.qargs} and {next_node.name} "
-                f"on qargs {next_node.qargs}."
+                f"between {_format_node(prev_node)} and {_format_node(next_node)}."
             )
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
@@ -361,17 +360,20 @@ class PadDynamicalDecoupling(BasePadding):
             theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
             if isinstance(next_node, DAGOpNode) and isinstance(next_node.op, (UGate, U3Gate)):
                 # Absorb the inverse into the successor (from left in circuit)
-                theta_r, phi_r, lam_r = next_node.op.params
-                next_node.op.params = Optimize1qGates.compose_u3(
-                    theta_r, phi_r, lam_r, theta, phi, lam
-                )
+                op = next_node.op
+                theta_r, phi_r, lam_r = op.params
+                op.params = Optimize1qGates.compose_u3(theta_r, phi_r, lam_r, theta, phi, lam)
+                next_node.op = op
                 sequence_gphase += phase
             elif isinstance(prev_node, DAGOpNode) and isinstance(prev_node.op, (UGate, U3Gate)):
                 # Absorb the inverse into the predecessor (from right in circuit)
-                theta_l, phi_l, lam_l = prev_node.op.params
-                prev_node.op.params = Optimize1qGates.compose_u3(
-                    theta, phi, lam, theta_l, phi_l, lam_l
-                )
+                op = prev_node.op
+                theta_l, phi_l, lam_l = op.params
+                op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
+                new_prev_node = dag.substitute_node(prev_node, op, propagate_condition=False)
+                start_time = self.property_set["node_start_time"].pop(prev_node)
+                if start_time is not None:
+                    self.property_set["node_start_time"][new_prev_node] = start_time
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
@@ -430,3 +432,10 @@ class PadDynamicalDecoupling(BasePadding):
             else:
                 params.append(p)
         return tuple(params)
+
+
+def _format_node(node: DAGNode) -> str:
+    """Util to format the DAGNode, DAGInNode, and DAGOutNode."""
+    if isinstance(node, (DAGInNode, DAGOutNode)):
+        return f"{node.__class__.__name__} on qarg {node.wire}"
+    return f"DAGNode {node.name} on qargs {node.qargs}"

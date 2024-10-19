@@ -288,8 +288,8 @@ class BlockSplitter:
             self.group[self.find_leader(first)].append(node)
 
         blocks = []
-        for index in self.leader:
-            if self.leader[index] == index:
+        for index, item in self.leader.items():
+            if index == item:
                 blocks.append(self.group[index])
 
         return blocks

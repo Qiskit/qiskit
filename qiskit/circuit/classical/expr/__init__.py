@@ -43,7 +43,7 @@ The base for dynamic variables is the :class:`Var`, which can be either an arbit
 real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
 
 .. autoclass:: Var
-    :members: var, name
+    :members: var, name, new
 
 Similarly, literals used in expressions (such as integers) should be lifted to :class:`Value` nodes
 with associated types.

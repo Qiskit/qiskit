@@ -228,7 +228,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         # This should be a call to la.eigh, but there is an OpenBlas
         # threading issue that is causing segfaults.
         # Need schur here since la.eig does not
-        # guarentee orthogonality in degenerate subspaces
+        # guarantee orthogonality in degenerate subspaces
         w, v = la.schur(data, output="complex")
         w = w.diagonal().real
         # Check eigenvalues are non-negative

@@ -123,11 +123,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
     def __repr__(self):
         prefix = "DensityMatrix("
         pad = len(prefix) * " "
-        return "{}{},\n{}dims={})".format(
-            prefix,
-            np.array2string(self._data, separator=", ", prefix=prefix),
-            pad,
-            self._op_shape.dims_l(),
+        return (
+            f"{prefix}{np.array2string(self._data, separator=', ', prefix=prefix)},\n"
+            f"{pad}dims={self._op_shape.dims_l()})"
         )
 
     @property
@@ -463,7 +461,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_qubit_1 = rho.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Qubit-0 probs: [1. 0.]
@@ -487,7 +485,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_swapped = rho.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 probs: [0.5 0.  0.5 0. ]
                 Swapped probs: [0.5 0.5 0.  0. ]
@@ -656,7 +654,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix.from_label('-0')
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                {
                    '00|00': (0.4999999999999999+0j),
@@ -681,7 +679,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00|00': (0.25+0j), '10|10': (0.25+0j), '20|20': (0.25+0j), '22|22': (0.25+0j)}
 
@@ -700,7 +698,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
 
-            .. parsed-literal::
+            .. code-block:: text
 
                 {'00|00': (0.5+0j), '91|91': (0.5+0j)}
         """
@@ -771,9 +769,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             raise QiskitError(f"Cannot apply Instruction: {other.name}")
         if not isinstance(other.definition, QuantumCircuit):
             raise QiskitError(
-                "{} instruction definition is {}; expected QuantumCircuit".format(
-                    other.name, type(other.definition)
-                )
+                f"{other.name} instruction definition is {type(other.definition)};"
+                f" expected QuantumCircuit"
             )
         qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
         for instruction in other.definition:

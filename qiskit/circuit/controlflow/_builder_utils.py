@@ -127,7 +127,7 @@ def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[Quan
     This function will preferentially try to mutate its inputs if they share an ordering, but if
     not, it will rebuild two new circuits.  This is to avoid coupling too tightly to the inner
     class; there is no real support for deleting or re-ordering bits within a :obj:`.QuantumCircuit`
-    context, and we don't want to rely on the *current* behaviour of the private APIs, since they
+    context, and we don't want to rely on the *current* behavior of the private APIs, since they
     are very liable to change.  No matter the method used, circuits with unified bits and registers
     are returned.
     """

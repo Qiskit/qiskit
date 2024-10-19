@@ -49,7 +49,7 @@ def _main():
     failed_files = [x for x in res if x is not None]
     if len(failed_files) > 0:
         for failed_file in failed_files:
-            sys.stderr.write("%s is not in the correct location.\n" % failed_file)
+            sys.stderr.write(f"{failed_file} is not in the correct location.\n")
         sys.exit(1)
     sys.exit(0)
 

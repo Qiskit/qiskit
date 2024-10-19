@@ -24,7 +24,7 @@ use hashbrown::HashMap;
 macro_rules! qubit_newtype {
     ($id: ident) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub struct $id(u32);
+        pub struct $id(pub u32);
 
         impl $id {
             #[inline]
@@ -49,7 +49,7 @@ macro_rules! qubit_newtype {
         }
 
         impl pyo3::FromPyObject<'_> for $id {
-            fn extract(ob: &PyAny) -> PyResult<Self> {
+            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
                 Ok(Self(ob.extract()?))
             }
         }
@@ -59,6 +59,10 @@ macro_rules! qubit_newtype {
 
             fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
                 u32::get_dtype_bound(py)
+            }
+
+            fn clone_ref(&self, _py: Python<'_>) -> Self {
+                *self
             }
         }
     };
@@ -72,6 +76,7 @@ impl PhysicalQubit {
         layout.phys_to_virt[self.index()]
     }
 }
+
 qubit_newtype!(VirtualQubit);
 impl VirtualQubit {
     /// Get the physical qubit that currently corresponds to this index of virtual qubit in the
@@ -107,8 +112,8 @@ impl NLayout {
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            virt_to_phys: vec![PhysicalQubit(std::u32::MAX); virtual_qubits],
-            phys_to_virt: vec![VirtualQubit(std::u32::MAX); physical_qubits],
+            virt_to_phys: vec![PhysicalQubit(u32::MAX); virtual_qubits],
+            phys_to_virt: vec![VirtualQubit(u32::MAX); physical_qubits],
         };
         for (virt, phys) in qubit_indices {
             res.virt_to_phys[virt.index()] = phys;
@@ -184,7 +189,7 @@ impl NLayout {
 
     #[staticmethod]
     pub fn from_virtual_to_physical(virt_to_phys: Vec<PhysicalQubit>) -> PyResult<Self> {
-        let mut phys_to_virt = vec![VirtualQubit(std::u32::MAX); virt_to_phys.len()];
+        let mut phys_to_virt = vec![VirtualQubit(u32::MAX); virt_to_phys.len()];
         for (virt, phys) in virt_to_phys.iter().enumerate() {
             phys_to_virt[phys.index()] = VirtualQubit(virt.try_into()?);
         }
@@ -216,7 +221,6 @@ impl NLayout {
     }
 }
 
-#[pymodule]
 pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())

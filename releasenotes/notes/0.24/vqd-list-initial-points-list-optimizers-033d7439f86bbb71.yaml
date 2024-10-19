@@ -5,6 +5,6 @@ features:
     to pass a list of optimizers and initial points for the different
     minimization runs. For example, the ``k``-th initial point and 
     ``k``-th optimizer will be used for the optimization of the
-    ``k-1``-th exicted state.
+    ``k-1``-th excited state.
 
 

@@ -3,9 +3,19 @@
 # https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
 scipy<1.11; python_version<'3.12'
 
+# Temporary pin to avoid CI issues caused by scipy 1.14.0
+# See https://github.com/Qiskit/qiskit/issues/12655 for current details.
+scipy==1.13.1; python_version=='3.12'
+
 # z3-solver from 4.12.3 onwards upped the minimum macOS API version for its
 # wheels to 11.7. The Azure VM images contain pre-built CPythons, of which at
 # least CPython 3.8 was compiled for an older macOS, so does not match a
 # `macos_11_7` platform tag.  This should be purely a CI artefact, and not
 # affect local usage.
 z3-solver==4.12.2.0; platform_system=="Darwin"
+
+# There are minor differences in output between pydot 2 and pydot 3 for
+# things like the pass-manager drawer.  This is totally fine for general
+# usage, but our test suite uses an exact reference file that uses the
+# pydot 3 output, so we need to enforce that during tests.
+pydot>=3.0.0

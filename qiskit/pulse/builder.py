@@ -74,8 +74,8 @@ a pulse:
 
 The builder initializes a :class:`.pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
-schedule will survive after the context is exited and can be transpiled and executed like a
-normal Qiskit schedule using ``backend.run(transpile(pulse_prog, backend))``.
+schedule will survive after the context is exited and can be used like a
+normal Qiskit schedule.
 
 Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
@@ -137,7 +137,6 @@ In the example below we demonstrate some more features of the pulse builder:
    from qiskit.compiler import schedule
 
    from qiskit import pulse, QuantumCircuit
-   from qiskit.pulse import library
    from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
    backend = FakeOpenPulse2Q()
@@ -147,7 +146,7 @@ In the example below we demonstrate some more features of the pulse builder:
 
    with pulse.build(backend) as pulse_prog:
        # Create a pulse.
-       gaussian_pulse = library.gaussian(10, 1.0, 2)
+       gaussian_pulse = pulse.Gaussian(10, 1.0, 2)
        # Get the qubit's corresponding drive channel from the backend.
        d0 = pulse.drive_channel(0)
        d1 = pulse.drive_channel(1)
@@ -258,7 +257,7 @@ Methods to return the correct channels for the respective qubit indices.
         d0 = pulse.drive_channel(0)
         print(d0)
 
-.. parsed-literal::
+.. code-block:: text
 
     DriveChannel(0)
 
@@ -285,7 +284,7 @@ Pulse instructions are available within the builder interface. Here's an example
         d0 = pulse.drive_channel(0)
         a0 = pulse.acquire_channel(0)
 
-        pulse.play(pulse.library.Constant(10, 1.0), d0)
+        pulse.play(pulse.Constant(10, 1.0), d0)
         pulse.delay(20, d0)
         pulse.shift_phase(3.14/2, d0)
         pulse.set_phase(3.14, d0)
@@ -293,8 +292,8 @@ Pulse instructions are available within the builder interface. Here's an example
         pulse.set_frequency(5e9, d0)
 
         with pulse.build() as temp_sched:
-            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), d0)
-            pulse.play(pulse.library.Gaussian(20, -1.0, 3.0), d0)
+            pulse.play(pulse.Gaussian(20, 1.0, 3.0), d0)
+            pulse.play(pulse.Gaussian(20, -1.0, 3.0), d0)
 
         pulse.call(temp_sched)
         pulse.acquire(30, a0, pulse.MemorySlot(0))
@@ -363,7 +362,7 @@ Macros help you add more complex functionality to your pulse program.
         mem_slot = pulse.measure(0)
         print(mem_slot)
 
-.. parsed-literal::
+.. code-block:: text
 
     MemorySlot(0)
 
@@ -397,7 +396,7 @@ how the program is built.
         print('There are {} seconds in {} samples.'.format(
             seconds, pulse.seconds_to_samples(1e-6)))
 
-.. parsed-literal::
+.. code-block:: text
 
     Number of qubits in backend: 1
     There are 160 samples in 3.5555555555555554e-08 seconds
@@ -890,7 +889,7 @@ def append_instruction(instruction: instructions.Instruction):
 
         print(pulse_prog.instructions)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ((0, Delay(10, DriveChannel(0))),)
     """
@@ -912,7 +911,7 @@ def num_qubits() -> int:
         with pulse.build(backend):
             print(pulse.num_qubits())
 
-    .. parsed-literal::
+    .. code-block:: text
 
        2
 
@@ -969,7 +968,7 @@ def qubit_channels(qubit: int) -> set[chans.Channel]:
         with pulse.build(backend):
             print(pulse.qubit_channels(0))
 
-    .. parsed-literal::
+    .. code-block:: text
 
        {MeasureChannel(0), ControlChannel(0), DriveChannel(0), AcquireChannel(0), ControlChannel(1)}
 
@@ -1327,7 +1326,9 @@ def frequency_offset(
         :emphasize-lines: 7, 16
 
         from qiskit import pulse
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
+        backend = FakeOpenPulse2Q()
         d0 = pulse.DriveChannel(0)
 
         with pulse.build(backend) as pulse_prog:
@@ -1742,7 +1743,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1763,7 +1764,7 @@ def call(
 
             print(pulse_prog.references)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ReferenceManager:
               - ('block0', '634b3b50bd684e26a673af1fbd2d6c81'): ScheduleBlock(Play(Gaussian(...
@@ -1783,7 +1784,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1823,7 +1824,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1847,7 +1848,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 Call(
@@ -1969,19 +1970,23 @@ def barrier(*channels_or_qubits: chans.Channel | int, name: str | None = None):
     .. code-block::
 
         import math
+        from qiskit import pulse
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
+
+        backend = FakeOpenPulse2Q()
 
         d0 = pulse.DriveChannel(0)
 
         with pulse.build(backend) as pulse_prog:
             with pulse.align_right():
-                pulse.call(backend.defaults.instruction_schedule_map.get('x', (1,)))
+                pulse.call(backend.defaults().instruction_schedule_map.get('u1', (1,)))
                 # Barrier qubit 1 and d0.
                 pulse.barrier(1, d0)
                 # Due to barrier this will play before the gate on qubit 1.
                 pulse.play(pulse.Constant(10, 1.0), d0)
                 # This will end at the same time as the pulse above due to
                 # the barrier.
-                pulse.call(backend.defaults.instruction_schedule_map.get('x', (1,)))
+                pulse.call(backend.defaults().instruction_schedule_map.get('u1', (1,)))
 
     .. note:: Requires the active builder context to have a backend set if
         qubits are barriered on.
@@ -2012,6 +2017,7 @@ def macro(func: Callable):
        :include-source:
 
         from qiskit import pulse
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         @pulse.macro
         def measure(qubit: int):
@@ -2020,6 +2026,9 @@ def macro(func: Callable):
             pulse.acquire(16384, pulse.acquire_channel(qubit), mem_slot)
 
             return mem_slot
+
+
+        backend = FakeOpenPulse2Q()
 
         with pulse.build(backend=backend) as sched:
             mem_slot = measure(0)
