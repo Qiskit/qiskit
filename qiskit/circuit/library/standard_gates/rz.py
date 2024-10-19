@@ -178,20 +178,20 @@ class CRZGate(ControlledGate):
 
         q_0: ────■────
              ┌───┴───┐
-        q_1: ┤ Rz(λ) ├
+        q_1: ┤ Rz(θ) ├
              └───────┘
 
     **Matrix representation:**
 
     .. math::
 
-        CRZ(\lambda)\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + RZ(\lambda) \otimes |1\rangle\langle 1| =
+        CRZ(\theta)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RZ(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\frac{\lambda}{2}}
+                0 & 0 & 0 & e^{i\frac{\theta}{2}}
             \end{pmatrix}
 
     .. note::
@@ -205,19 +205,19 @@ class CRZGate(ControlledGate):
         .. code-block:: text
 
                  ┌───────┐
-            q_0: ┤ Rz(λ) ├
+            q_0: ┤ Rz(θ) ├
                  └───┬───┘
             q_1: ────■────
 
         .. math::
 
-            CRZ(\lambda)\ q_1, q_0 =
-                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\lambda) =
+            CRZ(\theta)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & e^{-i\frac{\lambda}{2}} & 0 \\
-                    0 & 0 & 0 & e^{i\frac{\lambda}{2}}
+                    0 & 0 & e^{-i\frac{\theta}{2}} & 0 \\
+                    0 & 0 & 0 & e^{i\frac{\theta}{2}}
                 \end{pmatrix}
 
     .. seealso::

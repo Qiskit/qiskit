@@ -36,32 +36,32 @@ class PhaseGate(Gate):
     .. code-block:: text
 
              ┌──────┐
-        q_0: ┤ P(λ) ├
+        q_0: ┤ P(θ) ├
              └──────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        P(\lambda) =
+        P(\theta) =
             \begin{pmatrix}
                 1 & 0 \\
-                0 & e^{i\lambda}
+                0 & e^{i\theta}
             \end{pmatrix}
 
     **Examples:**
 
         .. math::
 
-            P(\lambda = \pi) = Z
+            P(\theta = \pi) = Z
 
         .. math::
 
-            P(\lambda = \pi/2) = S
+            P(\theta = \pi/2) = S
 
         .. math::
 
-            P(\lambda = \pi/4) = T
+            P(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -70,7 +70,7 @@ class PhaseGate(Gate):
 
             .. math::
 
-                P(\lambda) = e^{i{\lambda}/2} RZ(\lambda)
+                P(\theta) = e^{i{\theta}/2} RZ(\theta)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
@@ -175,7 +175,7 @@ class CPhaseGate(ControlledGate):
 
 
         q_0: ─■──
-              │λ
+              │θ
         q_1: ─■──
 
 
@@ -189,7 +189,7 @@ class CPhaseGate(ControlledGate):
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\lambda}
+                0 & 0 & 0 & e^{i\theta}
             \end{pmatrix}
 
     .. seealso::
