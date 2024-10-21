@@ -233,7 +233,7 @@ impl IntoPy<Py<PyAny>> for BitTerm {
         });
         terms[self as usize]
             .as_ref()
-            .expect("the lookup table initialiser populated a 'Some' in all valid locations")
+            .expect("the lookup table initializer populated a 'Some' in all valid locations")
             .clone_ref(py)
     }
 }
@@ -461,7 +461,7 @@ impl From<LabelError> for PyErr {
 ///     bits are the (phase-less) symplectic representation of the Pauli operator related to the
 ///     object, where the low bit denotes a contribution by :math:`Z` and the second lowest a
 ///     contribution by :math:`X`, while the upper two bits are ``00`` for a Pauli operator, ``01``
-///     for the negative-eigenstate projector, and ``10`` for teh positive-eigenstate projector.
+///     for the negative-eigenstate projector, and ``10`` for the positive-eigenstate projector.
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.X
 ///
@@ -707,7 +707,7 @@ impl SparseObservable {
                 label: label.len(),
             });
         }
-        // The only valid characeters in the alphabet are ASCII, so if we see something other than
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
         // ASCII, we're already in the failure path.
         for (i, letter) in label.iter().rev().enumerate() {
             match BitTerm::try_from_u8(*letter) {
@@ -987,7 +987,7 @@ impl SparseObservable {
     /// Construct a single-term observable from a dense string label.
     ///
     /// The resulting operator will have a coefficient of 1.  The label must be a sequence of the
-    /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analagously to a bitstring.  In other
+    /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analogously to a bitstring.  In other
     /// words, the right-most letter is associated with qubit 0, and so on.  This is the same as the
     /// labels for :class:`.Pauli` and :class:`.SparsePauliOp`.
     ///
@@ -1018,12 +1018,12 @@ impl SparseObservable {
 
     /// Construct an observable from a list of dense labels and coefficients.
     ///
-    /// This is analagous to :meth:`.SparsePauliOp.from_list`, except it uses
+    /// This is analogous to :meth:`.SparsePauliOp.from_list`, except it uses
     /// :ref:`the extended alphabet <sparse-observable-alphabet>` of :class:`.SparseObservable`.  In
     /// this dense form, you must supply all identities explicitly in each label.
     ///
     /// The label must be a sequence of the alphabet ``'IXYZ+-rl01'``.  The label is interpreted
-    /// analagously to a bitstring.  In other words, the right-most letter is associated with qubit
+    /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
     /// 0, and so on.  This is the same as the labels for :class:`.Pauli` and
     /// :class:`.SparsePauliOp`.
     ///
@@ -1103,7 +1103,7 @@ impl SparseObservable {
     /// Construct an observable from a list of labels, the qubits each item applies to, and the
     /// coefficient of the whole term.
     ///
-    /// This is analagous to :meth:`.SparsePauliOp.from_sparse_list`, except it uses
+    /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`, except it uses
     /// :ref:`the extended alphabet <sparse-observable-alphabet>` of :class:`.SparseObservable`.
     ///
     /// The "labels" and "indices" fields of the triples are associated by zipping them together.
