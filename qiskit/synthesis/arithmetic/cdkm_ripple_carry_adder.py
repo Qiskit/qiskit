@@ -12,11 +12,11 @@
 
 """Compute the sum of two qubit registers using ripple-carry approach."""
 
-from qiskit.synthesis.arithmetic import adder_cd04
-from .adder import Adder
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister, AncillaRegister
 
 
-class CDKMRippleCarryAdder(Adder):
+def adder_cd04(num_state_qubits: int, kind: str) -> QuantumCircuit:
     r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
 
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
@@ -74,6 +74,17 @@ class CDKMRippleCarryAdder(Adder):
     It has one less qubit than the full-adder since it doesn't have the carry-out, but uses
     a helper qubit instead of the carry-in, so it only has one less qubit, not two.
 
+    Args:
+        num_state_qubits: The number of qubits in either input register for
+            state :math:`|a\rangle` or :math:`|b\rangle`. The two input
+            registers must have the same number of qubits.
+        kind: The kind of adder, can be ``"full"`` for a full adder, ``"half"`` for a half
+            adder, or ``"fixed"`` for a fixed-sized adder. A full adder includes both carry-in
+            and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
+            nor carry-out.
+
+    Raises:
+        ValueError: If ``num_state_qubits`` is lower than 1.
 
     **References:**
 
@@ -84,23 +95,56 @@ class CDKMRippleCarryAdder(Adder):
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
 
     """
+    if num_state_qubits < 1:
+        raise ValueError("The number of qubits must be at least 1.")
 
-    def __init__(
-        self, num_state_qubits: int, kind: str = "full", name: str = "CDKMRippleCarryAdder"
-    ) -> None:
-        r"""
-        Args:
-            num_state_qubits: The number of qubits in either input register for
-                state :math:`|a\rangle` or :math:`|b\rangle`. The two input
-                registers must have the same number of qubits.
-            kind: The kind of adder, can be ``'full'`` for a full adder, ``'half'`` for a half
-                adder, or ``'fixed'`` for a fixed-sized adder. A full adder includes both carry-in
-                and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
-                nor carry-out.
-            name: The name of the circuit object.
-        Raises:
-            ValueError: If ``num_state_qubits`` is lower than 1.
-        """
-        super().__init__(num_state_qubits, name=name)
-        circuit = adder_cd04(num_state_qubits, kind)
-        self.append(circuit.to_gate(), self.qubits)
+    circuit = QuantumCircuit()
+
+    if kind == "full":
+        qr_c = QuantumRegister(1, name="cin")
+        circuit.add_register(qr_c)
+    else:
+        qr_c = AncillaRegister(1, name="help")
+
+    qr_a = QuantumRegister(num_state_qubits, name="a")
+    qr_b = QuantumRegister(num_state_qubits, name="b")
+    circuit.add_register(qr_a, qr_b)
+
+    if kind in ["full", "half"]:
+        qr_z = QuantumRegister(1, name="cout")
+        circuit.add_register(qr_z)
+
+    if kind != "full":
+        circuit.add_register(qr_c)
+
+    # build carry circuit for majority of 3 bits in-place
+    # corresponds to MAJ gate in [1]
+    qc_maj = QuantumCircuit(3, name="MAJ")
+    qc_maj.cx(0, 1)
+    qc_maj.cx(0, 2)
+    qc_maj.ccx(2, 1, 0)
+    maj_gate = qc_maj.to_gate()
+
+    # build circuit for reversing carry operation
+    # corresponds to UMA gate in [1]
+    qc_uma = QuantumCircuit(3, name="UMA")
+    qc_uma.ccx(2, 1, 0)
+    qc_uma.cx(0, 2)
+    qc_uma.cx(2, 1)
+    uma_gate = qc_uma.to_gate()
+
+    # build ripple-carry adder circuit
+    circuit.append(maj_gate, [qr_a[0], qr_b[0], qr_c[0]])
+
+    for i in range(num_state_qubits - 1):
+        circuit.append(maj_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+
+    if kind in ["full", "half"]:
+        circuit.cx(qr_a[-1], qr_z[0])
+
+    for i in reversed(range(num_state_qubits - 1)):
+        circuit.append(uma_gate, [qr_a[i + 1], qr_b[i + 1], qr_a[i]])
+
+    circuit.append(uma_gate, [qr_a[0], qr_b[0], qr_c[0]])
+
+    return circuit
