@@ -434,9 +434,16 @@ impl From<LabelError> for PyErr {
 ///   vectors are empty.
 /// * in the case of a fully simplified identity operator, :attr:`boundaries` is ``[0, 0]``,
 ///   :attr:`coeffs` has a single entry, and :attr:`bit_terms` and :attr:`indices` are empty.
+/// * for the operator :math:`Z_2 Z_0 - X_3 Y_1`, :attr:`boundaries` is ``[0, 2, 4]``,
+///   :attr:`coeffs` is ``[1.0, -1.0]``, :attr:`bit_terms` is ``[BitTerm.Z, BitTerm.Z, BitTerm.Y,
+///   BitTerm.X]`` and :attr:`indices` is ``[0, 2, 1, 3]``.  The operator might act on more than
+///   four qubits, depending on the :attr:`num_qubits` parameter.  The :attr:`bit_terms` are integer
+///   values, whose magic numbers can be accessed via the :class:`BitTerm` attribute class.  Note
+///   that the single-bit terms and indices are sorted into termwise sorted order.  This is a
+///   requirement of the class.
 ///
-/// These two cases are not special, they're fully consistent with the rules and should not need
-/// special handling.
+/// These cases are not special, they're fully consistent with the rules and should not need special
+/// handling.
 ///
 /// The scalar item of the :attr:`bit_terms` array is stored as a numeric byte.  The numeric values
 /// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
@@ -455,7 +462,18 @@ impl From<LabelError> for PyErr {
 ///     :ref:`sparse-observable-alphabet`.
 ///
 ///     This class is attached to :class:`.SparseObservable`.  Access it as
-///     :class:`.SparseObservable.BitTerm`.
+///     :class:`.SparseObservable.BitTerm`.  If this is too much typing, and you are solely dealing
+///     with :class:¬SparseObservable` objects and the :class:`BitTerm` name is not ambiguous, you
+///     might want to shorten it as::
+///
+///         >>> ops = SparseObservable.BitTerm
+///         >>> assert ops.X is SparseObservable.BitTerm.X
+///
+///     You can access all the values of the enumeration by either their full all-capitals name, or
+///     by their single-letter label.  The single-letter labels are not generally valid Python
+///     identifiers, so you must use indexing notation to access them::
+///
+///         >>> assert SparseObservable.BitTerm.ZERO is SparseObservable.BitTerm["0"]
 ///
 ///     The numeric structure of these is that they are all four-bit values of which the low two
 ///     bits are the (phase-less) symplectic representation of the Pauli operator related to the
@@ -465,7 +483,7 @@ impl From<LabelError> for PyErr {
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.X
 ///
-///         The Pauli :math:`X` operator.
+///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.PLUS
 ///
@@ -479,7 +497,7 @@ impl From<LabelError> for PyErr {
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.Y
 ///
-///         The Pauli :math:`Y` operator.
+///         The Pauli :math:`Y` operator.  Uses the single-letter label ``"Y"``.
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.RIGHT
 ///
@@ -493,7 +511,7 @@ impl From<LabelError> for PyErr {
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.Z
 ///
-///         The Pauli :math:`Z` operator.
+///         The Pauli :math:`Z` operator.  Uses the single-letter label ``"Z"``.
 ///
 ///     .. autoattribute:: qiskit.quantum_info::SparseObservable.BitTerm.ZERO
 ///
@@ -1154,6 +1172,8 @@ impl SparseObservable {
         boundaries.push(0);
         let mut indices = Vec::new();
         let mut bit_terms = Vec::new();
+        // Insertions to the `BTreeMap` keep it sorted by keys, so we use this to do the termwise
+        // sorting on-the-fly.
         let mut sorted = btree_map::BTreeMap::new();
         for (label, qubits, _) in iter {
             sorted.clear();
