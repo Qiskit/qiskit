@@ -19,6 +19,7 @@ import os
 import sys
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
+import warnings
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
@@ -2794,8 +2795,6 @@ class TestTranspileParallel(QiskitTestCase):
         class TestAddCalibration(TransformationPass):
             """A fake pass to test lazy pulse qobj loading in parallel environment."""
 
-            _outer_class = None
-
             def __init__(self, target):
                 """Instantiate with target."""
                 super().__init__()
@@ -2803,7 +2802,9 @@ class TestTranspileParallel(QiskitTestCase):
 
             def run(self, dag):
                 """Run test pass that adds calibration of SX gate of qubit 0."""
-                with self._outer_class.assertWarns(DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=DeprecationWarning)
+                    # DAGCircuit.add_calibration() is deprecated but we can't use self.assertWarns() here
                     dag.add_calibration(
                         "sx",
                         qubits=(0,),
@@ -2820,7 +2821,6 @@ class TestTranspileParallel(QiskitTestCase):
 
         # This target has PulseQobj entries that provide a serialized schedule data
         pass_ = TestAddCalibration(backend.target)
-        pass_._outer_class = self  # to be used for calling assertWarns within the pass
         pm = PassManager(passes=[pass_])
         self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
 
