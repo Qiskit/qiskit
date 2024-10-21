@@ -621,7 +621,7 @@ use the latest Python code from your working directory.
 
 The second command actually invokes the tests via Cargo. The `PYTHONUSERBASE`
 environment variable tells the embedded Python interpreter to look for packages
-in your active virtual environment. The `-no-default-features`
+in your active virtual environment. The `--no-default-features`
 flag is used to compile an isolated test runner without building a linked CPython
 extension module (which would otherwise cause linker failures).
 
