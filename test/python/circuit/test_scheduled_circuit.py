@@ -22,6 +22,7 @@ from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.scheduler import ScheduleConfig
+from qiskit.transpiler import InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -328,19 +329,23 @@ class TestScheduledCircuit(QiskitTestCase):
             )
         self.assertEqual(scheduled.duration, 1500)
 
-    def test_per_qubit_durations(self):
-        """See: https://github.com/Qiskit/qiskit-terra/issues/5109"""
+    def test_per_qubit_durations_loose_constrain(self):
+        """See Qiskit/5109 and Qiskit/13306"""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
         qc.h(1)
-        sc = transpile(
-            qc,
-            scheduling_method="alap",
-            basis_gates=["h", "cx"],
-            instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            sc = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
+            )
         self.assertEqual(sc.qubit_start_time(0), 300)
         self.assertEqual(sc.qubit_stop_time(0), 1200)
         self.assertEqual(sc.qubit_start_time(1), 500)
@@ -351,12 +356,21 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(0, 1), 1400)
 
         qc.measure_all()
-        sc = transpile(
-            qc,
-            scheduling_method="alap",
-            basis_gates=["h", "cx", "measure"],
-            instruction_durations=[("h", None, 200), ("cx", [0, 1], 700), ("measure", None, 1000)],
-        )
+
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            sc = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx", "measure"],
+                instruction_durations=[
+                    ("h", None, 200),
+                    ("cx", [0, 1], 700),
+                    ("measure", None, 1000),
+                ],
+            )
         q = sc.qubits
         self.assertEqual(sc.qubit_start_time(q[0]), 300)
         self.assertEqual(sc.qubit_stop_time(q[0]), 2400)
@@ -366,6 +380,53 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertEqual(sc.qubit_stop_time(q[2]), 2400)
         self.assertEqual(sc.qubit_start_time(*q), 300)
         self.assertEqual(sc.qubit_stop_time(*q), 2400)
+
+    def test_per_qubit_durations(self):
+        """Test target with custom instruction_durations"""
+        target = GenericBackendV2(
+            3,
+            calibrate_instructions=True,
+            coupling_map=[[0, 1], [1, 2]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        ).target
+        target.update_instruction_properties("cx", (0, 1), InstructionProperties(0.00001))
+        target.update_instruction_properties("cx", (1, 2), InstructionProperties(0.00001))
+        target.update_instruction_properties("h", (0,), InstructionProperties(0.000002))
+        target.update_instruction_properties("h", (1,), InstructionProperties(0.000002))
+        target.update_instruction_properties("h", (2,), InstructionProperties(0.000002))
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+        qc.h(1)
+
+        sc = transpile(qc, scheduling_method="alap", target=target)
+        self.assertEqual(sc.qubit_start_time(0), 500)
+        self.assertEqual(sc.qubit_stop_time(0), 54554)
+        self.assertEqual(sc.qubit_start_time(1), 9509)
+        self.assertEqual(sc.qubit_stop_time(1), 63563)
+        self.assertEqual(sc.qubit_start_time(2), 0)
+        self.assertEqual(sc.qubit_stop_time(2), 0)
+        self.assertEqual(sc.qubit_start_time(0, 1), 500)
+        self.assertEqual(sc.qubit_stop_time(0, 1), 63563)
+
+        qc.measure_all()
+
+        target.update_instruction_properties("measure", (0,), InstructionProperties(0.0001))
+        target.update_instruction_properties("measure", (1,), InstructionProperties(0.0001))
+
+        sc = transpile(qc, scheduling_method="alap", target=target)
+        q = sc.qubits
+        self.assertEqual(sc.qubit_start_time(q[0]), 500)
+        self.assertEqual(sc.qubit_stop_time(q[0]), 514013)
+        self.assertEqual(sc.qubit_start_time(q[1]), 9509)
+        self.assertEqual(sc.qubit_stop_time(q[1]), 514013)
+        self.assertEqual(sc.qubit_start_time(q[2]), 63563)
+        self.assertEqual(sc.qubit_stop_time(q[2]), 514013)
+        self.assertEqual(sc.qubit_start_time(*q), 500)
+        self.assertEqual(sc.qubit_stop_time(*q), 514013)
 
     def test_convert_duration_to_dt(self):
         """Test that circuit duration unit conversion is applied only when necessary.
