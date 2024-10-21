@@ -791,6 +791,9 @@ impl SparseObservable {
             check_num_qubits(&data)?;
             return Ok(observable.borrow().clone());
         }
+        // The type of `vec` is inferred from the subsequent calls to `Self::py_from_list` or
+        // `Self::py_from_sparse_list` to be either the two-tuple or the three-tuple form during the
+        // `extract`.  The empty list will pass either, but it means the same to both functions.
         if let Ok(vec) = data.extract() {
             return Self::py_from_list(vec, num_qubits);
         }
@@ -885,6 +888,15 @@ impl SparseObservable {
     }
 
     /// Get the zero operator over the given number of qubits.
+    ///
+    /// The zero operator is the operator whose expectation value is zero for all quantum states.
+    /// It has no terms.  It is the identity element for addition of two :class:`SparseObservable`
+    /// instances; anything added to the zero operator is equal to itself.
+    ///
+    /// If you want the projector onto the all zeros state, use::
+    ///
+    ///     >>> num_qubits = 10
+    ///     >>> all_zeros = SparseObservable.from_label("0" * num_qubits)
     ///
     /// Examples:
     ///
