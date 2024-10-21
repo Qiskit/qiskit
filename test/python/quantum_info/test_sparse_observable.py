@@ -119,12 +119,14 @@ class TestSparseObservable(QiskitTestCase):
         self.assertEqual(SparseObservable.identity(0).num_qubits, 0)
         self.assertEqual(SparseObservable.identity(1_000_000).num_qubits, 1_000_000)
 
-    def test_num_ops(self):
-        self.assertEqual(SparseObservable.zero(0).num_ops, 0)
-        self.assertEqual(SparseObservable.zero(10).num_ops, 0)
-        self.assertEqual(SparseObservable.identity(0).num_ops, 1)
-        self.assertEqual(SparseObservable.identity(1_000_000).num_ops, 1)
-        self.assertEqual(SparseObservable.from_list([("IIIXIZ", 1.0), ("YY+-II", 0.5j)]).num_ops, 2)
+    def test_num_terms(self):
+        self.assertEqual(SparseObservable.zero(0).num_terms, 0)
+        self.assertEqual(SparseObservable.zero(10).num_terms, 0)
+        self.assertEqual(SparseObservable.identity(0).num_terms, 1)
+        self.assertEqual(SparseObservable.identity(1_000_000).num_terms, 1)
+        self.assertEqual(
+            SparseObservable.from_list([("IIIXIZ", 1.0), ("YY+-II", 0.5j)]).num_terms, 2
+        )
 
     def test_bit_term_enum(self):
         # These are very explicit tests that effectively just duplicate magic numbers, but the point
@@ -252,7 +254,7 @@ class TestSparseObservable(QiskitTestCase):
         self.assertEqual(
             SparseObservable.from_raw_parts(
                 10, [1.0j, 0.5, 2.0], [1, 3, 2], [0, 1, 2], [0, 1, 1, 3]
-            ).num_ops,
+            ).num_terms,
             # The three are [(1.0j)*(Z_1), 0.5, 2.0*(X_2 Y_1)]
             3,
         )
