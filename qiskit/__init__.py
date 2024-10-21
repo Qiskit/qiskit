@@ -85,6 +85,7 @@ sys.modules["qiskit._accelerate.stochastic_swap"] = _accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
+sys.modules["qiskit._accelerate.unitary_synthesis"] = _accelerate.unitary_synthesis
 sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
 sys.modules["qiskit._accelerate.synthesis.permutation"] = _accelerate.synthesis.permutation
 sys.modules["qiskit._accelerate.synthesis.linear"] = _accelerate.synthesis.linear

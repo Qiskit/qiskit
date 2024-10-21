@@ -904,7 +904,7 @@ class ScheduleBlock:
         sched_outer.assign_references({("grand_child",): sched_inner})
         print(sched_outer.parameters)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        {Parameter(amp1), Parameter(amp2)}
 
@@ -918,7 +918,7 @@ class ScheduleBlock:
 
         print(sched_outer.references)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        ReferenceManager:
          - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp1,...
@@ -937,7 +937,7 @@ class ScheduleBlock:
 
         print(main.parameters)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        {Parameter(amp1), Parameter(amp2), Parameter(amp3}
 
@@ -950,7 +950,7 @@ class ScheduleBlock:
 
         print(main.references)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        ReferenceManager:
          - ('child',): ScheduleBlock(ScheduleBlock(ScheduleBlock(Play(Con...
