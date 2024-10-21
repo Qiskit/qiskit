@@ -193,12 +193,16 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        scheduled = transpile(
-            qc,
-            scheduling_method="alap",
-            basis_gates=["h", "cx"],
-            instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            scheduled = transpile(
+                qc,
+                scheduling_method="alap",
+                basis_gates=["h", "cx"],
+                instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+            )
         self.assertEqual(scheduled.duration, 1200)
 
     def test_transpile_circuit_with_custom_instruction(self):
@@ -209,9 +213,13 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(500, 1)
         qc.append(bell.to_instruction(), [0, 1])
-        scheduled = transpile(
-            qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            scheduled = transpile(
+                qc, scheduling_method="alap", instruction_durations=[("bell", [0, 1], 1000)]
+            )
         self.assertEqual(scheduled.duration, 1500)
 
     def test_transpile_delay_circuit_with_dt_but_without_scheduling_method(self):
@@ -262,21 +270,29 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
-        # accept None for qubits
-        scheduled = transpile(
-            qc,
-            basis_gates=["h", "cx", "delay"],
-            scheduling_method="alap",
-            instruction_durations=[("h", 0, 200), ("cx", None, 900)],
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            # accept None for qubits
+            scheduled = transpile(
+                qc,
+                basis_gates=["h", "cx", "delay"],
+                scheduling_method="alap",
+                instruction_durations=[("h", 0, 200), ("cx", None, 900)],
+            )
         self.assertEqual(scheduled.duration, 1400)
-        # prioritize specified qubits over None
-        scheduled = transpile(
-            qc,
-            basis_gates=["h", "cx", "delay"],
-            scheduling_method="alap",
-            instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
-        )
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `target` parameter should be used instead",
+        ):
+            # prioritize specified qubits over None
+            scheduled = transpile(
+                qc,
+                basis_gates=["h", "cx", "delay"],
+                scheduling_method="alap",
+                instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
+            )
         self.assertEqual(scheduled.duration, 1300)
 
     def test_unit_seconds_when_using_backend_durations(self):
