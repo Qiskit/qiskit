@@ -307,7 +307,7 @@ Custom Basis Gates
 
            def _define(self):
                qc = QuantumCircuit(1)
-               q.ry(np.pi / 2, 0)
+               qc.ry(np.pi / 2, 0)
                self.definition = qc
 
    The key thing to ensure is that for any custom gates in your Backend's basis set

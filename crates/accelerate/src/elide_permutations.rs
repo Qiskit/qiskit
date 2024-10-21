@@ -43,8 +43,8 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
             match (inst.op.name(), inst.condition()) {
                 ("swap", None) => {
                     let qargs = dag.get_qargs(inst.qubits);
-                    let index0 = qargs[0].0 as usize;
-                    let index1 = qargs[1].0 as usize;
+                    let index0 = qargs[0].index();
+                    let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                 }
                 ("permutation", None) => {
@@ -55,7 +55,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         let qindices: Vec<usize> = dag
                             .get_qargs(inst.qubits)
                             .iter()
-                            .map(|q| q.0 as usize)
+                            .map(|q| q.index())
                             .collect();
 
                         let remapped_qindices: Vec<usize> = (0..qindices.len())
@@ -79,9 +79,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                     let cargs = dag.get_cargs(inst.clbits);
                     let mapped_qargs: Vec<Qubit> = qargs
                         .iter()
-                        .map(|q| q.0 as usize)
-                        .map(|q| mapping[q])
-                        .map(|q| Qubit(q.try_into().unwrap()))
+                        .map(|q| Qubit::new(mapping[q.index()]))
                         .collect();
 
                     new_dag.apply_operation_back(
@@ -92,7 +90,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         inst.params.as_deref().cloned(),
                         inst.extra_attrs.clone(),
                         #[cfg(feature = "cache_pygates")]
-                        None,
+                        inst.py_op.get().map(|x| x.clone_ref(py)),
                     )?;
                 }
             }
