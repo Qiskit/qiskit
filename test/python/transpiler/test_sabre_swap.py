@@ -42,7 +42,7 @@ def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
     This looks like (using cz gates to show the symmetry, though we actually output cx for testing
     purposes):
 
-    .. parsed-literal::
+    .. code-block:: text
 
          q_0: ─■────────────────
                │

@@ -257,7 +257,7 @@ Methods to return the correct channels for the respective qubit indices.
         d0 = pulse.drive_channel(0)
         print(d0)
 
-.. parsed-literal::
+.. code-block:: text
 
     DriveChannel(0)
 
@@ -362,7 +362,7 @@ Macros help you add more complex functionality to your pulse program.
         mem_slot = pulse.measure(0)
         print(mem_slot)
 
-.. parsed-literal::
+.. code-block:: text
 
     MemorySlot(0)
 
@@ -396,7 +396,7 @@ how the program is built.
         print('There are {} seconds in {} samples.'.format(
             seconds, pulse.seconds_to_samples(1e-6)))
 
-.. parsed-literal::
+.. code-block:: text
 
     Number of qubits in backend: 1
     There are 160 samples in 3.5555555555555554e-08 seconds
@@ -889,7 +889,7 @@ def append_instruction(instruction: instructions.Instruction):
 
         print(pulse_prog.instructions)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ((0, Delay(10, DriveChannel(0))),)
     """
@@ -911,7 +911,7 @@ def num_qubits() -> int:
         with pulse.build(backend):
             print(pulse.num_qubits())
 
-    .. parsed-literal::
+    .. code-block:: text
 
        2
 
@@ -968,7 +968,7 @@ def qubit_channels(qubit: int) -> set[chans.Channel]:
         with pulse.build(backend):
             print(pulse.qubit_channels(0))
 
-    .. parsed-literal::
+    .. code-block:: text
 
        {MeasureChannel(0), ControlChannel(0), DriveChannel(0), AcquireChannel(0), ControlChannel(1)}
 
@@ -1743,7 +1743,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1764,7 +1764,7 @@ def call(
 
             print(pulse_prog.references)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ReferenceManager:
               - ('block0', '634b3b50bd684e26a673af1fbd2d6c81'): ScheduleBlock(Play(Gaussian(...
@@ -1784,7 +1784,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1824,7 +1824,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 ScheduleBlock(
@@ -1848,7 +1848,7 @@ def call(
 
             print(pulse_prog)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ScheduleBlock(
                 Call(
