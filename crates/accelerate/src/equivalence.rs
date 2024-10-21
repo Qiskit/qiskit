@@ -286,7 +286,7 @@ pub struct GateOper {
 }
 
 impl<'py> FromPyObject<'py> for GateOper {
-    fn extract(ob: &'py PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
