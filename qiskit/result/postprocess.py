@@ -11,10 +11,16 @@
 # that they have been altered from the originals.
 
 """Post-processing of raw result."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+
+if TYPE_CHECKING:
+    from qiskit.quantum_info.states.statevector import Statevector
 
 
 def _hex_to_bin(hexstring):
@@ -171,7 +177,7 @@ def format_counts(counts, header=None):
     return counts_dict
 
 
-def format_statevector(vec, decimals=None):
+def format_statevector(vec, decimals=None) -> "Statevector | np.ndarray":
     """Format statevector coming from the backend to present to the Qiskit user.
 
     Args:

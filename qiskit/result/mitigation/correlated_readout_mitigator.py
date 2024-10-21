@@ -12,9 +12,11 @@
 """
 Readout mitigator class based on the A-matrix inversion method
 """
+from __future__ import annotations
 
 import math
-from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
+from collections.abc import Sequence, Callable, Collection
+from typing import Any
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -34,7 +36,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
     """
 
-    def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
+    def __init__(self, assignment_matrix: np.ndarray, qubits: Sequence[int] | None = None):
         """Initialize a CorrelatedReadoutMitigator
 
         Args:
@@ -50,7 +52,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         matrix_qubits_num = int(math.log2(assignment_matrix.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
-            self._qubits = range(self._num_qubits)
+            self._qubits: Sequence[int] | None = range(self._num_qubits)
         else:
             if len(qubits) != matrix_qubits_num:
                 raise QiskitError(
@@ -61,21 +63,21 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             self._num_qubits = len(self._qubits)
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self._assignment_mat = assignment_matrix
-        self._mitigation_mats = {}
+        self._mitigation_mats: dict[tuple[int, ...], np.ndarray] = {}
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict[str, Any]:
         """Return settings."""
         return {"assignment_matrix": self._assignment_mat, "qubits": self._qubits}
 
     def expectation_value(
         self,
         data: Counts,
-        diagonal: Union[Callable, dict, str, np.ndarray] = None,
-        qubits: Iterable[int] = None,
-        clbits: Optional[List[int]] = None,
-        shots: Optional[int] = None,
-    ) -> Tuple[float, float]:
+        diagonal: Callable | dict | str | np.ndarray | None = None,
+        qubits: Sequence[int] | None = None,
+        clbits: Collection[int] | None = None,
+        shots: int | None = None,
+    ) -> tuple[float, float]:
         r"""Compute the mitigated expectation value of a diagonal observable.
 
         This computes the mitigated estimator of
@@ -123,7 +125,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             diagonal = str2diag(diagonal)
 
         # Apply transpose of mitigation matrix
-        coeffs = mit_mat.T.dot(diagonal)
+        coeffs = mit_mat.T.dot(diagonal)  # TODO: won't work if diagonal is Callable or dict?
         expval = coeffs.dot(probs_vec)
         stddev_upper_bound = self.stddev_upper_bound(shots)
 
@@ -132,9 +134,9 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     def quasi_probabilities(
         self,
         data: Counts,
-        qubits: Optional[List[int]] = None,
-        clbits: Optional[List[int]] = None,
-        shots: Optional[int] = None,
+        qubits: Sequence[int] | None = None,
+        clbits: Collection[int] | None = None,
+        shots: int | None = False,
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -174,7 +176,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
         return quasi_dist
 
-    def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
+    def mitigation_matrix(self, qubits: Collection[int] | None = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.
 
         The mitigation matrix :math:`A^{-1}` is defined as the inverse of the
@@ -203,7 +205,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
         return self._mitigation_mats[qubits]
 
-    def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:
+    def assignment_matrix(self, qubits: Collection[int] | int | None = None) -> np.ndarray:
         r"""Return the readout assignment matrix for specified qubits.
 
         The assignment matrix is the stochastic matrix :math:`A` which assigns
@@ -264,6 +266,6 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         return gamma / math.sqrt(shots)
 
     @property
-    def qubits(self) -> Tuple[int]:
+    def qubits(self) -> tuple[int]:
         """The device qubits for this mitigator"""
-        return self._qubits
+        return self._qubits  # TODO: cast to tuple or change return type

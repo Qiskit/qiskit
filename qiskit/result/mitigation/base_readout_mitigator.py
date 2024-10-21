@@ -12,9 +12,11 @@
 """
 Base class for readout error mitigation.
 """
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Iterable, Tuple, Union, Callable
+from collections.abc import Sequence, Callable, Collection
+
 import numpy as np
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
@@ -27,9 +29,9 @@ class BaseReadoutMitigator(ABC):
     def quasi_probabilities(
         self,
         data: Counts,
-        qubits: Iterable[int] = None,
-        clbits: Optional[List[int]] = None,
-        shots: Optional[int] = None,
+        qubits: Sequence[int] | None = None,
+        clbits: Sequence[int] | None = None,
+        shots: int | None = None,
     ) -> QuasiDistribution:
         """Convert counts to a dictionary of quasi-probabilities
 
@@ -53,11 +55,11 @@ class BaseReadoutMitigator(ABC):
     def expectation_value(
         self,
         data: Counts,
-        diagonal: Union[Callable, dict, str, np.ndarray],
-        qubits: Iterable[int] = None,
-        clbits: Optional[List[int]] = None,
-        shots: Optional[int] = None,
-    ) -> Tuple[float, float]:
+        diagonal: Callable | dict | str | np.ndarray | None,
+        qubits: Sequence[int] | None = None,
+        clbits: Collection[int] | None = None,
+        shots: int | None = None,
+    ) -> tuple[float, float]:
         """Calculate the expectation value of a diagonal Hermitian operator.
 
         Args:
