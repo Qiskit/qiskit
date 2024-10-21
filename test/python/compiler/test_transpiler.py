@@ -1686,8 +1686,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(scheduled.duration, original_duration * 2)
 
     def test_backend_props_constraints(self):
-        """Test that loose transpile constraints
-        work with both BackendV1 and BackendV2."""
+        """Test that loose transpile constraints work with both BackendV1 and BackendV2."""
 
         with self.assertWarns(DeprecationWarning):
             backend_v1 = Fake20QV1()
