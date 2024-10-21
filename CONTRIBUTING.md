@@ -15,6 +15,11 @@ community in this goal.
 * [Changelog generation](#changelog-generation)
 * [Release notes](#release-notes)
 * [Testing](#testing)
+  * [Qiskit's Python test suite](#qiskits-python-test-suite)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+  * [Testing Rust components](#testing-rust-components)
+    * [Using a custom venv instead of tox](#using-a-custom-venv-instead-of-tox)
+    * [Calling Python from Rust tests](#calling-python-from-rust-tests)
 * [Style and Lint](#style-and-lint)
 * [Building API docs locally](#building-api-docs-locally)
   * [Troubleshooting docs builds](#troubleshooting-docs-builds)
@@ -403,13 +408,15 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Testing
-
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
-you'll want to run the test suite locally.
+you'll want to run Qiskit's Python test suite (as well as its Rust-based
+unit tests if you've modified native code).
 
-The easiest way to run the test suite is to use
+### Qiskit's Python test suite
+
+The easiest way to run Qiskit's Python test suite is to use
 [**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
 with pip: `pip install -U tox`. Tox provides several advantages, but the
 biggest one is that it builds an isolated virtualenv for running tests. This
