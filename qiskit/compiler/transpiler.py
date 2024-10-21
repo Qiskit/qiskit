@@ -45,7 +45,7 @@ _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined instruction duration with "
+    "with defined instruction durations with "
     "`Target.from_configuration(..., instruction_durations=...)`",
 )
 @deprecate_arg(
