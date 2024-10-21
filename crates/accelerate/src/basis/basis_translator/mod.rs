@@ -34,7 +34,7 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    dag_circuit::{DAGCircuit, NodeType},
+    dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef},
 };
 use qiskit_circuit::{Clbit, Qubit};
@@ -49,7 +49,7 @@ type InstMap = HashMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = HashMap<&'a Option<Qargs>, InstMap>;
 
 #[allow(clippy::too_many_arguments)]
-#[pyfunction(name = "base_run")]
+#[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
 fn run(
     py: Python<'_>,
     dag: DAGCircuit,
@@ -213,9 +213,7 @@ fn extract_basis(
         min_qubits: usize,
     ) -> PyResult<()> {
         for node in circuit.op_nodes(true) {
-            let Some(NodeType::Operation(operation)) = circuit.dag().node_weight(node) else {
-                unreachable!("Circuit op_nodes() returned a non-op node.")
-            };
+            let operation: &PackedInstruction = circuit.dag()[node].unwrap_operation();
             if !circuit.has_calibration_for_index(py, node)?
                 && circuit.get_qargs(operation.qubits).len() >= min_qubits
             {
@@ -282,10 +280,8 @@ fn extract_basis_target(
     qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
 ) -> PyResult<()> {
     for node in dag.op_nodes(true) {
-        let Some(NodeType::Operation(node_obj)) = dag.dag().node_weight(node) else {
-            unreachable!("This was supposed to be an op_node.")
-        };
-        let qargs = dag.get_qargs(node_obj.qubits);
+        let node_obj: &PackedInstruction = dag.dag()[node].unwrap_operation();
+        let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if dag.has_calibration_for_index(py, node)? || qargs.len() < min_qubits {
             continue;
         }
@@ -434,9 +430,7 @@ fn apply_translation(
     let mut is_updated = false;
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
     for node in dag.topological_op_nodes()? {
-        let Some(NodeType::Operation(node_obj)) = dag.dag().node_weight(node).cloned() else {
-            unreachable!("Node {:?} was in the output of topological_op_nodes, but doesn't seem to be an op_node", node)
-        };
+        let node_obj = dag.dag()[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: HashSet<Qubit> = HashSet::from_iter(node_qarg.iter().copied());
@@ -537,7 +531,7 @@ fn apply_translation(
                             .collect(),
                     )
                 },
-                node_obj.extra_attrs,
+                node_obj.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -561,7 +555,7 @@ fn apply_translation(
                             .collect(),
                     )
                 },
-                node_obj.extra_attrs,
+                node_obj.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -573,11 +567,16 @@ fn apply_translation(
             Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())
         };
         if extra_inst_map.contains_key(&unique_qargs) {
-            replace_node(py, &mut out_dag, node_obj, &extra_inst_map[&unique_qargs])?;
+            replace_node(
+                py,
+                &mut out_dag,
+                node_obj.clone(),
+                &extra_inst_map[&unique_qargs],
+            )?;
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(py, &mut out_dag, node_obj, instr_map)?;
+            replace_node(py, &mut out_dag, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -610,9 +609,7 @@ fn replace_node(
     }
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
-            let NodeType::Operation(inner_node) = &target_dag.dag()[inner_index] else {
-                unreachable!("Node returned by topological_op_nodes was not an Operation node.")
-            };
+            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits);
             let old_cargs = dag.get_cargs(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
@@ -673,9 +670,7 @@ fn replace_node(
             .zip(node.params_view())
             .into_py_dict_bound(py);
         for inner_index in target_dag.topological_op_nodes()? {
-            let NodeType::Operation(inner_node) = &target_dag.dag()[inner_index] else {
-                unreachable!("Node returned by topological_op_nodes was not an Operation node.")
-            };
+            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
             let old_qargs = dag.get_qargs(node.qubits);
             let old_cargs = dag.get_cargs(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
