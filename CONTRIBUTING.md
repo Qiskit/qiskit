@@ -596,8 +596,16 @@ prior to running `cargo test`:
 tox -erust
 ```
 
-You can also execute them directly in your own virtual environment. If you haven't
-done so already, [create a Python virtual environment](#set-up-a-python-venv) and
+> [!TIP]
+> If you've already built your changes (e.g. `python setup.py build_rust --release --inplace`),
+> you can pass `--skip-pkg-install` when invoking `tox` to avoid a rebuild. This works because
+> Python will instead find and use Qiskit from the current working directory (since we skipped
+> its installation).
+
+#### Using a custom venv instead of `tox`
+
+If you're not using `tox`, you can also execute Cargo tests directly in your own virtual environment.
+If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
 **_activate it_**.
 
 Then, run the following commands:
