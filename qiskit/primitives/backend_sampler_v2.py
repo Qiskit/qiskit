@@ -17,12 +17,13 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any, Iterable
 
 import numpy as np
 from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.primitives.backend_estimator import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
@@ -51,6 +52,21 @@ class Options:
     seed_simulator: int | None = None
     """The seed to use in the simulator. If None, a random seed will be used.
     Default: None.
+    """
+
+    noise_model: Any | None = None
+    """A ``NoiseModel`` to pass to pass through a simulator backend (like ones from qiskit-aer)
+    Default: None (option not passed to backend's ``run`` method)
+    """
+
+    meas_level: int | None = None
+    """Measurement level for the backend to return.
+    Default: None (option not passed to backend's ``run`` method)
+    """
+
+    meas_return: str | None = None
+    """Measurement return format for the backend to return.
+    Default: None (option not passed to backend's ``run`` method)
     """
 
 
@@ -165,6 +181,13 @@ class BackendSamplerV2(BaseSamplerV2):
         for circuits in bound_circuits:
             flatten_circuits.extend(np.ravel(circuits).tolist())
 
+        # Put options in dict to unpacked below so that unset options are left
+        # out rather than being passed as None
+        run_opts = {
+            k: getattr(self._options, k)
+            for k in ("noise_model", "meas_return", "meas_level")
+            if getattr(self._options, k) is not None
+        }
         # run circuits
         results, _ = _run_circuits(
             flatten_circuits,
@@ -172,6 +195,7 @@ class BackendSamplerV2(BaseSamplerV2):
             memory=True,
             shots=shots,
             seed_simulator=self._options.seed_simulator,
+            **run_opts,
         )
         result_memory = _prepare_memory(results)
 
@@ -189,6 +213,7 @@ class BackendSamplerV2(BaseSamplerV2):
                     meas_info,
                     max_num_bytes,
                     pub.circuit.metadata,
+                    meas_level=self._options.meas_level,
                 )
             )
             start = end
@@ -203,22 +228,37 @@ class BackendSamplerV2(BaseSamplerV2):
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
         circuit_metadata: dict,
+        meas_level: int | None = None,
     ) -> SamplerPubResult:
-        """Converts the memory data into an array of bit arrays with the shape of the pub."""
-        arrays = {
-            item.creg_name: np.zeros(shape + (shots, item.num_bytes), dtype=np.uint8)
-            for item in meas_info
-        }
-        memory_array = _memory_array(result_memory, max_num_bytes)
+        """Converts the memory data into a sampler pub result
 
-        for samples, index in zip(memory_array, np.ndindex(*shape)):
-            for item in meas_info:
-                ary = _samples_to_packed_array(samples, item.num_bits, item.start)
-                arrays[item.creg_name][index] = ary
+        For level 2 data, the memory data are stored in an array of bit arrays
+        with the shape of the pub. For level 1 data, the data are stored in a
+        complex numpy array.
+        """
+        if meas_level == 2 or meas_level is None:
+            arrays = {
+                item.creg_name: np.zeros(shape + (shots, item.num_bytes), dtype=np.uint8)
+                for item in meas_info
+            }
+            memory_array = _memory_array(result_memory, max_num_bytes)
 
-        meas = {
-            item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
-        }
+            for samples, index in zip(memory_array, np.ndindex(*shape)):
+                for item in meas_info:
+                    ary = _samples_to_packed_array(samples, item.num_bits, item.start)
+                    arrays[item.creg_name][index] = ary
+
+            meas = {
+                item.creg_name: BitArray(arrays[item.creg_name], item.num_bits)
+                for item in meas_info
+            }
+        elif meas_level == 1:
+            raw = np.array(result_memory)
+            cplx = raw[..., 0] + 1j * raw[..., 1]
+            cplx = np.reshape(cplx, (*shape, *cplx.shape[1:]))
+            meas = {item.creg_name: cplx for item in meas_info}
+        else:
+            raise QiskitError(f"Unsupported meas_level: {meas_level}")
         return SamplerPubResult(
             DataBin(**meas, shape=shape),
             metadata={"shots": shots, "circuit_metadata": circuit_metadata},
