@@ -319,6 +319,7 @@ Particular Quantum Circuits
    GraphState
    GraphStateGate
    HiddenLinearFunction
+   hidden_linear_function
    IQP
    QuantumVolume
    quantum_volume
@@ -573,7 +574,7 @@ from .data_preparation import (
 from .quantum_volume import QuantumVolume, quantum_volume
 from .fourier_checking import FourierChecking, fourier_checking
 from .graph_state import GraphState, GraphStateGate
-from .hidden_linear_function import HiddenLinearFunction
+from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
