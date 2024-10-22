@@ -1317,7 +1317,7 @@ impl SparseObservable {
         let coeffs = op
             .getattr(intern!(py, "coeffs"))?
             .extract::<PyReadonlyArray1<Complex64>>()
-            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with complex-typed coefficients can be converted to 'SparseObservable"))?
+            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with complex-typed coefficients can be converted to 'SparseObservable'"))?
             .as_array()
             .to_vec();
         let op_z = pauli_list_ob
