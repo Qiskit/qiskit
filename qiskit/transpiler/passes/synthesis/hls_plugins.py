@@ -260,12 +260,12 @@ Modular Adder Synthesis
       - Number of clean ancillas
       - Description
     * - ``"ripple_cdkm"``
-      - :class:`.ModularAdderSynthesisCD04`
+      - :class:`.ModularAdderSynthesisC04`
       - 1
       - a ripple-carry adder
     * - ``"ripple_vbe"``
-      - :class:`.ModularAdderSynthesisVB95`
-      - 1, for more than 1 state qubit
+      - :class:`.ModularAdderSynthesisV95`
+      - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.ModularAdderSynthesisD00`
@@ -275,9 +275,9 @@ Modular Adder Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   ModularAdderSynthesisCD04
+   ModularAdderSynthesisC04
    ModularAdderSynthesisD00
-   ModularAdderSynthesisVB95
+   ModularAdderSynthesisV95
 
 Adder Synthesis
 '''''''''''''''
@@ -290,12 +290,12 @@ Adder Synthesis
       - Number of clean ancillas
       - Description
     * - ``"ripple_cdkm"``
-      - :class:`.AdderSynthesisCD04`
+      - :class:`.AdderSynthesisC04`
       - 1
       - a ripple-carry adder
     * - ``"ripple_vbe"``
-      - :class:`.AdderSynthesisVB95`
-      - 1, for more than 1 state qubit
+      - :class:`.AdderSynthesisV95`
+      - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.AdderSynthesisD00`
@@ -305,9 +305,9 @@ Adder Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   AdderSynthesisCD04
+   AdderSynthesisC04
    AdderSynthesisD00
-   AdderSynthesisVB95
+   AdderSynthesisV95
 
 Full Adder Synthesis
 ''''''''''''''''''''
@@ -320,12 +320,12 @@ Full Adder Synthesis
       - Number of clean ancillas
       - Description
     * - ``"ripple_cdkm"``
-      - :class:`.FullAdderSynthesisCD04`
+      - :class:`.FullAdderSynthesisC04`
       - 0
       - a ripple-carry adder
     * - ``"ripple_vbe"``
-      - :class:`.FullAdderSynthesisVB95`
-      - 1, for more than 1 state qubit
+      - :class:`.FullAdderSynthesisV95`
+      - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.FullAdderSynthesisD00`
@@ -335,9 +335,9 @@ Full Adder Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   FullAdderSynthesisCD04
+   FullAdderSynthesisC04
    FullAdderSynthesisD00
-   FullAdderSynthesisVB95
+   FullAdderSynthesisV95
 """
 
 import numpy as np
@@ -379,7 +379,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
 )
 from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
-from qiskit.synthesis.arithmetic import adder_cd04, adder_d00, adder_vb95
+from qiskit.synthesis.arithmetic import adder_ripple_c04, adder_qft_d00, adder_ripple_v95
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1121,7 +1121,17 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
         )
 
 
-class ModularAdderSynthesisCD04(HighLevelSynthesisPlugin):
+class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
+    """The default modular adder (no carry in, no carry out qubit) synthesis."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if options.get("num_clean_ancillas", 0) >= 1:
+            return adder_ripple_c04(high_level_object.num_state_qubits, kind="fixed")
+
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
+
+
+class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
     r"""A ripple-carry adder, modulo :math:`2^n`."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1129,10 +1139,10 @@ class ModularAdderSynthesisCD04(HighLevelSynthesisPlugin):
         if options.get("num_clean_ancillas", 0) < 1:
             return None
 
-        return adder_cd04(high_level_object.num_state_qubits, kind="fixed")
+        return adder_ripple_c04(high_level_object.num_state_qubits, kind="fixed")
 
 
-class ModularAdderSynthesisVB95(HighLevelSynthesisPlugin):
+class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
     r"""A ripple-carry adder, modulo :math:`2^n`."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1142,17 +1152,33 @@ class ModularAdderSynthesisVB95(HighLevelSynthesisPlugin):
         if num_state_qubits > 1 and options.get("num_clean_ancillas", 0) < 1:
             return None
 
-        return adder_vb95(num_state_qubits, kind="fixed")
+        return adder_ripple_v95(num_state_qubits, kind="fixed")
 
 
 class ModularAdderSynthesisD00(HighLevelSynthesisPlugin):
     r"""A QFT-based adder, modulo :math:`2^n`."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        return adder_d00(high_level_object.num_state_qubits, kind="fixed")
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
 
 
-class AdderSynthesisCD04(HighLevelSynthesisPlugin):
+class AdderSynthesisDefault(HighLevelSynthesisPlugin):
+    r"""The default half-adder (no carry in, but a carry out qubit) synthesis.
+
+    If we have an auxiliary qubit available, the Cuccaro ripple-carry adder uses
+    :math:`O(n)` CX gates and 1 auxiliary qubit, whereas the Vedral ripple-carry uses more CX
+    and :math:`n-1` auxiliary qubits. The QFT-based adder uses no auxiliary qubits, but
+    :math:`O(n^2)`, hence it is only used if no auxiliary qubits are available.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if options.get("num_clean_ancillas", 0) >= 1:
+            return adder_ripple_c04(high_level_object.num_state_qubits, kind="half")
+
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
+
+
+class AdderSynthesisC04(HighLevelSynthesisPlugin):
     """A ripple-carry adder with a carry-out bit."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1160,10 +1186,10 @@ class AdderSynthesisCD04(HighLevelSynthesisPlugin):
         if options.get("num_clean_ancillas", 0) < 1:
             return None
 
-        return adder_cd04(high_level_object.num_state_qubits, kind="half")
+        return adder_ripple_c04(high_level_object.num_state_qubits, kind="half")
 
 
-class AdderSynthesisVB95(HighLevelSynthesisPlugin):
+class AdderSynthesisV95(HighLevelSynthesisPlugin):
     """A ripple-carry adder with a carry-out bit."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1173,24 +1199,24 @@ class AdderSynthesisVB95(HighLevelSynthesisPlugin):
         if num_state_qubits > 1 and options.get("num_clean_ancillas", 0) < 1:
             return None
 
-        return adder_vb95(num_state_qubits, kind="half")
+        return adder_ripple_v95(num_state_qubits, kind="half")
 
 
 class AdderSynthesisD00(HighLevelSynthesisPlugin):
     """A QFT-based adder with a carry-in and a carry-out bit."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        return adder_d00(high_level_object.num_state_qubits, kind="half")
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
 
 
-class FullAdderSynthesisCD04(HighLevelSynthesisPlugin):
+class FullAdderSynthesisC04(HighLevelSynthesisPlugin):
     """A ripple-carry adder with a carry-in and a carry-out bit."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        return adder_cd04(high_level_object.num_state_qubits, kind="full")
+        return adder_ripple_c04(high_level_object.num_state_qubits, kind="full")
 
 
-class FullAdderSynthesisVB95(HighLevelSynthesisPlugin):
+class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
     """A ripple-carry adder with a carry-in and a carry-out bit."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1200,4 +1226,4 @@ class FullAdderSynthesisVB95(HighLevelSynthesisPlugin):
         if num_state_qubits > 1 and options.get("num_clean_ancillas", 0) < 1:
             return None
 
-        return adder_vb95(num_state_qubits, kind="full")
+        return adder_ripple_v95(num_state_qubits, kind="full")

@@ -16,8 +16,12 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, AncillaRegister
 
 
-def adder_cd04(num_state_qubits: int, kind: str) -> QuantumCircuit:
+def adder_ripple_c04(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
     r"""A ripple-carry circuit to perform in-place addition on two qubit registers.
+
+    This circuit uses :math:`2n + O(1)` CCX gates and :math:`5n + O(1)` CX gates,
+    at a depth of :math:`2n + O(1)` [1]. The constant depends on the kind
+    of adder implemented.
 
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
     registers with a carry-in bit (``kind="full"``) is as follows:

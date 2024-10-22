@@ -12,7 +12,12 @@
 
 """Compute the sum of two qubit registers using QFT."""
 
-from qiskit.synthesis.arithmetic import adder_d00
+import numpy as np
+
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.basis_change import QFT
+
 from .adder import Adder
 
 
@@ -68,6 +73,44 @@ class DraperQFTAdder(Adder):
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
+        if kind == "full":
+            raise ValueError("The DraperQFTAdder only supports 'half' and 'fixed' as ``kind``.")
+
+        if num_state_qubits < 1:
+            raise ValueError("The number of qubits must be at least 1.")
+
         super().__init__(num_state_qubits, name=name)
-        circuit = adder_d00(num_state_qubits, kind)
+
+        qr_a = QuantumRegister(num_state_qubits, name="a")
+        qr_b = QuantumRegister(num_state_qubits, name="b")
+        qr_list = [qr_a, qr_b]
+
+        if kind == "half":
+            qr_z = QuantumRegister(1, name="cout")
+            qr_list.append(qr_z)
+
+        # add registers
+        self.add_register(*qr_list)
+
+        # define register containing the sum and number of qubits for QFT circuit
+        qr_sum = qr_b[:] if kind == "fixed" else qr_b[:] + qr_z[:]
+        num_qubits_qft = num_state_qubits if kind == "fixed" else num_state_qubits + 1
+
+        circuit = QuantumCircuit(*self.qregs, name=name)
+
+        # build QFT adder circuit
+        circuit.append(QFT(num_qubits_qft, do_swaps=False).to_gate(), qr_sum[:])
+
+        for j in range(num_state_qubits):
+            for k in range(num_state_qubits - j):
+                lam = np.pi / (2**k)
+                circuit.cp(lam, qr_a[j], qr_b[j + k])
+
+        if kind == "half":
+            for j in range(num_state_qubits):
+                lam = np.pi / (2 ** (j + 1))
+                circuit.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
+
+        circuit.append(QFT(num_qubits_qft, do_swaps=False).inverse().to_gate(), qr_sum[:])
+
         self.append(circuit.to_gate(), self.qubits)

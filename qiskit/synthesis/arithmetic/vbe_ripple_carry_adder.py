@@ -19,8 +19,11 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, AncillaRegister
 
 
-def adder_vb95(num_state_qubits: int, kind: str) -> QuantumCircuit:
+def adder_ripple_v95(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
     r"""The VBE ripple carry adder [1].
+
+    This method uses :math:`4n + O(1)` CCX gates and :math:`4n + 1` CX gates at a depth
+    of :math:`6n - 2` [2].
 
     This circuit performs inplace addition of two equally-sized quantum registers.
     As an example, a classical adder circuit that performs full addition (i.e. including
@@ -54,8 +57,8 @@ def adder_vb95(num_state_qubits: int, kind: str) -> QuantumCircuit:
 
     Args:
         num_state_qubits: The size of the register.
-        kind: The kind of adder, can be ``'full'`` for a full adder, ``'half'`` for a half
-            adder, or ``'fixed'`` for a fixed-sized adder. A full adder includes both carry-in
+        kind: The kind of adder, can be ``"full"`` for a full adder, ``"half"`` for a half
+            adder, or ``"fixed"`` for a fixed-sized adder. A full adder includes both carry-in
             and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
             nor carry-out.
 
@@ -66,6 +69,9 @@ def adder_vb95(num_state_qubits: int, kind: str) -> QuantumCircuit:
 
     [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
+
+    [2] Cuccaro et al., A new quantum ripple-carry addition circuit, 2004.
+    `arXiv:quant-ph/0410184 <https://arxiv.org/pdf/quant-ph/0410184.pdf>`_
 
     """
     if num_state_qubits < 1:

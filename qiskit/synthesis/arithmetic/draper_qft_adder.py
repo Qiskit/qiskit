@@ -19,28 +19,29 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.basis_change import QFTGate
 
 
-def adder_d00(num_state_qubits: int, kind: str) -> QuantumCircuit:
+def adder_qft_d00(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
     :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubits (with
-    ``kind="half"``).
+    ``kind="half"``). The fixed adder uses :math:`(3n^2 - n)/2` :class:`.CPhaseGate` operators,
+    with an additional :math:`n` for the half adder.
 
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
 
     .. parsed-literal::
 
-         a_0:   ─────────■──────■────────────────────────■────────────────
-                         │      │                        │
-         a_1:   ─────────┼──────┼────────■──────■────────┼────────────────
-                ┌──────┐ │P(π)  │        │      │        │       ┌───────┐
-         b_0:   ┤0     ├─■──────┼────────┼──────┼────────┼───────┤0      ├
-                │      │        │P(π/2)  │P(π)  │        │       │       │
-         b_1:   ┤1 qft ├────────■────────■──────┼────────┼───────┤1 iqft ├
-                │      │                        │P(π/2)  │P(π/4) │       │
-        cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
-                └──────┘                                         └───────┘
+        a_0: ─────────■──────■────────■──────────────────────────────────
+                      │      │        │
+        a_1: ─────────┼──────┼────────┼────────■──────■──────────────────
+             ┌──────┐ │      │        │P(π/4)  │      │P(π/2) ┌─────────┐
+        b_0: ┤0     ├─┼──────┼────────■────────┼──────■───────┤0        ├
+             │      │ │      │P(π/2)           │P(π)          │         │
+        b_1: ┤1 Qft ├─┼──────■─────────────────■──────────────┤1 qft_dg ├
+             │      │ │P(π)                                   │         │
+       cout: ┤2     ├─■───────────────────────────────────────┤2        ├
+             └──────┘                                         └─────────┘
 
     Args:
         num_state_qubits: The number of qubits in either input register for
@@ -83,21 +84,19 @@ def adder_d00(num_state_qubits: int, kind: str) -> QuantumCircuit:
 
     # define register containing the sum and number of qubits for QFT circuit
     qr_sum = qr_b[:] if kind == "fixed" else qr_b[:] + qr_z[:]
-    num_qubits_qft = num_state_qubits if kind == "fixed" else num_state_qubits + 1
+    num_sum = num_state_qubits if kind == "fixed" else num_state_qubits + 1
 
     # build QFT adder circuit
-    qft = QFTGate(num_qubits_qft)
+    qft = QFTGate(num_sum)
     circuit.append(qft, qr_sum[:])
 
     for j in range(num_state_qubits):
-        for k in range(num_state_qubits - j):
+        for k in range(num_sum - j):
             lam = np.pi / (2**k)
-            circuit.cp(lam, qr_a[j], qr_b[j + k])
-
-    if kind == "half":
-        for j in range(num_state_qubits):
-            lam = np.pi / (2 ** (j + 1))
-            circuit.cp(lam, qr_a[num_state_qubits - j - 1], qr_z[0])
+            # note: if we were able to remove the final swaps from the QFTGate, we could
+            # simply use qr_sum[(j + k)] here and avoid synthesizing two swap networks, which
+            # can be elided and cancelled by the compiler
+            circuit.cp(lam, qr_a[j], qr_sum[~(j + k)])
 
     circuit.append(qft.inverse(), qr_sum[:])
 

@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Adder(QuantumCircuit):
@@ -41,6 +42,15 @@ class Adder(QuantumCircuit):
 
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg=(
+            "Use the adder gates provided in qiskit.circuit.library.arithmetic instead. "
+            "The gate type depends on the adder kind: fixed, half, full are represented by "
+            "ModularAdderGate, AdderGate, FullAdderGate, respectively.",
+        ),
+        pending=True,
+    )
     def __init__(self, num_state_qubits: int, name: str = "Adder") -> None:
         """
         Args:
@@ -104,14 +114,14 @@ class AdderGate(Gate):
 
 
 class ModularAdderGate(Gate):
-    r"""Compute the sum of two :math:`n`-sized qubit registers.
+    r"""Compute the sum modulo :math:`2^n` of two :math:`n`-sized qubit registers.
 
     For two registers :math:`|a\rangle_n` and :math:|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
 
-        |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b\rangle_{n + 1}.
+        |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b \text{ mod } 2^n\rangle_n.
 
     The quantum register :math:`|a\rangle_n` (and analogously :math:`|b\rangle_n`)
 
