@@ -1,0 +1,11 @@
+---
+features_quantum_info:
+  - |
+    Added a new method :meth:`qiskit.quantum_info.Operator.power_if_unitary` that
+    raises an ``Operator`` to a given power, assuming that the operator is unitary.
+fixes:
+  - |
+    Fixed the method :meth:`qiskit.quantum_info.Operator.power` to work
+    with general and not necessarily unitary operators. If an operator is unitary,
+    consider using the method :meth:`qiskit.quantum_info.Operator.power_if_unitary`,
+    which is several times faster.
