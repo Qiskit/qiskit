@@ -148,7 +148,6 @@ class GraphStateGate(Gate):
             raise CircuitError("The adjacency matrix must be symmetric.")
         num_qubits = len(adjacency_matrix)
 
-        # note: the name including the adjacency matrix renders awfully (both for circuit and for gate)
         super().__init__(name="graph_state", num_qubits=num_qubits, params=[adjacency_matrix])
 
     def _define(self):
