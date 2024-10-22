@@ -50,6 +50,22 @@ class VBERippleCarryAdder(Adder):
     This is different ordering as compared to Figure 2 in [1], which leads to a different
     drawing of the circuit.
 
+    .. seealso::
+
+        The following generic gate objects perform additions, like this circuit class,
+        but allow the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
+        can be chosen via ``Adder=["ripple_v95"]``.
+
+        :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
+            is functionally equivalent to ``kind="fixed"``.
+
+        :class:`.AdderGate`: A generic inplace adder. This
+            is functionally equivalent to ``kind="half"``.
+
+        :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
+            is functionally equivalent to ``kind="full"``.
+
     **References:**
 
     [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.

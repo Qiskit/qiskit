@@ -74,6 +74,21 @@ class CDKMRippleCarryAdder(Adder):
     It has one less qubit than the full-adder since it doesn't have the carry-out, but uses
     a helper qubit instead of the carry-in, so it only has one less qubit, not two.
 
+    .. seealso::
+
+        The following generic gate objects perform additions, like this circuit class,
+        but allow the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
+        can be chosen via ``Adder=["ripple_c04"]``.
+
+        :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
+            is functionally equivalent to ``kind="fixed"``.
+
+        :class:`.AdderGate`: A generic inplace adder. This
+            is functionally equivalent to ``kind="half"``.
+
+        :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
+            is functionally equivalent to ``kind="full"``.
 
     **References:**
 

@@ -59,6 +59,13 @@ class HRSCumulativeMultiplier(Multiplier):
     a series of shifted additions using one of the input registers while the qubits
     from the other input register act as control qubits for the adders.
 
+    .. seealso::
+
+        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        but allows the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
+        can be chosen via ``Multiplier=["cumulative_h18"]``.
+
     **References:**
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
