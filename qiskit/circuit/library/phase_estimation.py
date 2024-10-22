@@ -16,8 +16,7 @@ from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.utils.deprecation import deprecate_func
-
-from .basis_change import QFT
+from qiskit.circuit.library import PermutationGate, QFT, QFTGate
 
 
 class PhaseEstimation(QuantumCircuit):
@@ -108,7 +107,6 @@ class PhaseEstimation(QuantumCircuit):
 def phase_estimation(
     num_evaluation_qubits: int,
     unitary: QuantumCircuit,
-    iqft: QuantumCircuit | None = None,
     name: str = "QPE",
 ) -> QuantumCircuit:
     r"""Phase Estimation circuit.
@@ -128,14 +126,7 @@ def phase_estimation(
     Args:
         num_evaluation_qubits: The number of evaluation qubits.
         unitary: The unitary operation :math:`U` which will be repeated and controlled.
-        iqft: A inverse Quantum Fourier Transform, per default the inverse of
-            :class:`~qiskit.circuit.library.QFT` is used. Note that the QFT should not include
-            the usual swaps!
         name: The name of the circuit.
-
-    .. note::
-
-        The inverse QFT should not include a swap of the qubit order.
 
     **Reference Circuit:**
 
@@ -167,13 +158,14 @@ def phase_estimation(
     qr_state = QuantumRegister(unitary.num_qubits, "q")
     circuit = QuantumCircuit(qr_eval, qr_state, name=name)
 
-    if iqft is None:
-        iqft = QFT(num_evaluation_qubits, inverse=True, do_swaps=False).reverse_bits()
-
     circuit.h(qr_eval)  # hadamards on evaluation qubits
 
     for j in range(num_evaluation_qubits):  # controlled powers
         circuit.compose(unitary.power(2**j).control(), qubits=[j] + qr_state[:], inplace=True)
 
-    circuit.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
+    circuit.append(QFTGate(num_evaluation_qubits).inverse(), qr_eval[:])
+
+    reversal_pattern = list(reversed(range(num_evaluation_qubits)))
+    circuit.append(PermutationGate(reversal_pattern), qr_eval[:])
+
     return circuit
