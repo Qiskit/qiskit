@@ -532,6 +532,7 @@ from .arithmetic import (
     ModularAdderGate,
     AdderGate,
     FullAdderGate,
+    MultiplierGate,
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,

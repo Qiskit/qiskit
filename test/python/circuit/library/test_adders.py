@@ -181,7 +181,7 @@ class TestAdder(QiskitTestCase):
         expected_ops = {
             "ripple_c04": "MAJ",
             "ripple_v95": "Carry",
-            "qft_d00": "cp",
+            "qft_d00": "qft",
         }
 
         num_state_qubits = 3

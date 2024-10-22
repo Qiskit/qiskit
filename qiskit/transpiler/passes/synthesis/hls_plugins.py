@@ -338,6 +338,33 @@ Full Adder Synthesis
    FullAdderSynthesisC04
    FullAdderSynthesisD00
    FullAdderSynthesisV95
+
+
+Multiplier Synthesis
+''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.MultiplierGate` (key = ``"Multiplier"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Number of clean ancillas
+      - Description
+    * - ``"cumulative"``
+      - :class:`.MultiplierSynthesisH18`
+      - depending on the :class:`.AdderGate` used
+      - a cumulative adder based on controlled adders
+    * - ``"qft"``
+      - :class:`.MultiplierSynthesisR17`
+      - 0
+      - a QFT-based multiplier
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   MultiplierSynthesisH18
+   MultiplierSynthesisR17
+
 """
 
 import numpy as np
@@ -379,7 +406,13 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
 )
 from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
-from qiskit.synthesis.arithmetic import adder_ripple_c04, adder_qft_d00, adder_ripple_v95
+from qiskit.synthesis.arithmetic import (
+    adder_ripple_c04,
+    adder_qft_d00,
+    adder_ripple_v95,
+    multiplier_qft_r17,
+    multiplier_cumulative_h18,
+)
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from .plugin import HighLevelSynthesisPlugin
 
@@ -1227,3 +1260,21 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="full")
+
+
+class MultiplierSynthesisH18(HighLevelSynthesisPlugin):
+    """A cumulative multiplier based on controlled adders."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        return multiplier_cumulative_h18(
+            high_level_object.num_state_qubits, high_level_object.num_result_qubits
+        )
+
+
+class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
+    """A QFT-based multiplier."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        return multiplier_qft_r17(
+            high_level_object.num_state_qubits, high_level_object.num_result_qubits
+        )

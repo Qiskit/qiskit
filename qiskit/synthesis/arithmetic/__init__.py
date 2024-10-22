@@ -12,6 +12,5 @@
 
 """Module containing multi-controlled circuits synthesis"""
 
-from .cdkm_ripple_carry_adder import adder_ripple_c04
-from .vbe_ripple_carry_adder import adder_ripple_v95
-from .draper_qft_adder import adder_qft_d00
+from .adders import adder_qft_d00, adder_ripple_c04, adder_ripple_v95
+from .multipliers import multiplier_cumulative_h18, multiplier_qft_r17

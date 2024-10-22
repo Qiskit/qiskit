@@ -12,6 +12,5 @@
 
 """The multiplier circuit library."""
 
-from .hrs_cumulative_multiplier import HRSCumulativeMultiplier
-from .rg_qft_multiplier import RGQFTMultiplier
-from .multiplier import MultiplierGate
+from .hrs_cumulative_multiplier import multiplier_cumulative_h18
+from .rg_qft_multiplier import multiplier_qft_r17

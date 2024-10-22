@@ -111,6 +111,9 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "FullAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04"
 "FullAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04"
 "FullAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisV95"
+"Multiplier.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
+"Multiplier.qft_r17" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
+"Multiplier.cumulative_h18" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"

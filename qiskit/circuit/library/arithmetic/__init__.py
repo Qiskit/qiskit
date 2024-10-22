@@ -30,5 +30,5 @@ from .adders import (
     FullAdderGate,
 )
 from .piecewise_chebyshev import PiecewiseChebyshev
-from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier
+from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier, MultiplierGate
 from .exact_reciprocal import ExactReciprocal

@@ -47,7 +47,8 @@ class Adder(QuantumCircuit):
         additional_msg=(
             "Use the adder gates provided in qiskit.circuit.library.arithmetic instead. "
             "The gate type depends on the adder kind: fixed, half, full are represented by "
-            "ModularAdderGate, AdderGate, FullAdderGate, respectively.",
+            "ModularAdderGate, AdderGate, FullAdderGate, respectively. For different adder "
+            "implementations, see https://docs.quantum.ibm.com/api/qiskit/synthesis.",
         ),
         pending=True,
     )
