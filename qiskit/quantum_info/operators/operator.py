@@ -16,6 +16,7 @@ Matrix Operator class.
 
 from __future__ import annotations
 
+import cmath
 import copy as _copy
 import re
 from numbers import Number
@@ -561,13 +562,19 @@ class Operator(LinearOp):
         else:
             import scipy.linalg
 
-            # Experimentally, for fractional powers this seems to be 3x faster than
-            # calling scipy.linalg.fractional_matrix_power(self.data, n)
-            decomposition, unitary = scipy.linalg.schur(self.data, output="complex")
-            decomposition_diagonal = decomposition.diagonal()
-            decomposition_power = [pow(element, n) for element in decomposition_diagonal]
-            unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-            ret._data = unitary_power
+            # Non-integer powers of operators with an eigenvalue of -1 have a branch cut in the
+            # complex plane, which makes the calculation of the principal root around this cut
+            # finnicky and subject to precision / differences in BLAS implementation.  For example,
+            # the square root of Pauli Y can return the pi/2 or -pi/2 Y rotation depending on
+            # whether the -1 eigenvalue is found as `complex(-1, tiny)` or `complex(-1, -tiny)`.
+            # Such -1 eigenvalues are really common, so we first phase the matrix slightly to move
+            # common eigenvalues away from the branch-cut point of the power function.  The exact
+            # value of the epsilon doesn't matter much, but shouldn't coincide with any "nice"
+            # eigenvalues we expect to encounter. This isn't perfect, just pragmatic.
+            eps = cmath.pi * 1e-3
+            ret._data = cmath.rect(1, eps * n) * scipy.linalg.fractional_matrix_power(
+                cmath.rect(1, -eps) * self.data, n
+            )
         return ret
 
     def tensor(self, other: Operator) -> Operator:

@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.Operator.power` when called with non-integer powers on a matrix whose Schur form
+    is not diagonal (for example, most non-unitary matrices).
+  - |
+    :meth:`.Operator.power` will now more reliably return the expected principal value from a
+    fractional matrix power of a unitary matrix with a :math:`-1` eigenvalue.  This is tricky in
+    general, because floating-point rounding effects can cause a matrix to _truly_ have an eigenvalue
+    on the negative side of the branch cut (even if its exact mathematical relation would not), and
+    imprecision in various BLAS calls can falsely find the wrong side of the branch cut.
+
+    :meth:`.Operator.power` now shifts the branch-cut location for matrix powers to be a small
+    complex rotation away from :math:`-1`.  This does not solve the problem, it just shifts it to a
+    place where it is far less likely to be noticeable for the types of operators that usually
+    appear.
+
+    See `#13305 <https://github.com/Qiskit/qiskit/issues/13305>`__.
