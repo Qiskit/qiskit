@@ -125,7 +125,7 @@ def unitary_overlap(
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
 
-    Example::
+    .. plot::
 
         import numpy as np
         from qiskit.circuit.library import EfficientSU2, unitary_overlap
@@ -137,6 +137,7 @@ def unitary_overlap(
 
         # create the overlap circuit
         overlap = unitary_overlap(unitary1, unitary2)
+        overlap.draw('mpl')
 
     Args:
         unitary1: Unitary acting on the ket vector.

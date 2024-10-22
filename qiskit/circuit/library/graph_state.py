@@ -116,13 +116,12 @@ class GraphStateGate(Gate):
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import GraphStateGate
-        from qiskit.visualization.library import _generate_circuit_library_visualization
         import rustworkx as rx
 
         G = rx.generators.cycle_graph(5)
         circuit = QuantumCircuit(5)
         circuit.append(GraphStateGate(rx.adjacency_matrix(G)), [0, 1, 2, 3, 4])
-        _generate_circuit_library_visualization(circuit)
+        circuit.decompose().draw('mpl')
 
     **References:**
 
