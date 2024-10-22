@@ -130,7 +130,8 @@ class TestReadoutMitigation(QiskitTestCase):
             circuit, assignment_matrices, shots
         )
         unmitigated_error = self.compare_results(counts_ideal, counts_noise)
-        unmitigated_stddev = stddev(probs_noise, shots)
+        with self.assertWarns(DeprecationWarning):
+            unmitigated_stddev = stddev(probs_noise, shots)
 
         for mitigator in mitigators:
             with self.assertWarns(DeprecationWarning):

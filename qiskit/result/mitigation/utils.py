@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def z_diagonal(dim, dtype=float):
     r"""Return the diagonal for the operator :math:`Z^\otimes n`"""
@@ -46,7 +46,7 @@ def z_diagonal(dim, dtype=float):
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tuple[float, float]:
     """Compute expectation value and standard deviation.
@@ -75,6 +75,13 @@ def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tup
     return [expval, calc_stddev]
 
 
+@deprecate_func(
+    since="1.3",
+    package_name="Qiskit",
+    removal_timeline="in Qiskit 2.0",
+    additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
+)
 def stddev(probs, shots):
     """Calculate stddev dict"""
     ret = {}
@@ -89,7 +96,7 @@ def stddev(probs, shots):
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def str2diag(string):
     """Transform diagonal from a string to a numpy array"""
@@ -112,7 +119,7 @@ def str2diag(string):
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     """Transforms Counts to a probability vector"""
@@ -130,7 +137,7 @@ def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def remap_qubits(
     vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None
@@ -149,7 +156,7 @@ def remap_qubits(
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def marganalize_counts(
     counts: Counts,
@@ -177,7 +184,7 @@ def marganalize_counts(
     package_name="Qiskit",
     removal_timeline="in Qiskit 2.0",
     additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-    "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+    "the https://github.com/Qiskit/qiskit-addon-mthree package.",
 )
 def counts_probability_vector(
     counts: Counts,

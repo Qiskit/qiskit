@@ -40,7 +40,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         package_name="Qiskit",
         removal_timeline="in Qiskit 2.0",
         additional_msg="The `qiskit.result.mitigation` module is deprecated in favor of "
-        "the error mitigation methods in the https://github.com/Qiskit/qiskit-ibm-runtime package.",
+        "the https://github.com/Qiskit/qiskit-addon-mthree package.",
     )
     def __init__(self, assignment_matrix: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
