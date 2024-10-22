@@ -315,6 +315,7 @@ Particular Quantum Circuits
    :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
+   fourier_checking
    GraphState
    GraphStateGate
    HiddenLinearFunction
@@ -569,7 +570,7 @@ from .data_preparation import (
     Initialize,
 )
 from .quantum_volume import QuantumVolume, quantum_volume
-from .fourier_checking import FourierChecking
+from .fourier_checking import FourierChecking, fourier_checking
 from .graph_state import GraphState, GraphStateGate
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
