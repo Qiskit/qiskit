@@ -33,11 +33,13 @@ def deprecate_pulse_func(func):
 
 
 def deprecate_pulse_dependency(*args, moving_to_dynamics: bool = False, **kwargs):
+    # pylint: disable=missing-param-doc
     """Deprecation message for functions and classes which use or depend on Pulse
 
-    moving_to_dynamics: set to True if the dependency is moving to Qiskit Dynamics. This affects
-    the deprecation message being printed, namely saying explicitly whether the dependency will
-    be moved to Qiskit Dynamics or whether it will just be removed without an alternative.
+    Args:
+        moving_to_dynamics: set to True if the dependency is moving to Qiskit Dynamics. This affects
+            the deprecation message being printed, namely saying explicitly whether the dependency will
+            be moved to Qiskit Dynamics or whether it will just be removed without an alternative.
     """
 
     def msg_handler(func):
