@@ -1194,6 +1194,7 @@ version = "1.3.0"
 dependencies = [
  "ahash 0.8.11",
  "approx 0.5.1",
+ "bytemuck",
  "faer",
  "faer-ext",
  "hashbrown 0.14.5",
