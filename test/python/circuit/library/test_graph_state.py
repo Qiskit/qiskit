@@ -116,6 +116,31 @@ class TestGraphStateLibrary(QiskitTestCase):
         graph_state_gate = GraphStateGate(adjacency_matrix)
         self.assertTrue(np.all(graph_state_gate.adjacency_matrix == adjacency_matrix))
 
+    def test_equality(self):
+        """Test GraphStateGate's equality method."""
+        mat1 = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        mat2 = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
+        with self.subTest("equal"):
+            gate1 = GraphStateGate(mat1)
+            gate2 = GraphStateGate(mat1)
+            self.assertEqual(gate1, gate2)
+        with self.subTest("not equal"):
+            gate1 = GraphStateGate(mat1)
+            gate2 = GraphStateGate(mat2)
+            self.assertNotEqual(gate1, gate2)
+
 
 if __name__ == "__main__":
     unittest.main()

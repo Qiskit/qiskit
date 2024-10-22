@@ -169,3 +169,10 @@ class GraphStateGate(Gate):
     def adjacency_matrix(self):
         """Returns the adjacency matrix."""
         return self.params[0]
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, GraphStateGate)
+            and self.num_qubits == other.num_qubits
+            and np.all(self.adjacency_matrix == other.adjacency_matrix)
+        )
