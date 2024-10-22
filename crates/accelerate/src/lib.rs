@@ -41,6 +41,7 @@ pub mod remove_identity_equiv;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
+pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod split_2q_unitaries;
 pub mod star_prerouting;
