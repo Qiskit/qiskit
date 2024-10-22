@@ -328,6 +328,7 @@ Particular Quantum Circuits
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
+   unitary_overlap
 
 
 N-local circuits
@@ -577,4 +578,4 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .overlap import UnitaryOverlap
+from .overlap import UnitaryOverlap, unitary_overlap
