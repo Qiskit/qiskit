@@ -324,6 +324,7 @@ Particular Quantum Circuits
    QuantumVolume
    quantum_volume
    PhaseEstimation
+   phase_estimation
    GroverOperator
    PhaseOracle
    PauliEvolutionGate
@@ -576,7 +577,7 @@ from .fourier_checking import FourierChecking, fourier_checking
 from .graph_state import GraphState, GraphStateGate
 from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP
-from .phase_estimation import PhaseEstimation
+from .phase_estimation import PhaseEstimation, phase_estimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
 from .overlap import UnitaryOverlap, unitary_overlap
