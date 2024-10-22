@@ -124,30 +124,30 @@ class QuantumCircuit:
         structures that go with it, how it fits into the rest of the :mod:`qiskit` package, and the
         different regimes of quantum-circuit descriptions in Qiskit, see the module-level
         documentation of :mod:`qiskit.circuit`.
-    
+
     Example:
-    
+
     .. plot::
        :include-source:
        :nofigs:
-    
+
        from qiskit import QuantumCircuit
-       
+
        # Create a new circuit with two qubits
        qc = QuantumCircuit(2)
-       
+
        # Add a Hadamard gate to qubit 0
        qc.h(0)
-       
+
        # Perform a controlled-X gate on qubit 1, controlled by qubit 0
        qc.cx(0, 1)
-       
+
        # Return a text drawing of the circuit.
        qc.draw()
-       
+
     .. code-block:: text
 
-            ┌───┐     
+            ┌───┐
        q_0: ┤ H ├──■──
             └───┘┌─┴─┐
        q_1: ─────┤ X ├
@@ -215,11 +215,11 @@ class QuantumCircuit:
     .. autoattribute:: data
 
     Example:
-    
+
     .. plot::
        :include-source:
        :nofigs:
-       
+
        from qiskit import QuantumCircuit
 
        qc = QuantumCircuit(2, 2)
@@ -237,12 +237,12 @@ class QuantumCircuit:
     .. autoattribute:: global_phase
 
     Example:
-    
+
     .. plot::
        :include-source:
        :nofigs:
        :context: reset
-       
+
        from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
        qreg_q = QuantumRegister(2, 'q')
@@ -251,25 +251,25 @@ class QuantumCircuit:
 
        circuit.h(qreg_q[0])
        circuit.cx(qreg_q[0], qreg_q[1])
-       
+
        print(circuit.global_phase) # find the global phase of the current circuit
-       
+
     .. code-block:: text
-    
+
        0.0
-    
+
     .. plot::
        :include-source:
        :nofigs:
        :context:
-       
+
        from numpy import pi
-       
+
        circuit.global_phase = pi/4 # set the global phase of the circuit to pi/4
        print(circuit.global_phase)
-       
+
     .. code-block:: text
-    
+
        0.7853981633974483
 
     The :attr:`name` of a circuit becomes the name of the :class:`~.circuit.Instruction` or
