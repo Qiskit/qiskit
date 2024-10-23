@@ -13,13 +13,14 @@
 use pyo3::prelude::*;
 use qiskit_circuit::{
     imports,
-    operations::{Param, PyInstruction},
+    operations::{Param, PyInstruction, StandardGate},
     packed_instruction::PackedOperation,
     Clbit, Qubit,
 };
 use smallvec::{smallvec, SmallVec};
 
-type Instruction = (
+pub(super) type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
+pub(super) type Instruction = (
     PackedOperation,
     SmallVec<[Param; 3]>,
     Vec<Qubit>,

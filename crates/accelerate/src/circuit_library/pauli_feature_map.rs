@@ -17,21 +17,14 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::PyInstruction;
 use qiskit_circuit::operations::{add_param, multiply_param, multiply_params, Param, StandardGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::smallvec;
 use std::f64::consts::PI;
 
 use crate::circuit_library::entanglement;
 use crate::circuit_library::pauli_evolution;
+use crate::circuit_library::utils::Instruction;
 use crate::QiskitError;
-
-type Instruction = (
-    PackedOperation,
-    SmallVec<[Param; 3]>,
-    Vec<Qubit>,
-    Vec<Clbit>,
-);
 
 /// Build a Pauli feature map circuit.
 ///

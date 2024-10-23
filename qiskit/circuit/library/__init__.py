@@ -553,8 +553,10 @@ from .n_local import (
     PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
+    evolved_operator_ansatz,
     EvolvedOperatorAnsatz,
     ExcitationPreserving,
+    qaoa_ansatz,
     QAOAAnsatz,
 )
 from .data_preparation import (

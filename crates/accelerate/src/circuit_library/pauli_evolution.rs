@@ -14,20 +14,13 @@ use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::Qubit;
 use smallvec::{smallvec, SmallVec};
 
 use crate::circuit_library::utils;
+use crate::circuit_library::utils::{Instruction, StandardInstruction};
 
 // custom types for a more readable code
-type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
-type Instruction = (
-    PackedOperation,
-    SmallVec<[Param; 3]>,
-    Vec<Qubit>,
-    Vec<Clbit>,
-);
 
 /// Return instructions (using only StandardGate operations) to implement a Pauli evolution
 /// of a given Pauli string over a given time (as Param).
