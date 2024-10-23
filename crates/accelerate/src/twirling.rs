@@ -148,19 +148,32 @@ fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGa
     let x_matrix = aview2(&qiskit_circuit::gate_matrix::X_GATE);
     let y_matrix = aview2(&qiskit_circuit::gate_matrix::Y_GATE);
     let z_matrix = aview2(&qiskit_circuit::gate_matrix::Z_GATE);
-    let iter_set = [
-        (IGate, i_matrix),
-        (XGate, x_matrix),
-        (YGate, y_matrix),
-        (ZGate, z_matrix),
+    let iter_set = [IGate, XGate, YGate, ZGate];
+    let kron_set: [Array2<Complex64>; 16] = [
+        kron(&i_matrix, &i_matrix),
+        kron(&x_matrix, &i_matrix),
+        kron(&y_matrix, &i_matrix),
+        kron(&z_matrix, &i_matrix),
+        kron(&i_matrix, &x_matrix),
+        kron(&x_matrix, &x_matrix),
+        kron(&y_matrix, &x_matrix),
+        kron(&z_matrix, &x_matrix),
+        kron(&i_matrix, &y_matrix),
+        kron(&x_matrix, &y_matrix),
+        kron(&y_matrix, &y_matrix),
+        kron(&z_matrix, &y_matrix),
+        kron(&i_matrix, &z_matrix),
+        kron(&x_matrix, &z_matrix),
+        kron(&y_matrix, &z_matrix),
+        kron(&z_matrix, &z_matrix),
     ];
-    for (i, i_mat) in &iter_set {
-        for (j, j_mat) in &iter_set {
-            let before_matrix = kron(j_mat, i_mat);
+    for (i_idx, i) in iter_set.iter().enumerate() {
+        for (j_idx, j) in iter_set.iter().enumerate() {
+            let before_matrix = kron_set[i_idx * 4 + j_idx].view();
             let half_twirled_matrix = gate_matrix.dot(&before_matrix);
-            for (k, k_mat) in &iter_set {
-                for (l, l_mat) in &iter_set {
-                    let after_matrix = kron(l_mat, k_mat);
+            for (k_idx, k) in iter_set.iter().enumerate() {
+                for (l_idx, l) in iter_set.iter().enumerate() {
+                    let after_matrix = kron_set[l_idx * 4 + k_idx].view();
                     let twirled_matrix = after_matrix.dot(&half_twirled_matrix);
                     let norm: f64 = diff_frob_norm(twirled_matrix.view(), gate_matrix);
                     if norm.abs() < 1e-15 {
