@@ -348,6 +348,13 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    ExcitationPreserving
    QAOAAnsatz
 
+The following functions return a parameterized :class:`.QuantumCircuit` to use as ansatz in
+a broad set of variational algorithms:
+
+.. autofunction:: hamiltonian_variational_ansatz
+.. autofunction:: evolved_operator_ansatz
+.. autofunction:: qaoa_ansatz
+
 
 Data encoding circuits
 ======================
@@ -553,6 +560,7 @@ from .n_local import (
     PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
+    hamiltonian_variational_ansatz,
     evolved_operator_ansatz,
     EvolvedOperatorAnsatz,
     ExcitationPreserving,

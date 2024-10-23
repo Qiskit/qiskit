@@ -19,7 +19,11 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 
 from qiskit.circuit.library import HamiltonianGate
-from qiskit.circuit.library.n_local import EvolvedOperatorAnsatz, evolved_operator_ansatz
+from qiskit.circuit.library.n_local import (
+    EvolvedOperatorAnsatz,
+    evolved_operator_ansatz,
+    hamiltonian_variational_ansatz,
+)
 from qiskit.synthesis.evolution import MatrixExponential
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -179,6 +183,22 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             ops = evo.count_ops()
             self.assertIn("hamiltonian", ops)
             self.assertIn("PauliEvolution", ops)
+
+
+class TestHamiltonianVariationalAnsatz(QiskitTestCase):
+    """Test the hamiltonian_variational_ansatz function.
+
+    This is essentially already tested by the evolved_operator_ansatz, we just need
+    to test the additional commuting functionality.
+    """
+
+    def test_detect_commutation(self):
+        """Test the operator is split into commuting terms."""
+        hamiltonian = SparsePauliOp(["XII", "ZZI", "IXI", "IZZ", "IIX"])
+        circuit = hamiltonian_variational_ansatz(hamiltonian)
+
+        # this Hamiltonian should be split into 2 commuting groups, hence we get 2 parameters
+        self.assertEqual(2, circuit.num_parameters)
 
 
 def evolve(pauli_string, time):
