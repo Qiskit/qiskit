@@ -86,7 +86,7 @@ fn remove_identity_equiv(
                     let trace: Complex64 = matrix.diag().iter().sum();
                     let f_pro = (trace / dim).abs().powi(2);
                     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-                    if 1. - gate_fidelity < error {
+                    if (1. - gate_fidelity).abs() < error {
                         remove_list.push(op_node)
                     }
                 }
@@ -102,7 +102,7 @@ fn remove_identity_equiv(
                     let trace: Complex64 = matrix.diag().iter().sum();
                     let f_pro = (trace / dim).abs().powi(2);
                     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-                    if 1. - gate_fidelity < error {
+                    if (1. - gate_fidelity).abs() < error {
                         remove_list.push(op_node)
                     }
                 }
