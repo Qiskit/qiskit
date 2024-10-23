@@ -121,7 +121,7 @@ class QDrift(ProductFormula):
             np.array(paulis, dtype=object), size=(num_gates,), p=weights / lambd
         )
 
-        rescaled_time = lambd * time / num_gates
+        rescaled_time = 2 * lambd / num_gates * time
         sampled_paulis = [
             (pauli[0], pauli[1], np.real(np.sign(pauli[2])) * rescaled_time) for pauli in sampled
         ]

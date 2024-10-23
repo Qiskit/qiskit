@@ -121,11 +121,16 @@ class SuzukiTrotter(ProductFormula):
         """Expand the Hamiltonian into a Suzuki-Trotter sequence of sparse gates.
 
         For example, the Hamiltonian ``H = IX + ZZ`` for an evolution time ``t`` and
-        1 repetition for an order 2 formula would get decomposed into
+        1 repetition for an order 2 formula would get decomposed into a list of 3-tuples
+        containing ``(pauli, indices, rz_rotation_angle)``, that is:
 
         .. code-block:: text
 
-            ("X", [0], t/2), ("ZZ", [0, 1], t), ("X", [0], t/2)
+            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], 2)
+
+        Note that the rotation angle contains a factor of 2, such that that evolution
+        of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
+        by ``(P, indices, 2 * t)``.
 
         For ``N`` repetitions, this sequence would be repeated ``N`` times and the coefficients
         divided by ``N``.
@@ -142,12 +147,12 @@ class SuzukiTrotter(ProductFormula):
         # construct the evolution circuit
         if isinstance(operators, list):  # already sorted into commuting bits
             non_commuting = [
-                (time / self.reps * operator).to_sparse_list() for operator in operators
+                (2 / self.reps * time * operator).to_sparse_list() for operator in operators
             ]
         else:
             # Assume no commutativity here. If we were to group commuting Paulis,
             # here would be the location to do so.
-            non_commuting = [[op] for op in (time / self.reps * operators).to_sparse_list()]
+            non_commuting = [[op] for op in (2 / self.reps * time * operators).to_sparse_list()]
 
         # normalize coefficients, i.e. ensure they are float or ParameterExpression
         non_commuting = self._normalize_coefficients(non_commuting)
