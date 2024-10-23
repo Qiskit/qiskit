@@ -315,17 +315,22 @@ Particular Quantum Circuits
    :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
+   fourier_checking
    GraphState
+   GraphStateGate
    HiddenLinearFunction
+   hidden_linear_function
    IQP
    QuantumVolume
    quantum_volume
    PhaseEstimation
+   phase_estimation
    GroverOperator
    PhaseOracle
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
+   unitary_overlap
 
 
 N-local circuits
@@ -568,11 +573,11 @@ from .data_preparation import (
     Initialize,
 )
 from .quantum_volume import QuantumVolume, quantum_volume
-from .fourier_checking import FourierChecking
-from .graph_state import GraphState
-from .hidden_linear_function import HiddenLinearFunction
+from .fourier_checking import FourierChecking, fourier_checking
+from .graph_state import GraphState, GraphStateGate
+from .hidden_linear_function import HiddenLinearFunction, hidden_linear_function
 from .iqp import IQP
-from .phase_estimation import PhaseEstimation
+from .phase_estimation import PhaseEstimation, phase_estimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .overlap import UnitaryOverlap
+from .overlap import UnitaryOverlap, unitary_overlap
