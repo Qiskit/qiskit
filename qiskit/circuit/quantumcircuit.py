@@ -304,7 +304,6 @@ class QuantumCircuit:
 
        my_circuit
 
-
     You can attach arbitrary :attr:`metadata` to a circuit.  No part of core Qiskit will inspect
     this or change its behavior based on metadata, but it will be faithfully passed through the
     transpiler, so you can tag your circuits yourself.  When serializing a circuit with QPY (see
@@ -313,6 +312,26 @@ class QuantumCircuit:
     detail).  This field is ignored during export to OpenQASM 2 or 3.
 
     .. autoattribute:: metadata
+
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       q = QuantumRegister(2)
+       c = ClassicalRegister(2)
+       qc = QuantumCircuit(q, c)
+
+       qc.metadata = {'experiment_type': 'Bell state experiment'}
+
+       print(qc.metadata)
+
+    .. code-block:: text
+
+       {'experiment_type': 'Bell state experiment'}
 
     :class:`QuantumCircuit` exposes data attributes tracking its internal quantum and classical bits
     and registers.  These appear as Python :class:`list`\\ s, but you should treat them as
