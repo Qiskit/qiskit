@@ -76,6 +76,10 @@ fn remove_identity_equiv(
         let inst = dag.dag()[op_node].unwrap_operation();
         match inst.op.view() {
             OperationRef::Standard(gate) => {
+                // Skip global phase gate
+                if gate.num_qubits() < 1 {
+                    continue;
+                }
                 if let Some(matrix) = gate.matrix(inst.params_view()) {
                     let error = get_error_cutoff(inst);
                     let dim = matrix.shape()[0] as f64;
@@ -88,6 +92,10 @@ fn remove_identity_equiv(
                 }
             }
             OperationRef::Gate(gate) => {
+                // Skip global phase like gate
+                if gate.num_qubits() < 1 {
+                    continue;
+                }
                 if let Some(matrix) = gate.matrix(inst.params_view()) {
                     let error = get_error_cutoff(inst);
                     let dim = matrix.shape()[0] as f64;
