@@ -240,7 +240,7 @@ pub fn py_pauli_evolution(
         }
 
         paulis.push(pauli);
-        times.push(multiply_param(&time, 2.0, py));
+        times.push(time); // note we do not multiply by 2 here, this is done Python side!
         indices.push(
             tuple
                 .get_item(1)?
