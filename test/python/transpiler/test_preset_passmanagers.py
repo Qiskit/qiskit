@@ -1284,7 +1284,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_backend(self, optimization_level):
         """Test a passmanager is constructed when only a backend and optimization level."""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex=r"qiskit\.providers\.models\.backendconfiguration\.GateConfig`",
+        ):
             backend = Fake20QV1()
         with self.assertWarnsRegex(
             DeprecationWarning,
