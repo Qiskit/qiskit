@@ -62,6 +62,17 @@ pub fn sabre_layout_and_routing(
         &target,
         run_in_parallel,
     ));
+    starting_layouts.push(
+        (0..target.neighbors.num_qubits() as u32)
+            .map(Some)
+            .collect(),
+    );
+    starting_layouts.push(
+        (0..target.neighbors.num_qubits() as u32)
+            .rev()
+            .map(Some)
+            .collect(),
+    );
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
