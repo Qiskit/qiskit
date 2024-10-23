@@ -129,7 +129,7 @@ const ECR_MASK: u8 = 2;
 const ISWAP_MASK: u8 = 1;
 
 #[inline(always)]
-fn diff_frob_norm(array: ArrayView2<Complex64>, gate_matrix: ArrayView2<Complex64>) -> f64 {
+fn diff_frob_norm_sq(array: ArrayView2<Complex64>, gate_matrix: ArrayView2<Complex64>) -> f64 {
     let mut res: f64 = 0.;
     for i in 0..4 {
         for j in 0..4 {
@@ -139,7 +139,7 @@ fn diff_frob_norm(array: ArrayView2<Complex64>, gate_matrix: ArrayView2<Complex6
             res += (diff.conj() * diff).re;
         }
     }
-    res.sqrt()
+    res
 }
 
 fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGate; 4], f64)> {
@@ -175,10 +175,10 @@ fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGa
                 for (l_idx, l) in iter_set.iter().enumerate() {
                     let after_matrix = kron_set[l_idx * 4 + k_idx].view();
                     let twirled_matrix = after_matrix.dot(&half_twirled_matrix);
-                    let norm: f64 = diff_frob_norm(twirled_matrix.view(), gate_matrix);
+                    let norm: f64 = diff_frob_norm_sq(twirled_matrix.view(), gate_matrix);
                     if norm.abs() < 1e-15 {
                         out_vec.push(([*i, *j, *k, *l], 0.));
-                    } else if (norm - 4.).abs() < 1e-15 {
+                    } else if (norm - 16.).abs() < 1e-15 {
                         out_vec.push(([*i, *j, *k, *l], PI));
                     }
                 }
