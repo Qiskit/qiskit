@@ -585,7 +585,10 @@ class PauliFeatureMap(NLocal):
                 if pauli == "X":
                     circuit.h(i)
                 elif pauli == "Y":
-                    circuit.rx(-np.pi / 2 if inverse else np.pi / 2, i)
+                    if inverse:
+                        circuit.sx(i)
+                    else:
+                        circuit.sxdg(i)
 
         def cx_chain(circuit, inverse=False):
             num_cx = len(indices) - 1
