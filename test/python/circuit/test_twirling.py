@@ -30,9 +30,6 @@ from qiskit.circuit.library import (
 from qiskit.circuit.random import random_circuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
-from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
-    Optimize1qGatesDecomposition,
-)
 from qiskit.transpiler.target import Target
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -186,8 +183,7 @@ class TestTwirling(QiskitTestCase):
         qc.barrier()
         qc = qc.decompose()
         target = Target.from_configuration(basis_gates=["cx", "iswap", "cz", "ecr", "r"])
-        decomp_pass = Optimize1qGatesDecomposition(target=target)
-        res = twirl_circuit(qc, seed=12345678, num_twirls=5, optimize_pass=decomp_pass)
+        res = twirl_circuit(qc, seed=12345678, num_twirls=5, target=target)
         for out_circ in res:
             self.assertEqual(
                 Operator(out_circ),

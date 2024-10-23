@@ -22,7 +22,7 @@ from qiskit.circuit.library.standard_gates import CXGate, ECRGate, CZGate, iSwap
 from qiskit.exceptions import QiskitError
 
 if typing.TYPE_CHECKING:
-    from qiskit.transpiler.passes.optimization import Optimize1qGatesDecomposition
+    from qiskit.transpiler.target import Target
 
 
 NAME_TO_CLASS = {
@@ -38,7 +38,7 @@ def twirl_circuit(
     twirling_gate: None | str | Gate | list[str] | list[Gate] = None,
     seed: int | None = None,
     num_twirls: int | None = None,
-    optimize_pass: Optimize1qGatesDecomposition | None = None,
+    target: Target | None = None,
 ) -> QuantumCircuit | list[QuantumCircuit]:
     """Create a copy of a given circuit with Pauli twirling applied around a specified two qubit
     gate.
@@ -58,9 +58,9 @@ def twirl_circuit(
         num_twirls: The number of twirling circuits to build. This defaults to None and will return
             a single circuit. If it is an integer a list of circuits with `num_twirls` circuits
             will be returned.
-        optimize_pass: If specified an :class:`.Optimize1qGatesDecomposition` pass instance to run
+        target: If specified an :class:`.Target` instance to use for running single qubit decomposition
             as part of the Pauli twirling to optimize and map the pauli gates added to the circuit
-            to the target.
+            to the specified target.
 
     Returns:
         A copy of the given circuit with Pauli twirling applied to each
@@ -111,24 +111,13 @@ def twirl_circuit(
     out_twirls = num_twirls
     if out_twirls is None:
         out_twirls = 1
-    target = None
-    decomposers = None
-    basis_gates = None
-    run_pass = optimize_pass is not None
-    if run_pass:
-        target = optimize_pass._target
-        decomposers = optimize_pass._global_decomposers
-        basis_gates = optimize_pass._basis_gates
     new_data = twirl_rs(
         circuit._data,
         twirling_std_gate,
         custom_gates,
         seed,
         out_twirls,
-        run_pass,
         target,
-        decomposers,
-        basis_gates,
     )
     if num_twirls is not None:
         out_list = []

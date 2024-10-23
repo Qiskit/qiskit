@@ -12,7 +12,7 @@
 
 use std::f64::consts::PI;
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::ArrayView2;
@@ -173,7 +173,7 @@ fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGa
             let half_twirled_matrix = gate_matrix.dot(&before_matrix);
             for (k_idx, k) in iter_set.iter().enumerate() {
                 for (l_idx, l) in iter_set.iter().enumerate() {
-                    let after_matrix = kron_set[l_idx * 4 + k_idx].view();
+                    let after_matrix = kron_set[k_idx * 4 + l_idx].view();
                     let twirled_matrix = after_matrix.dot(&half_twirled_matrix);
                     let norm: f64 = diff_frob_norm_sq(twirled_matrix.view(), gate_matrix);
                     if norm.abs() < 1e-15 {
@@ -259,17 +259,13 @@ fn twirl_gate(
 
 type CustomGateTwirlingMap = HashMap<String, Vec<([StandardGate; 4], f64)>>;
 
-#[allow(clippy::too_many_arguments)]
 fn generate_twirled_circuit(
     py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     twirling_mask: u8,
     custom_gate_map: Option<&CustomGateTwirlingMap>,
-    run_pass: bool,
     optimizer_target: Option<&Target>,
-    optimizer_global_decomposer: Option<&HashSet<String>>,
-    optimizer_basis_gates: Option<&Vec<String>>,
 ) -> PyResult<CircuitData> {
     let mut out_circ = CircuitData::clone_empty_like(circ, None);
 
@@ -324,10 +320,7 @@ fn generate_twirled_circuit(
                                 rng,
                                 twirling_mask,
                                 custom_gate_map,
-                                run_pass,
                                 optimizer_target,
-                                optimizer_global_decomposer,
-                                optimizer_basis_gates,
                             )?;
                             Ok(new_block.into_py(py))
                         })
@@ -382,24 +375,17 @@ fn generate_twirled_circuit(
             }
         }
     }
-    if run_pass {
+    if optimizer_target.is_some() {
         let mut dag = DAGCircuit::from_circuit_data(py, out_circ, false)?;
-        optimize_1q_gates_decomposition(
-            py,
-            &mut dag,
-            optimizer_target,
-            optimizer_global_decomposer.cloned(),
-            optimizer_basis_gates.cloned(),
-        )?;
+        optimize_1q_gates_decomposition(py, &mut dag, optimizer_target, None, None)?;
         dag_to_circuit(py, &dag, false)
     } else {
         Ok(out_circ)
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature=(circ, twirled_gate=None, custom_twirled_gates=None, seed=None, num_twirls=1, run_pass=false, optimizer_target=None, optimizer_global_decomposer=None, optimizer_basis_gates=None))]
+#[pyo3(signature=(circ, twirled_gate=None, custom_twirled_gates=None, seed=None, num_twirls=1, optimizer_target=None))]
 pub(crate) fn twirl_circuit(
     py: Python,
     circ: &CircuitData,
@@ -407,10 +393,7 @@ pub(crate) fn twirl_circuit(
     custom_twirled_gates: Option<Vec<OperationFromPython>>,
     seed: Option<u64>,
     num_twirls: usize,
-    run_pass: bool,
     optimizer_target: Option<&Target>,
-    optimizer_global_decomposer: Option<HashSet<String>>,
-    optimizer_basis_gates: Option<Vec<String>>,
 ) -> PyResult<Vec<CircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -489,10 +472,7 @@ pub(crate) fn twirl_circuit(
                 &mut rng,
                 twirling_mask,
                 custom_gate_twirling_sets.as_ref(),
-                run_pass,
                 optimizer_target,
-                optimizer_global_decomposer.as_ref(),
-                optimizer_basis_gates.as_ref(),
             )
         })
         .collect()
