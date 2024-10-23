@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 use ahash::RandomState;
 use smallvec::SmallVec;
@@ -29,7 +29,7 @@ use crate::interner::{Interned, Interner};
 use crate::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::rustworkx_core_vnext::isomorphism;
-use crate::{BitType, Clbit, Qubit, TupleLikeArg};
+use crate::{BitType, Clbit, Qubit, TupleLikeArg, Var};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -79,8 +79,8 @@ pub enum NodeType {
     QubitOut(Qubit),
     ClbitIn(Clbit),
     ClbitOut(Clbit),
-    VarIn(PyObject),
-    VarOut(PyObject),
+    VarIn(Var),
+    VarOut(Var),
     Operation(PackedInstruction),
 }
 
@@ -97,45 +97,21 @@ impl NodeType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub enum Wire {
     Qubit(Qubit),
     Clbit(Clbit),
-    Var(PyObject),
-}
-
-impl PartialEq for Wire {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Wire::Qubit(q1), Wire::Qubit(q2)) => q1 == q2,
-            (Wire::Clbit(c1), Wire::Clbit(c2)) => c1 == c2,
-            (Wire::Var(v1), Wire::Var(v2)) => {
-                v1.is(v2) || Python::with_gil(|py| v1.bind(py).eq(v2).unwrap())
-            }
-            _ => false,
-        }
-    }
-}
-
-impl Eq for Wire {}
-
-impl Hash for Wire {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Self::Qubit(qubit) => qubit.hash(state),
-            Self::Clbit(clbit) => clbit.hash(state),
-            Self::Var(var) => Python::with_gil(|py| var.bind(py).hash().unwrap().hash(state)),
-        }
-    }
+    Var(Var),
 }
 
 impl Wire {
     fn to_pickle(&self, py: Python) -> PyObject {
         match self {
-            Self::Qubit(bit) => (0, bit.0.into_py(py)).into_py(py),
-            Self::Clbit(bit) => (1, bit.0.into_py(py)).into_py(py),
-            Self::Var(var) => (2, var.clone_ref(py)).into_py(py),
+            Self::Qubit(bit) => (0, bit.0.into_py(py)),
+            Self::Clbit(bit) => (1, bit.0.into_py(py)),
+            Self::Var(var) => (2, var.0.into_py(py)),
         }
+        .into_py(py)
     }
 
     fn from_pickle(b: &Bound<PyAny>) -> PyResult<Self> {
@@ -146,81 +122,10 @@ impl Wire {
         } else if wire_type == 1 {
             Ok(Self::Clbit(Clbit(tuple.get_item(1)?.extract()?)))
         } else if wire_type == 2 {
-            Ok(Self::Var(tuple.get_item(1)?.unbind()))
+            Ok(Self::Var(Var(tuple.get_item(1)?.extract()?)))
         } else {
             Err(PyTypeError::new_err("Invalid wire type"))
         }
-    }
-}
-
-// TODO: Remove me.
-// This is a temporary map type used to store a mapping of
-// Var to NodeIndex to hold us over until Var is ported to
-// Rust. Currently, we need this because PyObject cannot be
-// used as the key to an IndexMap.
-//
-// Once we've got Var ported, Wire should also become Hash + Eq
-// and we can consider combining input/output nodes maps.
-#[derive(Clone, Debug)]
-struct _VarIndexMap {
-    dict: Py<PyDict>,
-}
-
-impl _VarIndexMap {
-    pub fn new(py: Python) -> Self {
-        Self {
-            dict: PyDict::new_bound(py).unbind(),
-        }
-    }
-
-    pub fn keys(&self, py: Python) -> impl Iterator<Item = PyObject> {
-        self.dict
-            .bind(py)
-            .keys()
-            .into_iter()
-            .map(|k| k.unbind())
-            .collect::<Vec<_>>()
-            .into_iter()
-    }
-
-    pub fn contains_key(&self, py: Python, key: &PyObject) -> bool {
-        self.dict.bind(py).contains(key).unwrap()
-    }
-
-    pub fn get(&self, py: Python, key: &PyObject) -> Option<NodeIndex> {
-        self.dict
-            .bind(py)
-            .get_item(key)
-            .unwrap()
-            .map(|v| NodeIndex::new(v.extract().unwrap()))
-    }
-
-    pub fn insert(&mut self, py: Python, key: PyObject, value: NodeIndex) {
-        self.dict
-            .bind(py)
-            .set_item(key, value.index().into_py(py))
-            .unwrap()
-    }
-
-    pub fn remove(&mut self, py: Python, key: &PyObject) -> Option<NodeIndex> {
-        let bound_dict = self.dict.bind(py);
-        let res = bound_dict
-            .get_item(key.clone_ref(py))
-            .unwrap()
-            .map(|v| NodeIndex::new(v.extract().unwrap()));
-        let _del_result = bound_dict.del_item(key);
-        res
-    }
-    pub fn values<'py>(&self, py: Python<'py>) -> impl Iterator<Item = NodeIndex> + 'py {
-        let values = self.dict.bind(py).values();
-        values.iter().map(|x| NodeIndex::new(x.extract().unwrap()))
-    }
-
-    pub fn iter<'py>(&self, py: Python<'py>) -> impl Iterator<Item = (PyObject, NodeIndex)> + 'py {
-        self.dict
-            .bind(py)
-            .iter()
-            .map(|(var, index)| (var.unbind(), NodeIndex::new(index.extract().unwrap())))
     }
 }
 
@@ -257,6 +162,8 @@ pub struct DAGCircuit {
     qubits: BitData<Qubit>,
     /// Clbits registered in the circuit.
     clbits: BitData<Clbit>,
+    /// Variables registered in the circuit.
+    vars: BitData<Var>,
     /// Global phase.
     global_phase: Param,
     /// Duration.
@@ -281,11 +188,8 @@ pub struct DAGCircuit {
     /// Map from clbit to input and output nodes of the graph.
     clbit_io_map: Vec<[NodeIndex; 2]>,
 
-    // TODO: use IndexMap<Wire, NodeIndex> once Var is ported to Rust
-    /// Map from var to input nodes of the graph.
-    var_input_map: _VarIndexMap,
-    /// Map from var to output nodes of the graph.
-    var_output_map: _VarIndexMap,
+    /// Map from var to input and output nodes of the graph.
+    var_io_map: Vec<[NodeIndex; 2]>,
 
     /// Operation kind to count
     op_names: IndexMap<String, usize, RandomState>,
@@ -438,6 +342,7 @@ impl DAGCircuit {
             cargs_interner: Interner::new(),
             qubits: BitData::new(py, "qubits".to_string()),
             clbits: BitData::new(py, "clbits".to_string()),
+            vars: BitData::new(py, "vars".to_string()),
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
@@ -445,8 +350,7 @@ impl DAGCircuit {
             clbit_locations: PyDict::new_bound(py).unbind(),
             qubit_io_map: Vec::new(),
             clbit_io_map: Vec::new(),
-            var_input_map: _VarIndexMap::new(py),
-            var_output_map: _VarIndexMap::new(py),
+            var_io_map: Vec::new(),
             op_names: IndexMap::default(),
             control_flow_module: PyControlFlowModule::new(py)?,
             vars_info: HashMap::new(),
@@ -522,10 +426,15 @@ impl DAGCircuit {
                 self.get_node(py, indices[0])?,
             )?;
         }
-        for (var, index) in self.var_input_map.dict.bind(py).iter() {
+        for (var, indices) in self
+            .var_io_map
+            .iter()
+            .enumerate()
+            .map(|(idx, indices)| (Var::new(idx), indices))
+        {
             out_dict.set_item(
-                var,
-                self.get_node(py, NodeIndex::new(index.extract::<usize>()?))?,
+                self.vars.get(var).unwrap().clone_ref(py),
+                self.get_node(py, indices[0])?,
             )?;
         }
         Ok(out_dict.unbind())
@@ -556,10 +465,15 @@ impl DAGCircuit {
                 self.get_node(py, indices[1])?,
             )?;
         }
-        for (var, index) in self.var_output_map.dict.bind(py).iter() {
+        for (var, indices) in self
+            .var_io_map
+            .iter()
+            .enumerate()
+            .map(|(idx, indices)| (Var::new(idx), indices))
+        {
             out_dict.set_item(
-                var,
-                self.get_node(py, NodeIndex::new(index.extract::<usize>()?))?,
+                self.vars.get(var).unwrap().clone_ref(py),
+                self.get_node(py, indices[1])?,
             )?;
         }
         Ok(out_dict.unbind())
@@ -589,8 +503,14 @@ impl DAGCircuit {
                 .map(|(k, v)| (k, [v[0].index(), v[1].index()]))
                 .collect::<IndexMap<_, _, RandomState>>(),
         )?;
-        out_dict.set_item("var_input_map", self.var_input_map.dict.clone_ref(py))?;
-        out_dict.set_item("var_output_map", self.var_output_map.dict.clone_ref(py))?;
+        out_dict.set_item(
+            "var_io_map",
+            self.var_io_map
+                .iter()
+                .enumerate()
+                .map(|(k, v)| (k, [v[0].index(), v[1].index()]))
+                .collect::<IndexMap<_, _, RandomState>>(),
+        )?;
         out_dict.set_item("op_name", self.op_names.clone())?;
         out_dict.set_item(
             "vars_info",
@@ -612,6 +532,7 @@ impl DAGCircuit {
         out_dict.set_item("vars_by_type", self.vars_by_type.clone())?;
         out_dict.set_item("qubits", self.qubits.bits())?;
         out_dict.set_item("clbits", self.clbits.bits())?;
+        out_dict.set_item("vars", self.vars.bits())?;
         let mut nodes: Vec<PyObject> = Vec::with_capacity(self.dag.node_count());
         for node_idx in self.dag.node_indices() {
             let node_data = self.get_node(py, node_idx)?;
@@ -653,12 +574,6 @@ impl DAGCircuit {
         self.cregs = dict_state.get_item("cregs")?.unwrap().extract()?;
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
-        self.var_input_map = _VarIndexMap {
-            dict: dict_state.get_item("var_input_map")?.unwrap().extract()?,
-        };
-        self.var_output_map = _VarIndexMap {
-            dict: dict_state.get_item("var_output_map")?.unwrap().extract()?,
-        };
         self.vars_by_type = dict_state.get_item("vars_by_type")?.unwrap().extract()?;
         let binding = dict_state.get_item("vars_info")?.unwrap();
         let vars_info_raw = binding.downcast::<PyDict>().unwrap();
@@ -689,6 +604,11 @@ impl DAGCircuit {
         for bit in clbits_raw.iter() {
             self.clbits.add(py, &bit, false)?;
         }
+        let binding = dict_state.get_item("vars")?.unwrap();
+        let vars_raw = binding.downcast::<PyList>().unwrap();
+        for bit in vars_raw.iter() {
+            self.vars.add(py, &bit, false)?;
+        }
         let binding = dict_state.get_item("qubit_io_map")?.unwrap();
         let qubit_index_map_raw = binding.downcast::<PyDict>().unwrap();
         self.qubit_io_map = Vec::with_capacity(qubit_index_map_raw.len());
@@ -700,10 +620,17 @@ impl DAGCircuit {
         let binding = dict_state.get_item("clbit_io_map")?.unwrap();
         let clbit_index_map_raw = binding.downcast::<PyDict>().unwrap();
         self.clbit_io_map = Vec::with_capacity(clbit_index_map_raw.len());
-
         for (_k, v) in clbit_index_map_raw.iter() {
             let indices: [usize; 2] = v.extract()?;
             self.clbit_io_map
+                .push([NodeIndex::new(indices[0]), NodeIndex::new(indices[1])]);
+        }
+        let binding = dict_state.get_item("var_io_map")?.unwrap();
+        let var_index_map_raw = binding.downcast::<PyDict>().unwrap();
+        self.var_io_map = Vec::with_capacity(var_index_map_raw.len());
+        for (_k, v) in var_index_map_raw.iter() {
+            let indices: [usize; 2] = v.extract()?;
+            self.var_io_map
                 .push([NodeIndex::new(indices[0]), NodeIndex::new(indices[1])]);
         }
         // Rebuild Graph preserving index holes:
@@ -1190,7 +1117,7 @@ def _format(operand):
         let clbits: HashSet<Clbit> = bit_iter.collect();
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
-            if !self.is_wire_idle(py, &Wire::Clbit(*bit))? {
+            if !self.is_wire_idle(&Wire::Clbit(*bit))? {
                 busy_bits.push(self.clbits.get(*bit).unwrap());
             }
         }
@@ -1217,7 +1144,7 @@ def _format(operand):
 
         // Remove DAG in/out nodes etc.
         for bit in clbits.iter() {
-            self.remove_idle_wire(py, Wire::Clbit(*bit))?;
+            self.remove_idle_wire(Wire::Clbit(*bit))?;
         }
 
         // Copy the current clbit mapping so we can use it while remapping
@@ -1398,7 +1325,7 @@ def _format(operand):
 
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
-            if !self.is_wire_idle(py, &Wire::Qubit(*bit))? {
+            if !self.is_wire_idle(&Wire::Qubit(*bit))? {
                 busy_bits.push(self.qubits.get(*bit).unwrap());
             }
         }
@@ -1425,7 +1352,7 @@ def _format(operand):
 
         // Remove DAG in/out nodes etc.
         for bit in qubits.iter() {
-            self.remove_idle_wire(py, Wire::Qubit(*bit))?;
+            self.remove_idle_wire(Wire::Qubit(*bit))?;
         }
 
         // Copy the current qubit mapping so we can use it while remapping
@@ -2151,7 +2078,7 @@ def _format(operand):
         let wires = (0..self.qubit_io_map.len())
             .map(|idx| Wire::Qubit(Qubit::new(idx)))
             .chain((0..self.clbit_io_map.len()).map(|idx| Wire::Clbit(Clbit::new(idx))))
-            .chain(self.var_input_map.keys(py).map(Wire::Var));
+            .chain((0..self.var_io_map.len()).map(|idx| Wire::Var(Var::new(idx))));
         match ignore {
             Some(ignore) => {
                 // Convert the list to a Rust set.
@@ -2160,7 +2087,7 @@ def _format(operand):
                     .map(|s| s.extract())
                     .collect::<PyResult<HashSet<String>>>()?;
                 for wire in wires {
-                    let nodes_found = self.nodes_on_wire(py, &wire, true).into_iter().any(|node| {
+                    let nodes_found = self.nodes_on_wire(&wire, true).into_iter().any(|node| {
                         let weight = self.dag.node_weight(node).unwrap();
                         if let NodeType::Operation(packed) = weight {
                             !ignore_set.contains(packed.op.name())
@@ -2173,18 +2100,18 @@ def _format(operand):
                         result.push(match wire {
                             Wire::Qubit(qubit) => self.qubits.get(qubit).unwrap().clone_ref(py),
                             Wire::Clbit(clbit) => self.clbits.get(clbit).unwrap().clone_ref(py),
-                            Wire::Var(var) => var,
+                            Wire::Var(var) => self.vars.get(var).unwrap().clone_ref(py),
                         });
                     }
                 }
             }
             None => {
                 for wire in wires {
-                    if self.is_wire_idle(py, &wire)? {
+                    if self.is_wire_idle(&wire)? {
                         result.push(match wire {
                             Wire::Qubit(qubit) => self.qubits.get(qubit).unwrap().clone_ref(py),
                             Wire::Clbit(clbit) => self.clbits.get(clbit).unwrap().clone_ref(py),
-                            Wire::Var(var) => var,
+                            Wire::Var(var) => self.vars.get(var).unwrap().clone_ref(py),
                         });
                     }
                 }
@@ -2618,8 +2545,18 @@ def _format(operand):
                 [NodeType::ClbitIn(bit1), NodeType::ClbitIn(bit2)] => Ok(bit1 == bit2),
                 [NodeType::QubitOut(bit1), NodeType::QubitOut(bit2)] => Ok(bit1 == bit2),
                 [NodeType::ClbitOut(bit1), NodeType::ClbitOut(bit2)] => Ok(bit1 == bit2),
-                [NodeType::VarIn(var1), NodeType::VarIn(var2)] => var1.bind(py).eq(var2),
-                [NodeType::VarOut(var1), NodeType::VarOut(var2)] => var1.bind(py).eq(var2),
+                [NodeType::VarIn(var1), NodeType::VarIn(var2)] => self
+                    .vars
+                    .get(*var1)
+                    .unwrap()
+                    .bind(py)
+                    .eq(other.vars.get(*var2).unwrap()),
+                [NodeType::VarOut(var1), NodeType::VarOut(var2)] => self
+                    .vars
+                    .get(*var1)
+                    .unwrap()
+                    .bind(py)
+                    .eq(other.vars.get(*var2).unwrap()),
                 _ => Ok(false),
             }
         };
@@ -3083,7 +3020,7 @@ def _format(operand):
                 .edges_directed(node_index, Incoming)
                 .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
-                        contracted_var.eq(var).unwrap()
+                        contracted_var.eq(self.vars.get(*var)).unwrap()
                     } else {
                         false
                     }
@@ -3094,7 +3031,7 @@ def _format(operand):
                 .edges_directed(node_index, Outgoing)
                 .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
-                        contracted_var.eq(var).unwrap()
+                        contracted_var.eq(self.vars.get(*var)).unwrap()
                     } else {
                         false
                     }
@@ -3103,7 +3040,7 @@ def _format(operand):
             self.dag.add_edge(
                 pred.source(),
                 succ.target(),
-                Wire::Var(contracted_var.unbind()),
+                Wire::Var(self.vars.find(&contracted_var).unwrap()),
             );
         }
 
@@ -3452,7 +3389,11 @@ def _format(operand):
         let (additional_clbits, additional_vars) =
             self.additional_wires(py, new_op.operation.view(), new_op.extra_attrs.condition())?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
-        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(x.clone_ref(py))));
+        new_wires.extend(
+            additional_vars
+                .iter()
+                .map(|x| Wire::Var(self.vars.find(x.bind(py)).unwrap())),
+        );
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
@@ -3612,11 +3553,11 @@ def _format(operand):
                             non_classical = true;
                         }
                         NodeType::VarIn(v) => {
-                            let var_in = new_dag.var_input_map.get(py, v).unwrap();
+                            let var_in = new_dag.var_io_map[v.index()][0];
                             node_map.insert(*node, var_in);
                         }
                         NodeType::VarOut(v) => {
-                            let var_out = new_dag.var_output_map.get(py, v).unwrap();
+                            let var_out = new_dag.var_io_map[v.index()][1];
                             node_map.insert(*node, var_out);
                         }
                         NodeType::Operation(pi) => {
@@ -3670,12 +3611,11 @@ def _format(operand):
                         .add_edge(*in_node, *out_node, Wire::Clbit(clbit));
                 }
             }
-            for (var, in_node) in new_dag.var_input_map.iter(py) {
+            for (var_index, &[in_node, out_node]) in new_dag.var_io_map.iter().enumerate() {
                 if new_dag.dag.edges(in_node).next().is_none() {
-                    let out_node = new_dag.var_output_map.get(py, &var).unwrap();
                     new_dag
                         .dag
-                        .add_edge(in_node, out_node, Wire::Var(var.clone_ref(py)));
+                        .add_edge(in_node, out_node, Wire::Var(Var::new(var_index)));
                 }
             }
             if remove_idle_qubits {
@@ -3845,7 +3785,7 @@ def _format(operand):
                     match edge.weight() {
                         Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
                         Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
-                        Wire::Var(var) => var,
+                        Wire::Var(var) => self.vars.get(*var).unwrap(),
                     },
                 ))
             }
@@ -4279,7 +4219,7 @@ def _format(operand):
     /// Return a list of op nodes in the first layer of this dag.
     #[pyo3(name = "front_layer")]
     fn py_front_layer(&self, py: Python) -> PyResult<Py<PyList>> {
-        let native_front_layer = self.front_layer(py);
+        let native_front_layer = self.front_layer();
         let front_layer_list = PyList::empty_bound(py);
         for node in native_front_layer {
             front_layer_list.append(self.get_node(py, node)?)?;
@@ -4306,7 +4246,7 @@ def _format(operand):
     #[pyo3(signature = (*, vars_mode="captures"))]
     fn layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty_bound(py);
-        let mut graph_layers = self.multigraph_layers(py);
+        let mut graph_layers = self.multigraph_layers();
         if graph_layers.next().is_none() {
             return Ok(PyIterator::from_bound_object(&layer_list)?.into());
         }
@@ -4406,7 +4346,7 @@ def _format(operand):
     /// Yield layers of the multigraph.
     #[pyo3(name = "multigraph_layers")]
     fn py_multigraph_layers(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        let graph_layers = self.multigraph_layers(py).map(|layer| -> Vec<PyObject> {
+        let graph_layers = self.multigraph_layers().map(|layer| -> Vec<PyObject> {
             layer
                 .into_iter()
                 .filter_map(|index| self.get_node(py, index).ok())
@@ -4521,10 +4461,8 @@ def _format(operand):
             self.qubits.find(wire).map(Wire::Qubit)
         } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
             self.clbits.find(wire).map(Wire::Clbit)
-        } else if self.var_input_map.contains_key(py, &wire.clone().unbind()) {
-            Some(Wire::Var(wire.clone().unbind()))
         } else {
-            None
+            self.vars.find(wire).map(Wire::Var)
         }
         .ok_or_else(|| {
             DAGCircuitError::new_err(format!(
@@ -4534,7 +4472,7 @@ def _format(operand):
         })?;
 
         let nodes = self
-            .nodes_on_wire(py, &wire, only_ops)
+            .nodes_on_wire(&wire, only_ops)
             .into_iter()
             .map(|n| self.get_node(py, n))
             .collect::<PyResult<Vec<_>>>()?;
@@ -4879,7 +4817,7 @@ def _format(operand):
                     match wire.weight() {
                         Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
                         Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
-                        Wire::Var(var) => var,
+                        Wire::Var(var) => self.vars.get(*var).unwrap(),
                     },
                 )
                     .into_py(py)
@@ -4897,7 +4835,7 @@ def _format(operand):
                     match wire.weight() {
                         Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
                         Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
-                        Wire::Var(var) => var,
+                        Wire::Var(var) => self.vars.get(*var).unwrap(),
                     },
                 )
                     .into_py(py)
@@ -4911,7 +4849,7 @@ def _format(operand):
             .map(|wire| match wire.weight() {
                 Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
                 Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
-                Wire::Var(var) => var,
+                Wire::Var(var) => self.vars.get(*var).unwrap(),
             })
             .collect()
     }
@@ -4922,7 +4860,7 @@ def _format(operand):
             .map(|wire| match wire.weight() {
                 Wire::Qubit(qubit) => self.qubits.get(*qubit).unwrap(),
                 Wire::Clbit(clbit) => self.clbits.get(*clbit).unwrap(),
-                Wire::Var(var) => var,
+                Wire::Var(var) => self.vars.get(*var).unwrap(),
             })
             .collect()
     }
@@ -4942,7 +4880,7 @@ def _format(operand):
             let weight = match e.weight() {
                 Wire::Qubit(q) => self.qubits.get(*q).unwrap(),
                 Wire::Clbit(c) => self.clbits.get(*c).unwrap(),
-                Wire::Var(v) => v,
+                Wire::Var(v) => self.vars.get(*v).unwrap(),
             };
             if edge_checker.call1((weight,))?.extract::<bool>()? {
                 result.push(self.get_node(py, e.target())?);
@@ -4959,7 +4897,7 @@ def _format(operand):
                 match wire {
                     Wire::Qubit(qubit) => self.qubits.get(*qubit).to_object(py),
                     Wire::Clbit(clbit) => self.clbits.get(*clbit).to_object(py),
-                    Wire::Var(var) => var.clone_ref(py),
+                    Wire::Var(var) => self.vars.get(*var).to_object(py),
                 }
             })
             .collect()
@@ -5001,6 +4939,12 @@ impl DAGCircuit {
     #[inline(always)]
     pub fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
+    }
+
+    /// Returns an immutable view of the Variable wires registered in the circuit
+    #[inline(always)]
+    pub fn vars(&self) -> &BitData<Var> {
+        &self.vars
     }
 
     /// Return an iterator of gate runs with non-conditional op nodes of given names
@@ -5161,11 +5105,12 @@ impl DAGCircuit {
                     .iter()
                     .map(|c| self.clbit_io_map.get(c.index()).map(|x| x[1]).unwrap()),
             )
-            .chain(
-                vars.iter()
-                    .flatten()
-                    .map(|v| self.var_output_map.get(py, v).unwrap()),
-            )
+            .chain(vars.iter().flatten().map(|v| {
+                self.var_io_map
+                    .get(self.vars.find(v.bind(py)).unwrap().index())
+                    .map(|x| x[1])
+                    .unwrap()
+            }))
             .collect();
 
         for output_node in output_nodes {
@@ -5226,7 +5171,7 @@ impl DAGCircuit {
             .collect();
         if let Some(vars) = vars {
             for var in vars {
-                input_nodes.push(self.var_input_map.get(py, &var).unwrap());
+                input_nodes.push(self.var_io_map[self.vars.find(var.bind(py)).unwrap().index()][0]);
             }
         }
 
@@ -5422,7 +5367,7 @@ impl DAGCircuit {
             .any(|x| self.op_names.contains_key(&x.to_string()))
     }
 
-    fn is_wire_idle(&self, py: Python, wire: &Wire) -> PyResult<bool> {
+    fn is_wire_idle(&self, wire: &Wire) -> PyResult<bool> {
         let (input_node, output_node) = match wire {
             Wire::Qubit(qubit) => (
                 self.qubit_io_map[qubit.index()][0],
@@ -5433,8 +5378,8 @@ impl DAGCircuit {
                 self.clbit_io_map[clbit.index()][1],
             ),
             Wire::Var(var) => (
-                self.var_input_map.get(py, var).unwrap(),
-                self.var_output_map.get(py, var).unwrap(),
+                self.var_io_map[var.index()][0],
+                self.var_io_map[var.index()][1],
             ),
         };
 
@@ -5569,9 +5514,12 @@ impl DAGCircuit {
     ///
     ///     This adds a pair of in and out nodes connected by an edge.
     ///
+    /// Returns:
+    ///     The input and output node indices of the added wire, respectively.
+    ///
     /// Raises:
     ///     DAGCircuitError: if trying to add duplicate wire
-    fn add_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
+    fn add_wire(&mut self, wire: Wire) -> PyResult<(NodeIndex, NodeIndex)> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => {
                 if (qubit.index()) >= self.qubit_io_map.len() {
@@ -5593,33 +5541,31 @@ impl DAGCircuit {
                     Err(DAGCircuitError::new_err("classical wire already exists!"))
                 }
             }
-            Wire::Var(ref var) => {
-                if self.var_input_map.contains_key(py, var)
-                    || self.var_output_map.contains_key(py, var)
-                {
+            Wire::Var(var) => {
+                if var.index() >= self.var_io_map.len() {
+                    let in_node = self.dag.add_node(NodeType::VarIn(var));
+                    let out_node = self.dag.add_node(NodeType::VarOut(var));
+                    self.var_io_map.push([in_node, out_node]);
+                    Ok((in_node, out_node))
+                } else {
                     return Err(DAGCircuitError::new_err("var wire already exists!"));
                 }
-                let in_node = self.dag.add_node(NodeType::VarIn(var.clone_ref(py)));
-                let out_node = self.dag.add_node(NodeType::VarOut(var.clone_ref(py)));
-                self.var_input_map.insert(py, var.clone_ref(py), in_node);
-                self.var_output_map.insert(py, var.clone_ref(py), out_node);
-                Ok((in_node, out_node))
             }
         }?;
 
         self.dag.add_edge(in_node, out_node, wire);
-        Ok(())
+        Ok((in_node, out_node))
     }
 
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    pub fn nodes_on_wire(&self, py: Python, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    pub fn nodes_on_wire(&self, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.index()).map(|x| x[0]),
             Wire::Clbit(clbit) => self.clbit_io_map.get(clbit.index()).map(|x| x[0]),
-            Wire::Var(var) => self.var_input_map.get(py, var),
+            Wire::Var(var) => self.var_io_map.get(var.index()).map(|x| x[0]),
         };
 
         while let Some(node) = current_node {
@@ -5644,14 +5590,11 @@ impl DAGCircuit {
         nodes
     }
 
-    fn remove_idle_wire(&mut self, py: Python, wire: Wire) -> PyResult<()> {
+    fn remove_idle_wire(&mut self, wire: Wire) -> PyResult<()> {
         let [in_node, out_node] = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()],
             Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()],
-            Wire::Var(var) => [
-                self.var_input_map.remove(py, &var).unwrap(),
-                self.var_output_map.remove(py, &var).unwrap(),
-            ],
+            Wire::Var(var) => self.var_io_map[var.index()],
         };
         self.dag.remove_node(in_node);
         self.dag.remove_node(out_node);
@@ -5670,7 +5613,7 @@ impl DAGCircuit {
                 },
             )?,
         )?;
-        self.add_wire(py, Wire::Qubit(qubit))?;
+        self.add_wire(Wire::Qubit(qubit))?;
         Ok(qubit)
     }
 
@@ -5686,7 +5629,7 @@ impl DAGCircuit {
                 },
             )?,
         )?;
-        self.add_wire(py, Wire::Clbit(clbit))?;
+        self.add_wire(Wire::Clbit(clbit))?;
         Ok(clbit)
     }
 
@@ -5755,7 +5698,7 @@ impl DAGCircuit {
             } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
                 NodeType::ClbitIn(self.clbits.find(wire).unwrap())
             } else {
-                NodeType::VarIn(wire.clone().unbind())
+                NodeType::VarIn(self.vars.find(wire).unwrap())
             }
         } else if let Ok(out_node) = b.downcast::<DAGOutNode>() {
             let out_node = out_node.borrow();
@@ -5765,7 +5708,7 @@ impl DAGCircuit {
             } else if wire.is_instance(imports::CLBIT.get_bound(py))? {
                 NodeType::ClbitOut(self.clbits.find(wire).unwrap())
             } else {
-                NodeType::VarIn(wire.clone().unbind())
+                NodeType::VarIn(self.vars.find(wire).unwrap())
             }
         } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
             let op_node = op_node.borrow();
@@ -5843,12 +5786,16 @@ impl DAGCircuit {
                 )?
                 .into_any()
             }
-            NodeType::VarIn(var) => {
-                Py::new(py, DAGInNode::new(py, id, var.clone_ref(py)))?.into_any()
-            }
-            NodeType::VarOut(var) => {
-                Py::new(py, DAGOutNode::new(py, id, var.clone_ref(py)))?.into_any()
-            }
+            NodeType::VarIn(var) => Py::new(
+                py,
+                DAGInNode::new(py, id, self.vars.get(*var).unwrap().clone_ref(py)),
+            )?
+            .into_any(),
+            NodeType::VarOut(var) => Py::new(
+                py,
+                DAGOutNode::new(py, id, self.vars.get(*var).unwrap().clone_ref(py)),
+            )?
+            .into_any(),
         };
         Ok(dag_node)
     }
@@ -5933,10 +5880,10 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over a list layers of the `DAGCircuit``.
-    pub fn multigraph_layers(&self, py: Python) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
+    pub fn multigraph_layers(&self) -> impl Iterator<Item = Vec<NodeIndex>> + '_ {
         let mut first_layer: Vec<_> = self.qubit_io_map.iter().map(|x| x[0]).collect();
         first_layer.extend(self.clbit_io_map.iter().map(|x| x[0]));
-        first_layer.extend(self.var_input_map.values(py));
+        first_layer.extend(self.var_io_map.iter().map(|x| x[0]));
         // A DAG is by definition acyclical, therefore unwrapping the layer should never fail.
         layers(&self.dag, first_layer).map(|layer| match layer {
             Ok(layer) => layer,
@@ -5945,17 +5892,19 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over the first layer of the `DAGCircuit``.
-    pub fn front_layer<'a>(&'a self, py: Python) -> Box<dyn Iterator<Item = NodeIndex> + 'a> {
-        let mut graph_layers = self.multigraph_layers(py);
+    pub fn front_layer(&self) -> impl Iterator<Item = NodeIndex> {
+        let mut graph_layers = self.multigraph_layers();
         graph_layers.next();
 
         let next_layer = graph_layers.next();
         match next_layer {
             Some(layer) => Box::new(layer.into_iter().filter(|node| {
                 matches!(self.dag.node_weight(*node).unwrap(), NodeType::Operation(_))
-            })),
-            None => Box::new(vec![].into_iter()),
+            }))
+            .collect(),
+            None => vec![],
         }
+        .into_iter()
     }
 
     fn substitute_node_with_subgraph(
@@ -6043,7 +5992,7 @@ impl DAGCircuit {
                     .any(|edge| match edge.weight() {
                         Wire::Qubit(qubit) => !qubit_map.contains_key(qubit),
                         Wire::Clbit(clbit) => !clbit_map.contains_key(clbit),
-                        Wire::Var(var) => !bound_var_map.contains(var).unwrap(),
+                        Wire::Var(var) => !bound_var_map.contains(other.vars.get(*var)).unwrap(),
                     }),
                 _ => false,
             }
@@ -6107,7 +6056,11 @@ impl DAGCircuit {
                 match edge.weight() {
                     Wire::Qubit(qubit) => Wire::Qubit(qubit_map[qubit]),
                     Wire::Clbit(clbit) => Wire::Clbit(clbit_map[clbit]),
-                    Wire::Var(var) => Wire::Var(bound_var_map.get_item(var)?.unwrap().unbind()),
+                    Wire::Var(var) => Wire::Var(
+                        self.vars
+                            .find(&bound_var_map.get_item(other.vars.get(*var))?.unwrap())
+                            .unwrap(),
+                    ),
                 },
             );
         }
@@ -6127,9 +6080,13 @@ impl DAGCircuit {
                     .clbit_io_map
                     .get(reverse_clbit_map[&clbit].index())
                     .map(|x| x[0]),
-                Wire::Var(ref var) => {
-                    let index = &reverse_var_map.get_item(var)?.unwrap().unbind();
-                    other.var_input_map.get(py, index)
+                Wire::Var(var) => {
+                    let index = other
+                        .vars
+                        .find(&reverse_var_map.get_item(self.vars.get(var))?.unwrap())
+                        .unwrap()
+                        .index();
+                    other.var_io_map.get(index).map(|x| x[0])
                 }
             };
             let old_index =
@@ -6163,9 +6120,13 @@ impl DAGCircuit {
                     .clbit_io_map
                     .get(reverse_clbit_map[&clbit].index())
                     .map(|x| x[1]),
-                Wire::Var(ref var) => {
-                    let index = &reverse_var_map.get_item(var)?.unwrap().unbind();
-                    other.var_output_map.get(py, index)
+                Wire::Var(var) => {
+                    let index = other
+                        .vars
+                        .find(&reverse_var_map.get_item(self.vars.get(var))?.unwrap())
+                        .unwrap()
+                        .index();
+                    other.var_io_map.get(index).map(|x| x[1])
                 }
             };
             let old_index =
@@ -6210,16 +6171,9 @@ impl DAGCircuit {
                 "cannot add var as its name shadows an existing var",
             ));
         }
-        let in_node = NodeType::VarIn(var.clone().unbind());
-        let out_node = NodeType::VarOut(var.clone().unbind());
-        let in_index = self.dag.add_node(in_node);
-        let out_index = self.dag.add_node(out_node);
-        self.dag
-            .add_edge(in_index, out_index, Wire::Var(var.clone().unbind()));
-        self.var_input_map
-            .insert(py, var.clone().unbind(), in_index);
-        self.var_output_map
-            .insert(py, var.clone().unbind(), out_index);
+
+        let var_idx = self.vars.add(py, var, true)?;
+        let (in_index, out_index) = self.add_wire(Wire::Var(var_idx))?;
         self.vars_by_type[type_ as usize]
             .bind(py)
             .add(var.clone().unbind())?;
@@ -6269,7 +6223,8 @@ impl DAGCircuit {
                 }
             }
             for v in vars {
-                if !self.var_output_map.contains_key(py, &v) {
+                let var_idx = self.vars.find(v.bind(py)).unwrap();
+                if !self.var_io_map.len() - 1 < var_idx.index() {
                     return Err(DAGCircuitError::new_err(format!(
                         "var {} not found in output map",
                         v
@@ -6322,6 +6277,7 @@ impl DAGCircuit {
             cargs_interner: Interner::with_capacity(num_clbits),
             qubits: BitData::with_capacity(py, "qubits".to_string(), num_qubits),
             clbits: BitData::with_capacity(py, "clbits".to_string(), num_clbits),
+            vars: BitData::with_capacity(py, "vars".to_string(), num_vars),
             global_phase: Param::Float(0.),
             duration: None,
             unit: "dt".to_string(),
@@ -6329,8 +6285,7 @@ impl DAGCircuit {
             clbit_locations: PyDict::new_bound(py).unbind(),
             qubit_io_map: Vec::with_capacity(num_qubits),
             clbit_io_map: Vec::with_capacity(num_clbits),
-            var_input_map: _VarIndexMap::new(py),
-            var_output_map: _VarIndexMap::new(py),
+            var_io_map: Vec::with_capacity(num_vars),
             op_names: IndexMap::default(),
             control_flow_module: PyControlFlowModule::new(py)?,
             vars_info: HashMap::with_capacity(num_vars),
@@ -6690,7 +6645,8 @@ impl DAGCircuit {
                 } else {
                     // If the var is not in the last nodes collection, the edge between the output node and its predecessor.
                     // Then, store the predecessor's NodeIndex in the last nodes collection.
-                    let output_node = self.var_output_map.get(py, var).unwrap();
+                    let var_idx = self.vars.find(var.bind(py)).unwrap();
+                    let output_node = self.var_io_map.get(var_idx.index()).unwrap()[1];
                     let (edge_id, predecessor_node) = self
                         .dag
                         .edges_directed(output_node, Incoming)
@@ -6707,8 +6663,11 @@ impl DAGCircuit {
                 if var_last_node == new_node {
                     continue;
                 }
-                self.dag
-                    .add_edge(var_last_node, new_node, Wire::Var(var.clone_ref(py)));
+                self.dag.add_edge(
+                    var_last_node,
+                    new_node,
+                    Wire::Var(self.vars.find(var.bind(py)).unwrap()),
+                );
             }
         }
 
@@ -6727,7 +6686,8 @@ impl DAGCircuit {
         // Add the output_nodes back to vars
         for item in vars_last_nodes.items() {
             let (var, node): (PyObject, usize) = item.extract()?;
-            let output_node = self.var_output_map.get(py, &var).unwrap();
+            let var = self.vars.find(var.bind(py)).unwrap();
+            let output_node = self.var_io_map.get(var.index()).unwrap()[1];
             self.dag
                 .add_edge(NodeIndex::new(node), output_node, Wire::Var(var));
         }
