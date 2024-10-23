@@ -35,6 +35,8 @@ from qiskit.circuit.library.standard_gates import (
     SwapGate,
 )
 
+from qiskit._accelerate.gate_direction import fix_gate_direction_coupling
+
 
 def _swap_node_qargs(node):
     return DAGOpNode(node.op, node.qargs[::-1], node.cargs)
@@ -345,5 +347,6 @@ class GateDirection(TransformationPass):
         """
         layout_map = {bit: i for i, bit in enumerate(dag.qubits)}
         if self.target is None:
-            return self._run_coupling_map(dag, layout_map)
+            return fix_gate_direction_coupling(dag, set(self.coupling_map.get_edges()))
+            # return self._run_coupling_map(dag, layout_map)
         return self._run_target(dag, layout_map)
