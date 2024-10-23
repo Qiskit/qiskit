@@ -1756,21 +1756,31 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        # Expect a -pi/2 global phase for the U3 to RZ/SX conversion, and
-        # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
-        # for the second and third RZ gates in the U3 decomposition.
-        expected = QuantumCircuit(
-            1, global_phase=-np.pi / 2 - 0.5 * (-0.2 + np.pi) - 0.5 * 3 * np.pi
-        )
-        expected.p(-np.pi, 0)
-        expected.sx(0)
-        expected.p(np.pi - 0.2, 0)
-        expected.sx(0)
+        if optimization_level == 1:
+            # Expect a -pi/2 global phase for the U3 to RZ/SX conversion, and
+            # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
+            # for the second and third RZ gates in the U3 decomposition.
+            expected = QuantumCircuit(
+                1, global_phase=-np.pi / 2 - 0.5 * (-0.2 + np.pi) - 0.5 * 3 * np.pi
+            )
+            expected.p(-np.pi, 0)
+            expected.sx(0)
+            expected.p(np.pi - 0.2, 0)
+            expected.sx(0)
+        else:
+            expected = QuantumCircuit(
+                1, global_phase=(15 * np.pi - 1) / 10
+            )
+            expected.sx(0)
+            expected.p(1.0 / 5.0 + np.pi, 0)
+            expected.sx(0)
+            expected.p(3 * np.pi, 0)
 
         error_message = (
             f"\nOutput circuit:\n{out!s}\n{Operator(out).data}\n"
             f"Expected circuit:\n{expected!s}\n{Operator(expected).data}"
         )
+        self.assertEqual(Operator(qc), Operator(out))
         self.assertEqual(out, expected, error_message)
 
     @data(0, 1, 2, 3)
