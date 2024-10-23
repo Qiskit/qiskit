@@ -285,7 +285,8 @@ def generate_preset_pass_manager(
     _skip_target = (
         target is None
         and backend is None
-        and (basis_gates is None or coupling_map is None or instruction_durations is not None)
+        # and (basis_gates is None or coupling_map is None or instruction_durations is not None)
+        and (instruction_durations is not None)
     )
 
     # Resolve loose constraints case-by-case against backend constraints.
@@ -346,7 +347,7 @@ def generate_preset_pass_manager(
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
             with warnings.catch_warnings():
-                # TODO this approach (target-to-properties) is going to be removed soon (1.3) in favor
+                # TODO: this approach (target-to-properties) is going to be removed soon (1.3) in favor
                 #   of backend-to-target approach
                 #   https://github.com/Qiskit/qiskit/pull/12850
                 warnings.filterwarnings(
@@ -400,6 +401,7 @@ def generate_preset_pass_manager(
         pm = level_3_pass_manager(pm_config)
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
+
     return pm
 
 
