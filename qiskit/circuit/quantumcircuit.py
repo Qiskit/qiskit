@@ -280,6 +280,31 @@ class QuantumCircuit:
 
     .. autoattribute:: name
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qr = QuantumRegister(2)
+       cr = ClassicalRegister(2)
+       qc = QuantumCircuit(qr, cr)
+
+       qc.h(qr[0])
+       qc.cx(qr[0], qr[1])
+       qc.measure(qr, cr)
+       qc.name = "my_circuit"
+
+       print(qc.name)
+
+    .. code-block:: text
+
+       my_circuit
+
+
     You can attach arbitrary :attr:`metadata` to a circuit.  No part of core Qiskit will inspect
     this or change its behavior based on metadata, but it will be faithfully passed through the
     transpiler, so you can tag your circuits yourself.  When serializing a circuit with QPY (see
