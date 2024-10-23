@@ -328,7 +328,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         This issue was raised in #2752
         """
         qc = QuantumCircuit(1, 1)
-        qc.h(0).c_if(qc.cregs[0], 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.h(0).c_if(qc.cregs[0], 1)
         qc.measure(0, 0)
 
         pass_manager = PassManager()

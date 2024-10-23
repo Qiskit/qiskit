@@ -304,7 +304,8 @@ class TestAlignMeasures(QiskitTestCase):
         circuit.x(0)
         circuit.delay(100, 0, unit="dt")
         circuit.measure(0, 0)
-        circuit.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit.x(1).c_if(0, 1)
         circuit.measure(2, 0)
 
         timed_circuit = self.time_conversion_pass(circuit)
@@ -320,7 +321,8 @@ class TestAlignMeasures(QiskitTestCase):
         ref_circuit.delay(1872, 1, unit="dt")  # 2032 - 160
         ref_circuit.delay(432, 2, unit="dt")  # 2032 - 1600
         ref_circuit.measure(0, 0)
-        ref_circuit.x(1).c_if(0, 1)
+        with self.assertWarns(DeprecationWarning):
+            ref_circuit.x(1).c_if(0, 1)
         ref_circuit.delay(160, 0, unit="dt")
         ref_circuit.measure(2, 0)
 

@@ -2102,14 +2102,14 @@ class QuantumCircuit:
                 is_control_flow = isinstance(n_op, ControlFlowOp)
                 if (
                     not is_control_flow
-                    and (condition := getattr(n_op, "condition", None)) is not None
+                    and (condition := getattr(n_op, "_condition", None)) is not None
                 ):
                     n_op = n_op.copy() if n_op is op and copy else n_op
                     n_op.condition = variable_mapper.map_condition(condition)
                 elif is_control_flow:
                     n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
                     if isinstance(n_op, (IfElseOp, WhileLoopOp)):
-                        n_op.condition = variable_mapper.map_condition(n_op.condition)
+                        n_op.condition = variable_mapper.map_condition(n_op._condition)
                     elif isinstance(n_op, SwitchCaseOp):
                         n_op.target = variable_mapper.map_target(n_op.target)
                 elif isinstance(n_op, Store):
@@ -3520,7 +3520,7 @@ class QuantumCircuit:
 
         for instruction in self._data:
             objects = set(itertools.chain(instruction.qubits, instruction.clbits))
-            if (condition := getattr(instruction.operation, "condition", None)) is not None:
+            if (condition := getattr(instruction.operation, "_condition", None)) is not None:
                 objects.update(_builder_utils.condition_resources(condition).clbits)
                 if isinstance(condition, expr.Expr):
                     update_from_expr(objects, condition)
@@ -3623,7 +3623,7 @@ class QuantumCircuit:
             else:
                 args = instruction.qubits + instruction.clbits
                 num_qargs = len(args) + (
-                    1 if getattr(instruction.operation, "condition", None) else 0
+                    1 if getattr(instruction.operation, "_condition", None) else 0
                 )
 
             if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):

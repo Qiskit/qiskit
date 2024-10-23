@@ -127,7 +127,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u1(0.25*pi) q[1];
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
-        qc = QuantumCircuit.from_qasm_str(qasmstr)
+        with self.assertWarns(DeprecationWarning):
+            qc = QuantumCircuit.from_qasm_str(qasmstr)
 
         pass_manager = PassManager()
         pass_manager.append(CollectMultiQBlocks())
@@ -166,11 +167,15 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         qc = QuantumCircuit(qr, cr)
         qc.p(0.1, 0)
-        qc.p(0.2, 0).c_if(cr, 0)
-        qc.p(0.3, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.p(0.2, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.p(0.3, 0).c_if(cr, 0)
         qc.cx(0, 1)
-        qc.cx(1, 0).c_if(cr, 0)
-        qc.cx(0, 1).c_if(cr, 1)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(1, 0).c_if(cr, 0)
+        with self.assertWarns(DeprecationWarning):
+            qc.cx(0, 1).c_if(cr, 1)
 
         pass_manager = PassManager()
         pass_manager.append(CollectMultiQBlocks())

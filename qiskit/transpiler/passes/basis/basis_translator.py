@@ -368,9 +368,9 @@ class BasisTranslator(TransformationPass):
                     new_node.op = new_node.op.copy()
                 # dag_op may be the same instance as other ops in the dag,
                 # so if there is a condition, need to copy
-                if getattr(node.op, "condition", None):
+                if getattr(node, "condition", None):
                     new_node_op = new_node.op.to_mutable()
-                    new_node_op.condition = node.op.condition
+                    new_node_op.condition = node.condition
                     new_node.op = new_node_op
                 dag._apply_op_node_back(new_node)
             if target_dag.global_phase:
