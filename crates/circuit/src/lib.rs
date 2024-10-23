@@ -23,6 +23,7 @@ pub mod imports;
 pub mod interner;
 pub mod operations;
 pub mod packed_instruction;
+pub mod parameterexpression;
 pub mod parameter_table;
 pub mod slice;
 pub mod util;
