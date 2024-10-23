@@ -40,6 +40,7 @@ pub mod remove_diagonal_gates_before_measure;
 pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
+pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod split_2q_unitaries;
 pub mod star_prerouting;
@@ -49,6 +50,7 @@ pub mod target_transpiler;
 pub mod twirling;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
+pub mod unitary_synthesis;
 pub mod utils;
 pub mod vf2_layout;
 

@@ -338,18 +338,22 @@ class TestLoadFromQPY(QiskitTestCase):
         """
         amp = Parameter("amp")
 
-        with pulse.builder.build() as sched:
-            pulse.builder.play(pulse.Constant(100, amp), pulse.DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            with pulse.builder.build() as sched:
+                pulse.builder.play(pulse.Constant(100, amp), pulse.DriveChannel(0))
 
         gate = Gate("custom", 1, [amp])
 
         qc = QuantumCircuit(1)
         qc.append(gate, (0,))
-        qc.add_calibration(gate, (0,), sched)
+        with self.assertWarns(DeprecationWarning):
+            qc.add_calibration(gate, (0,), sched)
         qc.assign_parameters({amp: 1 / 3}, inplace=True)
 
         qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
+        with self.assertWarns(DeprecationWarning):
+            # qpy.dump warns for deprecations of pulse gate serialization
+            dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -360,7 +364,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         # Make sure that looking for a calibration based on the instruction's
         # parameters succeeds
-        self.assertIn(cal_key, new_circ.calibrations[gate.name])
+        with self.assertWarns(DeprecationWarning):
+            self.assertIn(cal_key, new_circ.calibrations[gate.name])
 
     def test_parameter_expression(self):
         """Test a circuit with a parameter expression."""

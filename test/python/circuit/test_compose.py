@@ -576,21 +576,25 @@ class TestCircuitCompose(QiskitTestCase):
     def test_compose_calibrations(self):
         """Test that composing two circuits updates calibrations."""
         circ_left = QuantumCircuit(1)
-        circ_left.add_calibration("h", [0], None)
         circ_right = QuantumCircuit(1)
-        circ_right.add_calibration("rx", [0], None)
+        with self.assertWarns(DeprecationWarning):
+            circ_left.add_calibration("h", [0], None)
+            circ_right.add_calibration("rx", [0], None)
         circ = circ_left.compose(circ_right)
-        self.assertEqual(len(circ.calibrations), 2)
-        self.assertEqual(len(circ_left.calibrations), 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(circ.calibrations), 2)
+            self.assertEqual(len(circ_left.calibrations), 1)
 
         circ_left = QuantumCircuit(1)
-        circ_left.add_calibration("h", [0], None)
         circ_right = QuantumCircuit(1)
-        circ_right.add_calibration("h", [1], None)
+        with self.assertWarns(DeprecationWarning):
+            circ_left.add_calibration("h", [0], None)
+            circ_right.add_calibration("h", [1], None)
         circ = circ_left.compose(circ_right)
-        self.assertEqual(len(circ.calibrations), 1)
-        self.assertEqual(len(circ.calibrations["h"]), 2)
-        self.assertEqual(len(circ_left.calibrations), 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(circ.calibrations), 1)
+            self.assertEqual(len(circ.calibrations["h"]), 2)
+            self.assertEqual(len(circ_left.calibrations), 1)
 
         # Ensure that transpiled _calibration is defaultdict
         qc = QuantumCircuit(2, 2)
@@ -598,7 +602,8 @@ class TestCircuitCompose(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure(0, 0)
         qc = transpile(qc, None, basis_gates=["h", "cx"], coupling_map=[[0, 1], [1, 0]])
-        qc.add_calibration("cx", [0, 1], Schedule())
+        with self.assertWarns(DeprecationWarning):
+            qc.add_calibration("cx", [0, 1], Schedule())
 
     def test_compose_one_liner(self):
         """Test building a circuit in one line, for fun."""
