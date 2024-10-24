@@ -24,7 +24,7 @@ import numpy as np
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
+from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList
 from qiskit.transpiler import Target
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -155,6 +155,17 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
             SparseObservable(base, num_qubits=base.num_qubits + 1)
 
+    def test_default_constructor_term(self):
+        expected = SparseObservable.from_list([("IIZXII+-", 2j)])
+        self.assertEqual(SparseObservable(expected[0]), expected)
+
+    def test_default_constructor_term_iterable(self):
+        expected = SparseObservable.from_list([("IIZXII+-", 2j), ("rlIIIIII", 0.5)])
+        terms = [expected[0], expected[1]]
+        self.assertEqual(SparseObservable(list(terms)), expected)
+        self.assertEqual(SparseObservable(tuple(terms)), expected)
+        self.assertEqual(SparseObservable(term for term in terms), expected)
+
     def test_default_constructor_failed_inference(self):
         with self.assertRaises(TypeError):
             # Mixed dense/sparse list.
@@ -175,6 +186,13 @@ class TestSparseObservable(QiskitTestCase):
         self.assertEqual(
             SparseObservable.from_list([("IIIXIZ", 1.0), ("YY+-II", 0.5j)]).num_terms, 2
         )
+
+    def test_len(self):
+        self.assertEqual(len(SparseObservable.zero(0)), 0)
+        self.assertEqual(len(SparseObservable.zero(10)), 0)
+        self.assertEqual(len(SparseObservable.identity(0)), 1)
+        self.assertEqual(len(SparseObservable.identity(1_000_000)), 1)
+        self.assertEqual(len(SparseObservable.from_list([("IIIXIZ", 1.0), ("YY+-II", 0.5j)])), 2)
 
     def test_bit_term_enum(self):
         # These are very explicit tests that effectively just duplicate magic numbers, but the point
@@ -587,6 +605,41 @@ class TestSparseObservable(QiskitTestCase):
         parametric = SparsePauliOp.from_list([("IIXZ", Parameter("x"))], dtype=object)
         with self.assertRaisesRegex(TypeError, "complex-typed coefficients"):
             SparseObservable.from_sparse_pauli_op(parametric)
+
+    def test_from_terms(self):
+        self.assertEqual(SparseObservable.from_terms([], num_qubits=5), SparseObservable.zero(5))
+        self.assertEqual(SparseObservable.from_terms((), num_qubits=0), SparseObservable.zero(0))
+        self.assertEqual(
+            SparseObservable.from_terms((None for _ in []), num_qubits=3), SparseObservable.zero(3)
+        )
+
+        expected = SparseObservable.from_sparse_list(
+            [
+                ("XYZ", (4, 2, 1), 1j),
+                ("+-rl", (8, 5, 3, 2), 0.5),
+                ("01", (5, 0), 2.0),
+            ],
+            num_qubits=10,
+        )
+        self.assertEqual(SparseObservable.from_terms(list(expected)), expected)
+        self.assertEqual(SparseObservable.from_terms(tuple(expected)), expected)
+        self.assertEqual(SparseObservable.from_terms(term for term in expected), expected)
+        self.assertEqual(
+            SparseObservable.from_terms(
+                (term for term in expected), num_qubits=expected.num_qubits
+            ),
+            expected,
+        )
+
+    def test_from_terms_failures(self):
+        with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
+            SparseObservable.from_terms([])
+
+        left, right = SparseObservable("IIXYI")[0], SparseObservable("IIIIIIIIX")[0]
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            SparseObservable.from_terms([left, right])
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            SparseObservable.from_terms([left], num_qubits=100)
 
     def test_zero(self):
         zero_5 = SparseObservable.zero(5)
@@ -1098,6 +1151,10 @@ class TestSparseObservable(QiskitTestCase):
         self.assertEqual(base + obs_label, expected)
         self.assertEqual(obs_label + base, expected)
 
+        expected = 3j * SparseObservable.from_label("IXYrlII0I")
+        self.assertEqual(base + expected[0], expected)
+        self.assertEqual(expected[0] + base, expected)
+
         with self.assertRaises(TypeError):
             _ = base + {}
         with self.assertRaises(TypeError):
@@ -1204,6 +1261,10 @@ class TestSparseObservable(QiskitTestCase):
         expected = SparseObservable.from_label(obs_label)
         self.assertEqual(base - obs_label, -expected)
         self.assertEqual(obs_label - base, expected)
+
+        expected = 3j * SparseObservable.from_label("IXYrlII0I")
+        self.assertEqual(base - expected[0], -expected)
+        self.assertEqual(expected[0] - base, expected)
 
         with self.assertRaises(TypeError):
             _ = base - {}
@@ -1710,3 +1771,240 @@ class TestSparseObservable(QiskitTestCase):
         layout = transpile(qc, target=lnn_target(3), seed_transpiler=2024_10_25).layout
         with self.assertRaisesRegex(ValueError, "cannot shrink"):
             obs.apply_layout(layout, num_qubits=2)
+
+    def test_pauli_bases(self):
+        obs = SparseObservable.from_list(
+            [
+                ("IIIII", 1.0),
+                ("IXYZI", 2.0),
+                ("+-II+", 1j),
+                ("rlrlr", -0.5),
+                ("01010", -0.25),
+                ("rlYII", 1.0),
+            ]
+        )
+        expected = PauliList(
+            [
+                Pauli("IIIII"),
+                Pauli("IXYZI"),
+                Pauli("XXIIX"),
+                Pauli("YYYYY"),
+                Pauli("ZZZZZ"),
+                Pauli("YYYII"),
+            ]
+        )
+        self.assertEqual(obs.pauli_bases(), expected)
+
+    def test_iteration(self):
+        self.assertEqual(list(SparseObservable.zero(5)), [])
+        self.assertEqual(tuple(SparseObservable.zero(0)), ())
+
+        obs = SparseObservable.from_sparse_list(
+            [
+                ("Xrl", (4, 2, 1), 2j),
+                ("", (), 0.5),
+                ("01", (3, 0), -0.25),
+                ("+-", (2, 1), 1.0),
+                ("YZ", (4, 1), 1j),
+            ],
+            num_qubits=5,
+        )
+        bit_term = SparseObservable.BitTerm
+        expected = [
+            SparseObservable.Term(5, 2j, [bit_term.LEFT, bit_term.RIGHT, bit_term.X], [1, 2, 4]),
+            SparseObservable.Term(5, 0.5, [], []),
+            SparseObservable.Term(5, -0.25, [bit_term.ONE, bit_term.ZERO], [0, 3]),
+            SparseObservable.Term(5, 1.0, [bit_term.MINUS, bit_term.PLUS], [1, 2]),
+            SparseObservable.Term(5, 1j, [bit_term.Z, bit_term.Y], [1, 4]),
+        ]
+        self.assertEqual(list(obs), expected)
+
+    def test_indexing(self):
+        obs = SparseObservable.from_sparse_list(
+            [
+                ("Xrl", (4, 2, 1), 2j),
+                ("", (), 0.5),
+                ("01", (3, 0), -0.25),
+                ("+-", (2, 1), 1.0),
+                ("YZ", (4, 1), 1j),
+            ],
+            num_qubits=5,
+        )
+        bit_term = SparseObservable.BitTerm
+        expected = [
+            SparseObservable.Term(5, 2j, [bit_term.LEFT, bit_term.RIGHT, bit_term.X], [1, 2, 4]),
+            SparseObservable.Term(5, 0.5, [], []),
+            SparseObservable.Term(5, -0.25, [bit_term.ZERO, bit_term.ONE], [3, 0]),
+            SparseObservable.Term(5, 1.0, [bit_term.MINUS, bit_term.PLUS], [1, 2]),
+            SparseObservable.Term(5, 1j, [bit_term.Y, bit_term.Z], [4, 1]),
+        ]
+        self.assertEqual(obs[0], expected[0])
+        self.assertEqual(obs[-2], expected[-2])
+        self.assertEqual(obs[2:4], expected[2:4])
+        self.assertEqual(obs[1::2], expected[1::2])
+        self.assertEqual(obs[:], expected)
+        self.assertEqual(obs[-1:-4:-1], expected[-1:-4:-1])
+
+    @ddt.data(
+        SparseObservable.identity(0),
+        SparseObservable.identity(1_000),
+        SparseObservable.from_label("IIXIZI"),
+        SparseObservable.from_label("X"),
+        SparseObservable.from_list([("YIXZII", -0.25)]),
+        SparseObservable.from_list([("01rl+-", 0.25 + 0.5j)]),
+    )
+    def test_term_repr(self, obs):
+        # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
+        # that it has any particular form.
+        term = obs[0]
+        self.assertIsInstance(repr(term), str)
+        self.assertIn("SparseObservable.Term", repr(term))
+
+    @ddt.data(
+        SparseObservable.identity(0),
+        2j * SparseObservable.identity(1),
+        SparseObservable.identity(100),
+        SparseObservable.from_label("IIX+-rlYZ01IIIII"),
+    )
+    def test_term_to_observable(self, obs):
+        self.assertEqual(obs[0].to_observable(), obs)
+        self.assertIsNot(obs[0].to_observable(), obs)
+
+    def test_term_equality(self):
+        self.assertEqual(
+            SparseObservable.Term(5, 1.0, [], []), SparseObservable.Term(5, 1.0, [], [])
+        )
+        self.assertNotEqual(
+            SparseObservable.Term(5, 1.0, [], []), SparseObservable.Term(8, 1.0, [], [])
+        )
+        self.assertNotEqual(
+            SparseObservable.Term(5, 1.0, [], []), SparseObservable.Term(5, 1j, [], [])
+        )
+        self.assertNotEqual(
+            SparseObservable.Term(5, 1.0, [], []), SparseObservable.Term(8, -1, [], [])
+        )
+
+        obs = SparseObservable.from_list(
+            [
+                ("IIXIZ", 2j),
+                ("IIZIX", 2j),
+                ("++III", -1.5),
+                ("--III", -1.5),
+                ("IrIlI", 0.5),
+                ("IIrIl", 0.5),
+            ]
+        )
+        self.assertEqual(obs[0], obs[0])
+        self.assertEqual(obs[1], obs[1])
+        self.assertNotEqual(obs[0], obs[1])
+        self.assertEqual(obs[2], obs[2])
+        self.assertEqual(obs[3], obs[3])
+        self.assertNotEqual(obs[2], obs[3])
+        self.assertEqual(obs[4], obs[4])
+        self.assertEqual(obs[5], obs[5])
+        self.assertNotEqual(obs[4], obs[5])
+
+    @ddt.data(
+        SparseObservable.identity(0),
+        2j * SparseObservable.identity(1),
+        SparseObservable.identity(100),
+        SparseObservable.from_label("IIX+-rlYZ01IIIII"),
+    )
+    def test_term_pickle(self, obs):
+        term = obs[0]
+        self.assertEqual(pickle.loads(pickle.dumps(term)), term)
+        self.assertEqual(copy.copy(term), term)
+        self.assertEqual(copy.deepcopy(term), term)
+
+    def test_term_attributes(self):
+        term = SparseObservable.from_label("II+IIX0")[0]
+        self.assertEqual(term.num_qubits, 7)
+        self.assertEqual(term.coeff, 1.0)
+        np.testing.assert_equal(
+            term.bit_terms,
+            np.array(
+                [
+                    SparseObservable.BitTerm.ZERO,
+                    SparseObservable.BitTerm.X,
+                    SparseObservable.BitTerm.PLUS,
+                ],
+                dtype=np.uint8,
+            ),
+        )
+        np.testing.assert_equal(term.indices, np.array([0, 1, 4], dtype=np.uintp))
+
+        term = SparseObservable.identity(10)[0]
+        self.assertEqual(term.num_qubits, 10)
+        self.assertEqual(term.coeff, 1.0)
+        self.assertEqual(list(term.bit_terms), [])
+        self.assertEqual(list(term.indices), [])
+
+        term = SparseObservable.from_list([("IIrlZ", 0.5j)])[0]
+        self.assertEqual(term.num_qubits, 5)
+        self.assertEqual(term.coeff, 0.5j)
+        self.assertEqual(
+            list(term.bit_terms),
+            [
+                SparseObservable.BitTerm.Z,
+                SparseObservable.BitTerm.LEFT,
+                SparseObservable.BitTerm.RIGHT,
+            ],
+        )
+        self.assertEqual(list(term.indices), [0, 1, 2])
+
+    def test_term_new(self):
+        expected = SparseObservable.from_label("IIIX+1III")[0]
+
+        self.assertEqual(
+            SparseObservable.Term(
+                9,
+                1.0,
+                [
+                    SparseObservable.BitTerm.ONE,
+                    SparseObservable.BitTerm.PLUS,
+                    SparseObservable.BitTerm.X,
+                ],
+                [3, 4, 5],
+            ),
+            expected,
+        )
+
+        # Constructor should allow being given unsorted inputs, and but them in the right order.
+        self.assertEqual(
+            SparseObservable.Term(
+                9,
+                1.0,
+                [
+                    SparseObservable.BitTerm.PLUS,
+                    SparseObservable.BitTerm.X,
+                    SparseObservable.BitTerm.ONE,
+                ],
+                [4, 5, 3],
+            ),
+            expected,
+        )
+        self.assertEqual(list(expected.indices), [3, 4, 5])
+
+        with self.assertRaisesRegex(ValueError, "not term-wise increasing"):
+            SparseObservable.Term(2, 2j, [SparseObservable.BitTerm.RIGHT] * 2, [0, 0])
+
+    def test_term_pauli_base(self):
+        obs = SparseObservable.from_list(
+            [
+                ("IIIII", 1.0),
+                ("IXYZI", 2.0),
+                ("+-II+", 1j),
+                ("rlrlr", -0.5),
+                ("01010", -0.25),
+                ("rlYII", 1.0),
+            ]
+        )
+        expected = [
+            Pauli("IIIII"),
+            Pauli("IXYZI"),
+            Pauli("XXIIX"),
+            Pauli("YYYYY"),
+            Pauli("ZZZZZ"),
+            Pauli("YYYII"),
+        ]
+        self.assertEqual([term.pauli_base() for term in obs], expected)
