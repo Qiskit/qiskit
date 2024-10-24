@@ -50,6 +50,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, ::qiskit_accelerate::pauli_exp_val::pauli_expval, "pauli_expval")?;
     add_submodule(m, ::qiskit_accelerate::remove_diagonal_gates_before_measure::remove_diagonal_gates_before_measure, "remove_diagonal_gates_before_measure")?;
+    add_submodule(m, ::qiskit_accelerate::remove_identity_equiv::remove_identity_equiv_mod, "remove_identity_equiv")?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
     add_submodule(m, ::qiskit_accelerate::sabre::sabre, "sabre")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
