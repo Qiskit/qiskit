@@ -271,7 +271,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
 
         zero_sparse = zero.to_matrix(sparse=True)
         self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
-        np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
+        np.testing.assert_array_equal(zero_sparse.todense(), zero_numpy)
 
     def test_to_matrix_parallel_vs_serial(self):
         """Parallel execution should produce the same results as serial execution up to
