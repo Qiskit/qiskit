@@ -48,6 +48,7 @@ from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
 from qiskit.transpiler import Target
+from qiskit.utils.deprecation import deprecate_func
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
@@ -212,6 +213,12 @@ class BasicSimulator(BackendV2):
                 )
         return target
 
+    @deprecate_func(since="1.3.0", 
+                    removal_timeline="in Qiskit 2.0.0", 
+                    additional_msg="The `BackendConfiguration` class is part of the deprecated `BackendV1` "
+                    "workflow, and no longer necessary for `BackendV2`. The individual configuration elements "
+                    "can be retrieved directly from the backend or from the contained `Target` instance "
+                    "(`backend.target)`).")
     def configuration(self) -> BackendConfiguration:
         """Return the simulator backend configuration.
 
