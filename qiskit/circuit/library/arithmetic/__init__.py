@@ -13,7 +13,7 @@
 """The arithmetic circuit library."""
 
 from .functional_pauli_rotations import FunctionalPauliRotations
-from .integer_comparator import IntegerComparator
+from .integer_comparator import IntegerComparator, IntegerComparatorGate
 from .linear_pauli_rotations import LinearPauliRotations
 from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations
 from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations

@@ -288,6 +288,7 @@ Comparators
    :template: autosummary/class_no_inherited_members.rst
 
    IntegerComparator
+   IntegerComparatorGate
 
 Functions on binary variables
 -----------------------------
@@ -535,6 +536,7 @@ from .arithmetic import (
     PiecewisePolynomialPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,
+    IntegerComparatorGate,
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,

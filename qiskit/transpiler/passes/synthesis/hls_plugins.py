@@ -249,16 +249,29 @@ MCMT Synthesis
    MCMTSynthesisNoAux
    MCMTSynthesisDefault
 
+Integer comparators
+'''''''''''''''''''
+
+Currently only a single plugin for :class:`.IntegerComparatorGate` is available, which
+requires ``num_state_qubits - 1`` clean auxiliary qubits.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   IntegerComparatorSynthesisDefault
+
 """
 
 import numpy as np
 import rustworkx as rx
 
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate, C3XGate, C4XGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
+from qiskit.synthesis.arithmetic import synth_integer_comparator_2s
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -1028,4 +1041,26 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
             ctrl_state,
+        )
+
+
+class IntegerComparatorSynthesisDefault(HighLevelSynthesisPlugin):
+    """The default synthesis for ``IntegerComparatorGate``.
+
+    Currently this is only supporting an ancilla-based decomposition.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        num_state_qubits = high_level_object.num_qubits - 1
+        num_aux = num_state_qubits - 1
+        if (available_aux := options.get("num_clean_ancillas", 0)) < num_aux:
+            raise QiskitError(
+                "The IntegerComparatorGate can currently only be synthesized with "
+                f"num_state_qubits - 1 clean auxiliary qubits. In this case {num_aux} "
+                f"are required but only {available_aux} are available. Add more clean qubits "
+                "to succesfully run this synthesis."
+            )
+
+        return synth_integer_comparator_2s(
+            num_state_qubits, high_level_object.value, high_level_object.geq
         )
