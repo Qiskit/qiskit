@@ -106,7 +106,7 @@ class QubitTracker:
 
     def __str__(self) -> str:
         """Pretty-prints qubit states."""
-        out = ""
+        out = "QubitTracker("
         for q in range(self.num_qubits):
             out += str(q) + ": "
             if not self.enabled[q]:
@@ -115,5 +115,8 @@ class QubitTracker:
                 out += "0"
             else:
                 out += "*"
-            out += "; "
+            if q != self.num_qubits - 1:
+                out += "; "
+            else:
+                out += ")"
         return out
