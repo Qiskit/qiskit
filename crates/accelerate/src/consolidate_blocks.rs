@@ -1,4 +1,4 @@
-// This code is part of Qiskit. > This file is not included in any crates, so…
+// This code is part of Qiskit.
 //
 // (C) Copyright IBM 2024
 //
