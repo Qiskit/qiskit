@@ -327,6 +327,8 @@ Particular Quantum Circuits
    HamiltonianGate
    UnitaryOverlap
 
+.. autofunction:: grover_operator
+
 
 N-local circuits
 ================
@@ -573,6 +575,6 @@ from .graph_state import GraphState
 from .hidden_linear_function import HiddenLinearFunction
 from .iqp import IQP
 from .phase_estimation import PhaseEstimation
-from .grover_operator import GroverOperator
+from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle
 from .overlap import UnitaryOverlap
