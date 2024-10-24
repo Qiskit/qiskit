@@ -42,7 +42,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 
-from qiskit._accelerate.high_level_synthesis_utils import QubitTracker, QubitContext
+from qiskit._accelerate.high_level_synthesis import QubitTracker, QubitContext
 from .plugin import HighLevelSynthesisPluginManager
 
 if typing.TYPE_CHECKING:

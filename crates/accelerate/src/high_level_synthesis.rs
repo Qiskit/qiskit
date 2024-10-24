@@ -245,7 +245,7 @@ impl QubitContext {
     }
 }
 
-pub fn high_level_synthesis_utils_mod(m: &Bound<PyModule>) -> PyResult<()> {
+pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<QubitTracker>()?;
     m.add_class::<QubitContext>()?;
     Ok(())
