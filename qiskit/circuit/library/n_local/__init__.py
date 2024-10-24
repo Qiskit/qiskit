@@ -17,9 +17,13 @@ from .two_local import TwoLocal
 from .pauli_two_design import PauliTwoDesign
 from .real_amplitudes import RealAmplitudes
 from .efficient_su2 import EfficientSU2
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz
+from .evolved_operator_ansatz import (
+    EvolvedOperatorAnsatz,
+    evolved_operator_ansatz,
+    hamiltonian_variational_ansatz,
+)
 from .excitation_preserving import ExcitationPreserving
-from .qaoa_ansatz import QAOAAnsatz
+from .qaoa_ansatz import QAOAAnsatz, qaoa_ansatz
 
 __all__ = [
     "NLocal",
@@ -27,7 +31,10 @@ __all__ = [
     "RealAmplitudes",
     "PauliTwoDesign",
     "EfficientSU2",
+    "hamiltonian_variational_ansatz",
+    "evolved_operator_ansatz",
     "EvolvedOperatorAnsatz",
     "ExcitationPreserving",
+    "qaoa_ansatz",
     "QAOAAnsatz",
 ]
