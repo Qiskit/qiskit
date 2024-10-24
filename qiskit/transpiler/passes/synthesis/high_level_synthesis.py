@@ -325,7 +325,7 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
         qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
-        context = QubitContext([i for i in range(len(dag.qubits))])
+        context = QubitContext(list(range(len(dag.qubits))))
         tracker = QubitTracker(num_qubits=dag.num_qubits())
         if self.qubits_initially_zero:
             tracker.set_clean(context.to_globals(qubits))
