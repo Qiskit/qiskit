@@ -298,6 +298,7 @@ Functions on binary variables
    :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
+   QuadraticFormGate
 
 Other arithmetic functions
 --------------------------
@@ -539,6 +540,7 @@ from .arithmetic import (
     IntegerComparatorGate,
     WeightedAdder,
     QuadraticForm,
+    QuadraticFormGate,
     LinearAmplitudeFunction,
     VBERippleCarryAdder,
     CDKMRippleCarryAdder,

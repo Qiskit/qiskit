@@ -19,7 +19,7 @@ from .piecewise_linear_pauli_rotations import PiecewiseLinearPauliRotations
 from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
 from .polynomial_pauli_rotations import PolynomialPauliRotations
 from .weighted_adder import WeightedAdder
-from .quadratic_form import QuadraticForm
+from .quadratic_form import QuadraticForm, QuadraticFormGate
 from .linear_amplitude_function import LinearAmplitudeFunction
 from .adders import VBERippleCarryAdder, CDKMRippleCarryAdder, DraperQFTAdder
 from .piecewise_chebyshev import PiecewiseChebyshev
