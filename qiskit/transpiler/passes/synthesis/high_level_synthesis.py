@@ -42,8 +42,8 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 
-from .plugin import HighLevelSynthesisPluginManager
 from qiskit._accelerate.high_level_synthesis_utils import QubitTracker, QubitContext
+from .plugin import HighLevelSynthesisPluginManager
 
 if typing.TYPE_CHECKING:
     from qiskit.dagcircuit import DAGOpNode
