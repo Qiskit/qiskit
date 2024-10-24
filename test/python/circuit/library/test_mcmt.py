@@ -180,21 +180,19 @@ class TestMCMT(QiskitTestCase):
         gate = XGate()
         mcmt = MCMTGate(gate, num_controls, num_target)
 
-        hls = HighLevelSynthesis()
+        # make sure MCX-synthesis does not use ancilla qubits
+        config = HLSConfig(mcx=["noaux_v24"])
+        hls = HighLevelSynthesis(hls_config=config)
 
-        # Note: I am temporarily disabling this test: I need to debug whether it's a
-        # spurious failure (coming from the increased power of HLS to exploit
-        # ancilla qubits) or a real problem.
+        # test a decomposition without sufficient ancillas for MCMT V-chain
+        with self.subTest(msg="insufficient auxiliaries"):
+            circuit = QuantumCircuit(num_controls + num_target + num_vchain_ancillas - 1)
+            circuit.append(mcmt, range(mcmt.num_qubits))
 
-        # # test a decomposition without sufficient ancillas for MCMT V-chain
-        # with self.subTest(msg="insufficient auxiliaries"):
-        #     circuit = QuantumCircuit(num_controls + num_target + num_vchain_ancillas - 1)
-        #     circuit.append(mcmt, range(mcmt.num_qubits))
-        #
-        #     synthesized = hls(circuit)
-        #     num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
-        #
-        #     self.assertEqual(num_idle, num_vchain_ancillas - 1)
+            synthesized = hls(circuit)
+            num_idle = len(list(circuit_to_dag(synthesized).idle_wires()))
+
+            self.assertEqual(num_idle, num_vchain_ancillas - 1)
 
         # test with enough auxiliary qubits available
         with self.subTest(msg="enough auxiliaries"):
