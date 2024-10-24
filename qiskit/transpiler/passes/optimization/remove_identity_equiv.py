@@ -25,6 +25,17 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     Removes gates whose effect is close to an identity operation, up to the specified
     tolerance.
+    For a cutoff fidelity :math:`f`, this pass removes gates whose average 
+    gate fidelity with respect to the identity is below :math:`f`. Concretely, 
+    a gate :math:`G` is removed if :math:`\bar F < f` where 
+    
+    .. math::
+
+        \bar{F} = \frac{1 + F_{\text{process}}{1 + d} 
+        
+        F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
+        
+    where :math:`d = 2^n` is the dimension of the gate for :math:`n` qubits.
     """
 
     def __init__(
@@ -36,7 +47,7 @@ class RemoveIdentityEquivalent(TransformationPass):
             approximation_degree: The degree to approximate for the equivalence check. This can be a
                 floating point value between 0 and 1, or ``None``. If the value is 1 this does not
                 approximate above floating point precision. For a value < 1 this is used as a scaling
-                factor for the target fidelity. If the value is ``None`` this approximates up to the
+                factor for the cutoff fidelity. If the value is ``None`` this approximates up to the
                 fidelity for the gate specified in ``target``.
 
             target: If ``approximation_degree`` is set to ``None`` and a :class:`.Target` is provided
