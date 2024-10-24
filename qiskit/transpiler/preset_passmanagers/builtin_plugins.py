@@ -640,25 +640,17 @@ class OptimizationPassManager(PassManagerStagePlugin):
             else:
                 raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
 
-            if (
-                pass_manager_config.basis_gates is not None
-                and len(pass_manager_config.basis_gates) > 0
-            ):
-                unroll = translation.to_flow_controller()
+            unroll = translation.to_flow_controller()
 
-                # Build nested Flow controllers
-                def _unroll_condition(property_set):
-                    return not property_set["all_gates_in_basis"]
+            # Build nested Flow controllers
+            def _unroll_condition(property_set):
+                return not property_set["all_gates_in_basis"]
 
-                # Check if any gate is not in the basis, and if so, run unroll passes
-                _unroll_if_out_of_basis = [
-                    GatesInBasis(
-                        pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
-                    ConditionalController(unroll, condition=_unroll_condition),
-                ]
-            else:
-                _unroll_if_out_of_basis = []
+            # Check if any gate is not in the basis, and if so, run unroll passes
+            _unroll_if_out_of_basis = [
+                GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
+                ConditionalController(unroll, condition=_unroll_condition),
+            ]
 
             if optimization_level == 3:
                 optimization.append(_minimum_point_check)
