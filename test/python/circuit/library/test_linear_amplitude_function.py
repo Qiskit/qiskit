@@ -13,7 +13,6 @@
 """Test the linear amplitude function."""
 
 import unittest
-import itertools
 from functools import partial
 from collections import defaultdict
 from ddt import ddt, data, unpack

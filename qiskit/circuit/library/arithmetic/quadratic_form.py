@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression, Gate, CircuitError
 from ..basis_change import QFT, QFTGate
 
-VALUE_TYPE = Union[int, float, np.integer, np.floating, ParameterExpression]
+_ValueType = Union[int, float, np.integer, np.floating, ParameterExpression]
 
 
 class QuadraticForm(QuantumCircuit):
@@ -298,14 +298,14 @@ class QuadraticFormGate(Gate):
         return num_result_qubits
 
     def validate_parameter(self, parameter):
-        if isinstance(parameter, VALUE_TYPE):
+        if isinstance(parameter, _ValueType):
             return parameter
 
         if isinstance(parameter, (np.ndarray, Sequence)):
-            if all(isinstance(el, VALUE_TYPE) for el in parameter):
+            if all(isinstance(el, _ValueType) for el in parameter):
                 return parameter
             for params in parameter:
-                if not all(isinstance(el, VALUE_TYPE) for el in params):
+                if not all(isinstance(el, _ValueType) for el in params):
                     raise CircuitError(
                         f"Invalid parameter type {type(parameter)} for QuadraticFormGate"
                     )
