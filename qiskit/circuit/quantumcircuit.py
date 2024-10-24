@@ -1274,7 +1274,7 @@ class QuantumCircuit:
         self._duration = None
         self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
-        """Arbitrary user-defined metadata for the circuit.
+        """Arbitrary user-defined dictionary of metadata for the circuit.
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
@@ -1506,12 +1506,12 @@ class QuantumCircuit:
 
     @property
     def metadata(self) -> dict:
-        """The user provided metadata associated with the circuit.
+        """The user-provided metadata associated with the circuit.
 
-        The metadata for the circuit is a user provided ``dict`` of metadata
+        The metadata for the circuit is a user-provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
         operation of the circuit, but it is expected to be passed between
-        all transforms of the circuit (ie transpilation) and that providers will
+        all transforms of the circuit (i.e., transpilation) and that providers will
         associate any circuit metadata with the results it returns from
         execution of that circuit.
         """
