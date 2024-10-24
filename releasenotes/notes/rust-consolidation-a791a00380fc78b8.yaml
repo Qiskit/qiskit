@@ -11,12 +11,3 @@ features_transpiler:
     run prior to :class:`.ConsolidateBlocks` the collected runs by those
     passes from the property set are used and there is no change in behavior
     for the pass.
-fixes:
-  - |
-    Fixed an issue with the :class:`.ConsolidateBlocks` pass when it was
-    processing single qubit runs. Previously if a single qubit run found by
-    the :class:`.Collect1qRuns` pass consisteted of a single gate, the
-    substitution of that gate would occur if the gate was in the target if
-    it was specified. The intent of the logic was to substitute only if the
-    gate was outside of the target. This has been corrected so the behavior
-    is restored.
