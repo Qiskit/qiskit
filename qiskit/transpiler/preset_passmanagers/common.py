@@ -24,8 +24,9 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import Collect1qRuns
+from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import CheckMap
@@ -501,6 +502,7 @@ def generate_translation_passmanager(
                 qubits_initially_zero=qubits_initially_zero,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
+            Collect2qBlocks(),
             Collect1qRuns(),
             ConsolidateBlocks(
                 basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
