@@ -1287,3 +1287,6 @@ class FakeTarget(Target):
 
     def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
         return self._coupling_map
+
+    def instruction_supported(self, *args, **kwargs):
+        return True

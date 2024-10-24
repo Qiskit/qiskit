@@ -14,7 +14,6 @@
 
 import os
 
-from qiskit.transpiler.target import FakeTarget
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -95,7 +94,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 or (
                     pass_manager_config.target is not None
                     and pass_manager_config.target.build_coupling_map() is not None
-                    and not isinstance(pass_manager_config.target, FakeTarget)
                 )
             ):
                 init = common.generate_unroll_3q(
@@ -115,7 +113,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 or (
                     pass_manager_config.target is not None
                     and pass_manager_config.target.build_coupling_map() is not None
-                    and not isinstance(pass_manager_config.target, FakeTarget)
                 )
             ):
                 init += common.generate_unroll_3q(
@@ -147,17 +144,15 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
 
         elif optimization_level in {2, 3}:
-            init = PassManager()
-            if not isinstance(pass_manager_config.target, FakeTarget):
-                init = common.generate_unroll_3q(
-                    pass_manager_config.target,
-                    pass_manager_config.basis_gates,
-                    pass_manager_config.approximation_degree,
-                    pass_manager_config.unitary_synthesis_method,
-                    pass_manager_config.unitary_synthesis_plugin_config,
-                    pass_manager_config.hls_config,
-                    pass_manager_config.qubits_initially_zero,
-                )
+            init = common.generate_unroll_3q(
+                pass_manager_config.target,
+                pass_manager_config.basis_gates,
+                pass_manager_config.approximation_degree,
+                pass_manager_config.unitary_synthesis_method,
+                pass_manager_config.unitary_synthesis_plugin_config,
+                pass_manager_config.hls_config,
+                pass_manager_config.qubits_initially_zero,
+            )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
             init.append(RemoveDiagonalGatesBeforeMeasure())
@@ -181,11 +176,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             init.append(CommutativeCancellation())
             init.append(Collect2qBlocks())
-            if (
-                pass_manager_config.basis_gates is not None
-                and len(pass_manager_config.basis_gates) > 0
-            ):
-                init.append(ConsolidateBlocks())
+            init.append(ConsolidateBlocks())
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
@@ -613,18 +604,20 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 ]
             elif optimization_level == 3:
                 # Steps for optimization level 3
-                _opt = [Collect2qBlocks()]
+                _opt = [
+                    Collect2qBlocks(),
+                    ConsolidateBlocks(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                ]
 
                 if (
                     pass_manager_config.basis_gates is not None
                     and len(pass_manager_config.basis_gates) > 0
                 ):
                     _opt += [
-                        ConsolidateBlocks(
-                            basis_gates=pass_manager_config.basis_gates,
-                            target=pass_manager_config.target,
-                            approximation_degree=pass_manager_config.approximation_degree,
-                        ),
                         UnitarySynthesis(
                             pass_manager_config.basis_gates,
                             approximation_degree=pass_manager_config.approximation_degree,
@@ -697,6 +690,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     optimization.append(
                         [
                             Collect2qBlocks(),
+                            ConsolidateBlocks(
+                                basis_gates=pass_manager_config.basis_gates,
+                                target=pass_manager_config.target,
+                                approximation_degree=pass_manager_config.approximation_degree,
+                            ),
                         ]
                     )
                 optimization.append(_depth_check + _size_check)
