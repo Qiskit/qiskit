@@ -367,16 +367,16 @@ class QuantumCircuit:
 
     .. code-block:: text
 
-       List the quantum registers: [QuantumRegister(2, 'q0'), 
+       List the quantum registers: [QuantumRegister(2, 'q0'),
        QuantumRegister(1, 'q1')]
-       List the classical registers: [ClassicalRegister(2, 'c0'), 
+       List the classical registers: [ClassicalRegister(2, 'c0'),
        ClassicalRegister(1, 'c1')]
-       List the qubits in this circuit: [Qubit(QuantumRegister(2, 
+       List the qubits in this circuit: [Qubit(QuantumRegister(2,
        'q0'), 0), Qubit(QuantumRegister(2, 'q0'), 1), Qubit
        (QuantumRegister(1, 'q1'), 0)]
        List the ancilla qubits: []
        List the classical bits in this circuit: [Clbit
-       (ClassicalRegister(2, 'c0'), 0), Clbit(ClassicalRegister(2, 
+       (ClassicalRegister(2, 'c0'), 0), Clbit(ClassicalRegister(2,
        'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
 
     The :ref:`compile-time parameters <circuit-compile-time-parameters>` present in instructions on
