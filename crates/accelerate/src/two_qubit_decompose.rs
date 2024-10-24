@@ -1337,6 +1337,17 @@ pub struct TwoQubitBasisDecomposer {
     q2r: Array2<Complex64>,
 }
 impl TwoQubitBasisDecomposer {
+    /// Return the KAK gate name
+    pub fn gate_name(&self) -> &str {
+        self.gate.as_str()
+    }
+
+    /// Compute the number of basis gates needed for a given unitary
+    pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> usize {
+        let u = unitary.into_faer_complex();
+        __num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, u)
+    }
+
     fn decomp1_inner(
         &self,
         target: &TwoQubitWeylDecomposition,
