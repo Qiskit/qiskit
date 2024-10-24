@@ -45,6 +45,7 @@ from qiskit.circuit.library import (
     QFTGate,
     IGate,
     MCXGate,
+    SGate,
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford, Operator, Statevector
@@ -1488,6 +1489,137 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         ops = qct.count_ops().keys()
         for op in ops:
             self.assertIn(op, ["u", "cx", "ecr", "measure"])
+
+    def test_simple_circuit(self):
+        """Test HLS on a simple circuit."""
+        qc = QuantumCircuit(3)
+        qc.cz(1, 2)
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_simple_circuit2(self):
+        """Test HLS on a simple circuit."""
+        qc = QuantumCircuit(6)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 3)
+        qc.h(5)
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u", "h"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner = QuantumCircuit(2)
+        inner.cz(0, 1)
+        qc = QuantumCircuit(3)
+        qc.append(inner.to_gate(), [0, 2])
+        pass_ = HighLevelSynthesis(basis_gates=["cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def2(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner1 = QuantumCircuit(2)
+        inner1.cz(0, 1)
+        qc = QuantumCircuit(4)
+        qc.append(inner1.to_instruction(), [2, 3])
+        pass_ = HighLevelSynthesis(basis_gates=["cz", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_recursive_def3(self):
+        """Test recursive synthesis of the definition circuit."""
+        inner2 = QuantumCircuit(2)
+        inner2.h(0)
+        inner2.cx(0, 1)
+
+        inner1 = QuantumCircuit(4)
+        inner1.cz(0, 1)
+        inner1.append(inner2.to_instruction(), [0, 2])
+
+        qc = QuantumCircuit(6)
+        qc.h(1)
+        qc.h(2)
+        qc.cz(1, 2)
+        qc.append(inner1.to_instruction(), [2, 0, 4, 3])
+        qc.h(2)
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_circuit_with_mcx(self):
+        """Test synthesis with plugins."""
+        qc = QuantumCircuit(10)
+        qc.mcx([3, 4, 5, 6, 7], 2)
+        basis_gates = ["u", "cx"]
+        qct = HighLevelSynthesis(basis_gates=basis_gates)(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_circuit_with_mcx_def(self):
+        """Test synthesis where the plugin is called within the recursive call
+        on the definition."""
+        circuit = QuantumCircuit(6)
+        circuit.mcx([0, 1, 2, 3, 4], 5)
+        custom_gate = circuit.to_gate()
+        qc = QuantumCircuit(10)
+        qc.append(custom_gate, [3, 4, 5, 6, 7, 2])
+        basis_gates = ["u", "cx"]
+        qct = HighLevelSynthesis(basis_gates=basis_gates)(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_circuit_with_mcx_def_rec(self):
+        """Test synthesis where the plugin is called within the recursive call
+        on the definition."""
+        inner2 = QuantumCircuit(6)
+        inner2.mcx([0, 1, 2, 3, 4], 5)
+        inner1 = QuantumCircuit(7)
+        inner1.append(inner2.to_gate(), [1, 2, 3, 4, 5, 6])
+        qc = QuantumCircuit(10)
+        qc.append(inner1.to_gate(), [2, 3, 4, 5, 6, 7, 8])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_gate(self):
+        """Test synthesis with annotated gate."""
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(SGate().control(3, annotated=True), [0, 1, 8, 9])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_annotated_circuit(self):
+        """Test synthesis with annotated custom gate."""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cy(0, 1)
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(circ.to_gate().control(3, annotated=True), [2, 0, 3, 7, 8])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
+
+    def test_annotated_rec(self):
+        """Test synthesis with annotated custom gates and recursion."""
+        inner2 = QuantumCircuit(2)
+        inner2.h(0)
+        inner2.cy(0, 1)
+        inner1 = QuantumCircuit(5)
+        inner1.h(1)
+        inner1.append(inner2.to_gate().control(2, annotated=True), [1, 2, 3, 4])
+        qc = QuantumCircuit(10)
+        qc.x(1)
+        qc.cz(1, 2)
+        qc.append(inner1.to_gate().control(3, annotated=True), [9, 8, 7, 6, 5, 4, 3, 2])
+        pass_ = HighLevelSynthesis(basis_gates=["h", "z", "cx", "u"])
+        qct = pass_(qc)
+        self.assertEqual(Statevector(qc), Statevector(qct))
 
 
 class TestUnrollerCompatability(QiskitTestCase):
