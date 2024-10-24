@@ -97,6 +97,8 @@ Attributes:
         will be able to load all released format versions of QPY (up until
         ``QPY_VERSION``).
 
+.. _qpy_compatibility:
+
 QPY Compatibility
 =================
 
