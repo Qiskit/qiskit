@@ -134,6 +134,22 @@ Multi Controlled Synthesis
 .. autofunction:: synth_c3x
 .. autofunction:: synth_c4x
 
+Binary Arithmetic Synthesis
+===========================
+
+Adders
+------
+
+.. autofunction:: adder_qft_d00
+.. autofunction:: adder_ripple_c04
+.. autofunction:: adder_ripple_v95
+
+Multipliers
+-----------
+
+.. autofunction:: multiplier_cumulative_h18 
+.. autofunction:: multiplier_qft_r17
+
 """
 
 from .evolution import (
@@ -194,4 +210,11 @@ from .multi_controlled import (
     synth_mcx_gray_code,
     synth_c3x,
     synth_c4x,
+)
+from .arithmetic import (
+    adder_qft_d00,
+    adder_ripple_c04,
+    adder_ripple_v95,
+    multiplier_cumulative_h18,
+    multiplier_qft_r17,
 )
