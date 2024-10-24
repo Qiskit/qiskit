@@ -286,7 +286,7 @@ pub struct GateOper {
 }
 
 impl<'py> FromPyObject<'py> for GateOper {
-    fn extract(ob: &'py PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
@@ -696,6 +696,11 @@ impl EquivalenceLibrary {
     /// Expose an immutable view of the inner graph.
     pub fn graph(&self) -> &GraphType {
         &self.graph
+    }
+
+    /// Expose a mutable view of the inner graph.
+    pub(crate) fn graph_mut(&mut self) -> &mut GraphType {
+        &mut self.graph
     }
 }
 

@@ -106,7 +106,7 @@ where
                     let block_ok = if let Some(mapping) = qubit_mapping {
                         let mapping = inst_qargs // Create a temp mapping for the recursive call
                             .iter()
-                            .map(|q| mapping[q.0 as usize])
+                            .map(|q| mapping[q.index()])
                             .collect::<Vec<Qubit>>();
 
                         check_gate_direction(py, &inner_dag, gate_complies, Some(&mapping))?
@@ -128,8 +128,8 @@ where
                 Some(mapping) => gate_complies(
                     packed_inst,
                     &[
-                        mapping[inst_qargs[0].0 as usize],
-                        mapping[inst_qargs[1].0 as usize],
+                        mapping[inst_qargs[0].index()],
+                        mapping[inst_qargs[1].index()],
                     ],
                 ),
                 None => gate_complies(packed_inst, inst_qargs),
