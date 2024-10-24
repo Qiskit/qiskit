@@ -104,14 +104,17 @@ pub(crate) fn consolidate_blocks(
                 dag.get_qargs(inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
-                let matrix = get_matrix_from_inst(py, inst)?;
+                let matrix = match get_matrix_from_inst(py, inst) {
+                    Ok(mat) => mat,
+                    Err(_) => continue,
+                };
                 let array = matrix.into_pyarray_bound(py);
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;
                 dag.substitute_node_with_py_op(py, inst_node, &unitary_gate, false)?;
+                continue;
             }
-            continue;
         }
         let mut basis_count: usize = 0;
         let mut outside_basis = false;
@@ -193,36 +196,39 @@ pub(crate) fn consolidate_blocks(
                 *block_qargs.iter().min().unwrap(),
                 *block_qargs.iter().max().unwrap(),
             ];
-            let matrix = blocks_to_matrix(py, dag, &block, block_index_map)?;
-            if force_consolidate
-                || decomposer.num_basis_gates_inner(matrix.view()) < basis_count
-                || block.len() > MAX_2Q_DEPTH
-                || outside_basis
-            {
-                if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
-                    for node in block {
-                        dag.remove_op_node(node);
+            let matrix = blocks_to_matrix(py, dag, &block, block_index_map).ok();
+            if let Some(matrix) = matrix {
+                if force_consolidate
+                    || decomposer.num_basis_gates_inner(matrix.view()) < basis_count
+                    || block.len() > MAX_2Q_DEPTH
+                    || (basis_gates.is_some() && outside_basis)
+                    || (target.is_some() && outside_basis)
+                {
+                    if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
+                        for node in block {
+                            dag.remove_op_node(node);
+                        }
+                    } else {
+                        let array = matrix.into_pyarray_bound(py);
+                        let unitary_gate =
+                            UNITARY_GATE
+                                .get_bound(py)
+                                .call1((array, py.None(), false))?;
+                        let qubit_pos_map = block_index_map
+                            .into_iter()
+                            .enumerate()
+                            .map(|(idx, qubit)| (qubit, idx))
+                            .collect();
+                        let clbit_pos_map = HashMap::new();
+                        dag.replace_block_with_py_op(
+                            py,
+                            &block,
+                            unitary_gate,
+                            false,
+                            &qubit_pos_map,
+                            &clbit_pos_map,
+                        )?;
                     }
-                } else {
-                    let array = matrix.into_pyarray_bound(py);
-                    let unitary_gate =
-                        UNITARY_GATE
-                            .get_bound(py)
-                            .call1((array, py.None(), false))?;
-                    let qubit_pos_map = block_index_map
-                        .into_iter()
-                        .enumerate()
-                        .map(|(idx, qubit)| (qubit, idx))
-                        .collect();
-                    let clbit_pos_map = HashMap::new();
-                    dag.replace_block_with_py_op(
-                        py,
-                        &block,
-                        unitary_gate,
-                        false,
-                        &qubit_pos_map,
-                        &clbit_pos_map,
-                    )?;
                 }
             }
         }
@@ -236,21 +242,23 @@ pub(crate) fn consolidate_blocks(
             let first_inst = dag.dag()[first_inst_node].unwrap_operation();
             let first_qubits = dag.get_qargs(first_inst.qubits);
 
-            if run.len() == 1 {
-                if !is_supported(
+            if run.len() == 1
+                && !is_supported(
                     target,
                     basis_gates.as_ref(),
                     first_inst.op.name(),
                     first_qubits,
-                ) {
-                    let matrix = get_matrix_from_inst(py, first_inst)?;
-                    let array = matrix.into_pyarray_bound(py);
-                    let unitary_gate =
-                        UNITARY_GATE
-                            .get_bound(py)
-                            .call1((array, py.None(), false))?;
-                    dag.substitute_node_with_py_op(py, first_inst_node, &unitary_gate, false)?;
-                }
+                )
+            {
+                let matrix = match get_matrix_from_inst(py, first_inst) {
+                    Ok(mat) => mat,
+                    Err(_) => continue,
+                };
+                let array = matrix.into_pyarray_bound(py);
+                let unitary_gate = UNITARY_GATE
+                    .get_bound(py)
+                    .call1((array, py.None(), false))?;
+                dag.substitute_node_with_py_op(py, first_inst_node, &unitary_gate, false)?;
                 continue;
             }
             let qubit = first_qubits[0];
@@ -265,7 +273,15 @@ pub(crate) fn consolidate_blocks(
                     already_in_block = true;
                 }
                 let gate = dag.dag()[*node].unwrap_operation();
-                let operator = get_matrix_from_inst(py, gate)?;
+                let operator = match get_matrix_from_inst(py, gate) {
+                    Ok(mat) => mat,
+                    Err(_) => {
+                        // Set this to skip this run because we can't compute the matrix of the
+                        // operation.
+                        already_in_block = true;
+                        break;
+                    }
+                };
                 matmul_1q(&mut matrix, operator);
             }
             if already_in_block {
