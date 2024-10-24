@@ -27,6 +27,7 @@ import scipy.linalg
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import library
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
@@ -542,6 +543,14 @@ class TestOperator(OperatorTestCase):
             [Operator(matrix).power(root) for matrix in matrices],
             [Operator(single) for single in expected],
         )
+
+    def test_root_branch_cut(self):
+        """Test that we can choose where the branch cut appears in the root."""
+        z_op = Operator(library.ZGate())
+        # Depending on the direction we move the branch cut, we should be able to select the root to
+        # be either of the two valid options.
+        self.assertEqual(z_op.power(0.5, branch_cut_rotation=1e-3), Operator(library.SGate()))
+        self.assertEqual(z_op.power(0.5, branch_cut_rotation=-1e-3), Operator(library.SdgGate()))
 
     def test_expand(self):
         """Test expand method."""

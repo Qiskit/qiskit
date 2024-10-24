@@ -13,6 +13,13 @@ fixes:
     :meth:`.Operator.power` now shifts the branch-cut location for matrix powers to be a small
     complex rotation away from :math:`-1`.  This does not solve the problem, it just shifts it to a
     place where it is far less likely to be noticeable for the types of operators that usually
-    appear.
+    appear.  Use the new ``branch_cut_rotation`` parameter to have more control over this.
 
     See `#13305 <https://github.com/Qiskit/qiskit/issues/13305>`__.
+features_quantum_info:
+  - |
+    The method :meth:`.Operator.power` has a new parameter ``branch_cut_rotation``.  This can be
+    used to shift the branch-cut point of the root around, which can affect which matrix is chosen
+    as the principal root.  By default, it is set to a small positive rotation to make roots of
+    operators with a real-negative eigenvalue (like Pauli operators) more stable against numerical
+    precision differences.
