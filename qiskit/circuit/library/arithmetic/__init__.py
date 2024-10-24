@@ -23,7 +23,7 @@ from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotati
 from .polynomial_pauli_rotations import PolynomialPauliRotations
 from .weighted_adder import WeightedAdder
 from .quadratic_form import QuadraticForm, QuadraticFormGate
-from .linear_amplitude_function import LinearAmplitudeFunction
+from .linear_amplitude_function import LinearAmplitudeFunction, LinearAmplitudeFunctionGate
 from .adders import VBERippleCarryAdder, CDKMRippleCarryAdder, DraperQFTAdder
 from .piecewise_chebyshev import PiecewiseChebyshev
 from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier

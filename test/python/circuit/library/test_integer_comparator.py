@@ -16,9 +16,9 @@ import unittest
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit import transpile, QiskitError
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import IntegerComparator, IntegerComparatorGate
+from qiskit.circuit.library import IntegerComparator
 from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -102,20 +102,6 @@ class TestIntegerComparator(QiskitTestCase):
         with self.subTest(msg="updating geq"):
             comp.geq = False
             self.assertComparisonIsCorrect(comp, 3, 2, False)
-
-    # def test_plugin_warning(self):
-    #     """Test the plugin for IntegerComparatorGate warns if there are insufficient aux qubits."""
-
-    #     gate = IntegerComparatorGate(2, 2)
-    #     circuit = QuantumCircuit(3)
-    #     circuit.append(gate, circuit.qubits)
-
-    #     with self.assertRaisesRegex(
-    #         QiskitError,
-    #         "The IntegerComparatorGate can currently only be synthesized with num_state_qubits - 1 ",
-    #     ):
-    #         _ = transpile(circuit, basis_gates=["u", "cx", "ccx", "x"])
-    #         print(_)
 
 
 if __name__ == "__main__":

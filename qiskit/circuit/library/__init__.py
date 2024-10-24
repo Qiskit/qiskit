@@ -243,6 +243,7 @@ Amplitude Functions
    :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
+   LinearAmplitudeFunctionGate
 
 Functional Pauli Rotations
 --------------------------
@@ -544,6 +545,7 @@ from .arithmetic import (
     QuadraticForm,
     QuadraticFormGate,
     LinearAmplitudeFunction,
+    LinearAmplitudeFunctionGate,
     VBERippleCarryAdder,
     CDKMRippleCarryAdder,
     DraperQFTAdder,
