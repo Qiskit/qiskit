@@ -127,6 +127,34 @@ class QuantumCircuit:
         different regimes of quantum-circuit descriptions in Qiskit, see the module-level
         documentation of :mod:`qiskit.circuit`.
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+       from qiskit import QuantumCircuit
+
+       # Create a new circuit with two qubits
+       qc = QuantumCircuit(2)
+
+       # Add a Hadamard gate to qubit 0
+       qc.h(0)
+
+       # Perform a controlled-X gate on qubit 1, controlled by qubit 0
+       qc.cx(0, 1)
+
+       # Return a text drawing of the circuit.
+       qc.draw()
+
+    .. code-block:: text
+
+            ┌───┐
+       q_0: ┤ H ├──■──
+            └───┘┌─┴─┐
+       q_1: ─────┤ X ├
+                 └───┘
+
     Circuit attributes
     ==================
 
@@ -188,17 +216,95 @@ class QuantumCircuit:
 
     .. autoattribute:: data
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+       from qiskit import QuantumCircuit
+
+       qc = QuantumCircuit(2, 2)
+       qc.measure([0], [1])
+       print(qc.data)
+
+    .. code-block:: text
+
+       [CircuitInstruction(operation=Instruction(name='measure', num_qubits=1,
+       num_clbits=1, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),),
+       clbits=(Clbit(ClassicalRegister(2, 'c'), 1),))]
+
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
     measured in radians and is directly settable.
 
     .. autoattribute:: global_phase
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qreg_q = QuantumRegister(2, 'q')
+       creg_c = ClassicalRegister(2, 'c')
+       circuit = QuantumCircuit(qreg_q, creg_c)
+
+       circuit.h(qreg_q[0])
+       circuit.cx(qreg_q[0], qreg_q[1])
+
+       print(circuit.global_phase) # find the global phase of the current circuit
+
+    .. code-block:: text
+
+       0.0
+
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
+
+       from numpy import pi
+
+       circuit.global_phase = pi/4 # set the global phase of the circuit to pi/4
+       print(circuit.global_phase)
+
+    .. code-block:: text
+
+       0.7853981633974483
+
     The :attr:`name` of a circuit becomes the name of the :class:`~.circuit.Instruction` or
     :class:`.Gate` resulting from :meth:`to_instruction` and :meth:`to_gate` calls, which can be
     handy for visualizations.
 
     .. autoattribute:: name
+
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qr = QuantumRegister(2)
+       cr = ClassicalRegister(2)
+       qc = QuantumCircuit(qr, cr)
+
+       qc.h(qr[0])
+       qc.cx(qr[0], qr[1])
+       qc.measure(qr, cr)
+       qc.name = "my_circuit"
+
+       print(qc.name)
+
+    .. code-block:: text
+
+       my_circuit
 
     You can attach arbitrary :attr:`metadata` to a circuit.  No part of core Qiskit will inspect
     this or change its behavior based on metadata, but it will be faithfully passed through the
@@ -208,6 +314,26 @@ class QuantumCircuit:
     detail).  This field is ignored during export to OpenQASM 2 or 3.
 
     .. autoattribute:: metadata
+
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       q = QuantumRegister(2)
+       c = ClassicalRegister(2)
+       qc = QuantumCircuit(q, c)
+
+       qc.metadata = {'experiment_type': 'Bell state experiment'}
+
+       print(qc.metadata)
+
+    .. code-block:: text
+
+       {'experiment_type': 'Bell state experiment'}
 
     :class:`QuantumCircuit` exposes data attributes tracking its internal quantum and classical bits
     and registers.  These appear as Python :class:`list`\\ s, but you should treat them as
@@ -219,6 +345,41 @@ class QuantumCircuit:
     .. autoattribute:: qubits
     .. autoattribute:: ancillas
     .. autoattribute:: clbits
+
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qr1 = QuantumRegister(2)
+       qr2 = QuantumRegister(1)
+       cr1 = ClassicalRegister(2)
+       cr2 = ClassicalRegister(1)
+       qc = QuantumCircuit(qr1, qr2, cr1, cr2)
+
+       print("List the quantum registers:", qc.qregs)
+       print("List the classical registers:", qc.cregs)
+       print("List the qubits in this circuit:", qc.qubits)
+       print("List the ancilla qubits:", qc.ancillas)
+       print("List the classical bits in this circuit:", qc.clbits)
+
+    .. code-block:: text
+
+       List the quantum registers: [QuantumRegister(2, 'q0'),
+       QuantumRegister(1, 'q1')]
+       List the classical registers: [ClassicalRegister(2, 'c0'),
+       ClassicalRegister(1, 'c1')]
+       List the qubits in this circuit: [Qubit(QuantumRegister(2,
+       'q0'), 0), Qubit(QuantumRegister(2, 'q0'), 1), Qubit
+       (QuantumRegister(1, 'q1'), 0)]
+       List the ancilla qubits: []
+       List the classical bits in this circuit: [Clbit
+       (ClassicalRegister(2, 'c0'), 0), Clbit(ClassicalRegister(2,
+       'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
 
     The :ref:`compile-time parameters <circuit-compile-time-parameters>` present in instructions on
     the circuit are available in :attr:`parameters`.  This has a canonical order (mostly lexical,
@@ -1150,7 +1311,7 @@ class QuantumCircuit:
         self._duration = None
         self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
-        """Arbitrary user-defined metadata for the circuit.
+        """Arbitrary user-defined dictionary of metadata for the circuit.
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
@@ -1403,12 +1564,12 @@ class QuantumCircuit:
 
     @property
     def metadata(self) -> dict:
-        """The user provided metadata associated with the circuit.
+        """The user-provided metadata associated with the circuit.
 
-        The metadata for the circuit is a user provided ``dict`` of metadata
+        The metadata for the circuit is a user-provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
         operation of the circuit, but it is expected to be passed between
-        all transforms of the circuit (ie transpilation) and that providers will
+        all transforms of the circuit (i.e., transpilation) and that providers will
         associate any circuit metadata with the results it returns from
         execution of that circuit.
         """
