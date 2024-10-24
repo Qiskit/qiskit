@@ -91,7 +91,6 @@ pub(crate) fn consolidate_blocks(
             })
             .collect()
     });
-
     let mut all_block_gates: HashSet<NodeIndex> =
         HashSet::with_capacity(blocks.iter().map(|x| x.len()).sum());
     for block in blocks {
@@ -110,12 +109,7 @@ pub(crate) fn consolidate_blocks(
                 let unitary_gate = UNITARY_GATE
                     .get_bound(py)
                     .call1((array, py.None(), false))?;
-                dag.py_substitute_node(
-                    dag.get_node(py, inst_node)?.bind(py),
-                    &unitary_gate,
-                    false,
-                    false,
-                )?;
+                dag.substitute_node_with_py_op(py, inst_node, &unitary_gate, false)?;
             }
             continue;
         }
@@ -255,12 +249,7 @@ pub(crate) fn consolidate_blocks(
                         UNITARY_GATE
                             .get_bound(py)
                             .call1((array, py.None(), false))?;
-                    dag.py_substitute_node(
-                        dag.get_node(py, first_inst_node)?.bind(py),
-                        &unitary_gate,
-                        false,
-                        false,
-                    )?;
+                    dag.substitute_node_with_py_op(py, first_inst_node, &unitary_gate, false)?;
                 }
                 continue;
             }
