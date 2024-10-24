@@ -2828,117 +2828,14 @@ def _format(operand):
         }
 
         let block_ids: Vec<_> = node_block.iter().map(|n| n.node.unwrap()).collect();
-
-        let mut block_op_names = Vec::new();
-        let mut block_qargs: HashSet<Qubit> = HashSet::new();
-        let mut block_cargs: HashSet<Clbit> = HashSet::new();
-        for nd in &block_ids {
-            let weight = self.dag.node_weight(*nd);
-            match weight {
-                Some(NodeType::Operation(packed)) => {
-                    block_op_names.push(packed.op.name().to_string());
-                    block_qargs.extend(self.qargs_interner.get(packed.qubits));
-                    block_cargs.extend(self.cargs_interner.get(packed.clbits));
-
-                    if let Some(condition) = packed.condition() {
-                        block_cargs.extend(
-                            self.clbits.map_bits(
-                                self.control_flow_module
-                                    .condition_resources(condition.bind(py))?
-                                    .clbits
-                                    .bind(py),
-                            )?,
-                        );
-                        continue;
-                    }
-
-                    // Add classical bits from SwitchCaseOp, if applicable.
-                    if let OperationRef::Instruction(op) = packed.op.view() {
-                        if op.name() == "switch_case" {
-                            let op_bound = op.instruction.bind(py);
-                            let target = op_bound.getattr(intern!(py, "target"))?;
-                            if target.is_instance(imports::CLBIT.get_bound(py))? {
-                                block_cargs.insert(self.clbits.find(&target).unwrap());
-                            } else if target
-                                .is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
-                            {
-                                block_cargs.extend(
-                                    self.clbits
-                                        .map_bits(target.extract::<Vec<Bound<PyAny>>>()?)?,
-                                );
-                            } else {
-                                block_cargs.extend(
-                                    self.clbits.map_bits(
-                                        self.control_flow_module
-                                            .node_resources(&target)?
-                                            .clbits
-                                            .bind(py),
-                                    )?,
-                                );
-                            }
-                        }
-                    }
-                }
-                Some(_) => {
-                    return Err(DAGCircuitError::new_err(
-                        "Nodes in 'node_block' must be of type 'DAGOpNode'.",
-                    ))
-                }
-                None => {
-                    return Err(DAGCircuitError::new_err(
-                        "Node in 'node_block' not found in DAG.",
-                    ))
-                }
-            }
-        }
-
-        let mut block_qargs: Vec<Qubit> = block_qargs
-            .into_iter()
-            .filter(|q| qubit_pos_map.contains_key(q))
-            .collect();
-        block_qargs.sort_by_key(|q| qubit_pos_map[q]);
-
-        let mut block_cargs: Vec<Clbit> = block_cargs
-            .into_iter()
-            .filter(|c| clbit_pos_map.contains_key(c))
-            .collect();
-        block_cargs.sort_by_key(|c| clbit_pos_map[c]);
-
-        let py_op = op.extract::<OperationFromPython>()?;
-
-        if py_op.operation.num_qubits() as usize != block_qargs.len() {
-            return Err(DAGCircuitError::new_err(format!(
-                "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!", py_op.operation.num_qubits(), block_qargs.len()
-            )));
-        }
-
-        let op_name = py_op.operation.name().to_string();
-        let qubits = self.qargs_interner.insert_owned(block_qargs);
-        let clbits = self.cargs_interner.insert_owned(block_cargs);
-        let weight = NodeType::Operation(PackedInstruction {
-            op: py_op.operation,
-            qubits,
-            clbits,
-            params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
-            extra_attrs: py_op.extra_attrs,
-            #[cfg(feature = "cache_pygates")]
-            py_op: op.unbind().into(),
-        });
-
-        let new_node = self
-            .dag
-            .contract_nodes(block_ids, weight, cycle_check)
-            .map_err(|e| match e {
-                ContractError::DAGWouldCycle => DAGCircuitError::new_err(
-                    "Replacing the specified node block would introduce a cycle",
-                ),
-            })?;
-
-        self.increment_op(op_name.as_str());
-        for name in block_op_names {
-            self.decrement_op(name.as_str());
-        }
-
+        let new_node = self.replace_block_with_py_op(
+            py,
+            &block_ids,
+            op,
+            cycle_check,
+            &qubit_pos_map,
+            &clbit_pos_map,
+        )?;
         self.get_node(py, new_node)
     }
 
@@ -6979,6 +6876,128 @@ impl DAGCircuit {
             declared_vars: Vec::new(),
         };
         Self::from_circuit(py, circ, copy_op, None, None)
+    }
+
+    // Replace a block of node indices with a new python operation
+    pub fn replace_block_with_py_op(
+        &mut self,
+        py: Python,
+        block_ids: &[NodeIndex],
+        op: Bound<PyAny>,
+        cycle_check: bool,
+        qubit_pos_map: &HashMap<Qubit, usize>,
+        clbit_pos_map: &HashMap<Clbit, usize>,
+    ) -> PyResult<NodeIndex> {
+        let mut block_op_names = Vec::new();
+        let mut block_qargs: HashSet<Qubit> = HashSet::new();
+        let mut block_cargs: HashSet<Clbit> = HashSet::new();
+        for nd in block_ids {
+            let weight = self.dag.node_weight(*nd);
+            match weight {
+                Some(NodeType::Operation(packed)) => {
+                    block_op_names.push(packed.op.name().to_string());
+                    block_qargs.extend(self.qargs_interner.get(packed.qubits));
+                    block_cargs.extend(self.cargs_interner.get(packed.clbits));
+
+                    if let Some(condition) = packed.condition() {
+                        block_cargs.extend(
+                            self.clbits.map_bits(
+                                self.control_flow_module
+                                    .condition_resources(condition.bind(py))?
+                                    .clbits
+                                    .bind(py),
+                            )?,
+                        );
+                        continue;
+                    }
+
+                    // Add classical bits from SwitchCaseOp, if applicable.
+                    if let OperationRef::Instruction(op) = packed.op.view() {
+                        if op.name() == "switch_case" {
+                            let op_bound = op.instruction.bind(py);
+                            let target = op_bound.getattr(intern!(py, "target"))?;
+                            if target.is_instance(imports::CLBIT.get_bound(py))? {
+                                block_cargs.insert(self.clbits.find(&target).unwrap());
+                            } else if target
+                                .is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
+                            {
+                                block_cargs.extend(
+                                    self.clbits
+                                        .map_bits(target.extract::<Vec<Bound<PyAny>>>()?)?,
+                                );
+                            } else {
+                                block_cargs.extend(
+                                    self.clbits.map_bits(
+                                        self.control_flow_module
+                                            .node_resources(&target)?
+                                            .clbits
+                                            .bind(py),
+                                    )?,
+                                );
+                            }
+                        }
+                    }
+                }
+                Some(_) => {
+                    return Err(DAGCircuitError::new_err(
+                        "Nodes in 'node_block' must be of type 'DAGOpNode'.",
+                    ))
+                }
+                None => {
+                    return Err(DAGCircuitError::new_err(
+                        "Node in 'node_block' not found in DAG.",
+                    ))
+                }
+            }
+        }
+
+        let mut block_qargs: Vec<Qubit> = block_qargs
+            .into_iter()
+            .filter(|q| qubit_pos_map.contains_key(q))
+            .collect();
+        block_qargs.sort_by_key(|q| qubit_pos_map[q]);
+
+        let mut block_cargs: Vec<Clbit> = block_cargs
+            .into_iter()
+            .filter(|c| clbit_pos_map.contains_key(c))
+            .collect();
+        block_cargs.sort_by_key(|c| clbit_pos_map[c]);
+
+        let py_op = op.extract::<OperationFromPython>()?;
+
+        if py_op.operation.num_qubits() as usize != block_qargs.len() {
+            return Err(DAGCircuitError::new_err(format!(
+                "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!", py_op.operation.num_qubits(), block_qargs.len()
+            )));
+        }
+
+        let op_name = py_op.operation.name().to_string();
+        let qubits = self.qargs_interner.insert_owned(block_qargs);
+        let clbits = self.cargs_interner.insert_owned(block_cargs);
+        let weight = NodeType::Operation(PackedInstruction {
+            op: py_op.operation,
+            qubits,
+            clbits,
+            params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+            extra_attrs: py_op.extra_attrs,
+            #[cfg(feature = "cache_pygates")]
+            py_op: op.unbind().into(),
+        });
+
+        let new_node = self
+            .dag
+            .contract_nodes(block_ids.iter().copied(), weight, cycle_check)
+            .map_err(|e| match e {
+                ContractError::DAGWouldCycle => DAGCircuitError::new_err(
+                    "Replacing the specified node block would introduce a cycle",
+                ),
+            })?;
+
+        self.increment_op(op_name.as_str());
+        for name in block_op_names {
+            self.decrement_op(name.as_str());
+        }
+        Ok(new_node)
     }
 }
 
