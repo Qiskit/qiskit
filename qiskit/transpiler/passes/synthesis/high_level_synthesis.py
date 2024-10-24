@@ -43,7 +43,7 @@ from qiskit.circuit.annotated_operation import (
 )
 
 from .plugin import HighLevelSynthesisPluginManager
-from .qubit_tracker import QubitTracker
+from qiskit._accelerate.high_level_synthesis_utils import QubitTracker
 
 if typing.TYPE_CHECKING:
     from qiskit.dagcircuit import DAGOpNode
