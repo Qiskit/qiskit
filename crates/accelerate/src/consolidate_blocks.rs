@@ -73,8 +73,15 @@ pub(crate) fn consolidate_blocks(
                     .collect::<Vec<NodeIndex>>()
             })
             .collect(),
-        None => dag.collect_2q_runs().unwrap(),
+        // If runs are specified but blocks are none we're in a legacy configuration where external
+        // collection passes are being used. In this case don't collect blocks because it's
+        // unexpected.
+        None => match runs {
+            Some(_) => vec![],
+            None => dag.collect_2q_runs().unwrap(),
+        },
     };
+
     let runs: Option<Vec<Vec<NodeIndex>>> = runs.map(|runs| {
         runs.into_iter()
             .map(|run| {

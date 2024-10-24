@@ -93,7 +93,7 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit.x(1)
 
         _1q = Collect1qRuns()
-        _cons = ConsolidateBlocks()
+        _cons = ConsolidateBlocks(basis_gates=["h", "s", "cx"])
         _synth = UnitarySynthesis(["h", "s"], method="sk")
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
