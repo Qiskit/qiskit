@@ -180,7 +180,9 @@ class TestMCMT(QiskitTestCase):
         gate = XGate()
         mcmt = MCMTGate(gate, num_controls, num_target)
 
-        hls = HighLevelSynthesis()
+        # make sure MCX-synthesis does not use ancilla qubits
+        config = HLSConfig(mcx=["noaux_v24"])
+        hls = HighLevelSynthesis(hls_config=config)
 
         # test a decomposition without sufficient ancillas for MCMT V-chain
         with self.subTest(msg="insufficient auxiliaries"):
