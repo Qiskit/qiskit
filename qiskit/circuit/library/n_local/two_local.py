@@ -18,6 +18,7 @@ from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction
+from qiskit.utils.deprecation import deprecate_func
 
 from .n_local import NLocal
 from ..standard_gates import get_standard_gate_name_mapping
@@ -135,6 +136,11 @@ class TwoLocal(NLocal):
 
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.n_local instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

@@ -14,16 +14,115 @@
 
 from __future__ import annotations
 import typing
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from numpy import pi
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
+from qiskit.utils.deprecation import deprecate_func
+from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
+
+
+def efficient_su2(
+    num_qubits: int,
+    su2_gates: str | Gate | Iterable[str | Gate] | None = None,
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ) = "reverse_linear",
+    reps: int = 3,
+    skip_unentangled_qubits: bool = False,
+    skip_final_rotation_layer: bool = False,
+    parameter_prefix: str = "θ",
+    insert_barriers: bool = False,
+    name: str = "EfficientSU2",
+):
+    r"""The hardware-efficient :math:`SU(2)` 2-local circuit.
+
+    The ``efficient_su2`` circuit consists of layers of single qubit operations spanned by
+    :math:`SU(2)` and CX entanglements. This is a heuristic pattern that can be used to prepare trial
+    wave functions for variational quantum algorithms or classification circuit for machine learning.
+
+    :math:`SU(2)` is the special unitary group of degree 2, its elements are :math:`2 \times 2`
+    unitary matrices with determinant 1, such as the Pauli rotation gates.
+
+    On 3 qubits and using the Pauli :math:`Y` and :math:`Z` rotations as single qubit gates, the
+    this circuit is represented by:
+
+    .. parsed-literal::
+
+        ┌──────────┐┌──────────┐ ░            ░       ░ ┌───────────┐┌───────────┐
+        ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├─░────────■───░─ ... ─░─┤ RY(θ[12]) ├┤ RZ(θ[15]) ├
+        ├──────────┤├──────────┤ ░      ┌─┴─┐ ░       ░ ├───────────┤├───────────┤
+        ┤ RY(θ[1]) ├┤ RZ(θ[4]) ├─░───■──┤ X ├─░─ ... ─░─┤ RY(θ[13]) ├┤ RZ(θ[16]) ├
+        ├──────────┤├──────────┤ ░ ┌─┴─┐└───┘ ░       ░ ├───────────┤├───────────┤
+        ┤ RY(θ[2]) ├┤ RZ(θ[5]) ├─░─┤ X ├──────░─ ... ─░─┤ RY(θ[14]) ├┤ RZ(θ[17]) ├
+        └──────────┘└──────────┘ ░ └───┘      ░       ░ └───────────┘└───────────┘
+
+    Examples:
+
+        Per default, the ``"reverse_linear"`` entanglement is used, which, in the case of
+        CX gates, is equivalent to an all-to-all entanglement:
+
+        .. plot::
+            :include-source:
+
+            circuit = efficient_su2(3, reps=1)
+            circuit.draw("mpl")
+
+        To specify which SU(2) gates should be used in the rotation layer, we can set the
+        ``su2_gates`` argument. In addition, we can change the entanglement structure.
+        For example::
+
+        .. plot::
+            :include-source:
+
+            circuit = efficient_su2(4, su2_gates=["rx", "y"], entanglement="circular", reps=1)
+            circuit.draw("mpl")
+
+    Args:
+        num_qubits: The number of qubits.
+        su2_gates: The :math:`SU(2)` single qubit gates to apply in single qubit gate layers.
+            If only one gate is provided, the same gate is applied to each qubit.
+            If a list of gates is provided, all gates are applied to each qubit in the provided
+            order.
+        reps: Specifies how often the structure of a rotation layer followed by an entanglement
+            layer is repeated.
+        entanglement: The indices specifying on which qubits the input blocks act.
+            See :fun:`.n_local` for detailed information.
+        skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
+        skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
+            are entangled. If ``False``, the rotation gates act on all qubits.
+        parameter_prefix: The name of the free parameters.
+        insert_barriers: If True, barriers are inserted in between each layer. If False,
+             no barriers are inserted.
+        name: The name of the circuit.
+
+    Returns:
+        An efficient-SU(2) circuit.
+    """
+    if su2_gates is None:
+        su2_gates = ["ry", "rz"]
+
+    return n_local(
+        num_qubits,
+        su2_gates,
+        ["cx"],
+        entanglement,
+        reps,
+        insert_barriers,
+        parameter_prefix,
+        True,
+        skip_final_rotation_layer,
+        skip_unentangled_qubits,
+        name,
+    )
 
 
 class EfficientSU2(TwoLocal):
@@ -55,7 +154,7 @@ class EfficientSU2(TwoLocal):
     Examples:
 
         >>> circuit = EfficientSU2(3, reps=1)
-        >>> print(circuit)
+        >>> print(circuit.decompose())
              ┌──────────┐┌──────────┐          ┌──────────┐┌──────────┐
         q_0: ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├──■────■──┤ RY(θ[6]) ├┤ RZ(θ[9]) ├─────────────
              ├──────────┤├──────────┤┌─┴─┐  │  └──────────┘├──────────┤┌───────────┐
@@ -67,7 +166,7 @@ class EfficientSU2(TwoLocal):
         >>> ansatz = EfficientSU2(4, su2_gates=['rx', 'y'], entanglement='circular', reps=1)
         >>> qc = QuantumCircuit(4)  # create a circuit and append the RY variational form
         >>> qc.compose(ansatz, inplace=True)
-        >>> qc.draw()
+        >>> qc.decompose().draw()
              ┌──────────┐┌───┐┌───┐     ┌──────────┐   ┌───┐
         q_0: ┤ RX(θ[0]) ├┤ Y ├┤ X ├──■──┤ RX(θ[4]) ├───┤ Y ├─────────────────────
              ├──────────┤├───┤└─┬─┘┌─┴─┐└──────────┘┌──┴───┴───┐   ┌───┐
@@ -80,6 +179,11 @@ class EfficientSU2(TwoLocal):
 
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg="Use the function qiskit.circuit.library.efficient_su2 instead.",
+        pending=True,
+    )
     def __init__(
         self,
         num_qubits: int | None = None,

@@ -196,7 +196,6 @@ fn _check_entanglement_list<'a>(
     let entanglement_iter = list.iter().map(move |el| {
         let connections = el
             .downcast::<PyTuple>()?
-            // .expect("Entanglement must be list of tuples") // clearer error message than `?`
             .iter()
             .map(|index| index.downcast::<PyInt>()?.extract())
             .collect::<Result<Vec<u32>, _>>()?;

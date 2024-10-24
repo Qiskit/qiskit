@@ -1177,9 +1177,11 @@ class QuantumCircuit:
         self._unit = value
 
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
+    def _from_circuit_data(
+        cls, data: CircuitData, add_regs: bool = False, name: str | None = None
+    ) -> typing.Self:
         """A private constructor from rust space circuit data."""
-        out = QuantumCircuit()
+        out = QuantumCircuit(name=name)
 
         if data.num_qubits > 0:
             if add_regs:
