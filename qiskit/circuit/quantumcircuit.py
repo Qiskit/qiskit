@@ -344,6 +344,41 @@ class QuantumCircuit:
     .. autoattribute:: ancillas
     .. autoattribute:: clbits
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
+
+       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+       qr1 = QuantumRegister(2)
+       qr2 = QuantumRegister(1)
+       cr1 = ClassicalRegister(2)
+       cr2 = ClassicalRegister(1)
+       qc = QuantumCircuit(qr1, qr2, cr1, cr2)
+
+       print("List the quantum registers:", qc.qregs)
+       print("List the classical registers:", qc.cregs)
+       print("List the qubits in this circuit:", qc.qubits)
+       print("List the ancilla qubits:", qc.ancillas)
+       print("List the classical bits in this circuit:", qc.clbits)
+
+    .. code-block:: text
+
+       List the quantum registers: [QuantumRegister(2, 'q0'), 
+       QuantumRegister(1, 'q1')]
+       List the classical registers: [ClassicalRegister(2, 'c0'), 
+       ClassicalRegister(1, 'c1')]
+       List the qubits in this circuit: [Qubit(QuantumRegister(2, 
+       'q0'), 0), Qubit(QuantumRegister(2, 'q0'), 1), Qubit
+       (QuantumRegister(1, 'q1'), 0)]
+       List the ancilla qubits: []
+       List the classical bits in this circuit: [Clbit
+       (ClassicalRegister(2, 'c0'), 0), Clbit(ClassicalRegister(2, 
+       'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
+
     The :ref:`compile-time parameters <circuit-compile-time-parameters>` present in instructions on
     the circuit are available in :attr:`parameters`.  This has a canonical order (mostly lexical,
     except in the case of :class:`.ParameterVector`), which matches the order that parameters will
