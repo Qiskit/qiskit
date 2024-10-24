@@ -47,6 +47,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -69,6 +70,7 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
+
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -1339,15 +1341,17 @@ class QuantumCircuit:
         return self._op_start_times
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self) -> dict:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
         ``{'gate_name': {(qubits, params): schedule}}``
         """
-        return dict(self._calibrations)
+        return self._calibrations_prop
 
     @calibrations.setter
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self, calibrations: dict):
         """Set the circuit calibration data from a dictionary of calibration definition.
 
@@ -1355,18 +1359,37 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                ``{'gate_name': {(qubits, gate_params): schedule}}``
         """
+        self._calibrations_prop = calibrations
+
+    @property
+    def _calibrations_prop(self) -> dict:
+        """An alternative private path to the `calibrations` property for
+        avoiding deprecation warnings."""
+        return dict(self._calibrations)
+
+    @_calibrations_prop.setter
+    def _calibrations_prop(self, calibrations: dict):
+        """An alternative private path to the `calibrations` property for
+        avoiding deprecation warnings."""
         self._calibrations = defaultdict(dict, calibrations)
 
+    @deprecate_pulse_dependency
     def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
+
+        return self._has_calibration_for(instruction)
+
+    def _has_calibration_for(self, instruction: CircuitInstruction | tuple):
+        """An alternative private path to the `has_calibration_for` method for
+        avoiding deprecation warnings."""
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
             qubits = instruction.qubits
         else:
             operation, qubits, _ = instruction
-        if not self.calibrations or operation.name not in self.calibrations:
+        if not self._calibrations_prop or operation.name not in self._calibrations_prop:
             return False
         qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
         params = []
@@ -1376,7 +1399,7 @@ class QuantumCircuit:
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[operation.name]
+        return (qubits, params) in self._calibrations_prop[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -2017,7 +2040,7 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
 
-        for gate, cals in other.calibrations.items():
+        for gate, cals in other._calibrations_prop.items():
             dest._calibrations[gate].update(cals)
 
         dest.duration = None
@@ -6477,6 +6500,7 @@ class QuantumCircuit:
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits, copy=False
         )
 
+    @deprecate_pulse_dependency
     def add_calibration(
         self,
         gate: Union[Gate, str],
