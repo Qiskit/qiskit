@@ -12,4 +12,4 @@
 
 """Synthesis for arithmetic circuits."""
 
-from .comparators import synth_integer_comparator_2s
+from .comparators import synth_integer_comparator_2s, synth_integer_comparator_greedy

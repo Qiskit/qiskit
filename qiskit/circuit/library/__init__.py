@@ -255,6 +255,7 @@ Functional Pauli Rotations
    LinearPauliRotations
    PolynomialPauliRotations
    PiecewiseLinearPauliRotations
+   PiecewiseLinearPauliRotationsGate
    PiecewisePolynomialPauliRotations
    PiecewiseChebyshev
 
@@ -534,6 +535,7 @@ from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
     PiecewiseLinearPauliRotations,
+    PiecewiseLinearPauliRotationsGate,
     PiecewisePolynomialPauliRotations,
     PolynomialPauliRotations,
     IntegerComparator,

@@ -258,20 +258,19 @@ requires ``num_state_qubits - 1`` clean auxiliary qubits.
 .. autosummary::
    :toctree: ../stubs/
 
-   IntegerComparatorSynthesisDefault
+   IntComparatorSynthesisDefault
 
 """
 
 import numpy as np
 import rustworkx as rx
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction, QFTGate, MCXGate, C3XGate, C4XGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 
-from qiskit.synthesis.arithmetic import synth_integer_comparator_2s
+from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -1044,7 +1043,7 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
         )
 
 
-class IntegerComparatorSynthesisDefault(HighLevelSynthesisPlugin):
+class IntComparatorSynthesisDefault(HighLevelSynthesisPlugin):
     """The default synthesis for ``IntegerComparatorGate``.
 
     Currently this is only supporting an ancilla-based decomposition.
@@ -1053,14 +1052,33 @@ class IntegerComparatorSynthesisDefault(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         num_state_qubits = high_level_object.num_qubits - 1
         num_aux = num_state_qubits - 1
-        if (available_aux := options.get("num_clean_ancillas", 0)) < num_aux:
-            raise QiskitError(
-                "The IntegerComparatorGate can currently only be synthesized with "
-                f"num_state_qubits - 1 clean auxiliary qubits. In this case {num_aux} "
-                f"are required but only {available_aux} are available. Add more clean qubits "
-                "to succesfully run this synthesis."
+        if options.get("num_clean_ancillas", 0) < num_aux:
+            return synth_integer_comparator_greedy(
+                num_state_qubits, high_level_object.value, high_level_object.geq
             )
 
         return synth_integer_comparator_2s(
             num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
+class IntComparatorSynthesisNoAux(HighLevelSynthesisPlugin):
+    """A potentially exponentially expensive comparison w/o auxiliary qubits."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        return synth_integer_comparator_greedy(
+            high_level_object.num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
+class IntComparatorSynthesis2s(HighLevelSynthesisPlugin):
+    """An integer comparison based on 2s complement."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        num_aux = high_level_object.num_state_qubits - 1
+        if options.get("num_clean_ancillas", 0) < num_aux:
+            return None
+
+        return synth_integer_comparator_2s(
+            high_level_object.num_state_qubits, high_level_object.value, high_level_object.geq
         )

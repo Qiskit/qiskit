@@ -12,4 +12,5 @@
 
 """Comparator synthesis algorithms."""
 
-from .integer_comparator import synth_integer_comparator_2s
+from .compare_2s import synth_integer_comparator_2s
+from .compare_greedy import synth_integer_comparator_greedy

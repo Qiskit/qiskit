@@ -187,6 +187,6 @@ class IntegerComparatorGate(Gate):
             num_state_qubits: The number of qubits in the registers.
             geq: If ``True`` compute :math:`i \geq L`, otherwise compute :math:`i < L`.
         """
-        super().__init__("IntegerComparator", num_state_qubits + 1, [], label=label)
+        super().__init__("IntComp", num_state_qubits + 1, [], label=label)
         self.value = value
         self.geq = geq
