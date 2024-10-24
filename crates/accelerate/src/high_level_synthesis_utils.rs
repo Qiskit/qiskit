@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashMap;
 use pyo3::prelude::*;
-// use qiskit_circuit::Qubit;
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -43,7 +43,6 @@ impl QubitTracker {
     }
 
     /// Sets state of the given qubits to dirty
-    #[pyo3(signature = (qubits))]
     fn set_dirty(&mut self, qubits: Vec<usize>) {
         for q in qubits {
             self.state[q] = false;
@@ -51,7 +50,6 @@ impl QubitTracker {
     }
 
     /// Sets state of the given qubits to clean
-    #[pyo3(signature = (qubits))]
     fn set_clean(&mut self, qubits: Vec<usize>) {
         for q in qubits {
             self.state[q] = true;
@@ -59,7 +57,6 @@ impl QubitTracker {
     }
 
     /// Disables using the given qubits
-    #[pyo3(signature = (qubits))]
     fn disable(&mut self, qubits: Vec<usize>) {
         for q in qubits {
             self.enabled[q] = false;
@@ -67,7 +64,6 @@ impl QubitTracker {
     }
 
     /// Enable using the given qubits
-    #[pyo3(signature = (qubits))]
     fn enable(&mut self, qubits: Vec<usize>) {
         for q in qubits {
             self.enabled[q] = true;
@@ -76,7 +72,6 @@ impl QubitTracker {
 
     /// Returns the number of enabled clean qubits, ignoring the given qubits
     /// ToDo: check if it's faster to avoid using ignored
-    #[pyo3(signature = (ignored_qubits))]
     fn num_clean(&mut self, ignored_qubits: Vec<usize>) -> usize {
         for q in &ignored_qubits {
             self.ignored[*q] = true;
@@ -95,7 +90,6 @@ impl QubitTracker {
 
     /// Returns the number of enabled dirty qubits, ignoring the given qubits
     /// ToDo: check if it's faster to avoid using ignored
-    #[pyo3(signature = (ignored_qubits))]
     fn num_dirty(&mut self, ignored_qubits: Vec<usize>) -> usize {
         for q in &ignored_qubits {
             self.ignored[*q] = true;
@@ -177,7 +171,82 @@ impl QubitTracker {
     }
 }
 
+/// Correspondence between local qubits and global qubits.
+///
+/// An internal class for handling recursion within `HighLevelSynthesis`.
+/// Provides correspondence between the qubit indices of an internal DAG,
+/// aka the "local qubits" (for instance, of the definition circuit
+/// of a custom gate), and the qubit indices of the original DAG, aka the
+/// "global qubits".
+///
+/// Since the local qubits are consecutive integers starting at zero,
+/// i.e. `0`, `1`, `2`, etc., the correspondence is kept using a vector, with
+/// the entry in position `k` representing the global qubit that corresponds
+/// to the local qubit `k`.
+#[pyclass]
+#[derive(Clone, Debug)]
+pub struct QubitContext {
+    /// Mapping from local indices to global indices
+    local_to_global: Vec<usize>,
+}
+
+#[pymethods]
+impl QubitContext {
+    #[new]
+    pub fn new(local_to_global: Vec<usize>) -> Self {
+        QubitContext { local_to_global }
+    }
+
+    /// Returns the number of local qubits
+    fn num_qubits(&self) -> usize {
+        self.local_to_global.len()
+    }
+
+    /// Extends the correspondence by an additional qubit that
+    /// maps to the given global qubit. Returns the index of the
+    /// new local qubit.
+    fn add_qubit(&mut self, global_qubit: usize) -> usize {
+        let new_local_qubit = self.local_to_global.len();
+        self.local_to_global.push(global_qubit);
+        new_local_qubit
+    }
+
+    /// Returns the local-to-global mapping
+    fn to_global_mapping(&self) -> Vec<usize> {
+        self.local_to_global.clone()
+    }
+
+    /// Returns the global-to-local mapping
+    fn to_local_mapping(&self) -> HashMap<usize, usize> {
+        HashMap::from_iter(
+            self.local_to_global
+                .iter()
+                .enumerate()
+                .map(|(i, j)| (*j, i)),
+        )
+    }
+
+    /// Restricts the context to a subset of qubits, remapping the indices
+    /// to be consecutive integers starting at zero.
+    fn restrict(&self, qubits: Vec<usize>) -> Self {
+        QubitContext {
+            local_to_global: qubits.iter().map(|q| self.local_to_global[*q]).collect(),
+        }
+    }
+
+    /// Returns the global qubits corresponding to the given local qubit
+    fn to_global(&self, qubit: usize) -> usize {
+        self.local_to_global[qubit]
+    }
+
+    /// Returns the global qubits corresponding to the given local qubit
+    fn to_globals(&self, qubits: Vec<usize>) -> Vec<usize> {
+        qubits.iter().map(|q| self.local_to_global[*q]).collect()
+    }
+}
+
 pub fn high_level_synthesis_utils_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<QubitTracker>()?;
+    m.add_class::<QubitContext>()?;
     Ok(())
 }
