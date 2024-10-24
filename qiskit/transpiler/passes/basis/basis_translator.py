@@ -124,8 +124,6 @@ class BasisTranslator(TransformationPass):
                 for qarg in self._target[gate]:
                     self._qargs_with_non_global_operation[qarg].add(gate)
 
-        print("inside pas: target:", target, "target basis", target_basis)
-
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
 
@@ -155,7 +153,6 @@ class BasisTranslator(TransformationPass):
             source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
-        print("final target basis", target_basis)
 
         # If the source basis is a subset of the target basis and we have no circuit
         # instructions on qargs that have non-global operations there is nothing to
