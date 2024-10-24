@@ -46,6 +46,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(self.dag, style="multicolor")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
         """filename must contain name and extension"""
         with self.assertRaisesRegex(

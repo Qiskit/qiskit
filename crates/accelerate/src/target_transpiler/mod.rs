@@ -50,7 +50,7 @@ mod exceptions {
 }
 
 // Custom types
-type Qargs = SmallVec<[PhysicalQubit; 2]>;
+pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
 type GateMap = IndexMap<String, PropsMap, RandomState>;
 type PropsMap = NullableIndexMap<Qargs, Option<InstructionProperties>>;
 type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionProperties>)>)>;
@@ -109,12 +109,12 @@ pub(crate) struct NormalOperation {
 }
 
 impl<'py> FromPyObject<'py> for NormalOperation {
-    fn extract(ob: &'py PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let operation: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: ob.into(),
+            op_object: ob.clone().unbind(),
         })
     }
 }
@@ -371,7 +371,7 @@ impl Target {
     ///     properties (InstructionProperties): The properties to set for this instruction
     /// Raises:
     ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
-    #[pyo3(text_signature = "(instruction, qargs, properties, /,)")]
+    #[pyo3(signature = (instruction, qargs=None, properties=None))]
     fn update_instruction_properties(
         &mut self,
         instruction: String,
@@ -938,6 +938,17 @@ impl Target {
             TargetOperation::Normal(oper) => Some(oper),
             _ => None,
         });
+    }
+
+    /// Get the error rate of a given instruction in the target
+    pub fn get_error(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
+        self.gate_map.get(name).and_then(|gate_props| {
+            let qargs_key: Qargs = qargs.iter().cloned().collect();
+            match gate_props.get(Some(&qargs_key)) {
+                Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
+                None => None,
+            }
+        })
     }
 
     /// Get an iterator over the indices of all physical qubits of the target

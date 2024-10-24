@@ -61,6 +61,7 @@ impl PartialEq for BitAsKey {
                     .bind(py)
                     .repr()
                     .unwrap()
+                    .as_any()
                     .eq(other.bit.bind(py).repr().unwrap())
                     .unwrap()
             })
@@ -91,6 +92,15 @@ where
             description,
             bits: Vec::new(),
             indices: HashMap::new(),
+            cached: PyList::empty_bound(py).unbind(),
+        }
+    }
+
+    pub fn with_capacity(py: Python<'_>, description: String, capacity: usize) -> Self {
+        BitData {
+            description,
+            bits: Vec::with_capacity(capacity),
+            indices: HashMap::with_capacity(capacity),
             cached: PyList::empty_bound(py).unbind(),
         }
     }
