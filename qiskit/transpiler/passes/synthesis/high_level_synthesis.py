@@ -139,16 +139,18 @@ class QubitContext:
     """Correspondence between local qubits and global qubits.
 
     An internal class for handling recursion within HighLevelSynthesis.
-    Provides the correspondence between the qubit indices of an internal DAG,
+    Provides correspondence between the qubit indices of an internal DAG,
     aka the "local qubits" (for instance, of the definition circuit
     of a custom gate), and the qubit indices of the original DAG, aka the
     "global qubits".
 
-    The local qubit indices are assumed to be consecutive integers starting at
-    zero, i.e. 0, 1, 2, etc.
+    Since the local qubits are consecutive integers starting at zero,
+    i.e. 0, 1, 2, etc., the correspondence is kept using a list, with the
+    entry in position `k` representing the global qubit that corresponds
+    to the local qubit `k`.
     """
 
-    def __init__(self, local_to_global: dict):
+    def __init__(self, local_to_global: list):
         self.local_to_global = local_to_global
 
     def num_qubits(self) -> int:
@@ -161,22 +163,22 @@ class QubitContext:
         new local qubit.
         """
         new_local_qubit = len(self.local_to_global)
-        self.local_to_global[new_local_qubit] = global_qubit
+        self.local_to_global.append(global_qubit)
         return new_local_qubit
 
-    def to_global_mapping(self):
+    def to_global_mapping(self) -> list:
         """Returns the local-to-global mapping."""
         return self.local_to_global
 
-    def to_local_mapping(self):
-        """Returns the global-to-local mapping."""
-        return {j: i for (i, j) in self.local_to_global.items()}
+    def to_local_mapping(self) -> dict:
+        """Returns the global-to-local mapping ."""
+        return {j: i for (i, j) in enumerate(self.local_to_global)}
 
     def restrict(self, qubits: list[int] | tuple[int]) -> "QubitContext":
-        """Restricts the context to a subset of qubits, remapping the indices as
+        """Restricts the context to a subset of qubits, remapping the indices
         to be consecutive integers starting at zero.
         """
-        return QubitContext({i: self.local_to_global[qubits[i]] for i in range(len(qubits))})
+        return QubitContext([self.local_to_global[q] for q in qubits])
 
     def to_global(self, qubit: int) -> int:
         """Returns the global qubits corresponding to the given local qubits."""
@@ -323,7 +325,7 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
         qubits = tuple(dag.find_bit(q).index for q in dag.qubits)
-        context = QubitContext({i: i for i in range(len(dag.qubits))})
+        context = QubitContext([i for i in range(len(dag.qubits))])
         tracker = QubitTracker(num_qubits=dag.num_qubits())
         if self.qubits_initially_zero:
             tracker.set_clean(context.to_globals(qubits))
