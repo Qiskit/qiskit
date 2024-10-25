@@ -503,7 +503,7 @@ def _is_pauli_identity(operator):
 
 
 def _remove_identities(operators, prefixes):
-    identity_ops = set(index for index, op in enumerate(operators) if _is_pauli_identity(op))
+    identity_ops = {index for index, op in enumerate(operators) if _is_pauli_identity(op)}
 
     if len(identity_ops) == 0:
         return operators, prefixes
