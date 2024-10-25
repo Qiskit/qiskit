@@ -123,7 +123,7 @@ def grover_operator(
             state_preparation = QuantumCircuit(1)
             state_preparation.ry(0.2, 0)  # non-uniform state preparation
             grover_op = grover_operator(oracle, state_preparation)
-            grover_op.draw("mpl)
+            grover_op.draw("mpl")
 
         In addition, we can also mark which qubits the zero reflection should act on. This
         is useful in case that some qubits are just used as scratch space but should not affect
@@ -162,9 +162,10 @@ def grover_operator(
         the compiler will choose a different implementation:
 
         .. code-block:: python
-            :context:
 
             from qiskit import transpile, Qubit
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.circuit.library import grover_operator
 
             oracle = QuantumCircuit(10)
             oracle.z(oracle.qubits)
