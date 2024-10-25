@@ -119,12 +119,13 @@ fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 /// more details.
 ///
 /// Args:
-///     num_qubits: The number of qubits in the IQP circuit.
 ///     interactions: If provided, this is a symmetric square matrix of width ``num_qubits``,
 ///         determining the operations in the IQP circuit. The diagonal represents the power
 ///         of single-qubit T gates and the upper triangular part the power of CS gates
 ///         in between qubit pairs. If None, a random interactions matrix will be sampled.
-///     seed: A random seed to generate the random interactions.
+///
+/// Returns:
+///     The IQP circuit.
 ///
 /// References:
 ///
@@ -132,23 +133,32 @@ fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 ///     commuting quantum computations, Phys. Rev. Lett. 117, 080501 (2016).
 ///     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
 #[pyfunction]
-#[pyo3(signature = (num_qubits, interactions=None, seed=None))]
-pub fn py_iqp(
-    py: Python,
-    num_qubits: u32,
-    interactions: Option<PyReadonlyArray2<i64>>,
-    seed: Option<u64>,
-) -> PyResult<CircuitData> {
-    let array = match interactions {
-        Some(matrix) => {
-            let view = matrix.as_array();
-            if !check_symmetric(&view) {
-                return Err(CircuitError::new_err("IQP matrix must be symmetric."));
-            }
-            view.to_owned()
-        }
-        None => generate_random_interactions(num_qubits, seed),
-    };
-    let instructions = iqp(array.view());
+#[pyo3(signature = (interactions))]
+pub fn py_iqp(py: Python, interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
+    let array = interactions.as_array();
+    let view = array.view();
+    if !check_symmetric(&view) {
+        return Err(CircuitError::new_err("IQP matrix must be symmetric."));
+    }
+
+    let num_qubits = view.ncols() as u32;
+    let instructions = iqp(view);
+    CircuitData::from_standard_gates(py, num_qubits, instructions, Param::Float(0.0))
+}
+
+/// Generate a random Instantaneous Quantum Polynomial time (IQP) circuit.
+///
+/// Args:
+///     num_qubits: The number of qubits.
+///     seed: A random seed for generating the interactions matrix.
+///
+/// Returns:
+///     A random IQP circuit.
+#[pyfunction]
+#[pyo3(signature = (num_qubits, seed=None))]
+pub fn py_random_iqp(py: Python, num_qubits: u32, seed: Option<u64>) -> PyResult<CircuitData> {
+    let interactions = generate_random_interactions(num_qubits, seed);
+    let view = interactions.view();
+    let instructions = iqp(view);
     CircuitData::from_standard_gates(py, num_qubits, instructions, Param::Float(0.0))
 }

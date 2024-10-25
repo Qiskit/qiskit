@@ -18,7 +18,7 @@ from collections.abc import Sequence
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.utils.deprecation import deprecate_func
-from qiskit._accelerate.circuit_library import py_iqp
+from qiskit._accelerate.circuit_library import py_iqp, py_random_iqp
 
 
 class IQP(QuantumCircuit):
@@ -82,9 +82,7 @@ class IQP(QuantumCircuit):
 
 
 def iqp(
-    interactions: Sequence[Sequence[int]] | None = None,
-    num_qubits: int | None = None,
-    seed: int | None = None,
+    interactions: Sequence[Sequence[int]],
 ) -> QuantumCircuit:
     r"""Instantaneous quantum polynomial time (IQP) circuit.
 
@@ -125,26 +123,13 @@ def iqp(
     Args:
         interactions: The interactions as symmetric square matrix. If ``None``, then the
             ``num_qubits`` argument must be set and a random IQP circuit will be generated.
-        num_qubits: If no interactions are given, construct a random IQP circuit with this
-            number of qubits. This argument cannot be passed at the same time as ``interactions``.
-        seed: A seed for the random number generator, in case the interactions matrix is
-            randomly generated.
 
     Returns:
         An IQP circuit.
     """
     # if no interactions are given, generate them
-    if interactions is None:
-        if num_qubits is None:
-            raise ValueError("Either interactions or num_qubits must be provided.")
-
-    # otherwise validate the interactions
-    else:
-        if num_qubits is not None:
-            raise ValueError("Only one of interactions or num_qubits can be provided, not both.")
-
-        num_qubits = len(interactions)
-        interactions = np.asarray(interactions).astype(np.int64)
+    num_qubits = len(interactions)
+    interactions = np.asarray(interactions).astype(np.int64)
 
     # set the label -- if the number of qubits is too large, do not show the interactions matrix
     if num_qubits < 5 and interactions is not None:
@@ -153,8 +138,38 @@ def iqp(
     else:
         name = "iqp"
 
-    circuit = QuantumCircuit._from_circuit_data(
-        py_iqp(num_qubits, interactions, seed), add_regs=True
-    )
+    circuit = QuantumCircuit._from_circuit_data(py_iqp(interactions), add_regs=True)
     circuit.name = name
+    return circuit
+
+
+def random_iqp(
+    num_qubits: int,
+    seed: int | None = None,
+) -> QuantumCircuit:
+    r"""A random instantaneous quantum polynomial time (IQP) circuit.
+
+    See :func:`iqp` for more details on the IQP circuit.
+
+    Example:
+
+    .. plot::
+        :include-source:
+
+       from qiskit.circuit.library import random_iqp
+
+       circuit = random_iqp(3)
+       circuit.draw("mpl")
+
+    Args:
+        num_qubits: The number of qubits in the circuit.
+        seed: A seed for the random number generator, in case the interactions matrix is
+            randomly generated.
+
+    Returns:
+        An IQP circuit.
+    """
+    # set the label -- if the number of qubits is too large, do not show the interactions matrix
+    circuit = QuantumCircuit._from_circuit_data(py_random_iqp(num_qubits, seed), add_regs=True)
+    circuit.name = "iqp"
     return circuit

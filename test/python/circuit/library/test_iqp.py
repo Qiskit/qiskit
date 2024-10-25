@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import IQP, iqp
+from qiskit.circuit.library import IQP, iqp, random_iqp
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -68,12 +68,23 @@ class TestIQPLibrary(QiskitTestCase):
     def test_random_iqp(self):
         """Test generating a random IQP circuit."""
 
-        circuit = iqp(num_qubits=4)
+        circuit = random_iqp(num_qubits=4)
         self.assertEqual(circuit.num_qubits, 4)
 
         ops = circuit.count_ops()
         allowed = {"p", "h", "cp"}
         self.assertTrue(set(ops.keys()).issubset(allowed))
+
+    def test_random_iqp_seed(self):
+        """Test setting the seed."""
+
+        seed = 236321
+        circuit1 = random_iqp(num_qubits=3, seed=seed)
+        circuit2 = random_iqp(num_qubits=3, seed=seed)
+        self.assertEqual(circuit1, circuit2)
+
+        circuit3 = random_iqp(num_qubits=3, seed=seed + 1)
+        self.assertNotEqual(circuit1, circuit3)
 
 
 if __name__ == "__main__":
