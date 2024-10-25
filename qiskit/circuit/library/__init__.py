@@ -254,11 +254,15 @@ Functional Pauli Rotations
 
    FunctionalPauliRotations
    LinearPauliRotations
+   LinearPauliRotationsGate
    PolynomialPauliRotations
+   PolynomialPauliRotationsGate
    PiecewiseLinearPauliRotations
    PiecewiseLinearPauliRotationsGate
    PiecewisePolynomialPauliRotations
+   PiecewisePolynomialPauliRotationsGate
    PiecewiseChebyshev
+   PiecewiseChebyshevGate
 
 Adders
 ------
@@ -310,6 +314,7 @@ Other arithmetic functions
    :template: autosummary/class_no_inherited_members.rst
 
    ExactReciprocal
+   ExactReciprocalGate
 
 Particular Quantum Circuits
 ===========================
@@ -535,10 +540,13 @@ from .basis_change import QFT, QFTGate
 from .arithmetic import (
     FunctionalPauliRotations,
     LinearPauliRotations,
+    LinearPauliRotationsGate,
     PiecewiseLinearPauliRotations,
     PiecewiseLinearPauliRotationsGate,
     PiecewisePolynomialPauliRotations,
+    PiecewisePolynomialPauliRotationsGate,
     PolynomialPauliRotations,
+    PolynomialPauliRotationsGate,
     IntegerComparator,
     IntegerComparatorGate,
     WeightedAdder,
@@ -550,9 +558,11 @@ from .arithmetic import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
+    PiecewiseChebyshevGate,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
     ExactReciprocal,
+    ExactReciprocalGate,
 )
 
 from .n_local import (

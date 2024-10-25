@@ -14,17 +14,20 @@
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 from .integer_comparator import IntegerComparator, IntegerComparatorGate
-from .linear_pauli_rotations import LinearPauliRotations
+from .linear_pauli_rotations import LinearPauliRotations, LinearPauliRotationsGate
 from .piecewise_linear_pauli_rotations import (
     PiecewiseLinearPauliRotations,
     PiecewiseLinearPauliRotationsGate,
 )
-from .piecewise_polynomial_pauli_rotations import PiecewisePolynomialPauliRotations
-from .polynomial_pauli_rotations import PolynomialPauliRotations
+from .piecewise_polynomial_pauli_rotations import (
+    PiecewisePolynomialPauliRotations,
+    PiecewisePolynomialPauliRotationsGate,
+)
+from .polynomial_pauli_rotations import PolynomialPauliRotations, PolynomialPauliRotationsGate
 from .weighted_adder import WeightedAdder
 from .quadratic_form import QuadraticForm, QuadraticFormGate
 from .linear_amplitude_function import LinearAmplitudeFunction, LinearAmplitudeFunctionGate
 from .adders import VBERippleCarryAdder, CDKMRippleCarryAdder, DraperQFTAdder
-from .piecewise_chebyshev import PiecewiseChebyshev
+from .piecewise_chebyshev import PiecewiseChebyshev, PiecewiseChebyshevGate
 from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier
-from .exact_reciprocal import ExactReciprocal
+from .exact_reciprocal import ExactReciprocal, ExactReciprocalGate

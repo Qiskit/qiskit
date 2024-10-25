@@ -348,10 +348,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
         )
 
-        # qr_state = self.qubits[: self.num_state_qubits]
-        # qr_target = [self.qubits[self.num_state_qubits]]
-        # qr_ancillas = self.qubits[self.num_state_qubits + 1 :]
-
         # Apply polynomial approximation
         self.append(poly_r.to_gate(), self.qubits)
 
@@ -417,7 +413,8 @@ class PiecewiseChebyshevGate(Gate):
         self.breakpoints = breakpoints if breakpoints is not None else [0]
 
         # TODO need an additional comparison qubit like Pw Pauli Rot
-        super().__init__("PiecewiseChebychev", num_state_qubits + 1, [], label)
+        num_compare = 0 if breakpoints is None else int(len(breakpoints) > 1)
+        super().__init__("PiecewiseChebychev", num_state_qubits + num_compare + 1, [], label)
 
     @property
     def polynomials(self):
@@ -429,7 +426,7 @@ class PiecewiseChebyshevGate(Gate):
         # Need to take into account the case in which no breakpoints were provided in first place
         num_state_qubits = self.num_qubits - 1
         if breakpoints == [0]:
-            breakpoints = [0, 2**self.num_state_qubits]
+            breakpoints = [0, 2**num_state_qubits]
 
         num_intervals = len(breakpoints)
 
@@ -459,7 +456,7 @@ class PiecewiseChebyshevGate(Gate):
                 ) from err
 
         # If the last breakpoint is < 2 ** num_qubits, add the identity polynomial
-        if breakpoints[-1] < 2**self.num_state_qubits:
+        if breakpoints[-1] < 2**num_state_qubits:
             polynomials = polynomials + [[2 * np.arcsin(1)]]
 
         # If the first breakpoint is > 0, add the identity polynomial

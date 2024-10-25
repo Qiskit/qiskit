@@ -279,7 +279,8 @@ class LinearAmplitudeFunctionGate(Gate):
         self.rescaling_factor = rescaling_factor
         self.breakpoints = breakpoints
 
-        super().__init__("LinFunction", num_state_qubits + 1, [], label=label)
+        num_compare = int(len(breakpoints) > 1)
+        super().__init__("LinFunction", num_state_qubits + num_compare + 1, [], label=label)
 
     def _define(self):
         num_state_qubits = self.num_qubits - 1

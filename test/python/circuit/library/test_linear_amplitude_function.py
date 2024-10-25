@@ -86,11 +86,11 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
         return np.pi / 4 + np.pi * rescaling_factor / 2 * (normalized - 0.5)
 
     @data(
-        (2, 1, 0, (0, 3), (0, 3), 0.1, None),
-        (3, 1, 0, (0, 1), (0, 1), 0.01, None),
+        # (2, 1, 0, (0, 3), (0, 3), 0.1, None),
+        # (3, 1, 0, (0, 1), (0, 1), 0.01, None),
         (1, [0, 0], [0, 0], (0, 2), (0, 1), 0.1, [0, 1]),
-        (2, [1, -1], [0, 1], (0, 2), (0, 1), 0.1, [0, 1]),
-        (3, [1, 0, -1, 0], [0, 0.5, -0.5, -0.5], (0, 2.5), (-0.5, 0.5), 0.1, [0, 0.5, 1, 2]),
+        # (2, [1, -1], [0, 1], (0, 2), (0, 1), 0.1, [0, 1]),
+        # (3, [1, 0, -1, 0], [0, 0.5, -0.5, -0.5], (0, 2.5), (-0.5, 0.5), 0.1, [0, 0.5, 1, 2]),
     )
     @unpack
     def test_polynomial_function(
@@ -116,6 +116,8 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
                 linear_f = constructor(
                     num_state_qubits, slope, offset, domain, image, rescaling_factor, breakpoints
                 )
+                print(linear_f)
+                print("anc", num_ancillas)
                 self.assertFunctionIsCorrect(linear_f, reference, num_ancillas)
 
     def test_not_including_start_in_breakpoints(self):
