@@ -493,7 +493,7 @@ impl DAGCircuit {
                 .iter()
                 .enumerate()
                 .map(|(k, v)| (k, [v[0].index(), v[1].index()]))
-                .collect::<IndexMap<_, _, RandomState>>(),
+                .into_py_dict_bound(py),
         )?;
         out_dict.set_item(
             "clbit_io_map",
@@ -501,7 +501,7 @@ impl DAGCircuit {
                 .iter()
                 .enumerate()
                 .map(|(k, v)| (k, [v[0].index(), v[1].index()]))
-                .collect::<IndexMap<_, _, RandomState>>(),
+                .into_py_dict_bound(py),
         )?;
         out_dict.set_item(
             "var_io_map",
@@ -509,7 +509,7 @@ impl DAGCircuit {
                 .iter()
                 .enumerate()
                 .map(|(k, v)| (k, [v[0].index(), v[1].index()]))
-                .collect::<IndexMap<_, _, RandomState>>(),
+                .into_py_dict_bound(py),
         )?;
         out_dict.set_item("op_name", self.op_names.clone())?;
         out_dict.set_item(
@@ -527,7 +527,7 @@ impl DAGCircuit {
                         ),
                     )
                 })
-                .collect::<HashMap<_, _>>(),
+                .into_py_dict_bound(py),
         )?;
         out_dict.set_item("vars_by_type", self.vars_by_type.clone())?;
         out_dict.set_item("qubits", self.qubits.bits())?;
