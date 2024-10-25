@@ -37,7 +37,7 @@ class PauliTwoDesign(TwoLocal):
     For instance, the circuit could look like this (but note that choosing a different seed
     yields different Pauli rotations).
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐┌──────────┐       ░ ┌──────────┐       ░  ┌──────────┐
         q_0: ┤ RY(π/4) ├┤ RZ(θ[0]) ├─■─────░─┤ RY(θ[4]) ├─■─────░──┤ RZ(θ[8]) ├
