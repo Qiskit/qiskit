@@ -131,16 +131,15 @@ class ConsolidateBlocks(TransformationPass):
         pass_manager = PassManager()
         if "run_list" in self.property_set:
             pass_manager.append(Collect1qRuns())
-        if "block_list" in self.property_set:
             pass_manager.append(Collect2qBlocks())
 
         pass_manager.append(self)
-        for node in dag.op_nodes():
-            if node.name not in CONTROL_FLOW_OP_NAMES:
-                continue
-            dag.substitute_node(
-                node,
-                node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
-                propagate_condition=False,
-            )
+        control_flow_nodes = dag.control_flow_op_nodes()
+        if control_flow_nodes is not None:
+            for node in control_flow_nodes:
+                dag.substitute_node(
+                    node,
+                    node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks),
+                    propagate_condition=False,
+                )
         return dag
