@@ -213,12 +213,14 @@ class BasicSimulator(BackendV2):
                 )
         return target
 
-    @deprecate_func(since="1.3.0", 
-                    removal_timeline="in Qiskit 2.0.0", 
-                    additional_msg="The `BackendConfiguration` class is part of the deprecated `BackendV1` "
-                    "workflow, and no longer necessary for `BackendV2`. The individual configuration elements "
-                    "can be retrieved directly from the backend or from the contained `Target` instance "
-                    "(`backend.target)`).")
+    @deprecate_func(
+        since="1.3.0",
+        removal_timeline="in Qiskit 2.0.0",
+        additional_msg="The `BackendConfiguration` class is part of the deprecated `BackendV1` "
+        "workflow, and no longer necessary for `BackendV2`. The individual configuration elements "
+        "can be retrieved directly from the backend or from the contained `Target` instance "
+        "(`backend.target)`).",
+    )
     def configuration(self) -> BackendConfiguration:
         """Return the simulator backend configuration.
 
@@ -539,7 +541,8 @@ class BasicSimulator(BackendV2):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / math.sqrt(2),
                 }
         """
-        # TODO: replace assemble with new run flow
+        # TODO: replace assemble with new run flow. If this is not achieved before 2.0,
+        # see removal note on `def _assemble`, L192 of qiskit/compiler/assembler.py
         from qiskit.compiler.assembler import _assemble
 
         out_options = {}
