@@ -17,7 +17,6 @@ from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
 from qiskit.circuit.library.standard_gates import CXGate, CZGate, iSwapGate, ECRGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit._accelerate.consolidate_blocks import consolidate_blocks
 
 from .collect_1q_runs import Collect1qRuns
