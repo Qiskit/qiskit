@@ -10,27 +10,34 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
-use pyo3::intern;
-use pyo3::types::PyTuple;
-use hashbrown::HashSet;
-use smallvec::smallvec;
 use crate::nlayout::PhysicalQubit;
+use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
-use qiskit_circuit::imports;
+use hashbrown::HashSet;
+use pyo3::intern;
+use pyo3::prelude::*;
+use pyo3::types::PyTuple;
+use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::{
+    circuit_instruction::CircuitInstruction,
+    circuit_instruction::ExtraInstructionAttributes,
     dag_circuit::{DAGCircuit, NodeType},
+    dag_node::{DAGNode, DAGOpNode},
+    imports,
+    imports::get_std_gate_class,
+    operations::Operation,
+    operations::Param,
+    operations::StandardGate,
     packed_instruction::PackedInstruction,
     Qubit, TupleLikeArg,
-    operations::{OperationRef, StandardGate, Param, Operation},
-    circuit_instruction::ExtraInstructionAttributes,
 };
-use crate::target_transpiler::exceptions::TranspilerError;
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::smallvec;
+use std::f64::consts::PI;
 
 //#########################################################################
 //              CheckGateDirection analysis pass functions
 //#########################################################################
-
 
 /// Check if the two-qubit gates follow the right direction with respect to the coupling map.
 ///
@@ -53,7 +60,6 @@ fn py_check_with_coupling_map(
 
     check_gate_direction(py, dag, &coupling_map_check, None)
 }
-
 
 /// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
 ///
@@ -106,7 +112,7 @@ where
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
             if py_inst.control_flow() {
-                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py); // TODO: Take out of the recursion
+                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
                 let py_inst = py_inst.instruction.bind(py);
 
                 for block in py_inst.getattr("blocks")?.iter()? {
@@ -155,158 +161,501 @@ where
 //              GateDirection transformation pass functions
 //#########################################################################
 
-
-// type GateDirectionCheckFn<'a> = Box<dyn Fn(&DAGCircuit, &PackedInstruction, &[Qubit]) -> bool + 'a>;
-
-// // Return a closure function that checks whether the direction of a given gate complies with the given coupling map. This is used in the
-// // pass functions below
-// fn coupling_direction_checker<'a>(py: &'a Python, dag: &'a DAGCircuit, coupling_edges: &'a Bound<PySet>) -> GateDirectionCheckFn<'a> {
-//     Box::new(move |curr_dag: &DAGCircuit, _: &PackedInstruction, op_args: &[Qubit]| -> bool {
-//         coupling_edges
-//             .contains((
-//                 map_qubit(&py, dag, curr_dag, op_args[0]).0,
-//                 map_qubit(&py, dag, curr_dag, op_args[1]).0,
-//             ))
-//             .unwrap_or(false)
-//         })
-// }
-
-// // Return a closure function that checks whether the direction of a given gate complies with the given target. This is used in the
-// // pass functions below
-// fn target_direction_checker<'a>(py: &'a Python, dag: &'a DAGCircuit, target: PyRef<'a, Target>) -> GateDirectionCheckFn<'a> {
-//     Box::new(move |curr_dag: &DAGCircuit, inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-//         let mut qargs = Qargs::new();
-
-//         qargs.push(PhysicalQubit::new(
-//             map_qubit(py, dag, curr_dag, op_args[0]).0,
-//         ));
-//         qargs.push(PhysicalQubit::new(
-//             map_qubit(py, dag, curr_dag, op_args[1]).0,
-//         ));
-
-//         target.instruction_supported(inst.op.name(), Some(&qargs))
-//     })
-// }
-
+/// Try to swap two-qubit gate directions using pre-defined mapping to follow the right direction with respect to the coupling map.
 ///
+/// Args:
+///     dag: the DAGCircuit to analyze
 ///
+///     coupling_edges: set of edge pairs representing a directed coupling map, against which gate directionality is checked
 ///
-///
-///
+/// Returns:
+///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_coupling")]
-fn py_fix_with_coupling_map(py: Python, dag: &DAGCircuit, coupling_edges: HashSet<[Qubit; 2]>) -> PyResult<DAGCircuit> {
+fn py_fix_with_coupling_map(
+    py: Python,
+    dag: &mut DAGCircuit,
+    coupling_edges: HashSet<[Qubit; 2]>,
+) -> PyResult<DAGCircuit> {
+    if coupling_edges.is_empty() {
+        return Ok(dag.clone());
+    }
+
     let coupling_map_check =
-    |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
+        |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
-
-    fix_gate_direction(py, dag, coupling_map_check)
+    fix_gate_direction(py, dag, &coupling_map_check, None).cloned()
 }
 
-fn fix_gate_direction<T>(py: Python, dag: &DAGCircuit, gate_complies: T)  -> PyResult<DAGCircuit>
-where T: Fn(&PackedInstruction, &[Qubit]) -> bool
+/// Try to swap two-qubit gate directions using pre-defined mapping to follow the right direction with respect to the given target.
+///
+/// Args:
+///     dag: the DAGCircuit to analyze
+///
+///     coupling_edges: set of edge pairs representing a directed coupling map, against which gate directionality is checked
+///
+/// Returns:
+///     the transformed DAGCircuit
+#[pyfunction]
+#[pyo3(name = "fix_gate_direction_target")]
+fn py_fix_with_target(py: Python, dag: &mut DAGCircuit, target: &Target) -> PyResult<DAGCircuit> {
+    let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
+        let qargs = smallvec![
+            PhysicalQubit::new(op_args[0].0),
+            PhysicalQubit::new(op_args[1].0)
+        ];
 
+        // Take this path so Target can check for exact match of the parameterized gate's angle
+        if let OperationRef::Standard(std_gate) = inst.op.view() {
+            match std_gate {
+                StandardGate::RXXGate
+                | StandardGate::RYYGate
+                | StandardGate::RZZGate
+                | StandardGate::RZXGate => {
+                    return target
+                        .py_instruction_supported(
+                            py,
+                            None,
+                            Some(qargs),
+                            Some(
+                                get_std_gate_class(py, std_gate)
+                                    .expect("These gates should have Python classes")
+                                    .bind(py),
+                            ),
+                            Some(inst.params_view().to_vec()),
+                        )
+                        .unwrap_or(false)
+                }
+                _ => {}
+            }
+        }
+        target.instruction_supported(inst.op.name(), Some(&qargs))
+    };
+
+    fix_gate_direction(py, dag, &target_check, None).cloned()
+}
+
+// The main routine for fixing gate direction. Same parameters are check_gate_direction
+fn fix_gate_direction<'a, T>(
+    py: Python,
+    dag: &'a mut DAGCircuit,
+    gate_complies: &T,
+    qubit_mapping: Option<&[Qubit]>,
+) -> PyResult<&'a DAGCircuit>
+where
+    T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
+    let mut nodes_to_replace: Vec<(NodeIndex, DAGCircuit)> = Vec::new();
+    let mut ops_to_replace: Vec<(NodeIndex, Vec<Bound<PyAny>>)> = Vec::new();
+
     for node in dag.op_nodes(false) {
-        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {panic!("PackedInstruction is expected");
+        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {
+            panic!("PackedInstruction is expected");
         };
+
+        let op_args = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
             if py_inst.control_flow() {
-                todo!("direction fix control flow blocks");
+                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+
+                let blocks = py_inst.instruction.bind(py).getattr("blocks")?;
+                let blocks = blocks.downcast::<PyTuple>()?;
+
+                let mut blocks_to_replace = Vec::with_capacity(blocks.len());
+                for block in blocks {
+                    let mut inner_dag: DAGCircuit = circuit_to_dag.call1((block,))?.extract()?;
+
+                    let inner_dag = if let Some(mapping) = qubit_mapping {
+                        let mapping = op_args // Create a temp mapping for the recursive call
+                            .iter()
+                            .map(|q| mapping[q.index()])
+                            .collect::<Vec<Qubit>>();
+
+                        fix_gate_direction(py, &mut inner_dag, gate_complies, Some(&mapping))?
+                    } else {
+                        fix_gate_direction(py, &mut inner_dag, gate_complies, Some(op_args))?
+                    };
+
+                    let circuit = dag_to_circuit.call1((inner_dag.clone(),))?;
+                    blocks_to_replace.push(circuit);
+                }
+
+                // Store this for replacement outside the dag.op_nodes loop
+                ops_to_replace.push((node, blocks_to_replace));
+
+                continue;
             }
         }
 
-        let op_args = dag.get_qargs(packed_inst.qubits);
-        if op_args.len() != 2 {continue;}
+        if op_args.len() != 2 || dag.has_calibration_for_index(py, node)? {
+            continue;
+        };
 
-        if !gate_complies(packed_inst, op_args) {
-            if !gate_complies(packed_inst, &[op_args[1], op_args[0]]) {
-                return Err(TranspilerError::new_err(format!("The circuit requires a connection between physical qubits {:?}", op_args)));
-            }
+        // Take into account qubit index mapping if we're inside a control-flow block
+        let (op_args0, op_args1) = if let Some(mapping) = qubit_mapping {
+            (mapping[op_args[0].index()], mapping[op_args[1].index()])
+        } else {
+            (op_args[0], op_args[1])
+        };
 
-            if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
-                match std_gate {
-                    StandardGate::CXGate |
-                    StandardGate::CZGate |
-                    StandardGate::ECRGate |
-                    StandardGate::SwapGate |
-                    StandardGate::RZXGate |
-                    StandardGate::RXXGate |
-                    StandardGate::RYYGate => todo!("Direction fix for {:?}", std_gate),
-                    StandardGate::RZZGate => println!("PARAMs: {:?}", packed_inst.params),
-                    _ => continue,
+        if gate_complies(packed_inst, &[op_args0, op_args1]) {
+            continue;
+        }
+
+        // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
+        // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
+        if let OperationRef::Standard(std_gate) = packed_inst.op.view() {
+            match std_gate {
+                StandardGate::CXGate
+                | StandardGate::ECRGate
+                | StandardGate::CZGate
+                | StandardGate::SwapGate
+                | StandardGate::RXXGate
+                | StandardGate::RYYGate
+                | StandardGate::RZZGate
+                | StandardGate::RZXGate => {
+                    if gate_complies(packed_inst, &[op_args1, op_args0]) {
+                        // Store this for replacement outside the dag.op_nodes loop
+                        nodes_to_replace.push((node, replace_dag(py, std_gate, packed_inst)?));
+                        continue;
+                    } else {
+                        return Err(TranspilerError::new_err(format!(
+                            "The circuit requires a connection between physical qubits {:?} for {}",
+                            op_args,
+                            packed_inst.op.name()
+                        )));
+                    }
                 }
+                _ => {}
             }
+        }
+        // No matching replacement found
+        if gate_complies(packed_inst, &[op_args1, op_args0])
+            || has_calibration_for_op_node(py, dag, packed_inst, &[op_args1, op_args0])?
+        {
+            return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
+            // NOTE: Make sure to update the list of the supported gates if adding more replacements
+        } else {
+            return Err(TranspilerError::new_err(format!(
+                "{} with parameters {:?} is not supported on qubits {:?} in either direction.",
+                packed_inst.op.name(),
+                packed_inst.params_view(),
+                op_args
+            )));
         }
     }
 
-    Ok(dag.clone()) // TODO: avoid cloning
+    for (node, op_blocks) in ops_to_replace {
+        let NodeType::Operation(packed_inst) = &dag.dag()[node] else {
+            panic!("PackedInstruction is expected");
+        };
+        let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
+            panic!("PyInstruction is expected");
+        };
+        let new_op = py_inst
+            .instruction
+            .bind(py)
+            .call_method1("replace_blocks", (op_blocks,))?;
+
+        dag.py_substitute_node(dag.get_node(py, node)?.bind(py), &new_op, false, false)?;
+    }
+
+    for (node, replacemanet_dag) in nodes_to_replace {
+        dag.py_substitute_node_with_dag(
+            py,
+            dag.get_node(py, node)?.bind(py),
+            &replacemanet_dag,
+            None,
+            true,
+        )?;
+    }
+
+    Ok(dag)
+}
+
+// Check whether the dag as calibration for a DAGOpNode
+fn has_calibration_for_op_node(
+    py: Python,
+    dag: &DAGCircuit,
+    packed_inst: &PackedInstruction,
+    qargs: &[Qubit],
+) -> PyResult<bool> {
+    let py_args = PyTuple::new_bound(py, dag.qubits().map_indices(qargs));
+
+    let dag_op_node = Py::new(
+        py,
+        (
+            DAGOpNode {
+                instruction: CircuitInstruction {
+                    operation: packed_inst.op.clone(),
+                    qubits: py_args.unbind(),
+                    clbits: PyTuple::empty_bound(py).unbind(),
+                    params: packed_inst.params_view().iter().cloned().collect(),
+                    extra_attrs: packed_inst.extra_attrs.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: packed_inst.py_op.clone(),
+                },
+                sort_key: "".into_py(py),
+            },
+            DAGNode { node: None },
+        ),
+    )?;
+
+    dag.has_calibration_for(py, dag_op_node.borrow(py))
+}
+
+// Return a replacement DAG for the given standard gate in the supported list
+// TODO: optimize it by caching the DAGs of the non-parametric gates and caching and
+// mutating upon request the DAGs of the parametric gates
+fn replace_dag(
+    py: Python,
+    std_gate: StandardGate,
+    inst: &PackedInstruction,
+) -> PyResult<DAGCircuit> {
+    let replacement_dag = match std_gate {
+        StandardGate::CXGate => cx_replacement_dag(py),
+        StandardGate::ECRGate => ecr_replacement_dag(py),
+        StandardGate::CZGate => cz_replacement_dag(py),
+        StandardGate::SwapGate => swap_replacement_dag(py),
+        StandardGate::RXXGate => rxx_replacement_dag(py, inst.params_view()),
+        StandardGate::RYYGate => ryy_replacement_dag(py, inst.params_view()),
+        StandardGate::RZZGate => rzz_replacement_dag(py, inst.params_view()),
+        StandardGate::RZXGate => rzx_replacement_dag(py, inst.params_view()),
+        _ => panic!("Mismatch in supported gates assumption"),
+    };
+
+    replacement_dag
 }
 
 //###################################################
 // Utility functions to build the replacement dags
 // TODO: replace once we have fully Rust-friendly versions of QuantumRegister, DAGCircuit and ParemeterExpression
-
-fn create_qreg<'py>(py: Python<'py>, size: u32) -> PyResult<Bound<'py, PyAny>> {
+#[inline]
+fn create_qreg(py: Python<'_>, size: u32) -> PyResult<Bound<'_, PyAny>> {
     imports::QUANTUM_REGISTER.get_bound(py).call1((size,))
 }
 
+#[inline]
 fn qreg_bit<'py>(py: Python, qreg: &Bound<'py, PyAny>, index: u32) -> PyResult<Bound<'py, PyAny>> {
     qreg.call_method1(intern!(py, "__getitem__"), (index,))
 }
 
+#[inline]
 fn std_gate(py: Python, gate: StandardGate) -> PyResult<Py<PyAny>> {
-    gate.create_py_op(py, None, &ExtraInstructionAttributes::new(None, None, None, None))
-}
-
-fn parameterized_std_gate(py: Python, gate: StandardGate, param: Param) -> PyResult<Py<PyAny>> {
-    gate.create_py_op(py, Some(&[param]), &ExtraInstructionAttributes::new(None, None, None, None))
-}
-
-fn apply_op_back(py: Python, dag: &mut DAGCircuit, op: &Py<PyAny>, qargs: &Vec<&Bound<PyAny>>) -> PyResult<()> {
-    dag.py_apply_operation_back(py,
-        op.bind(py).clone(),
-        Some( TupleLikeArg::extract_bound( &PyTuple::new_bound(py, qargs))? ),
+    gate.create_py_op(
+        py,
         None,
-        false)?;
+        &ExtraInstructionAttributes::new(None, None, None, None),
+    )
+}
+
+#[inline]
+fn parameterized_std_gate(py: Python, gate: StandardGate, param: &[Param]) -> PyResult<Py<PyAny>> {
+    debug_assert!(param.len() == 1); //
+    gate.create_py_op(
+        py,
+        Some(param),
+        &ExtraInstructionAttributes::new(None, None, None, None),
+    )
+}
+
+#[inline]
+fn apply_op_back(
+    py: Python,
+    dag: &mut DAGCircuit,
+    op: &Py<PyAny>,
+    qargs: &Vec<&Bound<PyAny>>,
+) -> PyResult<()> {
+    dag.py_apply_operation_back(
+        py,
+        op.bind(py).clone(),
+        Some(TupleLikeArg::extract_bound(&PyTuple::new_bound(py, qargs))?),
+        None,
+        false,
+    )?;
 
     Ok(())
 }
-
-// fn build_dag(py: Python) -> PyResult<DAGCircuit> {
-//     let qreg = create_qreg(py, 2)?;
-//     let new_dag = &mut DAGCircuit::new(py)?;
-//     new_dag.add_qreg(py, &qreg)?;
-
-//     let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 0)?);
-
-//     apply_standard_gate_back(py, new_dag, StandardGate::HGate, &vec![&q0])?;
-//     apply_standard_gate_back(py, new_dag, StandardGate::CXGate, &vec![&q0, &q1])?;
-
-//     Ok( new_dag.clone() ) // TODO: Get rid of the clone
-// }
 
 fn cx_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
     let qreg = create_qreg(py, 2)?;
     let new_dag = &mut DAGCircuit::new(py)?;
     new_dag.add_qreg(py, &qreg)?;
 
-    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 0)?);
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
     apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q0])?;
     apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q1])?;
-    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q1, &q0])?;
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::CXGate)?,
+        &vec![&q1, &q0],
+    )?;
     apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q0])?;
     apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q1])?;
 
-    Ok( new_dag.clone() ) // TODO: Get rid of the clone
+    Ok(new_dag.clone())
 }
 
+fn ecr_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+    new_dag.add_global_phase(py, &Param::Float(-PI / 2.0))?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::SGate)?, &vec![&q0])?;
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::SXGate)?,
+        &vec![&q0],
+    )?;
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::SdgGate)?,
+        &vec![&q0],
+    )?;
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::SdgGate)?,
+        &vec![&q1],
+    )?;
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::SXGate)?,
+        &vec![&q1],
+    )?;
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::SGate)?, &vec![&q1])?;
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::ECRGate)?,
+        &vec![&q1, &q0],
+    )?;
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q0])?;
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q1])?;
+
+    Ok(new_dag.clone())
+}
+
+fn cz_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::CZGate)?,
+        &vec![&q1, &q0],
+    )?;
+
+    Ok(new_dag.clone())
+}
+
+fn swap_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(
+        py,
+        new_dag,
+        &std_gate(py, StandardGate::SwapGate)?,
+        &vec![&q1, &q0],
+    )?;
+
+    Ok(new_dag.clone())
+}
+
+fn rxx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(
+        py,
+        new_dag,
+        &parameterized_std_gate(py, StandardGate::RXXGate, param)?,
+        &vec![&q1, &q0],
+    )?;
+
+    Ok(new_dag.clone())
+}
+
+fn ryy_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(
+        py,
+        new_dag,
+        &parameterized_std_gate(py, StandardGate::RYYGate, param)?,
+        &vec![&q1, &q0],
+    )?;
+
+    Ok(new_dag.clone())
+}
+
+fn rzz_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(
+        py,
+        new_dag,
+        &parameterized_std_gate(py, StandardGate::RZZGate, param)?,
+        &vec![&q1, &q0],
+    )?;
+
+    Ok(new_dag.clone())
+}
+
+fn rzx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
+    let qreg = create_qreg(py, 2)?;
+    let new_dag = &mut DAGCircuit::new(py)?;
+    new_dag.add_qreg(py, &qreg)?;
+
+    let (q0, q1) = (qreg_bit(py, &qreg, 0)?, qreg_bit(py, &qreg, 1)?);
+
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q0])?;
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q1])?;
+    apply_op_back(
+        py,
+        new_dag,
+        &parameterized_std_gate(py, StandardGate::RZXGate, param)?,
+        &vec![&q1, &q0],
+    )?;
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q0])?;
+    apply_op_back(py, new_dag, &std_gate(py, StandardGate::HGate)?, &vec![&q1])?;
+
+    Ok(new_dag.clone())
+}
 
 #[pymodule]
 pub fn gate_direction(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_check_with_coupling_map))?;
     m.add_wrapped(wrap_pyfunction!(py_check_with_target))?;
     m.add_wrapped(wrap_pyfunction!(py_fix_with_coupling_map))?;
+    m.add_wrapped(wrap_pyfunction!(py_fix_with_target))?;
     Ok(())
 }
