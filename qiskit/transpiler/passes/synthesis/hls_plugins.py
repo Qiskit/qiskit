@@ -327,16 +327,11 @@ Full Adder Synthesis
       - :class:`.FullAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
       - a ripple-carry adder
-    * - ``"qft"``
-      - :class:`.FullAdderSynthesisD00`
-      - 0
-      - a QFT-based adder
 
 .. autosummary::
    :toctree: ../stubs/
 
    FullAdderSynthesisC04
-   FullAdderSynthesisD00
    FullAdderSynthesisV95
 
 
@@ -1182,7 +1177,7 @@ class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
         num_state_qubits = high_level_object.num_state_qubits
 
         # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 and options.get("num_clean_ancillas", 0) < 1:
+        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="fixed")
@@ -1229,7 +1224,7 @@ class AdderSynthesisV95(HighLevelSynthesisPlugin):
         num_state_qubits = high_level_object.num_state_qubits
 
         # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 and options.get("num_clean_ancillas", 0) < 1:
+        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="half")
@@ -1256,7 +1251,7 @@ class FullAdderSynthesisV95(HighLevelSynthesisPlugin):
         num_state_qubits = high_level_object.num_state_qubits
 
         # for more than 1 state qubit, we need an ancilla
-        if num_state_qubits > 1 and options.get("num_clean_ancillas", 0) < 1:
+        if num_state_qubits > 1 > options.get("num_clean_ancillas", 1):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="full")
