@@ -6769,7 +6769,7 @@ impl DAGCircuit {
         qubit_pos_map: &HashMap<Qubit, usize>,
         clbit_pos_map: &HashMap<Clbit, usize>,
     ) -> PyResult<NodeIndex> {
-        let mut block_op_names = Vec::new();
+        let mut block_op_names = Vec::with_capacity(block_ids.len());
         let mut block_qargs: HashSet<Qubit> = HashSet::new();
         let mut block_cargs: HashSet<Clbit> = HashSet::new();
         for nd in block_ids {
