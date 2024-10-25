@@ -6977,10 +6977,9 @@ impl DAGCircuit {
                 "New operation '{:?}' does not span the same wires as the old node '{:?}'. New wires: {:?}, old_wires: {:?}.", op.str(), old_packed.op.view(), new_wires, current_wires
             )));
         }
-
-        // Clone op data, as it will be moved into the PackedInstruction
+        let new_op_name = new_op.operation.name().to_string();
         let new_weight = NodeType::Operation(PackedInstruction {
-            op: new_op.operation.clone(),
+            op: new_op.operation,
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
             params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
@@ -6994,7 +6993,7 @@ impl DAGCircuit {
 
         // Update self.op_names
         self.decrement_op(op_name.as_str());
-        self.increment_op(new_op.operation.name());
+        self.increment_op(new_op_name.as_str());
         Ok(())
     }
 }
