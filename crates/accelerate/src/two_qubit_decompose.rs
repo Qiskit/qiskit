@@ -216,6 +216,22 @@ fn py_decompose_two_qubit_product_gate(
     ))
 }
 
+/// Computes the Weyl coordinates for a given two-qubit unitary matrix.
+///
+/// Args:
+///     U (np.ndarray): Input two-qubit unitary.
+///
+/// Returns:
+///     np.ndarray: Array of the 3 Weyl coordinates.
+#[pyfunction]
+fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyObject {
+    let array = unitary.as_array();
+    __weyl_coordinates(array.into_faer_complex())
+        .to_vec()
+        .into_pyarray_bound(py)
+        .into()
+}
+
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
     let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
@@ -407,8 +423,8 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
 
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
-#[derive(Clone, Debug, Copy)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", eq)]
 pub enum Specialization {
     General,
     IdEquiv,
@@ -494,6 +510,15 @@ pub struct TwoQubitWeylDecomposition {
 }
 
 impl TwoQubitWeylDecomposition {
+    pub fn a(&self) -> f64 {
+        self.a
+    }
+    pub fn b(&self) -> f64 {
+        self.b
+    }
+    pub fn c(&self) -> f64 {
+        self.c
+    }
     fn weyl_gate(
         &self,
         simplify: bool,
@@ -1030,6 +1055,7 @@ static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
 #[pymethods]
 impl TwoQubitWeylDecomposition {
     #[staticmethod]
+    #[pyo3(signature=(angles, matrices, specialization, default_euler_basis, calculated_fidelity, requested_fidelity=None))]
     fn _from_state(
         angles: [f64; 4],
         matrices: [PyReadonlyArray2<Complex64>; 5],
@@ -1214,6 +1240,7 @@ impl TwoQubitWeylDecomposition {
 
 type TwoQubitSequenceVec = Vec<(Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>)>;
 
+#[derive(Clone, Debug)]
 #[pyclass(sequence)]
 pub struct TwoQubitGateSequence {
     gates: TwoQubitSequenceVec,
@@ -1221,10 +1248,31 @@ pub struct TwoQubitGateSequence {
     global_phase: f64,
 }
 
+impl TwoQubitGateSequence {
+    pub fn gates(&self) -> &TwoQubitSequenceVec {
+        &self.gates
+    }
+
+    pub fn global_phase(&self) -> f64 {
+        self.global_phase
+    }
+
+    pub fn set_state(&mut self, state: (TwoQubitSequenceVec, f64)) {
+        self.gates = state.0;
+        self.global_phase = state.1;
+    }
+}
+
+impl Default for TwoQubitGateSequence {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl TwoQubitGateSequence {
     #[new]
-    fn new() -> Self {
+    pub fn new() -> Self {
         TwoQubitGateSequence {
             gates: Vec::new(),
             global_phase: 0.,
@@ -1256,6 +1304,8 @@ impl TwoQubitGateSequence {
         }
     }
 }
+
+#[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitBasisDecomposer {
@@ -1643,7 +1693,7 @@ impl TwoQubitBasisDecomposer {
         Ok(res)
     }
 
-    fn new_inner(
+    pub fn new_inner(
         gate: String,
         gate_matrix: ArrayView2<Complex64>,
         basis_fidelity: f64,
@@ -1781,7 +1831,7 @@ impl TwoQubitBasisDecomposer {
         })
     }
 
-    fn call_inner(
+    pub fn call_inner(
         &self,
         unitary: ArrayView2<Complex64>,
         basis_fidelity: Option<f64>,
@@ -2165,18 +2215,18 @@ impl TwoQubitBasisDecomposer {
                     .gates
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
-                        Some(gate) => (
+                        Some(gate) => Ok((
                             PackedOperation::from_standard(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
-                        ),
-                        None => (
+                        )),
+                        None => Ok((
                             kak_gate.operation.clone(),
                             kak_gate.params.clone(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
-                        ),
+                        )),
                     }),
                 Param::Float(sequence.global_phase),
             ),
@@ -2352,6 +2402,7 @@ pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
     m.add_wrapped(wrap_pyfunction!(py_trace_to_fid))?;
     m.add_wrapped(wrap_pyfunction!(py_ud))?;
+    m.add_wrapped(wrap_pyfunction!(weyl_coordinates))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
     m.add_class::<Specialization>()?;

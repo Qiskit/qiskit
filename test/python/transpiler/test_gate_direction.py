@@ -496,7 +496,8 @@ class TestGateDirection(QiskitTestCase):
         gate = Gate("my_2q_gate", 2, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate, (1, 0))
-        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(None, target)
         with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
@@ -524,7 +525,8 @@ class TestGateDirection(QiskitTestCase):
         gate = Gate("my_2q_gate", 2, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate, (0, 1))
-        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(cm)
         self.assertEqual(pass_(circuit), circuit)
@@ -538,7 +540,8 @@ class TestGateDirection(QiskitTestCase):
         gate = Gate("my_2q_gate", 2, [])
         circuit = QuantumCircuit(2)
         circuit.append(gate, (0, 1))
-        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+        with self.assertWarns(DeprecationWarning):
+            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(None, target)
         self.assertEqual(pass_(circuit), circuit)

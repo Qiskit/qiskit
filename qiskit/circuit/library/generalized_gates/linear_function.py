@@ -38,7 +38,7 @@ class LinearFunction(Gate):
 
     **Example:** the circuit
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐

@@ -27,7 +27,7 @@ class RVGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────────────┐
         q_0: ┤ RV(v_x,v_y,v_z) ├
