@@ -72,6 +72,7 @@ def efficient_su2(
 
         .. plot::
             :include-source:
+            :context:
 
             from qiskit.circuit.library import efficient_su2
 

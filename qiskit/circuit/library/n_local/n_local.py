@@ -147,6 +147,7 @@ def n_local(
 
         .. plot::
             :include-source:
+            :context:
 
             from qiskit.circuit.library import n_local
 

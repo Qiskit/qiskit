@@ -69,6 +69,7 @@ def real_amplitudes(
 
         .. plot::
            :include-source:
+           :context:
 
            from qiskit.circuit.library import real_amplitudes
 
