@@ -224,19 +224,19 @@ impl Clifford {
             .iter()
             .try_for_each(|(gate, _params, qubits)| match *gate {
                 StandardGate::SGate => {
-                    clifford.append_s(qubits[0].0 as usize);
+                    clifford.append_s(qubits[0].index());
                     Ok(())
                 }
                 StandardGate::HGate => {
-                    clifford.append_h(qubits[0].0 as usize);
+                    clifford.append_h(qubits[0].index());
                     Ok(())
                 }
                 StandardGate::CXGate => {
-                    clifford.append_cx(qubits[0].0 as usize, qubits[1].0 as usize);
+                    clifford.append_cx(qubits[0].index(), qubits[1].index());
                     Ok(())
                 }
                 StandardGate::SwapGate => {
-                    clifford.append_swap(qubits[0].0 as usize, qubits[1].0 as usize);
+                    clifford.append_swap(qubits[0].index(), qubits[1].index());
                     Ok(())
                 }
                 _ => Err(format!("Unsupported gate {:?}", gate)),
@@ -287,21 +287,21 @@ pub fn adjust_final_pauli_gates(
             gate_seq.push((
                 StandardGate::YGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32)],
+                smallvec![Qubit::new(qubit)],
             ));
         } else if delta_phase_pre[qubit] {
             // println!("=> Adding Z-gate on {}", qubit);
             gate_seq.push((
                 StandardGate::ZGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32)],
+                smallvec![Qubit::new(qubit)],
             ));
         } else if delta_phase_pre[qubit + num_qubits] {
             // println!("=> Adding X-gate on {}", qubit);
             gate_seq.push((
                 StandardGate::XGate,
                 smallvec![],
-                smallvec![Qubit(qubit as u32)],
+                smallvec![Qubit::new(qubit)],
             ));
         }
     }
