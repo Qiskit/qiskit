@@ -70,23 +70,28 @@ def real_amplitudes(
         .. plot::
            :include-source:
 
+           from qiskit.circuit.library import real_amplitudes
+
            ansatz = real_amplitudes(3, reps=2)  # create the circuit on 3 qubits
            ansatz.draw("mpl")
 
         .. plot::
            :include-source:
+           :context:
 
            ansatz = real_amplitudes(3, entanglement="full", reps=2)  # it is the same unitary as above
            ansatz.draw("mpl")
 
         .. plot::
            :include-source:
+           :context:
 
            ansatz = real_amplitudes(3, entanglement="linear", reps=2, insert_barriers=True)
            ansatz.draw("mpl")
 
         .. plot::
            :include-source:
+           :context:
 
            ansatz = real_amplitudes(4, reps=2, entanglement=[[0,3], [0,2]], skip_unentangled_qubits=True)
            ansatz.draw("mpl")

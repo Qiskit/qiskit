@@ -73,6 +73,8 @@ def efficient_su2(
         .. plot::
             :include-source:
 
+            from qiskit.circuit.library import efficient_su2
+
             circuit = efficient_su2(3, reps=1)
             circuit.draw("mpl")
 
@@ -82,6 +84,7 @@ def efficient_su2(
 
         .. plot::
             :include-source:
+            :context:
 
             circuit = efficient_su2(4, su2_gates=["rx", "y"], entanglement="circular", reps=1)
             circuit.draw("mpl")

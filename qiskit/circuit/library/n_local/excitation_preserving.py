@@ -72,6 +72,8 @@ def excitation_preserving(
         .. plot::
             :include-source:
 
+            from qiskit.circuit.library import excitation_preserving
+
             ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
             ansatz.draw("mpl")
 
@@ -81,6 +83,7 @@ def excitation_preserving(
 
         .. plot::
             :include-source:
+            :context:
 
             ansatz = excitation_preserving(3, reps=1, mode="fsim", entanglement=[[0, 2]])
             ansatz.draw("mpl")
