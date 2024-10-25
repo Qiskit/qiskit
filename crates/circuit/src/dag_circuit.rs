@@ -5892,19 +5892,14 @@ impl DAGCircuit {
     }
 
     /// Returns an iterator over the first layer of the `DAGCircuit``.
-    pub fn front_layer(&self) -> impl Iterator<Item = NodeIndex> {
+    pub fn front_layer(&self) -> impl Iterator<Item = NodeIndex> + '_ {
         let mut graph_layers = self.multigraph_layers();
         graph_layers.next();
-
-        let next_layer = graph_layers.next();
-        match next_layer {
-            Some(layer) => Box::new(layer.into_iter().filter(|node| {
-                matches!(self.dag.node_weight(*node).unwrap(), NodeType::Operation(_))
-            }))
-            .collect(),
-            None => vec![],
-        }
-        .into_iter()
+        graph_layers
+            .next()
+            .into_iter()
+            .flatten()
+            .filter(|node| matches!(self.dag.node_weight(*node).unwrap(), NodeType::Operation(_)))
     }
 
     fn substitute_node_with_subgraph(
