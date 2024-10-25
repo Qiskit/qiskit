@@ -19,8 +19,8 @@ from qiskit._accelerate.gate_direction import fix_gate_direction_coupling, fix_g
 class GateDirection(TransformationPass):
     """Modify asymmetric gates to match the hardware coupling direction.
 
-    This pass supports replacements for the `cx`, `cz`, `ecr`, `swap`, `rzx`, `rxx`, `ryy` and `rzz` gates,
-    using the following identities::
+    This pass supports replacements for the `cx`, `cz`, `ecr`, `swap`, `rzx`, `rxx`, `ryy` and
+    `rzz` gates, using the following identities::
 
                              ┌───┐┌───┐┌───┐
         q_0: ──■──      q_0: ┤ H ├┤ X ├┤ H ├
