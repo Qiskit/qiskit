@@ -27,6 +27,7 @@ use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
+use crate::euler_one_qubit_decomposer::matmul_1q;
 use crate::QiskitError;
 
 #[inline]
@@ -69,46 +70,80 @@ pub fn blocks_to_matrix(
             1
         }
     };
-    let identity = aview2(&ONE_QUBIT_IDENTITY);
-    let first_node = dag.dag()[op_list[0]].unwrap_operation();
-    let input_matrix = get_matrix_from_inst(py, first_node)?;
-    let mut matrix: Array2<Complex64> = match dag
-        .get_qargs(first_node.qubits)
-        .iter()
-        .map(map_bits)
-        .collect::<Vec<_>>()
-        .as_slice()
-    {
-        [0] => kron(&identity, &input_matrix),
-        [1] => kron(&input_matrix, &identity),
-        [0, 1] => input_matrix,
-        [1, 0] => change_basis(input_matrix.view()),
-        [] => Array2::eye(4),
-        _ => unreachable!(),
-    };
-    for node in op_list.iter().skip(1) {
+    let mut qubit_0 = ONE_QUBIT_IDENTITY;
+    let mut qubit_1 = ONE_QUBIT_IDENTITY;
+    let mut one_qubit_components_modified = false;
+    let mut output_matrix: Option<Array2<Complex64>> = None;
+    for node in op_list {
         let inst = dag.dag()[*node].unwrap_operation();
         let op_matrix = get_matrix_from_inst(py, inst)?;
-
-        let result = match dag
+        match dag
             .get_qargs(inst.qubits)
             .iter()
             .map(map_bits)
             .collect::<Vec<_>>()
             .as_slice()
         {
-            [0] => Some(kron(&identity, &op_matrix)),
-            [1] => Some(kron(&op_matrix, &identity)),
-            [1, 0] => Some(change_basis(op_matrix.view())),
-            [] => Some(Array2::eye(4)),
-            _ => None,
-        };
-        matrix = match result {
-            Some(result) => result.dot(&matrix),
-            None => op_matrix.dot(&matrix),
-        };
+            [0] => {
+                matmul_1q(&mut qubit_0, op_matrix);
+                one_qubit_components_modified = true;
+            }
+            [1] => {
+                matmul_1q(&mut qubit_1, op_matrix);
+                one_qubit_components_modified = true;
+            }
+            [0, 1] => {
+                if one_qubit_components_modified {
+                    let one_qubits_combined = kron(&aview2(&qubit_1), &aview2(&qubit_0));
+                    output_matrix = Some(match output_matrix {
+                        None => op_matrix.dot(&one_qubits_combined),
+                        Some(current) => {
+                            let temp = one_qubits_combined.dot(&current);
+                            op_matrix.dot(&temp)
+                        }
+                    });
+                    qubit_0 = ONE_QUBIT_IDENTITY;
+                    qubit_1 = ONE_QUBIT_IDENTITY;
+                    one_qubit_components_modified = false;
+                } else {
+                    output_matrix = Some(match output_matrix {
+                        None => op_matrix,
+                        Some(current) => op_matrix.dot(&current),
+                    });
+                }
+            }
+            [1, 0] => {
+                let matrix = change_basis(op_matrix.view());
+                if one_qubit_components_modified {
+                    let one_qubits_combined = kron(&aview2(&qubit_1), &aview2(&qubit_0));
+                    output_matrix = Some(match output_matrix {
+                        None => matrix.dot(&one_qubits_combined),
+                        Some(current) => matrix.dot(&one_qubits_combined.dot(&current)),
+                    });
+                    qubit_0 = ONE_QUBIT_IDENTITY;
+                    qubit_1 = ONE_QUBIT_IDENTITY;
+                    one_qubit_components_modified = false;
+                } else {
+                    output_matrix = Some(match output_matrix {
+                        None => matrix,
+                        Some(current) => matrix.dot(&current),
+                    });
+                }
+            }
+            _ => unreachable!(),
+        }
     }
-    Ok(matrix)
+    Ok(match output_matrix {
+        Some(matrix) => {
+            if one_qubit_components_modified {
+                let one_qubits_combined = kron(&aview2(&qubit_1), &aview2(&qubit_0));
+                one_qubits_combined.dot(&matrix)
+            } else {
+                matrix
+            }
+        }
+        None => kron(&aview2(&qubit_1), &aview2(&qubit_0)),
+    })
 }
 
 /// Switches the order of qubits in a two qubit operation.
