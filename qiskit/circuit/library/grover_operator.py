@@ -104,9 +104,11 @@ def grover_operator(
 
         .. plot::
             :include-source:
+            :context:
 
             from qiskit.circuit import QuantumCircuit
             from qiskit.circuit.library import grover_operator
+
             oracle = QuantumCircuit(2)
             oracle.z(0)  # good state = first qubit is |1>
             grover_op = grover_operator(oracle, insert_barriers=True)
@@ -150,7 +152,7 @@ def grover_operator(
             :include-source:
             :context:
 
-            from qiskit.quantum_info import Statevector, DensityMatrix
+            from qiskit.quantum_info import Statevector, DensityMatrix, Operator
 
             mark_state = Statevector.from_label("011")
             reflection = 2 * DensityMatrix.from_label("000") - Operator.from_label("III")
