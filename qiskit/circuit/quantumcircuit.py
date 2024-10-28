@@ -47,6 +47,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 from . import _classical_resource_map
 from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
@@ -69,6 +70,7 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
+
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -876,7 +878,7 @@ class QuantumCircuit:
 
        qc.count_ops()
 
-    .. parsed-literal::
+    .. code-block:: text
 
        OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
 
@@ -1145,24 +1147,66 @@ class QuantumCircuit:
         for var, initial in declarations:
             self.add_var(var, initial)
 
-        self.duration: int | float | None = None
-        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
-        specified by :attr:`unit`."""
-        self.unit = "dt"
-        """The unit that :attr:`duration` is specified in."""
+        self._duration = None
+        self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
         """Arbitrary user-defined metadata for the circuit.
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
 
+    @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    def duration(self):
+        """The total duration of the circuit, set by a scheduling transpiler pass.  Its unit is
+        specified by :attr:`unit`."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, value: int | float | None):
+        self._duration = value
+
+    @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
+    def unit(self):
+        """The unit that :attr:`duration` is specified in."""
+        return self._unit
+
+    @unit.setter
+    def unit(self, value):
+        self._unit = value
+
     @classmethod
-    def _from_circuit_data(cls, data: CircuitData) -> typing.Self:
+    def _from_circuit_data(cls, data: CircuitData, add_regs: bool = False) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit()
+
+        if data.num_qubits > 0:
+            if add_regs:
+                qr = QuantumRegister(name="q", bits=data.qubits)
+                out.qregs = [qr]
+                out._qubit_indices = {
+                    bit: BitLocations(index, [(qr, index)]) for index, bit in enumerate(data.qubits)
+                }
+            else:
+                out._qubit_indices = {
+                    bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)
+                }
+
+        if data.num_clbits > 0:
+            if add_regs:
+                cr = ClassicalRegister(name="c", bits=data.clbits)
+                out.cregs = [cr]
+                out._clbit_indices = {
+                    bit: BitLocations(index, [(cr, index)]) for index, bit in enumerate(data.clbits)
+                }
+            else:
+                out._clbit_indices = {
+                    bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)
+                }
+
         out._data = data
-        out._qubit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.qubits)}
-        out._clbit_indices = {bit: BitLocations(index, []) for index, bit in enumerate(data.clbits)}
+
         return out
 
     @staticmethod
@@ -1297,15 +1341,17 @@ class QuantumCircuit:
         return self._op_start_times
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self) -> dict:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
         ``{'gate_name': {(qubits, params): schedule}}``
         """
-        return dict(self._calibrations)
+        return self._calibrations_prop
 
     @calibrations.setter
+    @deprecate_pulse_dependency(is_property=True)
     def calibrations(self, calibrations: dict):
         """Set the circuit calibration data from a dictionary of calibration definition.
 
@@ -1313,18 +1359,37 @@ class QuantumCircuit:
             calibrations (dict): A dictionary of input in the format
                ``{'gate_name': {(qubits, gate_params): schedule}}``
         """
+        self._calibrations_prop = calibrations
+
+    @property
+    def _calibrations_prop(self) -> dict:
+        """An alternative private path to the `calibrations` property for
+        avoiding deprecation warnings."""
+        return dict(self._calibrations)
+
+    @_calibrations_prop.setter
+    def _calibrations_prop(self, calibrations: dict):
+        """An alternative private path to the `calibrations` property for
+        avoiding deprecation warnings."""
         self._calibrations = defaultdict(dict, calibrations)
 
+    @deprecate_pulse_dependency
     def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
+
+        return self._has_calibration_for(instruction)
+
+    def _has_calibration_for(self, instruction: CircuitInstruction | tuple):
+        """An alternative private path to the `has_calibration_for` method for
+        avoiding deprecation warnings."""
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
             qubits = instruction.qubits
         else:
             operation, qubits, _ = instruction
-        if not self.calibrations or operation.name not in self.calibrations:
+        if not self._calibrations_prop or operation.name not in self._calibrations_prop:
             return False
         qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
         params = []
@@ -1334,7 +1399,7 @@ class QuantumCircuit:
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[operation.name]
+        return (qubits, params) in self._calibrations_prop[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -1470,7 +1535,7 @@ class QuantumCircuit:
 
             input:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───┐
                 q_0: ┤ H ├─────■──────
@@ -1480,7 +1545,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                                  ┌───┐
                 q_0: ─────■──────┤ H ├
@@ -1514,7 +1579,7 @@ class QuantumCircuit:
 
             input:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───┐
                 a_0: ┤ H ├──■─────────────────
@@ -1530,7 +1595,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                                          ┌───┐
                 b_0: ────────────────────┤ X ├
@@ -1584,7 +1649,7 @@ class QuantumCircuit:
 
             input:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───┐
                 q_0: ┤ H ├─────■──────
@@ -1594,7 +1659,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                                   ┌───┐
                 q_0: ──────■──────┤ H ├
@@ -1836,7 +1901,7 @@ class QuantumCircuit:
 
                 >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
-            .. parsed-literal::
+            .. code-block:: text
 
                             ┌───┐                   ┌─────┐                ┌───┐
                 lqr_1_0: ───┤ H ├───    rqr_0: ──■──┤ Tdg ├    lqr_1_0: ───┤ H ├───────────────
@@ -1975,7 +2040,7 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
 
-        for gate, cals in other.calibrations.items():
+        for gate, cals in other._calibrations_prop.items():
             dest._calibrations[gate].update(cals)
 
         dest.duration = None
@@ -2084,10 +2149,10 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <https://docs.quantum.ibm.com/build/circuit-construction>`__
+        `the docs <https://docs.quantum.ibm.com/guides/construct-circuits>`__
         for more information.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌────────┐        ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
@@ -3013,16 +3078,7 @@ class QuantumCircuit:
                         self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
-                self.qregs.append(register)
-
-                for idx, bit in enumerate(register):
-                    if bit in self._qubit_indices:
-                        self._qubit_indices[bit].registers.append((register, idx))
-                    else:
-                        self._data.add_qubit(bit)
-                        self._qubit_indices[bit] = BitLocations(
-                            self._data.num_qubits - 1, [(register, idx)]
-                        )
+                self._add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
@@ -3040,6 +3096,16 @@ class QuantumCircuit:
                 self.add_bits(register)
             else:
                 raise CircuitError("expected a register")
+
+    def _add_qreg(self, qreg: QuantumRegister) -> None:
+        self.qregs.append(qreg)
+
+        for idx, bit in enumerate(qreg):
+            if bit in self._qubit_indices:
+                self._qubit_indices[bit].registers.append((qreg, idx))
+            else:
+                self._data.add_qubit(bit)
+                self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [(qreg, idx)])
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
@@ -3186,40 +3252,33 @@ class QuantumCircuit:
 
     def decompose(
         self,
-        gates_to_decompose: Type[Gate] | Sequence[Type[Gate]] | Sequence[str] | str | None = None,
+        gates_to_decompose: (
+            str | Type[Instruction] | Sequence[str | Type[Instruction]] | None
+        ) = None,
         reps: int = 1,
-    ) -> "QuantumCircuit":
-        """Call a decomposition pass on this circuit,
-        to decompose one level (shallow decompose).
+    ) -> typing.Self:
+        """Call a decomposition pass on this circuit, to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
-                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
-                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
-                of these. If a gate name is entered, it will decompose all gates with that
-                name, whether the gates have labels or not. Defaults to all gates in circuit.
-            reps (int): Optional number of times the circuit should be decomposed.
+            gates_to_decompose: Optional subset of gates to decompose. Can be a gate type, such as
+                ``HGate``, or a gate name, such as "h", or a gate label, such as "My H Gate", or a
+                list of any combination of these. If a gate name is entered, it will decompose all
+                gates with that name, whether the gates have labels or not. Defaults to all gates in
+                the circuit.
+            reps: Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
-                can decompose specific gates specific time
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
-        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         dag = circuit_to_dag(self, copy_operations=True)
 
-        if gates_to_decompose is None:
-            # We should not rewrite the circuit using HLS when we have gates_to_decompose,
-            # or else HLS will rewrite all objects with available plugins (e.g., Cliffords,
-            # PermutationGates, and now also MCXGates)
-            dag = HighLevelSynthesis().run(dag)
-
-        pass_ = Decompose(gates_to_decompose)
+        pass_ = Decompose(gates_to_decompose, apply_synthesis=True)
         for _ in range(reps):
             dag = pass_.run(dag)
 
@@ -3838,7 +3897,7 @@ class QuantumCircuit:
                circuit.draw()
 
 
-            .. parsed-literal::
+            .. code-block:: text
 
                       ┌───┐┌─┐
                    q: ┤ H ├┤M├
@@ -5666,7 +5725,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌─────────────────────────────────────┐
                 q_0: ┤ State Preparation(0.70711,-0.70711) ├
@@ -5689,7 +5748,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌─────────────────────────┐
                 q_0: ┤0                        ├
@@ -5710,7 +5769,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌───────────────────────────────────────────┐
                 q_0: ┤0                                          ├
@@ -5781,7 +5840,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌──────────────────────────────┐
                 q_0: ┤ Initialize(0.70711,-0.70711) ├
@@ -5804,7 +5863,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌──────────────────┐
                 q_0: ┤0                 ├
@@ -5825,7 +5884,7 @@ class QuantumCircuit:
 
             output:
 
-            .. parsed-literal::
+            .. code-block:: text
 
                      ┌────────────────────────────────────┐
                 q_0: ┤0                                   ├
@@ -6441,6 +6500,7 @@ class QuantumCircuit:
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits, copy=False
         )
 
+    @deprecate_pulse_dependency
     def add_calibration(
         self,
         gate: Union[Gate, str],

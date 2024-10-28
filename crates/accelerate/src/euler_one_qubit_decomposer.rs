@@ -52,6 +52,7 @@ pub struct OneQubitGateErrorMap {
 #[pymethods]
 impl OneQubitGateErrorMap {
     #[new]
+    #[pyo3(signature=(num_qubits=None))]
     fn new(num_qubits: Option<usize>) -> Self {
         OneQubitGateErrorMap {
             error_map: match num_qubits {
@@ -392,6 +393,7 @@ fn circuit_rr(
 }
 
 #[pyfunction]
+#[pyo3(signature=(target_basis, theta, phi, lam, phase, simplify, atol=None))]
 pub fn generate_circuit(
     target_basis: &EulerBasis,
     theta: f64,
@@ -579,7 +581,7 @@ pub fn generate_circuit(
 
 const EULER_BASIS_SIZE: usize = 12;
 
-static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
+pub static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
     &["u3"],
     &["u3", "u2", "u1"],
     &["u"],
@@ -593,7 +595,7 @@ static EULER_BASES: [&[&str]; EULER_BASIS_SIZE] = [
     &["rz", "sx", "x"],
     &["rz", "sx"],
 ];
-static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
+pub static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
     EulerBasis::U3,
     EulerBasis::U321,
     EulerBasis::U,
@@ -673,7 +675,7 @@ impl Default for EulerBasisSet {
 }
 
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
-#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
+#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer", eq, eq_int)]
 pub enum EulerBasis {
     U3 = 0,
     U321 = 1,
@@ -808,6 +810,7 @@ fn compute_error_str(
 }
 
 #[pyfunction]
+#[pyo3(signature=(circuit, qubit, error_map=None))]
 pub fn compute_error_list(
     circuit: Vec<PyRef<DAGOpNode>>,
     qubit: usize,
@@ -924,7 +927,7 @@ pub fn det_one_qubit(mat: ArrayView2<Complex64>) -> Complex64 {
 
 /// Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π
 #[inline]
-fn mod_2pi(angle: f64, atol: f64) -> f64 {
+pub(crate) fn mod_2pi(angle: f64, atol: f64) -> f64 {
     // f64::rem_euclid() isn't exactly the same as Python's % operator, but because
     // the RHS here is a constant and positive it is effectively equivalent for
     // this case
@@ -1086,7 +1089,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
             Some(_) => 1.,
             None => raw_run.len() as f64,
         };
-        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag[raw_run[0]] {
+        let qubit: PhysicalQubit = if let NodeType::Operation(inst) = &dag.dag()[raw_run[0]] {
             PhysicalQubit::new(dag.get_qargs(inst.qubits)[0].0)
         } else {
             unreachable!("nodes in runs will always be op nodes")
@@ -1103,7 +1106,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
                 continue;
             }
         }
-        if basis_gates_per_qubit[qubit.0 as usize].is_none() {
+        if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
                 Some(target) => Some(
                     target
@@ -1115,11 +1118,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
                 }
             };
-            basis_gates_per_qubit[qubit.0 as usize] = basis_gates;
+            basis_gates_per_qubit[qubit.index()] = basis_gates;
         }
-        let basis_gates = &basis_gates_per_qubit[qubit.0 as usize].as_ref();
+        let basis_gates = &basis_gates_per_qubit[qubit.index()].as_ref();
 
-        let target_basis_set = &mut target_basis_per_qubit[qubit.0 as usize];
+        let target_basis_set = &mut target_basis_per_qubit[qubit.index()];
         if !target_basis_set.initialized() {
             match target {
                 Some(_target) => EULER_BASES
@@ -1168,11 +1171,11 @@ pub(crate) fn optimize_1q_gates_decomposition(
                 target_basis_set.remove(EulerBasis::ZSX);
             }
         }
-        let target_basis_set = &target_basis_per_qubit[qubit.0 as usize];
+        let target_basis_set = &target_basis_per_qubit[qubit.index()];
         let operator = raw_run
             .iter()
             .map(|node_index| {
-                let node = &dag.dag[*node_index];
+                let node = &dag.dag()[*node_index];
                 if let NodeType::Operation(inst) = node {
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
@@ -1201,7 +1204,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let sequence = unitary_to_gate_sequence_inner(
             aview2(&operator),
             target_basis_set,
-            qubit.0 as usize,
+            qubit.index(),
             None,
             true,
             None,
@@ -1215,7 +1218,7 @@ pub(crate) fn optimize_1q_gates_decomposition(
         let mut outside_basis = false;
         if let Some(basis) = basis_gates {
             for node in &raw_run {
-                if let NodeType::Operation(inst) = &dag.dag[*node] {
+                if let NodeType::Operation(inst) = &dag.dag()[*node] {
                     if !basis.contains(inst.op.name()) {
                         outside_basis = true;
                         break;

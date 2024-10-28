@@ -395,6 +395,10 @@ impl Operation for PackedOperation {
         self.view().control_flow()
     }
     #[inline]
+    fn blocks(&self) -> Vec<CircuitData> {
+        self.view().blocks()
+    }
+    #[inline]
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         self.view().matrix(params)
     }
@@ -497,7 +501,7 @@ pub struct PackedInstruction {
     /// The index under which the interner has stored `clbits`.
     pub clbits: Interned<[Clbit]>,
     pub params: Option<Box<SmallVec<[Param; 3]>>>,
-    pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
+    pub extra_attrs: ExtraInstructionAttributes,
 
     #[cfg(feature = "cache_pygates")]
     /// This is hidden in a `OnceCell` because it's just an on-demand cache; we don't create this
@@ -548,9 +552,12 @@ impl PackedInstruction {
 
     #[inline]
     pub fn condition(&self) -> Option<&Py<PyAny>> {
-        self.extra_attrs
-            .as_ref()
-            .and_then(|extra| extra.condition.as_ref())
+        self.extra_attrs.condition()
+    }
+
+    #[inline]
+    pub fn label(&self) -> Option<&str> {
+        self.extra_attrs.label()
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
@@ -566,7 +573,7 @@ impl PackedInstruction {
                 OperationRef::Standard(standard) => standard.create_py_op(
                     py,
                     self.params.as_deref().map(SmallVec::as_slice),
-                    self.extra_attrs.as_deref(),
+                    &self.extra_attrs,
                 ),
                 OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
                 OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),

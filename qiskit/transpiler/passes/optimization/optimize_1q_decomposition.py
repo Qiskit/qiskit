@@ -170,13 +170,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return False
 
         # do we even have calibrations?
-        has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
+        has_cals_p = dag._calibrations_prop is not None and len(dag._calibrations_prop) > 0
         # does this run have uncalibrated gates?
-        uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
+        uncalibrated_p = not has_cals_p or any(not dag._has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
         if basis is not None:
             uncalibrated_and_not_basis_p = any(
-                g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
+                g.name not in basis and (not has_cals_p or not dag._has_calibration_for(g))
                 for g in old_run
             )
         else:
@@ -222,18 +222,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
     def _error(self, circuit, qubit):
         """
         Calculate a rough error for a `circuit` that runs on a specific
-        `qubit` of `target` (`circuit` can either be an OneQubitGateSequence
-        from Rust or a list of DAGOPNodes).
+        `qubit` of `target` (`circuit` is a list of DAGOPNodes).
 
         Use basis errors from target if available, otherwise use length
         of circuit as a weak proxy for error.
         """
-        if isinstance(circuit, euler_one_qubit_decomposer.OneQubitGateSequence):
-            return euler_one_qubit_decomposer.compute_error_one_qubit_sequence(
-                circuit, qubit, self.error_map
-            )
-        else:
-            return euler_one_qubit_decomposer.compute_error_list(circuit, qubit, self.error_map)
+        return euler_one_qubit_decomposer.compute_error_list(circuit, qubit, self.error_map)
 
 
 def _possible_decomposers(basis_set):

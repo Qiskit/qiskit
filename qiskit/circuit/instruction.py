@@ -103,7 +103,23 @@ class Instruction(Operation):
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
+        if duration is not None:
+            warnings.warn(
+                "Setting a custom duration per instruction is deprecated as of Qiskit "
+                "1.3.0. It will be removed in Qiskit 2.0.0. An instruction's duration "
+                "is defined in a backend's Target object.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._duration = duration
+        if unit is not None and unit != "dt":
+            warnings.warn(
+                "Setting a custom unit for duration per instruction is deprecated as of Qiskit "
+                "1.3.0. It will be removed in Qiskit 2.0.0. An instruction's duration "
+                "is defined in a backend's Target object which has a fixed unit in seconds.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
@@ -341,24 +357,26 @@ class Instruction(Operation):
         sel.add_equivalence(self, decomposition)
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
     def duration(self):
         """Get the duration."""
         return self._duration
 
     @duration.setter
-    def duration(self, duration):
+    def duration(self, value):
         """Set the duration."""
-        self._duration = duration
+        self._duration = value
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
     def unit(self):
         """Get the time unit of duration."""
         return self._unit
 
     @unit.setter
-    def unit(self, unit):
+    def unit(self, value):
         """Set the time unit of duration."""
-        self._unit = unit
+        self._unit = value
 
     @deprecate_func(
         since="1.2",

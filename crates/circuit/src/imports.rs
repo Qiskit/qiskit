@@ -72,6 +72,8 @@ pub static CLASSICAL_REGISTER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classicalregister", "ClassicalRegister");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
+pub static PARAMETER_VECTOR: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVector");
 pub static QUANTUM_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 pub static SINGLETON_GATE: ImportOnceCell =
@@ -109,6 +111,19 @@ pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
 pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
     ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
+pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
+pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.generalized_gates.unitary",
+    "UnitaryGate",
+);
+pub static QS_DECOMPOSITION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
+pub static XX_DECOMPOSER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
+pub static XX_EMBODIMENTS: ImportOnceCell =
+    ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXEmbodiments");
+pub static NUMPY_COPY_ONLY_IF_NEEDED: ImportOnceCell =
+    ImportOnceCell::new("qiskit._numpy_compat", "COPY_ONLY_IF_NEEDED");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

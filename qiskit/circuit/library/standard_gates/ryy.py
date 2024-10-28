@@ -33,7 +33,7 @@ class RYYGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤1        ├
@@ -63,7 +63,7 @@ class RYYGate(Gate):
 
         .. math::
 
-            R_{YY}(\theta = \pi) = i Y \otimes Y
+            R_{YY}(\theta = \pi) = -i Y \otimes Y
 
         .. math::
 

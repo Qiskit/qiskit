@@ -12,6 +12,7 @@
 
 use itertools::Itertools;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use pyo3::{
     types::{PyAnyMethods, PyInt, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
@@ -173,28 +174,43 @@ pub fn get_entanglement<'a>(
         return Ok(Box::new(
             get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
         ));
+    } else if let Ok(dict) = entanglement.downcast::<PyDict>() {
+        if let Some(value) = dict.get_item(block_size)? {
+            let list = value.downcast::<PyList>()?;
+            return _check_entanglement_list(list.to_owned(), block_size);
+        } else {
+            return Ok(Box::new(std::iter::empty()));
+        }
     } else if let Ok(list) = entanglement.downcast::<PyList>() {
-        let entanglement_iter = list.iter().map(move |el| {
-            let connections = el
-                .downcast::<PyTuple>()?
-                // .expect("Entanglement must be list of tuples") // clearer error message than `?`
-                .iter()
-                .map(|index| index.downcast::<PyInt>()?.extract())
-                .collect::<Result<Vec<u32>, _>>()?;
-
-            if connections.len() != block_size as usize {
-                return Err(QiskitError::new_err(format!(
-                    "Entanglement {:?} does not match block size {}",
-                    connections, block_size
-                )));
-            }
-            Ok(connections)
-        });
-        return Ok(Box::new(entanglement_iter));
+        return _check_entanglement_list(list.to_owned(), block_size);
     }
     Err(QiskitError::new_err(
         "Entanglement must be a string or list of qubit indices.",
     ))
+}
+
+fn _check_entanglement_list<'a>(
+    list: Bound<'a, PyList>,
+    block_size: u32,
+) -> PyResult<Box<dyn Iterator<Item = PyResult<Vec<u32>>> + 'a>> {
+    let entanglement_iter = list.iter().map(move |el| {
+        let connections = el
+            .downcast::<PyTuple>()?
+            // .expect("Entanglement must be list of tuples") // clearer error message than `?`
+            .iter()
+            .map(|index| index.downcast::<PyInt>()?.extract())
+            .collect::<Result<Vec<u32>, _>>()?;
+
+        if connections.len() != block_size as usize {
+            return Err(QiskitError::new_err(format!(
+                "Entanglement {:?} does not match block size {}",
+                connections, block_size
+            )));
+        }
+
+        Ok(connections)
+    });
+    Ok(Box::new(entanglement_iter))
 }
 
 /// Get the entanglement for given number of qubits and block size.

@@ -630,15 +630,18 @@ class TestDagCompose(QiskitTestCase):
         """Test that compose carries over the calibrations."""
         dag_cal = QuantumCircuit(1)
         dag_cal.append(Gate("", 1, []), qargs=[0])
-        dag_cal.add_calibration(Gate("", 1, []), [0], Schedule())
+        with self.assertWarns(DeprecationWarning):
+            dag_cal.add_calibration(Gate("", 1, []), [0], Schedule())
 
         empty_dag = circuit_to_dag(QuantumCircuit(1))
         calibrated_dag = circuit_to_dag(dag_cal)
         composed_dag = empty_dag.compose(calibrated_dag, inplace=False)
 
-        cal = {"": {((0,), ()): Schedule(name="sched0")}}
-        self.assertEqual(composed_dag.calibrations, cal)
-        self.assertEqual(calibrated_dag.calibrations, cal)
+        with self.assertWarns(DeprecationWarning):
+            cal = {"": {((0,), ()): Schedule(name="sched0")}}
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(composed_dag.calibrations, cal)
+            self.assertEqual(calibrated_dag.calibrations, cal)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ from ddt import ddt, data, idata, unpack
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
@@ -293,6 +294,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "UCPauliRotGate",
         "SingleQubitUnitary",
         "MCXGate",
+        "MCMTGate",
         "VariadicZeroParamGate",
         "ClassicalFunction",
         "ClassicalElement",
@@ -402,11 +404,11 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 
-        param_qc = QuantumCircuit(param_gate.num_qubits)
-        float_qc = QuantumCircuit(float_gate.num_qubits)
+        param_qc = QuantumCircuit([Qubit() for _ in range(param_gate.num_qubits)])
+        float_qc = QuantumCircuit([Qubit() for _ in range(float_gate.num_qubits)])
 
-        param_qc.append(param_gate, param_qc.qregs[0])
-        float_qc.append(float_gate, float_qc.qregs[0])
+        param_qc.append(param_gate, param_qc.qubits)
+        float_qc.append(float_gate, float_qc.qubits)
 
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))
