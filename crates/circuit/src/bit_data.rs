@@ -71,7 +71,7 @@ impl PartialEq for BitAsKey {
 impl Eq for BitAsKey {}
 
 #[derive(Clone, Debug)]
-pub struct BitData<T> {
+pub(crate) struct BitData<T> {
     /// The public field name (i.e. `qubits` or `clbits`).
     description: String,
     /// Registered Python bits.

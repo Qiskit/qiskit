@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod bit_data;
+mod bit_data;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod converters;

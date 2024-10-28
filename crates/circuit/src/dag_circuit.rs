@@ -4975,19 +4975,19 @@ impl DAGCircuit {
 
     /// Returns an immutable view of the Qubits registered in the circuit
     #[inline(always)]
-    pub fn qubits(&self) -> &BitData<Qubit> {
+    pub(crate) fn qubits(&self) -> &BitData<Qubit> {
         &self.qubits
     }
 
     /// Returns an immutable view of the Classical bits registered in the circuit
     #[inline(always)]
-    pub fn clbits(&self) -> &BitData<Clbit> {
+    pub(crate) fn clbits(&self) -> &BitData<Clbit> {
         &self.clbits
     }
 
     /// Returns an immutable view of the Variable wires registered in the circuit
     #[inline(always)]
-    pub fn vars(&self) -> &BitData<Var> {
+    pub(crate) fn vars(&self) -> &BitData<Var> {
         &self.vars
     }
 
@@ -6190,6 +6190,20 @@ impl DAGCircuit {
         }
         self.dag.remove_node(node);
         Ok(out_map)
+    }
+
+    /// Retrieve a Python qubit given its [Qubit] within the DAG.
+    ///
+    /// The provided [Qubit] must be from this [DAGCircuit].
+    pub fn get_qubit<'py>(&self, py: Python<'py>, qubit: Qubit) -> Option<Bound<'py, PyAny>> {
+        self.qubits.get(qubit).map(|v| v.bind(py).clone())
+    }
+
+    /// Retrieve a Python clbit given its [Clbit] within the DAG.
+    ///
+    /// The provided [Clbit] must be from this [DAGCircuit].
+    pub fn get_clbit<'py>(&self, py: Python<'py>, clbit: Clbit) -> Option<Bound<'py, PyAny>> {
+        self.clbits.get(clbit).map(|v| v.bind(py).clone())
     }
 
     /// Retrieve a variable given its unique [Var] key within the DAG.

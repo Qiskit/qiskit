@@ -60,7 +60,10 @@ fn pauli_evolution(
     // Get pairs of (pauli, qubit) that are active, i.e. that are not the identity. Note that
     // the rest of the code also works if there are only identities, in which case we will
     // effectively return an empty iterator.
-    let qubits = indices.iter().map(|i| Qubit::new(*i as usize)).collect_vec();
+    let qubits = indices
+        .iter()
+        .map(|i| Qubit::new(*i as usize))
+        .collect_vec();
     let binding = pauli.to_lowercase(); // lowercase for convenience
     let active_paulis = binding
         .as_str()
