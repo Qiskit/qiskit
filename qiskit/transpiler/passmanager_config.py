@@ -160,7 +160,7 @@ class PassManagerConfig:
                     if defaults is not None:
                         res.inst_map = defaults.instruction_schedule_map
             else:
-                res.inst_map = backend.instruction_schedule_map
+                res.inst_map = backend._instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
                 cmap_edge_list = getattr(config, "coupling_map", None)

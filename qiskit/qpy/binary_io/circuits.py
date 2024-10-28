@@ -1323,7 +1323,7 @@ def write_circuit(
     instruction_buffer.close()
 
     # Write calibrations
-    _write_calibrations(file_obj, circuit.calibrations, metadata_serializer, version=version)
+    _write_calibrations(file_obj, circuit._calibrations_prop, metadata_serializer, version=version)
     _write_layout(file_obj, circuit)
 
 
@@ -1453,7 +1453,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
 
     # Read calibrations
     if version >= 5:
-        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
+        circ._calibrations_prop = _read_calibrations(
+            file_obj, version, vectors, metadata_deserializer
+        )
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):

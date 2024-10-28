@@ -124,12 +124,13 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="hadamard") as h_q0:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(0)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="hadamard") as h_q0:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(0)
+                )
 
-        circuit.add_calibration("h", [0], h_q0)
+            circuit.add_calibration("h", [0], h_q0)
 
         fname = "calibrations.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -154,19 +155,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="cnot") as cx_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="cnot") as cx_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("cx", [0, 1], cx_q01)
+            circuit.add_calibration("cx", [0, 1], cx_q01)
 
-        with pulse.build(name="ch") as ch_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+            with pulse.build(name="ch") as ch_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("ch", [0, 1], ch_q01)
+            circuit.add_calibration("ch", [0, 1], ch_q01)
 
         fname = "calibrations_with_control_gates.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -191,19 +193,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="swap") as swap_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="swap") as swap_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("swap", [0, 1], swap_q01)
+            circuit.add_calibration("swap", [0, 1], swap_q01)
 
-        with pulse.build(name="reset") as reset_q0:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+            with pulse.build(name="reset") as reset_q0:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("reset", [0], reset_q0)
+            circuit.add_calibration("reset", [0], reset_q0)
 
         fname = "calibrations_with_swap_and_reset.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -227,19 +230,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         from qiskit import pulse
 
-        with pulse.build(name="rzz") as rzz_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+        with self.assertWarns(DeprecationWarning):
+            with pulse.build(name="rzz") as rzz_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("rzz", [0, 1], rzz_q01)
+            circuit.add_calibration("rzz", [0, 1], rzz_q01)
 
-        with pulse.build(name="rxx") as rxx_q01:
-            pulse.play(
-                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
-            )
+            with pulse.build(name="rxx") as rxx_q01:
+                pulse.play(
+                    pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+                )
 
-        circuit.add_calibration("rxx", [0, 1], rxx_q01)
+            circuit.add_calibration("rxx", [0, 1], rxx_q01)
 
         fname = "calibrations_with_rzz_and_rxx.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)

@@ -54,7 +54,7 @@ class NLocal(BlueprintCircuit):
     For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
     ``'linear'`` entanglement yields the following circuit.
 
-    .. parsed-literal::
+    .. code-block:: text
 
         ┌──────┐ ░ ┌──────┐                      ░ ┌──────┐
         ┤0     ├─░─┤0     ├──────────────── ... ─░─┤0     ├
