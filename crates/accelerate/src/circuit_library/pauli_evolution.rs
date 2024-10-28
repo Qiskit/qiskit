@@ -38,7 +38,7 @@ type Instruction = (
 ///         rotation gate and not be multiplied by a factor of 2 (that should be done before so
 ///         that this function can remain Rust-only).
 ///     phase_gate: If ``true``, use the ``PhaseGate`` instead of ``RZGate`` as single-qubit rotation.
-///     cx_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
+///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
 ///         CX uses the top qubit as target. If ``false``, uses a "chain" shape, where CX in between
 ///         neighboring qubits are used.
 ///
@@ -210,7 +210,7 @@ fn multi_qubit_evolution(
 ///          I_q0 X_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 0.4.
 ///     insert_barriers: If ``true``, insert a barrier in between the evolution of individual
 ///         Pauli terms.
-///     cx_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
+///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
 ///         CX uses the top qubit as target. If ``false``, uses a "chain" shape, where CX in between
 ///         neighboring qubits are used.
 ///
