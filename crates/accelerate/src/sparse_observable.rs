@@ -1999,7 +1999,6 @@ impl SparseObservable {
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
     ///         >>> SparseObservable.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
     ///         <SparseObservable with 100 terms on 100 qubits: (1+0j)(Z_0) + ... + (1+0j)(Z_99)>
-    #[deny(unsafe_op_in_unsafe_fn)]
     #[staticmethod]
     #[pyo3(
         signature = (/, num_qubits, coeffs, bit_terms, indices, boundaries, check=true),
