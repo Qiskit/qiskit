@@ -116,7 +116,7 @@ class Options(Mapping):
     def __setitem__(self, key, value):
         self.update_options(**{key: value})
 
-    # backwards-compatibilty with Qiskit Experiments:
+    # backwards-compatibility with Qiskit Experiments:
 
     @property
     def __dict__(self):

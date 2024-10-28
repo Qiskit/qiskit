@@ -52,6 +52,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -187,6 +188,7 @@ def generate_unroll_3q(
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
+    qubits_initially_zero=True,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -202,8 +204,10 @@ def generate_unroll_3q(
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
         hls_config (HLSConfig): An optional configuration class to use for
-                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
-                Specifies how to synthesize various high-level objects.
+            :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+            Specifies how to synthesize various high-level objects.
+        qubits_initially_zero (bool): Indicates whether the input circuit is
+            zero-initialized.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -228,6 +232,7 @@ def generate_unroll_3q(
             equivalence_library=sel,
             basis_gates=basis_gates,
             min_qubits=3,
+            qubits_initially_zero=qubits_initially_zero,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -364,10 +369,7 @@ def generate_routing_passmanager(
         routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
 
     def filter_fn(node):
-        return (
-            getattr(node.op, "label", None)
-            != "qiskit.transpiler.internal.routing.protection.barrier"
-        )
+        return node.label != "qiskit.transpiler.internal.routing.protection.barrier"
 
     routing.append([FilterOpNodes(filter_fn)])
 
@@ -417,6 +419,7 @@ def generate_translation_passmanager(
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
+    qubits_initially_zero=True,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
@@ -442,6 +445,8 @@ def generate_translation_passmanager(
         hls_config (HLSConfig): An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
+        qubits_initially_zero (bool): Indicates whether the input circuit is
+            zero-initialized.
 
     Returns:
         PassManager: The basis translation pass manager
@@ -469,6 +474,7 @@ def generate_translation_passmanager(
                 use_qubit_indices=True,
                 equivalence_library=sel,
                 basis_gates=basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
             ),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -493,6 +499,7 @@ def generate_translation_passmanager(
                 use_qubit_indices=True,
                 basis_gates=basis_gates,
                 min_qubits=3,
+                qubits_initially_zero=qubits_initially_zero,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
@@ -515,6 +522,7 @@ def generate_translation_passmanager(
                 target=target,
                 use_qubit_indices=True,
                 basis_gates=basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
             ),
         ]
     else:
@@ -522,6 +530,7 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def generate_scheduling(
     instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
 ):
@@ -533,7 +542,7 @@ def generate_scheduling(
             ``'asap'``/``'as_soon_as_possible'`` or
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
+        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gate to schedule.
         target (Target): The :class:`~.Target` object representing the backend
 
     Returns:

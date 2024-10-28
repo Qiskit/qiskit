@@ -27,7 +27,7 @@ pub struct DAGNode {
 }
 
 /// A DAG representation of the logical circuit to be routed.  This represents the same dataflow
-/// dependences as the Python-space [DAGCircuit], but without any information about _what_ the
+/// dependencies as the Python-space [DAGCircuit], but without any information about _what_ the
 /// operations being performed are. Note that all the qubit references here are to "virtual"
 /// qubits, that is, the qubits are those specified by the user.  This DAG does not need to be
 /// full-width on the hardware.

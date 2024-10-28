@@ -34,6 +34,7 @@ The circuit itself keeps this context.
 from __future__ import annotations
 
 import copy
+import warnings
 from itertools import zip_longest
 import math
 from typing import List, Type
@@ -47,7 +48,7 @@ from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-
+from qiskit.utils import deprecate_func
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -102,7 +103,23 @@ class Instruction(Operation):
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
+        if duration is not None:
+            warnings.warn(
+                "Setting a custom duration per instruction is deprecated as of Qiskit "
+                "1.3.0. It will be removed in Qiskit 2.0.0. An instruction's duration "
+                "is defined in a backend's Target object.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._duration = duration
+        if unit is not None and unit != "dt":
+            warnings.warn(
+                "Setting a custom unit for duration per instruction is deprecated as of Qiskit "
+                "1.3.0. It will be removed in Qiskit 2.0.0. An instruction's duration "
+                "is defined in a backend's Target object which has a fixed unit in seconds.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
@@ -115,12 +132,12 @@ class Instruction(Operation):
         The "base class" of an instruction is the lowest class in its inheritance tree that the
         object should be considered entirely compatible with for _all_ circuit applications.  This
         typically means that the subclass is defined purely to offer some sort of programmer
-        convenience over the base class, and the base class is the "true" class for a behavioural
+        convenience over the base class, and the base class is the "true" class for a behavioral
         perspective.  In particular, you should *not* override :attr:`base_class` if you are
         defining a custom version of an instruction that will be implemented differently by
-        hardware, such as an alternative measurement strategy, or a version of a parametrised gate
+        hardware, such as an alternative measurement strategy, or a version of a parametrized gate
         with a particular set of parameters for the purposes of distinguishing it in a
-        :class:`.Target` from the full parametrised gate.
+        :class:`.Target` from the full parametrized gate.
 
         This is often exactly equivalent to ``type(obj)``, except in the case of singleton instances
         of standard-library instructions.  These singleton instances are special subclasses of their
@@ -188,11 +205,12 @@ class Instruction(Operation):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            try:
+            if isinstance(self_param, numpy.ndarray):
+                if numpy.array_equal(self_param, other_param):
+                    continue
+            else:
                 if self_param == other_param:
                     continue
-            except ValueError:
-                pass
 
             try:
                 self_asarray = numpy.asarray(self_param)
@@ -300,7 +318,7 @@ class Instruction(Operation):
         """Return whether the :class:`Instruction` contains :ref:`compile-time parameters
         <circuit-compile-time-parameters>`."""
         return any(
-            isinstance(param, ParameterExpression) and param.parameters for param in self.params
+            isinstance(param, ParameterExpression) and param.parameters for param in self._params
         )
 
     @property
@@ -339,28 +357,44 @@ class Instruction(Operation):
         sel.add_equivalence(self, decomposition)
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
     def duration(self):
         """Get the duration."""
         return self._duration
 
     @duration.setter
-    def duration(self, duration):
+    def duration(self, value):
         """Set the duration."""
-        self._duration = duration
+        self._duration = value
 
     @property
+    @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 2.0.0", is_property=True)
     def unit(self):
         """Get the time unit of duration."""
         return self._unit
 
     @unit.setter
-    def unit(self, unit):
+    def unit(self, value):
         """Set the time unit of duration."""
-        self._unit = unit
+        self._unit = value
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
+        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
+        "workflow requires `Qobj` it likely relies on deprecated functionality and "
+        "should be updated to use `BackendV2`.",
+    )
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        return self._assemble()
+
+    def _assemble(self):
+        with warnings.catch_warnings():
+            # The class QasmQobjInstruction is deprecated
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
             params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]

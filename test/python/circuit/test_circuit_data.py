@@ -184,7 +184,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(len(visited_ops), len(data_list))
         self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
 
-    def test_map_ops(self):
+    def test_map_nonstandard_ops(self):
         """Test all operations are replaced."""
         qr = QuantumRegister(5)
 
@@ -203,7 +203,7 @@ class TestQuantumCircuitData(QiskitTestCase):
             CircuitInstruction(CustomXGate(), [qr[4]], []),
         ]
         data = CircuitData(qubits=list(qr), data=data_list)
-        data.map_ops(lambda op: op.to_mutable())
+        data.map_nonstandard_ops(lambda op: op.to_mutable())
         self.assertTrue(all(inst.operation.mutable for inst in data))
 
     def test_replace_bits(self):
@@ -402,6 +402,26 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
     # N.B. Most of the cases here are not expected use cases of circuit.data
     # but are included as tests to maintain compatability with the previous
     # list interface of circuit.data.
+
+    def test_iteration_of_data_entry(self):
+        """Verify that the base types of the legacy tuple iteration are correct, since they're
+        different to attribute access."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.measure([0, 1, 2], [0, 1, 2])
+
+        def to_legacy(instruction):
+            return (instruction.operation, list(instruction.qubits), list(instruction.clbits))
+
+        expected = [to_legacy(instruction) for instruction in qc.data]
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Treating CircuitInstruction as an iterable is deprecated"
+        ):
+            actual = [tuple(instruction) for instruction in qc.data]
+        self.assertEqual(actual, expected)
 
     def test_getitem_by_insertion_order(self):
         """Verify one can get circuit.data items in insertion order."""
@@ -839,6 +859,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         # A fancy way of doing qc0_instance = qc0.data[0] and qc1_instance = qc1.data[0]
         # but this at least verifies the parameter table is point from the parameter to
         # the correct instruction (which is the only one)
-        qc0_instance = qc0._data[next(iter(qc0._data._get_param(b.uuid.int)))[0]]
-        qc1_instance = qc1._data[next(iter(qc1._data._get_param(a.uuid.int)))[0]]
+        qc0_instance = qc0._data[next(iter(qc0._data._raw_parameter_table_entry(b)))[0]]
+        qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)

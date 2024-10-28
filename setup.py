@@ -22,7 +22,7 @@ from setuptools_rust import Binding, RustExtension
 #
 #   python setup.py build_rust --inplace --release
 #
-# to make optimised Rust components even for editable releases, which would otherwise be quite
+# to make optimized Rust components even for editable releases, which would otherwise be quite
 # unergonomic to do otherwise.
 
 
@@ -51,5 +51,5 @@ setup(
             features=features,
         )
     ],
-    options={"bdist_wheel": {"py_limited_api": "cp38"}},
+    options={"bdist_wheel": {"py_limited_api": "cp39"}},
 )

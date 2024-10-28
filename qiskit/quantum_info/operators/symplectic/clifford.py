@@ -92,7 +92,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Print the Clifford stabilizer rows
         print(cliff.to_labels(mode="S"))
 
-    .. parsed-literal::
+    .. code-block:: text
 
         Clifford: Stabilizer = ['+XX', '+ZZ'], Destabilizer = ['+IZ', '+XI']
         ['+IZ', '+XI']
@@ -185,7 +185,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 isinstance(data, (list, np.ndarray))
                 and (data_asarray := np.asarray(data, dtype=bool)).ndim == 2
             ):
-                # This little dance is to avoid Numpy 1/2 incompatiblities between the availability
+                # This little dance is to avoid Numpy 1/2 incompatibilities between the availability
                 # and meaning of the 'copy' argument in 'array' and 'asarray', when the input needs
                 # its dtype converting.  'asarray' prefers to return 'self' if possible in both.
                 if copy and np.may_share_memory(data, data_asarray):

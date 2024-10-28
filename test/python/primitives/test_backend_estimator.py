@@ -88,14 +88,16 @@ class TestBackendEstimator(QiskitTestCase):
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
-        estimator = BackendEstimator(backend=backend)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend)
         estimator.set_options(seed_simulator=123)
 
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        job = estimator.run([psi1], [hamiltonian1], [theta1])
-        result = job.result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            job = estimator.run([psi1], [hamiltonian1], [theta1])
+            result = job.result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.5, atol=0.2)
 
         # Objects can be passed instead of indices.
@@ -103,19 +105,26 @@ class TestBackendEstimator(QiskitTestCase):
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
         # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
-        result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
+        with self.assertWarns(DeprecationWarning):
+            result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
         np.testing.assert_allclose(result2.values, [2.97797666], rtol=0.5, atol=0.2)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        result3 = estimator.run([psi1, psi1], [hamiltonian2, hamiltonian3], [theta1] * 2).result()
+        with self.assertWarns(DeprecationWarning):
+            result3 = estimator.run(
+                [psi1, psi1], [hamiltonian2, hamiltonian3], [theta1] * 2
+            ).result()
         np.testing.assert_allclose(result3.values, [-0.551653, 0.07535239], rtol=0.5, atol=0.2)
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        result4 = estimator.run(
-            [psi1, psi2, psi1], [hamiltonian1, hamiltonian2, hamiltonian3], [theta1, theta2, theta3]
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            result4 = estimator.run(
+                [psi1, psi2, psi1],
+                [hamiltonian1, hamiltonian2, hamiltonian3],
+                [theta1, theta2, theta3],
+            ).result()
         np.testing.assert_allclose(
             result4.values, [1.55555728, 0.17849238, -1.08766318], rtol=0.5, atol=0.2
         )
@@ -124,10 +133,11 @@ class TestBackendEstimator(QiskitTestCase):
     def test_estimator_run_no_params(self, backend):
         """test for estimator without parameters"""
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
-        est = BackendEstimator(backend=backend)
-        est.set_options(seed_simulator=123)
-        result = est.run([circuit], [self.observable]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend=backend)
+            est.set_options(seed_simulator=123)
+            result = est.run([circuit], [self.observable]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
 
     @combine(backend=BACKENDS, creg=[True, False])
@@ -140,22 +150,26 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = BackendEstimator(backend=backend)
-        est.set_options(seed_simulator=123)
-        result = est.run([qc], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend=backend)
+            est.set_options(seed_simulator=123)
+            result = est.run([qc], [op], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc], [op2], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc2], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc2], [op], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc2], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc2], [op2], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1], rtol=0.1)
 
     @combine(backend=BACKENDS, creg=[True, False])
@@ -170,29 +184,35 @@ class TestBackendEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = BackendEstimator(backend=backend)
-        result = est.run([qc], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend=backend)
+            result = est.run([qc], [op], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc2], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc2], [op], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc], [op2], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc2], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc2], [op2], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc], [op3], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc], [op3], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
 
-        result = est.run([qc2], [op3], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            result = est.run([qc2], [op3], [[]]).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1], rtol=0.1)
 
     @combine(backend=BACKENDS)
@@ -204,18 +224,19 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
 
-        est = BackendEstimator(backend=backend)
-        est.set_options(seed_simulator=123)
-        with self.assertRaises(ValueError):
-            est.run([qc], [op2], [[]]).result()
-        with self.assertRaises(ValueError):
-            est.run([qc], [op], [[1e4]]).result()
-        with self.assertRaises(ValueError):
-            est.run([qc2], [op2], [[1, 2]]).result()
-        with self.assertRaises(ValueError):
-            est.run([qc, qc2], [op2], [[1]]).result()
-        with self.assertRaises(ValueError):
-            est.run([qc], [op, op2], [[1]]).result()
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend=backend)
+            est.set_options(seed_simulator=123)
+            with self.assertRaises(ValueError):
+                est.run([qc], [op2], [[]]).result()
+            with self.assertRaises(ValueError):
+                est.run([qc], [op], [[1e4]]).result()
+            with self.assertRaises(ValueError):
+                est.run([qc2], [op2], [[1, 2]]).result()
+            with self.assertRaises(ValueError):
+                est.run([qc, qc2], [op2], [[1]]).result()
+            with self.assertRaises(ValueError):
+                est.run([qc], [op, op2], [[1]]).result()
 
     @combine(backend=BACKENDS)
     def test_run_numpy_params(self, backend):
@@ -226,52 +247,58 @@ class TestBackendEstimator(QiskitTestCase):
         params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = BackendEstimator(backend=backend)
-        estimator.set_options(seed_simulator=123)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend)
+            estimator.set_options(seed_simulator=123)
 
-        target = estimator.run([qc] * k, [op] * k, params_list).result()
+            target = estimator.run([qc] * k, [op] * k, params_list).result()
 
         with self.subTest("ndarrary"):
-            result = estimator.run([qc] * k, [op] * k, params_array).result()
+            with self.assertWarns(DeprecationWarning):
+                result = estimator.run([qc] * k, [op] * k, params_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
 
         with self.subTest("list of ndarray"):
-            result = estimator.run([qc] * k, [op] * k, params_list_array).result()
+            with self.assertWarns(DeprecationWarning):
+                result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
 
     @combine(backend=BACKENDS)
     def test_run_with_shots_option(self, backend):
         """test with shots option."""
-        est = BackendEstimator(backend=backend)
-        result = est.run(
-            [self.ansatz],
-            [self.observable],
-            parameter_values=[[0, 1, 1, 2, 3, 5]],
-            shots=1024,
-            seed_simulator=15,
-        ).result()
-        self.assertIsInstance(result, EstimatorResult)
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend=backend)
+            result = est.run(
+                [self.ansatz],
+                [self.observable],
+                parameter_values=[[0, 1, 1, 2, 3, 5]],
+                shots=1024,
+                seed_simulator=15,
+            ).result()
+            self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.1)
 
     @combine(backend=BACKENDS)
     def test_options(self, backend):
         """Test for options"""
         with self.subTest("init"):
-            estimator = BackendEstimator(backend=backend, options={"shots": 3000})
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(backend=backend, options={"shots": 3000})
             self.assertEqual(estimator.options.get("shots"), 3000)
         with self.subTest("set_options"):
             estimator.set_options(shots=1024, seed_simulator=15)
             self.assertEqual(estimator.options.get("shots"), 1024)
             self.assertEqual(estimator.options.get("seed_simulator"), 15)
         with self.subTest("run"):
-            result = estimator.run(
-                [self.ansatz],
-                [self.observable],
-                parameter_values=[[0, 1, 1, 2, 3, 5]],
-            ).result()
-            self.assertIsInstance(result, EstimatorResult)
+            with self.assertWarns(DeprecationWarning):
+                result = estimator.run(
+                    [self.ansatz],
+                    [self.observable],
+                    parameter_values=[[0, 1, 1, 2, 3, 5]],
+                ).result()
+                self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.1)
 
     def test_job_size_limit_v2(self):
@@ -284,21 +311,25 @@ class TestBackendEstimator(QiskitTestCase):
             def max_circuits(self):
                 return 1
 
-        backend = FakeBackendLimitedCircuits(num_qubits=5)
+        backend = FakeBackendLimitedCircuits(num_qubits=5, seed=42)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
         params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
-        estimator = BackendEstimator(backend=backend)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend)
         with patch.object(backend, "run") as run_mock:
-            estimator.run([qc] * k, [op] * k, params_list).result()
+            with self.assertWarns(DeprecationWarning):
+                estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_v1(self):
-        """Test BackendEstimator respects job size limit"""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimator respects job size limit
+        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
         backend._configuration = config
@@ -307,15 +338,19 @@ class TestBackendEstimator(QiskitTestCase):
         k = 5
         params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
-        estimator = BackendEstimator(backend=backend)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend)
         estimator.set_options(seed_simulator=123)
         with patch.object(backend, "run") as run_mock:
-            estimator.run([qc] * k, [op] * k, params_list).result()
+            with self.assertWarns(DeprecationWarning):
+                estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
     def test_no_max_circuits(self):
-        """Test BackendEstimator works with BackendV1 and no max_experiments set."""
-        backend = Fake7QPulseV1()
+        """Test BackendEstimator works with BackendV1 and no max_experiments set.
+        REMOVE ONCE Fake7QPulseV1 GETS REMOVED"""
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake7QPulseV1()
         config = backend.configuration()
         del config.max_experiments
         backend._configuration = config
@@ -325,16 +360,19 @@ class TestBackendEstimator(QiskitTestCase):
         params_array = self._rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = BackendEstimator(backend=backend)
-        estimator.set_options(seed_simulator=123)
-        target = estimator.run([qc] * k, [op] * k, params_list).result()
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend)
+            estimator.set_options(seed_simulator=123)
+            target = estimator.run([qc] * k, [op] * k, params_list).result()
         with self.subTest("ndarrary"):
-            result = estimator.run([qc] * k, [op] * k, params_array).result()
+            with self.assertWarns(DeprecationWarning):
+                result = estimator.run([qc] * k, [op] * k, params_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
 
         with self.subTest("list of ndarray"):
-            result = estimator.run([qc] * k, [op] * k, params_list_array).result()
+            with self.assertWarns(DeprecationWarning):
+                result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
 
@@ -352,8 +390,11 @@ class TestBackendEstimator(QiskitTestCase):
 
             bound_counter = CallbackPass("bound_pass_manager", callback)
             bound_pass = PassManager(bound_counter)
-            estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
-            _ = estimator.run(qc, op).result()
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(
+                    backend=GenericBackendV2(num_qubits=5, seed=42), bound_pass_manager=bound_pass
+                )
+                _ = estimator.run(qc, op).result()
             expected = [
                 "bound_pass_manager",
             ]
@@ -372,8 +413,12 @@ class TestBackendEstimator(QiskitTestCase):
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
                 bound_pass = PassManager(bound_counter)
-                estimator = BackendEstimator(backend=Fake7QPulseV1(), bound_pass_manager=bound_pass)
-                _ = estimator.run([qc, qc], [op, op]).result()
+                with self.assertWarns(DeprecationWarning):
+                    estimator = BackendEstimator(
+                        backend=GenericBackendV2(num_qubits=5, seed=42),
+                        bound_pass_manager=bound_pass,
+                    )
+                    _ = estimator.run([qc, qc], [op, op]).result()
                 expected = [
                     "bound_pass_manager",
                     "bound_pass_manager",
@@ -390,9 +435,10 @@ class TestBackendEstimator(QiskitTestCase):
             qc.cx(0, 2)
             op = SparsePauliOp("IZI")
             backend.set_options(seed_simulator=15)
-            estimator = BackendEstimator(backend)
-            estimator.set_transpile_options(seed_transpiler=15)
-            value = estimator.run(qc, op, shots=10000).result().values[0]
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(backend)
+                estimator.set_transpile_options(seed_transpiler=15, optimization_level=1)
+                value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
                 ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
             else:
@@ -405,10 +451,13 @@ class TestBackendEstimator(QiskitTestCase):
             qc.cx(0, 1)
             qc.cx(0, 2)
             op = SparsePauliOp("IZI")
-            estimator = BackendEstimator(backend)
-            estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
-            estimator.set_options(seed_simulator=15)
-            value = estimator.run(qc, op, shots=10000).result().values[0]
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(backend)
+                estimator.set_transpile_options(
+                    initial_layout=[0, 1, 2], seed_transpiler=15, optimization_level=1
+                )
+                estimator.set_options(seed_simulator=15)
+                value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
                 ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.8902
             else:
@@ -428,9 +477,10 @@ class TestBackendEstimator(QiskitTestCase):
 
         backend = AerSimulator()
         backend.set_options(seed_simulator=15)
-        estimator = BackendEstimator(backend, skip_transpilation=True)
-        estimator.set_transpile_options(seed_transpiler=15)
-        result = estimator.run(bell, observable).result()
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend, skip_transpilation=True)
+            estimator.set_transpile_options(seed_transpiler=15)
+            result = estimator.run(bell, observable).result()
         self.assertAlmostEqual(result.values[0], 1, places=1)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
@@ -449,9 +499,10 @@ class TestBackendEstimator(QiskitTestCase):
 
         backend = AerSimulator()
         backend.set_options(seed_simulator=15)
-        estimator = BackendEstimator(backend, skip_transpilation=True)
-        estimator.set_transpile_options(seed_transpiler=15)
-        result = estimator.run(qc, observable).result()
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend, skip_transpilation=True)
+            estimator.set_transpile_options(seed_transpiler=15)
+            result = estimator.run(qc, observable).result()
         self.assertAlmostEqual(result.values[0], 0, places=1)
 
 

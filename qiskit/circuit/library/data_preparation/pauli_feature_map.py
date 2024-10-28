@@ -12,15 +12,313 @@
 
 """The Pauli expansion circuit module."""
 
-from typing import Optional, Callable, List, Union
+from __future__ import annotations
+
+from collections.abc import Sequence, Mapping
+from typing import Optional, Callable, List, Union, Dict, Tuple
 from functools import reduce
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.library.standard_gates import HGate
+from qiskit.utils.deprecation import deprecate_func
+from qiskit._accelerate.circuit_library import pauli_feature_map as _fast_map
 
 from ..n_local.n_local import NLocal
+
+
+def _normalize_entanglement(
+    entanglement: str | Mapping[int, Sequence[Sequence[int]]]
+) -> str | dict[int, list[tuple[int]]]:
+    if isinstance(entanglement, str):
+        return entanglement
+
+    return {
+        num_paulis: [tuple(connections) for connections in ent]
+        for num_paulis, ent in entanglement.items()
+    }
+
+
+def pauli_feature_map(
+    feature_dimension: int,
+    reps: int = 2,
+    entanglement: (
+        str
+        | Mapping[int, Sequence[Sequence[int]]]
+        | Callable[[int], str | Mapping[int, Sequence[Sequence[int]]]]
+    ) = "full",
+    alpha: float = 2.0,
+    paulis: list[str] | None = None,
+    data_map_func: Callable[[Parameter], ParameterExpression] | None = None,
+    parameter_prefix: str = "x",
+    insert_barriers: bool = False,
+    name: str = "PauliFeatureMap",
+) -> QuantumCircuit:
+    r"""The Pauli expansion circuit.
+
+    The Pauli expansion circuit is a data encoding circuit that transforms input data
+    :math:`\vec{x} \in \mathbb{R}^n`, where :math:`n` is the ``feature_dimension``, as
+
+    .. math::
+
+        U_{\Phi(\vec{x})}=\exp\left(i\sum_{S \in \mathcal{I}}
+        \phi_S(\vec{x})\prod_{i\in S} P_i\right).
+
+    Here, :math:`S` is a set of qubit indices that describes the connections in the feature map,
+    :math:`\mathcal{I}` is a set containing all these index sets, and
+    :math:`P_i \in \{I, X, Y, Z\}`. Per default the data-mapping
+    :math:`\phi_S` is
+
+    .. math::
+
+        \phi_S(\vec{x}) = \begin{cases}
+            x_i \text{ if } S = \{i\} \\
+            \prod_{j \in S} (\pi - x_j) \text{ if } |S| > 1
+            \end{cases}.
+
+    The possible connections can be set using the ``entanglement`` and ``paulis`` arguments.
+    For example, for single-qubit :math:`Z` rotations and two-qubit :math:`YY` interactions
+    between all qubit pairs, we can set::
+
+
+        circuit = pauli_feature_map(..., paulis=["Z", "YY"], entanglement="full")
+
+    which will produce blocks of the form
+
+    .. code-block:: text
+
+        ┌───┐┌─────────────┐┌──────────┐                                            ┌───────────┐
+        ┤ H ├┤ P(2.0*x[0]) ├┤ RX(pi/2) ├──■──────────────────────────────────────■──┤ RX(-pi/2) ├
+        ├───┤├─────────────┤├──────────┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐├───────────┤
+        ┤ H ├┤ P(2.0*x[1]) ├┤ RX(pi/2) ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ RX(-pi/2) ├
+        └───┘└─────────────┘└──────────┘└───┘└────────────────────────────────┘└───┘└───────────┘
+
+    The circuit contains ``reps`` repetitions of this transformation.
+
+    Please refer to :func:`.z_feature_map` for the case of single-qubit Pauli-:math:`Z` rotations
+    and to :func:`.zz_feature_map` for the single- and two-qubit Pauli-:math:`Z` rotations.
+
+    Examples:
+
+        >>> prep = pauli_feature_map(2, reps=1, paulis=["ZZ"])
+        >>> print(prep)
+             ┌───┐
+        q_0: ┤ H ├──■──────────────────────────────────────■──
+             ├───┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐
+        q_1: ┤ H ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
+             └───┘└───┘└────────────────────────────────┘└───┘
+
+        >>> prep = pauli_feature_map(2, reps=1, paulis=["Z", "XX"])
+        >>> print(prep)
+             ┌───┐┌─────────────┐┌───┐                                            ┌───┐
+        q_0: ┤ H ├┤ P(2.0*x[0]) ├┤ H ├──■──────────────────────────────────────■──┤ H ├
+             ├───┤├─────────────┤├───┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐├───┤
+        q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ H ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ H ├
+             └───┘└─────────────┘└───┘└───┘└────────────────────────────────┘└───┘└───┘
+
+        >>> prep = pauli_feature_map(2, reps=1, paulis=["ZY"])
+        >>> print(prep)
+             ┌───┐┌──────────┐                                            ┌───────────┐
+        q_0: ┤ H ├┤ RX(pi/2) ├──■──────────────────────────────────────■──┤ RX(-pi/2) ├
+             ├───┤└──────────┘┌─┴─┐┌────────────────────────────────┐┌─┴─┐└───────────┘
+        q_1: ┤ H ├────────────┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
+             └───┘            └───┘└────────────────────────────────┘└───┘
+
+        >>> from qiskit.circuit.library import EfficientSU2
+        >>> prep = pauli_feature_map(3, reps=3, paulis=["Z", "YY", "ZXZ"])
+        >>> wavefunction = EfficientSU2(3)
+        >>> classifier = prep.compose(wavefunction)
+        >>> classifier.num_parameters
+        27
+        >>> classifier.count_ops()
+        OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
+
+    References:
+
+    [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
+    `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
+    """
+    # create parameter vector used in the Pauli feature map
+    parameters = ParameterVector(parameter_prefix, feature_dimension)
+
+    # the Rust implementation expects the entanglement to be a str or list[tuple[int]] (or the
+    # callable to return these types), therefore we normalize the entanglement here
+    if callable(entanglement):
+        normalized = lambda offset: _normalize_entanglement(entanglement(offset))
+    else:
+        normalized = _normalize_entanglement(entanglement)
+
+    # construct from Rust
+    circuit = QuantumCircuit._from_circuit_data(
+        _fast_map(
+            feature_dimension,
+            paulis=paulis,
+            entanglement=normalized,
+            reps=reps,
+            parameters=parameters,
+            data_map_func=data_map_func,
+            alpha=alpha,
+            insert_barriers=insert_barriers,
+        )
+    )
+    circuit.name = name
+
+    return circuit
+
+
+def z_feature_map(
+    feature_dimension: int,
+    reps: int = 2,
+    entanglement: (
+        str | Sequence[Sequence[int]] | Callable[[int], str | Sequence[Sequence[int]]]
+    ) = "full",
+    alpha: float = 2.0,
+    data_map_func: Callable[[Parameter], ParameterExpression] | None = None,
+    parameter_prefix: str = "x",
+    insert_barriers: bool = False,
+    name: str = "ZFeatureMap",
+) -> QuantumCircuit:
+    """The first order Pauli Z-evolution circuit.
+
+    On 3 qubits and with 2 repetitions the circuit is represented by:
+
+    .. code-block:: text
+
+        ┌───┐┌─────────────┐┌───┐┌─────────────┐
+        ┤ H ├┤ P(2.0*x[0]) ├┤ H ├┤ P(2.0*x[0]) ├
+        ├───┤├─────────────┤├───┤├─────────────┤
+        ┤ H ├┤ U(2.0*x[1]) ├┤ H ├┤ P(2.0*x[1]) ├
+        ├───┤├─────────────┤├───┤├─────────────┤
+        ┤ H ├┤ P(2.0*x[2]) ├┤ H ├┤ P(2.0*x[2]) ├
+        └───┘└─────────────┘└───┘└─────────────┘
+
+    This is a sub-class of :class:`~qiskit.circuit.library.PauliFeatureMap` where the Pauli
+    strings are fixed as `['Z']`. As a result the first order expansion will be a circuit without
+    entangling gates.
+
+    Examples:
+
+        >>> prep = z_feature_map(3, reps=3, insert_barriers=True)
+        >>> print(prep)
+             ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐
+        q_0: ┤ H ├─░─┤ P(2.0*x[0]) ├─░─┤ H ├─░─┤ P(2.0*x[0]) ├─░─┤ H ├─░─┤ P(2.0*x[0]) ├
+             ├───┤ ░ ├─────────────┤ ░ ├───┤ ░ ├─────────────┤ ░ ├───┤ ░ ├─────────────┤
+        q_1: ┤ H ├─░─┤ P(2.0*x[1]) ├─░─┤ H ├─░─┤ P(2.0*x[1]) ├─░─┤ H ├─░─┤ P(2.0*x[1]) ├
+             ├───┤ ░ ├─────────────┤ ░ ├───┤ ░ ├─────────────┤ ░ ├───┤ ░ ├─────────────┤
+        q_2: ┤ H ├─░─┤ P(2.0*x[2]) ├─░─┤ H ├─░─┤ P(2.0*x[2]) ├─░─┤ H ├─░─┤ P(2.0*x[2]) ├
+             └───┘ ░ └─────────────┘ ░ └───┘ ░ └─────────────┘ ░ └───┘ ░ └─────────────┘
+
+        >>> data_map = lambda x: x[0]*x[0] + 1  # note: input is an array
+        >>> prep = z_feature_map(3, reps=1, data_map_func=data_map)
+        >>> print(prep)
+             ┌───┐┌──────────────────────┐
+        q_0: ┤ H ├┤ P(2.0*x[0]**2 + 2.0) ├
+             ├───┤├──────────────────────┤
+        q_1: ┤ H ├┤ P(2.0*x[1]**2 + 2.0) ├
+             ├───┤├──────────────────────┤
+        q_2: ┤ H ├┤ P(2.0*x[2]**2 + 2.0) ├
+             └───┘└──────────────────────┘
+
+        >>> from qiskit.circuit.library import TwoLocal
+        >>> ry = TwoLocal(3, "ry", "cz", reps=1).decompose()
+        >>> classifier = z_feature_map(3, reps=1) + ry
+        >>> print(classifier)
+             ┌───┐┌─────────────┐┌──────────┐      ┌──────────┐
+        q_0: ┤ H ├┤ P(2.0*x[0]) ├┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├────────────
+             ├───┤├─────────────┤├──────────┤ │  │ └──────────┘┌──────────┐
+        q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ RY(θ[1]) ├─■──┼──────■──────┤ RY(θ[4]) ├
+             ├───┤├─────────────┤├──────────┤    │      │      ├──────────┤
+        q_2: ┤ H ├┤ P(2.0*x[2]) ├┤ RY(θ[2]) ├────■──────■──────┤ RY(θ[5]) ├
+             └───┘└─────────────┘└──────────┘                  └──────────┘
+
+    """
+    return pauli_feature_map(
+        feature_dimension=feature_dimension,
+        reps=reps,
+        entanglement=entanglement,
+        alpha=alpha,
+        paulis=["z"],
+        data_map_func=data_map_func,
+        parameter_prefix=parameter_prefix,
+        insert_barriers=insert_barriers,
+        name=name,
+    )
+
+
+def zz_feature_map(
+    feature_dimension: int,
+    reps: int = 2,
+    entanglement: (
+        str | Sequence[Sequence[int]] | Callable[[int], str | Sequence[Sequence[int]]]
+    ) = "full",
+    alpha: float = 2.0,
+    data_map_func: Callable[[Parameter], ParameterExpression] | None = None,
+    parameter_prefix: str = "x",
+    insert_barriers: bool = False,
+    name: str = "ZZFeatureMap",
+) -> QuantumCircuit:
+    r"""Second-order Pauli-Z evolution circuit.
+
+    For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
+
+    .. code-block:: text
+
+        ┌───┐┌────────────────┐
+        ┤ H ├┤ P(2.0*φ(x[0])) ├──■───────────────────────────■───────────────────────────────────
+        ├───┤├────────────────┤┌─┴─┐┌─────────────────────┐┌─┴─┐
+        ┤ H ├┤ P(2.0*φ(x[1])) ├┤ X ├┤ P(2.0*φ(x[0],x[1])) ├┤ X ├──■───────────────────────────■──
+        ├───┤├────────────────┤└───┘└─────────────────────┘└───┘┌─┴─┐┌─────────────────────┐┌─┴─┐
+        ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
+        └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
+
+    where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
+    if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
+
+    Examples:
+
+        >>> from qiskit.circuit.library import ZZFeatureMap
+        >>> prep = zz_feature_map(2, reps=1)
+        >>> print(prep)
+             ┌───┐┌─────────────┐
+        q_0: ┤ H ├┤ P(2.0*x[0]) ├──■──────────────────────────────────────■──
+             ├───┤├─────────────┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐
+        q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
+             └───┘└─────────────┘└───┘└────────────────────────────────┘└───┘
+
+        >>> from qiskit.circuit.library import EfficientSU2
+        >>> classifier = zz_feature_map(3) + EfficientSU2(3)
+        >>> classifier.num_parameters
+        15
+        >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters
+        ParameterView([
+            ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
+            ParameterVectorElement(x[2]), ParameterVectorElement(θ[0]),
+            ParameterVectorElement(θ[1]), ParameterVectorElement(θ[2]),
+            ParameterVectorElement(θ[3]), ParameterVectorElement(θ[4]),
+            ParameterVectorElement(θ[5]), ParameterVectorElement(θ[6]),
+            ParameterVectorElement(θ[7]), ParameterVectorElement(θ[8]),
+            ParameterVectorElement(θ[9]), ParameterVectorElement(θ[10]),
+            ParameterVectorElement(θ[11]), ParameterVectorElement(θ[12]),
+            ParameterVectorElement(θ[13]), ParameterVectorElement(θ[14]),
+            ParameterVectorElement(θ[15]), ParameterVectorElement(θ[16]),
+            ParameterVectorElement(θ[17]), ParameterVectorElement(θ[18]),
+            ParameterVectorElement(θ[19]), ParameterVectorElement(θ[20]),
+            ParameterVectorElement(θ[21]), ParameterVectorElement(θ[22]),
+            ParameterVectorElement(θ[23])
+        ])
+    """
+    return pauli_feature_map(
+        feature_dimension=feature_dimension,
+        reps=reps,
+        entanglement=entanglement,
+        alpha=alpha,
+        paulis=["z", "zz"],
+        data_map_func=data_map_func,
+        parameter_prefix=parameter_prefix,
+        insert_barriers=insert_barriers,
+        name=name,
+    )
 
 
 class PauliFeatureMap(NLocal):
@@ -55,13 +353,13 @@ class PauliFeatureMap(NLocal):
 
     which will produce blocks of the form
 
-    .. parsed-literal::
+    .. code-block:: text
 
-        ┌───┐┌──────────────┐┌──────────┐                                             ┌───────────┐
-        ┤ H ├┤ U1(2.0*x[0]) ├┤ RX(pi/2) ├──■───────────────────────────────────────■──┤ RX(-pi/2) ├
-        ├───┤├──────────────┤├──────────┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐├───────────┤
-        ┤ H ├┤ U1(2.0*x[1]) ├┤ RX(pi/2) ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ RX(-pi/2) ├
-        └───┘└──────────────┘└──────────┘└───┘└─────────────────────────────────┘└───┘└───────────┘
+        ┌───┐┌─────────────┐┌──────────┐                                            ┌───────────┐
+        ┤ H ├┤ P(2.0*x[0]) ├┤ RX(pi/2) ├──■──────────────────────────────────────■──┤ RX(-pi/2) ├
+        ├───┤├─────────────┤├──────────┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐├───────────┤
+        ┤ H ├┤ P(2.0*x[1]) ├┤ RX(pi/2) ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ RX(-pi/2) ├
+        └───┘└─────────────┘└──────────┘└───┘└────────────────────────────────┘└───┘└───────────┘
 
     The circuit contains ``reps`` repetitions of this transformation.
 
@@ -71,28 +369,28 @@ class PauliFeatureMap(NLocal):
     Examples:
 
         >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZZ'])
-        >>> print(prep)
+        >>> print(prep.decompose())
              ┌───┐
-        q_0: ┤ H ├──■───────────────────────────────────────■──
-             ├───┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐
-        q_1: ┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
-             └───┘└───┘└─────────────────────────────────┘└───┘
+        q_0: ┤ H ├──■──────────────────────────────────────■──
+             ├───┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐
+        q_1: ┤ H ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├
+             └───┘└───┘└────────────────────────────────┘└───┘
 
         >>> prep = PauliFeatureMap(2, reps=1, paulis=['Z', 'XX'])
-        >>> print(prep)
-             ┌───┐┌──────────────┐┌───┐                                             ┌───┐
-        q_0: ┤ H ├┤ U1(2.0*x[0]) ├┤ H ├──■───────────────────────────────────────■──┤ H ├
-             ├───┤├──────────────┤├───┤┌─┴─┐┌─────────────────────────────────┐┌─┴─┐├───┤
-        q_1: ┤ H ├┤ U1(2.0*x[1]) ├┤ H ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ H ├
-             └───┘└──────────────┘└───┘└───┘└─────────────────────────────────┘└───┘└───┘
+        >>> print(prep.decompose())
+             ┌───┐┌─────────────┐┌───┐                                            ┌───┐
+        q_0: ┤ H ├┤ P(2.0*x[0]) ├┤ H ├──■──────────────────────────────────────■──┤ H ├
+             ├───┤├─────────────┤├───┤┌─┴─┐┌────────────────────────────────┐┌─┴─┐├───┤
+        q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ H ├┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ H ├
+             └───┘└─────────────┘└───┘└───┘└────────────────────────────────┘└───┘└───┘
 
         >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZY'])
-        >>> print(prep)
-             ┌───┐┌──────────┐                                             ┌───────────┐
-        q_0: ┤ H ├┤ RX(pi/2) ├──■───────────────────────────────────────■──┤ RX(-pi/2) ├
-             ├───┤└──────────┘┌─┴─┐┌─────────────────────────────────┐┌─┴─┐└───────────┘
-        q_1: ┤ H ├────────────┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
-             └───┘            └───┘└─────────────────────────────────┘└───┘
+        >>> print(prep.decompose())
+             ┌───┐┌──────────┐                                            ┌───────────┐
+        q_0: ┤ H ├┤ RX(pi/2) ├──■──────────────────────────────────────■──┤ RX(-pi/2) ├
+             ├───┤└──────────┘┌─┴─┐┌────────────────────────────────┐┌─┴─┐└───────────┘
+        q_1: ┤ H ├────────────┤ X ├┤ P(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├─────────────
+             └───┘            └───┘└────────────────────────────────┘└───┘
 
         >>> from qiskit.circuit.library import EfficientSU2
         >>> prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
@@ -105,18 +403,27 @@ class PauliFeatureMap(NLocal):
 
     References:
 
-
-
     [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
     `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
-
     """
 
+    @deprecate_func(
+        since="1.3",
+        additional_msg=(
+            "Use the pauli_feature_map function as a replacement. Note that this will no longer "
+            "return a BlueprintCircuit, but just a plain QuantumCircuit."
+        ),
+        pending=True,
+    )
     def __init__(
         self,
         feature_dimension: Optional[int] = None,
         reps: int = 2,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: Union[
+            str,
+            Dict[int, List[Tuple[int]]],
+            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
+        ] = "full",
         alpha: float = 2.0,
         paulis: Optional[List[str]] = None,
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
@@ -129,8 +436,13 @@ class PauliFeatureMap(NLocal):
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
-            entanglement: Specifies the entanglement structure. Refer to
-                :class:`~qiskit.circuit.library.NLocal` for detail.
+            entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+                ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
+                dictionary where the keys represent the number of qubits and the values are list
+                of integer-pairs specifying the indices of qubits that are entangled with one
+                another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
+                ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
+                a repetition
             alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
@@ -153,6 +465,7 @@ class PauliFeatureMap(NLocal):
             name=name,
         )
 
+        self._prefix = parameter_prefix
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ["Z", "ZZ"]
         self._alpha = alpha
@@ -209,6 +522,11 @@ class PauliFeatureMap(NLocal):
 
     @property
     def entanglement_blocks(self):
+        """The blocks in the entanglement layers.
+
+        Returns:
+            The blocks in the entanglement layers.
+        """
         return [self.pauli_block(pauli) for pauli in self._paulis]
 
     @entanglement_blocks.setter
@@ -280,6 +598,45 @@ class PauliFeatureMap(NLocal):
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
         return evo
+
+    def get_entangler_map(
+        self, rep_num: int, block_num: int, num_block_qubits: int
+    ) -> Sequence[Sequence[int]]:
+
+        # if entanglement is a Callable[[int], Union[str | Dict[...]]]
+        if callable(self._entanglement):
+            entanglement = self._entanglement(rep_num)
+        else:
+            entanglement = self._entanglement
+
+        # entanglement is Dict[int, List[List[int]]]
+        if isinstance(entanglement, dict):
+            if all(
+                isinstance(e2, (int, np.int32, np.int64))
+                for key in entanglement.keys()
+                for en in entanglement[key]
+                for e2 in en
+            ):
+                for qb, ent in entanglement.items():
+                    for en in ent:
+                        if len(en) != qb:
+                            raise ValueError(
+                                f"For num_qubits = {qb}, entanglement must be a "
+                                f"tuple of length {qb}. You specified {en}."
+                            )
+
+            # Check if the entanglement is specified for all the pauli blocks being used
+            for pauli in self.paulis:
+                if len(pauli) not in entanglement.keys():
+                    raise ValueError(f"No entanglement specified for {pauli} pauli.")
+
+            return entanglement[num_block_qubits]
+
+        else:
+            # if the entanglement is not Dict[int, List[List[int]]] or
+            # Dict[int, List[Tuple[int]]] then we fall back on the original
+            # `get_entangler_map()` method from NLocal
+            return super().get_entangler_map(rep_num, block_num, num_block_qubits)
 
 
 def self_product(x: np.ndarray) -> float:

@@ -280,6 +280,11 @@ class TestStatevectorSampler(QiskitTestCase):
         qc3 = QuantumCircuit(1, 1)
         with qc3.for_loop(range(5)):
             qc3.h(0)
+        qc4 = QuantumCircuit(2, 2)
+        qc4.h(0)
+        qc4.measure(1, 1)
+        qc4.x(0).c_if(1, 1)
+        qc4.measure(0, 0)
 
         sampler = StatevectorSampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -301,6 +306,9 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
                 _ = sampler.run([qc3]).result()
+        with self.subTest("with c_if"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc4]).result()
         with self.subTest("negative shots, run arg"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc1], shots=-1).result()
@@ -584,17 +592,21 @@ class TestStatevectorSampler(QiskitTestCase):
         c2 = ClassicalRegister(1, "c2")
 
         qc = QuantumCircuit(q, c1, c2)
-        qc.ry(np.pi / 4, 2)
-        qc.cx(2, 1)
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.measure(0, c1)
-        qc.measure(1, c2)
         qc.z(2).c_if(c1, 1)
         qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
-        cregs = [creg.name for creg in qc2.cregs]
+        # Note: qc2 has aliased cregs, c0 -> c[2] and c1 -> c[4].
+        # copy_empty_like copies the aliased cregs of qc2 to qc3.
+        qc3 = QuantumCircuit.copy_empty_like(qc2)
+        qc3.ry(np.pi / 4, 2)
+        qc3.cx(2, 1)
+        qc3.cx(0, 1)
+        qc3.h(0)
+        qc3.measure(0, 2)
+        qc3.measure(1, 4)
+        self.assertEqual(len(qc3.cregs), 3)
+        cregs = [creg.name for creg in qc3.cregs]
         target = {
             cregs[0]: {0: 4255, 4: 4297, 16: 720, 20: 726},
             cregs[1]: {0: 5000, 1: 5000},
@@ -602,7 +614,7 @@ class TestStatevectorSampler(QiskitTestCase):
         }
 
         sampler = StatevectorSampler(seed=self._seed)
-        result = sampler.run([qc2], shots=self._shots).result()
+        result = sampler.run([qc3], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
         self.assertEqual(len(data), 3)
@@ -635,6 +647,20 @@ class TestStatevectorSampler(QiskitTestCase):
         self.assertIsInstance(result[1], PubResult)
         self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
         self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        qc2 = qc.copy()
+        qc2.metadata = {"a": 1}
+        sampler = StatevectorSampler()
+        result = sampler.run([(qc, None, 10), (qc2, None, 20)]).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result.metadata, {"version": 2})
+        self.assertEqual(result[0].metadata, {"shots": 10, "circuit_metadata": qc.metadata})
+        self.assertEqual(result[1].metadata, {"shots": 20, "circuit_metadata": qc2.metadata})
 
 
 if __name__ == "__main__":

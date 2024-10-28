@@ -43,7 +43,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
-    """Create a simple pass manager that runs a template optimisation with a single transformation.
+    """Create a simple pass manager that runs a template optimization with a single transformation.
     It turns ``RX(pi/2).RY(parameter).RX(-pi/2)`` into the equivalent virtual ``RZ`` rotation, where
     if ``parameter`` is given, it will be the instance used in the template."""
     if parameter is None:
@@ -409,7 +409,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # The template optimisation should not have replaced anything, because
+        # The template optimization should not have replaced anything, because
         # that would require it to leave dummy parameters in place without
         # binding them.
         self.assertEqual(circuit_in, circuit_out)

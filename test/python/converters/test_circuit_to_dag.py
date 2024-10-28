@@ -45,14 +45,17 @@ class TestCircuitToDag(QiskitTestCase):
     def test_calibrations(self):
         """Test that calibrations are properly copied over."""
         circuit_in = QuantumCircuit(1)
-        circuit_in.add_calibration("h", [0], None)
-        self.assertEqual(len(circuit_in.calibrations), 1)
+        with self.assertWarns(DeprecationWarning):
+            circuit_in.add_calibration("h", [0], None)
+            self.assertEqual(len(circuit_in.calibrations), 1)
 
         dag = circuit_to_dag(circuit_in)
-        self.assertEqual(len(dag.calibrations), 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(dag.calibrations), 1)
 
         circuit_out = dag_to_circuit(dag)
-        self.assertEqual(len(circuit_out.calibrations), 1)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(circuit_out.calibrations), 1)
 
     def test_wires_from_expr_nodes_condition(self):
         """Test that the classical wires implied by an `Expr` node in a control-flow op's

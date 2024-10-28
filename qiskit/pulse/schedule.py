@@ -54,6 +54,7 @@ from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.utils import deprecate_arg
+from qiskit.utils.deprecate_pulse import deprecate_pulse_func
 
 
 Interval = Tuple[int, int]
@@ -81,6 +82,7 @@ class Schedule:
 
       .. code-block:: python
 
+          from qiskit.pulse import Schedule, Gaussian, DriveChannel, Play
           sched = Schedule()
           sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
@@ -120,6 +122,7 @@ class Schedule:
     # Counter to count instance number.
     instances_counter = itertools.count()
 
+    @deprecate_pulse_func
     def __init__(
         self,
         *schedules: "ScheduleComponent" | tuple[int, "ScheduleComponent"],
@@ -252,7 +255,7 @@ class Schedule:
 
         Notes:
             Nested schedules are returned as-is. If you want to collect only instructions,
-            use py:meth:`~Schedule.instructions` instead.
+            use :py:meth:`~Schedule.instructions` instead.
 
         Returns:
             A tuple, where each element is a two-tuple containing the initial
@@ -490,7 +493,7 @@ class Schedule:
     ) -> "Schedule":
         """Return a ``Schedule`` with only the instructions from this Schedule *failing*
         at least one of the provided filters.
-        This method is the complement of py:meth:`~self.filter`, so that::
+        This method is the complement of :py:meth:`~Schedule.filter`, so that::
 
             self.filter(args) | self.exclude(args) == self
 
@@ -652,8 +655,6 @@ class Schedule:
             sched = pulse.Schedule()
 
             sched += pulse.Schedule(old)
-
-            sched = sched.flatten()
 
             sched = sched.replace(old, new)
 
@@ -899,14 +900,11 @@ class ScheduleBlock:
                 pulse.reference("grand_child")
                 pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(0))
 
-    Now you assign the inner pulse program to this reference.
-
-    .. code-block::
-
-        sched_outer.assign_references({("grand_child", ): sched_inner})
+        # Now assign the inner pulse program to this reference
+        sched_outer.assign_references({("grand_child",): sched_inner})
         print(sched_outer.parameters)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        {Parameter(amp1), Parameter(amp2)}
 
@@ -920,7 +918,7 @@ class ScheduleBlock:
 
         print(sched_outer.references)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        ReferenceManager:
          - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp1,...
@@ -939,7 +937,7 @@ class ScheduleBlock:
 
         print(main.parameters)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        {Parameter(amp1), Parameter(amp2), Parameter(amp3}
 
@@ -952,7 +950,7 @@ class ScheduleBlock:
 
         print(main.references)
 
-    .. parsed-literal::
+    .. code-block:: text
 
        ReferenceManager:
          - ('child',): ScheduleBlock(ScheduleBlock(ScheduleBlock(Play(Con...
@@ -986,6 +984,7 @@ class ScheduleBlock:
     # Counter to count instance number.
     instances_counter = itertools.count()
 
+    @deprecate_pulse_func
     def __init__(
         self, name: str | None = None, metadata: dict | None = None, alignment_context=None
     ):
@@ -1300,7 +1299,7 @@ class ScheduleBlock:
     ):
         """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
         *failing* at least one of the provided filters.
-        This method is the complement of py:meth:`~self.filter`, so that::
+        This method is the complement of :py:meth:`~ScheduleBlock.filter`, so that::
 
             self.filter(args) + self.exclude(args) == self in terms of instructions included.
 
@@ -1459,7 +1458,7 @@ class ScheduleBlock:
 
             from qiskit import pulse
 
-            with pulse.build() as subroutine:
+            with pulse.build() as nested_prog:
                 pulse.delay(10, pulse.DriveChannel(0))
 
             with pulse.build() as sub_prog:
@@ -1490,7 +1489,7 @@ class ScheduleBlock:
         .. code-block:: python
 
             main_prog.assign_references({("B", ): sub_prog}, inplace=True)
-            main_prog.references[("B", )].assign_references({"A": nested_prog}, inplace=True)
+            main_prog.references[("B", )].assign_references({("A", ): nested_prog}, inplace=True)
 
         Here :attr:`.references` returns a dict-like object, and you can
         mutably update the nested reference of the particular subroutine.

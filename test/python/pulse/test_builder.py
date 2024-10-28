@@ -23,14 +23,18 @@ from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake127QPulseV1
 from qiskit.pulse import library, instructions
 from qiskit.pulse.exceptions import PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        with self.assertWarns(DeprecationWarning):
+            self.backend = FakeOpenPulse2Q()
         self.configuration = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.inst_map = self.defaults.instruction_schedule_map
@@ -43,6 +47,7 @@ class TestBuilder(QiskitTestCase):
         self.assertEqual(target_qobj_transform(program), target_qobj_transform(target))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilderBase(TestBuilder):
     """Test builder base."""
 
@@ -131,6 +136,7 @@ class TestBuilderBase(TestBuilder):
                 pass
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestContexts(TestBuilder):
     """Test builder contexts."""
 
@@ -254,6 +260,7 @@ class TestContexts(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestChannels(TestBuilder):
     """Test builder channels."""
 
@@ -278,6 +285,7 @@ class TestChannels(TestBuilder):
             self.assertEqual(pulse.control_channels(0, 1)[0], pulse.ControlChannel(0))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestInstructions(TestBuilder):
     """Test builder instructions."""
 
@@ -456,6 +464,7 @@ class TestInstructions(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestDirectives(TestBuilder):
     """Test builder directives."""
 
@@ -537,6 +546,7 @@ class TestDirectives(TestBuilder):
         self.assertEqual(schedule, pulse.ScheduleBlock())
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestUtilities(TestBuilder):
     """Test builder utilities."""
 
@@ -626,6 +636,7 @@ class TestUtilities(TestBuilder):
             np.testing.assert_allclose(pulse.seconds_to_samples(times), np.array([100, 200, 300]))
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestMacros(TestBuilder):
     """Test builder macros."""
 
@@ -689,10 +700,12 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend = Fake127QPulseV1()
+        with self.assertWarns(DeprecationWarning):
+            backend = Fake127QPulseV1()
         num_qubits = backend.configuration().num_qubits
         with pulse.build(backend) as schedule:
-            regs = pulse.measure_all()
+            with self.assertWarns(DeprecationWarning):
+                regs = pulse.measure_all()
 
         reference = backend.defaults().instruction_schedule_map.get(
             "measure", list(range(num_qubits))
@@ -747,6 +760,7 @@ class TestMacros(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestBuilderComposition(TestBuilder):
     """Test more sophisticated composite builder examples."""
 
@@ -764,7 +778,14 @@ class TestBuilderComposition(TestBuilder):
             qc = circuit.QuantumCircuit(2)
             for idx in qubit_idx:
                 qc.append(circuit.library.U2Gate(0, pi / 2), [idx])
-            return compiler.schedule(compiler.transpile(qc, backend=backend), backend)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                expected_regex="The `transpile` function will "
+                "stop supporting inputs of type `BackendV1`",
+            ):
+                transpiled = compiler.transpile(qc, backend=backend, optimization_level=1)
+            with self.assertWarns(DeprecationWarning):
+                return compiler.schedule(transpiled, backend)
 
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
@@ -784,8 +805,14 @@ class TestBuilderComposition(TestBuilder):
         # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
         single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        single_u2_qc = compiler.transpile(single_u2_qc, self.backend)
-        single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            single_u2_qc = compiler.transpile(single_u2_qc, self.backend, optimization_level=1)
+        with self.assertWarns(DeprecationWarning):
+            single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
 
         # sequential context
         sequential_reference = pulse.Schedule()
@@ -809,8 +836,14 @@ class TestBuilderComposition(TestBuilder):
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
         triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
-        align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            expected_regex="The `transpile` function will "
+            "stop supporting inputs of type `BackendV1`",
+        ):
+            triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend, optimization_level=1)
+        with self.assertWarns(DeprecationWarning):
+            align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")
 
         # measurement
         measure_reference = macros.measure(
@@ -828,6 +861,7 @@ class TestBuilderComposition(TestBuilder):
         self.assertScheduleEqual(schedule, reference)
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSubroutineCall(TestBuilder):
     """Test for calling subroutine."""
 

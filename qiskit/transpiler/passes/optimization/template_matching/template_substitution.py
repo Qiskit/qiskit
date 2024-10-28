@@ -450,7 +450,7 @@ class TemplateSubstitution:
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────┐                  ┌────────┐
             q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
@@ -460,7 +460,7 @@ class TemplateSubstitution:
 
         should only maximally match once in the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────┐
             q_0: ┤ P(-2) ├──■────────────■────────────────────────────
@@ -507,7 +507,7 @@ class TemplateSubstitution:
             to_native_symbolic = lambda x: x
 
         circuit_params, template_params = [], []
-        # Set of all parameter names that are present in the circuits to be optimised.
+        # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)

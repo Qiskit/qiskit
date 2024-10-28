@@ -15,11 +15,11 @@
 """Script to generate 'utility scale' load for profiling in a PGO context"""
 
 import os
-
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit import qasm2
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
-from qiskit import qasm2
+from qiskit.circuit.library import QuantumVolume
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 QASM_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -79,12 +79,11 @@ def _main():
         strict=False,
     )
     qaoa_circ.name = "qaoa_barabasi_albert_N100_3reps"
-    # Uncomment when this is fast enough to run during release builds
-    # qv_circ = QuantumVolume(100, seed=123456789)
-    # qv_circ.measure_all()
-    # qv_circ.name = "QV1267650600228229401496703205376"
+    qv_circ = QuantumVolume(100, seed=123456789)
+    qv_circ.measure_all()
+    qv_circ.name = "QV1267650600228229401496703205376"
     for pm in [cz_pm, ecr_pm, cx_pm]:
-        for circ in [qft_circ, square_heisenberg_circ, qaoa_circ]:
+        for circ in [qft_circ, square_heisenberg_circ, qaoa_circ, qv_circ]:
             print(f"Compiling: {circ.name}")
             pm.run(circ)
 

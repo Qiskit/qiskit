@@ -23,6 +23,8 @@ from typing import List, Union, Iterable, Tuple
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
+from qiskit.utils import deprecate_func
+from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
 class Backend:
@@ -43,7 +45,7 @@ class BackendV1(Backend, ABC):
     This abstract class is to be used for Backend objects.
     There are several classes of information contained in a Backend.
     The first are the attributes of the class itself. These should be used to
-    defined the immutable characteristics of the backend. The ``options``
+    define the immutable characteristics of the backend. The ``options``
     attribute of the backend is used to contain the dynamic user configurable
     options of the backend. It should be used more for runtime options
     that configure how the backend is used. For example, something like a
@@ -71,6 +73,14 @@ class BackendV1(Backend, ABC):
 
     version = 1
 
+    @deprecate_func(
+        since="1.2",
+        removal_timeline="in the 2.0 release",
+        additional_msg="If the backend only encapsulates a hardware description, "
+        "consider constructing a Target directly. If it is part of a provider "
+        "that gives access to execution, consider using Primitives instead. "
+        "Alternatively, consider moving to BackendV2 (see https://qisk.it/backendV1-to-V2).",
+    )
     def __init__(self, configuration, provider=None, **fields):
         """Initialize a backend class
 
@@ -86,7 +96,7 @@ class BackendV1(Backend, ABC):
 
         ..
             This next bit is necessary just because autosummary generally won't summarise private
-            methods; changing that behaviour would have annoying knock-on effects through all the
+            methods; changing that behavior would have annoying knock-on effects through all the
             rest of the documentation, so instead we just hard-code the automethod directive.
         """
         self._configuration = configuration
@@ -476,10 +486,16 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
+    @deprecate_pulse_dependency(is_property=True)
     def instruction_schedule_map(self):
         """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions defined in this backend's target."""
-        return self.target.instruction_schedule_map()
+        return self._instruction_schedule_map
+
+    @property
+    def _instruction_schedule_map(self):
+        """An alternative private path to be used internally to avoid pulse deprecation warnings."""
+        return self.target._get_instruction_schedule_map()
 
     def qubit_properties(
         self, qubit: Union[int, List[int]]
@@ -515,6 +531,7 @@ class BackendV2(Backend, ABC):
             return self.target.qubit_properties[qubit]
         return [self.target.qubit_properties[q] for q in qubit]
 
+    @deprecate_pulse_dependency
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
 
@@ -530,6 +547,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @deprecate_pulse_dependency
     def measure_channel(self, qubit: int):
         """Return the measure stimulus channel for the given qubit.
 
@@ -545,6 +563,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @deprecate_pulse_dependency
     def acquire_channel(self, qubit: int):
         """Return the acquisition channel for the given qubit.
 
@@ -560,6 +579,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @deprecate_pulse_dependency
     def control_channel(self, qubits: Iterable[int]):
         """Return the secondary drive channel for the given qubit
 

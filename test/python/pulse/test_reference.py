@@ -18,8 +18,10 @@ from qiskit import circuit, pulse
 from qiskit.pulse import ScheduleBlock, builder
 from qiskit.pulse.transforms import inline_subroutines
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils.deprecate_pulse import decorate_test_methods, ignore_pulse_deprecation_warnings
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestReference(QiskitTestCase):
     """Test for basic behavior of reference mechanism."""
 
@@ -87,7 +89,7 @@ class TestReference(QiskitTestCase):
         self.assertEqual(sched_z1.parameters, sched_y1.parameters)
 
     def test_refer_schedule_parameter_assignment(self):
-        """Test assigning to parametr in referenced schedule"""
+        """Test assigning to parameter in referenced schedule"""
         param = circuit.Parameter("name")
 
         with pulse.build() as sched_x1:
@@ -197,7 +199,7 @@ class TestReference(QiskitTestCase):
         """Test calling schedules with the same representation.
 
         sched_x1 and sched_y1 are the different subroutines, but same representation.
-        Two references shoud be created.
+        Two references should be created.
         """
         param1 = circuit.Parameter("param")
         param2 = circuit.Parameter("param")
@@ -430,9 +432,11 @@ class TestReference(QiskitTestCase):
             sched_z1.assign_references({("conflict_name",): sched_y1})
 
 
+@decorate_test_methods(ignore_pulse_deprecation_warnings)
 class TestSubroutineWithCXGate(QiskitTestCase):
     """Test called program scope with practical example of building fully parametrized CX gate."""
 
+    @ignore_pulse_deprecation_warnings
     def setUp(self):
         super().setUp()
 
@@ -539,7 +543,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
 
     def test_cnot(self):
         """Integration test with CNOT schedule construction."""
-        # echeod cross resonance
+        # echoed cross resonance
         with pulse.build(name="ecr", default_alignment="sequential") as ecr_sched:
             pulse.call(self.cr_sched, name="cr")
             pulse.call(self.xp_sched, name="xp")

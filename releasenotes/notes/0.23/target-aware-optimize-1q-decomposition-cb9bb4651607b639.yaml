@@ -3,6 +3,6 @@ features:
   - |
     The :class:`~.Optimize1qGatesDecomposition` transpiler pass has a new keyword
     argument, ``target``, on its constructor. This argument can be used to
-    specify a :class:`~.Target` object that represnts the compilation target.
+    specify a :class:`~.Target` object that represents the compilation target.
     If used it superscedes the ``basis`` argument to determine if an
     instruction in the circuit is present on the target backend.

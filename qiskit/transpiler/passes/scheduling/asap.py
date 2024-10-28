@@ -15,9 +15,8 @@
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.scheduling.base_scheduler import BaseSchedulerTransform
 from qiskit.utils.deprecation import deprecate_func
-
-from .base_scheduler import BaseSchedulerTransform
 
 
 class ASAPSchedule(BaseSchedulerTransform):
@@ -168,7 +167,7 @@ class ASAPSchedule(BaseSchedulerTransform):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.calibrations = dag.calibrations
+        new_dag._calibrations_prop = dag._calibrations_prop
 
         # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration

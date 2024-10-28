@@ -20,11 +20,10 @@ import warnings
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
@@ -33,12 +32,14 @@ from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
+from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
 
 
+@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
@@ -67,6 +68,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
     num_processes: Optional[int] = None,
+    qubits_initially_zero: bool = True,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -104,7 +106,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
+        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
             transpiler tries to get from the backend. If any user defined calibration
             is found in the map and this is used in a circuit, transpiler attaches
             the custom gate definition to the circuit. This enables one to flexibly
@@ -219,7 +221,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             * 2: heavy optimization
             * 3: even heavier optimization
 
-            If ``None``, level 1 will be chosen as default.
+            If ``None``, level 2 will be chosen as default.
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments,
@@ -285,6 +287,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
             environment variable. If set to ``None`` the system default or local user configuration
             will be used.
+        qubits_initially_zero: Indicates whether the input circuit is zero-initialized.
 
     Returns:
         The transpiled circuit(s).
@@ -313,13 +316,31 @@ def transpile(  # pylint: disable=too-many-return-statements
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get("transpile_optimization_level", 1)
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
-        # This is a temporary conversion step to allow for a smoother transition
-        # to a fully target-based transpiler pipeline while maintaining the behavior
-        # of `transpile` with BackendV1 inputs.
-        backend = BackendV2Converter(backend)
+        warnings.warn(
+            "The `transpile` function will stop supporting inputs of "
+            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
+            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
+            "should move to `BackendV2`.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        with warnings.catch_warnings():
+            # This is a temporary conversion step to allow for a smoother transition
+            # to a fully target-based transpiler pipeline while maintaining the behavior
+            # of `transpile` with BackendV1 inputs.
+            # TODO BackendV1 is deprecated and this path can be
+            #   removed once it gets removed:
+            #   https://github.com/Qiskit/qiskit/pull/12850
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
+                module="qiskit",
+            )
+            backend = BackendV2Converter(backend)
 
     if (
         scheduling_method is not None
@@ -339,10 +360,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
 
-    initial_layout = _parse_initial_layout(initial_layout)
-    approximation_degree = _parse_approximation_degree(approximation_degree)
     output_name = _parse_output_name(output_name, circuits)
-
     coupling_map = _parse_coupling_map(coupling_map)
     _check_circuits_coupling_map(circuits, coupling_map, backend)
 
@@ -372,6 +390,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         init_method=init_method,
         optimization_method=optimization_method,
         dt=dt,
+        qubits_initially_zero=qubits_initially_zero,
     )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
@@ -423,27 +442,6 @@ def _parse_coupling_map(coupling_map):
         )
     else:
         return coupling_map
-
-
-def _parse_initial_layout(initial_layout):
-    # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
-    # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
-    if initial_layout is None or isinstance(initial_layout, Layout):
-        return initial_layout
-    if isinstance(initial_layout, dict):
-        return Layout(initial_layout)
-    initial_layout = list(initial_layout)
-    if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
-        return Layout.from_qubit_list(initial_layout)
-    return initial_layout
-
-
-def _parse_approximation_degree(approximation_degree):
-    if approximation_degree is None:
-        return None
-    if approximation_degree < 0.0 or approximation_degree > 1.0:
-        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
-    return approximation_degree
 
 
 def _parse_output_name(output_name, circuits):

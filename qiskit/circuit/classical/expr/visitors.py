@@ -29,7 +29,7 @@ _T_co = typing.TypeVar("_T_co", covariant=True)
 
 class ExprVisitor(typing.Generic[_T_co]):
     """Base class for visitors to the :class:`Expr` tree.  Subclasses should override whichever of
-    the ``visit_*`` methods that they are able to handle, and should be organised such that
+    the ``visit_*`` methods that they are able to handle, and should be organized such that
     non-existent methods will never be called."""
 
     # The method names are self-explanatory and docstrings would just be noise.

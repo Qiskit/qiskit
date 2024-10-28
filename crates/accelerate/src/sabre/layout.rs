@@ -24,11 +24,12 @@ use rayon::prelude::*;
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::{NLayout, PhysicalQubit};
 
+use super::heuristic::Heuristic;
 use super::neighbor_table::NeighborTable;
 use super::route::{swap_map, swap_map_trial, RoutingTargetView};
 use super::sabre_dag::SabreDAG;
 use super::swap_map::SwapMap;
-use super::{Heuristic, NodeBlockResults, SabreResult};
+use super::{NodeBlockResults, SabreResult};
 
 use crate::dense_layout::best_subset_inner;
 
@@ -39,7 +40,7 @@ pub fn sabre_layout_and_routing(
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
-    heuristic: Heuristic,
+    heuristic: &Heuristic,
     max_iterations: usize,
     num_swap_trials: usize,
     num_random_trials: usize,
@@ -129,7 +130,7 @@ pub fn sabre_layout_and_routing(
 fn layout_trial(
     target: &RoutingTargetView,
     dag: &SabreDAG,
-    heuristic: Heuristic,
+    heuristic: &Heuristic,
     seed: u64,
     max_iterations: usize,
     num_swap_trials: usize,

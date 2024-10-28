@@ -25,8 +25,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import PauliList, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="1.2",
+    additional_msg="To initialize a circuit from a ``Statevector`` instance, "
+    + "use ``QuantumCircuit.initialize`` instead.",
+)
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state by converting the input to a quantum circuit.
 
@@ -45,6 +51,10 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
+@deprecate_func(
+    since="1.2",
+    additional_msg="Use the constructor of ``SparsePauliOp`` instead.",
+)
 def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
@@ -68,6 +78,12 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
         return SparsePauliOp(observable)
 
 
+@deprecate_func(
+    since="1.2",
+    additional_msg="Use ``QuantumCircuit.layout`` and ``SparsePauliOp.apply_layout`` "
+    + "to adjust an operator for a layout. Otherwise, use ``mthree.utils.final_measurement_mapping``. "
+    + "See https://qiskit-extensions.github.io/mthree/apidocs/utils.html for details.",
+)
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.
 
@@ -209,3 +225,23 @@ def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
     )
     inst.definition = circuit
     return inst
+
+
+def _statevector_from_circuit(
+    circuit: QuantumCircuit, rng: np.random.Generator | None
+) -> Statevector:
+    """Generate a statevector from a circuit
+
+    If the input circuit includes any resets for a some subsystem,
+    :meth:`.Statevector.reset` behaves in a stochastic way in :meth:`.Statevector.evolve`.
+    This function sets a random number generator to be reproducible.
+
+    See :meth:`.Statevector.reset` for details.
+
+    Args:
+        circuit: The quantum circuit.
+        seed: The random number generator or None.
+    """
+    sv = Statevector.from_int(0, 2**circuit.num_qubits)
+    sv.seed(rng)
+    return sv.evolve(bound_circuit_to_instruction(circuit))

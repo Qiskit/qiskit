@@ -22,6 +22,7 @@ from qiskit.circuit import Reset, Delay
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _BASIS_1Q, _BASIS_2Q
 
 
 def _get_gates(n_qubits):
@@ -471,7 +472,8 @@ def random_circuit(
     # Apply arbitrary random operations in layers across all qubits.
     for layer_number in range(depth):
         # We generate all the randomness for the layer in one go, to avoid many separate calls to
-        # the randomisation routines, which can be fairly slow.
+        # the randomization routines, which can be fairly slow.
+
         # This reliably draws too much randomness, but it's less expensive than looping over more
         # calls to the rng. After, trim it down by finding the point when we've used all the qubits.
 
@@ -517,9 +519,9 @@ def random_circuit(
             if not gate_added_flag:
                 break
 
-        # For efficiency in the Python loop, this uses Numpy vectorisation to pre-calculate the
+        # For efficiency in the Python loop, this uses Numpy vectorization to pre-calculate the
         # indices into the lists of qubits and parameters for every gate, and then suitably
-        # randomises those lists.
+        # randomizes those lists.
         q_indices = np.empty(len(gate_specs) + 1, dtype=np.int64)
         p_indices = np.empty(len(gate_specs) + 1, dtype=np.int64)
         q_indices[0] = p_indices[0] = 0
@@ -601,8 +603,9 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         QuantumCircuit: constructed circuit
     """
 
-    gates_1q = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg"]
-    gates_2q = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
+    gates_1q = list(set(_BASIS_1Q.keys()) - {"v", "w", "id", "iden", "sinv"})
+    gates_2q = list(_BASIS_2Q.keys())
+
     if gates == "all":
         if num_qubits == 1:
             gates = gates_1q
