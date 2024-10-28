@@ -108,21 +108,21 @@ def n_local(
 
         * ``"full"`` entanglement is each qubit is entangled with all the others.
         * ``"linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
-        for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
+          for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
         * ``"reverse_linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
-        for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
-        Note that if ``entanglement_blocks=="cx"`` then this option provides the same unitary as
-        ``"full"`` with fewer entangling gates.
+          for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
+          Note that if ``entanglement_blocks=="cx"`` then this option provides the same unitary as
+          ``"full"`` with fewer entangling gates.
         * ``"pairwise"`` entanglement is one layer where qubit :math:`i` is entangled with qubit
-        :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
-        is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
+          :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
+          is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
         * ``"circular"`` entanglement is linear entanglement but with an additional entanglement of the
-        first and last qubit before the linear part.
+          first and last qubit before the linear part.
         * ``"sca"`` (shifted-circular-alternating) entanglement is a generalized and modified version
-        of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
-        It consists of circular entanglement where the "long" entanglement connecting the first with
-        the last qubit is shifted by one each block.  Furthermore the role of control and target
-        qubits are swapped every block (therefore alternating).
+          of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
+          It consists of circular entanglement where the "long" entanglement connecting the first with
+          the last qubit is shifted by one each block.  Furthermore the role of control and target
+          qubits are swapped every block (therefore alternating).
 
         If an entanglement layer contains multiple blocks, then the entanglement should be
         given as list of entanglements for each block. For example::
@@ -209,12 +209,10 @@ def n_local(
         entanglement: The indices specifying on which qubits the input blocks act. This is
             specified by string describing an entanglement strategy (see the additional info)
             or a list of qubit connections.
-
             If a list of entanglement blocks is passed, different entanglement for each block can
             be specified by passing a list of entanglements. To specify varying entanglement for
             each repetition, pass a callable that takes as input the layer and returns the
             entanglement for that layer.
-
             Defaults to ``"full"``, meaning an all-to-all entanglement structure.
         reps: Specifies how often the rotation blocks and entanglement blocks are repeated.
         insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
@@ -296,6 +294,11 @@ class NLocal(BlueprintCircuit):
 
     If specified, barriers can be inserted in between every block.
     If an initial state object is provided, it is added in front of the NLocal.
+
+    .. seealso::
+
+        The :func:`.n_local` function constructs the functionally same circuit, but faster.
+
     """
 
     @deprecate_func(

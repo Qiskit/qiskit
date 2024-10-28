@@ -81,7 +81,7 @@ def efficient_su2(
 
         To specify which SU(2) gates should be used in the rotation layer, we can set the
         ``su2_gates`` argument. In addition, we can change the entanglement structure.
-        For example::
+        For example:
 
         .. plot::
             :include-source:
@@ -99,13 +99,13 @@ def efficient_su2(
         reps: Specifies how often the structure of a rotation layer followed by an entanglement
             layer is repeated.
         entanglement: The indices specifying on which qubits the input blocks act.
-            See :fun:`.n_local` for detailed information.
+            See :func:`.n_local` for detailed information.
         skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
         skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
             are entangled. If ``False``, the rotation gates act on all qubits.
         parameter_prefix: The name of the free parameters.
         insert_barriers: If True, barriers are inserted in between each layer. If False,
-             no barriers are inserted.
+            no barriers are inserted.
         name: The name of the circuit.
 
     Returns:
@@ -180,6 +180,10 @@ class EfficientSU2(TwoLocal):
              ├──────────┤├───┤  │          └───┘       ┌─┴─┐    ├──────────┤├───┤
         q_3: ┤ RX(θ[3]) ├┤ Y ├──■──────────────────────┤ X ├────┤ RX(θ[7]) ├┤ Y ├
              └──────────┘└───┘                         └───┘    └──────────┘└───┘
+
+    .. seealso::
+
+        The :func:`.efficient_su2` function constructs the functionally same circuit, but faster.
 
     """
 

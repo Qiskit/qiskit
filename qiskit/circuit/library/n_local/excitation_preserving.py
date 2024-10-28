@@ -95,13 +95,13 @@ def excitation_preserving(
         reps: Specifies how often the structure of a rotation layer followed by an entanglement
             layer is repeated.
         entanglement: The indices specifying on which qubits the input blocks act.
-            See :fun:`.n_local` for detailed information.
+            See :func:`.n_local` for detailed information.
         skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
         skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
             are entangled. If ``False``, the rotation gates act on all qubits.
         parameter_prefix: The name of the free parameters.
         insert_barriers: If True, barriers are inserted in between each layer. If False,
-             no barriers are inserted.
+            no barriers are inserted.
         name: The name of the circuit.
 
     Returns:
@@ -200,6 +200,12 @@ class ExcitationPreserving(TwoLocal):
              ├──────────┤ ░ │            ││            │ │θ[4]  ░ ├──────────┤
         q_2: ┤ RZ(θ[2]) ├─░─┤1           ├┤1           ├─■──────░─┤ RZ(θ[7]) ├
              └──────────┘ ░ └────────────┘└────────────┘        ░ └──────────┘
+
+    .. seealso::
+
+        The :func:`.excitation_preserivng` function constructs the functionally same circuit, but 
+        faster.
+
     """
 
     @deprecate_func(

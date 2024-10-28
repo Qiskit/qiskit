@@ -153,6 +153,10 @@ class PauliTwoDesign(TwoLocal):
            circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
            circuit.draw('mpl')
 
+    .. seealso::
+
+        The :func:`.pauli_two_design` function constructs the functionally same circuit, but faster.
+
     References:
 
         [1]: Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.

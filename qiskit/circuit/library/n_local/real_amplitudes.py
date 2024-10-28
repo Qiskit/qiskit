@@ -60,7 +60,7 @@ def real_amplitudes(
          └──────────┘ ░ └───┘      ░ └──────────┘ ░ └───┘      ░ └──────────┘
 
     The entanglement can be set using the ``entanglement`` keyword as string or a list of
-    index-pairs. See the documentation of :fun:`.n_local`. Additional options that can be set include
+    index-pairs. See the documentation of :func:`.n_local`. Additional options that can be set include
     the number of repetitions, skipping rotation gates on qubits that are not entangled, leaving out
     the final rotation layer and inserting barriers in between the rotation and entanglement
     layers.
@@ -102,13 +102,13 @@ def real_amplitudes(
         reps: Specifies how often the structure of a rotation layer followed by an entanglement
             layer is repeated.
         entanglement: The indices specifying on which qubits the input blocks act.
-            See :fun:`.n_local` for detailed information.
+            See :func:`.n_local` for detailed information.
         skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
         skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
             are entangled. If ``False``, the rotation gates act on all qubits.
         parameter_prefix: The name of the free parameters.
         insert_barriers: If True, barriers are inserted in between each layer. If False,
-             no barriers are inserted.
+            no barriers are inserted.
         name: The name of the circuit.
 
     Returns:
@@ -221,6 +221,10 @@ class RealAmplitudes(TwoLocal):
              ├──────────┤┌─┴─┐┌──┴───┴───┐└──────────┘┌─┴─┐┌──┴───┴───┐└──────────┘
         q_3: ┤ RY(θ[2]) ├┤ X ├┤ RY(θ[5]) ├────────────┤ X ├┤ RY(θ[8]) ├────────────
              └──────────┘└───┘└──────────┘            └───┘└──────────┘
+
+    .. seealso::
+
+        The :func:`.real_amplitudes` function constructs the functionally same circuit, but faster.
 
     """
 
