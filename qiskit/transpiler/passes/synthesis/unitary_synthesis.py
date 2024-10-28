@@ -505,7 +505,7 @@ class UnitarySynthesis(TransformationPass):
 
         if self.method == "default" and isinstance(kwargs["target"], Target):
             _coupling_edges = (
-                list(self._coupling_map.get_edges()) if self._coupling_map is not None else []
+                set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
             )
 
             out = run_default_main_loop(
