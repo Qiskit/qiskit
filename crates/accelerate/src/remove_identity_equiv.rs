@@ -78,13 +78,13 @@ fn remove_identity_equiv(
         let inst = dag.dag()[op_node].unwrap_operation();
         match inst.op.view() {
             OperationRef::Standard(gate) => {
-                match gate {
+                let (dim, trace) = match gate {
                     StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
-                            let error = get_error_cutoff(inst);
-                            if (theta / 2.).cos() * 2. < error {
-                                remove_list.push(op_node);
-                            }
+                            let trace = (theta / 2.).cos() * 2.;
+                            (2., trace)
+                        } else {
+                            continue;
                         }
                     }
                     StandardGate::RXXGate
@@ -92,10 +92,10 @@ fn remove_identity_equiv(
                     | StandardGate::RZZGate
                     | StandardGate::RZXGate => {
                         if let Param::Float(theta) = inst.params_view()[0] {
-                            let error = get_error_cutoff(inst);
-                            if (theta / 2.).cos() * 4. < error {
-                                remove_list.push(op_node);
-                            }
+                            let trace = (theta / 2.).cos() * 4.;
+                            (4., trace)
+                        } else {
+                            continue;
                         }
                     }
                     _ => {
@@ -104,16 +104,19 @@ fn remove_identity_equiv(
                             continue;
                         }
                         if let Some(matrix) = gate.matrix(inst.params_view()) {
-                            let error = get_error_cutoff(inst);
                             let dim = matrix.shape()[0] as f64;
-                            let trace: Complex64 = matrix.diag().iter().sum();
-                            let f_pro = (trace / dim).abs().powi(2);
-                            let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-                            if (1. - gate_fidelity).abs() < error {
-                                remove_list.push(op_node)
-                            }
+                            let trace = matrix.diag().iter().sum::<Complex64>().abs();
+                            (dim, trace)
+                        } else {
+                            continue;
                         }
                     }
+                };
+                let error = get_error_cutoff(inst);
+                let f_pro = (trace / dim).powi(2);
+                let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
+                if (1. - gate_fidelity).abs() < error {
+                    remove_list.push(op_node)
                 }
             }
             OperationRef::Gate(gate) => {
