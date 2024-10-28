@@ -2,7 +2,7 @@
 features_quantum_info:
   - |
     Added :meth:`.SparsePauliOperator.to_sparse_list` to convert an operator into
-    a sparse list format. This works analogous to :meth:`.SparsePauliOperator.from_sparse_list`.
+    a sparse list format. This works inversely to :meth:`.SparsePauliOperator.from_sparse_list`.
     For example::
 
       from qiskit.quantum_info import SparsePauliOp

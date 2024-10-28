@@ -22,7 +22,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils.deprecation import deprecate_arg
-from qiskit._accelerate.circuit_library import py_pauli_evolution
+from qiskit._accelerate.circuit_library import pauli_evolution
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -151,9 +151,7 @@ class ProductFormula(EvolutionSynthesis):
         else:
             # this is the fast path, where the whole evolution is constructed Rust-side
             cx_fountain = self._cx_structure == "fountain"
-            data = py_pauli_evolution(
-                num_qubits, pauli_rotations, self.insert_barriers, cx_fountain
-            )
+            data = pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers, cx_fountain)
             circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
 
         return circuit
@@ -210,7 +208,7 @@ class ProductFormula(EvolutionSynthesis):
                 local_pauli = (pauli_string, list(range(len(qubits))), coeff)
 
                 # build the circuit Rust-side
-                data = py_pauli_evolution(
+                data = pauli_evolution(
                     len(qubits),
                     [local_pauli],
                     False,

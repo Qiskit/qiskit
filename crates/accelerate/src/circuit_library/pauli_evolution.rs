@@ -13,12 +13,10 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{multiply_param, radd_param, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{imports, Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
-
-use crate::circuit_library::utils;
 
 // custom types for a more readable code
 type StandardInstruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
@@ -115,7 +113,7 @@ fn two_qubit_evolution<'a>(
         "zx" => Box::new(std::iter::once((StandardGate::RZXGate, param, qubits))),
         "yy" => Box::new(std::iter::once((StandardGate::RYYGate, param, qubits))),
         "zz" => Box::new(std::iter::once((StandardGate::RZZGate, param, qubits))),
-        // note that the CX modes (do_fountain=true/false) give the same circuit for a 2-qubit
+        // Note: the CX modes (do_fountain=true/false) give the same circuit for a 2-qubit
         // Pauli, so we just set it to false here
         _ => Box::new(multi_qubit_evolution(pauli, indices, time, false, false)),
     }
@@ -135,22 +133,25 @@ fn multi_qubit_evolution(
         .collect();
 
     // get the basis change: x -> HGate, y -> SXdgGate, z -> nothing
-    let basis_change = active_paulis
-        .clone()
-        .into_iter()
+    let basis_change: Vec<StandardInstruction> = active_paulis
+        .iter()
         .filter(|(p, _)| *p != 'z')
         .map(|(p, q)| match p {
-            'x' => (StandardGate::HGate, smallvec![], smallvec![q]),
-            'y' => (StandardGate::SXdgGate, smallvec![], smallvec![q]),
+            'x' => (StandardGate::HGate, smallvec![], smallvec![q.clone()]),
+            'y' => (StandardGate::SXdgGate, smallvec![], smallvec![q.clone()]),
             _ => unreachable!("Invalid Pauli string."), // "z" and "i" have been filtered out
-        });
+        })
+        .collect();
 
     // get the inverse basis change
-    let inverse_basis_change = basis_change.clone().map(|(gate, _, qubit)| match gate {
-        StandardGate::HGate => (gate, smallvec![], qubit),
-        StandardGate::SXdgGate => (StandardGate::SXGate, smallvec![], qubit),
-        _ => unreachable!("Invalid basis-changing Clifford."),
-    });
+    let inverse_basis_change: Vec<StandardInstruction> = basis_change
+        .iter()
+        .map(|(gate, _, qubit)| match gate {
+            StandardGate::HGate => (StandardGate::HGate, smallvec![], qubit.clone()),
+            StandardGate::SXdgGate => (StandardGate::SXGate, smallvec![], qubit.clone()),
+            _ => unreachable!("Invalid basis-changing Clifford."),
+        })
+        .collect();
 
     // get the CX propagation up to the first qubit, and down
     let (chain_up, chain_down) = match do_fountain {
@@ -178,6 +179,7 @@ fn multi_qubit_evolution(
 
     // and finally chain everything together
     basis_change
+        .into_iter()
         .chain(chain_down)
         .chain(z_rotation)
         .chain(chain_up)
@@ -215,19 +217,20 @@ fn multi_qubit_evolution(
 /// Returns:
 ///     Circuit data for to implement the evolution.
 #[pyfunction]
-#[pyo3(signature = (num_qubits, sparse_paulis, insert_barriers=false, do_fountain=false))]
+#[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, do_fountain=false))]
 pub fn py_pauli_evolution(
-    py: Python,
     num_qubits: i64,
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
     do_fountain: bool,
 ) -> PyResult<CircuitData> {
+    let py = sparse_paulis.py();
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
     let mut indices: Vec<Vec<u32>> = Vec::with_capacity(num_paulis);
     let mut times: Vec<Param> = Vec::with_capacity(num_paulis);
     let mut global_phase = Param::Float(0.0);
+    let mut modified_phase = false; // keep track of whether we modified the phase
 
     for el in sparse_paulis.iter() {
         let tuple = el.downcast::<PyTuple>()?;
@@ -235,21 +238,17 @@ pub fn py_pauli_evolution(
         let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
-            global_phase = radd_param(global_phase, time, py); // apply factor -1 at the end
+            global_phase = radd_param(global_phase, time, py);
+            modified_phase = true;
             continue;
         }
 
         paulis.push(pauli);
         times.push(time); // note we do not multiply by 2 here, this is done Python side!
-        indices.push(
-            tuple
-                .get_item(1)?
-                .downcast::<PyList>()?
-                .iter()
-                .map(|index| index.extract::<u32>())
-                .collect::<PyResult<_>>()?,
-        );
+        indices.push(tuple.get_item(1)?.extract::<Vec<u32>>()?)
     }
+
+    let barrier = get_barrier(py, num_qubits as u32);
 
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {
@@ -263,16 +262,23 @@ pub fn py_pauli_evolution(
                     ))
                 },
             );
-            as_packed.chain(utils::maybe_barrier(
-                py,
-                num_qubits as u32,
-                insert_barriers && i < (num_paulis - 1), // do not add barrier on final block
-            ))
+
+            // this creates an iterator containing a barrier only if required, otherwise it is empty
+            let maybe_barrier = (insert_barriers && i < (num_paulis - 1))
+                .then_some(Ok(barrier.clone()))
+                .into_iter();
+            as_packed.chain(maybe_barrier)
         },
     );
 
-    // apply factor -1 for global phase
-    global_phase = multiply_param(&global_phase, -1.0, py);
+    // When handling all-identity Paulis above, we added the time as global phase.
+    // However, the all-identity Paulis should add a negative phase, as they implement
+    // exp(-i t I). We apply the negative sign here, to only do a single (-1) multiplication,
+    // instead of doing it every time we find an all-identity Pauli.
+    if modified_phase {
+        global_phase = multiply_param(&global_phase, -1.0, py);
+    }
+
     CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
 }
 
@@ -300,4 +306,25 @@ fn cx_fountain(
             smallvec![ctrl, first_qubit],
         )
     }))
+}
+
+fn get_barrier(py: Python, num_qubits: u32) -> Instruction {
+    let barrier_cls = imports::BARRIER.get_bound(py);
+    let barrier = barrier_cls
+        .call1((num_qubits,))
+        .expect("Could not create Barrier Python-side");
+    let barrier_inst = PyInstruction {
+        qubits: num_qubits,
+        clbits: 0,
+        params: 0,
+        op_name: "barrier".to_string(),
+        control_flow: false,
+        instruction: barrier.into(),
+    };
+    (
+        barrier_inst.into(),
+        smallvec![],
+        (0..num_qubits).map(Qubit).collect(),
+        vec![],
+    )
 }
