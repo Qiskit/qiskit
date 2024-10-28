@@ -79,30 +79,6 @@ impl Clbit {
     }
 }
 
-// Note: Var is meant to be opaque outside of this crate, i.e.
-// users have no business creating them directly and should instead
-// get them from the containing circuit.
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Var(pub(crate) BitType);
-
-impl Var {
-    /// Construct a new [Var] object from a usize. if you have a u32 you can
-    /// create a [Var] object directly with `Var(0u32)`. This will panic
-    /// if the `usize` index exceeds `u32::MAX`.
-    #[inline(always)]
-    pub fn new(index: usize) -> Self {
-        Var(index
-            .try_into()
-            .unwrap_or_else(|_| panic!("Index value '{}' exceeds the maximum bit width!", index)))
-    }
-
-    /// Get the index of the [Var]
-    #[inline(always)]
-    pub fn index(&self) -> usize {
-        self.0 as usize
-    }
-}
-
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
@@ -142,18 +118,6 @@ impl From<BitType> for Clbit {
 
 impl From<Clbit> for BitType {
     fn from(value: Clbit) -> Self {
-        value.0
-    }
-}
-
-impl From<BitType> for Var {
-    fn from(value: BitType) -> Self {
-        Var(value)
-    }
-}
-
-impl From<Var> for BitType {
-    fn from(value: Var) -> Self {
         value.0
     }
 }
