@@ -25,16 +25,16 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     Removes gates whose effect is close to an identity operation, up to the specified
     tolerance.
-    For a cutoff fidelity :math:`f`, this pass removes gates whose average 
-    gate fidelity with respect to the identity is below :math:`f`. Concretely, 
-    a gate :math:`G` is removed if :math:`\bar F < f` where 
-    
+    For a cutoff fidelity :math:`f`, this pass removes gates whose average
+    gate fidelity with respect to the identity is below :math:`f`. Concretely,
+    a gate :math:`G` is removed if :math:`\bar F < f` where
+
     .. math::
 
-        \bar{F} = \frac{1 + F_{\text{process}}{1 + d} 
-        
+        \bar{F} = \frac{1 + F_{\text{process}}{1 + d}
+
         F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
-        
+
     where :math:`d = 2^n` is the dimension of the gate for :math:`n` qubits.
     """
 
