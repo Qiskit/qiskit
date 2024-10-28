@@ -49,10 +49,10 @@ fn remove_identity_equiv(
                             let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
                             match error_rate {
                                 Some(err) => err * degree,
-                                None => degree,
+                                None => f64::EPSILON.max(1. - degree),
                             }
                         }
-                        None => degree,
+                        None => f64::EPSILON.max(1. - degree),
                     }
                 }
             }

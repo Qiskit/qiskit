@@ -21,7 +21,7 @@ from qiskit._accelerate.remove_identity_equiv import remove_identity_equiv
 
 
 class RemoveIdentityEquivalent(TransformationPass):
-    """Remove gates with negligible effects.
+    r"""Remove gates with negligible effects.
 
     Removes gates whose effect is close to an identity operation, up to the specified
     tolerance. Zero qubit gates such as :class:`.GlobalPhaseGate` are not considered
