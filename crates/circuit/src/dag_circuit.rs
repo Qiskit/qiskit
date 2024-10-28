@@ -6195,7 +6195,7 @@ impl DAGCircuit {
     /// Retrieve a variable given its unique [Var] key within the DAG.
     ///
     /// The provided [Var] must be from this [DAGCircuit].
-    pub fn get_var(&self, py: Python, var: Var) -> Option<Bound<PyAny>> {
+    pub fn get_var<'py>(&self, py: Python<'py>, var: Var) -> Option<Bound<'py, PyAny>> {
         self.vars.get(var).map(|v| v.bind(py).clone())
     }
 
