@@ -83,7 +83,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         1.  ['II', 'ZI', '-iYY']
         2.  ['iXI']
@@ -106,7 +106,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         print("List: ", repr(pauli_list[[0, 2]]))
         print("Slice: ", repr(pauli_list[0:2]))
 
-    .. parsed-literal::
+    .. code-block:: text
 
         Integer:  Pauli('ZZ')
         List:  PauliList(['XX', 'IZ'])
@@ -576,7 +576,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             ['YX', 'ZZ', 'XZ', 'YI', 'YZ', 'II', 'XX', 'XI', 'XY', 'YY', 'IX', 'IZ',
@@ -613,7 +613,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             unique = pt.unique()
             print(unique)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ['X', 'Y', '-X', 'I', 'Z', 'iZ']
 
