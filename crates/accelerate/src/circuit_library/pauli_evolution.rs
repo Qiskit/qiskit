@@ -137,8 +137,8 @@ fn multi_qubit_evolution(
         .iter()
         .filter(|(p, _)| *p != 'z')
         .map(|(p, q)| match p {
-            'x' => (StandardGate::HGate, smallvec![], smallvec![q.clone()]),
-            'y' => (StandardGate::SXdgGate, smallvec![], smallvec![q.clone()]),
+            'x' => (StandardGate::HGate, smallvec![], smallvec![*q]),
+            'y' => (StandardGate::SXdgGate, smallvec![], smallvec![*q]),
             _ => unreachable!("Invalid Pauli string."), // "z" and "i" have been filtered out
         })
         .collect();
