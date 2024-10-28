@@ -154,7 +154,7 @@ def random_iqp(
     Example:
 
     .. plot::
-        :include-source:
+       :include-source:
 
        from qiskit.circuit.library import random_iqp
 
