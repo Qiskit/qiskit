@@ -197,6 +197,7 @@ where
                 bit
             )));
         }
+        // TODO: looks like a bug where `idx` is wrong if not strict and already exists
         Ok(idx.into())
     }
 

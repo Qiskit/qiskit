@@ -59,7 +59,7 @@ pub(crate) fn analyze_commutations_inner(
     let mut node_indices: NodeIndices = HashMap::new();
 
     for qubit in 0..dag.num_qubits() {
-        let wire = Wire::Qubit(Qubit(qubit as u32));
+        let wire = Wire::Qubit(Qubit::new(qubit));
 
         for current_gate_idx in dag.nodes_on_wire(&wire, false) {
             // get the commutation set associated with the current wire, or create a new

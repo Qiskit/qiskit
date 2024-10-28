@@ -32,9 +32,9 @@ mod rustworkx_core_vnext;
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
-pub type BitType = u32;
+pub(crate) type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
-pub struct Qubit(pub BitType);
+pub struct Qubit(pub(crate) BitType);
 
 impl Qubit {
     /// Construct a new Qubit object from a usize, if you have a u32 you can

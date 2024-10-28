@@ -60,8 +60,8 @@ fn py_check_with_coupling_map(
 fn py_check_with_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = smallvec![
-            PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
+            PhysicalQubit::new(op_args[0].index().try_into().unwrap()),
+            PhysicalQubit::new(op_args[1].index().try_into().unwrap())
         ];
 
         target.instruction_supported(inst.op.name(), Some(&qargs))

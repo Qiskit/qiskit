@@ -187,7 +187,7 @@ pub fn synth_cnot_count_full_pmh(
             (
                 StandardGate::CXGate,
                 smallvec![],
-                smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
+                smallvec![Qubit::new(ctrl), Qubit::new(target)],
             )
         });
 

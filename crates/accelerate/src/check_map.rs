@@ -72,7 +72,10 @@ fn recurse<'py>(
             {
                 return Ok(Some((
                     inst.op.name().to_string(),
-                    [qubits[0].0, qubits[1].0],
+                    [
+                        qubits[0].index().try_into().unwrap(),
+                        qubits[1].index().try_into().unwrap(),
+                    ],
                 )));
             }
         }

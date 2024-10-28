@@ -111,7 +111,7 @@ pub fn quantum_volume(
 ) -> PyResult<CircuitData> {
     let width = num_qubits as usize / 2;
     let num_unitaries = width * depth;
-    let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
+    let mut permutation: Vec<Qubit> = (0..num_qubits as usize).map(Qubit::new).collect();
 
     let kwargs = PyDict::new_bound(py);
     kwargs.set_item(intern!(py, "num_qubits"), 2)?;

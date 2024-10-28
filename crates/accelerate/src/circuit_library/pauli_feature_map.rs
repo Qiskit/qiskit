@@ -60,7 +60,7 @@ fn pauli_evolution(
     // Get pairs of (pauli, qubit) that are active, i.e. that are not the identity. Note that
     // the rest of the code also works if there are only identities, in which case we will
     // effectively return an empty iterator.
-    let qubits = indices.iter().map(|i| Qubit(*i)).collect_vec();
+    let qubits = indices.iter().map(|i| Qubit::new(*i as usize)).collect_vec();
     let binding = pauli.to_lowercase(); // lowercase for convenience
     let active_paulis = binding
         .as_str()
@@ -217,11 +217,11 @@ pub fn pauli_feature_map(
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
-    (0..feature_dimension).map(|i| {
+    (0..feature_dimension as usize).map(|i| {
         (
             StandardGate::HGate.into(),
             smallvec![],
-            vec![Qubit(i)],
+            vec![Qubit::new(i)],
             vec![] as Vec<Clbit>,
         )
     })
@@ -346,7 +346,7 @@ fn _get_barrier(py: Python, feature_dimension: u32) -> PyResult<Instruction> {
     Ok((
         barrier_inst.into(),
         smallvec![],
-        (0..feature_dimension).map(Qubit).collect(),
+        (0..feature_dimension as usize).map(Qubit::new).collect(),
         vec![] as Vec<Clbit>,
     ))
 }
