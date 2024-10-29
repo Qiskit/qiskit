@@ -102,6 +102,7 @@ fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Array2<Compl
 const UNITARY_PER_SEED: usize = 50;
 
 #[pyfunction]
+#[pyo3(signature=(num_qubits, depth, seed=None))]
 pub fn quantum_volume(
     py: Python,
     num_qubits: u32,
