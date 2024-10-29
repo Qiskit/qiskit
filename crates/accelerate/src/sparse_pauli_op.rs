@@ -331,6 +331,54 @@ struct DecomposeOut {
 ///
 /// This is an implementation of the "tensorized Pauli decomposition" presented in
 /// `Hantzko, Binkowski and Gupta (2023) <https://arxiv.org/abs/2310.13421>`__.
+///
+/// Implementation
+/// --------------
+///
+/// The original algorithm was described recurisvely, allocating new matrices for each of the
+/// block-wise sums (e.g. `op[top_left] + op[bottom_right]`).  This implementation differs in two
+/// major ways:
+///
+/// - We do not allocate new matrices recursively, but instead produce a single copy of the input
+///   and repeatedly overwrite subblocks of it at each point of the decomposition.
+/// - The implementation is rewritten as an iteration rather than a recursion.  The current "state"
+///   of the iteration is encoded in a single machine word (the `PauliLocation` struct below).
+///
+/// We do the decomposition in three "stages", with the stage changing whenever we need to change
+/// the input/output types.  The first level is mathematically the same as the middle levels, it
+/// just gets handled separately because it does the double duty of moving the data out of the
+/// Python-space strided array into a Rust-space contiguous array that we can modify in-place.
+/// The middle levels all act in-place on this newly created scratch space.  Finally, at the last
+/// level, we've completed the decomposition and need to be writing the result into the output
+/// data structures rather than into the scratch space.
+///
+/// Each "level" is handling one qubit in the operator, equivalently to the recursive procedure
+/// described in the paper referenced in the docstring.  This implementation is iterative
+/// stack-based and in place, rather than recursive.
+///
+/// We can get away with overwriting our scratch-space matrix at each point, because each
+/// element of a given subblock is used exactly twice during each decomposition - once for the `a +
+/// b` case, and once for the `a - b` case.  The second operand is the same in both cases.
+/// Illustratively, at each step we're decomposing a submatrix blockwise, where we label the blocks
+/// like this:
+///
+///   +---------+---------+          +---------+---------+
+///   |         |         |          |         |         |
+///   |    I    |    X    |          |  I + Z  |  X + Y  |
+///   |         |         |          |         |         |
+///   +---------+---------+  =====>  +---------+---------+
+///   |         |         |          |         |         |
+///   |    Y    |    Z    |          |  X - Y  |  I - Z  |
+///   |         |         |          |         |         |
+///   +---------+---------+          +---------+---------+
+///
+/// Each addition or subtraction is done elementwise, so as long as we iterate through the two pairs
+/// of coupled blocks in order in lockstep, we can write out the answers together without
+/// overwriting anything we need again.  We ignore all factors of 1/2 until the very last step, and
+/// apply them all at once.  This minimises the number of floating-point operations we have to do.
+///
+/// We store the iteration order as a stack of `PauliLocation`s, whose own docstring explains how it
+/// tracks the top-left corner and the size of the submatrix it represents.
 #[pyfunction]
 pub fn decompose_dense(
     py: Python,
@@ -361,11 +409,14 @@ pub fn decompose_dense(
     })
 }
 
-/// Apply the matrix-addition decomposition at the first level.  This is split out because it acts
-/// on an `ArrayView2`, and is responsible for populating the initial scratch space.  We can't
-/// write over the operator the user gave us (it's not ours to do that to), and anyway, we want to
-/// drop to a chunk of memory that we can 100% guarantee is contiguous, so we can elide all the
-/// stride checking.
+/// Apply the matrix-addition decomposition at the first level.
+///
+/// This is split out from the middle levels because it acts on an `ArrayView2`, and is responsible
+/// for copying the operator over into the contiguous scratch space.  We can't write over the
+/// operator the user gave us (it's not ours to do that to), and anyway, we want to drop to a chunk
+/// of memory that we can 100% guarantee is contiguous, so we can elide all the stride checking.
+/// We split this out so we can do the first decomposition at the same time as scanning over the
+/// operator to copy it.
 fn decompose_first_level(
     in_op: ArrayView2<Complex64>,
     num_qubits: usize,
@@ -375,6 +426,8 @@ fn decompose_first_level(
     let mut out_list = Vec::<PauliLocation>::new();
     let mut scratch = Vec::<Complex64>::with_capacity(side * side);
     match num_qubits {
+        // In the zero-qubit case, we don't need to write out any data and can just leave the
+        // scratch-space empty because nothing will read it.
         0 => {}
         1 => {
             // If we've only got one qubit, we just want to copy the data over in the correct
@@ -383,7 +436,10 @@ fn decompose_first_level(
             out_list.push(PauliLocation::begin(num_qubits));
         }
         _ => {
-            unsafe { scratch.set_len(side * side) };
+            // We don't write out the operator in contiguous-index order, but we can easily
+            // guarantee that we'll write to each index exactly once without reading it - we still
+            // visit every index, just in 2x2 blockwise order, not row-by-row.
+            unsafe { scratch.set_len(scratch.capacity()) };
             let mut ptr = 0usize;
 
             let cur_qubit = num_qubits - 1;
@@ -471,8 +527,11 @@ fn decompose_first_level(
     (stack, out_list, scratch)
 }
 
-/// Iteratively decompose the matrix at all levels other than the first and last.  This populates
-/// the `out_list` with locations.
+/// Iteratively decompose the matrix at all levels other than the first and last.
+///
+/// This populates the `out_list` with locations.  This is mathematically the same as the first
+/// level of the decomposition, except now we're acting in-place on our Rust-space contiguous
+/// scratch space, rather than the strided Python-space array we were originally given.
 fn decompose_middle_levels(
     mut stack: Vec<PauliLocation>,
     out_list: &mut Vec<PauliLocation>,
@@ -489,6 +548,8 @@ fn decompose_middle_levels(
         // Here we work pairwise, writing out the new values into both I and Z simultaneously (etc
         // for X and Y) so we can re-use their scratch space and avoid re-allocating.  We're doing
         // the multiple assignment `(I, Z) = (I + Z, I - Z)`.
+        //
+        // See the documentation of `decompose_dense` for more information on how this works.
         let mid = 1 << loc.qubit();
         let mut i_nonzero = false;
         let mut z_nonzero = false;
@@ -549,6 +610,16 @@ fn decompose_middle_levels(
     }
 }
 
+/// Write out the results of the final decomposition into the Pauli ZX form.
+///
+/// The calculation here is the same as the previous two sets of decomposers, but we don't want to
+/// write the result out into the scratch space to iterate needlessly once more; we want to
+/// associate each non-zero coefficient with the final Pauli in the ZX format.
+///
+/// This function applies all the factors of 1/2 that we've been skipping during the intermediate
+/// decompositions.  This means that the factors are applied to the output with `2 * output_len`
+/// floating-point operations (real and imaginary), which is a huge reduction compared to repeatedly
+/// doing it during the decomposition.
 fn decompose_last_level(
     out_list: &mut Vec<PauliLocation>,
     scratch: &[Complex64],
@@ -618,7 +689,8 @@ pauli_lookup!(PAULI_LOOKUP_4, 4, [(), (), (), ()]);
 pauli_lookup!(PAULI_LOOKUP_8, 8, [(), (), (), (), (), (), (), ()]);
 
 /// Push a complete Pauli chain into the output (`out`), if the corresponding entry is non-zero.
-/// `x` and `z` represent the symplectic X and Z bitvectors, packed into `usize`, where LSB n
+///
+/// `x` and `z` represent the symplectic X and Z bitvectors, packed into `usize`, where LSb n
 /// corresponds to qubit `n`.
 fn push_pauli_if_nonzero(
     mut x: usize,
@@ -676,6 +748,8 @@ fn push_pauli_if_nonzero(
     out.coeffs.push(value);
 }
 
+/// The "state" of an iteration step of the dense-operator decomposition routine.
+///
 /// Pack the information about which row, column and qubit we're considering into a single `usize`.
 /// Complex64 data is 16 bytes long and the operators are square and must be addressable in memory,
 /// so the row and column are hardware limited to be of width `usize::BITS / 2 - 2` each.  However,
@@ -706,12 +780,13 @@ fn push_pauli_if_nonzero(
 struct PauliLocation(usize);
 
 impl PauliLocation {
+    // These shifts and masks are used to access the three components of the bit-packed state.
     const QUBIT_SHIFT: u32 = usize::BITS - 6;
     const QUBIT_MASK: usize = (usize::MAX >> Self::QUBIT_SHIFT) << Self::QUBIT_SHIFT;
     const ROW_SHIFT: u32 = usize::BITS / 2 - 3;
     const ROW_MASK: usize =
         ((usize::MAX >> Self::ROW_SHIFT) << Self::ROW_SHIFT) & !Self::QUBIT_MASK;
-    const COL_SHIFT: u32 = 0;
+    const COL_SHIFT: u32 = 0; // Just for consistency.
     const COL_MASK: usize = usize::MAX & !Self::ROW_MASK & !Self::QUBIT_MASK;
 
     /// Create the base `PauliLocation` for an entire matrix with `num_qubits` qubits.  The initial
