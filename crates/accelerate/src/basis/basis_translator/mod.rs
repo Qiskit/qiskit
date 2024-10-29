@@ -245,8 +245,8 @@ fn extract_basis(
             .borrow();
         for (index, inst) in circuit_data.iter().enumerate() {
             let instruction_object = circuit.get_item(index)?;
-            let has_calibration =
-                circuit.call_method1(intern!(py, "has_calibration_for"), (&instruction_object,))?;
+            let has_calibration = circuit
+                .call_method1(intern!(py, "_has_calibration_for"), (&instruction_object,))?;
             if !has_calibration.is_truthy()?
                 && circuit_data.get_qargs(inst.qubits).len() >= min_qubits
             {
@@ -358,7 +358,7 @@ fn extract_basis_target_circ(
     for (index, node_obj) in circ_data.iter().enumerate() {
         let qargs = circ_data.get_qargs(node_obj.qubits);
         if circuit
-            .call_method1("has_calibration_for", (circuit.get_item(index)?,))?
+            .call_method1("_has_calibration_for", (circuit.get_item(index)?,))?
             .is_truthy()?
             || qargs.len() < min_qubits
         {
